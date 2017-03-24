@@ -1,5 +1,6 @@
 package com.crypto;
 
+import com.crypto.polonex.PoloniexExample;
 import com.crypto.quoine.QuoineBridge;
 import com.crypto.quoine.QuoineSimpleExample;
 
@@ -13,11 +14,18 @@ public class ExchangeApplication {
 	public static void main(String[] args) {
 //		SpringApplication.run(ExchangeApplication.class, args);
 
-        final QuoineBridge quoineBridge = new QuoineBridge();
-        quoineBridge.doTheWork();
+//        final QuoineBridge quoineBridge = new QuoineBridge();
+//        quoineBridge.doTheWork();
 
-        final QuoineSimpleExample quoineSimpleExample = new QuoineSimpleExample();
-        quoineSimpleExample.doTheWork();
+//        final QuoineSimpleExample quoineSimpleExample = new QuoineSimpleExample();
+//        quoineSimpleExample.doTheWork();
 
-	}
+
+        final PoloniexExample poloniexExample = new PoloniexExample();
+        poloniexExample.doWork();
+
+
+
+
+    }
 }

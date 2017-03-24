@@ -19,19 +19,8 @@ public class QuoineBridge extends QuoineBase {
 
 
 
-    private static Exchange createExchange() {
-
-        ExchangeSpecification exSpec = new ExchangeSpecification(QuoineExchange.class);
-
-        // enter your specific API access info here
-        exSpec.getExchangeSpecificParameters().put(QuoineExchange.KEY_TOKEN_ID, TOKEN_ID);
-        exSpec.getExchangeSpecificParameters().put(QuoineExchange.KEY_USER_SECRET, TOKEN_SECRET);
-
-        return ExchangeFactory.INSTANCE.createExchange(exSpec);
-    }
-
     public void doTheWork() {
-        Exchange exchange = createExchange();
+        QuoineExchange exchange = createExchange();
         // Interested in the private account functionality (authentication)
         AccountService accountService = exchange.getAccountService();
 
@@ -46,6 +35,17 @@ public class QuoineBridge extends QuoineBase {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static QuoineExchange createExchange() {
+
+        ExchangeSpecification exSpec = new ExchangeSpecification(QuoineExchange.class);
+
+        // enter your specific API access info here
+        exSpec.getExchangeSpecificParameters().put(QuoineExchange.KEY_TOKEN_ID, TOKEN_ID);
+        exSpec.getExchangeSpecificParameters().put(QuoineExchange.KEY_USER_SECRET, TOKEN_SECRET);
+
+        return (QuoineExchange)ExchangeFactory.INSTANCE.createExchange(exSpec);
     }
 
     private static void generic(AccountService accountService) throws IOException {

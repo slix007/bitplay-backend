@@ -12,11 +12,15 @@ import io.restassured.response.Response;
 public class QuoineSimpleExample extends QuoineBase {
 
     public void doTheWork() {
-        RestAssured.baseURI = BASE_URL;
         String path = "/orders?product_id=1";
-
-
         final String token = createToken(path);
+
+        useRestAssured(path, token);
+
+    }
+
+    private void useRestAssured(String path, String token) {
+        RestAssured.baseURI = BASE_URL;
 
         final Response response = RestAssured.given()
                 .contentType("application/json")
@@ -24,9 +28,8 @@ public class QuoineSimpleExample extends QuoineBase {
                 .header("X-QuoineBase-Auth", token)
                 .get(path);
 
-
         System.out.println(response.getBody().asString());
-
+        System.out.println(response.getStatusCode());
     }
 
     class AuthPayload {
@@ -37,7 +40,10 @@ public class QuoineSimpleExample extends QuoineBase {
 
     private String createToken(String path) {
 
-        final String nonce = String.valueOf(System.currentTimeMillis());
+        final String nonce = String.valueOf(System.nanoTime());
+//                        .withClaim("nonce", String.valueOf(System.nanoTime()))
+
+
 
         final AuthPayload authPayload = new AuthPayload();
         authPayload.token_id = TOKEN_ID;
