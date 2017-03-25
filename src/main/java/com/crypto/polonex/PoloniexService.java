@@ -1,11 +1,14 @@
 package com.crypto.polonex;
 
+import info.bitrich.xchangestream.core.StreamingExchangeFactory;
+
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
@@ -14,6 +17,7 @@ import org.knowm.xchange.poloniex.PoloniexExchange;
 import org.knowm.xchange.poloniex.service.PoloniexAccountServiceRaw;
 import org.knowm.xchange.service.account.AccountService;
 import org.knowm.xchange.service.marketdata.MarketDataService;
+import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -47,6 +51,8 @@ public class PoloniexService {
     private Exchange poloniex;
     private ExchangeMetaData exchangeMetaData;
     private MarketDataService marketDataService;
+    private AccountService accountService; // account and wallets. Current
+    private TradeService tradeService; // Create/check orders
 
     public PoloniexService() {
         init();
@@ -57,9 +63,25 @@ public class PoloniexService {
         exchangeMetaData = poloniex.getExchangeMetaData();
 
         marketDataService = poloniex.getMarketDataService();
+        accountService  = poloniex.getAccountService();
+        tradeService = poloniex.getTradeService();
+    }
+
+    public AccountInfo fetchAccountInfo() {
+        AccountInfo accountInfo = null;
+        try {
+            accountInfo = accountService.getAccountInfo();
+            logger.info(accountInfo.toString());
+            logger.info("Balance BTC {}", accountInfo.getWallet().getBalance(Currency.BTC).toString());
+            logger.info("Balance USD {}", accountInfo.getWallet().getBalance(Currency.USD).toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return accountInfo;
     }
 
     public Trades fetchTrades() {
+        fetchAccountInfo();
         Trades trades = null;
 
         try {

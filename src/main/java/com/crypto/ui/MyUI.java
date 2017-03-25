@@ -1,26 +1,31 @@
 package com.crypto.ui;
 
+import com.crypto.polonex.PoloniexService;
 import com.crypto.service.BitplayUIServicePoloniex;
 import com.vaadin.annotations.Theme;
 import com.vaadin.data.Binder;
-import com.vaadin.data.provider.BackEndDataProvider;
 import com.vaadin.data.provider.DataProvider;
+import com.vaadin.data.provider.ListDataProvider;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.spring.annotation.SpringUI;
+import com.vaadin.ui.Button;
 import com.vaadin.ui.Grid;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
-import com.vaadin.ui.Layout;
-import com.vaadin.ui.Panel;
+import com.vaadin.ui.ListSelect;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
+import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Balance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by Sergey Shurmin on 3/24/17.
@@ -33,6 +38,9 @@ public class MyUI extends UI {
     @Qualifier("Poloniex")
     BitplayUIServicePoloniex bitplayUIServicePoloniex;
 
+    @Autowired
+    PoloniexService poloniexService;
+
 //    private Grid<VisualTrade> grid = new Grid<>(VisualTrade.class);
 
     @Override
@@ -41,86 +49,70 @@ public class MyUI extends UI {
         layout.addComponent(new Label("Hello! I'm the root Layout!"));
         addTradingGrid(layout);
 
+        addAccountInfo(layout);
+
         setContent(layout);
     }
 
+    private void addAccountInfo(VerticalLayout layout) {
+        final AccountInfo accountInfo = poloniexService.fetchAccountInfo();
+//        final Balance balance = accountInfo.getWallet().getBalance(Currency.BTC);
+        ListDataProvider<Balance> dataProvider =
+                DataProvider.ofItems(
+                        accountInfo.getWallet().getBalance(Currency.BTC),
+                        accountInfo.getWallet().getBalance(Currency.USD)
+                );
+//
+        ListSelect<Balance> comboBox = new ListSelect<>();
+        comboBox.setDataProvider(dataProvider);
+        comboBox.setWidth(90, Unit.PERCENTAGE);
+        layout.addComponent(comboBox);
+    }
 
 
     private void addTradingGrid(VerticalLayout layout) {
-//        final PoloniexService poloniexExample = new PoloniexService();
-//        Trades trades = poloniexExample.fetchTrades();
-
-//        Button resetButton = new Button("Reset",
-//                event -> poloniexExample.fetchTrades());
-//        layout.addComponent(resetButton);
-
-
         final HorizontalLayout gridPanel = new HorizontalLayout();
-//        final Panel gridPanel = new Panel(layout);
-        Grid<VisualTrade> gridAsk = createTradingGrid(Order.OrderType.ASK);
-        Grid<VisualTrade> gridBid = createTradingGrid(Order.OrderType.BID);
+        List<VisualTrade> trades = bitplayUIServicePoloniex.fetchTrades();
+        List<VisualTrade> askTrades = trades.stream()
+                .filter(trade -> Order.OrderType.valueOf(trade.getOrderType()) == Order.OrderType.ASK)
+                .collect(Collectors.toList());
+        List<VisualTrade> bidTrades = trades.stream()
+                .filter(trade -> Order.OrderType.valueOf(trade.getOrderType()) == Order.OrderType.BID)
+                .collect(Collectors.toList());
 
-//        final VerticalLayout gridLayoutAsk = new VerticalLayout();
-//        gridLayoutAsk.addComponents(new Label("ASK"));
-//        gridLayoutAsk.addComponentsAndExpand(gridAsk);
-//
-//        final VerticalLayout gridLayoutBid = new VerticalLayout();
-//        gridLayoutBid.addComponents(new Label("BID"));
-//        gridLayoutBid.addComponentsAndExpand(gridBid);
+        Button resetButton = new Button("Update",
+                event -> {
+                    trades.clear();
+                    trades.addAll(bitplayUIServicePoloniex.fetchTrades());
+                    askTrades.clear();
+                    askTrades.addAll(trades.stream()
+                            .filter(trade -> Order.OrderType.valueOf(trade.getOrderType()) == Order.OrderType.ASK)
+                            .collect(Collectors.toList()));
+                    askTrades.clear();
+                    bidTrades.addAll(trades.stream()
+                            .filter(trade -> Order.OrderType.valueOf(trade.getOrderType()) == Order.OrderType.BID)
+                            .collect(Collectors.toList()));
+                });
+        layout.addComponent(resetButton);
 
-//        gridPanel.addComponentsAndExpand(gridLayoutAsk);
-//        gridPanel.addComponentsAndExpand(gridLayoutBid);
+
+        Grid<VisualTrade> gridAsk = createTradingGrid(askTrades);
+        Grid<VisualTrade> gridBid = createTradingGrid(bidTrades);
 
         gridPanel.addComponentsAndExpand(gridBid);
         gridPanel.addComponentsAndExpand(gridAsk);
         layout.addComponentsAndExpand(gridPanel);
-
-
-//        addUpdateButton(layout, bidTrades.get(0));
-//
-//        ListDataProvider<VisualTrade> dataProvider =
-//                DataProvider.ofCollection(askTrades);
-//
-////        dataProvider.setSortOrder(Person::getName,
-////                SortDirection.ASCENDING);
-//
-//        ComboBox<VisualTrade> comboBox = new ComboBox<>();
-//// The combo box shows the persons sorted by name
-//        comboBox.setDataProvider(dataProvider);
-//        comboBox.setWidth(90, Unit.PERCENTAGE);
-//        layout.addComponent(comboBox);
-
     }
 
 
-    private Grid<VisualTrade> createTradingGrid(Order.OrderType orderType) {
-//        ListDataProvider<VisualTrade> dataProvider =
-//                DataProvider.ofCollection(vTrades);
+    private Grid<VisualTrade> createTradingGrid(List<VisualTrade> trades) {
 
-        BackEndDataProvider<VisualTrade, Void> dataProvider = DataProvider.fromCallbacks(
-                // First callback fetches items based on a query
-                query -> {
-                    List<VisualTrade> trades = bitplayUIServicePoloniex.fetchTrades();
+        ListDataProvider<VisualTrade> listDataProvider = new ListDataProvider<>(trades);
 
-//                    final OrderBook orderBook = bitplayUIServicePoloniex.fetchOrderBook();
-//                    final List<VisualTrade> trades;
-//                    if (orderType == Order.OrderType.ASK) {
-//                        trades = bitplayUIServicePoloniex.getAsks();
-//                    } else {
-//                        trades = bitplayUIServicePoloniex.getBids();
-//                    }
-
-                    return trades.stream()
-                            .filter(trade -> Order.OrderType.valueOf(trade.getOrderType()) == orderType);
-
-                },
-                // Second callback fetches the number of items for a query
-                query -> bitplayUIServicePoloniex.getOrderBookDepth()
-        );
 
         // Create a grid bound to the list
         Grid<VisualTrade> grid = new Grid<>();
-        grid.setDataProvider(dataProvider);
+        grid.setDataProvider(listDataProvider);
 
 //        grid.setItems(vTrades);
         grid.addColumn(VisualTrade::getTimestamp).setCaption("Time");
@@ -134,14 +126,14 @@ public class MyUI extends UI {
     }
 
 
-    private void addUpdateButton(VerticalLayout layout, VisualTrade visualTrade) {
+    private void addUpdateButton(VerticalLayout layout, List<VisualTrade> trades) {
         Binder<VisualTrade> binder = new Binder<>();
 
         TextField nameField = new TextField();
 
         binder.bind(nameField, VisualTrade::getPrice, VisualTrade::setPrice);
 
-        binder.readBean(visualTrade);
+        binder.readBean(trades.get(0));
 
 //        Button updateButton = new Button("Update",
 //                event -> {
@@ -155,14 +147,12 @@ public class MyUI extends UI {
 //                });
 //
 //        // Updates the fields again with the previously saved values
-//        Button resetButton = new Button("Reset",
-//                event -> binder.readBean(visualTrade));
+        Button resetButton = new Button("Reset",
+                event -> binder.readBean(trades.get(0)));
 
         layout.addComponent(nameField);
 //        layout.addComponent(updateButton);
-//        layout.addComponent(resetButton);
-
+        layout.addComponent(resetButton);
     }
-
 
 }
