@@ -42,6 +42,9 @@ public class MyUI extends UI {
     PoloniexService poloniexService;
 
 //    private Grid<VisualTrade> grid = new Grid<>(VisualTrade.class);
+    List<VisualTrade> askTrades;
+    List<VisualTrade> bidTrades;
+    ListDataProvider<VisualTrade> listDataProvider;
 
     @Override
     protected void init(VaadinRequest vaadinRequest) {
@@ -73,43 +76,24 @@ public class MyUI extends UI {
     private void addTradingGrid(VerticalLayout layout) {
         final HorizontalLayout gridPanel = new HorizontalLayout();
         List<VisualTrade> trades = bitplayUIServicePoloniex.fetchTrades();
-        List<VisualTrade> askTrades = trades.stream()
-                .filter(trade -> Order.OrderType.valueOf(trade.getOrderType()) == Order.OrderType.ASK)
-                .collect(Collectors.toList());
-        List<VisualTrade> bidTrades = trades.stream()
-                .filter(trade -> Order.OrderType.valueOf(trade.getOrderType()) == Order.OrderType.BID)
-                .collect(Collectors.toList());
 
         Button resetButton = new Button("Update",
                 event -> {
                     trades.clear();
-                    trades.addAll(bitplayUIServicePoloniex.fetchTrades());
-                    askTrades.clear();
-                    askTrades.addAll(trades.stream()
-                            .filter(trade -> Order.OrderType.valueOf(trade.getOrderType()) == Order.OrderType.ASK)
-                            .collect(Collectors.toList()));
-                    askTrades.clear();
-                    bidTrades.addAll(trades.stream()
-                            .filter(trade -> Order.OrderType.valueOf(trade.getOrderType()) == Order.OrderType.BID)
-                            .collect(Collectors.toList()));
+                    final List<VisualTrade> updates = bitplayUIServicePoloniex.fetchTrades();
+                    trades.addAll(updates);
+                    listDataProvider.refreshAll();
                 });
         layout.addComponent(resetButton);
 
-
-        Grid<VisualTrade> gridAsk = createTradingGrid(askTrades);
-        Grid<VisualTrade> gridBid = createTradingGrid(bidTrades);
-
-        gridPanel.addComponentsAndExpand(gridBid);
-        gridPanel.addComponentsAndExpand(gridAsk);
+        Grid<VisualTrade> tradesGrid = createTradingGrid(trades);
+        gridPanel.addComponentsAndExpand(tradesGrid);
         layout.addComponentsAndExpand(gridPanel);
     }
 
 
     private Grid<VisualTrade> createTradingGrid(List<VisualTrade> trades) {
-
-        ListDataProvider<VisualTrade> listDataProvider = new ListDataProvider<>(trades);
-
-
+        listDataProvider = new ListDataProvider<>(trades);
         // Create a grid bound to the list
         Grid<VisualTrade> grid = new Grid<>();
         grid.setDataProvider(listDataProvider);

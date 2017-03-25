@@ -1,19 +1,17 @@
 package com.crypto.polonex;
 
+import info.bitrich.xchangestgream.poloniex.PoloniexStreamingExchange;
+import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 
-import org.knowm.xchange.Exchange;
-import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
 import org.knowm.xchange.dto.meta.ExchangeMetaData;
-import org.knowm.xchange.poloniex.PoloniexExchange;
 import org.knowm.xchange.poloniex.service.PoloniexAccountServiceRaw;
 import org.knowm.xchange.service.account.AccountService;
 import org.knowm.xchange.service.marketdata.MarketDataService;
@@ -28,6 +26,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.PreDestroy;
+
+import io.reactivex.disposables.Disposable;
+
 /**
  * Created by Sergey Shurmin on 3/21/17.
  */
@@ -36,23 +38,28 @@ public class PoloniexService {
 
     Logger logger = LoggerFactory.getLogger(PoloniexService.class);
 
-    private static String KEY = "2326PK47-9500PEQV-S64511G1-1HF2V48N";
-    private static String SECRET = "2de990fecb2ca516a8cd40fa0ffc8f95f4fc8021e3f7ee681972493c10311c260d26b35c0f2e41adec027056711e2e7b1eaa6cde7d8f679aa871e0a1a801c8fa";
+    //    private static String KEY = "2326PK47-9500PEQV-S64511G1-1HF2V48N";
+    //    private static String SECRET = "2de990fecb2ca516a8cd40fa0ffc8f95f4fc8021e3f7ee681972493c10311c260d26b35c0f2e41adec027056711e2e7b1eaa6cde7d8f679aa871e0a1a801c8fa";
 
-    static PoloniexExchange getExchange() {
+    private static String KEY = "7HQHK3EL-40SJE5G8-1L9ZHPK6-7R6IEBIB";
+    private static String SECRET = "1cd1b572fe1bbfd3f0920ea2df364b74b3c07efedf838df245602cf55e52d7441d14464f4a116cbc431bfa0320f299045aa563497fb57c2e7c6fc78d5c703ea2";
 
-        ExchangeSpecification spec = new ExchangeSpecification(PoloniexExchange.class);
+    static StreamingExchange getExchange() {
+
+        ExchangeSpecification spec = new ExchangeSpecification(PoloniexStreamingExchange.class);
         spec.setApiKey(KEY);
         spec.setSecretKey(SECRET);
 
-        return (PoloniexExchange) ExchangeFactory.INSTANCE.createExchange(spec);
+        return StreamingExchangeFactory.INSTANCE.createExchange(spec);
     }
 
-    private Exchange poloniex;
+    private StreamingExchange poloniex;
     private ExchangeMetaData exchangeMetaData;
     private MarketDataService marketDataService;
     private AccountService accountService; // account and wallets. Current
     private TradeService tradeService; // Create/check orders
+
+    Disposable subscription;
 
     public PoloniexService() {
         init();
@@ -65,6 +72,40 @@ public class PoloniexService {
         marketDataService = poloniex.getMarketDataService();
         accountService  = poloniex.getAccountService();
         tradeService = poloniex.getTradeService();
+
+
+        // Connect to the Exchange WebSocket API. Blocking wait for the connection.
+        poloniex.connect().blockingAwait();
+        // Subscribe to live trades update.
+        poloniex.getStreamingMarketDataService()
+                .getTicker(CurrencyPair.BTC_JPY)
+//                .getTrades(CurrencyPair.BTC_USD)
+                .subscribe(ticker -> {
+                    logger.info("Incoming ticker: {}", ticker);
+                }, throwable -> {
+                    logger.error("Error in subscribing tickers.", throwable);
+                });
+
+
+//        // Subscribe order book data with the reference to the subscription.
+//        subscription = poloniex.getStreamingMarketDataService()
+//                .getOrderBook(CurrencyPair.BTC_USD)
+//                .subscribe(orderBook -> {
+//                    // Do something
+//                    logger.info("orderBook changed!");
+//
+//                });
+
+
+    }
+
+    @PreDestroy
+    public void preDestroy() {
+        // Unsubscribe from data order book.
+//        subscription.dispose();
+
+        // Disconnect from exchange (non-blocking)
+        poloniex.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
     public AccountInfo fetchAccountInfo() {
@@ -140,7 +181,7 @@ public class PoloniexService {
 
         try {
 //            CertHelper.trustAllCerts();
-            PoloniexExchange poloniex = getExchange();
+            StreamingExchange poloniex = getExchange();
             final ExchangeMetaData exchangeMetaData = poloniex.getExchangeMetaData();
             final Map<CurrencyPair, CurrencyPairMetaData> currencyPairs = exchangeMetaData.getCurrencyPairs();
             System.out.println("Pair0=" + currencyPairs.get(0));

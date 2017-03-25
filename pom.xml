@@ -70,6 +70,16 @@
             <artifactId>xchange-stream-core</artifactId>
             <version>4.2.0</version>
         </dependency>
+        <dependency>
+            <groupId>info.bitrich.xchange-stream</groupId>
+            <artifactId>xchange-poloniex</artifactId>
+            <version>4.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>info.bitrich.xchange-stream</groupId>
+            <artifactId>xchange-okcoin</artifactId>
+            <version>4.2.0</version>
+        </dependency>
 
 
     </dependencies>

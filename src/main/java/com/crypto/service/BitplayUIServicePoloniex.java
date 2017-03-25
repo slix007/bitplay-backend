@@ -33,16 +33,9 @@ public class BitplayUIServicePoloniex implements BitplayUIService {
         orderBookDepth = trades.getTrades().size();
 
         List<VisualTrade> askTrades = trades.getTrades().stream()
-//                .filter(trade -> trade.getType() == Order.OrderType.ASK || trade.getType() == Order.OrderType.EXIT_ASK)
+                .sorted((o1, o2) -> o1.getTimestamp().before(o2.getTimestamp()) ? 1 : -1)
                 .map(this::toVisualTrade)
                 .collect(Collectors.toList());
-
-//        List<VisualTrade> bidTrades = trades.getTrades().stream()
-//                .filter(trade -> trade.getType() == Order.OrderType.BID || trade.getType() == Order.OrderType.EXIT_BID)
-//                .map(BitplayUIService::toVisualTrade)
-//                .collect(Collectors.toList());
-
-
         return askTrades;
     }
 
