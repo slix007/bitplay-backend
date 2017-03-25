@@ -23,7 +23,9 @@ import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
+import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
@@ -54,13 +56,54 @@ public class MyUI extends UI {
     protected void init(VaadinRequest vaadinRequest) {
         final VerticalLayout layout = new VerticalLayout();
         layout.addComponent(new Label("Hello! I'm the root Layout!"));
-        addTradingGrid(layout);
 
         addTickerSymbolCurrentStatus(layout);
+
+        addOrderBook(layout);
+
+        addTradingGrid(layout);
 
         addAccountInfo(layout);
 
         setContent(layout);
+    }
+
+    private void addOrderBook(VerticalLayout layout) {
+        final OrderBook orderBook = poloniexService.fetchOrderBook();
+
+        ListDataProvider<LimitOrder> dataProviderAsk = new ListDataProvider<>(orderBook.getAsks());
+        Grid<LimitOrder> gridAsk = new Grid<>();
+        gridAsk.setDataProvider(dataProviderAsk);
+        gridAsk.addColumn(limitOrder -> limitOrder.getCurrencyPair().toString()).setCaption("Currency");
+        gridAsk.addColumn(LimitOrder::getLimitPrice).setCaption("LimitPrice");
+        gridAsk.addColumn(Order::getTradableAmount).setCaption("TradableAmount");
+        gridAsk.addColumn(Order::getType).setCaption("Type");
+
+        ListDataProvider<LimitOrder> dataProviderBid = new ListDataProvider<>(orderBook.getBids());
+        Grid<LimitOrder> gridBid = new Grid<>();
+        gridBid.setDataProvider(dataProviderBid);
+        gridBid.addColumn(limitOrder -> limitOrder.getCurrencyPair().toString()).setCaption("Currency");
+        gridBid.addColumn(LimitOrder::getLimitPrice).setCaption("LimitPrice");
+        gridBid.addColumn(Order::getTradableAmount).setCaption("TradableAmount");
+        gridBid.addColumn(Order::getType).setCaption("Type");
+
+        Button resetButton = new Button("Update",
+                event -> {
+                    final OrderBook orderBookUpdate = poloniexService.fetchOrderBook();
+                    dataProviderAsk.getItems().clear();
+                    dataProviderAsk.getItems().addAll(orderBookUpdate.getAsks());
+                    dataProviderAsk.refreshAll();
+                    dataProviderBid.getItems().clear();
+                    dataProviderBid.getItems().addAll(orderBookUpdate.getBids());
+                    dataProviderBid.refreshAll();
+                });
+        layout.addComponent(resetButton);
+
+        final HorizontalLayout orderBookLayout = new HorizontalLayout();
+        orderBookLayout.addComponentsAndExpand(gridAsk);
+        orderBookLayout.addComponentsAndExpand(gridBid);
+
+        layout.addComponent(orderBookLayout);
     }
 
     private void addTickerSymbolCurrentStatus(Layout layout) {
