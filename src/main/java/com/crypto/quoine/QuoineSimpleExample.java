@@ -1,10 +1,10 @@
 package com.crypto.quoine;
 
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.restassured.RestAssured;
-import io.restassured.response.Response;
+//import io.jsonwebtoken.JwtBuilder;
+//import io.jsonwebtoken.Jwts;
+//import io.jsonwebtoken.SignatureAlgorithm;
+//import io.restassured.RestAssured;
+//import io.restassured.response.Response;
 
 /**
  * Created by Sergey Shurmin on 3/20/17.
@@ -12,13 +12,13 @@ import io.restassured.response.Response;
 public class QuoineSimpleExample extends QuoineBase {
 
     public void doTheWork() {
-        String path = "/orders?product_id=1";
-        final String token = createToken(path);
-
-        useRestAssured(path, token);
+//        String path = "/orders?product_id=1";
+//        final String token = createToken(path);
+//
+//        useRestAssured(path, token);
 
     }
-
+/*
     private void useRestAssured(String path, String token) {
         RestAssured.baseURI = BASE_URL;
 
@@ -62,5 +62,5 @@ public class QuoineSimpleExample extends QuoineBase {
         return compact;
     }
 
-
+*/
 }

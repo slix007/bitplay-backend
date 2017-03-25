@@ -1,16 +1,22 @@
 package com.crypto.polonex;
 
+import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
 import org.knowm.xchange.dto.meta.ExchangeMetaData;
 import org.knowm.xchange.poloniex.PoloniexExchange;
 import org.knowm.xchange.poloniex.service.PoloniexAccountServiceRaw;
 import org.knowm.xchange.service.account.AccountService;
 import org.knowm.xchange.service.marketdata.MarketDataService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,7 +27,10 @@ import java.util.Map;
 /**
  * Created by Sergey Shurmin on 3/21/17.
  */
-public class PoloniexExample {
+@Service
+public class PoloniexService {
+
+    Logger logger = LoggerFactory.getLogger(PoloniexService.class);
 
     private static String KEY = "2326PK47-9500PEQV-S64511G1-1HF2V48N";
     private static String SECRET = "2de990fecb2ca516a8cd40fa0ffc8f95f4fc8021e3f7ee681972493c10311c260d26b35c0f2e41adec027056711e2e7b1eaa6cde7d8f679aa871e0a1a801c8fa";
@@ -34,6 +43,75 @@ public class PoloniexExample {
 
         return (PoloniexExchange) ExchangeFactory.INSTANCE.createExchange(spec);
     }
+
+    private Exchange poloniex;
+    private ExchangeMetaData exchangeMetaData;
+    private MarketDataService marketDataService;
+
+    public PoloniexService() {
+        init();
+    }
+
+    public void init() {
+        poloniex = getExchange();
+        exchangeMetaData = poloniex.getExchangeMetaData();
+
+        marketDataService = poloniex.getMarketDataService();
+    }
+
+    public Trades fetchTrades() {
+        Trades trades = null;
+
+        try {
+
+//            final Map<CurrencyPair, CurrencyPairMetaData> currencyPairs = exchangeMetaData.getCurrencyPairs();
+            List<CurrencyPairMetaData> selected = new ArrayList<>();
+
+            Map<CurrencyPair, CurrencyPairMetaData> selectedMeta = new HashMap<>();
+
+            exchangeMetaData.getCurrencyPairs().forEach((pair, currencyPairMetaData) -> {
+                if (pair.base == Currency.BTC
+                    //&& pair.counter == Currency.USD
+                        ) {
+                    selected.add(currencyPairMetaData);
+                    selectedMeta.put(pair, currencyPairMetaData);
+                }
+            });
+
+            final MarketDataService marketDataService = poloniex.getMarketDataService();
+            trades = marketDataService.getTrades(selectedMeta.keySet().iterator().next());
+//            System.out.println(trades);
+            logger.info("Fetched {} trades", trades.getTrades().size());
+
+//            AccountService accountService = poloniex.getAccountService();
+//            generic(accountService);
+//            raw((PoloniexAccountServiceRaw) accountService);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return trades;
+    }
+
+    public OrderBook fetchOrderBook() {
+        OrderBook orderBook = null;
+        try {
+            orderBook = marketDataService.getOrderBook(CurrencyPair.BTC_USD);
+            logger.info("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
+                    orderBook.getTimeStamp());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return orderBook;
+    }
+
+
+
+
+
 
     public void doWork() {
 
@@ -63,16 +141,17 @@ public class PoloniexExample {
 //                System.out.println("currencyPairMetaData=" + currencyPairMetaData);
 //            });
 
-            System.out.println("exchangeMetaData=" + selectedMeta);
+//            System.out.println("exchangeMetaData=" + selectedMeta);
 
 
 
             final MarketDataService marketDataService = poloniex.getMarketDataService();
-            System.out.println(marketDataService.getTrades(selectedMeta.keySet().iterator().next()));
+            final Trades trades = marketDataService.getTrades(selectedMeta.keySet().iterator().next());
+            System.out.println(trades);
 
 
             AccountService accountService = poloniex.getAccountService();
-            generic(accountService);
+//            generic(accountService);
 //            raw((PoloniexAccountServiceRaw) accountService);
         } catch (IOException e) {
             e.printStackTrace();

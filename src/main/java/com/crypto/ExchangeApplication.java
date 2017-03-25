@@ -1,18 +1,19 @@
 package com.crypto;
 
-import com.crypto.polonex.PoloniexExample;
-import com.crypto.quoine.QuoineBridge;
-import com.crypto.quoine.QuoineSimpleExample;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.web.client.RestTemplate;
 
 @SpringBootApplication
-public class ExchangeApplication {
+public class ExchangeApplication { //extends SpringBootServletInitializer {
 
 	public static void main(String[] args) {
-//		SpringApplication.run(ExchangeApplication.class, args);
+
+		SpringApplication.run(ExchangeApplication.class, args);
+
+//        new ExchangeApplication()
+//                .configure(new SpringApplicationBuilder(ExchangeApplication.class))
+//                .run(args);
+
 
 //        final QuoineBridge quoineBridge = new QuoineBridge();
 //        quoineBridge.doTheWork();
@@ -20,9 +21,9 @@ public class ExchangeApplication {
 //        final QuoineSimpleExample quoineSimpleExample = new QuoineSimpleExample();
 //        quoineSimpleExample.doTheWork();
 
-
-        final PoloniexExample poloniexExample = new PoloniexExample();
-        poloniexExample.doWork();
+//
+//        final PoloniexExample poloniexExample = new PoloniexExample();
+//        poloniexExample.doWork();
 
 
 
