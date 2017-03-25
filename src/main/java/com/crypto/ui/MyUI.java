@@ -7,11 +7,13 @@ import com.vaadin.data.Binder;
 import com.vaadin.data.provider.DataProvider;
 import com.vaadin.data.provider.ListDataProvider;
 import com.vaadin.server.VaadinRequest;
+import com.vaadin.server.VaadinSession;
 import com.vaadin.spring.annotation.SpringUI;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Grid;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
+import com.vaadin.ui.Layout;
 import com.vaadin.ui.ListSelect;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
@@ -21,9 +23,11 @@ import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.marketdata.Ticker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -52,24 +56,48 @@ public class MyUI extends UI {
         layout.addComponent(new Label("Hello! I'm the root Layout!"));
         addTradingGrid(layout);
 
+        addTickerSymbolCurrentStatus(layout);
+
         addAccountInfo(layout);
 
         setContent(layout);
     }
 
+    private void addTickerSymbolCurrentStatus(Layout layout) {
+        Label label = new Label("");
+        label.setValue("value");
+        poloniexService.initStreaming().subscribe((Ticker ticker) -> {
+            label.setValue(ticker.toString());
+            label.setData(ticker.toString());
+            label.markAsDirty();
+            System.out.println("Incoming ticker: " + ticker);
+        }, throwable -> {
+            label.setValue("Error in subscribing tickers. " + throwable.getMessage());
+        });
+        layout.addComponent(label);
+    }
+
     private void addAccountInfo(VerticalLayout layout) {
         final AccountInfo accountInfo = poloniexService.fetchAccountInfo();
 //        final Balance balance = accountInfo.getWallet().getBalance(Currency.BTC);
-        ListDataProvider<Balance> dataProvider =
+        List<String> balancesList = new ArrayList<>();
+        accountInfo.getWallet().getBalances().forEach((currency, balance) -> {
+            if (balance.getTotal().intValue() != 0) {
+                balancesList.add(String.format("%s: %s", currency.getCurrencyCode(), balance.toString()));
+
+            }
+        });
+
+        ListDataProvider<String> dataProvider = //DataProvider.fromStream(balancesList.stream());
                 DataProvider.ofItems(
-                        accountInfo.getWallet().getBalance(Currency.BTC),
-                        accountInfo.getWallet().getBalance(Currency.USD)
+                        accountInfo.getWallet().getBalance(Currency.BTC).toString(),
+                        accountInfo.getWallet().getBalance(new Currency("USDT")).toString()
                 );
 //
-        ListSelect<Balance> comboBox = new ListSelect<>();
-        comboBox.setDataProvider(dataProvider);
-        comboBox.setWidth(90, Unit.PERCENTAGE);
-        layout.addComponent(comboBox);
+        ListSelect<String> listSelect = new ListSelect<>();
+        listSelect.setDataProvider(dataProvider);
+        listSelect.setWidth(90, Unit.PERCENTAGE);
+        layout.addComponent(listSelect);
     }
 
 
