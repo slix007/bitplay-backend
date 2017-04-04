@@ -79,6 +79,22 @@ public class PoloniexService {
         marketDataService = exchange.getMarketDataService();
         accountService  = exchange.getAccountService();
         tradeService = exchange.getTradeService();
+
+        // Connect to the Exchange WebSocket API. Blocking wait for the connection.
+        exchange.connect().blockingAwait();
+        // Subscribe to live trades update.
+        exchange.getStreamingMarketDataService()
+                .getTicker(CURRENCY_PAIR_USDT_BTC)
+//                .getTrades(CurrencyPair.BTC_USD)
+                .subscribe(ticker -> {
+                    logger.info("Incoming ticker: {}", ticker);
+                }, throwable -> {
+                    logger.error("Error in subscribing tickers.", throwable);
+                });
+
+
+
+
 //        initStreaming();
 //        // Subscribe order book data with the reference to the subscription.
 //        subscription = exchange.getStreamingMarketDataService()
@@ -109,10 +125,10 @@ public class PoloniexService {
     @PreDestroy
     public void preDestroy() {
         // Unsubscribe from data order book.
-//        subscription.dispose();
+        subscription.dispose();
 
         // Disconnect from exchange (non-blocking)
-        exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
+//        exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
     public AccountInfo fetchAccountInfo() {

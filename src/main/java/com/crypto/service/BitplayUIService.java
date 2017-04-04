@@ -1,10 +1,9 @@
 package com.crypto.service;
 
-import com.crypto.ui.VisualTrade;
+import com.crypto.model.VisualTrade;
 
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Trade;
-import org.knowm.xchange.dto.marketdata.Trades;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;

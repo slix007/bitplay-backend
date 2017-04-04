@@ -1,4 +1,6 @@
-package com.crypto.ui;
+package com.crypto.model;
+
+import java.io.Serializable;
 
 /**
  * Created by Sergey Shurmin on 3/25/17.

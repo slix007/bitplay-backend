@@ -1,13 +1,12 @@
 package com.crypto.ui;
 
+import com.crypto.model.VisualTrade;
 import com.crypto.polonex.PoloniexService;
 import com.crypto.service.BitplayUIServicePoloniex;
-import com.vaadin.annotations.Theme;
 import com.vaadin.data.Binder;
 import com.vaadin.data.provider.DataProvider;
 import com.vaadin.data.provider.ListDataProvider;
 import com.vaadin.server.VaadinRequest;
-import com.vaadin.server.VaadinSession;
 import com.vaadin.spring.annotation.SpringUI;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Grid;
@@ -22,7 +21,6 @@ import com.vaadin.ui.VerticalLayout;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -31,13 +29,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Created by Sergey Shurmin on 3/24/17.
  */
-@Theme("valo")
-@SpringUI
+//@Theme("valo")
+//@SpringUI
 public class MyUI extends UI {
 
     @Autowired
