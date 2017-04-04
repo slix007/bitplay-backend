@@ -1,8 +1,10 @@
 package com.crypto.controller;
 
 import com.crypto.model.VisualTrade;
-import com.crypto.service.BitplayUIService;
+import com.crypto.service.AbstractBitplayUIService;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,12 +20,13 @@ import javax.ws.rs.Produces;
 @Path("/market")
 public class BitplayUIEndpoint {
 
-    private final BitplayUIService service;
+    @Autowired
+    @Qualifier("Poloniex")
+    private AbstractBitplayUIService poloniex;
 
-    public BitplayUIEndpoint(BitplayUIService service) {
-        this.service = service;
-    }
-
+//    @Autowired
+//    @Qualifier("OkCoin")
+//    private AbstractBitplayUIService okCoin;
 
     @GET
     @Path("/")
@@ -32,11 +35,18 @@ public class BitplayUIEndpoint {
     }
 
     @GET
-    @Path("/order-book")
+    @Path("/poloniex/order-book")
     @Produces("application/json")
-    public List<VisualTrade> messageOne() {
-        return this.service.fetchTrades();
+    public List<VisualTrade> poloniexOrderBook() {
+        return this.poloniex.fetchTrades();
     }
 
+    @GET
+    @Path("/okcoin/order-book")
+    @Produces("application/json")
+    public List<VisualTrade> okCoinOrderBook() {
+        return null;
+//        return this.okCoin.fetchTrades();
+    }
 }
 

@@ -35,6 +35,7 @@
         <appender-ref ref="CONSOLE_APPENDER"/>
     </root>
 
+    <!-- Logging api requests for poloniex -->
     <logger name="si.mazi.rescu" level="trace"/>
 
 </configuration>

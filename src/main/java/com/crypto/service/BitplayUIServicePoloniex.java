@@ -1,5 +1,6 @@
 package com.crypto.service;
 
+import com.crypto.model.OrderBookJson;
 import com.crypto.polonex.PoloniexService;
 import com.crypto.model.VisualTrade;
 
@@ -12,14 +13,13 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
  * Created by Sergey Shurmin on 3/25/17.
  */
 @Component("Poloniex")
-public class BitplayUIServicePoloniex implements BitplayUIService {
+public class BitplayUIServicePoloniex extends AbstractBitplayUIService {
 
     @Autowired
     PoloniexService poloniexService;
@@ -41,13 +41,15 @@ public class BitplayUIServicePoloniex implements BitplayUIService {
     }
 
     @Override
-    public OrderBook fetchOrderBook() {
+    public OrderBookJson fetchOrderBook() {
         orderBook = poloniexService.fetchOrderBook();
         orderBookDepth = orderBook.getAsks().size();
-        return orderBook;
+
+        return getBestOrderBookJson(orderBook);
     }
 
-    public List<VisualTrade> getBids() {
+
+    public List<VisualTrade> getBestBids() {
         return orderBook.getBids().stream()
                 .map(toVisual)
                 .collect(Collectors.toList());
@@ -68,20 +70,6 @@ public class BitplayUIServicePoloniex implements BitplayUIService {
                 LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault())
                         .toLocalTime().toString());
     }
-
-    Function<LimitOrder, VisualTrade> toVisual = new Function<LimitOrder, VisualTrade>() {
-        @Override
-        public VisualTrade apply(LimitOrder limitOrder) {
-            return new VisualTrade(
-                    limitOrder.getCurrencyPair().toString(),
-                    limitOrder.getLimitPrice().toString(),
-                    limitOrder.getTradableAmount().toString(),
-                    limitOrder.getType().toString(),
-                    LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault())
-                            .toLocalTime().toString());
-        }
-
-    };
 
     @Override
     public int getOrderBookDepth() {

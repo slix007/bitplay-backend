@@ -106,14 +106,14 @@ public class MyUI extends UI {
     private void addTickerSymbolCurrentStatus(Layout layout) {
         Label label = new Label("");
         label.setValue("value");
-        poloniexService.initStreaming().subscribe((Ticker ticker) -> {
-            label.setValue(ticker.toString());
-            label.setData(ticker.toString());
-            label.markAsDirty();
-            System.out.println("Incoming ticker: " + ticker);
-        }, throwable -> {
-            label.setValue("Error in subscribing tickers. " + throwable.getMessage());
-        });
+//        poloniexService.initStreaming().subscribe((Ticker ticker) -> {
+//            label.setValue(ticker.toString());
+//            label.setData(ticker.toString());
+//            label.markAsDirty();
+//            System.out.println("Incoming ticker: " + ticker);
+//        }, throwable -> {
+//            label.setValue("Error in subscribing tickers. " + throwable.getMessage());
+//        });
         layout.addComponent(label);
     }
 
