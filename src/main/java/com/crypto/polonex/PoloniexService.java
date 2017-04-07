@@ -1,21 +1,18 @@
 package com.crypto.polonex;
 
-import info.bitrich.xchangestgream.poloniex.PoloniexStreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
+import info.bitrich.xchangestream.poloniex.PoloniexStreamingExchange;
+import info.bitrich.xchangestream.poloniex.PoloniexStreamingMarketDataService;
 
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
-import org.knowm.xchange.dto.meta.ExchangeMetaData;
 import org.knowm.xchange.dto.trade.UserTrades;
-import org.knowm.xchange.poloniex.service.PoloniexAccountServiceRaw;
-import org.knowm.xchange.service.account.AccountService;
 import org.knowm.xchange.service.marketdata.MarketDataService;
 import org.knowm.xchange.service.trade.TradeService;
 import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
@@ -31,7 +28,6 @@ import java.util.Map;
 
 import javax.annotation.PreDestroy;
 
-import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 
 /**
@@ -52,7 +48,6 @@ public class PoloniexService {
 
     private final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
 
-
     private StreamingExchange getExchange() {
 
         ExchangeSpecification spec = new ExchangeSpecification(PoloniexStreamingExchange.class);
@@ -63,12 +58,10 @@ public class PoloniexService {
     }
 
     private StreamingExchange exchange;
-    private ExchangeMetaData exchangeMetaData;
-    private MarketDataService marketDataService;
-    private AccountService accountService; // account and wallets. Current
-    private TradeService tradeService; // Create/check orders
 
-    Disposable subscription;
+    private OrderBook orderBook;
+
+    Disposable orderBookSubscription;
 
     public PoloniexService() {
         init();
@@ -76,59 +69,59 @@ public class PoloniexService {
 
     public void init() {
         exchange = getExchange();
-        exchangeMetaData = exchange.getExchangeMetaData();
+        orderBook = fetchOrderBook();
+        initWebSocketConnection();
+    }
 
-        marketDataService = exchange.getMarketDataService();
-        accountService  = exchange.getAccountService();
-        tradeService = exchange.getTradeService();
-
-        // Connect to the Exchange WebSocket API. Blocking wait for the connection.
+    private void initWebSocketConnection() {
         exchange.connect().blockingAwait();
-        // Subscribe to live trades update.
-        exchange.getStreamingMarketDataService()
+
+        final PoloniexStreamingMarketDataService streamingMarketDataService =
+                (PoloniexStreamingMarketDataService) exchange.getStreamingMarketDataService();
+
+        // we don't need ticker
+        //        subscribeOnTicker(streamingMarketDataService);
+
+        subscribeOnOrderBookUpdates(streamingMarketDataService);
+    }
+
+    private void subscribeOnTicker(PoloniexStreamingMarketDataService streamingMarketDataService) {
+        streamingMarketDataService
                 .getTicker(CURRENCY_PAIR_USDT_BTC)
-//                .getTrades(CurrencyPair.BTC_USD)
                 .subscribe(ticker -> {
                     logger.info("Incoming ticker: {}", ticker);
                 }, throwable -> {
                     logger.error("Error in subscribing tickers.", throwable);
                 });
+    }
 
-        // TODO order book streaming
-//        // Subscribe order book data with the reference to the subscription.
-//        subscription = exchange.getStreamingMarketDataService()
-//                .getOrderBook(CURRENCY_PAIR_USDT_BTC)
-//                .subscribe(orderBook -> {
-//                    // Do something
-//                    logger.info("orderBook changed!");
-//
-//                });
+    private void subscribeOnOrderBookUpdates(PoloniexStreamingMarketDataService streamingMarketDataService) {
+        orderBookSubscription = streamingMarketDataService
+                .getOrderBookUpdate(CURRENCY_PAIR_USDT_BTC)
+                .subscribe(orderBookUpdate -> {
+                    // Do something
+                    logger.debug(orderBookUpdate.toString());
+                    orderBook.update(orderBookUpdate);
+                });
     }
 
     @PreDestroy
     public void preDestroy() {
         // Unsubscribe from data order book.
-        subscription.dispose();
+        orderBookSubscription.dispose();
 
         // Disconnect from exchange (non-blocking)
-//        exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
+        exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
+
 
     public AccountInfo fetchAccountInfo() {
         AccountInfo accountInfo = null;
         try {
-            final MarketDataService marketDataService = exchange.getMarketDataService();
             final TradeService tradeService = exchange.getTradeService();
             final UserTrades tradeHistory = tradeService.getTradeHistory(TradeHistoryParamsZero.PARAMS_ZERO);
-
-
             logger.info(tradeHistory.toString());
-//            final OrderBook orderBook = marketDataService.getOrderBook(new CurrencyPair("BTC", "USDT"));
-//            logger.info(orderBook.toString());
-
-
-
-            accountInfo = accountService.getAccountInfo();
+            accountInfo = exchange.getAccountService().getAccountInfo();
             logger.info(accountInfo.toString());
             logger.info("Balance BTC {}", accountInfo.getWallet().getBalance(Currency.BTC).toString());
             logger.info("Balance USD {}", accountInfo.getWallet().getBalance(Currency.USD).toString());
@@ -139,17 +132,15 @@ public class PoloniexService {
     }
 
     public Trades fetchTrades() {
-        fetchAccountInfo();
         Trades trades = null;
 
         try {
-
-//            final Map<CurrencyPair, CurrencyPairMetaData> currencyPairs = exchangeMetaData.getCurrencyPairs();
             List<CurrencyPairMetaData> selected = new ArrayList<>();
 
             Map<CurrencyPair, CurrencyPairMetaData> selectedMeta = new HashMap<>();
 
-            exchangeMetaData.getCurrencyPairs().forEach((pair, currencyPairMetaData) -> {
+            exchange.getExchangeMetaData().getCurrencyPairs()
+                    .forEach((pair, currencyPairMetaData) -> {
                 if (pair.base == Currency.BTC
                     //&& pair.counter == Currency.USD
                         ) {
@@ -160,12 +151,8 @@ public class PoloniexService {
 
             final MarketDataService marketDataService = exchange.getMarketDataService();
             trades = marketDataService.getTrades(selectedMeta.keySet().iterator().next());
-//            System.out.println(trades);
             logger.info("Fetched {} trades", trades.getTrades().size());
 
-//            AccountService accountService = exchange.getAccountService();
-//            generic(accountService);
-//            raw((PoloniexAccountServiceRaw) accountService);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (Exception e) {
@@ -177,7 +164,7 @@ public class PoloniexService {
     public OrderBook fetchOrderBook() {
         OrderBook orderBook = null;
         try {
-            orderBook = marketDataService.getOrderBook(CURRENCY_PAIR_USDT_BTC);
+            orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC);
             logger.info("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
                     orderBook.getTimeStamp());
         } catch (IOException e) {
@@ -188,69 +175,8 @@ public class PoloniexService {
         return orderBook;
     }
 
-
-
-
-
-
-    public void doWork() {
-
-
-        try {
-//            CertHelper.trustAllCerts();
-            StreamingExchange poloniex = getExchange();
-            final ExchangeMetaData exchangeMetaData = poloniex.getExchangeMetaData();
-            final Map<CurrencyPair, CurrencyPairMetaData> currencyPairs = exchangeMetaData.getCurrencyPairs();
-            System.out.println("Pair0=" + currencyPairs.get(0));
-
-            System.out.println("Currency0=" + exchangeMetaData.getCurrencies().get(0));
-            List<CurrencyPairMetaData> selected = new ArrayList<>();
-
-            Map<CurrencyPair, CurrencyPairMetaData> selectedMeta = new HashMap<>();
-
-            exchangeMetaData.getCurrencyPairs().forEach((pair, currencyPairMetaData) -> {
-                if (pair.base == Currency.BTC
-                        //&& pair.counter == Currency.USD
-                        ) {
-                    selected.add(currencyPairMetaData);
-                    selectedMeta.put(pair, currencyPairMetaData);
-                }
-            });
-
-//            selected.forEach(currencyPairMetaData -> {
-//                System.out.println("currencyPairMetaData=" + currencyPairMetaData);
-//            });
-
-//            System.out.println("exchangeMetaData=" + selectedMeta);
-
-
-
-            final MarketDataService marketDataService = poloniex.getMarketDataService();
-            final Trades trades = marketDataService.getTrades(selectedMeta.keySet().iterator().next());
-            System.out.println(trades);
-
-
-            AccountService accountService = poloniex.getAccountService();
-//            generic(accountService);
-//            raw((PoloniexAccountServiceRaw) accountService);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public OrderBook getOrderBook() {
+        return this.orderBook;
     }
 
-    private static void generic(AccountService accountService) throws IOException {
-        System.out.println("----------GENERIC----------");
-//        System.out.println(accountService.requestDepositAddress(Currency.BTC, new String[0]));
-        final AccountInfo accountInfo = accountService.getAccountInfo();
-//        System.out.println(accountInfo);
-//        System.out.println(accountService.withdrawFunds(Currency.BTC, new BigDecimal("0.03"), "13ArNKUYZ4AmXP4EUzSHMAUsvgGok74jWu"));
-    }
-
-    private static void raw(PoloniexAccountServiceRaw accountService) throws IOException {
-        System.out.println("------------RAW------------");
-//        System.out.println(accountService.getDepositAddress("BTC"));
-        System.out.println(accountService.getWallets());
-    }
 }

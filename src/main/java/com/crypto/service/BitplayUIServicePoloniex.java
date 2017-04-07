@@ -48,6 +48,10 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService {
         return getBestOrderBookJson(orderBook);
     }
 
+    public OrderBookJson getOrderBook() {
+        return getBestOrderBookJson(poloniexService.getOrderBook());
+    }
+
 
     public List<VisualTrade> getBestBids() {
         return orderBook.getBids().stream()

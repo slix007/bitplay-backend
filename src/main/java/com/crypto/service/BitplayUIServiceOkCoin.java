@@ -24,9 +24,13 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService {
     private static String KEY = "d4566d08-4fef-49ac-8933-e51f8c873795";
     private static String SECRET = "3DB6AD75C7CD78392947A5D4CE8567D2";
 
-//    @Autowired
-//    OkCoinService service;
+    @Autowired
+    OkCoinService service;
 
+    public OrderBookJson getOrderBook() {
+        final OkCoinService service = this.service;
+        return getBestOrderBookJson(service.getOrderBook());
+    }
 
     @Override
     public List<VisualTrade> fetchTrades() {

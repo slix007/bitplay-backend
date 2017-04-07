@@ -79,8 +79,9 @@ public abstract class AbstractBitplayUIService {
         orderJson.setPrice(limitOrder.getLimitPrice().toString());
         orderJson.setAmount(limitOrder.getTradableAmount().toString());
         orderJson.setCurrency(limitOrder.getCurrencyPair().toString());
-        orderJson.setTimestamp(LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault())
-                .toLocalTime().toString());
+        orderJson.setTimestamp(limitOrder.getTimestamp() != null
+                ? LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault()).toLocalTime().toString()
+                : null);
         return orderJson;
     };
 
