@@ -40,11 +40,11 @@ public abstract class AbstractBitplayUIService {
 
     protected OrderBookJson getBestOrderBookJson(OrderBook orderBook) {
         final OrderBookJson orderJson = new OrderBookJson();
-        final List<LimitOrder> bestBids = getBestBids(orderBook.getBids(), 1);
+        final List<LimitOrder> bestBids = getBestBids(orderBook.getBids(), 3);
         orderJson.setBid(bestBids.stream()
                 .map(toOrderBookJson)
                 .collect(Collectors.toList()));
-        final List<LimitOrder> bestAsks = getBestAsks(orderBook.getAsks(), 1);
+        final List<LimitOrder> bestAsks = getBestAsks(orderBook.getAsks(), 3);
         orderJson.setAsk(bestAsks.stream()
                 .map(toOrderBookJson)
                 .collect(Collectors.toList()));
