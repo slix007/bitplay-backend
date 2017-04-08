@@ -2,6 +2,7 @@ package com.crypto.service;
 
 import com.crypto.model.OrderBookJson;
 import com.crypto.model.VisualTrade;
+import com.crypto.utils.Utils;
 
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Trade;
@@ -40,29 +41,15 @@ public abstract class AbstractBitplayUIService {
 
     protected OrderBookJson getBestOrderBookJson(OrderBook orderBook) {
         final OrderBookJson orderJson = new OrderBookJson();
-        final List<LimitOrder> bestBids = getBestBids(orderBook.getBids(), 3);
+        final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 30);
         orderJson.setBid(bestBids.stream()
                 .map(toOrderBookJson)
                 .collect(Collectors.toList()));
-        final List<LimitOrder> bestAsks = getBestAsks(orderBook.getAsks(), 3);
+        final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 30);
         orderJson.setAsk(bestAsks.stream()
                 .map(toOrderBookJson)
                 .collect(Collectors.toList()));
         return orderJson;
-    }
-
-    protected List<LimitOrder> getBestBids(List<LimitOrder> bids, int amount) {
-        return bids.stream()
-                .sorted(Comparator.comparing(LimitOrder::getLimitPrice))
-                .limit(amount)
-                .collect(Collectors.toList());
-    }
-
-    protected List<LimitOrder> getBestAsks(List<LimitOrder> asks, int amount) {
-        return asks.stream()
-                .sorted((o1, o2) -> o2.getLimitPrice().compareTo(o1.getLimitPrice()))
-                .limit(amount)
-                .collect(Collectors.toList());
     }
 
     Function<LimitOrder, VisualTrade> toVisual = limitOrder -> new VisualTrade(

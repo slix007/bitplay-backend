@@ -103,7 +103,7 @@ public class OkCoinService { //extends Thread {
     private void subscribeOnOrderBook() {
         //TODO subscribe on updates only to increase the speed
         orderBookSubscription = exchange.getStreamingMarketDataService()
-                .getOrderBook(CurrencyPair.BTC_USD, 20)
+                .getOrderBook(CurrencyPair.BTC_USD, 60)
                 .subscribe(orderBook -> {
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
