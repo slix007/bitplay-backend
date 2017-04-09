@@ -81,8 +81,8 @@ public class PoloniexService {
 
         // we don't need ticker
         //        subscribeOnTicker(streamingMarketDataService);
-
-        subscribeOnOrderBookUpdates(streamingMarketDataService);
+//TODO fix it. Looks strange
+//        subscribeOnOrderBookUpdates(streamingMarketDataService);
     }
 
     private void subscribeOnTicker(PoloniexStreamingMarketDataService streamingMarketDataService) {

@@ -32,10 +32,10 @@
     </appender>
 
     <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>log/main.log</file>
+        <file>logs/main.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>main.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/main.%d{yyyy-MM-dd}.log</fileNamePattern>
             <!-- keep 30 days' worth of history capped at 3GB total size -->
             <maxHistory>30</maxHistory>
             <totalSizeCap>1GB</totalSizeCap>
@@ -46,10 +46,10 @@
     </appender>
 
     <appender name="OKCOIN_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>log/okcoin.log</file>
+        <file>logs/okcoin.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>okcoin.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/okcoin.%d{yyyy-MM-dd}.log</fileNamePattern>
             <!-- keep 30 days' worth of history capped at 3GB total size -->
             <maxHistory>30</maxHistory>
             <totalSizeCap>1GB</totalSizeCap>
@@ -60,10 +60,10 @@
     </appender>
 
     <appender name="POLONIEX_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>log/poloniex.log</file>
+        <file>logs/poloniex.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>poloniex.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>log/poloniex.%d{yyyy-MM-dd}.log</fileNamePattern>
             <!-- keep 30 days' worth of history capped at 3GB total size -->
             <maxHistory>30</maxHistory>
             <totalSizeCap>1GB</totalSizeCap>
@@ -78,7 +78,7 @@
         <appender-ref ref="FILE_APPENDER"/>
     </root>
 
-    <logger name="com.crypto.okcoin" level="info" additivity="false">
+    <logger name="com.crypto.okcoin" level="debug" additivity="false">
         <appender-ref ref="OKCOIN_APPENDER"/>
     </logger>
 

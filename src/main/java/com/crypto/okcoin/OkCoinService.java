@@ -88,6 +88,12 @@ public class OkCoinService { //extends Thread {
         subscribeOnOrderBook();
 
         subscribeOnOthers();
+
+        // Retry on disconnect. (It's disconneced each 5 min)
+        exchange.onClientDisconnect().doOnComplete(() -> {
+            logger.warn("onClientDisconnect okCoinService");
+            initWebSocketConnection();
+        });
     }
 
     private void subscribeOnOthers() {
@@ -103,14 +109,13 @@ public class OkCoinService { //extends Thread {
     private void subscribeOnOrderBook() {
         //TODO subscribe on updates only to increase the speed
         orderBookSubscription = exchange.getStreamingMarketDataService()
-                .getOrderBook(CurrencyPair.BTC_USD, 60)
+                .getOrderBook(CurrencyPair.BTC_USD, 20)
                 .subscribe(orderBook -> {
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
                     final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
                     final LimitOrder bestBid = bestBids.size() > 0 ? bestBids.get(0) : null;
-                    logger.debug("First ask: {}", bestAsk);
-                    logger.debug("First bid: {}", bestBid);
+                    logger.debug("ask: {}, bid: {}", bestAsk.getLimitPrice(), bestBid.getLimitPrice());
                     this.orderBook = orderBook;
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }
