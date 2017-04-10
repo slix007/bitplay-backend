@@ -63,7 +63,7 @@
         <file>logs/poloniex.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>log/poloniex.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/poloniex.%d{yyyy-MM-dd}.log</fileNamePattern>
             <!-- keep 30 days' worth of history capped at 3GB total size -->
             <maxHistory>30</maxHistory>
             <totalSizeCap>1GB</totalSizeCap>
