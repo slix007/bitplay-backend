@@ -77,10 +77,10 @@ public class OkCoinService {
         subscribeOnOthers();
 
         // Retry on disconnect. (It's disconneced each 5 min)
-        exchange.onClientDisconnect().doOnComplete(() -> {
+        exchange.onDisconnect().doOnComplete(() -> {
             logger.warn("onClientDisconnect okCoinService");
             initWebSocketConnection();
-        });
+        }).subscribe();
     }
 
     private void subscribeOnOthers() {
