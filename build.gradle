@@ -1,0 +1,41 @@
+plugins {
+    id 'org.hidetake.ssh' version '2.6.0'
+}
+
+ssh.settings {
+    knownHosts = allowAnyHosts
+}
+
+remotes {
+    test {
+        host = bpHost
+        user = bpUser
+        password = bpPassword
+        port = bpPort as Integer
+    }
+}
+
+def remoteInstallDir = '/opt/bitplay'
+def remoteHomeDir = '/home/' + bpUser
+
+task clean << {
+    delete project.buildDir
+}
+
+task deploy << {
+    ssh.run {
+
+
+        session(remotes.test) {
+
+            put from: "target/exchange-0.0.1-SNAPSHOT.jar", into: "${remoteHomeDir}/"
+
+            executeSudo "sudo systemctl stop bitplay", pty: true
+            executeSudo "sudo rm -rf /opt/bitplay/*", pty: true
+            executeSudo "sudo cp ${remoteHomeDir}/exchange-0.0.1-SNAPSHOT.jar ${remoteInstallDir}/bitplay-core.jar", pty: true
+            executeSudo "sudo systemctl start bitplay", pty: true
+            executeSudo "sudo systemctl start bitplay", pty: true
+        }
+    }
+}
+

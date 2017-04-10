@@ -29,8 +29,7 @@ import io.reactivex.disposables.Disposable;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service
-//@Scope("prototype")
-public class OkCoinService { //extends Thread {
+public class OkCoinService {
 
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
 
@@ -59,20 +58,8 @@ public class OkCoinService { //extends Thread {
         return exchange;
     }
 
-//    @Override
-//    public void run() {
-////        init();
-////        fetchCurrencies();
-////        fetchOrderBook();
-////        fetchAccountInfo();
-//
-//    }
-
     public OkCoinService() {
         init();
-//        fetchCurrencies();
-//        fetchOrderBook();
-//        fetchAccountInfo();
     }
 
     public void init() {

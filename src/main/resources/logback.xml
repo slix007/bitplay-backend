@@ -78,7 +78,7 @@
         <appender-ref ref="FILE_APPENDER"/>
     </root>
 
-    <logger name="com.crypto.okcoin" level="debug" additivity="false">
+    <logger name="com.crypto.okcoin" level="info" additivity="false">
         <appender-ref ref="OKCOIN_APPENDER"/>
     </logger>
 
