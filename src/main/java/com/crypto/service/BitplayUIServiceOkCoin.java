@@ -28,7 +28,6 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService {
     OkCoinService service;
 
     public OrderBookJson getOrderBook() {
-        final OkCoinService service = this.service;
         return getBestOrderBookJson(service.getOrderBook());
     }
 
