@@ -10,6 +10,7 @@ import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -39,12 +40,14 @@ public abstract class AbstractBitplayUIService {
 
     protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook) {
         final OrderBookJson orderJson = new OrderBookJson();
-        final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1000);
+        final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 100);
         orderJson.setBid(bestBids.stream()
+                .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
                 .map(toOrderBookJson)
                 .collect(Collectors.toList()));
-        final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1000);
+        final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 100);
         orderJson.setAsk(bestAsks.stream()
+                .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
                 .map(toOrderBookJson)
                 .collect(Collectors.toList()));
         return orderJson;

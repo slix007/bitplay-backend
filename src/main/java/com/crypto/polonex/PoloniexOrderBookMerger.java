@@ -96,22 +96,27 @@ public class PoloniexOrderBookMerger {
                         limitOrder.getLimitPrice().compareTo(depthUpdate.getData().getRate()) != 0)
                 .collect(Collectors.toList());
 
+        LimitOrder foundItem = findTheItem(asksOrBids, depthUpdate);
+
         if (setToZero) {
-            if (newCollect.size() == asksOrBids.size()) {
-                LOG.warn("Have not found item to delete {},{}", depthUpdate.getData().getType(), depthUpdate.getData().getRate());
+            if (foundItem == null) {
+                LOG.warn("Have not found item to delete {},{}, {}",
+                        depthUpdate.getData().getType(), depthUpdate.getData().getRate(), depthUpdate.getSequence());
             } else {
-                LOG.debug("Deleted (Set to 0) {},{}", depthUpdate.getData().getType(), depthUpdate.getData().getRate());
+                LOG.debug("Deleted (Set to 0) {},{},{}", depthUpdate.getData().getType(), depthUpdate.getData().getRate(),
+                        depthUpdate.getSequence());
             }
         } else {
-            if (newCollect.size() == asksOrBids.size()) {
-                LOG.debug("Added {},{}", depthUpdate.getData().getType(), depthUpdate.getData().getRate());
+            if (foundItem == null) {
+                LOG.debug("Added {},{},{}", depthUpdate.getData().getType(), depthUpdate.getData().getRate(),
+                        depthUpdate.getSequence());
             } else {
-                LOG.debug("Modified {},{}", depthUpdate.getData().getType(), depthUpdate.getData().getRate());
+                LOG.debug("Modified {},{},{}", depthUpdate.getData().getType(), depthUpdate.getData().getRate(),
+                        depthUpdate.getSequence());
             }
         }
 
         // add the price (or zero price)
-        LimitOrder foundItem = findTheItem(asksOrBids, depthUpdate);
         if (foundItem != null
                 && foundItem.getId() != null
                 && Long.valueOf(foundItem.getId()) > updateSeqNumber) {
@@ -126,7 +131,7 @@ public class PoloniexOrderBookMerger {
             ));
         }
 
-        return newCollect;
+        return cleanItems(newCollect);
     }
 
     private static LimitOrder findTheItem(List<LimitOrder> bidsOrAsks, PoloniexWebSocketDepth depthUpdate) {
@@ -134,6 +139,7 @@ public class PoloniexOrderBookMerger {
                 .filter(limitOrder -> limitOrder.getLimitPrice().compareTo(depthUpdate.getData().getRate()) == 0)
                 .collect(Collectors.toList());
         if (collect.size() > 1) {
+            LOG.error("More than one limitOrder with price {} found", depthUpdate.getData().getRate());
             collect = collect.stream()
                     .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
                     .collect(Collectors.toList());
@@ -150,25 +156,6 @@ public class PoloniexOrderBookMerger {
         }
 
         return collect.size() > 0 ? collect.get(0) : null;
-    }
-
-    private static List<LimitOrder> getLimitOrders(PoloniexWebSocketDepth.DataObj data, Long seq, List<LimitOrder> orderBookPart, LimitOrder[] foundlimitOrders) {
-        return orderBookPart.stream()
-                .filter(limitOrder -> {
-                    // if price is equal
-                    if (limitOrder.getLimitPrice().compareTo(data.getRate()) == 0
-                            &&  // and
-                            // The seq is before the current
-                            ((limitOrder.getId() == null)
-                                    || (limitOrder.getId() != null && Long.valueOf(limitOrder.getId()) < seq))) {
-
-                        foundlimitOrders[0] = limitOrder;
-                    }
-
-                    return limitOrder.getLimitPrice().compareTo(data.getRate()) != 0;
-
-                })
-                .collect(Collectors.toList());
     }
 }
 

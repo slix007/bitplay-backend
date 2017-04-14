@@ -97,12 +97,12 @@
         <appender-ref ref="OKCOIN_APPENDER"/>
     </logger>
 
-    <logger name="com.crypto.polonex" level="info" additivity="false">
+    <logger name="com.crypto.polonex" level="debug" additivity="false">
         <appender-ref ref="POLONIEX_APPENDER"/>
     </logger>
 
 
-    <logger name="info.bitrich.xchangestream.poloniex.incremental" level="debug" additivity="false">
+    <logger name="info.bitrich.xchangestream.poloniex" level="debug" additivity="false">
         <appender-ref ref="DEBUG_APPENDER"/>
     </logger>
 
