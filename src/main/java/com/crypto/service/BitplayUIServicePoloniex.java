@@ -1,6 +1,7 @@
 package com.crypto.service;
 
 import com.crypto.model.OrderBookJson;
+import com.crypto.model.TickerJson;
 import com.crypto.polonex.PoloniexService;
 import com.crypto.model.VisualTrade;
 
@@ -24,14 +25,11 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService {
     @Autowired
     PoloniexService poloniexService;
 
-    int orderBookDepth = 0;
-
     OrderBook orderBook;
 
     @Override
     public List<VisualTrade> fetchTrades() {
         final Trades trades = poloniexService.fetchTrades();
-        orderBookDepth = trades.getTrades().size();
 
         List<VisualTrade> askTrades = trades.getTrades().stream()
                 .sorted((o1, o2) -> o1.getTimestamp().before(o2.getTimestamp()) ? 1 : -1)
@@ -43,15 +41,17 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService {
     @Override
     public OrderBookJson fetchOrderBook() {
         orderBook = poloniexService.fetchOrderBook();
-        orderBookDepth = orderBook.getAsks().size();
 
-        return getBestOrderBookJson(orderBook);
+        return convertOrderBookAndFilter(orderBook);
     }
 
     public OrderBookJson getOrderBook() {
-        return getBestOrderBookJson(poloniexService.getOrderBook());
+        return convertOrderBookAndFilter(poloniexService.getOrderBook());
     }
 
+    public TickerJson getTicker() {
+        return convertTicker(poloniexService.getTicker());
+    }
 
     public List<VisualTrade> getBestBids() {
         return orderBook.getBids().stream()
@@ -73,10 +73,5 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService {
                 limitOrder.getType().toString(),
                 LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault())
                         .toLocalTime().toString());
-    }
-
-    @Override
-    public int getOrderBookDepth() {
-        return orderBookDepth;
     }
 }

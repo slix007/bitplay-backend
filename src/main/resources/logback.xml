@@ -73,6 +73,21 @@
         </encoder>
     </appender>
 
+
+    <appender name="DEBUG_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/debug.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/debug.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%contextName] [%thread] %-5level %logger{36} - %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE_APPENDER"/>
         <appender-ref ref="FILE_APPENDER"/>
@@ -85,6 +100,12 @@
     <logger name="com.crypto.polonex" level="info" additivity="false">
         <appender-ref ref="POLONIEX_APPENDER"/>
     </logger>
+
+
+    <logger name="info.bitrich.xchangestream.poloniex.incremental" level="debug" additivity="false">
+        <appender-ref ref="DEBUG_APPENDER"/>
+    </logger>
+
 
     <!-- Logging api requests for poloniex -->
     <logger name="si.mazi.rescu" level="trace"/>

@@ -28,7 +28,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService {
     OkCoinService service;
 
     public OrderBookJson getOrderBook() {
-        return getBestOrderBookJson(service.getOrderBook());
+        return convertOrderBookAndFilter(service.getOrderBook());
     }
 
     @Override
@@ -42,10 +42,5 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService {
 //        final OrderBookJson bestOrderBookJson = getBestOrderBookJson(orderBook);
 //        return bestOrderBookJson;
         return null;
-    }
-
-    @Override
-    public int getOrderBookDepth() {
-        return 0;
     }
 }

@@ -73,5 +73,29 @@ public class OrderBookJson {
         public void setTimestamp(String timestamp) {
             this.timestamp = timestamp;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            OrderJson orderJson = (OrderJson) o;
+
+            if (currency != null ? !currency.equals(orderJson.currency) : orderJson.currency != null) return false;
+            if (price != null ? !price.equals(orderJson.price) : orderJson.price != null) return false;
+            if (amount != null ? !amount.equals(orderJson.amount) : orderJson.amount != null) return false;
+            return orderType != null ? orderType.equals(orderJson.orderType) : orderJson.orderType == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = currency != null ? currency.hashCode() : 0;
+            result = 31 * result + (price != null ? price.hashCode() : 0);
+            result = 31 * result + (amount != null ? amount.hashCode() : 0);
+            result = 31 * result + (orderType != null ? orderType.hashCode() : 0);
+            return result;
+        }
     }
+
+
 }

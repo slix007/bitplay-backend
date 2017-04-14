@@ -2,7 +2,6 @@ package com.crypto.controller;
 
 import com.crypto.model.OrderBookJson;
 import com.crypto.service.BitplayUIServiceOkCoin;
-import com.crypto.service.BitplayUIServicePoloniex;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -17,10 +16,7 @@ import javax.ws.rs.Produces;
  */
 @Component
 @Path("/market")
-public class BitplayUIEndpoint {
-
-    @Autowired
-    private BitplayUIServicePoloniex poloniex;
+public class OkCoinEndpoint {
 
     @Autowired
     @Qualifier("OkCoin")
@@ -32,12 +28,6 @@ public class BitplayUIEndpoint {
         return "Hello";
     }
 
-    @GET
-    @Path("/poloniex/order-book")
-    @Produces("application/json")
-    public OrderBookJson poloniexOrderBook() {
-        return this.poloniex.getOrderBook();
-    }
 
     @GET
     @Path("/okcoin/order-book")

@@ -1,16 +1,17 @@
 package com.crypto.service;
 
 import com.crypto.model.OrderBookJson;
+import com.crypto.model.TickerJson;
 import com.crypto.model.VisualTrade;
 import com.crypto.utils.Utils;
 
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -24,9 +25,6 @@ public abstract class AbstractBitplayUIService {
 
     public abstract OrderBookJson fetchOrderBook();
 
-    public abstract int getOrderBookDepth();
-
-
     VisualTrade toVisualTrade(Trade trade) {
         return new VisualTrade(
                 trade.getCurrencyPair().toString(),
@@ -39,17 +37,21 @@ public abstract class AbstractBitplayUIService {
     }
 
 
-    protected OrderBookJson getBestOrderBookJson(OrderBook orderBook) {
+    protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook) {
         final OrderBookJson orderJson = new OrderBookJson();
-        final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 30);
+        final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 200);
         orderJson.setBid(bestBids.stream()
                 .map(toOrderBookJson)
                 .collect(Collectors.toList()));
-        final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 30);
+        final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 200);
         orderJson.setAsk(bestAsks.stream()
                 .map(toOrderBookJson)
                 .collect(Collectors.toList()));
         return orderJson;
+    }
+
+    protected TickerJson convertTicker(Ticker ticker) {
+        return new TickerJson(ticker.toString());
     }
 
     Function<LimitOrder, VisualTrade> toVisual = limitOrder -> new VisualTrade(

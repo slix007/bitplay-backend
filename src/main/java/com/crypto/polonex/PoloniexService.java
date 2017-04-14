@@ -4,12 +4,15 @@ import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingExchange;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingMarketDataService;
+import info.bitrich.xchangestream.poloniex.incremental.PoloniexOrderBookMerger;
+import info.bitrich.xchangestream.poloniex.incremental.PoloniexWebSocketDepth;
 
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -38,6 +41,9 @@ public class PoloniexService {
 
     Logger logger = LoggerFactory.getLogger(PoloniexService.class);
 
+//    @Autowired
+//    WebSocketEndpoint webSocketEndpoint;
+
     // My api key for empty account
     //    private static String KEY = "2326PK47-9500PEQV-S64511G1-1HF2V48N";
     //    private static String SECRET = "2de990fecb2ca516a8cd40fa0ffc8f95f4fc8021e3f7ee681972493c10311c260d26b35c0f2e41adec027056711e2e7b1eaa6cde7d8f679aa871e0a1a801c8fa";
@@ -60,6 +66,8 @@ public class PoloniexService {
     private StreamingExchange exchange;
 
     private OrderBook orderBook;
+    private Ticker ticker;
+    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
 
     Disposable orderBookSubscription;
 
@@ -69,7 +77,7 @@ public class PoloniexService {
 
     public void init() {
         exchange = getExchange();
-        orderBook = fetchOrderBook();
+        fetchOrderBook();
         initWebSocketConnection();
     }
 
@@ -80,7 +88,7 @@ public class PoloniexService {
                 (PoloniexStreamingMarketDataService) exchange.getStreamingMarketDataService();
 
         // we don't need ticker
-        //        subscribeOnTicker(streamingMarketDataService);
+        subscribeOnTicker(streamingMarketDataService);
 //TODO fix it. Looks strange
         subscribeOnOrderBookUpdates(streamingMarketDataService);
     }
@@ -89,7 +97,8 @@ public class PoloniexService {
         streamingMarketDataService
                 .getTicker(CURRENCY_PAIR_USDT_BTC)
                 .subscribe(ticker -> {
-                    logger.info("Incoming ticker: {}", ticker);
+                    this.ticker = ticker;
+                    logger.debug("Incoming ticker: {}", ticker);
                 }, throwable -> {
                     logger.error("Error in subscribing tickers.", throwable);
                 });
@@ -98,10 +107,17 @@ public class PoloniexService {
     private void subscribeOnOrderBookUpdates(PoloniexStreamingMarketDataService streamingMarketDataService) {
         orderBookSubscription = streamingMarketDataService
                 .getOrderBookUpdate(CURRENCY_PAIR_USDT_BTC)
-                .subscribe(orderBookUpdate -> {
+                .subscribe(poloniexWebSocketDepth -> {
                     // Do something
-                    logger.debug(orderBookUpdate.toString());
-                    orderBook.update(orderBookUpdate);
+                    logger.debug(poloniexWebSocketDepth.toString());
+                    synchronized (this) {
+                        orderBook = PoloniexOrderBookMerger.merge(orderBook, poloniexWebSocketDepth);
+                    }
+                    updates.add(poloniexWebSocketDepth);
+
+//                    webSocketEndpoint.sendLogMessage(poloniexWebSocketDepth.toString());
+
+                    //IT DOSN"T WORK WELL orderBook.update(poloniexWebSocketDepth);
                 });
     }
 
@@ -162,9 +178,10 @@ public class PoloniexService {
     }
 
     public OrderBook fetchOrderBook() {
-        OrderBook orderBook = null;
         try {
-            orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC);
+            synchronized (this) {
+                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, -1);
+            }
             logger.info("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
                     orderBook.getTimeStamp());
         } catch (IOException e) {
@@ -179,4 +196,7 @@ public class PoloniexService {
         return this.orderBook;
     }
 
+    public Ticker getTicker() {
+        return ticker;
+    }
 }
