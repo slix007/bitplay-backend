@@ -112,7 +112,9 @@ public class PoloniexOrderBookMerger {
 
         // add the price (or zero price)
         LimitOrder foundItem = findTheItem(asksOrBids, depthUpdate);
-        if (foundItem.getId() != null && Long.valueOf(foundItem.getId()) > updateSeqNumber) {
+        if (foundItem != null
+                && foundItem.getId() != null
+                && Long.valueOf(foundItem.getId()) > updateSeqNumber) {
             LOG.warn("Existing seq is bigger than updating seq {}>{}", foundItem.getId(), updateSeqNumber);
         } else {
             newCollect.add(new LimitOrder(orderType,
