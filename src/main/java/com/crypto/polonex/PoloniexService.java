@@ -4,7 +4,6 @@ import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingExchange;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingMarketDataService;
-import info.bitrich.xchangestream.poloniex.incremental.PoloniexOrderBookMerger;
 import info.bitrich.xchangestream.poloniex.incremental.PoloniexWebSocketDepth;
 
 import org.knowm.xchange.ExchangeSpecification;
@@ -25,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,8 +97,12 @@ public class PoloniexService {
         streamingMarketDataService
                 .getTicker(CURRENCY_PAIR_USDT_BTC)
                 .subscribe(ticker -> {
-                    this.ticker = ticker;
-                    logger.debug("Incoming ticker: {}", ticker);
+                    final Date newTimestamp = ticker.getTimestamp();
+                    if (newTimestamp.after(this.ticker.getTimestamp())) {
+                        this.ticker = ticker;
+                        logger.debug("Incoming ticker: {}", ticker);
+                    }
+
                 }, throwable -> {
                     logger.error("Error in subscribing tickers.", throwable);
                 });
