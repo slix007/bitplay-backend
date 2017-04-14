@@ -2,6 +2,7 @@ package com.crypto.controller;
 
 import com.crypto.model.OrderBookJson;
 import com.crypto.model.TickerJson;
+import com.crypto.polonex.PoloniexOrderBookMerger;
 import com.crypto.service.BitplayUIServicePoloniex;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,13 @@ public class PoloniexEndpoint {
     @Produces("application/json")
     public OrderBookJson poloniexOrderBook() {
         return this.poloniex.getOrderBook();
+    }
+
+    @GET
+    @Path("/order-book-clean")
+    @Produces("application/json")
+    public OrderBookJson cleanOrderBook() {
+        return this.poloniex.cleanOrderBook();
     }
 
     @GET

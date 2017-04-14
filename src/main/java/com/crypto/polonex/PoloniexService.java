@@ -203,4 +203,9 @@ public class PoloniexService {
     public Ticker getTicker() {
         return ticker;
     }
+
+    public OrderBook cleanOrderBook() {
+        this.orderBook = PoloniexOrderBookMerger.cleanOrderBook(this.orderBook);
+        return orderBook;
+    }
 }

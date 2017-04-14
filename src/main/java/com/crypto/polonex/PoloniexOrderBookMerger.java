@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,8 +23,23 @@ public class PoloniexOrderBookMerger {
 
     private static final Logger LOG = LoggerFactory.getLogger(PoloniexOrderBookMerger.class);
 
+    public synchronized static OrderBook cleanOrderBook(OrderBook orderBook) {
+        final List<LimitOrder> asks = cleanItems(orderBook.getAsks());
+        final List<LimitOrder> bids = cleanItems(orderBook.getBids());
+        return new OrderBook(new Date(), asks, bids);
+    }
 
+    private static List<LimitOrder> cleanItems(List<LimitOrder> asksOrBids) {
+        final Date oneMinutePast = Date.from(Instant.now().minusSeconds(60));
 
+        final List<LimitOrder> newCollect = asksOrBids.stream()
+                .filter(limitOrder ->
+                        !(limitOrder.getLimitPrice().compareTo(BigDecimal.ZERO) == 0
+                                && limitOrder.getTimestamp().before(oneMinutePast)))
+                .collect(Collectors.toList());
+
+        return newCollect;
+    }
 
 
     /**
@@ -40,26 +56,21 @@ public class PoloniexOrderBookMerger {
         switch (depthUpdateType) {
             case "orderBookRemove":
                 if (data.getType().equals("bid")) {
-                    LimitOrder foundItem = findTheItem(bids, depthUpdate);
                     final List<LimitOrder> newBids = updateTheItem(bids, depthUpdate, true);
                     newOrderBook = new OrderBook(new Date(), asks, newBids);
                 } else if (data.getType().equals("ask")) {
-                    LimitOrder foundItem = findTheItem(asks, depthUpdate);
                     final List<LimitOrder> newAsks = updateTheItem(asks, depthUpdate, true);
                     newOrderBook = new OrderBook(new Date(), newAsks, bids);
                 }
                 break;
             case "orderBookModify":
                 if (data.getType().equals("bid")) {
-                    LimitOrder foundItem = findTheItem(bids, depthUpdate);
                     final List<LimitOrder> newBids = updateTheItem(bids, depthUpdate, false);
                     newOrderBook = new OrderBook(new Date(), asks, newBids);
                 } else if (data.getType().equals("ask")) {
-                    LimitOrder foundItem = findTheItem(asks, depthUpdate);
                     final List<LimitOrder> newAsks = updateTheItem(asks, depthUpdate, false);
                     newOrderBook = new OrderBook(new Date(), newAsks, bids);
                 }
-
 
                 break;
             case "newTrade":
@@ -105,7 +116,7 @@ public class PoloniexOrderBookMerger {
             LOG.warn("Existing seq is bigger than updating seq {}>{}", foundItem.getId(), updateSeqNumber);
         } else {
             newCollect.add(new LimitOrder(orderType,
-                    setToZero ? new BigDecimal(0) : depthUpdate.getData().getAmount(),
+                    setToZero ? BigDecimal.ZERO : depthUpdate.getData().getAmount(),
                     currencyPair,
                     String.valueOf(depthUpdate.getSequence()),
                     new Date(),
@@ -122,7 +133,7 @@ public class PoloniexOrderBookMerger {
                 .collect(Collectors.toList());
         if (collect.size() > 1) {
             collect = collect.stream()
-                    .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(new BigDecimal(0)) != 0)
+                    .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
                     .collect(Collectors.toList());
         }
 

@@ -74,4 +74,8 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService {
                 LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault())
                         .toLocalTime().toString());
     }
+
+    public OrderBookJson cleanOrderBook() {
+        return convertOrderBookAndFilter(poloniexService.cleanOrderBook());
+    }
 }
