@@ -97,14 +97,8 @@ public class PoloniexService {
         streamingMarketDataService
                 .getTicker(CURRENCY_PAIR_USDT_BTC)
                 .subscribe(ticker -> {
-                    final Date newTimestamp = ticker.getTimestamp();
-                    if (this.ticker == null) {
                         this.ticker = ticker;
                         logger.debug("Incoming ticker: {}", ticker);
-                    } else if (newTimestamp.after(this.ticker.getTimestamp())) {
-                        this.ticker = ticker;
-                        logger.debug("Incoming ticker: {}", ticker);
-                    }
 
                 }, throwable -> {
                     logger.error("Error in subscribing tickers.", throwable);
@@ -117,9 +111,8 @@ public class PoloniexService {
                 .subscribe(poloniexWebSocketDepth -> {
                     // Do something
                     logger.debug(poloniexWebSocketDepth.toString());
-                    synchronized (this) {
-                        orderBook = PoloniexOrderBookMerger.merge(orderBook, poloniexWebSocketDepth);
-                    }
+
+                    orderBook = PoloniexOrderBookMerger.merge(orderBook, poloniexWebSocketDepth);
 //                    updates.add(poloniexWebSocketDepth);
 
 //                    updates.stream().filter(depth -> depth.getData().getRate().compareTo(new BigDecimal("1206.0"))==0).collect(Collectors.toList())

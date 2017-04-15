@@ -1,5 +1,6 @@
 package com.crypto.controller;
 
+import com.crypto.model.AccountInfoJson;
 import com.crypto.model.OrderBookJson;
 import com.crypto.model.TickerJson;
 import com.crypto.service.BitplayUIServicePoloniex;
@@ -94,5 +95,13 @@ public class PoloniexEndpoint {
     public TickerJson getTicker() {
         return this.poloniex.getTicker();
     }
+
+    @GET
+    @Path("/account")
+    @Produces("application/json")
+    public AccountInfoJson getAccountInfo() {
+        return this.poloniex.getAccountInfo();
+    }
+
 
 }

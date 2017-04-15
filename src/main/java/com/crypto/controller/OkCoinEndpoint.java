@@ -1,5 +1,6 @@
 package com.crypto.controller;
 
+import com.crypto.model.AccountInfoJson;
 import com.crypto.model.OrderBookJson;
 import com.crypto.service.BitplayUIServiceOkCoin;
 
@@ -15,7 +16,7 @@ import javax.ws.rs.Produces;
  * Created by Sergey Shurmin on 4/3/17.
  */
 @Component
-@Path("/market")
+@Path("/market/okcoin")
 public class OkCoinEndpoint {
 
     @Autowired
@@ -23,17 +24,18 @@ public class OkCoinEndpoint {
     private BitplayUIServiceOkCoin okCoin;
 
     @GET
-    @Path("/")
-    public String message() {
-        return "Hello";
-    }
-
-
-    @GET
-    @Path("/okcoin/order-book")
+    @Path("/order-book")
     @Produces("application/json")
     public OrderBookJson okCoinOrderBook() {
         return this.okCoin.getOrderBook();
     }
+
+    @GET
+    @Path("/account")
+    @Produces("application/json")
+    public AccountInfoJson getAccountInfo() {
+        return this.okCoin.getAccountInfo();
+    }
+
 }
 

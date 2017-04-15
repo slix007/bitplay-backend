@@ -1,10 +1,14 @@
 package com.crypto.service;
 
+import com.crypto.model.AccountInfoJson;
 import com.crypto.model.OrderBookJson;
 import com.crypto.model.TickerJson;
 import com.crypto.model.VisualTrade;
 import com.crypto.utils.Utils;
 
+import org.knowm.xchange.currency.Currency;
+import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
@@ -25,6 +29,8 @@ public abstract class AbstractBitplayUIService {
     public abstract List<VisualTrade> fetchTrades();
 
     public abstract OrderBookJson fetchOrderBook();
+
+    public abstract AccountInfoJson getAccountInfo();
 
     VisualTrade toVisualTrade(Trade trade) {
         return new VisualTrade(
@@ -54,7 +60,8 @@ public abstract class AbstractBitplayUIService {
     }
 
     protected TickerJson convertTicker(Ticker ticker) {
-        return new TickerJson(ticker.toString());
+        final String value = ticker != null ? ticker.toString() : "";
+        return new TickerJson(value);
     }
 
     Function<LimitOrder, VisualTrade> toVisual = limitOrder -> new VisualTrade(
@@ -77,5 +84,11 @@ public abstract class AbstractBitplayUIService {
         return orderJson;
     };
 
+    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo) {
+        final Wallet wallet = accountInfo.getWallet();
+        return new AccountInfoJson(wallet.getBalance(Currency.BTC).getAvailable().toPlainString(),
+                wallet.getBalance(Currency.USD).getAvailable().toPlainString(),
+                accountInfo.toString());
+    }
 
 }

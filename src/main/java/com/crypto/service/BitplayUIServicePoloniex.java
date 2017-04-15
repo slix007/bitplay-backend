@@ -1,10 +1,14 @@
 package com.crypto.service;
 
+import com.crypto.model.AccountInfoJson;
 import com.crypto.model.OrderBookJson;
 import com.crypto.model.TickerJson;
 import com.crypto.polonex.PoloniexService;
 import com.crypto.model.VisualTrade;
 
+import org.knowm.xchange.currency.Currency;
+import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -43,6 +47,19 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService {
         orderBook = poloniexService.fetchOrderBook();
 
         return convertOrderBookAndFilter(orderBook);
+    }
+
+    @Override
+    public AccountInfoJson getAccountInfo() {
+        return convertAccountInfo(poloniexService.fetchAccountInfo());
+    }
+
+    @Override
+    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo) {
+        final Wallet wallet = accountInfo.getWallet();
+        return new AccountInfoJson(wallet.getBalance(Currency.BTC).getAvailable().toPlainString(),
+                wallet.getBalance(new Currency("USDT")).getAvailable().toPlainString(),
+                accountInfo.toString());
     }
 
     public OrderBookJson getOrderBook() {

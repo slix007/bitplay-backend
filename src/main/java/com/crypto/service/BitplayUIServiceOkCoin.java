@@ -1,11 +1,10 @@
 package com.crypto.service;
 
+import com.crypto.model.AccountInfoJson;
 import com.crypto.model.OrderBookJson;
 import com.crypto.model.VisualTrade;
 import com.crypto.okcoin.OkCoinService;
-import com.crypto.polonex.PoloniexService;
 
-import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,5 +41,10 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService {
 //        final OrderBookJson bestOrderBookJson = getBestOrderBookJson(orderBook);
 //        return bestOrderBookJson;
         return null;
+    }
+
+    @Override
+    public AccountInfoJson getAccountInfo() {
+        return convertAccountInfo(service.fetchAccountInfo());
     }
 }
