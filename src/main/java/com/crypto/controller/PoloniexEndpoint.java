@@ -44,7 +44,12 @@ public class PoloniexEndpoint {
     @Path("/order-book-fetch")
     @Produces("application/json")
     public OrderBookJson fetchAndCompareOrderBook() {
-        final OrderBookJson computed = this.poloniex.getOrderBook();
+        final OrderBookJson computed = this.poloniex.fetchOrderBook();
+//        compareOrderBook(computed);
+        return computed;
+    }
+
+    private void compareOrderBook(OrderBookJson computed) {
         final OrderBookJson fetched = this.poloniex.fetchOrderBook();
         final boolean computedAskHasAllReal = computed.getAsk().containsAll(fetched.getAsk());
         final boolean computedBidHasAllReal = computed.getBid().containsAll(fetched.getBid());
@@ -61,9 +66,6 @@ public class PoloniexEndpoint {
         computed.getBid().forEach(oneItem -> {
             findMatchedByPrice(oneItem, fetched.getBid());
         });
-
-
-        return computed;
     }
 
     private void findMatchedByPrice(OrderBookJson.OrderJson toFindOrderJson, List<OrderBookJson.OrderJson> ask) {

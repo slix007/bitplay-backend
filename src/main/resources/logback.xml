@@ -102,12 +102,13 @@
     </logger>
 
 
-    <logger name="info.bitrich.xchangestream.poloniex" level="debug" additivity="false">
+    <!--info.bitrich.xchangestream.poloniex - orderBook increment update for Poloniex-->
+    <logger name="DEBUG_LOG" level="debug" additivity="false">
         <appender-ref ref="DEBUG_APPENDER"/>
     </logger>
 
 
     <!-- Logging api requests for poloniex -->
-    <logger name="si.mazi.rescu" level="trace"/>
+    <!--<logger name="si.mazi.rescu" level="trace"/>-->
 
 </configuration>

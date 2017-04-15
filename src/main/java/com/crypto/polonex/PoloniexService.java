@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,8 @@ import io.reactivex.disposables.Disposable;
 @Service
 public class PoloniexService {
 
-    Logger logger = LoggerFactory.getLogger(PoloniexService.class);
+    private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
+
 
 //    @Autowired
 //    WebSocketEndpoint webSocketEndpoint;
@@ -54,6 +54,8 @@ public class PoloniexService {
 
     private final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
 
+    private List<Long> latencyList = new ArrayList<>();
+
     private StreamingExchange getExchange() {
 
         ExchangeSpecification spec = new ExchangeSpecification(PoloniexStreamingExchange.class);
@@ -67,7 +69,7 @@ public class PoloniexService {
 
     private OrderBook orderBook;
     private Ticker ticker;
-    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
+//    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
 
     Disposable orderBookSubscription;
 
@@ -180,11 +182,21 @@ public class PoloniexService {
 
     public OrderBook fetchOrderBook() {
         try {
-            synchronized (this) {
 //                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, -1);
-                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, 10);
+            final long startFetch = System.nanoTime();
+            orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, 5);
+            final long endFetch = System.nanoTime();
+            latencyList.add(endFetch - startFetch);
+            if (latencyList.size() > 100) {
+                logger.debug("Average get orderBook(5) time is {} ms",
+                        latencyList
+                                .stream()
+                                .mapToDouble(a -> a)
+                                .average().orElse(0) / 1000 / 1000);
+                latencyList.clear();
             }
-            logger.info("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
+
+            logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
                     orderBook.getTimeStamp());
         } catch (IOException e) {
             e.printStackTrace();
