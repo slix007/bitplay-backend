@@ -2,7 +2,6 @@ package com.crypto.controller;
 
 import com.crypto.model.OrderBookJson;
 import com.crypto.model.TickerJson;
-import com.crypto.polonex.PoloniexOrderBookMerger;
 import com.crypto.service.BitplayUIServicePoloniex;
 
 import org.springframework.beans.factory.annotation.Autowired;

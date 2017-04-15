@@ -89,8 +89,8 @@ public class PoloniexService {
 
         // we don't need ticker
         subscribeOnTicker(streamingMarketDataService);
-//TODO fix it. Looks strange
-        subscribeOnOrderBookUpdates(streamingMarketDataService);
+//TODO Contact okCoin. Some updates looks missing. They probably don't send all.
+//        subscribeOnOrderBookUpdates(streamingMarketDataService);
     }
 
     private void subscribeOnTicker(PoloniexStreamingMarketDataService streamingMarketDataService) {
@@ -98,7 +98,10 @@ public class PoloniexService {
                 .getTicker(CURRENCY_PAIR_USDT_BTC)
                 .subscribe(ticker -> {
                     final Date newTimestamp = ticker.getTimestamp();
-                    if (newTimestamp.after(this.ticker.getTimestamp())) {
+                    if (this.ticker == null) {
+                        this.ticker = ticker;
+                        logger.debug("Incoming ticker: {}", ticker);
+                    } else if (newTimestamp.after(this.ticker.getTimestamp())) {
                         this.ticker = ticker;
                         logger.debug("Incoming ticker: {}", ticker);
                     }
@@ -117,8 +120,9 @@ public class PoloniexService {
                     synchronized (this) {
                         orderBook = PoloniexOrderBookMerger.merge(orderBook, poloniexWebSocketDepth);
                     }
-                    updates.add(poloniexWebSocketDepth);
+//                    updates.add(poloniexWebSocketDepth);
 
+//                    updates.stream().filter(depth -> depth.getData().getRate().compareTo(new BigDecimal("1206.0"))==0).collect(Collectors.toList())
 //                    webSocketEndpoint.sendLogMessage(poloniexWebSocketDepth.toString());
 
                     //IT DOSN"T WORK WELL orderBook.update(poloniexWebSocketDepth);
@@ -184,7 +188,8 @@ public class PoloniexService {
     public OrderBook fetchOrderBook() {
         try {
             synchronized (this) {
-                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, -1);
+//                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, -1);
+                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, 10);
             }
             logger.info("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
                     orderBook.getTimeStamp());
