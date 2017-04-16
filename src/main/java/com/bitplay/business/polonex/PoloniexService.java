@@ -17,10 +17,8 @@ import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
 import org.knowm.xchange.dto.trade.MarketOrder;
-import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.service.marketdata.MarketDataService;
 import org.knowm.xchange.service.trade.TradeService;
-import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -138,19 +136,15 @@ public class PoloniexService implements BusinessService {
         exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
-
     public AccountInfo fetchAccountInfo() {
         AccountInfo accountInfo = null;
         try {
-            final TradeService tradeService = exchange.getTradeService();
-            final UserTrades tradeHistory = tradeService.getTradeHistory(TradeHistoryParamsZero.PARAMS_ZERO);
-            logger.info(tradeHistory.toString());
             accountInfo = exchange.getAccountService().getAccountInfo();
-            logger.info(accountInfo.toString());
-            logger.info("Balance BTC {}", accountInfo.getWallet().getBalance(Currency.BTC).toString());
-            logger.info("Balance USD {}", accountInfo.getWallet().getBalance(Currency.USD).toString());
+            logger.info("Balance BTC={}, USD={}",
+                    accountInfo.getWallet().getBalance(Currency.BTC).toString(),
+                    accountInfo.getWallet().getBalance(Currency.USD).toString());
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Can not fetchAccountInfo", e);
         }
         return accountInfo;
     }
@@ -178,9 +172,9 @@ public class PoloniexService implements BusinessService {
             logger.info("Fetched {} trades", trades.getTrades().size());
 
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Can not fetchTrades", e);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Unexpected error on fetchTrades", e);
         }
         return trades;
     }
@@ -191,6 +185,7 @@ public class PoloniexService implements BusinessService {
             final long startFetch = System.nanoTime();
             orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, 5);
             final long endFetch = System.nanoTime();
+
             latencyList.add(endFetch - startFetch);
             if (latencyList.size() > 100) {
                 logger.debug("Average get orderBook(5) time is {} ms",
@@ -204,9 +199,9 @@ public class PoloniexService implements BusinessService {
             logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
                     orderBook.getTimeStamp());
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Can not fetchOrderBook", e);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Unexpected error on fetchOrderBook", e);
         }
         return orderBook;
     }
