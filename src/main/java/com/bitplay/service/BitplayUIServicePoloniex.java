@@ -63,6 +63,9 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
 
     @Override
     protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo) {
+        if (accountInfo == null) {
+            return new AccountInfoJson(null, null, null);
+        }
         final Wallet wallet = accountInfo.getWallet();
         return new AccountInfoJson(wallet.getBalance(Currency.BTC).getAvailable().toPlainString(),
                 wallet.getBalance(new Currency("USDT")).getAvailable().toPlainString(),

@@ -166,8 +166,9 @@ public class OkCoinService implements BusinessService {
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
                     orderId);
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Place market order error", e);
+            orderId = e.getMessage();
         }
         return orderId;
     }

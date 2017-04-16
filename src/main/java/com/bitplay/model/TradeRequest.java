@@ -13,6 +13,9 @@ public class TradeRequest {
     private Type type;
     private String amount;
 
+    public TradeRequest() {
+    }
+
     public TradeRequest(Type type, String amount) {
         this.type = type;
         this.amount = amount;

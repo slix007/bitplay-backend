@@ -144,7 +144,7 @@ public class PoloniexService implements BusinessService {
             logger.info("Balance BTC={}, USD={}",
                     accountInfo.getWallet().getBalance(Currency.BTC).toString(),
                     accountInfo.getWallet().getBalance(Currency.USD).toString());
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Can not fetchAccountInfo", e);
         }
         return accountInfo;
