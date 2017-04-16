@@ -1,6 +1,5 @@
-package com.crypto.quoine;
+package com.crypto.business.quoine;
 
-import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.dto.account.AccountInfo;

@@ -1,5 +1,6 @@
-package com.crypto.okcoin;
+package com.crypto.business.okcoin;
 
+import com.crypto.business.BusinessService;
 import com.crypto.utils.Utils;
 
 import info.bitrich.xchangestream.okcoin.OkCoinStreamingExchange;
@@ -7,18 +8,21 @@ import info.bitrich.xchangestream.okcoin.OkCoinStreamingExchange;
 import org.knowm.xchange.BaseExchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
-import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.dto.trade.MarketOrder;
+import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import javax.annotation.PreDestroy;
@@ -29,7 +33,7 @@ import io.reactivex.disposables.Disposable;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service
-public class OkCoinService {
+public class OkCoinService implements BusinessService {
 
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
 
@@ -119,22 +123,17 @@ public class OkCoinService {
     public String fetchCurrencies() {
         final List<CurrencyPair> exchangeSymbols = exchange.getExchangeSymbols();
         final String toString = Arrays.toString(exchangeSymbols.toArray());
-        System.out.println(toString);
+        logger.info(toString);
         return toString;
     }
 
     public AccountInfo fetchAccountInfo() {
         AccountInfo accountInfo = null;
         try {
-            final Ticker ticker = exchange.getMarketDataService().getTicker(CURRENCY_PAIR_BTC_USD);
-            logger.info("OKCOIN TICKER + " + ticker.toString());
-
             accountInfo = exchange.getAccountService().getAccountInfo();
-            logger.info(accountInfo.toString());
-            logger.info("Balance BTC {}", accountInfo.getWallet().getBalance(Currency.BTC).toString());
-            logger.info("Balance USD {}", accountInfo.getWallet().getBalance(Currency.USD).toString());
+            logger.debug(accountInfo.toString());
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("AccountInfo error", e);
         }
         return accountInfo;
     }
@@ -144,15 +143,25 @@ public class OkCoinService {
             orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_BTC_USD);
             logger.info("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
                     orderBook.getTimeStamp());
-        } catch (IOException e) {
-            e.printStackTrace();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("fetchOrderBook error", e);
         }
         return orderBook;
     }
 
     public OrderBook getOrderBook() {
         return orderBook;
+    }
+
+    @Override
+    public String placeMarketOrder(Order.OrderType orderType, BigDecimal amount) {
+        String orderId = null;
+        try {
+            final TradeService tradeService = exchange.getTradeService();
+            orderId = tradeService.placeMarketOrder(new MarketOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, new Date()));
+        } catch (IOException e) {
+            logger.error("Place market order error", e);
+        }
+        return orderId;
     }
 }

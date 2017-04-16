@@ -1,4 +1,4 @@
-package com.crypto.polonex;
+package com.crypto.business.polonex;
 
 import info.bitrich.xchangestream.poloniex.incremental.PoloniexWebSocketDepth;
 

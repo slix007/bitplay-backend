@@ -93,11 +93,11 @@
         <appender-ref ref="FILE_APPENDER"/>
     </root>
 
-    <logger name="com.crypto.okcoin" level="info" additivity="false">
+    <logger name="com.crypto.business.okcoin" level="info" additivity="false">
         <appender-ref ref="OKCOIN_APPENDER"/>
     </logger>
 
-    <logger name="com.crypto.polonex" level="debug" additivity="false">
+    <logger name="com.crypto.business.polonex" level="debug" additivity="false">
         <appender-ref ref="POLONIEX_APPENDER"/>
     </logger>
 

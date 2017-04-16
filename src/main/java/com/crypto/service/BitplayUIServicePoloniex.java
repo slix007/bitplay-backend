@@ -1,9 +1,11 @@
 package com.crypto.service;
 
 import com.crypto.model.AccountInfoJson;
+import com.crypto.model.TradeRequest;
 import com.crypto.model.OrderBookJson;
 import com.crypto.model.TickerJson;
-import com.crypto.polonex.PoloniexService;
+import com.crypto.model.TradeResponse;
+import com.crypto.business.polonex.PoloniexService;
 import com.crypto.model.VisualTrade;
 
 import org.knowm.xchange.currency.Currency;
@@ -24,10 +26,15 @@ import java.util.stream.Collectors;
  * Created by Sergey Shurmin on 3/25/17.
  */
 @Component("Poloniex")
-public class BitplayUIServicePoloniex extends AbstractBitplayUIService {
+public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexService> {
 
     @Autowired
     PoloniexService poloniexService;
+
+    @Override
+    public PoloniexService getBusinessService() {
+        return poloniexService;
+    }
 
     OrderBook orderBook;
 
@@ -94,5 +101,10 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService {
 
     public OrderBookJson cleanOrderBook() {
         return convertOrderBookAndFilter(poloniexService.cleanOrderBook());
+    }
+
+    @Override
+    public TradeResponse doTrade(TradeRequest tradeRequest) {
+        return null;
     }
 }

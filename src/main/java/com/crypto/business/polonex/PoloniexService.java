@@ -1,19 +1,22 @@
-package com.crypto.polonex;
+package com.crypto.business.polonex;
+
+import com.crypto.business.BusinessService;
 
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingExchange;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingMarketDataService;
-import info.bitrich.xchangestream.poloniex.incremental.PoloniexWebSocketDepth;
 
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
+import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.service.marketdata.MarketDataService;
 import org.knowm.xchange.service.trade.TradeService;
@@ -23,7 +26,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +41,7 @@ import io.reactivex.disposables.Disposable;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service
-public class PoloniexService {
+public class PoloniexService implements BusinessService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
 
@@ -217,5 +222,17 @@ public class PoloniexService {
     public OrderBook cleanOrderBook() {
         this.orderBook = PoloniexOrderBookMerger.cleanOrderBook(this.orderBook);
         return orderBook;
+    }
+
+    @Override
+    public String placeMarketOrder(Order.OrderType orderType, BigDecimal amount) {
+        String orderId = null;
+        try {
+            final TradeService tradeService = exchange.getTradeService();
+            orderId = tradeService.placeMarketOrder(new MarketOrder(orderType, amount, CURRENCY_PAIR_USDT_BTC, new Date()));
+        } catch (IOException e) {
+            logger.error("Place market order error", e);
+        }
+        return orderId;
     }
 }

@@ -1,4 +1,4 @@
-package com.crypto.quoine;
+package com.crypto.business.quoine;
 
 //import io.jsonwebtoken.JwtBuilder;
 //import io.jsonwebtoken.Jwts;

@@ -1,12 +1,16 @@
 package com.crypto.service;
 
+import com.crypto.business.BusinessService;
 import com.crypto.model.AccountInfoJson;
 import com.crypto.model.OrderBookJson;
 import com.crypto.model.TickerJson;
+import com.crypto.model.TradeRequest;
+import com.crypto.model.TradeResponse;
 import com.crypto.model.VisualTrade;
 import com.crypto.utils.Utils;
 
 import org.knowm.xchange.currency.Currency;
+import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -24,13 +28,15 @@ import java.util.stream.Collectors;
 /**
  * Created by Sergey Shurmin on 3/25/17.
  */
-public abstract class AbstractBitplayUIService {
+public abstract class AbstractBitplayUIService<T extends BusinessService> {
 
     public abstract List<VisualTrade> fetchTrades();
 
     public abstract OrderBookJson fetchOrderBook();
 
     public abstract AccountInfoJson getAccountInfo();
+
+    public abstract T getBusinessService();
 
     VisualTrade toVisualTrade(Trade trade) {
         return new VisualTrade(
@@ -91,4 +97,20 @@ public abstract class AbstractBitplayUIService {
                 accountInfo.toString());
     }
 
+    public TradeResponse doTrade(TradeRequest tradeRequest) {
+        final BigDecimal amount = new BigDecimal(tradeRequest.getAmount());
+        Order.OrderType orderType;
+        switch (tradeRequest.getType()) {
+            case BUY:
+                orderType = Order.OrderType.BID;
+                break;
+            case SELL:
+                orderType = Order.OrderType.ASK;
+                break;
+            default:
+                throw new IllegalArgumentException("No such order type " + tradeRequest.getType());
+        }
+        final String orderId = getBusinessService().placeMarketOrder(orderType, amount);
+        return new TradeResponse(orderId);
+    }
 }

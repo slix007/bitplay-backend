@@ -1,4 +1,4 @@
-package com.crypto.quoine;
+package com.crypto.business.quoine;
 
 /**
  * Created by Sergey Shurmin on 3/20/17.
