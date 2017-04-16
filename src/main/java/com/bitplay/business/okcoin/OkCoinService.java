@@ -36,6 +36,7 @@ import io.reactivex.disposables.Disposable;
 public class OkCoinService implements BusinessService {
 
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
+    private static final Logger tradeLogger = LoggerFactory.getLogger("TRADE_LOG");
 
     private static String KEY = "d4566d08-4fef-49ac-8933-e51f8c873795";
     private static String SECRET = "3DB6AD75C7CD78392947A5D4CE8567D2";
@@ -159,6 +160,12 @@ public class OkCoinService implements BusinessService {
         try {
             final TradeService tradeService = exchange.getTradeService();
             orderId = tradeService.placeMarketOrder(new MarketOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, new Date()));
+
+            // TODO save trading history into DB
+            tradeLogger.info("{} {} was registered with orderId {}",
+                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                    amount.toPlainString(),
+                    orderId);
         } catch (IOException e) {
             logger.error("Place market order error", e);
         }

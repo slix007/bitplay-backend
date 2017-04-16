@@ -88,6 +88,20 @@
         </encoder>
     </appender>
 
+    <appender name="TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/trades.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/trades.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%contextName] [%thread] %-5level %logger{36} - %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE_APPENDER"/>
         <appender-ref ref="FILE_APPENDER"/>
@@ -104,6 +118,10 @@
 
     <!--info.bitrich.xchangestream.poloniex - orderBook increment update for Poloniex-->
     <logger name="DEBUG_LOG" level="debug" additivity="false">
+        <appender-ref ref="TRADING_APPENDER"/>
+    </logger>
+
+    <logger name="TRADE_LOG" level="debug" additivity="false">
         <appender-ref ref="DEBUG_APPENDER"/>
     </logger>
 

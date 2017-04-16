@@ -42,10 +42,10 @@ public class OkCoinEndpoint {
     }
 
     @POST
-    @Path("/buy")
+    @Path("/place-market-order")
     @Consumes("application/json")
     @Produces("application/json")
-    public TradeResponse buyBtc(TradeRequest tradeRequest) {
+    public TradeResponse placeMarketOrder(TradeRequest tradeRequest) {
         return this.okCoin.doTrade(tradeRequest);
     }
 

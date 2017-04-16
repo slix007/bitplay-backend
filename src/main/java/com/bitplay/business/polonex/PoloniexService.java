@@ -42,6 +42,7 @@ import io.reactivex.disposables.Disposable;
 public class PoloniexService implements BusinessService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
+    private static final Logger tradeLogger = LoggerFactory.getLogger("TRADE_LOG");
 
 
 //    @Autowired
@@ -223,8 +224,14 @@ public class PoloniexService implements BusinessService {
     public String placeMarketOrder(Order.OrderType orderType, BigDecimal amount) {
         String orderId = null;
         try {
-            final TradeService tradeService = exchange.getTradeService();
-            orderId = tradeService.placeMarketOrder(new MarketOrder(orderType, amount, CURRENCY_PAIR_USDT_BTC, new Date()));
+            orderId = exchange.getTradeService()
+                    .placeMarketOrder(new MarketOrder(orderType, amount, CURRENCY_PAIR_USDT_BTC, new Date()));
+
+            // TODO save trading history into DB
+            tradeLogger.info("{} {} was registered with orderId {}",
+                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                    amount.toPlainString(),
+                    orderId);
         } catch (IOException e) {
             logger.error("Place market order error", e);
         }

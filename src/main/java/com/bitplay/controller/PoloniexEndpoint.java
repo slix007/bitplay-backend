@@ -3,6 +3,8 @@ package com.bitplay.controller;
 import com.bitplay.model.AccountInfoJson;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TickerJson;
+import com.bitplay.model.TradeRequest;
+import com.bitplay.model.TradeResponse;
 import com.bitplay.service.BitplayUIServicePoloniex;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +14,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 
@@ -105,5 +109,12 @@ public class PoloniexEndpoint {
         return this.poloniex.getAccountInfo();
     }
 
+    @POST
+    @Path("/place-market-order")
+    @Consumes("application/json")
+    @Produces("application/json")
+    public TradeResponse placeMarketOrder(TradeRequest tradeRequest) {
+        return this.poloniex.doTrade(tradeRequest);
+    }
 
 }

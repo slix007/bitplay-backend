@@ -102,9 +102,4 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
     public OrderBookJson cleanOrderBook() {
         return convertOrderBookAndFilter(poloniexService.cleanOrderBook());
     }
-
-    @Override
-    public TradeResponse doTrade(TradeRequest tradeRequest) {
-        return null;
-    }
 }
