@@ -1,6 +1,7 @@
 package com.bitplay.business.polonex;
 
 import com.bitplay.business.BusinessService;
+import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
@@ -16,9 +17,9 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
-import org.knowm.xchange.dto.trade.MarketOrder;
+import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.poloniex.dto.trade.PoloniexOrderFlags;
 import org.knowm.xchange.service.marketdata.MarketDataService;
-import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ import java.util.Map;
 import javax.annotation.PreDestroy;
 
 import io.reactivex.disposables.Disposable;
+import jersey.repackaged.com.google.common.collect.Sets;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
@@ -224,17 +226,38 @@ public class PoloniexService implements BusinessService {
     public String placeMarketOrder(Order.OrderType orderType, BigDecimal amount) {
         String orderId = null;
         try {
+            BigDecimal thePrice = getBestPrice(orderType);
+
+            final LimitOrder theOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_USDT_BTC,
+                    null, new Date(), thePrice);
+            theOrder.setOrderFlags(Sets.newHashSet(PoloniexOrderFlags.IMMEDIATE_OR_CANCEL));
+
             orderId = exchange.getTradeService()
-                    .placeMarketOrder(new MarketOrder(orderType, amount, CURRENCY_PAIR_USDT_BTC, new Date()));
+                    .placeLimitOrder(theOrder);
 
             // TODO save trading history into DB
             tradeLogger.info("{} {} was registered with orderId {}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
                     orderId);
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Place market order error", e);
+            orderId = e.getMessage();
         }
         return orderId;
+    }
+
+    private BigDecimal getBestPrice(Order.OrderType orderType) {
+        BigDecimal thePrice = null;
+        if (orderType == Order.OrderType.BID) {
+            thePrice = Utils.getBestBids(orderBook.getBids(), 1)
+                    .get(0)
+                    .getLimitPrice();
+        } else if (orderType == Order.OrderType.ASK) {
+            thePrice = Utils.getBestAsks(orderBook.getAsks(), 1)
+                    .get(0)
+                    .getLimitPrice();
+        }
+        return thePrice;
     }
 }
