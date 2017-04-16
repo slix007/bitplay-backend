@@ -26,11 +26,11 @@ task deploy << {
     ssh.run {
         session(remotes.test) {
 
-            put from: "target/exchange-0.0.1-SNAPSHOT.jar", into: "${remoteHomeDir}/"
+            put from: "target/bitplay-0.0.1-SNAPSHOT.jar", into: "${remoteHomeDir}/"
 
             executeSudo "sudo systemctl stop bitplay", pty: true
-            executeSudo "sudo rm -f ${remoteInstallDir}/bitplay-core.jar", pty: true
-            executeSudo "sudo cp ${remoteHomeDir}/exchange-0.0.1-SNAPSHOT.jar ${remoteInstallDir}/bitplay-core.jar", pty: true
+            executeSudo "sudo rm -f ${remoteInstallDir}/bitplay.jar", pty: true
+            executeSudo "sudo cp ${remoteHomeDir}/bitplay-0.0.1-SNAPSHOT.jar ${remoteInstallDir}/bitplay.jar", pty: true
             executeSudo "sudo systemctl start bitplay", pty: true
             executeSudo "sudo systemctl start bitplay", pty: true
         }
