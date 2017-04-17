@@ -1,7 +1,6 @@
 package com.bitplay.business.polonex;
 
 import com.bitplay.business.BusinessService;
-import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
@@ -18,6 +17,7 @@ import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
 import org.knowm.xchange.dto.trade.UserTrades;
+import org.knowm.xchange.poloniex.dto.marketdata.PoloniexPublicTrade;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexLimitOrder;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexOrderFlags;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexTradeResponse;
@@ -240,10 +240,14 @@ public class PoloniexService implements BusinessService {
             response = theOrder.getResponse();
 
             // TODO save trading history into DB
-            tradeLogger.info("Poloniex: {} {} was registered with orderId {}",
+            tradeLogger.info("Poloniex: {} {} was registered with orderId {}. Details {}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
-                    orderId);
+                    orderId,
+                    theOrder.getResponse().getPoloniexPublicTrades().stream()
+                            .map(PoloniexPublicTrade::toString)
+                            .reduce(" ", String::concat)
+            );
         } catch (Exception e) {
             logger.error("Place market order error", e);
             orderId = e.getMessage();
