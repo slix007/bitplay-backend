@@ -212,6 +212,7 @@ public class PoloniexService implements BusinessService {
         return orderBook;
     }
 
+    @Override
     public OrderBook getOrderBook() {
         return this.orderBook;
     }
@@ -248,20 +249,6 @@ public class PoloniexService implements BusinessService {
             orderId = e.getMessage();
         }
         return response;
-    }
-
-    private BigDecimal getBestPrice(Order.OrderType orderType) {
-        BigDecimal thePrice = null;
-        if (orderType == Order.OrderType.BID) {
-            thePrice = Utils.getBestAsks(orderBook.getAsks(), 1)
-                    .get(0)
-                    .getLimitPrice();
-        } else if (orderType == Order.OrderType.ASK) {
-            thePrice = Utils.getBestBids(orderBook.getBids(), 1)
-                    .get(0)
-                    .getLimitPrice();
-        }
-        return thePrice;
     }
 
     public UserTrades fetchMyTradeHistory() {

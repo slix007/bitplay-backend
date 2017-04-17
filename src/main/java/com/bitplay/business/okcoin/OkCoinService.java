@@ -152,6 +152,7 @@ public class OkCoinService implements BusinessService {
         return orderBook;
     }
 
+    @Override
     public OrderBook getOrderBook() {
         return orderBook;
     }
@@ -160,7 +161,20 @@ public class OkCoinService implements BusinessService {
         String orderId = null;
         try {
             final TradeService tradeService = exchange.getTradeService();
-            orderId = tradeService.placeMarketOrder(new MarketOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, new Date()));
+            BigDecimal tradingDigit = null;
+
+            if (orderType.equals(Order.OrderType.BID)) {
+                // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
+                tradingDigit = getTotalPriceToBuy(amount);
+            } else { // orderType.equals(Order.OrderType.ASK)
+                tradingDigit = amount;
+            }
+
+//          TODO  Place unclear logic to BitplayOkCoinTradeService.placeMarketOrder()
+            final MarketOrder marketOrder = new MarketOrder(orderType,
+                    tradingDigit,
+                    CURRENCY_PAIR_BTC_USD, new Date());
+            orderId = tradeService.placeMarketOrder(marketOrder);
 
             // TODO save trading history into DB
             tradeLogger.info("OkCoin: {} {} was registered with orderId {}",
@@ -172,6 +186,30 @@ public class OkCoinService implements BusinessService {
             orderId = e.getMessage();
         }
         return orderId;
+    }
+
+    private BigDecimal getTotalPriceToBuy(BigDecimal requiredAmountToBuy) {
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        int index = 0;
+        final LimitOrder limitOrder1 = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(index);
+        BigDecimal amountToBuy1 = limitOrder1.getTradableAmount().compareTo(requiredAmountToBuy) == -1
+                ? limitOrder1.getTradableAmount()
+                : requiredAmountToBuy;
+
+        totalPrice = totalPrice.add(amountToBuy1.multiply(limitOrder1.getLimitPrice()));
+
+        BigDecimal totalAmount = amountToBuy1;
+        while (totalAmount.compareTo(requiredAmountToBuy) == -1) {
+            index++;
+            final LimitOrder lo = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(index);
+            final BigDecimal toBuyLeft = requiredAmountToBuy.subtract(totalAmount);
+            BigDecimal amountToBuy = lo.getTradableAmount().compareTo(toBuyLeft) == -1
+                    ? lo.getTradableAmount()
+                    : toBuyLeft;
+            totalPrice = totalPrice.add(amountToBuy.multiply(lo.getLimitPrice()));
+        }
+
+        return totalPrice;
     }
 
     @Override
