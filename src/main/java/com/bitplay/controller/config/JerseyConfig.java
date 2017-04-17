@@ -2,7 +2,7 @@ package com.bitplay.controller.config;
 
 import com.bitplay.controller.OkCoinEndpoint;
 import com.bitplay.controller.PoloniexEndpoint;
-import com.bitplay.controller.TestEndpoint;
+import com.bitplay.controller.CommonEndpoint;
 
 import org.glassfish.jersey.server.ResourceConfig;
 import org.springframework.stereotype.Component;
@@ -15,7 +15,7 @@ public class JerseyConfig extends ResourceConfig {
 
     public JerseyConfig() {
         register(CORSFilter.class);
-        register(TestEndpoint.class);
+        register(CommonEndpoint.class);
         register(OkCoinEndpoint.class);
         register(PoloniexEndpoint.class);
     }
