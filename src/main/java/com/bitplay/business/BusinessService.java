@@ -1,13 +1,11 @@
 package com.bitplay.business;
 
-import org.knowm.xchange.dto.Order;
-
-import java.math.BigDecimal;
+import org.knowm.xchange.dto.trade.UserTrades;
 
 /**
  * Created by Sergey Shurmin on 4/16/17.
  */
 public interface BusinessService {
 
-    String placeMarketOrder(Order.OrderType orderType, BigDecimal amount);
+    UserTrades fetchMyTradeHistory();
 }

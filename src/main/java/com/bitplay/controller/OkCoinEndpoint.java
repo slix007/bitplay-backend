@@ -3,7 +3,7 @@ package com.bitplay.controller;
 import com.bitplay.model.AccountInfoJson;
 import com.bitplay.model.TradeRequest;
 import com.bitplay.model.OrderBookJson;
-import com.bitplay.model.TradeResponse;
+import com.bitplay.model.TradeResponseJson;
 import com.bitplay.service.BitplayUIServiceOkCoin;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +45,7 @@ public class OkCoinEndpoint {
     @Path("/place-market-order")
     @Consumes("application/json")
     @Produces("application/json")
-    public TradeResponse placeMarketOrder(TradeRequest tradeRequest) {
+    public TradeResponseJson placeMarketOrder(TradeRequest tradeRequest) {
         return this.okCoin.doTrade(tradeRequest);
     }
 

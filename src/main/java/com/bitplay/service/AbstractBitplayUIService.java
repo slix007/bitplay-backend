@@ -4,19 +4,17 @@ import com.bitplay.business.BusinessService;
 import com.bitplay.model.AccountInfoJson;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TickerJson;
-import com.bitplay.model.TradeRequest;
-import com.bitplay.model.TradeResponse;
 import com.bitplay.model.VisualTrade;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.currency.Currency;
-import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.dto.trade.UserTrades;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -97,20 +95,16 @@ public abstract class AbstractBitplayUIService<T extends BusinessService> {
                 accountInfo.toString());
     }
 
-    public TradeResponse doTrade(TradeRequest tradeRequest) {
-        final BigDecimal amount = new BigDecimal(tradeRequest.getAmount());
-        Order.OrderType orderType;
-        switch (tradeRequest.getType()) {
-            case BUY:
-                orderType = Order.OrderType.BID;
-                break;
-            case SELL:
-                orderType = Order.OrderType.ASK;
-                break;
-            default:
-                throw new IllegalArgumentException("No such order type " + tradeRequest.getType());
-        }
-        final String orderId = getBusinessService().placeMarketOrder(orderType, amount);
-        return new TradeResponse(orderId);
+    public List<VisualTrade> getTradeHistory() {
+        final UserTrades userTrades = getBusinessService().fetchMyTradeHistory();
+        return userTrades.getUserTrades().stream()
+                .map(userTrade -> new VisualTrade(
+                        userTrade.getCurrencyPair().toString(),
+                        userTrade.getPrice().toPlainString(),
+                        userTrade.getTradableAmount().toString(),
+                        userTrade.getType().toString(),
+                        userTrade.getTimestamp().toString()
+                ))
+                .collect(Collectors.toList());
     }
 }

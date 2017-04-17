@@ -1,22 +1,25 @@
 package com.bitplay.service;
 
 import com.bitplay.model.AccountInfoJson;
-import com.bitplay.model.TradeRequest;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TickerJson;
-import com.bitplay.model.TradeResponse;
 import com.bitplay.business.polonex.PoloniexService;
+import com.bitplay.model.TradeRequest;
+import com.bitplay.model.TradeResponseJson;
 import com.bitplay.model.VisualTrade;
 
 import org.knowm.xchange.currency.Currency;
+import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.poloniex.dto.trade.PoloniexTradeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -104,5 +107,24 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
 
     public OrderBookJson cleanOrderBook() {
         return convertOrderBookAndFilter(poloniexService.cleanOrderBook());
+    }
+
+    public TradeResponseJson doTrade(TradeRequest tradeRequest) {
+        final BigDecimal amount = new BigDecimal(tradeRequest.getAmount());
+        Order.OrderType orderType;
+        switch (tradeRequest.getType()) {
+            case BUY:
+                orderType = Order.OrderType.BID;
+                break;
+            case SELL:
+                orderType = Order.OrderType.ASK;
+                break;
+            default:
+                throw new IllegalArgumentException("No such order type " + tradeRequest.getType());
+        }
+        final PoloniexTradeResponse poloniexTradeResponse = poloniexService.placeMarketOrder(orderType, amount);
+        final Long orderId = poloniexTradeResponse.getOrderNumber();
+        return new TradeResponseJson(orderId != null ? orderId.toString() : null,
+                poloniexTradeResponse);
     }
 }

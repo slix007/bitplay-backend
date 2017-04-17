@@ -14,7 +14,9 @@ import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
+import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.service.trade.TradeService;
+import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -154,7 +156,6 @@ public class OkCoinService implements BusinessService {
         return orderBook;
     }
 
-    @Override
     public String placeMarketOrder(Order.OrderType orderType, BigDecimal amount) {
         String orderId = null;
         try {
@@ -162,7 +163,7 @@ public class OkCoinService implements BusinessService {
             orderId = tradeService.placeMarketOrder(new MarketOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, new Date()));
 
             // TODO save trading history into DB
-            tradeLogger.info("{} {} was registered with orderId {}",
+            tradeLogger.info("OkCoin: {} {} was registered with orderId {}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
                     orderId);
@@ -171,5 +172,18 @@ public class OkCoinService implements BusinessService {
             orderId = e.getMessage();
         }
         return orderId;
+    }
+
+    @Override
+    public UserTrades fetchMyTradeHistory() {
+//        returnTradeHistory
+        UserTrades tradeHistory = null;
+        try {
+            tradeHistory = exchange.getTradeService().getTradeHistory(TradeHistoryParamsZero.PARAMS_ZERO);
+        } catch (Exception e) {
+            logger.info("Exception on fetchMyTradeHistory", e);
+        }
+        return tradeHistory;
+
     }
 }

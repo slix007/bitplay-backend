@@ -17,9 +17,12 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
-import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.dto.trade.UserTrades;
+import org.knowm.xchange.poloniex.dto.trade.PoloniexLimitOrder;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexOrderFlags;
+import org.knowm.xchange.poloniex.dto.trade.PoloniexTradeResponse;
 import org.knowm.xchange.service.marketdata.MarketDataService;
+import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -222,21 +225,21 @@ public class PoloniexService implements BusinessService {
         return orderBook;
     }
 
-    @Override
-    public String placeMarketOrder(Order.OrderType orderType, BigDecimal amount) {
+    public PoloniexTradeResponse placeMarketOrder(Order.OrderType orderType, BigDecimal amount) {
         String orderId = null;
+        PoloniexTradeResponse response = null;
         try {
             BigDecimal thePrice = getBestPrice(orderType);
 
-            final LimitOrder theOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_USDT_BTC,
+            final PoloniexLimitOrder theOrder = new PoloniexLimitOrder(orderType, amount, CURRENCY_PAIR_USDT_BTC,
                     null, new Date(), thePrice);
             theOrder.setOrderFlags(Sets.newHashSet(PoloniexOrderFlags.IMMEDIATE_OR_CANCEL));
 
-            orderId = exchange.getTradeService()
-                    .placeLimitOrder(theOrder);
+            orderId = exchange.getTradeService().placeLimitOrder(theOrder);
+            response = theOrder.getResponse();
 
             // TODO save trading history into DB
-            tradeLogger.info("{} {} was registered with orderId {}",
+            tradeLogger.info("Poloniex: {} {} was registered with orderId {}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
                     orderId);
@@ -244,20 +247,32 @@ public class PoloniexService implements BusinessService {
             logger.error("Place market order error", e);
             orderId = e.getMessage();
         }
-        return orderId;
+        return response;
     }
 
     private BigDecimal getBestPrice(Order.OrderType orderType) {
         BigDecimal thePrice = null;
         if (orderType == Order.OrderType.BID) {
-            thePrice = Utils.getBestBids(orderBook.getBids(), 1)
+            thePrice = Utils.getBestAsks(orderBook.getAsks(), 1)
                     .get(0)
                     .getLimitPrice();
         } else if (orderType == Order.OrderType.ASK) {
-            thePrice = Utils.getBestAsks(orderBook.getAsks(), 1)
+            thePrice = Utils.getBestBids(orderBook.getBids(), 1)
                     .get(0)
                     .getLimitPrice();
         }
         return thePrice;
+    }
+
+    public UserTrades fetchMyTradeHistory() {
+//        returnTradeHistory
+        UserTrades tradeHistory = null;
+        try {
+            tradeHistory = exchange.getTradeService().getTradeHistory(TradeHistoryParamsZero.PARAMS_ZERO);
+        } catch (Exception e) {
+            logger.info("Exception on fetchMyTradeHistory", e);
+        }
+        return tradeHistory;
+
     }
 }

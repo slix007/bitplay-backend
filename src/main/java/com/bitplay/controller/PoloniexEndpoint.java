@@ -4,7 +4,8 @@ import com.bitplay.model.AccountInfoJson;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TickerJson;
 import com.bitplay.model.TradeRequest;
-import com.bitplay.model.TradeResponse;
+import com.bitplay.model.TradeResponseJson;
+import com.bitplay.model.VisualTrade;
 import com.bitplay.service.BitplayUIServicePoloniex;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +91,6 @@ public class PoloniexEndpoint {
                 System.out.println(String.format("Amounts don't match. %s, %s!=%s. ToFind=%s, Real=%s",
                         toFindOrderJson.getOrderType(), toFindOrderJson.getAmount(), matched.getAmount(),
                         toFindOrderJson.toString(), matched.toString()));
-
             }
         }
     }
@@ -113,8 +113,15 @@ public class PoloniexEndpoint {
     @Path("/place-market-order")
     @Consumes("application/json")
     @Produces("application/json")
-    public TradeResponse placeMarketOrder(TradeRequest tradeRequest) {
+    public TradeResponseJson placeMarketOrder(TradeRequest tradeRequest) {
         return this.poloniex.doTrade(tradeRequest);
+    }
+
+    @GET
+    @Path("/trade-history")
+    @Produces("application/json")
+    public List<VisualTrade> tradeHistory() {
+        return this.poloniex.fetchTrades();
     }
 
 }
