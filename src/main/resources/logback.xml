@@ -118,11 +118,11 @@
 
     <!--info.bitrich.xchangestream.poloniex - orderBook increment update for Poloniex-->
     <logger name="DEBUG_LOG" level="debug" additivity="false">
-        <appender-ref ref="TRADING_APPENDER"/>
+        <appender-ref ref="DEBUG_APPENDER"/>
     </logger>
 
     <logger name="TRADE_LOG" level="debug" additivity="false">
-        <appender-ref ref="DEBUG_APPENDER"/>
+        <appender-ref ref="TRADING_APPENDER"/>
     </logger>
 
 
