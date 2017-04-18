@@ -17,17 +17,4 @@ public interface BusinessService {
 
     OrderBook getOrderBook();
 
-    default BigDecimal getBestPrice(Order.OrderType orderType) {
-        BigDecimal thePrice = null;
-        if (orderType == Order.OrderType.BID) {
-            thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1)
-                    .get(0)
-                    .getLimitPrice();
-        } else if (orderType == Order.OrderType.ASK) {
-            thePrice = Utils.getBestBids(getOrderBook().getBids(), 1)
-                    .get(0)
-                    .getLimitPrice();
-        }
-        return thePrice;
-    }
 }

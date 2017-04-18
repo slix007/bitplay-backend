@@ -1,0 +1,55 @@
+package com.bitplay.business.arbitrage;
+
+import com.bitplay.business.okcoin.OkCoinService;
+import com.bitplay.business.polonex.PoloniexService;
+import com.bitplay.utils.Utils;
+
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+
+/**
+ * Created by Sergey Shurmin on 4/18/17.
+ */
+@Service
+public class ArbitrageService {
+
+    @Autowired
+    private OkCoinService okCoinService;
+
+    @Autowired
+    private PoloniexService poloniexService;
+
+    private BigDecimal delta1;
+    private BigDecimal delta2;
+
+    @Scheduled(fixedRate = 50)
+    public void doComparison() {
+        final OrderBook okCoinOrderBook = okCoinService.getOrderBook();
+        final OrderBook poloniexOrderBook = poloniexService.getOrderBook();
+
+        if (okCoinOrderBook != null && poloniexOrderBook != null
+                && okCoinOrderBook.getAsks().size() > 1
+                && poloniexOrderBook.getAsks().size() > 1) {
+            final BigDecimal ask1_o = Utils.getBestAsks(okCoinOrderBook.getAsks(), 1).get(0).getLimitPrice();
+            final BigDecimal ask1_p = Utils.getBestAsks(poloniexOrderBook.getAsks(), 1).get(0).getLimitPrice();
+
+            final BigDecimal bid1_o = Utils.getBestBids(okCoinOrderBook.getBids(), 1).get(0).getLimitPrice();
+            final BigDecimal bid1_p = Utils.getBestBids(poloniexOrderBook.getBids(), 1).get(0).getLimitPrice();
+
+            delta1 = bid1_p.subtract(ask1_o);
+            delta2 = bid1_o.subtract(ask1_p);
+        }
+    }
+
+    public BigDecimal getDelta1() {
+        return delta1;
+    }
+
+    public BigDecimal getDelta2() {
+        return delta2;
+    }
+}

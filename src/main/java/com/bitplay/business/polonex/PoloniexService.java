@@ -1,6 +1,7 @@
 package com.bitplay.business.polonex;
 
 import com.bitplay.business.BusinessService;
+import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
@@ -17,7 +18,6 @@ import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
 import org.knowm.xchange.dto.trade.UserTrades;
-import org.knowm.xchange.poloniex.dto.marketdata.PoloniexPublicTrade;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexLimitOrder;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexOrderFlags;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexTradeResponse;
@@ -47,7 +47,7 @@ import jersey.repackaged.com.google.common.collect.Sets;
 public class PoloniexService implements BusinessService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
-    private static final Logger tradeLogger = LoggerFactory.getLogger("TRADE_LOG");
+    private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
 
 
 //    @Autowired
@@ -240,12 +240,10 @@ public class PoloniexService implements BusinessService {
             response = theOrder.getResponse();
 
             // TODO save trading history into DB
-            tradeLogger.info("Poloniex: {} {} was registered with orderId {}. Details {}",
+            tradeLogger.info("{} {}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
-                    amount.toPlainString(),
-                    orderId,
                     theOrder.getResponse().getPoloniexPublicTrades().stream()
-                            .map(PoloniexPublicTrade::toString)
+                            .map(t -> String.format("amount=%s,rate=%s", t.getAmount(), t.getRate()))
                             .reduce(" ", String::concat)
             );
         } catch (Exception e) {
@@ -254,6 +252,21 @@ public class PoloniexService implements BusinessService {
         }
         return response;
     }
+
+    private BigDecimal getBestPrice(Order.OrderType orderType) {
+        BigDecimal thePrice = null;
+        if (orderType == Order.OrderType.BID) {
+            thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1)
+                    .get(0)
+                    .getLimitPrice();
+        } else if (orderType == Order.OrderType.ASK) {
+            thePrice = Utils.getBestBids(getOrderBook().getBids(), 1)
+                    .get(0)
+                    .getLimitPrice();
+        }
+        return thePrice;
+    }
+
 
     public UserTrades fetchMyTradeHistory() {
 //        returnTradeHistory

@@ -88,17 +88,31 @@
         </encoder>
     </appender>
 
-    <appender name="TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/trades.log</file>
+    <appender name="POLONIEX_TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/poloniex-trades.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>logs/trades.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/poloniex-trades.%d{yyyy-MM-dd}.log</fileNamePattern>
             <!-- keep 30 days' worth of history capped at 3GB total size -->
             <maxHistory>30</maxHistory>
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%contextName] [%thread] %-5level %logger{36} - %msg %xEx%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="OKCOIN_TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/okcoin-trades.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/okcoin-trades.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
         </encoder>
     </appender>
 
@@ -121,8 +135,11 @@
         <appender-ref ref="DEBUG_APPENDER"/>
     </logger>
 
-    <logger name="TRADE_LOG" level="debug" additivity="false">
-        <appender-ref ref="TRADING_APPENDER"/>
+    <logger name="OKCOIN_TRADE_LOG" level="debug" additivity="false">
+        <appender-ref ref="OKCOIN_TRADING_APPENDER"/>
+    </logger>
+    <logger name="POLONIEX_TRADE_LOG" level="debug" additivity="false">
+        <appender-ref ref="POLONIEX_TRADING_APPENDER"/>
     </logger>
 
 

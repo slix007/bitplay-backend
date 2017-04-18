@@ -1,7 +1,8 @@
 package com.bitplay.controller;
 
+import com.bitplay.model.DeltasJson;
 import com.bitplay.model.TradeLogJson;
-import com.bitplay.service.CommonService;
+import com.bitplay.service.CommonUIService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,7 @@ import javax.ws.rs.core.MediaType;
 public class CommonEndpoint {
 
     @Autowired
-    private CommonService commonService;
+    private CommonUIService commonUIService;
 
     @GET
     @Path("/")
@@ -34,10 +35,24 @@ public class CommonEndpoint {
     }
 
     @GET
-    @Path("/market/trade-log")
+    @Path("/market/trade-log/poloniex")
     @Produces(MediaType.APPLICATION_JSON)
-    public TradeLogJson getTradeLog() {
-        return commonService.getTradeLog();
+    public TradeLogJson getPoloniexTradeLog() {
+        return commonUIService.getPoloniexTradeLog();
+    }
+
+    @GET
+    @Path("/market/trade-log/okcoin")
+    @Produces(MediaType.APPLICATION_JSON)
+    public TradeLogJson getOkcoinTradeLog() {
+        return commonUIService.getOkCoinTradeLog();
+    }
+
+    @GET
+    @Path("/market/deltas")
+    @Produces(MediaType.APPLICATION_JSON)
+    public DeltasJson deltas() {
+        return commonUIService.getDeltas();
     }
 
 }

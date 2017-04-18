@@ -38,7 +38,7 @@ import io.reactivex.disposables.Disposable;
 public class OkCoinService implements BusinessService {
 
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
-    private static final Logger tradeLogger = LoggerFactory.getLogger("TRADE_LOG");
+    private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
 
     private static String KEY = "d4566d08-4fef-49ac-8933-e51f8c873795";
     private static String SECRET = "3DB6AD75C7CD78392947A5D4CE8567D2";
@@ -177,7 +177,7 @@ public class OkCoinService implements BusinessService {
             orderId = tradeService.placeMarketOrder(marketOrder);
 
             // TODO save trading history into DB
-            tradeLogger.info("OkCoin: {} {} was registered with orderId {}",
+            tradeLogger.info("{} amount={} with rate={}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
                     orderId);
