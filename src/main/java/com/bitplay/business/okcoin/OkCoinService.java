@@ -201,7 +201,7 @@ public class OkCoinService implements BusinessService {
         BigDecimal totalAmount = amountToBuy1;
         while (totalAmount.compareTo(requiredAmountToBuy) == -1) {
             index++;
-            final LimitOrder lo = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(index);
+            final LimitOrder lo = Utils.getBestAsks(getOrderBook().getAsks(), index).get(index);
             final BigDecimal toBuyLeft = requiredAmountToBuy.subtract(totalAmount);
             BigDecimal amountToBuy = lo.getTradableAmount().compareTo(toBuyLeft) == -1
                     ? lo.getTradableAmount()
