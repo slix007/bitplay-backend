@@ -177,7 +177,7 @@ public class OkCoinService implements BusinessService {
             orderId = tradeService.placeMarketOrder(marketOrder);
 
             // TODO save trading history into DB
-            tradeLogger.info("{} amount={} with rate={}",
+            tradeLogger.info("{} amount={} with id={}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
                     orderId);

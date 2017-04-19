@@ -1,5 +1,6 @@
 package com.bitplay.controller;
 
+import com.bitplay.model.BorderUpdateJson;
 import com.bitplay.model.DeltasJson;
 import com.bitplay.model.TradeLogJson;
 import com.bitplay.service.CommonUIService;
@@ -7,7 +8,9 @@ import com.bitplay.service.CommonUIService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
@@ -53,6 +56,14 @@ public class CommonEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     public DeltasJson deltas() {
         return commonUIService.getDeltas();
+    }
+
+    @POST
+    @Path("/market/update-borders")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public DeltasJson updateBorders(BorderUpdateJson borderUpdateJson) {
+        return commonUIService.updateBorders(borderUpdateJson);
     }
 
 }

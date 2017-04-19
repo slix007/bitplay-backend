@@ -23,8 +23,11 @@ public class ArbitrageService {
     @Autowired
     private PoloniexService poloniexService;
 
-    private BigDecimal delta1;
-    private BigDecimal delta2;
+    private BigDecimal delta1 = BigDecimal.ZERO;
+    private BigDecimal delta2 = BigDecimal.ZERO;
+
+    private BigDecimal border1 = BigDecimal.ZERO;
+    private BigDecimal border2 = BigDecimal.ZERO;
 
     @Scheduled(fixedRate = 50)
     public void doComparison() {
@@ -51,5 +54,21 @@ public class ArbitrageService {
 
     public BigDecimal getDelta2() {
         return delta2;
+    }
+
+    public BigDecimal getBorder1() {
+        return border1;
+    }
+
+    public void setBorder1(BigDecimal border1) {
+        this.border1 = border1;
+    }
+
+    public BigDecimal getBorder2() {
+        return border2;
+    }
+
+    public void setBorder2(BigDecimal border2) {
+        this.border2 = border2;
     }
 }
