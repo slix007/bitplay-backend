@@ -4,6 +4,7 @@ import com.bitplay.business.okcoin.OkCoinService;
 import com.bitplay.business.polonex.PoloniexService;
 import com.bitplay.utils.Utils;
 
+import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,6 +35,33 @@ public class ArbitrageService {
         final OrderBook okCoinOrderBook = okCoinService.getOrderBook();
         final OrderBook poloniexOrderBook = poloniexService.getOrderBook();
 
+        calcDeltas(okCoinOrderBook, poloniexOrderBook);
+
+        calcAndDoArbitrage();
+
+    }
+
+    private void calcAndDoArbitrage() {
+        BigDecimal amount = new BigDecimal("0.01");
+//            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
+        if (border1.compareTo(BigDecimal.ZERO) != 0) {
+            if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
+                poloniexService.placeMarketOrder(Order.OrderType.ASK, amount);
+                okCoinService.placeMarketOrder(Order.OrderType.BID, amount);
+            }
+        }
+
+//            2) если delta2 >= border2, то происходит buy у poloniex и sell у okcoin
+        if (border2.compareTo(BigDecimal.ZERO) != 0) {
+            if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
+                poloniexService.placeMarketOrder(Order.OrderType.BID, amount);
+                okCoinService.placeMarketOrder(Order.OrderType.ASK, amount);
+            }
+        }
+
+    }
+
+    private void calcDeltas(OrderBook okCoinOrderBook, OrderBook poloniexOrderBook) {
         if (okCoinOrderBook != null && poloniexOrderBook != null
                 && okCoinOrderBook.getAsks().size() > 1
                 && poloniexOrderBook.getAsks().size() > 1) {
