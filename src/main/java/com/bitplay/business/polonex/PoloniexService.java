@@ -77,6 +77,7 @@ public class PoloniexService implements BusinessService {
     private StreamingExchange exchange;
 
     private OrderBook orderBook;
+    private AccountInfo accountInfo = null;
     private Ticker ticker;
 //    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
 
@@ -143,7 +144,6 @@ public class PoloniexService implements BusinessService {
     }
 
     public AccountInfo fetchAccountInfo() {
-        AccountInfo accountInfo = null;
         try {
             accountInfo = exchange.getAccountService().getAccountInfo();
             logger.info("Balance BTC={}, USD={}",
@@ -152,6 +152,10 @@ public class PoloniexService implements BusinessService {
         } catch (Exception e) {
             logger.error("Can not fetchAccountInfo", e);
         }
+        return accountInfo;
+    }
+
+    public AccountInfo getAccountInfo() {
         return accountInfo;
     }
 
@@ -246,6 +250,8 @@ public class PoloniexService implements BusinessService {
                             .map(t -> String.format("amount=%s,rate=%s", t.getAmount(), t.getRate()))
                             .reduce(" ", String::concat)
             );
+
+            fetchAccountInfo();
         } catch (Exception e) {
             logger.error("Place market order error", e);
             orderId = e.getMessage();

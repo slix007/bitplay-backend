@@ -4,7 +4,9 @@ import com.bitplay.business.okcoin.OkCoinService;
 import com.bitplay.business.polonex.PoloniexService;
 import com.bitplay.utils.Utils;
 
+import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -46,19 +48,52 @@ public class ArbitrageService {
 //            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
-                poloniexService.placeMarketOrder(Order.OrderType.ASK, amount);
-                okCoinService.placeMarketOrder(Order.OrderType.BID, amount);
+                if (checkBalance("delta1", amount)) {
+                    poloniexService.placeMarketOrder(Order.OrderType.ASK, amount);
+                    okCoinService.placeMarketOrder(Order.OrderType.BID, amount);
+                }
             }
         }
-
 //            2) если delta2 >= border2, то происходит buy у poloniex и sell у okcoin
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
-                poloniexService.placeMarketOrder(Order.OrderType.BID, amount);
-                okCoinService.placeMarketOrder(Order.OrderType.ASK, amount);
+                if (checkBalance("delta2", amount)) {
+                    poloniexService.placeMarketOrder(Order.OrderType.BID, amount);
+                    okCoinService.placeMarketOrder(Order.OrderType.ASK, amount);
+                }
             }
         }
 
+    }
+
+    private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {
+        final Wallet walletP = poloniexService.getAccountInfo().getWallet();
+        final BigDecimal btcP = walletP.getBalance(Currency.BTC).getAvailable();
+        final BigDecimal usdP = walletP.getBalance(Currency.USD).getAvailable();
+        final Wallet walletO = okCoinService.getAccountInfo().getWallet();
+        final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
+        final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
+
+        boolean affordable = false;
+        if (deltaRef.equals("delta1")) {
+            // sell p, buy o
+            if (btcP.compareTo(tradableAmount) == -1
+                    || usdO.compareTo(okCoinService.getTotalPriceOfAmountToBuy(tradableAmount)) == -1) {
+                affordable = false;
+            } else {
+                affordable = true;
+            }
+        } else if (deltaRef.equals("delta2")) {
+            // sell o, buy c
+            if (btcO.compareTo(tradableAmount) == -1
+                    || usdP.compareTo(poloniexService.getTotalPriceOfAmountToBuy(tradableAmount)) == -1) {
+                affordable = false;
+            } else {
+                affordable = true;
+            }
+        }
+
+        return affordable;
     }
 
     private void calcDeltas(OrderBook okCoinOrderBook, OrderBook poloniexOrderBook) {

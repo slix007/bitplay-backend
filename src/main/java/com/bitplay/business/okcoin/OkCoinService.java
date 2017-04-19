@@ -48,6 +48,7 @@ public class OkCoinService implements BusinessService {
     private OkCoinStreamingExchange exchange;
 
     OrderBook orderBook = null;
+    AccountInfo accountInfo = null;
 
     Disposable orderBookSubscription;
 
@@ -131,13 +132,16 @@ public class OkCoinService implements BusinessService {
     }
 
     public AccountInfo fetchAccountInfo() {
-        AccountInfo accountInfo = null;
         try {
             accountInfo = exchange.getAccountService().getAccountInfo();
             logger.debug(accountInfo.toString());
         } catch (IOException e) {
             logger.error("AccountInfo error", e);
         }
+        return accountInfo;
+    }
+
+    public AccountInfo getAccountInfo() {
         return accountInfo;
     }
 
@@ -166,7 +170,7 @@ public class OkCoinService implements BusinessService {
 
             if (orderType.equals(Order.OrderType.BID)) {
                 // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
-                tradingDigit = getTotalPriceToBuy(amount);
+                tradingDigit = getTotalPriceOfAmountToBuy(amount);
                 theBestPrice = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
             } else { // orderType.equals(Order.OrderType.ASK)
                 tradingDigit = amount;
@@ -184,6 +188,8 @@ public class OkCoinService implements BusinessService {
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
                     theBestPrice);
+
+            fetchAccountInfo();
         } catch (Exception e) {
             logger.error("Place market order error", e);
             orderId = e.getMessage();
@@ -191,29 +197,7 @@ public class OkCoinService implements BusinessService {
         return orderId;
     }
 
-    private BigDecimal getTotalPriceToBuy(BigDecimal requiredAmountToBuy) {
-        BigDecimal totalPrice = BigDecimal.ZERO;
-        int index = 0;
-        final LimitOrder limitOrder1 = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(index);
-        BigDecimal amountToBuy1 = limitOrder1.getTradableAmount().compareTo(requiredAmountToBuy) == -1
-                ? limitOrder1.getTradableAmount()
-                : requiredAmountToBuy;
 
-        totalPrice = totalPrice.add(amountToBuy1.multiply(limitOrder1.getLimitPrice()));
-
-        BigDecimal totalAmount = amountToBuy1;
-        while (totalAmount.compareTo(requiredAmountToBuy) == -1) {
-            index++;
-            final LimitOrder lo = Utils.getBestAsks(getOrderBook().getAsks(), index).get(index);
-            final BigDecimal toBuyLeft = requiredAmountToBuy.subtract(totalAmount);
-            BigDecimal amountToBuy = lo.getTradableAmount().compareTo(toBuyLeft) == -1
-                    ? lo.getTradableAmount()
-                    : toBuyLeft;
-            totalPrice = totalPrice.add(amountToBuy.multiply(lo.getLimitPrice()));
-        }
-
-        return totalPrice;
-    }
 
     @Override
     public UserTrades fetchMyTradeHistory() {
