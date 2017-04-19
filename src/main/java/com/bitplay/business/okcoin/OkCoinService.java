@@ -162,12 +162,15 @@ public class OkCoinService implements BusinessService {
         try {
             final TradeService tradeService = exchange.getTradeService();
             BigDecimal tradingDigit = null;
+            BigDecimal theBestPrice = BigDecimal.ZERO;
 
             if (orderType.equals(Order.OrderType.BID)) {
                 // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
                 tradingDigit = getTotalPriceToBuy(amount);
+                theBestPrice = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
             } else { // orderType.equals(Order.OrderType.ASK)
                 tradingDigit = amount;
+                theBestPrice = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
             }
 
 //          TODO  Place unclear logic to BitplayOkCoinTradeService.placeMarketOrder()
@@ -177,10 +180,10 @@ public class OkCoinService implements BusinessService {
             orderId = tradeService.placeMarketOrder(marketOrder);
 
             // TODO save trading history into DB
-            tradeLogger.info("{} amount={} with id={}",
+            tradeLogger.info("{} amount={} with theBestPrice={}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
-                    orderId);
+                    theBestPrice);
         } catch (Exception e) {
             logger.error("Place market order error", e);
             orderId = e.getMessage();
