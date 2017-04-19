@@ -8,6 +8,7 @@ import com.bitplay.model.TradeResponseJson;
 import com.bitplay.model.VisualTrade;
 
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
@@ -38,7 +40,13 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
 
     @Override
     public List<VisualTrade> fetchTrades() {
-        return null;
+        final UserTrades trades = service.fetchMyTradeHistory();
+
+        List<VisualTrade> askTrades = trades.getTrades().stream()
+                .sorted((o1, o2) -> o1.getTimestamp().before(o2.getTimestamp()) ? 1 : -1)
+                .map(this::toVisualTrade)
+                .collect(Collectors.toList());
+        return askTrades;
     }
 
     @Override

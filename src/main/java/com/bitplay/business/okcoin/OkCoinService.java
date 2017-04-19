@@ -15,8 +15,8 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
+import org.knowm.xchange.okcoin.service.OkCoinTradeService;
 import org.knowm.xchange.service.trade.TradeService;
-import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -183,6 +184,8 @@ public class OkCoinService implements BusinessService {
                     CURRENCY_PAIR_BTC_USD, new Date());
             orderId = tradeService.placeMarketOrder(marketOrder);
 
+//            final Order successfulOrder = fetchOrderInfo(orderId);
+
             // TODO save trading history into DB
             tradeLogger.info("{} amount={} with theBestPrice={}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
@@ -197,14 +200,28 @@ public class OkCoinService implements BusinessService {
         return orderId;
     }
 
-
+    private Order fetchOrderInfo(String orderId) {
+        Order order = null;
+        try {
+            //NOT implemented yet
+            final Collection<Order> orderCollection = exchange.getTradeService().getOrder(orderId);
+            if (!orderCollection.isEmpty()) {
+                order = orderCollection.iterator().next();
+            }
+        } catch (Exception e) {
+            logger.error("on fetch order info by id=" + orderId, e);
+        }
+        return order;
+    }
 
     @Override
     public UserTrades fetchMyTradeHistory() {
 //        returnTradeHistory
         UserTrades tradeHistory = null;
         try {
-            tradeHistory = exchange.getTradeService().getTradeHistory(TradeHistoryParamsZero.PARAMS_ZERO);
+            tradeHistory = exchange.getTradeService()
+                    .getTradeHistory(new OkCoinTradeService.OkCoinTradeHistoryParams(
+                            10, 1, CURRENCY_PAIR_BTC_USD));
         } catch (Exception e) {
             logger.info("Exception on fetchMyTradeHistory", e);
         }

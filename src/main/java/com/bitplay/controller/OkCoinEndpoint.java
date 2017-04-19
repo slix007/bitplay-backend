@@ -4,11 +4,14 @@ import com.bitplay.model.AccountInfoJson;
 import com.bitplay.model.TradeRequest;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TradeResponseJson;
+import com.bitplay.model.VisualTrade;
 import com.bitplay.service.BitplayUIServiceOkCoin;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -48,6 +51,14 @@ public class OkCoinEndpoint {
     public TradeResponseJson placeMarketOrder(TradeRequest tradeRequest) {
         return this.okCoin.doTrade(tradeRequest);
     }
+
+    @GET
+    @Path("/trade-history")
+    @Produces("application/json")
+    public List<VisualTrade> tradeHistory() {
+        return this.okCoin.fetchTrades();
+    }
+
 
 }
 
