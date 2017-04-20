@@ -61,7 +61,7 @@ public class PoloniexService implements BusinessService {
     private final static String KEY = "7HQHK3EL-40SJE5G8-1L9ZHPK6-7R6IEBIB";
     private final static String SECRET = "1cd1b572fe1bbfd3f0920ea2df364b74b3c07efedf838df245602cf55e52d7441d14464f4a116cbc431bfa0320f299045aa563497fb57c2e7c6fc78d5c703ea2";
 
-    private final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
+    public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
 
     private List<Long> latencyList = new ArrayList<>();
 

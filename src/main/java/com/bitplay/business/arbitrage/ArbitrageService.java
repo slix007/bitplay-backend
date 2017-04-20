@@ -8,6 +8,8 @@ import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,8 @@ import java.math.BigDecimal;
  */
 @Service
 public class ArbitrageService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
 
     @Autowired
     private OkCoinService okCoinService;
@@ -69,7 +73,7 @@ public class ArbitrageService {
     private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {
         final Wallet walletP = poloniexService.getAccountInfo().getWallet();
         final BigDecimal btcP = walletP.getBalance(Currency.BTC).getAvailable();
-        final BigDecimal usdP = walletP.getBalance(Currency.USD).getAvailable();
+        final BigDecimal usdP = walletP.getBalance(PoloniexService.CURRENCY_PAIR_USDT_BTC.counter).getAvailable();
         final Wallet walletO = okCoinService.getAccountInfo().getWallet();
         final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
