@@ -8,6 +8,7 @@ import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 4/18/17.
@@ -81,7 +83,11 @@ public class ArbitrageService {
         boolean affordable = false;
         if (deltaRef.equals("delta1")) {
             // sell p, buy o
-            if (btcP.compareTo(tradableAmount) == -1
+
+            // Only poloniex need to check the first item.
+            final BigDecimal bestBidP = Utils.getBestBids(poloniexService.getOrderBook().getBids(), 1).get(0).getLimitPrice();
+
+            if ((btcP.compareTo(tradableAmount) == -1 || bestBidP.compareTo(tradableAmount) == -1)
                     || usdO.compareTo(okCoinService.getTotalPriceOfAmountToBuy(tradableAmount)) == -1) {
                 affordable = false;
             } else {
@@ -89,7 +95,11 @@ public class ArbitrageService {
             }
         } else if (deltaRef.equals("delta2")) {
             // sell o, buy c
-            if (btcO.compareTo(tradableAmount) == -1
+
+            // Only poloniex need to check the first item.
+            final BigDecimal bestAskP = Utils.getBestAsks(poloniexService.getOrderBook().getAsks(), 1).get(0).getLimitPrice();
+
+            if (btcO.compareTo(tradableAmount) == -1 || bestAskP.compareTo(tradableAmount) == -1
                     || usdP.compareTo(poloniexService.getTotalPriceOfAmountToBuy(tradableAmount)) == -1) {
                 affordable = false;
             } else {
