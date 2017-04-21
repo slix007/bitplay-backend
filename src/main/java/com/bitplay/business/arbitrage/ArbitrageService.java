@@ -53,8 +53,8 @@ public class ArbitrageService {
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
                 if (checkBalance("delta1", amount)) {
-                    poloniexService.placeTakerOrder(Order.OrderType.ASK, amount);
-                    okCoinService.placeTakerOrder(Order.OrderType.BID, amount);
+                    poloniexService.placeMakerOrder(Order.OrderType.ASK, amount);
+                    okCoinService.placeMakerOrder(Order.OrderType.BID, amount);
                 }
             }
         }
@@ -62,8 +62,8 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
                 if (checkBalance("delta2", amount)) {
-                    poloniexService.placeTakerOrder(Order.OrderType.BID, amount);
-                    okCoinService.placeTakerOrder(Order.OrderType.ASK, amount);
+                    poloniexService.placeMakerOrder(Order.OrderType.BID, amount);
+                    okCoinService.placeMakerOrder(Order.OrderType.ASK, amount);
                 }
             }
         }
