@@ -247,11 +247,12 @@ public class PoloniexService implements BusinessService {
             tradeResponse.setSpecificResponse(response);
 
             // TODO save trading history into DB
-            tradeLogger.info("taker {} {}",
+            tradeLogger.info("taker {} {}, status={}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     theOrder.getResponse().getPoloniexPublicTrades().stream()
                             .map(t -> String.format("amount=%s,quote=%s", t.getAmount(), t.getRate()))
-                            .reduce(" ", String::concat)
+                            .reduce(" ", String::concat),
+                    theOrder.getStatus().toString()
             );
 
             fetchAccountInfo();
