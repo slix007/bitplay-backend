@@ -1,6 +1,7 @@
 package com.bitplay.business.okcoin;
 
 import com.bitplay.business.BusinessService;
+import com.bitplay.business.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.okcoin.OkCoinStreamingExchange;
@@ -162,7 +163,7 @@ public class OkCoinService implements BusinessService {
         return orderBook;
     }
 
-    public String placeMarketOrder(Order.OrderType orderType, BigDecimal amount) {
+    public String placeTakerOrder(Order.OrderType orderType, BigDecimal amount) {
         String orderId = null;
         try {
             final TradeService tradeService = exchange.getTradeService();
@@ -178,7 +179,7 @@ public class OkCoinService implements BusinessService {
                 theBestPrice = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
             }
 
-//          TODO  Place unclear logic to BitplayOkCoinTradeService.placeMarketOrder()
+//          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()
             final MarketOrder marketOrder = new MarketOrder(orderType,
                     tradingDigit,
                     CURRENCY_PAIR_BTC_USD, new Date());
@@ -187,7 +188,7 @@ public class OkCoinService implements BusinessService {
 //            final Order successfulOrder = fetchOrderInfo(orderId);
 
             // TODO save trading history into DB
-            tradeLogger.info("{} amount={} with theBestPrice={}",
+            tradeLogger.info("taker {} amount={} with theBestPrice={}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
                     theBestPrice);
@@ -198,6 +199,49 @@ public class OkCoinService implements BusinessService {
             orderId = e.getMessage();
         }
         return orderId;
+    }
+
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount) {
+        final TradeResponse tradeResponse = new TradeResponse();
+        try {
+            final TradeService tradeService = exchange.getTradeService();
+            BigDecimal tradingDigit = null;
+            BigDecimal theBestPrice = BigDecimal.ZERO;
+
+            if (orderType.equals(Order.OrderType.BID)) {
+                // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
+                tradingDigit = getTotalPriceOfAmountToBuy(amount);
+                theBestPrice = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
+                theBestPrice = theBestPrice.subtract(MAKER_QUOTE_DELTA);
+            } else { // orderType.equals(Order.OrderType.ASK)
+                tradingDigit = amount;
+                theBestPrice = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
+                theBestPrice = theBestPrice.add(MAKER_QUOTE_DELTA);
+            }
+
+//          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()
+            final MarketOrder marketOrder = new MarketOrder(orderType,
+                    tradingDigit,
+                    CURRENCY_PAIR_BTC_USD, new Date());
+            String orderId = tradeService.placeMarketOrder(marketOrder);
+            tradeResponse.setOrderId(orderId);
+
+//            final Order successfulOrder = fetchOrderInfo(orderId);
+
+            // TODO save trading history into DB
+            tradeLogger.info("maker {} amount={} with quote={} was placed",
+                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                    amount.toPlainString(),
+                    theBestPrice);
+
+            fetchAccountInfo();
+        } catch (Exception e) {
+            logger.error("Place market order error", e);
+            tradeLogger.info("maker error {}", e.toString());
+            tradeResponse.setOrderId(e.getMessage());
+            tradeResponse.setErrorMessage(e.getMessage());
+        }
+        return tradeResponse;
     }
 
     private Order fetchOrderInfo(String orderId) {

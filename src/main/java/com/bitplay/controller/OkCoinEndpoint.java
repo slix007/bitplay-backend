@@ -1,7 +1,7 @@
 package com.bitplay.controller;
 
 import com.bitplay.model.AccountInfoJson;
-import com.bitplay.model.TradeRequest;
+import com.bitplay.model.TradeRequestJson;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TradeResponseJson;
 import com.bitplay.model.VisualTrade;
@@ -48,8 +48,8 @@ public class OkCoinEndpoint {
     @Path("/place-market-order")
     @Consumes("application/json")
     @Produces("application/json")
-    public TradeResponseJson placeMarketOrder(TradeRequest tradeRequest) {
-        return this.okCoin.doTrade(tradeRequest);
+    public TradeResponseJson placeMarketOrder(TradeRequestJson tradeRequestJson) {
+        return this.okCoin.doTrade(tradeRequestJson);
     }
 
     @GET

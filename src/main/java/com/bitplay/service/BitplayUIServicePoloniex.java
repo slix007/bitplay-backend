@@ -1,10 +1,11 @@
 package com.bitplay.service;
 
+import com.bitplay.business.model.TradeResponse;
 import com.bitplay.model.AccountInfoJson;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TickerJson;
 import com.bitplay.business.polonex.PoloniexService;
-import com.bitplay.model.TradeRequest;
+import com.bitplay.model.TradeRequestJson;
 import com.bitplay.model.TradeResponseJson;
 import com.bitplay.model.VisualTrade;
 
@@ -109,10 +110,10 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
         return convertOrderBookAndFilter(poloniexService.cleanOrderBook());
     }
 
-    public TradeResponseJson doTrade(TradeRequest tradeRequest) {
-        final BigDecimal amount = new BigDecimal(tradeRequest.getAmount());
+    public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {
+        final BigDecimal amount = new BigDecimal(tradeRequestJson.getAmount());
         Order.OrderType orderType;
-        switch (tradeRequest.getType()) {
+        switch (tradeRequestJson.getType()) {
             case BUY:
                 orderType = Order.OrderType.BID;
                 break;
@@ -120,11 +121,18 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
                 orderType = Order.OrderType.ASK;
                 break;
             default:
-                throw new IllegalArgumentException("No such order type " + tradeRequest.getType());
+                throw new IllegalArgumentException("No such order type " + tradeRequestJson.getType());
         }
-        final PoloniexTradeResponse poloniexTradeResponse = poloniexService.placeMarketOrder(orderType, amount);
-        final Long orderId = poloniexTradeResponse.getOrderNumber();
-        return new TradeResponseJson(orderId != null ? orderId.toString() : null,
+        TradeResponse tradeResponse = null;
+        if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
+            tradeResponse = poloniexService.placeTakerOrder(orderType, amount);
+        } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
+            tradeResponse = poloniexService.placeMakerOrder(orderType, amount);
+        }
+
+        final PoloniexTradeResponse poloniexTradeResponse = tradeResponse.getSpecificResponse() != null
+                ? (PoloniexTradeResponse) tradeResponse.getSpecificResponse() : null;
+        return new TradeResponseJson(tradeResponse.getOrderId(),
                 poloniexTradeResponse);
     }
 }

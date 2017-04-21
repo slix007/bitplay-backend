@@ -8,7 +8,6 @@ import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +15,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 4/18/17.
@@ -55,8 +53,8 @@ public class ArbitrageService {
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
                 if (checkBalance("delta1", amount)) {
-                    poloniexService.placeMarketOrder(Order.OrderType.ASK, amount);
-                    okCoinService.placeMarketOrder(Order.OrderType.BID, amount);
+                    poloniexService.placeTakerOrder(Order.OrderType.ASK, amount);
+                    okCoinService.placeTakerOrder(Order.OrderType.BID, amount);
                 }
             }
         }
@@ -64,8 +62,8 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
                 if (checkBalance("delta2", amount)) {
-                    poloniexService.placeMarketOrder(Order.OrderType.BID, amount);
-                    okCoinService.placeMarketOrder(Order.OrderType.ASK, amount);
+                    poloniexService.placeTakerOrder(Order.OrderType.BID, amount);
+                    okCoinService.placeTakerOrder(Order.OrderType.ASK, amount);
                 }
             }
         }

@@ -1,6 +1,7 @@
 package com.bitplay.business.polonex;
 
 import com.bitplay.business.BusinessService;
+import com.bitplay.business.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.core.StreamingExchange;
@@ -230,9 +231,8 @@ public class PoloniexService implements BusinessService {
         return orderBook;
     }
 
-    public PoloniexTradeResponse placeMarketOrder(Order.OrderType orderType, BigDecimal amount) {
-        String orderId = null;
-        PoloniexTradeResponse response = null;
+    public TradeResponse placeTakerOrder(Order.OrderType orderType, BigDecimal amount) {
+        final TradeResponse tradeResponse = new TradeResponse();
         try {
             BigDecimal thePrice = getBestPrice(orderType);
 
@@ -240,23 +240,27 @@ public class PoloniexService implements BusinessService {
                     null, new Date(), thePrice);
             theOrder.setOrderFlags(Sets.newHashSet(PoloniexOrderFlags.IMMEDIATE_OR_CANCEL));
 
-            orderId = exchange.getTradeService().placeLimitOrder(theOrder);
-            response = theOrder.getResponse();
+            String orderId = exchange.getTradeService().placeLimitOrder(theOrder);
+            tradeResponse.setOrderId(orderId);
+
+            PoloniexTradeResponse response = theOrder.getResponse();
+            tradeResponse.setSpecificResponse(response);
 
             // TODO save trading history into DB
-            tradeLogger.info("{} {}",
+            tradeLogger.info("taker {} {}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     theOrder.getResponse().getPoloniexPublicTrades().stream()
-                            .map(t -> String.format("amount=%s,rate=%s", t.getAmount(), t.getRate()))
+                            .map(t -> String.format("amount=%s,quote=%s", t.getAmount(), t.getRate()))
                             .reduce(" ", String::concat)
             );
 
             fetchAccountInfo();
         } catch (Exception e) {
             logger.error("Place market order error", e);
-            orderId = e.getMessage();
+            tradeResponse.setOrderId(e.getMessage());
+            tradeResponse.setErrorMessage(e.getMessage());
         }
-        return response;
+        return tradeResponse;
     }
 
     private BigDecimal getBestPrice(Order.OrderType orderType) {
@@ -273,6 +277,53 @@ public class PoloniexService implements BusinessService {
         return thePrice;
     }
 
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount) {
+        final TradeResponse tradeResponse = new TradeResponse();
+        try {
+            BigDecimal thePrice = createBestMakerPrice(orderType);
+
+            final PoloniexLimitOrder theOrder = new PoloniexLimitOrder(orderType, amount, CURRENCY_PAIR_USDT_BTC,
+                    null, new Date(), thePrice);
+            // consider , PoloniexOrderFlags.POST_ONLY
+            theOrder.setOrderFlags(Sets.newHashSet(PoloniexOrderFlags.POST_ONLY));
+
+            String orderId = exchange.getTradeService().placeLimitOrder(theOrder);
+            tradeResponse.setOrderId(orderId);
+
+            PoloniexTradeResponse response = theOrder.getResponse();
+            tradeResponse.setSpecificResponse(response);
+
+            // TODO save trading history into DB
+            tradeLogger.info("maker {} with amount={},quote={} was placed",
+                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                    amount, thePrice
+            );
+
+            fetchAccountInfo();
+        } catch (Exception e) {
+            logger.error("Place market order error", e);
+            tradeLogger.info("maker error {}", e.toString());
+            tradeResponse.setOrderId(e.getMessage());
+            tradeResponse.setErrorMessage(e.getMessage());
+        }
+        return tradeResponse;
+    }
+
+    private BigDecimal createBestMakerPrice(Order.OrderType orderType) {
+        BigDecimal thePrice = null;
+        if (orderType == Order.OrderType.BID) {
+            thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1)
+                    .get(0)
+                    .getLimitPrice();
+            thePrice = thePrice.subtract(MAKER_QUOTE_DELTA);
+        } else if (orderType == Order.OrderType.ASK) {
+            thePrice = Utils.getBestBids(getOrderBook().getBids(), 1)
+                    .get(0)
+                    .getLimitPrice();
+            thePrice = thePrice.add(MAKER_QUOTE_DELTA);
+        }
+        return thePrice;
+    }
 
     public UserTrades fetchMyTradeHistory() {
 //        returnTradeHistory

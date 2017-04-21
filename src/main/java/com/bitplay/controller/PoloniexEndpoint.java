@@ -3,7 +3,7 @@ package com.bitplay.controller;
 import com.bitplay.model.AccountInfoJson;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TickerJson;
-import com.bitplay.model.TradeRequest;
+import com.bitplay.model.TradeRequestJson;
 import com.bitplay.model.TradeResponseJson;
 import com.bitplay.model.VisualTrade;
 import com.bitplay.service.BitplayUIServicePoloniex;
@@ -113,8 +113,8 @@ public class PoloniexEndpoint {
     @Path("/place-market-order")
     @Consumes("application/json")
     @Produces("application/json")
-    public TradeResponseJson placeMarketOrder(TradeRequest tradeRequest) {
-        return this.poloniex.doTrade(tradeRequest);
+    public TradeResponseJson placeMarketOrder(TradeRequestJson tradeRequestJson) {
+        return this.poloniex.doTrade(tradeRequestJson);
     }
 
     @GET
