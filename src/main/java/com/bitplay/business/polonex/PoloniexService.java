@@ -295,9 +295,9 @@ public class PoloniexService implements BusinessService {
             tradeResponse.setSpecificResponse(response);
 
             // TODO save trading history into DB
-            tradeLogger.info("maker {} with amount={},quote={} was placed",
+            tradeLogger.info("maker {} with amount={},quote={} was placed, status={}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
-                    amount, thePrice
+                    amount, thePrice, theOrder.getStatus().toString()
             );
 
             fetchAccountInfo();
