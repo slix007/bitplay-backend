@@ -209,25 +209,23 @@ public class OkCoinService implements BusinessService {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
             final TradeService tradeService = exchange.getTradeService();
-            BigDecimal tradingDigit = null;
-            BigDecimal theBestPrice = BigDecimal.ZERO;
+            BigDecimal thePrice;
 
             if (orderType.equals(Order.OrderType.BID)) {
                 // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
-                tradingDigit = getTotalPriceOfAmountToBuy(amount);
-                theBestPrice = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
-                theBestPrice = theBestPrice.subtract(MAKER_QUOTE_DELTA);
+                thePrice = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
+                thePrice = thePrice.subtract(MAKER_QUOTE_DELTA);
             } else { // orderType.equals(Order.OrderType.ASK)
-                tradingDigit = amount;
-                theBestPrice = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
-                theBestPrice = theBestPrice.add(MAKER_QUOTE_DELTA);
+                thePrice = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
+                thePrice = thePrice.add(MAKER_QUOTE_DELTA);
             }
 
 //          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()
-            final MarketOrder marketOrder = new MarketOrder(orderType,
-                    tradingDigit,
-                    CURRENCY_PAIR_BTC_USD, new Date());
-            String orderId = tradeService.placeMarketOrder(marketOrder);
+            final LimitOrder limitOrder = new LimitOrder(orderType,
+                    amount, CURRENCY_PAIR_BTC_USD, "123", new Date(),
+                    thePrice);
+
+            String orderId = tradeService.placeLimitOrder(limitOrder);
             tradeResponse.setOrderId(orderId);
 
 //            final Order successfulOrder = fetchOrderInfo(orderId);
@@ -236,7 +234,7 @@ public class OkCoinService implements BusinessService {
             tradeLogger.info("maker {} amount={} with quote={} was placed",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
-                    theBestPrice);
+                    thePrice);
 
             fetchAccountInfo();
         } catch (Exception e) {
