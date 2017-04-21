@@ -107,12 +107,16 @@ public class OkCoinService implements BusinessService {
         //TODO subscribe on updates only to increase the speed
         orderBookSubscription = exchange.getStreamingMarketDataService()
                 .getOrderBook(CurrencyPair.BTC_USD, 20)
+                .doOnDispose(() -> logger.info("okcoin subscription doOnDispose"))
+                .doOnTerminate(() -> logger.info("okcoin subscription doOnTerminate"))
                 .subscribe(orderBook -> {
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
                     final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
                     final LimitOrder bestBid = bestBids.size() > 0 ? bestBids.get(0) : null;
-                    logger.debug("ask: {}, bid: {}", bestAsk.getLimitPrice(), bestBid.getLimitPrice());
+                    logger.debug("ask: {}, bid: {}",
+                            bestAsk != null ? bestAsk.getLimitPrice() : null,
+                            bestBid != null ? bestBid.getLimitPrice() : null);
                     this.orderBook = orderBook;
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }
