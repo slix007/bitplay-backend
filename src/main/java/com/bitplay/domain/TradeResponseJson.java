@@ -1,7 +1,6 @@
-package com.bitplay.model;
+package com.bitplay.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Created by Sergey Shurmin on 4/16/17.

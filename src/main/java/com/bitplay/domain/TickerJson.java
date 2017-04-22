@@ -1,4 +1,4 @@
-package com.bitplay.model;
+package com.bitplay.domain;
 
 /**
  * Created by Sergey Shurmin on 4/14/17.

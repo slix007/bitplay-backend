@@ -1,4 +1,4 @@
-package com.bitplay.model;
+package com.bitplay.domain;
 
 import java.util.ArrayList;
 import java.util.List;

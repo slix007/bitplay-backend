@@ -1,13 +1,13 @@
 package com.bitplay.service;
 
 import com.bitplay.market.model.TradeResponse;
-import com.bitplay.model.AccountInfoJson;
-import com.bitplay.model.OrderBookJson;
-import com.bitplay.model.TickerJson;
+import com.bitplay.domain.AccountInfoJson;
+import com.bitplay.domain.OrderBookJson;
+import com.bitplay.domain.TickerJson;
 import com.bitplay.market.polonex.PoloniexService;
-import com.bitplay.model.TradeRequestJson;
-import com.bitplay.model.TradeResponseJson;
-import com.bitplay.model.VisualTrade;
+import com.bitplay.domain.TradeRequestJson;
+import com.bitplay.domain.TradeResponseJson;
+import com.bitplay.domain.VisualTrade;
 
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;

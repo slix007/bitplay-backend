@@ -1,10 +1,10 @@
 package com.bitplay.service;
 
 import com.bitplay.market.MarketService;
-import com.bitplay.model.AccountInfoJson;
-import com.bitplay.model.OrderBookJson;
-import com.bitplay.model.TickerJson;
-import com.bitplay.model.VisualTrade;
+import com.bitplay.domain.AccountInfoJson;
+import com.bitplay.domain.OrderBookJson;
+import com.bitplay.domain.TickerJson;
+import com.bitplay.domain.VisualTrade;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.currency.Currency;

@@ -1,10 +1,10 @@
 package com.bitplay.service;
 
 import com.bitplay.market.arbitrage.ArbitrageService;
-import com.bitplay.model.BorderUpdateJson;
-import com.bitplay.model.DeltasJson;
-import com.bitplay.model.MakerDeltalUpdateJson;
-import com.bitplay.model.TradeLogJson;
+import com.bitplay.domain.BorderUpdateJson;
+import com.bitplay.domain.DeltasJson;
+import com.bitplay.domain.MakerDeltalUpdateJson;
+import com.bitplay.domain.TradeLogJson;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
