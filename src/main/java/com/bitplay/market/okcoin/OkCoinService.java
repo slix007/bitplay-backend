@@ -1,6 +1,7 @@
 package com.bitplay.market.okcoin;
 
 import com.bitplay.market.MarketService;
+import com.bitplay.market.arbitrage.ArbitrageService;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
@@ -20,6 +21,7 @@ import org.knowm.xchange.okcoin.service.OkCoinTradeService;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -46,6 +48,9 @@ public class OkCoinService implements MarketService {
     private static String SECRET = "3DB6AD75C7CD78392947A5D4CE8567D2";
 
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
+
+    @Autowired
+    ArbitrageService arbitrageService;
 
     private OkCoinStreamingExchange exchange;
 
@@ -214,10 +219,10 @@ public class OkCoinService implements MarketService {
             if (orderType.equals(Order.OrderType.BID)) {
                 // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
                 thePrice = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
-                thePrice = thePrice.subtract(MAKER_QUOTE_DELTA);
+                thePrice = thePrice.subtract(arbitrageService.getMakerDelta());
             } else { // orderType.equals(Order.OrderType.ASK)
                 thePrice = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
-                thePrice = thePrice.add(MAKER_QUOTE_DELTA);
+                thePrice = thePrice.add(arbitrageService.getMakerDelta());
             }
 
 //          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()

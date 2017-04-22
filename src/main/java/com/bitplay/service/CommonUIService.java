@@ -3,6 +3,7 @@ package com.bitplay.service;
 import com.bitplay.market.arbitrage.ArbitrageService;
 import com.bitplay.model.BorderUpdateJson;
 import com.bitplay.model.DeltasJson;
+import com.bitplay.model.MakerDeltalUpdateJson;
 import com.bitplay.model.TradeLogJson;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +51,8 @@ public class CommonUIService {
                 arbitrageService.getDelta1().toPlainString(),
                 arbitrageService.getDelta2().toPlainString(),
                 arbitrageService.getBorder1().toPlainString(),
-                arbitrageService.getBorder2().toPlainString()
+                arbitrageService.getBorder2().toPlainString(),
+                arbitrageService.getMakerDelta().toPlainString()
         );
     }
 
@@ -66,8 +68,24 @@ public class CommonUIService {
                 arbitrageService.getDelta1().toPlainString(),
                 arbitrageService.getDelta2().toPlainString(),
                 arbitrageService.getBorder1().toPlainString(),
-                arbitrageService.getBorder2().toPlainString()
+                arbitrageService.getBorder2().toPlainString(),
+                arbitrageService.getMakerDelta().toPlainString()
         );
     }
 
+    public DeltasJson updateMakerDelta(MakerDeltalUpdateJson makerDeltalUpdateJson) {
+        if (makerDeltalUpdateJson.getMakerDelta() != null) {
+            arbitrageService.setMakerDelta(
+                    new BigDecimal(makerDeltalUpdateJson.getMakerDelta())
+            );
+        }
+
+        return new DeltasJson(
+                arbitrageService.getDelta1().toPlainString(),
+                arbitrageService.getDelta2().toPlainString(),
+                arbitrageService.getBorder1().toPlainString(),
+                arbitrageService.getBorder2().toPlainString(),
+                arbitrageService.getMakerDelta().toPlainString()
+        );
+    }
 }

@@ -15,8 +15,6 @@ import java.math.BigDecimal;
  */
 public interface MarketService {
 
-    BigDecimal MAKER_QUOTE_DELTA = new BigDecimal("0.01");
-
     UserTrades fetchMyTradeHistory();
 
     OrderBook getOrderBook();

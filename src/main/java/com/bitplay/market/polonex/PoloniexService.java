@@ -1,6 +1,7 @@
 package com.bitplay.market.polonex;
 
 import com.bitplay.market.MarketService;
+import com.bitplay.market.arbitrage.ArbitrageService;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
@@ -26,6 +27,7 @@ import org.knowm.xchange.service.marketdata.MarketDataService;
 import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -50,6 +52,8 @@ public class PoloniexService implements MarketService {
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
 
+    @Autowired
+    ArbitrageService arbitrageService;
 
 //    @Autowired
 //    WebSocketEndpoint webSocketEndpoint;
@@ -316,12 +320,12 @@ public class PoloniexService implements MarketService {
             thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1)
                     .get(0)
                     .getLimitPrice();
-            thePrice = thePrice.subtract(MAKER_QUOTE_DELTA);
+            thePrice = thePrice.subtract(arbitrageService.getMakerDelta());
         } else if (orderType == Order.OrderType.ASK) {
             thePrice = Utils.getBestBids(getOrderBook().getBids(), 1)
                     .get(0)
                     .getLimitPrice();
-            thePrice = thePrice.add(MAKER_QUOTE_DELTA);
+            thePrice = thePrice.add(arbitrageService.getMakerDelta());
         }
         return thePrice;
     }

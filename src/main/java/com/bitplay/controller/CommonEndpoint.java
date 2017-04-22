@@ -2,6 +2,7 @@ package com.bitplay.controller;
 
 import com.bitplay.model.BorderUpdateJson;
 import com.bitplay.model.DeltasJson;
+import com.bitplay.model.MakerDeltalUpdateJson;
 import com.bitplay.model.TradeLogJson;
 import com.bitplay.service.CommonUIService;
 
@@ -66,4 +67,11 @@ public class CommonEndpoint {
         return commonUIService.updateBorders(borderUpdateJson);
     }
 
+    @POST
+    @Path("/market/update-maker-delta")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public DeltasJson updateMakerDelta(MakerDeltalUpdateJson makerDeltalUpdateJson) {
+        return commonUIService.updateMakerDelta(makerDeltalUpdateJson);
+    }
 }
