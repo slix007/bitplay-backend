@@ -1,7 +1,7 @@
 package com.bitplay.service;
 
-import com.bitplay.business.model.TradeResponse;
-import com.bitplay.business.okcoin.OkCoinService;
+import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.AccountInfoJson;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TradeRequestJson;

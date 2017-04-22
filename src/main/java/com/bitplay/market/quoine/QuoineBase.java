@@ -1,4 +1,4 @@
-package com.bitplay.business.quoine;
+package com.bitplay.market.quoine;
 
 /**
  * Created by Sergey Shurmin on 3/20/17.

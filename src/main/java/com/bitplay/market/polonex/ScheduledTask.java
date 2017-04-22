@@ -1,4 +1,4 @@
-package com.bitplay.business.polonex;
+package com.bitplay.market.polonex;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

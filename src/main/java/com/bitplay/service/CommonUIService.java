@@ -1,6 +1,6 @@
 package com.bitplay.service;
 
-import com.bitplay.business.arbitrage.ArbitrageService;
+import com.bitplay.market.arbitrage.ArbitrageService;
 import com.bitplay.model.BorderUpdateJson;
 import com.bitplay.model.DeltasJson;
 import com.bitplay.model.TradeLogJson;

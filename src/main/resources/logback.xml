@@ -121,11 +121,11 @@
         <appender-ref ref="FILE_APPENDER"/>
     </root>
 
-    <logger name="com.bitplay.business.okcoin" level="info" additivity="false">
+    <logger name="com.bitplay.market.okcoin" level="info" additivity="false">
         <appender-ref ref="OKCOIN_APPENDER"/>
     </logger>
 
-    <logger name="com.bitplay.business.polonex" level="debug" additivity="false">
+    <logger name="com.bitplay.market.polonex" level="debug" additivity="false">
         <appender-ref ref="POLONIEX_APPENDER"/>
     </logger>
 

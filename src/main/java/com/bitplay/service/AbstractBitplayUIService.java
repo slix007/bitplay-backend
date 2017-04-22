@@ -1,6 +1,6 @@
 package com.bitplay.service;
 
-import com.bitplay.business.BusinessService;
+import com.bitplay.market.MarketService;
 import com.bitplay.model.AccountInfoJson;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TickerJson;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 /**
  * Created by Sergey Shurmin on 3/25/17.
  */
-public abstract class AbstractBitplayUIService<T extends BusinessService> {
+public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public abstract List<VisualTrade> fetchTrades();
 

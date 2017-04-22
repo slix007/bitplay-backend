@@ -1,7 +1,7 @@
-package com.bitplay.business.polonex;
+package com.bitplay.market.polonex;
 
-import com.bitplay.business.BusinessService;
-import com.bitplay.business.model.TradeResponse;
+import com.bitplay.market.MarketService;
+import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.core.StreamingExchange;
@@ -45,7 +45,7 @@ import jersey.repackaged.com.google.common.collect.Sets;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service
-public class PoloniexService implements BusinessService {
+public class PoloniexService implements MarketService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");

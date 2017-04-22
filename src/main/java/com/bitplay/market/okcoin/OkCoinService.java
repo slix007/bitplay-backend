@@ -1,7 +1,7 @@
-package com.bitplay.business.okcoin;
+package com.bitplay.market.okcoin;
 
-import com.bitplay.business.BusinessService;
-import com.bitplay.business.model.TradeResponse;
+import com.bitplay.market.MarketService;
+import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.okcoin.OkCoinStreamingExchange;
@@ -37,7 +37,7 @@ import io.reactivex.disposables.Disposable;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service
-public class OkCoinService implements BusinessService {
+public class OkCoinService implements MarketService {
 
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");

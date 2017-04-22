@@ -1,6 +1,6 @@
-package com.bitplay.business;
+package com.bitplay.market;
 
-import com.bitplay.business.model.TradeResponse;
+import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.dto.Order;
@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 /**
  * Created by Sergey Shurmin on 4/16/17.
  */
-public interface BusinessService {
+public interface MarketService {
 
     BigDecimal MAKER_QUOTE_DELTA = new BigDecimal("0.01");
 

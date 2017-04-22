@@ -1,4 +1,4 @@
-package com.bitplay.business.polonex;
+package com.bitplay.market.polonex;
 
 import info.bitrich.xchangestream.poloniex.incremental.PoloniexWebSocketDepth;
 

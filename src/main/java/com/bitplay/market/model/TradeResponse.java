@@ -1,4 +1,4 @@
-package com.bitplay.business.model;
+package com.bitplay.market.model;
 
 /**
  * Created by Sergey Shurmin on 4/21/17.

@@ -1,4 +1,4 @@
-package com.bitplay.business.quoine;
+package com.bitplay.market.quoine;
 
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;

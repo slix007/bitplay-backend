@@ -1,4 +1,4 @@
-package com.bitplay.business.quoine;
+package com.bitplay.market.quoine;
 
 //import io.jsonwebtoken.JwtBuilder;
 //import io.jsonwebtoken.Jwts;

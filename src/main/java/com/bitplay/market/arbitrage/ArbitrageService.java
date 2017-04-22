@@ -1,7 +1,7 @@
-package com.bitplay.business.arbitrage;
+package com.bitplay.market.arbitrage;
 
-import com.bitplay.business.okcoin.OkCoinService;
-import com.bitplay.business.polonex.PoloniexService;
+import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.polonex.PoloniexService;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.currency.Currency;

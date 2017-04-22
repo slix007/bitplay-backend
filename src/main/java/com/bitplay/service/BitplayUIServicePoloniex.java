@@ -1,10 +1,10 @@
 package com.bitplay.service;
 
-import com.bitplay.business.model.TradeResponse;
+import com.bitplay.market.model.TradeResponse;
 import com.bitplay.model.AccountInfoJson;
 import com.bitplay.model.OrderBookJson;
 import com.bitplay.model.TickerJson;
-import com.bitplay.business.polonex.PoloniexService;
+import com.bitplay.market.polonex.PoloniexService;
 import com.bitplay.model.TradeRequestJson;
 import com.bitplay.model.TradeResponseJson;
 import com.bitplay.model.VisualTrade;
