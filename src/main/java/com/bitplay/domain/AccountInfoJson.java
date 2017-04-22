@@ -9,6 +9,9 @@ public class AccountInfoJson {
 
     private String raw;
 
+    public AccountInfoJson() {
+    }
+
     public AccountInfoJson(String btc, String usd, String raw) {
         this.btc = btc;
         this.usd = usd;

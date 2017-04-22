@@ -16,12 +16,14 @@ import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
+import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.service.OkCoinTradeService;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -142,6 +144,7 @@ public class OkCoinService implements MarketService {
         return toString;
     }
 
+    @Scheduled(fixedRate = 1000)
     public AccountInfo fetchAccountInfo() {
         try {
             accountInfo = exchange.getAccountService().getAccountInfo();
@@ -279,4 +282,16 @@ public class OkCoinService implements MarketService {
         return tradeHistory;
 
     }
+
+    @Override
+    public OpenOrders fetchOpenOrders() {
+        OpenOrders openOrders = null;
+        try {
+            openOrders = exchange.getTradeService().getOpenOrders(null);
+        } catch (Exception e) {
+            logger.error("Get Open orders", e);
+        }
+        return openOrders;
+    }
+
 }

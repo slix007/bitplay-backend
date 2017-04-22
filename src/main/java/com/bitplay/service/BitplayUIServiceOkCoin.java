@@ -60,7 +60,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
 
     @Override
     public AccountInfoJson getAccountInfo() {
-        return convertAccountInfo(service.fetchAccountInfo());
+        return convertAccountInfo(service.getAccountInfo());
     }
 
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {

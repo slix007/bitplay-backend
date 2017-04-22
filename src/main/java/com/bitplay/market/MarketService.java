@@ -6,6 +6,7 @@ import com.bitplay.utils.Utils;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.dto.trade.UserTrades;
 
 import java.math.BigDecimal;
@@ -44,4 +45,6 @@ public interface MarketService {
 
         return totalPrice;
     }
+
+    OpenOrders fetchOpenOrders();
 }

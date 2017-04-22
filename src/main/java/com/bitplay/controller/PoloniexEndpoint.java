@@ -2,6 +2,7 @@ package com.bitplay.controller;
 
 import com.bitplay.domain.AccountInfoJson;
 import com.bitplay.domain.OrderBookJson;
+import com.bitplay.domain.OrderJson;
 import com.bitplay.domain.TickerJson;
 import com.bitplay.domain.TradeRequestJson;
 import com.bitplay.domain.TradeResponseJson;
@@ -73,10 +74,10 @@ public class PoloniexEndpoint {
         });
     }
 
-    private void findMatchedByPrice(OrderBookJson.OrderJson toFindOrderJson, List<OrderBookJson.OrderJson> ask) {
+    private void findMatchedByPrice(OrderJson toFindOrderJson, List<OrderJson> ask) {
         final String price = toFindOrderJson.getPrice();
         final BigDecimal toFind = new BigDecimal(price);
-        final List<OrderBookJson.OrderJson> foundMatches = ask.stream()
+        final List<OrderJson> foundMatches = ask.stream()
                 .filter(orderJson -> new BigDecimal(orderJson.getPrice()).compareTo(toFind) == 0)
                 .collect(Collectors.toList());
         if (foundMatches.size() == 0) {
@@ -86,7 +87,7 @@ public class PoloniexEndpoint {
             System.out.println("More than one mathches found for " + price);
         } else {
             // compare amount
-            final OrderBookJson.OrderJson matched = foundMatches.get(0);
+            final OrderJson matched = foundMatches.get(0);
             if (new BigDecimal(matched.getAmount()).compareTo(new BigDecimal(toFindOrderJson.getAmount())) != 0) {
                 System.out.println(String.format("Amounts don't match. %s, %s!=%s. ToFind=%s, Real=%s",
                         toFindOrderJson.getOrderType(), toFindOrderJson.getAmount(), matched.getAmount(),
@@ -122,6 +123,13 @@ public class PoloniexEndpoint {
     @Produces("application/json")
     public List<VisualTrade> tradeHistory() {
         return this.poloniex.fetchTrades();
+    }
+
+    @GET
+    @Path("/open-orders")
+    @Produces("application/json")
+    public List<OrderJson> openOrders() {
+        return this.poloniex.fetchOpenOrders();
     }
 
 }

@@ -1,13 +1,13 @@
 package com.bitplay.service;
 
-import com.bitplay.market.model.TradeResponse;
 import com.bitplay.domain.AccountInfoJson;
 import com.bitplay.domain.OrderBookJson;
 import com.bitplay.domain.TickerJson;
-import com.bitplay.market.polonex.PoloniexService;
 import com.bitplay.domain.TradeRequestJson;
 import com.bitplay.domain.TradeResponseJson;
 import com.bitplay.domain.VisualTrade;
+import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.polonex.PoloniexService;
 
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
@@ -15,14 +15,11 @@ import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Trades;
-import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexTradeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -62,7 +59,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
 
     @Override
     public AccountInfoJson getAccountInfo() {
-        return convertAccountInfo(poloniexService.fetchAccountInfo());
+        return convertAccountInfo(poloniexService.getAccountInfo());
     }
 
     @Override
@@ -93,17 +90,6 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
         return orderBook.getAsks().stream()
                 .map(toVisual)
                 .collect(Collectors.toList());
-    }
-
-    private VisualTrade toVisualTrade(LimitOrder limitOrder) {
-        final VisualTrade apply = toVisual.apply(limitOrder);
-        return new VisualTrade(
-                limitOrder.getCurrencyPair().toString(),
-                limitOrder.getLimitPrice().toString(),
-                limitOrder.getTradableAmount().toString(),
-                limitOrder.getType().toString(),
-                LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault())
-                        .toLocalTime().toString());
     }
 
     public OrderBookJson cleanOrderBook() {

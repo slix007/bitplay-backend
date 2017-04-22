@@ -1,5 +1,6 @@
 package com.bitplay.service;
 
+import com.bitplay.domain.OrderJson;
 import com.bitplay.market.MarketService;
 import com.bitplay.domain.AccountInfoJson;
 import com.bitplay.domain.OrderBookJson;
@@ -14,11 +15,13 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.dto.trade.UserTrades;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -53,12 +56,12 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 100);
         orderJson.setBid(bestBids.stream()
                 .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
-                .map(toOrderBookJson)
+                .map(toOrderJson)
                 .collect(Collectors.toList()));
         final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 100);
         orderJson.setAsk(bestAsks.stream()
                 .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
-                .map(toOrderBookJson)
+                .map(toOrderJson)
                 .collect(Collectors.toList()));
         return orderJson;
     }
@@ -76,8 +79,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
             LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault())
                     .toLocalTime().toString());
 
-    Function<LimitOrder, OrderBookJson.OrderJson> toOrderBookJson = limitOrder -> {
-        final OrderBookJson.OrderJson orderJson = new OrderBookJson.OrderJson();
+    Function<LimitOrder, OrderJson> toOrderJson = limitOrder -> {
+        final OrderJson orderJson = new OrderJson();
         orderJson.setOrderType(limitOrder.getType().toString());
         orderJson.setPrice(limitOrder.getLimitPrice().toString());
         orderJson.setAmount(limitOrder.getTradableAmount().toString());
@@ -85,10 +88,15 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         orderJson.setTimestamp(limitOrder.getTimestamp() != null
                 ? LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault()).toLocalTime().toString()
                 : null);
+        orderJson.setId(limitOrder.getId());
+        orderJson.setStatus(limitOrder.getStatus() != null ? limitOrder.getStatus().toString() : null);
         return orderJson;
     };
 
     protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo) {
+        if (accountInfo == null) {
+            return new AccountInfoJson();
+        }
         final Wallet wallet = accountInfo.getWallet();
         return new AccountInfoJson(wallet.getBalance(Currency.BTC).getAvailable().toPlainString(),
                 wallet.getBalance(Currency.USD).getAvailable().toPlainString(),
@@ -107,4 +115,15 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 ))
                 .collect(Collectors.toList());
     }
+
+    public List<OrderJson> fetchOpenOrders() {
+        final OpenOrders openOrders = getBusinessService().fetchOpenOrders();
+        return openOrders != null
+                ? openOrders.getOpenOrders().stream()
+                .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
+                .map(toOrderJson)
+                .collect(Collectors.toList())
+                : new ArrayList<>();
+    }
+
 }

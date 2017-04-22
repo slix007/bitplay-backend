@@ -19,6 +19,7 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
+import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexLimitOrder;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexOrderFlags;
@@ -28,6 +29,7 @@ import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -148,6 +150,7 @@ public class PoloniexService implements MarketService {
         exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
+    @Scheduled(fixedRate = 1000)
     public AccountInfo fetchAccountInfo() {
         try {
             accountInfo = exchange.getAccountService().getAccountInfo();
@@ -162,6 +165,17 @@ public class PoloniexService implements MarketService {
 
     public AccountInfo getAccountInfo() {
         return accountInfo;
+    }
+
+    @Override
+    public OpenOrders fetchOpenOrders() {
+        OpenOrders openOrders = null;
+        try {
+            openOrders = exchange.getTradeService().getOpenOrders(null);
+        } catch (Exception e) {
+            logger.error("Get Open orders", e);
+        }
+        return openOrders;
     }
 
     public Trades fetchTrades() {
