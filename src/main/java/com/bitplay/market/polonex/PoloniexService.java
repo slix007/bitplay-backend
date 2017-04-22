@@ -287,10 +287,25 @@ public class PoloniexService implements MarketService {
 
         int attemptCount = 0;
         Exception lastException = null;
+
         while (attemptCount < 5 && tradeResponse.getOrderId() == null) {
             attemptCount++;
             try {
-                tradeResponse = tryToPlaceMakerOrder(orderType, amount);
+                PoloniexLimitOrder theOrder = tryToPlaceMakerOrder(orderType, amount);
+
+                final PoloniexTradeResponse response = theOrder.getResponse();
+                final String orderId = response.getOrderNumber().toString();
+                tradeResponse.setSpecificResponse(response);
+                tradeResponse.setOrderId(orderId);
+                // TODO save trading history into DB
+                tradeLogger.info("maker {} with amount={},quote={}, id={}, attempt={}",
+                        orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                        amount,
+                        theOrder.getLimitPrice(),
+                        orderId,
+                        attemptCount
+                );
+
             } catch (Exception e) {
                 lastException = e;
                 // Retry
@@ -308,8 +323,7 @@ public class PoloniexService implements MarketService {
         return tradeResponse;
     }
 
-    private TradeResponse tryToPlaceMakerOrder(Order.OrderType orderType, BigDecimal amount) throws Exception {
-        TradeResponse tradeResponse = new TradeResponse();
+    private PoloniexLimitOrder tryToPlaceMakerOrder(Order.OrderType orderType, BigDecimal amount) throws Exception {
 
         BigDecimal thePrice = createBestMakerPrice(orderType);
 
@@ -318,19 +332,9 @@ public class PoloniexService implements MarketService {
         // consider , PoloniexOrderFlags.POST_ONLY
         theOrder.setOrderFlags(Sets.newHashSet(PoloniexOrderFlags.POST_ONLY));
 
-        String orderId = exchange.getTradeService().placeLimitOrder(theOrder);
-        tradeResponse.setOrderId(orderId);
+        exchange.getTradeService().placeLimitOrder(theOrder);
 
-        PoloniexTradeResponse response = theOrder.getResponse();
-        tradeResponse.setSpecificResponse(response);
-
-        // TODO save trading history into DB
-        tradeLogger.info("maker {} with amount={},quote={} was placed, status={}",
-                orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
-                amount, thePrice, theOrder.getStatus().toString()
-        );
-
-        return tradeResponse;
+        return theOrder;
     }
 
     private BigDecimal createBestMakerPrice(Order.OrderType orderType) {
