@@ -283,34 +283,53 @@ public class PoloniexService implements MarketService {
     }
 
     public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount) {
-        final TradeResponse tradeResponse = new TradeResponse();
-        try {
-            BigDecimal thePrice = createBestMakerPrice(orderType);
+        TradeResponse tradeResponse = new TradeResponse();
 
-            final PoloniexLimitOrder theOrder = new PoloniexLimitOrder(orderType, amount, CURRENCY_PAIR_USDT_BTC,
-                    null, new Date(), thePrice);
-            // consider , PoloniexOrderFlags.POST_ONLY
-            theOrder.setOrderFlags(Sets.newHashSet(PoloniexOrderFlags.POST_ONLY));
-
-            String orderId = exchange.getTradeService().placeLimitOrder(theOrder);
-            tradeResponse.setOrderId(orderId);
-
-            PoloniexTradeResponse response = theOrder.getResponse();
-            tradeResponse.setSpecificResponse(response);
-
-            // TODO save trading history into DB
-            tradeLogger.info("maker {} with amount={},quote={} was placed, status={}",
-                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
-                    amount, thePrice, theOrder.getStatus().toString()
-            );
-
-            fetchAccountInfo();
-        } catch (Exception e) {
-            logger.error("Place market order error", e);
-            tradeLogger.info("maker error {}", e.toString());
-            tradeResponse.setOrderId(e.getMessage());
-            tradeResponse.setErrorMessage(e.getMessage());
+        int attemptCount = 0;
+        Exception lastException = null;
+        while (attemptCount < 5 && tradeResponse.getOrderId() == null) {
+            attemptCount++;
+            try {
+                tradeResponse = tryToPlaceMakerOrder(orderType, amount);
+            } catch (Exception e) {
+                lastException = e;
+                // Retry
+            }
         }
+
+        fetchAccountInfo();
+
+        if (tradeResponse.getOrderId() == null && lastException != null) {
+            logger.error("Place market order error", lastException);
+            tradeLogger.info("maker error {}", lastException.toString());
+            tradeResponse.setOrderId(lastException.getMessage());
+            tradeResponse.setErrorMessage(lastException.getMessage());
+        }
+        return tradeResponse;
+    }
+
+    private TradeResponse tryToPlaceMakerOrder(Order.OrderType orderType, BigDecimal amount) throws Exception {
+        TradeResponse tradeResponse = new TradeResponse();
+
+        BigDecimal thePrice = createBestMakerPrice(orderType);
+
+        final PoloniexLimitOrder theOrder = new PoloniexLimitOrder(orderType, amount,
+                CURRENCY_PAIR_USDT_BTC, null, new Date(), thePrice);
+        // consider , PoloniexOrderFlags.POST_ONLY
+        theOrder.setOrderFlags(Sets.newHashSet(PoloniexOrderFlags.POST_ONLY));
+
+        String orderId = exchange.getTradeService().placeLimitOrder(theOrder);
+        tradeResponse.setOrderId(orderId);
+
+        PoloniexTradeResponse response = theOrder.getResponse();
+        tradeResponse.setSpecificResponse(response);
+
+        // TODO save trading history into DB
+        tradeLogger.info("maker {} with amount={},quote={} was placed, status={}",
+                orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                amount, thePrice, theOrder.getStatus().toString()
+        );
+
         return tradeResponse;
     }
 
