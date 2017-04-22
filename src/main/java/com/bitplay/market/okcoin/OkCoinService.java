@@ -51,6 +51,8 @@ public class OkCoinService implements MarketService {
 
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
 
+    private final static BigDecimal POLONIEX_STEP = new BigDecimal("0.00000001");
+
     @Autowired
     ArbitrageService arbitrageService;
 
@@ -221,11 +223,22 @@ public class OkCoinService implements MarketService {
 
             if (orderType.equals(Order.OrderType.BID)) {
                 // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
-                thePrice = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
-                thePrice = thePrice.subtract(arbitrageService.getMakerDelta());
-            } else { // orderType.equals(Order.OrderType.ASK)
                 thePrice = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
                 thePrice = thePrice.add(arbitrageService.getMakerDelta());
+                //2
+                final BigDecimal bestAsk = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
+                if (thePrice.compareTo(bestAsk) == 1 || thePrice.compareTo(bestAsk) == 0) {
+                    thePrice = bestAsk.subtract(POLONIEX_STEP);
+                }
+
+            } else { // orderType.equals(Order.OrderType.ASK)
+                thePrice = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
+                thePrice = thePrice.subtract(arbitrageService.getMakerDelta());
+                //2
+                final BigDecimal bestBid = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
+                if (thePrice.compareTo(bestBid) == -1 || thePrice.compareTo(bestBid) == 0) {
+                    thePrice = bestBid.add(POLONIEX_STEP);
+                }
             }
 
 //          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()

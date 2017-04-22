@@ -53,6 +53,7 @@ public class PoloniexService implements MarketService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
+    private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
 
     @Autowired
     ArbitrageService arbitrageService;
@@ -354,15 +355,25 @@ public class PoloniexService implements MarketService {
     private BigDecimal createBestMakerPrice(Order.OrderType orderType) {
         BigDecimal thePrice = null;
         if (orderType == Order.OrderType.BID) {
-            thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1)
-                    .get(0)
-                    .getLimitPrice();
-            thePrice = thePrice.subtract(arbitrageService.getMakerDelta());
-        } else if (orderType == Order.OrderType.ASK) {
             thePrice = Utils.getBestBids(getOrderBook().getBids(), 1)
                     .get(0)
                     .getLimitPrice();
             thePrice = thePrice.add(arbitrageService.getMakerDelta());
+            //2
+            final BigDecimal bestAsk = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
+            if (thePrice.compareTo(bestAsk) == 1 || thePrice.compareTo(bestAsk) == 0) {
+                thePrice = bestAsk.subtract(OKCOIN_STEP);
+            }
+        } else if (orderType == Order.OrderType.ASK) {
+            thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1)
+                    .get(0)
+                    .getLimitPrice();
+            thePrice = thePrice.subtract(arbitrageService.getMakerDelta());
+            //2
+            final BigDecimal bestBid = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
+            if (thePrice.compareTo(bestBid) == -1 || thePrice.compareTo(bestBid) == 0) {
+                thePrice = bestBid.add(OKCOIN_STEP);
+            }
         }
         return thePrice;
     }
