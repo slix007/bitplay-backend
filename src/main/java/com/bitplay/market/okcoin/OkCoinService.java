@@ -41,7 +41,7 @@ import io.reactivex.disposables.Disposable;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service
-public class OkCoinService implements MarketService {
+public class OkCoinService extends MarketService {
 
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
@@ -85,6 +85,8 @@ public class OkCoinService implements MarketService {
         exchange = initExchange();
 
         initWebSocketConnection();
+
+        initOrderBookSubscribers(logger);
     }
 
     private void initWebSocketConnection() {
@@ -137,6 +139,16 @@ public class OkCoinService implements MarketService {
 
         // Disconnect from exchange (non-blocking)
         exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
+    }
+
+    @Override
+    protected BigDecimal getMakerStep() {
+        return OKCOIN_STEP;
+    }
+
+    @Override
+    protected BigDecimal getMakerDelta() {
+        return arbitrageService.getMakerDelta();
     }
 
     public String fetchCurrencies() {
@@ -318,4 +330,17 @@ public class OkCoinService implements MarketService {
         return openOrders;
     }
 
+    @Override
+    public void moveMakerOrder(LimitOrder limitOrder) {
+        // IT doesn't support moving
+        // Do cancel ant place
+        logger.info("MOVE maker order not implemented yet");
+
+//        final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
+//        try {
+//            tradeService.cancelOrder(limitOrder.getId())
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+    }
 }

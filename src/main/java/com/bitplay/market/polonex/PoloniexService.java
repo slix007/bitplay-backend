@@ -23,8 +23,10 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexLimitOrder;
+import org.knowm.xchange.poloniex.dto.trade.PoloniexMoveResponse;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexOrderFlags;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexTradeResponse;
+import org.knowm.xchange.poloniex.service.PoloniexTradeService;
 import org.knowm.xchange.service.marketdata.MarketDataService;
 import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
 import org.slf4j.Logger;
@@ -43,17 +45,14 @@ import java.util.Map;
 
 import javax.annotation.PreDestroy;
 
-import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.subjects.PublishSubject;
-import io.reactivex.subjects.Subject;
 import jersey.repackaged.com.google.common.collect.Sets;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service
-public class PoloniexService implements MarketService {
+public class PoloniexService extends MarketService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
@@ -76,11 +75,6 @@ public class PoloniexService implements MarketService {
     public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
 
     private List<Long> latencyList = new ArrayList<>();
-    private BigDecimal bestBid = BigDecimal.ZERO;
-    private BigDecimal bestAsk = BigDecimal.ZERO;
-    private List<LimitOrder> openOrders = new ArrayList<>();
-    Subject<BigDecimal> bestAskChangedSubject = PublishSubject.create();
-    Subject<BigDecimal> bestBidChangedSubject = PublishSubject.create();
 
     private StreamingExchange getExchange() {
 
@@ -109,26 +103,10 @@ public class PoloniexService implements MarketService {
         fetchOrderBook();
         initWebSocketConnection();
 
-        initOrderBookSubscribers();
+        initOrderBookSubscribers(logger);
     }
 
-    private void initOrderBookSubscribers() {
-        bestAskChangedSubject.subscribe(bigDecimal -> {
-            logger.info("BEST ASK WAS CHANGED TO " + bigDecimal.toPlainString());
-            if (openOrders.size() > 0) {
-                openOrders = fetchOpenOrders().getOpenOrders();
-                moveMakerOrdersAsk(openOrders, bigDecimal);
-            }
 
-        });
-        bestBidChangedSubject.subscribe(bigDecimal -> {
-            logger.info("BEST BID WAS CHANGED TO " + bigDecimal.toPlainString());
-        });
-    }
-
-    private void moveMakerOrdersAsk(List<LimitOrder> openOrders, BigDecimal bestAsk) {
-//        openOrders.stream()
-    }
 
     private void initWebSocketConnection() {
         exchange.connect().blockingAwait();
@@ -379,9 +357,70 @@ public class PoloniexService implements MarketService {
         return tradeResponse;
     }
 
+    protected void moveMakerOrderIfNotFirst(LimitOrder limitOrder) {
+        BigDecimal bestPrice;
+        if (limitOrder.getType() == Order.OrderType.ASK) {
+            bestPrice = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
+        } else if (limitOrder.getType() == Order.OrderType.BID) {
+            bestPrice = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
+        } else {
+            throw new IllegalArgumentException("Order type is not supported");
+        }
+
+        if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
+            moveMakerOrder(limitOrder);
+        }
+    }
+
+    /**
+     * Use when you're sure that order should be moved(has not the best price)
+     * Use {@link #moveMakerOrderIfNotFirst(LimitOrder)} when you know that price is not the best.
+     */
+    public void moveMakerOrder(LimitOrder limitOrder) {
+        int attemptCount = 0;
+        Exception lastException = null;
+        PoloniexMoveResponse moveResponse = null;
+        BigDecimal bestMakerPrice = BigDecimal.ZERO;
+        while (attemptCount < 5) {
+            attemptCount++;
+            try {
+                bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true);
+                final PoloniexTradeService poloniexTradeService = (PoloniexTradeService) exchange.getTradeService();
+                moveResponse = poloniexTradeService.move(
+                        limitOrder.getId(),
+                        limitOrder.getTradableAmount(),
+                        bestMakerPrice,
+                        PoloniexOrderFlags.POST_ONLY);
+                if (moveResponse.success()) {
+                    break;
+                }
+            } catch (Exception e) {
+                lastException = e;
+                logger.error("{} attempt on move maker order", attemptCount, e);
+            }
+        }
+
+        if (moveResponse != null && moveResponse.success()) {
+            tradeLogger.info("Moved {} amount={},quote={},id={},attempt={}",
+                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                    limitOrder.getTradableAmount(),
+                    bestMakerPrice.toPlainString(),
+                    limitOrder.getId(),
+                    attemptCount);
+        } else {
+            tradeLogger.info("Moving error {} amount={},oldQuote={},id={},attempt={}",
+                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                    limitOrder.getTradableAmount(),
+                    limitOrder.getLimitPrice().toPlainString(),
+                    limitOrder.getId(),
+                    attemptCount);
+//                logger.error("on moving", lastException);
+        }
+    }
+
     private PoloniexLimitOrder tryToPlaceMakerOrder(Order.OrderType orderType, BigDecimal amount) throws Exception {
 
-        BigDecimal thePrice = createBestMakerPrice(orderType);
+        BigDecimal thePrice = createBestMakerPrice(orderType, false);
 
         final PoloniexLimitOrder theOrder = new PoloniexLimitOrder(orderType, amount,
                 CURRENCY_PAIR_USDT_BTC, null, new Date(), thePrice);
@@ -393,35 +432,14 @@ public class PoloniexService implements MarketService {
         return theOrder;
     }
 
-    private BigDecimal createBestMakerPrice(Order.OrderType orderType) {
-        BigDecimal thePrice = null;
-        BigDecimal makerDelta = arbitrageService.getMakerDelta();
-        if (makerDelta.compareTo(BigDecimal.ZERO) == 0) {
-            makerDelta = POLONIEX_STEP;
-        }
+    @Override
+    protected BigDecimal getMakerStep() {
+        return POLONIEX_STEP;
+    }
 
-        if (orderType == Order.OrderType.BID) {
-            thePrice = Utils.getBestBids(getOrderBook().getBids(), 1)
-                    .get(0)
-                    .getLimitPrice();
-            thePrice = thePrice.add(makerDelta);
-            //2
-            final BigDecimal bestAsk = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
-            if (thePrice.compareTo(bestAsk) == 1 || thePrice.compareTo(bestAsk) == 0) {
-                thePrice = bestAsk.subtract(POLONIEX_STEP);
-            }
-        } else if (orderType == Order.OrderType.ASK) {
-            thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1)
-                    .get(0)
-                    .getLimitPrice();
-            thePrice = thePrice.subtract(makerDelta);
-            //2
-            final BigDecimal bestBid = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
-            if (thePrice.compareTo(bestBid) == -1 || thePrice.compareTo(bestBid) == 0) {
-                thePrice = bestBid.add(POLONIEX_STEP);
-            }
-        }
-        return thePrice;
+    @Override
+    protected BigDecimal getMakerDelta() {
+        return arbitrageService.getMakerDelta();
     }
 
     public UserTrades fetchMyTradeHistory() {
