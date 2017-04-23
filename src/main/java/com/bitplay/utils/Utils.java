@@ -1,5 +1,6 @@
 package com.bitplay.utils;
 
+import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.util.Comparator;
@@ -24,5 +25,20 @@ public class Utils {
                 .limit(amount)
                 .collect(Collectors.toList());
     }
+
+    public static List<LimitOrder> getBestBids(OrderBook orderBook, int amount) {
+        return orderBook.getBids().stream()
+                .sorted(Comparator.comparing(LimitOrder::getLimitPrice))
+                .limit(amount)
+                .collect(Collectors.toList());
+    }
+
+    public static List<LimitOrder> getBestAsks(OrderBook orderBook, int amount) {
+        return orderBook.getAsks().stream()
+                .sorted(Comparator.comparing(LimitOrder::getLimitPrice))
+                .limit(amount)
+                .collect(Collectors.toList());
+    }
+
 
 }

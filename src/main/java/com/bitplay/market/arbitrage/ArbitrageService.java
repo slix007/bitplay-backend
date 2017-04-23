@@ -35,7 +35,7 @@ public class ArbitrageService {
 
     private BigDecimal border1 = BigDecimal.ZERO;
     private BigDecimal border2 = BigDecimal.ZERO;
-    private BigDecimal makerDelta = new BigDecimal("0.01");
+    private BigDecimal makerDelta = BigDecimal.ZERO;
 
     @Scheduled(fixedRate = 50)
     public void doComparison() {

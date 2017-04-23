@@ -19,6 +19,7 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
+import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexLimitOrder;
@@ -42,7 +43,10 @@ import java.util.Map;
 
 import javax.annotation.PreDestroy;
 
+import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 import jersey.repackaged.com.google.common.collect.Sets;
 
 /**
@@ -53,7 +57,7 @@ public class PoloniexService implements MarketService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
-    private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
+    private final static BigDecimal POLONIEX_STEP = new BigDecimal("0.00000001");
 
     @Autowired
     ArbitrageService arbitrageService;
@@ -72,6 +76,11 @@ public class PoloniexService implements MarketService {
     public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
 
     private List<Long> latencyList = new ArrayList<>();
+    private BigDecimal bestBid = BigDecimal.ZERO;
+    private BigDecimal bestAsk = BigDecimal.ZERO;
+    private List<LimitOrder> openOrders = new ArrayList<>();
+    Subject<BigDecimal> bestAskChangedSubject = PublishSubject.create();
+    Subject<BigDecimal> bestBidChangedSubject = PublishSubject.create();
 
     private StreamingExchange getExchange() {
 
@@ -99,6 +108,26 @@ public class PoloniexService implements MarketService {
         exchange = getExchange();
         fetchOrderBook();
         initWebSocketConnection();
+
+        initOrderBookSubscribers();
+    }
+
+    private void initOrderBookSubscribers() {
+        bestAskChangedSubject.subscribe(bigDecimal -> {
+            logger.info("BEST ASK WAS CHANGED TO " + bigDecimal.toPlainString());
+            if (openOrders.size() > 0) {
+                openOrders = fetchOpenOrders().getOpenOrders();
+                moveMakerOrdersAsk(openOrders, bigDecimal);
+            }
+
+        });
+        bestBidChangedSubject.subscribe(bigDecimal -> {
+            logger.info("BEST BID WAS CHANGED TO " + bigDecimal.toPlainString());
+        });
+    }
+
+    private void moveMakerOrdersAsk(List<LimitOrder> openOrders, BigDecimal bestAsk) {
+//        openOrders.stream()
     }
 
     private void initWebSocketConnection() {
@@ -228,6 +257,17 @@ public class PoloniexService implements MarketService {
 
             logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
                     orderBook.getTimeStamp());
+
+            final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
+            if (this.bestAsk.compareTo(bestAsk) != 0) {
+                this.bestAsk = bestAsk;
+                bestAskChangedSubject.onNext(bestAsk);
+            }
+            final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
+            if (this.bestBid.compareTo(bestBid) != 0) {
+                this.bestBid = bestBid;
+                bestBidChangedSubject.onNext(bestBid);
+            }
         } catch (IOException e) {
             logger.error("Can not fetchOrderBook", e);
         } catch (Exception e) {
@@ -320,6 +360,7 @@ public class PoloniexService implements MarketService {
                         orderId,
                         attemptCount
                 );
+                openOrders.add(theOrder);
 
             } catch (Exception e) {
                 lastException = e;
@@ -354,25 +395,30 @@ public class PoloniexService implements MarketService {
 
     private BigDecimal createBestMakerPrice(Order.OrderType orderType) {
         BigDecimal thePrice = null;
+        BigDecimal makerDelta = arbitrageService.getMakerDelta();
+        if (makerDelta.compareTo(BigDecimal.ZERO) == 0) {
+            makerDelta = POLONIEX_STEP;
+        }
+
         if (orderType == Order.OrderType.BID) {
             thePrice = Utils.getBestBids(getOrderBook().getBids(), 1)
                     .get(0)
                     .getLimitPrice();
-            thePrice = thePrice.add(arbitrageService.getMakerDelta());
+            thePrice = thePrice.add(makerDelta);
             //2
             final BigDecimal bestAsk = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
             if (thePrice.compareTo(bestAsk) == 1 || thePrice.compareTo(bestAsk) == 0) {
-                thePrice = bestAsk.subtract(OKCOIN_STEP);
+                thePrice = bestAsk.subtract(POLONIEX_STEP);
             }
         } else if (orderType == Order.OrderType.ASK) {
             thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1)
                     .get(0)
                     .getLimitPrice();
-            thePrice = thePrice.subtract(arbitrageService.getMakerDelta());
+            thePrice = thePrice.subtract(makerDelta);
             //2
             final BigDecimal bestBid = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
             if (thePrice.compareTo(bestBid) == -1 || thePrice.compareTo(bestBid) == 0) {
-                thePrice = bestBid.add(OKCOIN_STEP);
+                thePrice = bestBid.add(POLONIEX_STEP);
             }
         }
         return thePrice;
