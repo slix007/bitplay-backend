@@ -357,24 +357,9 @@ public class PoloniexService extends MarketService {
         return tradeResponse;
     }
 
-    protected void moveMakerOrderIfNotFirst(LimitOrder limitOrder) {
-        BigDecimal bestPrice;
-        if (limitOrder.getType() == Order.OrderType.ASK) {
-            bestPrice = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
-        } else if (limitOrder.getType() == Order.OrderType.BID) {
-            bestPrice = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
-        } else {
-            throw new IllegalArgumentException("Order type is not supported");
-        }
-
-        if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
-            moveMakerOrder(limitOrder);
-        }
-    }
-
     /**
      * Use when you're sure that order should be moved(has not the best price)
-     * Use {@link #moveMakerOrderIfNotFirst(LimitOrder)} when you know that price is not the best.
+     * Use {@link MarketService#moveMakerOrderIfNotFirst(LimitOrder)} when you know that price is not the best.
      */
     public void moveMakerOrder(LimitOrder limitOrder) {
         int attemptCount = 0;

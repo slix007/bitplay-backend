@@ -125,4 +125,19 @@ public abstract class MarketService {
         }
         return thePrice;
     }
+
+    protected void moveMakerOrderIfNotFirst(LimitOrder limitOrder) {
+        BigDecimal bestPrice;
+        if (limitOrder.getType() == Order.OrderType.ASK) {
+            bestPrice = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
+        } else if (limitOrder.getType() == Order.OrderType.BID) {
+            bestPrice = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
+        } else {
+            throw new IllegalArgumentException("Order type is not supported");
+        }
+
+        if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
+            moveMakerOrder(limitOrder);
+        }
+    }
 }

@@ -233,7 +233,7 @@ public class OkCoinService extends MarketService {
             final TradeService tradeService = exchange.getTradeService();
             BigDecimal thePrice;
 
-            thePrice = createBestMakerPrice(orderType);
+            thePrice = createBestMakerPrice(orderType, false);
 
 //          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()
             final LimitOrder limitOrder = new LimitOrder(orderType,
@@ -259,35 +259,6 @@ public class OkCoinService extends MarketService {
             tradeResponse.setErrorMessage(e.getMessage());
         }
         return tradeResponse;
-    }
-
-    private BigDecimal createBestMakerPrice(Order.OrderType orderType) {
-        BigDecimal thePrice;
-        BigDecimal makerDelta = arbitrageService.getMakerDelta();
-        if (makerDelta.compareTo(BigDecimal.ZERO) == 0) {
-            makerDelta = OKCOIN_STEP;
-        }
-
-        if (orderType.equals(Order.OrderType.BID)) {
-            // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
-            thePrice = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
-            thePrice = thePrice.add(makerDelta);
-            //2
-            final BigDecimal bestAsk = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
-            if (thePrice.compareTo(bestAsk) == 1 || thePrice.compareTo(bestAsk) == 0) {
-                thePrice = bestAsk.subtract(OKCOIN_STEP);
-            }
-
-        } else { // orderType.equals(Order.OrderType.ASK)
-            thePrice = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
-            thePrice = thePrice.subtract(makerDelta);
-            //2
-            final BigDecimal bestBid = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
-            if (thePrice.compareTo(bestBid) == -1 || thePrice.compareTo(bestBid) == 0) {
-                thePrice = bestBid.add(OKCOIN_STEP);
-            }
-        }
-        return thePrice;
     }
 
     private Order fetchOrderInfo(String orderId) {
@@ -334,13 +305,55 @@ public class OkCoinService extends MarketService {
     public void moveMakerOrder(LimitOrder limitOrder) {
         // IT doesn't support moving
         // Do cancel ant place
-        logger.info("MOVE maker order not implemented yet");
+        final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
 
-//        final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
-//        try {
-//            tradeService.cancelOrder(limitOrder.getId())
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        int attemptCount = 0;
+        Exception lastException = null;
+        BigDecimal bestMakerPrice = BigDecimal.ZERO;
+        boolean cancelledSuccessfully = false;
+        while (attemptCount < 5) {
+            attemptCount++;
+            try {
+                cancelledSuccessfully = tradeService.cancelOrder(limitOrder.getId());
+                if (cancelledSuccessfully) {
+                    break;
+                }
+            } catch (Exception e) {
+                lastException = e;
+                logger.error("{} attempt on cancel maker order", attemptCount, e);
+            }
+        }
+
+        if (cancelledSuccessfully) {
+            tradeLogger.info("Cancelled {} amount={},quote={},id={},attempt={}",
+                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                    limitOrder.getTradableAmount(),
+                    limitOrder.getLimitPrice().toPlainString(),
+                    limitOrder.getId(),
+                    attemptCount);
+
+            // Place order
+            while (attemptCount < 5) {
+                attemptCount++;
+                final TradeResponse tradeResponse = placeMakerOrder(limitOrder.getType(), limitOrder.getTradableAmount());
+                if (tradeResponse.getErrorCode() == null) {
+                    break;
+                }
+            }
+            tradeLogger.info("Moving finished {} amount={},quote={},id={},attempt={}",
+                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                    limitOrder.getTradableAmount(),
+                    bestMakerPrice.toPlainString(),
+                    limitOrder.getId(),
+                    attemptCount);
+        } else {
+            tradeLogger.info("Cancel failed {} amount={},quote={},id={},attempt={},lastException={}",
+                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                    limitOrder.getTradableAmount(),
+                    limitOrder.getLimitPrice().toPlainString(),
+                    limitOrder.getId(),
+                    attemptCount,
+                    lastException != null ? lastException.getMessage() : null);
+        }
     }
 }
