@@ -236,16 +236,8 @@ public class PoloniexService extends MarketService {
             logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
                     orderBook.getTimeStamp());
 
-            final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
-            if (this.bestAsk.compareTo(bestAsk) != 0) {
-                this.bestAsk = bestAsk;
-                bestAskChangedSubject.onNext(bestAsk);
-            }
-            final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
-            if (this.bestBid.compareTo(bestBid) != 0) {
-                this.bestBid = bestBid;
-                bestBidChangedSubject.onNext(bestBid);
-            }
+            orderBookChangedSubject.onNext(orderBook);
+
         } catch (IOException e) {
             logger.error("Can not fetchOrderBook", e);
         } catch (Exception e) {

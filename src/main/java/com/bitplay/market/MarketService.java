@@ -9,6 +9,7 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -27,6 +28,9 @@ public abstract class MarketService {
     protected List<LimitOrder> openOrders = new ArrayList<>();
     protected Subject<BigDecimal> bestAskChangedSubject = PublishSubject.create();
     protected Subject<BigDecimal> bestBidChangedSubject = PublishSubject.create();
+    protected Subject<OrderBook> orderBookChangedSubject = PublishSubject.create();
+
+    private final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
     public abstract UserTrades fetchMyTradeHistory();
 
@@ -61,27 +65,50 @@ public abstract class MarketService {
     public abstract OpenOrders fetchOpenOrders();
 
     protected void initOrderBookSubscribers(Logger logger) {
+        orderBookChangedSubject.subscribe(orderBook -> {
+            final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
+            if (this.bestAsk.compareTo(bestAsk) != 0) {
+                this.bestAsk = bestAsk;
+                bestAskChangedSubject.onNext(bestAsk);
+            }
+            final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
+            if (this.bestBid.compareTo(bestBid) != 0) {
+                this.bestBid = bestBid;
+                bestBidChangedSubject.onNext(bestBid);
+            }
+        });
         bestAskChangedSubject.subscribe(bestAsk -> {
-            logger.info("BEST ASK WAS CHANGED TO " + bestAsk.toPlainString());
+            debugLog.info("BEST ASK WAS CHANGED TO " + bestAsk.toPlainString());
             if (openOrders.size() > 0) {
+                logger.info("HAS OPENORDER ON ASK CHANGING" + bestAsk.toPlainString());
                 openOrders = fetchOpenOrders().getOpenOrders();
 
                 openOrders.stream()
                         .filter(limitOrder -> limitOrder.getType() == Order.OrderType.ASK)
                         .forEach(limitOrder -> {
                             if (limitOrder.getLimitPrice().compareTo(bestAsk) != 0) {
+                                logger.info("MOVE OPENORDER {} {}. From {} when best is {}",
+                                        limitOrder.getType(), limitOrder.getTradableAmount(),
+                                        limitOrder.getLimitPrice().toPlainString(),
+                                        bestAsk.toPlainString());
                                 moveMakerOrder(limitOrder);
                             }
                         });
             }
         });
         bestBidChangedSubject.subscribe(bestBid -> {
+            debugLog.info("BEST BID WAS CHANGED TO " + bestBid.toPlainString());
             if (openOrders.size() > 0) {
+                logger.info("HAS OPENORDER ON ASK CHANGING" + bestBid.toPlainString());
                 openOrders = fetchOpenOrders().getOpenOrders();
                 openOrders.stream()
                         .filter(limitOrder -> limitOrder.getType() == Order.OrderType.BID)
                         .forEach(limitOrder -> {
                             if (limitOrder.getLimitPrice().compareTo(bestBid) != 0) {
+                                logger.info("MOVE OPENORDER {} {}. From {} when best is {}",
+                                        limitOrder.getType(), limitOrder.getTradableAmount(),
+                                        limitOrder.getLimitPrice().toPlainString(),
+                                        bestBid.toPlainString());
                                 moveMakerOrder(limitOrder);
                             }
                         });

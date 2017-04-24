@@ -129,6 +129,9 @@ public class OkCoinService extends MarketService {
                             bestAsk != null ? bestAsk.getLimitPrice() : null,
                             bestBid != null ? bestBid.getLimitPrice() : null);
                     this.orderBook = orderBook;
+
+                    orderBookChangedSubject.onNext(orderBook);
+
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }
 
