@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.PreDestroy;
 
@@ -87,7 +88,7 @@ public class OkCoinService extends MarketService {
 
         initWebSocketConnection();
 
-        initOrderBookSubscribers(logger);
+//        initOrderBookSubscribers(logger);
     }
 
     private void initWebSocketConnection() {
@@ -131,7 +132,12 @@ public class OkCoinService extends MarketService {
                             bestBid != null ? bestBid.getLimitPrice() : null);
                     this.orderBook = orderBook;
 
-                    orderBookChangedSubject.onNext(orderBook);
+//                    orderBookChangedSubject.onNext(orderBook);
+
+                    CompletableFuture.runAsync(() -> {
+                        checkOrderBook(orderBook);
+                    });
+
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }
@@ -295,14 +301,8 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public OpenOrders fetchOpenOrders() {
-        OpenOrders openOrders = null;
-        try {
-            openOrders = exchange.getTradeService().getOpenOrders(null);
-        } catch (Exception e) {
-            logger.error("Get Open orders", e);
-        }
-        return openOrders;
+    public TradeService getTradeService() {
+        return exchange.getTradeService();
     }
 
     @Override
@@ -331,6 +331,7 @@ public class OkCoinService extends MarketService {
         }
 
         if (cancelledSuccessfully) {
+            openOrders.remove(limitOrder);
             tradeLogger.info("Cancelled {} amount={},quote={},id={},attempt={}",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
@@ -354,13 +355,13 @@ public class OkCoinService extends MarketService {
                     attemptCount);
             response = new MoveResponse(true, "");
         } else {
-            tradeLogger.info("Cancel failed {} amount={},quote={},id={},attempt={},lastException={}",
-                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-                    limitOrder.getTradableAmount(),
-                    limitOrder.getLimitPrice().toPlainString(),
-                    limitOrder.getId(),
-                    attemptCount,
-                    lastException != null ? lastException.getMessage() : null);
+//            tradeLogger.info("Cancel failed {} amount={},quote={},id={},attempt={},lastException={}",
+//                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+//                    limitOrder.getTradableAmount(),
+//                    limitOrder.getLimitPrice().toPlainString(),
+//                    limitOrder.getId(),
+//                    attemptCount,
+//                    lastException != null ? lastException.getMessage() : null);
             response = new MoveResponse(true, "cancel failed");
         }
         return response;

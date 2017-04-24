@@ -23,6 +23,8 @@ import java.math.BigDecimal;
 public class ArbitrageService {
 
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
+    private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
+
 
     @Autowired
     private OkCoinService okCoinService;
@@ -42,18 +44,47 @@ public class ArbitrageService {
         final OrderBook okCoinOrderBook = okCoinService.getOrderBook();
         final OrderBook poloniexOrderBook = poloniexService.getOrderBook();
 
-        calcDeltas(okCoinOrderBook, poloniexOrderBook);
 
-        calcAndDoArbitrage();
+//        calcDeltas(okCoinOrderBook, poloniexOrderBook);
+
+        calcAndDoArbitrage(okCoinOrderBook, poloniexOrderBook);
 
     }
 
-    private void calcAndDoArbitrage() {
+    private void calcAndDoArbitrage(OrderBook okCoinOrderBook, OrderBook poloniexOrderBook) {
+        BigDecimal ask1_o = BigDecimal.ZERO;
+        BigDecimal ask1_p = BigDecimal.ZERO;
+        BigDecimal bid1_o = BigDecimal.ZERO;
+        BigDecimal bid1_p = BigDecimal.ZERO;
+        if (okCoinOrderBook != null && poloniexOrderBook != null
+                && okCoinOrderBook.getAsks().size() > 1
+                && poloniexOrderBook.getAsks().size() > 1) {
+            ask1_o = Utils.getBestAsks(okCoinOrderBook.getAsks(), 1).get(0).getLimitPrice();
+            ask1_p = Utils.getBestAsks(poloniexOrderBook.getAsks(), 1).get(0).getLimitPrice();
+
+            bid1_o = Utils.getBestBids(okCoinOrderBook.getBids(), 1).get(0).getLimitPrice();
+            bid1_p = Utils.getBestBids(poloniexOrderBook.getBids(), 1).get(0).getLimitPrice();
+
+            delta1 = bid1_p.subtract(ask1_o);
+            delta2 = bid1_o.subtract(ask1_p);
+        }
+
+        final Wallet walletP = poloniexService.getAccountInfo().getWallet();
+        final BigDecimal btcP = walletP.getBalance(Currency.BTC).getAvailable();
+        final BigDecimal usdP = walletP.getBalance(PoloniexService.CURRENCY_PAIR_USDT_BTC.counter).getAvailable();
+        final Wallet walletO = okCoinService.getAccountInfo().getWallet();
+        final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
+        final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
+
+
         BigDecimal amount = new BigDecimal("0.01");
 //            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
                 if (checkBalance("delta1", amount)) {
+                    tradeLogger.info(String.format("delta1=%s-%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
+                            bid1_p.toPlainString(), ask1_o.toPlainString(), border1.toPlainString(),
+                            btcP, usdP, btcO, usdO));
                     poloniexService.placeMakerOrder(Order.OrderType.ASK, amount);
                     okCoinService.placeMakerOrder(Order.OrderType.BID, amount);
                 }
@@ -63,6 +94,9 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
                 if (checkBalance("delta2", amount)) {
+                    tradeLogger.info(String.format("delta2=%s-%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
+                            bid1_o.toPlainString(), ask1_p.toPlainString(), border2.toPlainString(),
+                            btcP, usdP, btcO, usdO));
                     poloniexService.placeMakerOrder(Order.OrderType.BID, amount);
                     okCoinService.placeMakerOrder(Order.OrderType.ASK, amount);
                 }

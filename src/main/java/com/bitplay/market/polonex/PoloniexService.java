@@ -21,7 +21,6 @@ import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexLimitOrder;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexMoveResponse;
@@ -29,6 +28,7 @@ import org.knowm.xchange.poloniex.dto.trade.PoloniexOrderFlags;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexTradeResponse;
 import org.knowm.xchange.poloniex.service.PoloniexTradeService;
 import org.knowm.xchange.service.marketdata.MarketDataService;
+import org.knowm.xchange.service.trade.TradeService;
 import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +43,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.PreDestroy;
 
@@ -104,7 +105,7 @@ public class PoloniexService extends MarketService {
         fetchOrderBook();
         initWebSocketConnection();
 
-        initOrderBookSubscribers(logger);
+//        initOrderBookSubscribers(logger);
     }
 
 
@@ -159,7 +160,7 @@ public class PoloniexService extends MarketService {
         exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 2000)
     public AccountInfo fetchAccountInfo() {
         try {
             accountInfo = exchange.getAccountService().getAccountInfo();
@@ -177,14 +178,8 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    public OpenOrders fetchOpenOrders() {
-        OpenOrders openOrders = null;
-        try {
-            openOrders = exchange.getTradeService().getOpenOrders(null);
-        } catch (Exception e) {
-            logger.error("Get Open orders", e);
-        }
-        return openOrders;
+    public TradeService getTradeService() {
+        return exchange.getTradeService();
     }
 
     public Trades fetchTrades() {
@@ -237,7 +232,11 @@ public class PoloniexService extends MarketService {
 //            logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
 //                    orderBook.getTimeStamp());
 
-            orderBookChangedSubject.onNext(orderBook);
+//            orderBookChangedSubject.onNext(orderBook);
+
+            CompletableFuture.runAsync(() -> {
+                checkOrderBook(orderBook);
+            });
 
         } catch (IOException e) {
             logger.error("Can not fetchOrderBook", e);

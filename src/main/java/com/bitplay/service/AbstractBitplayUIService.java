@@ -119,13 +119,11 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public List<OrderJson> fetchOpenOrders() {
-        final OpenOrders openOrders = getBusinessService().fetchOpenOrders();
-        return openOrders != null
-                ? openOrders.getOpenOrders().stream()
+        return getBusinessService().fetchOpenOrders().stream()
                 .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
                 .map(toOrderJson)
-                .collect(Collectors.toList())
-                : new ArrayList<>();
+                .collect(Collectors.toList());
+
     }
 
     public ResultJson moveOpenOrder(OrderJson orderJson) {
