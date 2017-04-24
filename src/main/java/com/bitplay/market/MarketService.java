@@ -1,5 +1,6 @@
 package com.bitplay.market;
 
+import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
@@ -124,19 +125,29 @@ public abstract class MarketService {
         });
     }
 
-    public boolean moveMakerOrder(String orderId) {
-        final Optional<LimitOrder> first = openOrders.stream()
-                .filter(limitOrder -> limitOrder.getId().equals(orderId))
-                .findFirst();
+    public MoveResponse moveMakerOrder(String orderId) {
+        MoveResponse response;
 
-        boolean isOk = false;
-        if (first.isPresent()) {
-            isOk = moveMakerOrder(first.get());
+        final OpenOrders openOrders = fetchOpenOrders();
+        if (openOrders == null) {
+            response = new MoveResponse(false, "can not fetch openOrders list");
+        } else {
+            this.openOrders = openOrders.getOpenOrders();
+
+            final Optional<LimitOrder> first = this.openOrders.stream()
+                    .filter(limitOrder -> limitOrder.getId().equals(orderId))
+                    .findFirst();
+
+            if (first.isPresent()) {
+                response = moveMakerOrderIfNotFirst(first.get());
+            } else {
+                response = new MoveResponse(false, "can not find in openOrders list");
+            }
         }
-        return isOk;
+        return response;
     }
 
-    public abstract boolean moveMakerOrder(LimitOrder limitOrder);
+    public abstract MoveResponse moveMakerOrder(LimitOrder limitOrder);
 
     protected abstract BigDecimal getMakerStep();
 
@@ -173,7 +184,8 @@ public abstract class MarketService {
         return thePrice;
     }
 
-    protected void moveMakerOrderIfNotFirst(LimitOrder limitOrder) {
+    protected MoveResponse moveMakerOrderIfNotFirst(LimitOrder limitOrder) {
+        MoveResponse response;
         BigDecimal bestPrice;
         if (limitOrder.getType() == Order.OrderType.ASK) {
             bestPrice = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
@@ -184,7 +196,10 @@ public abstract class MarketService {
         }
 
         if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
-            moveMakerOrder(limitOrder);
+            response = moveMakerOrder(limitOrder);
+        } else {
+            response = new MoveResponse(false, "No need moving");
         }
+        return response;
     }
 }

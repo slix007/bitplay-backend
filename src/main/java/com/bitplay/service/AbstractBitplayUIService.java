@@ -7,6 +7,7 @@ import com.bitplay.domain.AccountInfoJson;
 import com.bitplay.domain.OrderBookJson;
 import com.bitplay.domain.TickerJson;
 import com.bitplay.domain.VisualTrade;
+import com.bitplay.market.model.MoveResponse;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.currency.Currency;
@@ -129,8 +130,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public ResultJson moveOpenOrder(OrderJson orderJson) {
         final String id = orderJson.getId();
-        final boolean isOk = getBusinessService().moveMakerOrder(id);
-        return new ResultJson(isOk ? "OK" : "FAIL", "");
+        final MoveResponse response = getBusinessService().moveMakerOrder(id);
+        return new ResultJson(response.isOk() ? "OK" : "FAIL", response.getDescription());
     }
 
 }

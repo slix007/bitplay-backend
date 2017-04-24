@@ -2,6 +2,7 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.market.MarketService;
 import com.bitplay.market.arbitrage.ArbitrageService;
+import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
@@ -305,12 +306,12 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public boolean moveMakerOrder(LimitOrder limitOrder) {
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder) {
         // IT doesn't support moving
         // Do cancel ant place
         final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
-
-        boolean isOk = false;
+        logger.info("Try to move maker order " + limitOrder.getId());
+        MoveResponse response;
 
         int attemptCount = 0;
         Exception lastException = null;
@@ -351,7 +352,7 @@ public class OkCoinService extends MarketService {
                     bestMakerPrice.toPlainString(),
                     limitOrder.getId(),
                     attemptCount);
-            isOk = true;
+            response = new MoveResponse(true, "");
         } else {
             tradeLogger.info("Cancel failed {} amount={},quote={},id={},attempt={},lastException={}",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
@@ -360,7 +361,8 @@ public class OkCoinService extends MarketService {
                     limitOrder.getId(),
                     attemptCount,
                     lastException != null ? lastException.getMessage() : null);
+            response = new MoveResponse(true, "cancel failed");
         }
-        return isOk;
+        return response;
     }
 }

@@ -2,6 +2,7 @@ package com.bitplay.market.polonex;
 
 import com.bitplay.market.MarketService;
 import com.bitplay.market.arbitrage.ArbitrageService;
+import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
@@ -353,8 +354,8 @@ public class PoloniexService extends MarketService {
      * Use when you're sure that order should be moved(has not the best price)
      * Use {@link MarketService#moveMakerOrderIfNotFirst(LimitOrder)} when you know that price is not the best.
      */
-    public boolean moveMakerOrder(LimitOrder limitOrder) {
-        boolean isOk = false;
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder) {
+        MoveResponse response;
         int attemptCount = 0;
         Exception lastException = null;
         PoloniexMoveResponse moveResponse = null;
@@ -379,13 +380,14 @@ public class PoloniexService extends MarketService {
         }
 
         if (moveResponse != null && moveResponse.success()) {
-            isOk = true;
             tradeLogger.info("Moved {} amount={},quote={},id={},attempt={}",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     bestMakerPrice.toPlainString(),
                     limitOrder.getId(),
                     attemptCount);
+            response = new MoveResponse(true, "");
+
         } else {
             tradeLogger.info("Moving error {} amount={},oldQuote={},id={},attempt={}",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
@@ -394,8 +396,10 @@ public class PoloniexService extends MarketService {
                     limitOrder.getId(),
                     attemptCount);
 //                logger.error("on moving", lastException);
+            response = new MoveResponse(true, "Moving error " + lastException.getMessage());
+
         }
-        return isOk;
+        return response;
     }
 
     private PoloniexLimitOrder tryToPlaceMakerOrder(Order.OrderType orderType, BigDecimal amount) throws Exception {
