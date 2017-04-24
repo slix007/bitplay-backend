@@ -305,10 +305,12 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public void moveMakerOrder(LimitOrder limitOrder) {
+    public boolean moveMakerOrder(LimitOrder limitOrder) {
         // IT doesn't support moving
         // Do cancel ant place
         final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
+
+        boolean isOk = false;
 
         int attemptCount = 0;
         Exception lastException = null;
@@ -349,6 +351,7 @@ public class OkCoinService extends MarketService {
                     bestMakerPrice.toPlainString(),
                     limitOrder.getId(),
                     attemptCount);
+            isOk = true;
         } else {
             tradeLogger.info("Cancel failed {} amount={},quote={},id={},attempt={},lastException={}",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
@@ -358,5 +361,6 @@ public class OkCoinService extends MarketService {
                     attemptCount,
                     lastException != null ? lastException.getMessage() : null);
         }
+        return isOk;
     }
 }

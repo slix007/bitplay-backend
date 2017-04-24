@@ -3,6 +3,7 @@ package com.bitplay.controller;
 import com.bitplay.domain.AccountInfoJson;
 import com.bitplay.domain.OrderBookJson;
 import com.bitplay.domain.OrderJson;
+import com.bitplay.domain.ResultJson;
 import com.bitplay.domain.TickerJson;
 import com.bitplay.domain.TradeRequestJson;
 import com.bitplay.domain.TradeResponseJson;
@@ -130,6 +131,13 @@ public class PoloniexEndpoint {
     @Produces("application/json")
     public List<OrderJson> openOrders() {
         return this.poloniex.fetchOpenOrders();
+    }
+
+    @POST
+    @Path("/open-orders/move")
+    @Produces("application/json")
+    public ResultJson openOrders(OrderJson orderJson) {
+        return this.poloniex.moveOpenOrder(orderJson);
     }
 
 }

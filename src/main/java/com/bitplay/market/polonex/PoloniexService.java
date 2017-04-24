@@ -125,7 +125,7 @@ public class PoloniexService extends MarketService {
                 .getTicker(CURRENCY_PAIR_USDT_BTC)
                 .subscribe(ticker -> {
                         this.ticker = ticker;
-                        logger.debug("Incoming ticker: {}", ticker);
+//                        logger.debug("Incoming ticker: {}", ticker);
 
                 }, throwable -> {
                     logger.error("Error in subscribing tickers.", throwable);
@@ -233,8 +233,8 @@ public class PoloniexService extends MarketService {
                 latencyList.clear();
             }
 
-            logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
-                    orderBook.getTimeStamp());
+//            logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
+//                    orderBook.getTimeStamp());
 
             orderBookChangedSubject.onNext(orderBook);
 
@@ -353,7 +353,8 @@ public class PoloniexService extends MarketService {
      * Use when you're sure that order should be moved(has not the best price)
      * Use {@link MarketService#moveMakerOrderIfNotFirst(LimitOrder)} when you know that price is not the best.
      */
-    public void moveMakerOrder(LimitOrder limitOrder) {
+    public boolean moveMakerOrder(LimitOrder limitOrder) {
+        boolean isOk = false;
         int attemptCount = 0;
         Exception lastException = null;
         PoloniexMoveResponse moveResponse = null;
@@ -378,6 +379,7 @@ public class PoloniexService extends MarketService {
         }
 
         if (moveResponse != null && moveResponse.success()) {
+            isOk = true;
             tradeLogger.info("Moved {} amount={},quote={},id={},attempt={}",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
@@ -393,6 +395,7 @@ public class PoloniexService extends MarketService {
                     attemptCount);
 //                logger.error("on moving", lastException);
         }
+        return isOk;
     }
 
     private PoloniexLimitOrder tryToPlaceMakerOrder(Order.OrderType orderType, BigDecimal amount) throws Exception {

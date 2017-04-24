@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
@@ -81,9 +82,12 @@ public abstract class MarketService {
             debugLog.info("BEST ASK WAS CHANGED TO " + bestAsk.toPlainString());
             if (openOrders.size() > 0) {
                 logger.info("HAS OPENORDER ON ASK CHANGING" + bestAsk.toPlainString());
-                openOrders = fetchOpenOrders().getOpenOrders();
+                final OpenOrders currentOpenOrders = fetchOpenOrders();
+                this.openOrders = currentOpenOrders != null
+                        ? currentOpenOrders.getOpenOrders()
+                        : new ArrayList<>();
 
-                openOrders.stream()
+                this.openOrders.stream()
                         .filter(limitOrder -> limitOrder.getType() == Order.OrderType.ASK)
                         .forEach(limitOrder -> {
                             if (limitOrder.getLimitPrice().compareTo(bestAsk) != 0) {
@@ -100,7 +104,11 @@ public abstract class MarketService {
             debugLog.info("BEST BID WAS CHANGED TO " + bestBid.toPlainString());
             if (openOrders.size() > 0) {
                 logger.info("HAS OPENORDER ON ASK CHANGING" + bestBid.toPlainString());
-                openOrders = fetchOpenOrders().getOpenOrders();
+                final OpenOrders currentOpenOrders = fetchOpenOrders();
+                this.openOrders = currentOpenOrders != null
+                        ? currentOpenOrders.getOpenOrders()
+                        : new ArrayList<>();
+
                 openOrders.stream()
                         .filter(limitOrder -> limitOrder.getType() == Order.OrderType.BID)
                         .forEach(limitOrder -> {
@@ -116,7 +124,19 @@ public abstract class MarketService {
         });
     }
 
-    public abstract void moveMakerOrder(LimitOrder limitOrder);
+    public boolean moveMakerOrder(String orderId) {
+        final Optional<LimitOrder> first = openOrders.stream()
+                .filter(limitOrder -> limitOrder.getId().equals(orderId))
+                .findFirst();
+
+        boolean isOk = false;
+        if (first.isPresent()) {
+            isOk = moveMakerOrder(first.get());
+        }
+        return isOk;
+    }
+
+    public abstract boolean moveMakerOrder(LimitOrder limitOrder);
 
     protected abstract BigDecimal getMakerStep();
 

@@ -1,8 +1,11 @@
 package com.bitplay.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Created by Sergey Shurmin on 4/22/17.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OrderJson {
     String id;
     String status;

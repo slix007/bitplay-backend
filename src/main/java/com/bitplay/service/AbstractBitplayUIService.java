@@ -1,6 +1,7 @@
 package com.bitplay.service;
 
 import com.bitplay.domain.OrderJson;
+import com.bitplay.domain.ResultJson;
 import com.bitplay.market.MarketService;
 import com.bitplay.domain.AccountInfoJson;
 import com.bitplay.domain.OrderBookJson;
@@ -124,6 +125,12 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 .map(toOrderJson)
                 .collect(Collectors.toList())
                 : new ArrayList<>();
+    }
+
+    public ResultJson moveOpenOrder(OrderJson orderJson) {
+        final String id = orderJson.getId();
+        final boolean isOk = getBusinessService().moveMakerOrder(id);
+        return new ResultJson(isOk ? "OK" : "FAIL", "");
     }
 
 }

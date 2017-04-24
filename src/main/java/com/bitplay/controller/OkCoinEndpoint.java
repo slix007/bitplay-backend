@@ -2,6 +2,7 @@ package com.bitplay.controller;
 
 import com.bitplay.domain.AccountInfoJson;
 import com.bitplay.domain.OrderJson;
+import com.bitplay.domain.ResultJson;
 import com.bitplay.domain.TradeRequestJson;
 import com.bitplay.domain.OrderBookJson;
 import com.bitplay.domain.TradeResponseJson;
@@ -65,6 +66,13 @@ public class OkCoinEndpoint {
     @Produces("application/json")
     public List<OrderJson> openOrders() {
         return this.okCoin.fetchOpenOrders();
+    }
+
+    @POST
+    @Path("/open-orders/move")
+    @Produces("application/json")
+    public ResultJson openOrders(OrderJson orderJson) {
+        return this.okCoin.moveOpenOrder(orderJson);
     }
 
 }
