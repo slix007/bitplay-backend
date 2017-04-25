@@ -71,8 +71,8 @@ public class PoloniexService extends MarketService {
     //    private static String SECRET = "2de990fecb2ca516a8cd40fa0ffc8f95f4fc8021e3f7ee681972493c10311c260d26b35c0f2e41adec027056711e2e7b1eaa6cde7d8f679aa871e0a1a801c8fa";
 
     // Shared api key
-    private final static String KEY = "ER7VDOUY-6OL4ETGD-VC960XII-T128DA7I";
-    private final static String SECRET = "77c9ccd1a34b389633ca1aa666c710ada9b37bd6ce0172818abdea9396658cb2bb552938b885dbb7c43c9f529b675ab428d5c1b21551540ff23703ace4056764";
+    private final static String KEY = "SRAUK316-Q29SPYXB-ESQHCSB8-YQAL49TN";
+    private final static String SECRET = "46e7faa3d392e1b2e20eadcd4044bf6dd2cec3ac681b69daa4f113384feaa4557b60352ca92eab861564fce99b067276fa7f5f9825c9ae5044bee793867ed054";
 
     public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
 
@@ -212,6 +212,11 @@ public class PoloniexService extends MarketService {
         return trades;
     }
 
+//    @Scheduled(fixedRate = 5000)
+//    public void check() {
+//        checkOrderBook(orderBook);
+//    }
+
     public OrderBook fetchOrderBook() {
         try {
 //                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, -1);
@@ -235,7 +240,7 @@ public class PoloniexService extends MarketService {
 //            orderBookChangedSubject.onNext(orderBook);
 
             CompletableFuture.runAsync(() -> {
-                checkOrderBook(orderBook);
+//                checkOrderBook(orderBook);
             });
 
         } catch (IOException e) {
