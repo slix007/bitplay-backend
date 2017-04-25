@@ -71,8 +71,8 @@ public class PoloniexService extends MarketService {
     //    private static String SECRET = "2de990fecb2ca516a8cd40fa0ffc8f95f4fc8021e3f7ee681972493c10311c260d26b35c0f2e41adec027056711e2e7b1eaa6cde7d8f679aa871e0a1a801c8fa";
 
     // Shared api key
-    private final static String KEY = "7HQHK3EL-40SJE5G8-1L9ZHPK6-7R6IEBIB";
-    private final static String SECRET = "1cd1b572fe1bbfd3f0920ea2df364b74b3c07efedf838df245602cf55e52d7441d14464f4a116cbc431bfa0320f299045aa563497fb57c2e7c6fc78d5c703ea2";
+    private final static String KEY = "U6XD5RPP-TA0CGZ57-4E6CKXR8-OT333AEN";
+    private final static String SECRET = "a3cdea5b9022b9da9f48afa5be1f02a09a44b80be588762e7fc6bf1f8191813df13623934f78512b82f51a4d847ce11636e14fd813a033599c3e8424d1c8ab22";
 
     public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
 
