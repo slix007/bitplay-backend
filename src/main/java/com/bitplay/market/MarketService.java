@@ -90,15 +90,12 @@ public abstract class MarketService {
 
     protected void checkOrderBook(OrderBook orderBook) {
         final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
-        if (this.bestAsk.compareTo(bestAsk) != 0) {
-            this.bestAsk = bestAsk;
-//            bestAskChangedSubject.onNext(bestAsk);
-            fetchOpenOrders().forEach(this::moveMakerOrderIfNotFirst);
-
-        }
         final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
-        if (this.bestBid.compareTo(bestBid) != 0) {
+
+        if (this.bestAsk.compareTo(bestAsk) != 0 || this.bestBid.compareTo(bestBid) != 0) {
+            this.bestAsk = bestAsk;
             this.bestBid = bestBid;
+//            bestAskChangedSubject.onNext(bestAsk);
 //            bestBidChangedSubject.onNext(bestBid);
             fetchOpenOrders().forEach(this::moveMakerOrderIfNotFirst);
         }
