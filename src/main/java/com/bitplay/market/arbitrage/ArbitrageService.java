@@ -47,7 +47,9 @@ public class ArbitrageService {
 
 //        calcDeltas(okCoinOrderBook, poloniexOrderBook);
 
-        calcAndDoArbitrage(okCoinOrderBook, poloniexOrderBook);
+        if (poloniexService.getAccountInfo() != null) {
+            calcAndDoArbitrage(okCoinOrderBook, poloniexOrderBook);
+        }
 
     }
 
