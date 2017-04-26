@@ -317,18 +317,18 @@ public class OkCoinService extends MarketService {
         Exception lastException = null;
         BigDecimal bestMakerPrice = BigDecimal.ZERO;
         boolean cancelledSuccessfully = false;
-//        while (attemptCount < 5) {
-//            attemptCount++;
+        while (attemptCount < 5) {
+            attemptCount++;
             try {
                 cancelledSuccessfully = tradeService.cancelOrder(limitOrder.getId());
-//                if (cancelledSuccessfully) {
-//                    break;
-//                }
+                if (cancelledSuccessfully) {
+                    break;
+                }
             } catch (Exception e) {
                 lastException = e;
                 logger.error("{} attempt on cancel maker order", attemptCount, e);
             }
-//        }
+        }
 
         if (cancelledSuccessfully) {
             openOrders.remove(limitOrder);
@@ -355,14 +355,14 @@ public class OkCoinService extends MarketService {
                     attemptCount);
             response = new MoveResponse(true, "");
         } else {
-//            tradeLogger.info("Cancel failed {} amount={},quote={},id={},attempt={},lastException={}",
-//                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-//                    limitOrder.getTradableAmount(),
-//                    limitOrder.getLimitPrice().toPlainString(),
-//                    limitOrder.getId(),
-//                    attemptCount,
-//                    lastException != null ? lastException.getMessage() : null);
-            response = new MoveResponse(true, "cancel failed");
+            tradeLogger.info("Cancel failed {} amount={},quote={},id={},attempt={},lastException={}",
+                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                    limitOrder.getTradableAmount(),
+                    limitOrder.getLimitPrice().toPlainString(),
+                    limitOrder.getId(),
+                    attemptCount,
+                    lastException != null ? lastException.getMessage() : null);
+            response = new MoveResponse(false, "cancel failed");
         }
         return response;
     }
