@@ -16,7 +16,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import io.reactivex.subjects.PublishSubject;
@@ -104,18 +103,22 @@ public abstract class MarketService {
     }
 
     private void moveOpenOrdersOrDelete() {
+        //TODO poloniex can be changed for half price. So then only 2 step of changing
         openOrders.removeIf(openOrder -> {
-            boolean isNeedToDelete = true;
+            boolean isNeedToDelete;
             try {
                 final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
-                isNeedToDelete = !response.isOk()
-                        && !MoveResponse.NO_NEED_MOVING.equals(response.getDescription());
+                isNeedToDelete = response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.ALREADY_FIRST)
+                        || response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.ALREADY_CLOSED);
             } catch (Exception e) {
                 e.printStackTrace();
                 isNeedToDelete = true;
+            }
 
+            if (isNeedToDelete) {
                 CompletableFuture.runAsync(this::fetchOpenOrders);
             }
+
             return isNeedToDelete;
         });
     }
@@ -189,19 +192,15 @@ public abstract class MarketService {
 //            response = new MoveResponse(false, "can not fetch openOrders list");
         }
         if (orderList == null) {
-            response = new MoveResponse(false, "can not fetch openOrders list");
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not fetch openOrders list");
         } else {
             this.openOrders = orderList;
 
-            final Optional<LimitOrder> first = this.openOrders.stream()
+            response = this.openOrders.stream()
                     .filter(limitOrder -> limitOrder.getId().equals(orderId))
-                    .findFirst();
-
-            if (first.isPresent()) {
-                response = moveMakerOrderIfNotFirst(first.get());
-            } else {
-                response = new MoveResponse(false, "can not find in openOrders list");
-            }
+                    .findFirst()
+                    .map(this::moveMakerOrderIfNotFirst)
+                    .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
         }
         return response;
     }
@@ -246,10 +245,14 @@ public abstract class MarketService {
     protected MoveResponse moveMakerOrderIfNotFirst(LimitOrder limitOrder) {
         MoveResponse response;
         BigDecimal bestPrice;
+
+        BigDecimal bestAsk = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
+        BigDecimal bestBid = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
+
         if (limitOrder.getType() == Order.OrderType.ASK) {
-            bestPrice = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
+            bestPrice = bestAsk;
         } else if (limitOrder.getType() == Order.OrderType.BID) {
-            bestPrice = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
+            bestPrice = bestBid;
         } else {
             throw new IllegalArgumentException("Order type is not supported");
         }
@@ -257,8 +260,7 @@ public abstract class MarketService {
         if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
             response = moveMakerOrder(limitOrder);
         } else {
-            response = new MoveResponse(false, MoveResponse.NO_NEED_MOVING,
-                    MoveResponse.MoveOrderStatus.NO_NEED_MOVING);
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
         }
         return response;
     }

@@ -366,10 +366,9 @@ public class PoloniexService extends MarketService {
         MoveResponse response;
         int attemptCount = 0;
         String lastExceptionMsg = "";
-        boolean orderFinished = false;
         PoloniexMoveResponse moveResponse = null;
         BigDecimal bestMakerPrice = BigDecimal.ZERO;
-//        while (attemptCount < 5) {
+        while (attemptCount < 2) {
             attemptCount++;
             try {
                 bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true);
@@ -379,14 +378,15 @@ public class PoloniexService extends MarketService {
                         limitOrder.getTradableAmount(),
                         bestMakerPrice,
                         PoloniexOrderFlags.POST_ONLY);
-//                if (moveResponse.success()) {
-//                    break;
-//                }
+                if (moveResponse.success()) {
+                    break;
+                }
 
             } catch (ExchangeException e) {
                 if (e.getMessage().equals("Invalid order number, or you are not the person who placed the order.")) {
                     logger.info(e.getMessage());
-                    orderFinished = true;
+//                    orderFinished = true;
+                    return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, e.getMessage());
                 } else {
                     lastExceptionMsg = e.getMessage();
                     logger.error("{} attempt on move maker order", attemptCount, e);
@@ -394,31 +394,29 @@ public class PoloniexService extends MarketService {
 
             } catch (Exception e) {
                 lastExceptionMsg = e.getMessage();
-                logger.error("{} attempt on move maker order", attemptCount, e);
+                logger.error("{} attempt on move maker order {}", attemptCount, e.getMessage());
             }
-//        }
+        }
 
         if (moveResponse != null && moveResponse.success()) {
-            tradeLogger.info("Moved {} amount={},quote={},id={},attempt={}",
+            final String logString = String.format("Moved %s amount=%s,quote=%s,id=%s,attempt=%s",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     bestMakerPrice.toPlainString(),
                     limitOrder.getId(),
                     attemptCount);
-            response = new MoveResponse(true, "");
-
+            tradeLogger.info(logString);
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
         } else {
-            if (!orderFinished) {
-                tradeLogger.info("Moving error {} amount={},oldQuote={},id={},attempt={}",
+            final String logString = String.format("Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
                         limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                         limitOrder.getTradableAmount(),
                         limitOrder.getLimitPrice().toPlainString(),
                         limitOrder.getId(),
-                        attemptCount);
-            }
-//                logger.error("on moving", lastException);
-            response = new MoveResponse(false, "Moving error " + lastExceptionMsg,
-                    orderFinished ? MoveResponse.MoveOrderStatus.IS_FINISHED : null);
+                    attemptCount,
+                    lastExceptionMsg);
+            tradeLogger.info(logString);
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }
         return response;
     }

@@ -317,7 +317,7 @@ public class OkCoinService extends MarketService {
         Exception lastException = null;
         BigDecimal bestMakerPrice = BigDecimal.ZERO;
         boolean cancelledSuccessfully = false;
-        while (attemptCount < 5) {
+        while (attemptCount < 2) {
             attemptCount++;
             try {
                 cancelledSuccessfully = tradeService.cancelOrder(limitOrder.getId());
@@ -347,22 +347,24 @@ public class OkCoinService extends MarketService {
                     break;
                 }
             }
-            tradeLogger.info("Moving finished {} amount={},quote={},id={},attempt={}",
+            final String logString = String.format("Moving finished %s amount=%s,quote=%s,id=%s,attempt=%s",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     bestMakerPrice.toPlainString(),
                     limitOrder.getId(),
                     attemptCount);
-            response = new MoveResponse(true, "");
+            tradeLogger.info(logString);
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
         } else {
-            tradeLogger.info("Cancel failed {} amount={},quote={},id={},attempt={},lastException={}",
+            final String logString = String.format("Cancel failed %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     limitOrder.getLimitPrice().toPlainString(),
                     limitOrder.getId(),
                     attemptCount,
                     lastException != null ? lastException.getMessage() : null);
-            response = new MoveResponse(false, "cancel failed");
+//            tradeLogger.info(logString);
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }
         return response;
     }

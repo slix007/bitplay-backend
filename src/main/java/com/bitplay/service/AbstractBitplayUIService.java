@@ -127,7 +127,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     public ResultJson moveOpenOrder(OrderJson orderJson) {
         final String id = orderJson.getId();
         final MoveResponse response = getBusinessService().moveMakerOrderFromGui(id);
-        return new ResultJson(response.isOk() ? "OK" : "FAIL", response.getDescription());
+        return new ResultJson(response.getMoveOrderStatus().toString(), response.getDescription());
     }
 
 }
