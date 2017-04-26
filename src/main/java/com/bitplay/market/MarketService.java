@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
@@ -73,22 +74,16 @@ public abstract class MarketService {
 
     @Scheduled(fixedRate = 2000)
     public List<LimitOrder> fetchOpenOrders() {
-        List<LimitOrder> openOrders = null;
-        int attemptCount = 0;
         Exception lastException = null;
-//        while (attemptCount < 5) {
-//            attemptCount++;
             try {
                 openOrders = getTradeService().getOpenOrders(null)
                         .getOpenOrders();
             } catch (Exception e) {
                 lastException = e;
             }
-//        }
         if (openOrders == null) {
             debugLog.error("GetOpenOrdersError", lastException);
             throw new IllegalStateException("GetOpenOrdersError", lastException);
-//            openOrders = new ArrayList<>();
         }
 
         return openOrders;
@@ -118,6 +113,8 @@ public abstract class MarketService {
             } catch (Exception e) {
                 e.printStackTrace();
                 isNeedToDelete = true;
+
+                CompletableFuture.runAsync(this::fetchOpenOrders);
             }
             return isNeedToDelete;
         });
@@ -260,7 +257,8 @@ public abstract class MarketService {
         if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
             response = moveMakerOrder(limitOrder);
         } else {
-            response = new MoveResponse(false, MoveResponse.NO_NEED_MOVING);
+            response = new MoveResponse(false, MoveResponse.NO_NEED_MOVING,
+                    MoveResponse.MoveOrderStatus.NO_NEED_MOVING);
         }
         return response;
     }

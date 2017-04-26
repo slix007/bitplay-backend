@@ -417,7 +417,8 @@ public class PoloniexService extends MarketService {
                         attemptCount);
             }
 //                logger.error("on moving", lastException);
-            response = new MoveResponse(false, "Moving error " + lastExceptionMsg);
+            response = new MoveResponse(false, "Moving error " + lastExceptionMsg,
+                    orderFinished ? MoveResponse.MoveOrderStatus.IS_FINISHED : null);
         }
         return response;
     }

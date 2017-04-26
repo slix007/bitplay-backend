@@ -317,18 +317,18 @@ public class OkCoinService extends MarketService {
         Exception lastException = null;
         BigDecimal bestMakerPrice = BigDecimal.ZERO;
         boolean cancelledSuccessfully = false;
-        while (attemptCount < 5) {
-            attemptCount++;
+//        while (attemptCount < 5) {
+//            attemptCount++;
             try {
                 cancelledSuccessfully = tradeService.cancelOrder(limitOrder.getId());
-                if (cancelledSuccessfully) {
-                    break;
-                }
+//                if (cancelledSuccessfully) {
+//                    break;
+//                }
             } catch (Exception e) {
                 lastException = e;
                 logger.error("{} attempt on cancel maker order", attemptCount, e);
             }
-        }
+//        }
 
         if (cancelledSuccessfully) {
             openOrders.remove(limitOrder);
