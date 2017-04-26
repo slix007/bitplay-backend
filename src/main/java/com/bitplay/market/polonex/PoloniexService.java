@@ -22,6 +22,7 @@ import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
+import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexLimitOrder;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexMoveResponse;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexOrderFlags;
@@ -71,8 +72,8 @@ public class PoloniexService extends MarketService {
     //    private static String SECRET = "2de990fecb2ca516a8cd40fa0ffc8f95f4fc8021e3f7ee681972493c10311c260d26b35c0f2e41adec027056711e2e7b1eaa6cde7d8f679aa871e0a1a801c8fa";
 
     // Shared api key
-    private final static String KEY = "SRAUK316-Q29SPYXB-ESQHCSB8-YQAL49TN";
-    private final static String SECRET = "46e7faa3d392e1b2e20eadcd4044bf6dd2cec3ac681b69daa4f113384feaa4557b60352ca92eab861564fce99b067276fa7f5f9825c9ae5044bee793867ed054";
+    private final static String KEY = "ER7VDOUY-6OL4ETGD-VC960XII-T128DA7I";
+    private final static String SECRET = "77c9ccd1a34b389633ca1aa666c710ada9b37bd6ce0172818abdea9396658cb2bb552938b885dbb7c43c9f529b675ab428d5c1b21551540ff23703ace4056764";
 
     public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
 
@@ -240,7 +241,7 @@ public class PoloniexService extends MarketService {
 //            orderBookChangedSubject.onNext(orderBook);
 
             CompletableFuture.runAsync(() -> {
-//                checkOrderBook(orderBook);
+                checkOrderBook(orderBook);
             });
 
         } catch (IOException e) {
@@ -335,7 +336,10 @@ public class PoloniexService extends MarketService {
                         orderId,
                         attemptCount
                 );
-                openOrders.add(theOrder);
+
+                openOrders.add(new LimitOrder(theOrder.getType(), amount, theOrder.getCurrencyPair(),
+                        orderId, new Date(), theOrder.getLimitPrice(), null, null,
+                        theOrder.getStatus()));
 
             } catch (Exception e) {
                 lastException = e;
@@ -361,10 +365,11 @@ public class PoloniexService extends MarketService {
     public MoveResponse moveMakerOrder(LimitOrder limitOrder) {
         MoveResponse response;
         int attemptCount = 0;
-        Exception lastException = null;
+        String lastExceptionMsg = "";
+        boolean orderFinished = false;
         PoloniexMoveResponse moveResponse = null;
         BigDecimal bestMakerPrice = BigDecimal.ZERO;
-        while (attemptCount < 5) {
+//        while (attemptCount < 5) {
             attemptCount++;
             try {
                 bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true);
@@ -374,14 +379,24 @@ public class PoloniexService extends MarketService {
                         limitOrder.getTradableAmount(),
                         bestMakerPrice,
                         PoloniexOrderFlags.POST_ONLY);
-                if (moveResponse.success()) {
-                    break;
+//                if (moveResponse.success()) {
+//                    break;
+//                }
+
+            } catch (ExchangeException e) {
+                if (e.getMessage().equals("Invalid order number, or you are not the person who placed the order.")) {
+                    logger.info(e.getMessage());
+                    orderFinished = true;
+                } else {
+                    lastExceptionMsg = e.getMessage();
+                    logger.error("{} attempt on move maker order", attemptCount, e);
                 }
+
             } catch (Exception e) {
-                lastException = e;
+                lastExceptionMsg = e.getMessage();
                 logger.error("{} attempt on move maker order", attemptCount, e);
             }
-        }
+//        }
 
         if (moveResponse != null && moveResponse.success()) {
             tradeLogger.info("Moved {} amount={},quote={},id={},attempt={}",
@@ -393,15 +408,16 @@ public class PoloniexService extends MarketService {
             response = new MoveResponse(true, "");
 
         } else {
-            tradeLogger.info("Moving error {} amount={},oldQuote={},id={},attempt={}",
-                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-                    limitOrder.getTradableAmount(),
-                    limitOrder.getLimitPrice().toPlainString(),
-                    limitOrder.getId(),
-                    attemptCount);
+            if (!orderFinished) {
+                tradeLogger.info("Moving error {} amount={},oldQuote={},id={},attempt={}",
+                        limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                        limitOrder.getTradableAmount(),
+                        limitOrder.getLimitPrice().toPlainString(),
+                        limitOrder.getId(),
+                        attemptCount);
+            }
 //                logger.error("on moving", lastException);
-            response = new MoveResponse(true, "Moving error " + lastException.getMessage());
-
+            response = new MoveResponse(false, "Moving error " + lastExceptionMsg);
         }
         return response;
     }

@@ -6,6 +6,7 @@ package com.bitplay.market.model;
 public class MoveResponse {
     boolean isOk = false;
     String description;
+    public final static String NO_NEED_MOVING = "No need moving";
 
     public MoveResponse(boolean isOk, String description) {
         this.isOk = isOk;

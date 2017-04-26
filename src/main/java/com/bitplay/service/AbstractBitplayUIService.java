@@ -17,13 +17,11 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.dto.trade.UserTrades;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -118,8 +116,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 .collect(Collectors.toList());
     }
 
-    public List<OrderJson> fetchOpenOrders() {
-        return getBusinessService().fetchOpenOrders().stream()
+    public List<OrderJson> getOpenOrders() {
+        return getBusinessService().getOpenOrders().stream()
                 .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
                 .map(toOrderJson)
                 .collect(Collectors.toList());
@@ -128,7 +126,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public ResultJson moveOpenOrder(OrderJson orderJson) {
         final String id = orderJson.getId();
-        final MoveResponse response = getBusinessService().moveMakerOrder(id);
+        final MoveResponse response = getBusinessService().moveMakerOrderFromGui(id);
         return new ResultJson(response.isOk() ? "OK" : "FAIL", response.getDescription());
     }
 

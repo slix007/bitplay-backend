@@ -130,7 +130,7 @@ public class PoloniexEndpoint {
     @Path("/open-orders")
     @Produces("application/json")
     public List<OrderJson> openOrders() {
-        return this.poloniex.fetchOpenOrders();
+        return this.poloniex.getOpenOrders();
     }
 
     @POST

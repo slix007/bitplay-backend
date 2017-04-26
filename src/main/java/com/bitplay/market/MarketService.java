@@ -11,6 +11,7 @@ import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -66,19 +67,24 @@ public abstract class MarketService {
 
     public abstract TradeService getTradeService();
 
+    public List<LimitOrder> getOpenOrders() {
+        return openOrders != null ? openOrders : new ArrayList<>();
+    }
+
+    @Scheduled(fixedRate = 2000)
     public List<LimitOrder> fetchOpenOrders() {
         List<LimitOrder> openOrders = null;
         int attemptCount = 0;
         Exception lastException = null;
-        while (attemptCount < 5) {
-            attemptCount++;
+//        while (attemptCount < 5) {
+//            attemptCount++;
             try {
                 openOrders = getTradeService().getOpenOrders(null)
                         .getOpenOrders();
             } catch (Exception e) {
                 lastException = e;
             }
-        }
+//        }
         if (openOrders == null) {
             debugLog.error("GetOpenOrdersError", lastException);
             throw new IllegalStateException("GetOpenOrdersError", lastException);
@@ -97,10 +103,26 @@ public abstract class MarketService {
             this.bestBid = bestBid;
 //            bestAskChangedSubject.onNext(bestAsk);
 //            bestBidChangedSubject.onNext(bestBid);
-            fetchOpenOrders().forEach(this::moveMakerOrderIfNotFirst);
+//            fetchOpenOrders().forEach(this::moveMakerOrderIfNotFirst);
+            moveOpenOrdersOrDelete();
         }
     }
 
+    private void moveOpenOrdersOrDelete() {
+        openOrders.removeIf(openOrder -> {
+            boolean isNeedToDelete = true;
+            try {
+                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
+                isNeedToDelete = !response.isOk()
+                        && !MoveResponse.NO_NEED_MOVING.equals(response.getDescription());
+            } catch (Exception e) {
+                e.printStackTrace();
+                isNeedToDelete = true;
+            }
+            return isNeedToDelete;
+        });
+    }
+/*
     protected void initOrderBookSubscribers(Logger logger) {
         orderBookChangedSubject.subscribe(orderBook -> {
             final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
@@ -158,9 +180,9 @@ public abstract class MarketService {
                         });
             }
         });
-    }
+    }*/
 
-    public MoveResponse moveMakerOrder(String orderId) {
+    public MoveResponse moveMakerOrderFromGui(String orderId) {
         MoveResponse response;
 
         List<LimitOrder> orderList = null;
@@ -238,7 +260,7 @@ public abstract class MarketService {
         if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
             response = moveMakerOrder(limitOrder);
         } else {
-            response = new MoveResponse(false, "No need moving");
+            response = new MoveResponse(false, MoveResponse.NO_NEED_MOVING);
         }
         return response;
     }

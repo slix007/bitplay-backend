@@ -65,7 +65,7 @@ public class OkCoinEndpoint {
     @Path("/open-orders")
     @Produces("application/json")
     public List<OrderJson> openOrders() {
-        return this.okCoin.fetchOpenOrders();
+        return this.okCoin.getOpenOrders();
     }
 
     @POST
