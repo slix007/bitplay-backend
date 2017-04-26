@@ -382,15 +382,15 @@ public class PoloniexService extends MarketService {
                     break;
                 }
 
-            } catch (ExchangeException e) {
-                if (e.getMessage().equals("Invalid order number, or you are not the person who placed the order.")) {
-                    logger.info(e.getMessage());
-//                    orderFinished = true;
-                    return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, e.getMessage());
-                } else {
-                    lastExceptionMsg = e.getMessage();
-                    logger.error("{} attempt on move maker order", attemptCount, e);
-                }
+//            } catch (ExchangeException e) {
+//                if (e.getMessage().equals("Invalid order number, or you are not the person who placed the order.")) {
+//                    logger.info(e.getMessage());
+////                    orderFinished = true;
+//                    return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, e.getMessage());
+//                } else {
+//                    lastExceptionMsg = e.getMessage();
+//                    logger.error("{} attempt on move maker order", attemptCount, e);
+//                }
 
             } catch (Exception e) {
                 lastExceptionMsg = e.getMessage();

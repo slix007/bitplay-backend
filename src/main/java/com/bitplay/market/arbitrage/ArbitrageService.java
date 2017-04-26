@@ -47,7 +47,12 @@ public class ArbitrageService {
 
 //        calcDeltas(okCoinOrderBook, poloniexOrderBook);
 
-        if (poloniexService.getAccountInfo() != null) {
+        final int sizeOKCoin = okCoinService.getOpenOrders().size();
+        final int sizePoloniex = poloniexService.getOpenOrders().size();
+
+        if (poloniexService.getAccountInfo() != null
+                && sizeOKCoin == 0
+                && sizePoloniex == 0) {
             calcAndDoArbitrage(okCoinOrderBook, poloniexOrderBook);
         }
 
