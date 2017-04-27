@@ -315,7 +315,6 @@ public class OkCoinService extends MarketService {
 
         int attemptCount = 0;
         Exception lastException = null;
-        BigDecimal bestMakerPrice = BigDecimal.ZERO;
         boolean cancelledSuccessfully = false;
         while (attemptCount < 2) {
             attemptCount++;
@@ -347,10 +346,10 @@ public class OkCoinService extends MarketService {
                     break;
                 }
             }
-            final String logString = String.format("Moving finished %s amount=%s,quote=%s,id=%s,attempt=%s",
+            final String logString = String.format("Moving finished %s amount=%s,oldQuote=%s,id=%s,attempt=%s",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
-                    bestMakerPrice.toPlainString(),
+                    limitOrder.getLimitPrice(),
                     limitOrder.getId(),
                     attemptCount);
             tradeLogger.info(logString);

@@ -218,25 +218,34 @@ public abstract class MarketService {
             makerDelta = getMakerStep();
         }
 
+        final BigDecimal bestBid = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getLimitPrice();
+        final BigDecimal bestAsk = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getLimitPrice();
+
         if (orderType == Order.OrderType.BID) {
-            thePrice = Utils.getBestBids(getOrderBook().getBids(), 1)
-                    .get(0)
-                    .getLimitPrice();
-            thePrice = thePrice.add(makerDelta);
-            //2
-            final BigDecimal bestAsk = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getLimitPrice();
-            if (thePrice.compareTo(bestAsk) == 1 || thePrice.compareTo(bestAsk) == 0) {
-                thePrice = bestAsk.subtract(getMakerStep());
+            // 1 use the best price if it is ours.
+            if (openOrders.stream()
+                    .anyMatch(limitOrder -> limitOrder.getLimitPrice().compareTo(bestBid) == 0)) {
+                thePrice = bestBid;
+            } else {
+                // 2 the best with delta
+                thePrice = bestBid.add(makerDelta);
+                // 3 check if we are already on the edge
+                if (thePrice.compareTo(bestAsk) == 1 || thePrice.compareTo(bestAsk) == 0) {
+                    thePrice = bestAsk.subtract(getMakerStep());
+                }
             }
         } else if (orderType == Order.OrderType.ASK) {
-            thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1)
-                    .get(0)
-                    .getLimitPrice();
-            thePrice = thePrice.subtract(makerDelta);
-            //2
-            final BigDecimal bestBid = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getLimitPrice();
-            if (thePrice.compareTo(bestBid) == -1 || thePrice.compareTo(bestBid) == 0) {
-                thePrice = bestBid.add(getMakerStep());
+            // 1 use the best price if it is ours.
+            if (openOrders.stream()
+                    .anyMatch(limitOrder -> limitOrder.getLimitPrice().compareTo(bestAsk) == 0)) {
+                thePrice = bestAsk;
+            } else {
+                // 2 the best with delta
+                thePrice = bestAsk.subtract(makerDelta);
+                // 3 check if we are already on the edge
+                if (thePrice.compareTo(bestBid) == -1 || thePrice.compareTo(bestBid) == 0) {
+                    thePrice = bestBid.add(getMakerStep());
+                }
             }
         }
         return thePrice;
