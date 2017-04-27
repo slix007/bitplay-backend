@@ -89,8 +89,10 @@ public class ArbitrageService {
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
                 if (checkBalance("delta1", amount)) {
-                    tradeLogger.info(String.format("delta1=%s-%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
-                            bid1_p.toPlainString(), ask1_o.toPlainString(), border1.toPlainString(),
+                    tradeLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
+                            bid1_p.toPlainString(), ask1_o.toPlainString(),
+                            delta1.toPlainString(),
+                            border1.toPlainString(),
                             btcP, usdP, btcO, usdO));
                     poloniexService.placeMakerOrder(Order.OrderType.ASK, amount);
                     okCoinService.placeMakerOrder(Order.OrderType.BID, amount);
@@ -101,8 +103,10 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
                 if (checkBalance("delta2", amount)) {
-                    tradeLogger.info(String.format("delta2=%s-%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
-                            bid1_o.toPlainString(), ask1_p.toPlainString(), border2.toPlainString(),
+                    tradeLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
+                            bid1_o.toPlainString(), ask1_p.toPlainString(),
+                            delta2.toPlainString(),
+                            border2.toPlainString(),
                             btcP, usdP, btcO, usdO));
                     poloniexService.placeMakerOrder(Order.OrderType.BID, amount);
                     okCoinService.placeMakerOrder(Order.OrderType.ASK, amount);
