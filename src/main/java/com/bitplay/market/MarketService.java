@@ -16,7 +16,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import io.reactivex.subjects.PublishSubject;
@@ -33,6 +35,7 @@ public abstract class MarketService {
     protected Subject<BigDecimal> bestAskChangedSubject = PublishSubject.create();
     protected Subject<BigDecimal> bestBidChangedSubject = PublishSubject.create();
     protected Subject<OrderBook> orderBookChangedSubject = PublishSubject.create();
+    protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
     private final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
@@ -84,6 +87,10 @@ public abstract class MarketService {
         if (openOrders == null) {
             debugLog.error("GetOpenOrdersError", lastException);
             throw new IllegalStateException("GetOpenOrdersError", lastException);
+        } else {
+            orderIdToSignalInfo.entrySet()
+                    .removeIf(entry -> openOrders.stream()
+                            .noneMatch(l -> l.getId().equals(entry.getKey())));
         }
 
         return openOrders;

@@ -348,6 +348,7 @@ public class PoloniexService extends MarketService {
                 openOrders.add(new LimitOrder(theOrder.getType(), amount, theOrder.getCurrencyPair(),
                         orderId, new Date(), theOrder.getLimitPrice(), null, null,
                         theOrder.getStatus()));
+                orderIdToSignalInfo.put(orderId, bestQuotes);
 
             } catch (Exception e) {
                 lastException = e;
@@ -376,6 +377,8 @@ public class PoloniexService extends MarketService {
         String lastExceptionMsg = "";
         PoloniexMoveResponse moveResponse = null;
         BigDecimal bestMakerPrice = BigDecimal.ZERO;
+        BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
+
         while (attemptCount < 2) {
             attemptCount++;
             try {
@@ -407,12 +410,20 @@ public class PoloniexService extends MarketService {
         }
 
         if (moveResponse != null && moveResponse.success()) {
-            final String logString = String.format("Moved %s amount=%s,quote=%s,id=%s,attempt=%s",
+            String diffWithSignal = "";
+            if (bestQuotes != null) {
+                diffWithSignal = limitOrder.getType().equals(Order.OrderType.BID)
+                        ? String.format("diff2__buy_p = ask_p[1] - order_price_buy_p = %s", bestQuotes.getAsk1_p().subtract(bestMakerPrice).toPlainString()) //"BUY"
+                        : String.format("diff1_sell_p = order_price_sell_p - bid_p[1] = %s",bestMakerPrice.subtract(bestQuotes.getBid1_p()).toPlainString()); //"SELL"
+            }
+
+            final String logString = String.format("Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     bestMakerPrice.toPlainString(),
                     limitOrder.getId(),
-                    attemptCount);
+                    attemptCount,
+                    diffWithSignal);
             tradeLogger.info(logString);
             response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
         } else {
