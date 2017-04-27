@@ -1,5 +1,6 @@
 package com.bitplay.market;
 
+import com.bitplay.market.arbitrage.BestQuotes;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
@@ -39,7 +40,7 @@ public abstract class MarketService {
 
     public abstract OrderBook getOrderBook();
 
-    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount);
+    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes);
 
     public BigDecimal getTotalPriceOfAmountToBuy(BigDecimal requiredAmountToBuy) {
         BigDecimal totalPrice = BigDecimal.ZERO;

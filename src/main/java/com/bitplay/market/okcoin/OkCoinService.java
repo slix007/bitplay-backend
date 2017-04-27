@@ -2,6 +2,7 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.market.MarketService;
 import com.bitplay.market.arbitrage.ArbitrageService;
+import com.bitplay.market.arbitrage.BestQuotes;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
@@ -17,7 +18,6 @@ import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
-import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.service.OkCoinTradeService;
 import org.knowm.xchange.service.trade.TradeService;
@@ -237,7 +237,7 @@ public class OkCoinService extends MarketService {
         return orderId;
     }
 
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount) {
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes) {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
             final TradeService tradeService = exchange.getTradeService();
@@ -245,7 +245,6 @@ public class OkCoinService extends MarketService {
 
             thePrice = createBestMakerPrice(orderType, false);
 
-//          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()
             final LimitOrder limitOrder = new LimitOrder(orderType,
                     amount, CURRENCY_PAIR_BTC_USD, "123", new Date(),
                     thePrice);
@@ -253,13 +252,17 @@ public class OkCoinService extends MarketService {
             String orderId = tradeService.placeLimitOrder(limitOrder);
             tradeResponse.setOrderId(orderId);
 
-//            final Order successfulOrder = fetchOrderInfo(orderId);
-
-            // TODO save trading history into DB
-            tradeLogger.info("maker {} amount={} with quote={} was placed",
+            String diffWithSignal = "";
+            if (bestQuotes != null) {
+                diffWithSignal = orderType.equals(Order.OrderType.BID)
+                        ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", bestQuotes.getAsk1_o().subtract(thePrice).toPlainString()) //"BUY"
+                        : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s",thePrice.subtract(bestQuotes.getBid1_o()).toPlainString()); //"SELL"
+            }
+            tradeLogger.info("maker {} amount={} with quote={} was placed. {}",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
-                    thePrice);
+                    thePrice,
+                    diffWithSignal);
 
             fetchAccountInfo();
         } catch (Exception e) {
@@ -341,7 +344,7 @@ public class OkCoinService extends MarketService {
             // Place order
             while (attemptCount < 5) {
                 attemptCount++;
-                final TradeResponse tradeResponse = placeMakerOrder(limitOrder.getType(), limitOrder.getTradableAmount());
+                final TradeResponse tradeResponse = placeMakerOrder(limitOrder.getType(), limitOrder.getTradableAmount(), null);
                 if (tradeResponse.getErrorCode() == null) {
                     break;
                 }

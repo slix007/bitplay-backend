@@ -75,6 +75,7 @@ public class ArbitrageService {
             delta1 = bid1_p.subtract(ask1_o);
             delta2 = bid1_o.subtract(ask1_p);
         }
+        final BestQuotes bestQuotes = new BestQuotes(ask1_o, ask1_p, bid1_o, bid1_p);
 
         final Wallet walletP = poloniexService.getAccountInfo().getWallet();
         final BigDecimal btcP = walletP.getBalance(Currency.BTC).getAvailable();
@@ -94,8 +95,8 @@ public class ArbitrageService {
                             delta1.toPlainString(),
                             border1.toPlainString(),
                             btcP, usdP, btcO, usdO));
-                    poloniexService.placeMakerOrder(Order.OrderType.ASK, amount);
-                    okCoinService.placeMakerOrder(Order.OrderType.BID, amount);
+                    poloniexService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
+                    okCoinService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
                 }
             }
         }
@@ -108,8 +109,8 @@ public class ArbitrageService {
                             delta2.toPlainString(),
                             border2.toPlainString(),
                             btcP, usdP, btcO, usdO));
-                    poloniexService.placeMakerOrder(Order.OrderType.BID, amount);
-                    okCoinService.placeMakerOrder(Order.OrderType.ASK, amount);
+                    poloniexService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
+                    okCoinService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
                 }
             }
         }

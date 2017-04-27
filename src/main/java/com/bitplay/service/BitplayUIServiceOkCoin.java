@@ -81,7 +81,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
             orderId = service.placeTakerOrder(orderType, amount);
         } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
-            final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount);
+            final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount, null);
             orderId = tradeResponse.getOrderId();
         }
 

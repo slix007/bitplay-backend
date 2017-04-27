@@ -113,7 +113,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
         if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
             tradeResponse = poloniexService.placeTakerOrder(orderType, amount);
         } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
-            tradeResponse = poloniexService.placeMakerOrder(orderType, amount);
+            tradeResponse = poloniexService.placeMakerOrder(orderType, amount, null);
         }
 
         final PoloniexTradeResponse poloniexTradeResponse = tradeResponse.getSpecificResponse() != null

@@ -2,6 +2,7 @@ package com.bitplay.market.polonex;
 
 import com.bitplay.market.MarketService;
 import com.bitplay.market.arbitrage.ArbitrageService;
+import com.bitplay.market.arbitrage.BestQuotes;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
@@ -22,7 +23,6 @@ import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
-import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexLimitOrder;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexMoveResponse;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexOrderFlags;
@@ -313,7 +313,7 @@ public class PoloniexService extends MarketService {
         return thePrice;
     }
 
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount) {
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes) {
         TradeResponse tradeResponse = new TradeResponse();
 
         int attemptCount = 0;
@@ -328,13 +328,21 @@ public class PoloniexService extends MarketService {
                 final String orderId = response.getOrderNumber().toString();
                 tradeResponse.setSpecificResponse(response);
                 tradeResponse.setOrderId(orderId);
-                // TODO save trading history into DB
-                tradeLogger.info("maker {} with amount={},quote={}, id={}, attempt={}",
+
+                String diffWithSignal = "";
+                if (bestQuotes != null) {
+                    diffWithSignal = orderType.equals(Order.OrderType.BID)
+                            ? String.format("diff2__buy_p = ask_p[1] - order_price_buy_p = %s", bestQuotes.getAsk1_p().subtract(theOrder.getLimitPrice()).toPlainString()) //"BUY"
+                            : String.format("diff1_sell_p = order_price_sell_p - bid_p[1] = %s",theOrder.getLimitPrice().subtract(bestQuotes.getBid1_p()).toPlainString()); //"SELL"
+                }
+
+                tradeLogger.info("maker {} with amount={},quote={}, id={}, attempt={}. {}",
                         orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                         amount,
                         theOrder.getLimitPrice(),
                         orderId,
-                        attemptCount
+                        attemptCount,
+                        diffWithSignal
                 );
 
                 openOrders.add(new LimitOrder(theOrder.getType(), amount, theOrder.getCurrencyPair(),
