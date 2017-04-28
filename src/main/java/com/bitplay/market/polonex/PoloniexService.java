@@ -386,9 +386,9 @@ public class PoloniexService extends MarketService {
                         diffWithSignal
                 );
 
-                openOrders.add(new LimitOrder(theOrder.getType(), amount, theOrder.getCurrencyPair(),
-                        orderId, new Date(), theOrder.getLimitPrice(), null, null,
-                        theOrder.getStatus()));
+//                openOrders.add(new LimitOrder(theOrder.getType(), amount, theOrder.getCurrencyPair(),
+//                        orderId, new Date(), theOrder.getLimitPrice(), null, null,
+//                        theOrder.getStatus()));
                 orderIdToSignalInfo.put(orderId, bestQuotes);
 
             } catch (Exception e) {
@@ -465,6 +465,9 @@ public class PoloniexService extends MarketService {
                     limitOrder.getId(),
                     attemptCount,
                     diffWithSignal);
+
+            orderIdToSignalInfo.put(limitOrder.getId(), bestQuotes);
+
             tradeLogger.info(logString);
             response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
         } else {
@@ -476,6 +479,7 @@ public class PoloniexService extends MarketService {
                     attemptCount,
                     lastExceptionMsg);
             tradeLogger.info(logString);
+            sleep(200);
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }
         return response;

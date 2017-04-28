@@ -38,6 +38,7 @@ public abstract class MarketService {
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
     private final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
+    private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
 
     public abstract UserTrades fetchMyTradeHistory();
 
@@ -85,12 +86,19 @@ public abstract class MarketService {
                 lastException = e;
             }
         if (openOrders == null) {
-            debugLog.error("GetOpenOrdersError", lastException);
+            logger.error("GetOpenOrdersError", lastException);
             throw new IllegalStateException("GetOpenOrdersError", lastException);
         } else {
-            orderIdToSignalInfo.entrySet()
-                    .removeIf(entry -> openOrders.stream()
-                            .noneMatch(l -> l.getId().equals(entry.getKey())));
+            if (orderIdToSignalInfo.size() > 100000) {
+                orderIdToSignalInfo.clear();
+            }
+
+//            orderIdToSignalInfo.entrySet()
+//                    .removeIf(entry -> openOrders.stream()
+//                            .noneMatch(l -> l.getId().equals(entry.getKey())));
+            logger.info(String.format("OpenOrders.size=%s, bestQuotesSize=%s",
+                    openOrders.size(),
+                    orderIdToSignalInfo.size()));
         }
 
         return openOrders;

@@ -263,16 +263,17 @@ public class OkCoinService extends MarketService {
                         ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", bestQuotes.getAsk1_o().subtract(thePrice).toPlainString()) //"BUY"
                         : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s",thePrice.subtract(bestQuotes.getBid1_o()).toPlainString()); //"SELL"
             }
-            tradeLogger.info("{} {} amount={} with quote={} was placed. {}",
+            tradeLogger.info("{} {} amount={} with quote={} was placed.orderId={}. {}",
                     isMoving ? "Moved" : "maker",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
                     thePrice,
+                    orderId,
                     diffWithSignal);
 
-            openOrders.add(new LimitOrder(limitOrder.getType(), amount, limitOrder.getCurrencyPair(),
-                    orderId, new Date(), limitOrder.getLimitPrice(), null, null,
-                    limitOrder.getStatus()));
+//            openOrders.add(new LimitOrder(limitOrder.getType(), amount, limitOrder.getCurrencyPair(),
+//                    orderId, new Date(), limitOrder.getLimitPrice(), null, null,
+//                    limitOrder.getStatus()));
             orderIdToSignalInfo.put(orderId, bestQuotes);
 
         } catch (Exception e) {
