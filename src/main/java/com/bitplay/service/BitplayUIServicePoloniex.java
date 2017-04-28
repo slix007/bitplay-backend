@@ -69,7 +69,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
         }
         final Wallet wallet = accountInfo.getWallet();
         return new AccountInfoJson(wallet.getBalance(Currency.BTC).getAvailable().toPlainString(),
-                wallet.getBalance(new Currency("USDT")).getAvailable().toPlainString(),
+                wallet.getBalance(PoloniexService.CURRENCY_USDT).getAvailable().toPlainString(),
                 accountInfo.toString());
     }
 

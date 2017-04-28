@@ -23,6 +23,7 @@ import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
+import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexLimitOrder;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexMoveResponse;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexOrderFlags;
@@ -34,7 +35,6 @@ import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -48,7 +48,9 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.PreDestroy;
 
+import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import jersey.repackaged.com.google.common.collect.Sets;
 
 /**
@@ -76,6 +78,7 @@ public class PoloniexService extends MarketService {
     private final static String SECRET = "77c9ccd1a34b389633ca1aa666c710ada9b37bd6ce0172818abdea9396658cb2bb552938b885dbb7c43c9f529b675ab428d5c1b21551540ff23703ace4056764";
 
     public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
+    public final static Currency CURRENCY_USDT = new Currency("USDT");
 
     private List<Long> latencyList = new ArrayList<>();
 
@@ -96,6 +99,7 @@ public class PoloniexService extends MarketService {
 //    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
 
     Disposable orderBookSubscription;
+    Disposable accountInfoSubscription;
 
     public PoloniexService() {
         init();
@@ -107,9 +111,21 @@ public class PoloniexService extends MarketService {
         initWebSocketConnection();
 
 //        initOrderBookSubscribers(logger);
+//        initLocalSubscribers();
+        startAccountInfoFetcher();
+        logger.info("POLONIEX INIT FINISHED");
     }
 
-
+//    private void initLocalSubscribers() {
+//        accountInfoSubscription = fetchAccountInfo()
+//                .subscribe(accountInfo1 -> {
+//                    this.accountInfo = accountInfo1;
+//                    logger.info("Balance BTC={}, USD={}",
+//                            accountInfo.getWallet().getBalance(Currency.BTC).toString(),
+//                            accountInfo.getWallet().getBalance(Currency.USD).toString());
+//                }, throwable -> logger.error("Can not fetchAccountInfo", throwable));
+//
+//    }
 
     private void initWebSocketConnection() {
         exchange.connect().blockingAwait();
@@ -117,19 +133,15 @@ public class PoloniexService extends MarketService {
         final PoloniexStreamingMarketDataService streamingMarketDataService =
                 (PoloniexStreamingMarketDataService) exchange.getStreamingMarketDataService();
 
-        // we don't need ticker
         subscribeOnTicker(streamingMarketDataService);
-//TODO Contact okCoin. Some updates looks missing. They probably don't send all.
 //        subscribeOnOrderBookUpdates(streamingMarketDataService);
     }
 
     private void subscribeOnTicker(PoloniexStreamingMarketDataService streamingMarketDataService) {
         streamingMarketDataService
                 .getTicker(CURRENCY_PAIR_USDT_BTC)
-                .subscribe(ticker -> {
+                .subscribe((Ticker ticker) -> {
                         this.ticker = ticker;
-//                        logger.debug("Incoming ticker: {}", ticker);
-
                 }, throwable -> {
                     logger.error("Error in subscribing tickers.", throwable);
                 });
@@ -156,22 +168,52 @@ public class PoloniexService extends MarketService {
     public void preDestroy() {
         // Unsubscribe from data order book.
         orderBookSubscription.dispose();
+        accountInfoSubscription.dispose();
 
         // Disconnect from exchange (non-blocking)
-        exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
+        exchange.disconnect()
+                .subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
-    @Scheduled(fixedRate = 2000)
-    public AccountInfo fetchAccountInfo() {
-        try {
-            accountInfo = exchange.getAccountService().getAccountInfo();
+    private void startAccountInfoFetcher() {
+        accountInfoSubscription = observableAccountInfo()
+                .subscribeOn(Schedulers.io())
+                .subscribe(accountInfo1 -> {
+            this.accountInfo = accountInfo1;
             logger.info("Balance BTC={}, USD={}",
-                    accountInfo.getWallet().getBalance(Currency.BTC).toString(),
-                    accountInfo.getWallet().getBalance(Currency.USD).toString());
-        } catch (Exception e) {
-            logger.error("Can not fetchAccountInfo", e);
+                    accountInfo.getWallet().getBalance(Currency.BTC).getAvailable().toPlainString(),
+                    accountInfo.getWallet().getBalance(CURRENCY_USDT).getAvailable().toPlainString());
+        }, throwable -> logger.error("Can not fetchAccountInfo", throwable));
+    }
+
+    public Observable<AccountInfo> observableAccountInfo() {
+        return Observable.create(observableOnSubscribe -> {
+            while (!observableOnSubscribe.isDisposed()) {
+                boolean noSleep = false;
+                try {
+                    accountInfo = exchange.getAccountService().getAccountInfo();
+                    observableOnSubscribe.onNext(accountInfo);
+                } catch (ExchangeException e1) {
+                    if (e1.getMessage().startsWith("Nonce must be greater than")) {
+                        noSleep = true;
+                        logger.warn(e1.getMessage());
+                    } else {
+                        logger.error("Account fetch error", e1);
+                    }
+                }
+
+                if (noSleep) sleep(10);
+                else sleep(2000);
+            }
+        });
+    }
+
+    private void sleep(int time) {
+        try {
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+            logger.error("Error on sleep", e);
         }
-        return accountInfo;
     }
 
     public AccountInfo getAccountInfo() {
@@ -290,7 +332,6 @@ public class PoloniexService extends MarketService {
                     theOrder.getStatus().toString()
             );
 
-            fetchAccountInfo();
         } catch (Exception e) {
             logger.error("Place market order error", e);
             tradeResponse.setOrderId(e.getMessage());
@@ -356,7 +397,7 @@ public class PoloniexService extends MarketService {
             }
         }
 
-        fetchAccountInfo();
+        //fetchAccountInfo();
 
         if (tradeResponse.getOrderId() == null && lastException != null) {
             logger.error("Place market order error", lastException);
