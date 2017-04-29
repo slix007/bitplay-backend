@@ -178,12 +178,18 @@ public class PoloniexService extends MarketService {
     private void startAccountInfoFetcher() {
         accountInfoSubscription = observableAccountInfo()
                 .subscribeOn(Schedulers.io())
+                .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(accountInfo1 -> {
             this.accountInfo = accountInfo1;
             logger.info("Balance BTC={}, USD={}",
                     accountInfo.getWallet().getBalance(Currency.BTC).getAvailable().toPlainString(),
                     accountInfo.getWallet().getBalance(CURRENCY_USDT).getAvailable().toPlainString());
-        }, throwable -> logger.error("Can not fetchAccountInfo", throwable));
+        }, throwable -> {
+                    logger.error("Can not fetchAccountInfo", throwable);
+                    // schedule it again
+                    sleep(5000);
+                    startAccountInfoFetcher();
+                });
     }
 
     public Observable<AccountInfo> observableAccountInfo() {
@@ -193,12 +199,12 @@ public class PoloniexService extends MarketService {
                 try {
                     accountInfo = exchange.getAccountService().getAccountInfo();
                     observableOnSubscribe.onNext(accountInfo);
-                } catch (ExchangeException e1) {
-                    if (e1.getMessage().startsWith("Nonce must be greater than")) {
+                } catch (ExchangeException e) {
+                    if (e.getMessage().startsWith("Nonce must be greater than")) {
                         noSleep = true;
-                        logger.warn(e1.getMessage());
+                        logger.warn(e.getMessage());
                     } else {
-                        logger.error("Account fetch error", e1);
+                        observableOnSubscribe.onError(e);
                     }
                 }
 
