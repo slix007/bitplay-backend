@@ -112,7 +112,7 @@ public class PoloniexService extends MarketService {
 
 //        initOrderBookSubscribers(logger);
 //        initLocalSubscribers();
-        startAccountInfoFetcher();
+        startAccountInfoListener();
         logger.info("POLONIEX INIT FINISHED");
     }
 
@@ -175,12 +175,16 @@ public class PoloniexService extends MarketService {
                 .subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
-    private void startAccountInfoFetcher() {
+    public synchronized void setAccountInfo(AccountInfo accountInfo) {
+        this.accountInfo = accountInfo;
+    }
+
+    private void startAccountInfoListener() {
         accountInfoSubscription = observableAccountInfo()
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(accountInfo1 -> {
-            this.accountInfo = accountInfo1;
+            setAccountInfo(accountInfo1);
             logger.info("Balance BTC={}, USD={}",
                     accountInfo.getWallet().getBalance(Currency.BTC).getAvailable().toPlainString(),
                     accountInfo.getWallet().getBalance(CURRENCY_USDT).getAvailable().toPlainString());
@@ -188,7 +192,7 @@ public class PoloniexService extends MarketService {
                     logger.error("Can not fetchAccountInfo", throwable);
                     // schedule it again
                     sleep(5000);
-                    startAccountInfoFetcher();
+                    startAccountInfoListener();
                 });
     }
 
@@ -222,7 +226,7 @@ public class PoloniexService extends MarketService {
         }
     }
 
-    public AccountInfo getAccountInfo() {
+    public synchronized AccountInfo getAccountInfo() {
         return accountInfo;
     }
 
