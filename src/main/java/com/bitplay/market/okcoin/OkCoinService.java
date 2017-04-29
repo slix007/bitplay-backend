@@ -48,9 +48,6 @@ public class OkCoinService extends MarketService {
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
 
-    private static String KEY = "d4566d08-4fef-49ac-8933-e51f8c873795";
-    private static String SECRET = "3DB6AD75C7CD78392947A5D4CE8567D2";
-
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
 
     private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
@@ -65,10 +62,18 @@ public class OkCoinService extends MarketService {
 
     Disposable orderBookSubscription;
 
-    private OkCoinStreamingExchange initExchange() {
+    public void init(String key, String secret) {
+        exchange = initExchange(key, secret);
+
+        initWebSocketConnection();
+
+//        initOrderBookSubscribers(logger);
+    }
+
+    private OkCoinStreamingExchange initExchange(String key, String secret) {
         ExchangeSpecification spec = new ExchangeSpecification(OkCoinStreamingExchange.class);
-        spec.setApiKey(KEY);
-        spec.setSecretKey(SECRET);
+        spec.setApiKey(key);
+        spec.setSecretKey(secret);
 
         spec.setExchangeSpecificParametersItem("Use_Intl", true);
 
@@ -77,18 +82,6 @@ public class OkCoinService extends MarketService {
         logger.info("OKCOING metaDataFileName=" + metaDataFileName);
 
         return exchange;
-    }
-
-    public OkCoinService() {
-        init();
-    }
-
-    public void init() {
-        exchange = initExchange();
-
-        initWebSocketConnection();
-
-//        initOrderBookSubscribers(logger);
     }
 
     private void initWebSocketConnection() {

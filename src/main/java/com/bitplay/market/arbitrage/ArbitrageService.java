@@ -1,5 +1,6 @@
 package com.bitplay.market.arbitrage;
 
+import com.bitplay.Config;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.polonex.PoloniexService;
 import com.bitplay.utils.Utils;
@@ -25,6 +26,8 @@ public class ArbitrageService {
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
 
+    @Autowired
+    Config config;
 
     @Autowired
     private OkCoinService okCoinService;

@@ -3,6 +3,7 @@ package com.bitplay.controller.config;
 import com.bitplay.controller.OkCoinEndpoint;
 import com.bitplay.controller.PoloniexEndpoint;
 import com.bitplay.controller.CommonEndpoint;
+import com.bitplay.controller.error.ExceptionMapper;
 
 import org.glassfish.jersey.server.ResourceConfig;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ public class JerseyConfig extends ResourceConfig {
         register(CommonEndpoint.class);
         register(OkCoinEndpoint.class);
         register(PoloniexEndpoint.class);
+        register(ExceptionMapper.class);
     }
 
 }
