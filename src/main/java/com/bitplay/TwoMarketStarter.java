@@ -1,7 +1,7 @@
 package com.bitplay;
 
 import com.bitplay.market.MarketService;
-import com.bitplay.market.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.ArbitrageService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;

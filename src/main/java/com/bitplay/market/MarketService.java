@@ -1,6 +1,6 @@
 package com.bitplay.market;
 
-import com.bitplay.market.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;

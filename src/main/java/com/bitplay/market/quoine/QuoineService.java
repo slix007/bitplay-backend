@@ -1,7 +1,7 @@
 package com.bitplay.market.quoine;
 
 import com.bitplay.market.MarketService;
-import com.bitplay.market.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 
