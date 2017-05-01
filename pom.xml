@@ -6,7 +6,10 @@
 	<groupId>com.bitplay</groupId>
 	<artifactId>bitplay</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>jar</packaging>
+    <modules>
+        <module>bitmex</module>
+    </modules>
+    <packaging>pom</packaging>
 
 	<name>bitplay</name>
 	<description>Demo project for Spring Boot</description>

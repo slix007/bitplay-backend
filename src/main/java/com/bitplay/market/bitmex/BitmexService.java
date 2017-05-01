@@ -35,7 +35,7 @@ public class BitmexService extends MarketService {
 
     @Override
     public OrderBook getOrderBook() {
-        return null;
+        return orderBook;
     }
 
     @Override
