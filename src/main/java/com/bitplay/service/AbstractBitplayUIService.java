@@ -33,7 +33,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public abstract List<VisualTrade> fetchTrades();
 
-    public abstract OrderBookJson fetchOrderBook();
+    public abstract OrderBookJson getOrderBook();
 
     public abstract AccountInfoJson getAccountInfo();
 

@@ -6,6 +6,7 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -14,11 +15,19 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+import io.reactivex.Observable;
+
 /**
  * Created by Sergey Shurmin on 4/29/17.
  */
-@Service
+@Service("bitmex")
 public class BitmexService extends MarketService {
+
+    @Override
+    public void initializeMarket(String key, String secret) {
+
+    }
+
     @Override
     public UserTrades fetchMyTradeHistory() {
         return null;
@@ -51,6 +60,16 @@ public class BitmexService extends MarketService {
 
     @Override
     protected BigDecimal getMakerDelta() {
+        return null;
+    }
+
+    @Override
+    public Observable<OrderBook> observeOrderBook() {
+        return null;
+    }
+
+    @Override
+    public AccountInfo getAccountInfo() {
         return null;
     }
 }

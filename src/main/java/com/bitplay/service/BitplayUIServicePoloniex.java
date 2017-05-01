@@ -37,7 +37,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
         return poloniexService;
     }
 
-    OrderBook orderBook;
+//    OrderBook orderBook;
 
     @Override
     public List<VisualTrade> fetchTrades() {
@@ -49,14 +49,14 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
                 .collect(Collectors.toList());
         return askTrades;
     }
-
+/*
     @Override
     public OrderBookJson fetchOrderBook() {
         orderBook = poloniexService.fetchOrderBook();
 
         return convertOrderBookAndFilter(orderBook);
     }
-
+*/
     @Override
     public AccountInfoJson getAccountInfo() {
         return convertAccountInfo(poloniexService.getAccountInfo());
@@ -73,6 +73,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
                 accountInfo.toString());
     }
 
+    @Override
     public OrderBookJson getOrderBook() {
         return convertOrderBookAndFilter(poloniexService.getOrderBook());
     }
@@ -80,7 +81,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
     public TickerJson getTicker() {
         return convertTicker(poloniexService.getTicker());
     }
-
+/*
     public List<VisualTrade> getBestBids() {
         return orderBook.getBids().stream()
                 .map(toVisual)
@@ -91,7 +92,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
                 .map(toVisual)
                 .collect(Collectors.toList());
     }
-
+*/
     public OrderBookJson cleanOrderBook() {
         return convertOrderBookAndFilter(poloniexService.cleanOrderBook());
     }

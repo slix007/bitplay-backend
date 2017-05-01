@@ -37,12 +37,13 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.PreDestroy;
 
+import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
  */
-@Service
+@Service("okcoin")
 public class OkCoinService extends MarketService {
 
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
@@ -52,22 +53,28 @@ public class OkCoinService extends MarketService {
 
     private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
 
-    @Autowired
     ArbitrageService arbitrageService;
+
+    @Autowired
+    public void setArbitrageService(ArbitrageService arbitrageService) {
+        this.arbitrageService = arbitrageService;
+    }
 
     private OkCoinStreamingExchange exchange;
 
-    OrderBook orderBook = null;
     AccountInfo accountInfo = null;
 
     Disposable orderBookSubscription;
 
-    public void init(String key, String secret) {
+    @Override
+    public void initializeMarket(String key, String secret) {
         exchange = initExchange(key, secret);
 
         initWebSocketConnection();
 
-//        initOrderBookSubscribers(logger);
+        subscribeOnOrderBook();
+
+        subscribeOnOthers();
     }
 
     private OkCoinStreamingExchange initExchange(String key, String secret) {
@@ -77,7 +84,7 @@ public class OkCoinService extends MarketService {
 
         spec.setExchangeSpecificParametersItem("Use_Intl", true);
 
-        exchange = (OkCoinStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
+        OkCoinStreamingExchange exchange = (OkCoinStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
         String metaDataFileName = ((BaseExchange) exchange).getMetaDataFileName(spec);
         logger.info("OKCOING metaDataFileName=" + metaDataFileName);
 
@@ -87,10 +94,6 @@ public class OkCoinService extends MarketService {
     private void initWebSocketConnection() {
         // Connect to the Exchange WebSocket API. Blocking wait for the connection.
         exchange.connect().blockingAwait();
-
-        subscribeOnOrderBook();
-
-        subscribeOnOthers();
 
         // Retry on disconnect. (It's disconneced each 5 min)
         exchange.onDisconnect().doOnComplete(() -> {
@@ -111,10 +114,7 @@ public class OkCoinService extends MarketService {
 
     private void subscribeOnOrderBook() {
         //TODO subscribe on updates only to increase the speed
-        orderBookSubscription = exchange.getStreamingMarketDataService()
-                .getOrderBook(CurrencyPair.BTC_USD, 20)
-                .doOnDispose(() -> logger.info("okcoin subscription doOnDispose"))
-                .doOnTerminate(() -> logger.info("okcoin subscription doOnTerminate"))
+        orderBookSubscription = observeOrderBook()
                 .subscribe(orderBook -> {
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
@@ -133,6 +133,14 @@ public class OkCoinService extends MarketService {
 
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
+    }
+
+    @Override
+    public Observable<OrderBook> observeOrderBook() {
+        return exchange.getStreamingMarketDataService()
+                .getOrderBook(CurrencyPair.BTC_USD, 20)
+                .doOnDispose(() -> logger.info("okcoin subscription doOnDispose"))
+                .doOnTerminate(() -> logger.info("okcoin subscription doOnTerminate"));
     }
 
     @PreDestroy
@@ -172,6 +180,7 @@ public class OkCoinService extends MarketService {
         return accountInfo;
     }
 
+    @Override
     public AccountInfo getAccountInfo() {
         return accountInfo;
     }

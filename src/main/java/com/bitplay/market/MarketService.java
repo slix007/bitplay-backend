@@ -6,6 +6,7 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -16,11 +17,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
 
@@ -32,6 +35,8 @@ public abstract class MarketService {
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected List<LimitOrder> openOrders = new ArrayList<>();
+    protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+
     protected Subject<BigDecimal> bestAskChangedSubject = PublishSubject.create();
     protected Subject<BigDecimal> bestBidChangedSubject = PublishSubject.create();
     protected Subject<OrderBook> orderBookChangedSubject = PublishSubject.create();
@@ -40,9 +45,15 @@ public abstract class MarketService {
     private final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
 
+    public abstract void initializeMarket(String key, String secret);
+
     public abstract UserTrades fetchMyTradeHistory();
 
     public abstract OrderBook getOrderBook();
+
+    public abstract Observable<OrderBook> observeOrderBook();
+
+    public abstract AccountInfo getAccountInfo();
 
     public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes);
 

@@ -35,6 +35,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         return service;
     }
 
+    @Override
     public OrderBookJson getOrderBook() {
         return convertOrderBookAndFilter(service.getOrderBook());
     }
@@ -48,14 +49,6 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
                 .map(this::toVisualTrade)
                 .collect(Collectors.toList());
         return askTrades;
-    }
-
-    @Override
-    public OrderBookJson fetchOrderBook() {
-//        final OrderBook orderBook = service.fetchOrderBook();
-//        final OrderBookJson bestOrderBookJson = getBestOrderBookJson(orderBook);
-//        return bestOrderBookJson;
-        return null;
     }
 
     @Override

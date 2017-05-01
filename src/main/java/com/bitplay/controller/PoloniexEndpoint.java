@@ -47,7 +47,7 @@ public class PoloniexEndpoint {
         return this.poloniex.cleanOrderBook();
     }
 
-    @GET
+    /* @GET
     @Path("/order-book-fetch")
     @Produces("application/json")
     public OrderBookJson fetchAndCompareOrderBook() {
@@ -73,7 +73,7 @@ public class PoloniexEndpoint {
         computed.getBid().forEach(oneItem -> {
             findMatchedByPrice(oneItem, fetched.getBid());
         });
-    }
+    } */
 
     private void findMatchedByPrice(OrderJson toFindOrderJson, List<OrderJson> ask) {
         final String price = toFindOrderJson.getPrice();

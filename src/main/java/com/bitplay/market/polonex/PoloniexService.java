@@ -56,44 +56,39 @@ import jersey.repackaged.com.google.common.collect.Sets;
 /**
  * Created by Sergey Shurmin on 3/21/17.
  */
-@Service
+@Service("poloniex")
 public class PoloniexService extends MarketService {
 
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
     private final static BigDecimal POLONIEX_STEP = new BigDecimal("0.00000001");
 
-    @Autowired
     ArbitrageService arbitrageService;
 
-//    @Autowired
+    @Autowired
+    public void setArbitrageService(ArbitrageService arbitrageService) {
+        this.arbitrageService = arbitrageService;
+    }
+
+    //    @Autowired
 //    WebSocketEndpoint webSocketEndpoint;
-
-    // My api key for empty account
-    //    private static String KEY = "2326PK47-9500PEQV-S64511G1-1HF2V48N";
-    //    private static String SECRET = "2de990fecb2ca516a8cd40fa0ffc8f95f4fc8021e3f7ee681972493c10311c260d26b35c0f2e41adec027056711e2e7b1eaa6cde7d8f679aa871e0a1a801c8fa";
-
-    // Shared api key
-    private final static String KEY = "ER7VDOUY-6OL4ETGD-VC960XII-T128DA7I";
-    private final static String SECRET = "77c9ccd1a34b389633ca1aa666c710ada9b37bd6ce0172818abdea9396658cb2bb552938b885dbb7c43c9f529b675ab428d5c1b21551540ff23703ace4056764";
 
     public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
     public final static Currency CURRENCY_USDT = new Currency("USDT");
 
     private List<Long> latencyList = new ArrayList<>();
 
-    private StreamingExchange getExchange() {
+    private StreamingExchange initExchange(String key, String secret) {
 
         ExchangeSpecification spec = new ExchangeSpecification(PoloniexStreamingExchange.class);
-        spec.setApiKey(KEY);
-        spec.setSecretKey(SECRET);
+        spec.setApiKey(key);
+        spec.setSecretKey(secret);
 
         return StreamingExchangeFactory.INSTANCE.createExchange(spec);
     }
 
     private StreamingExchange exchange;
 
-    private OrderBook orderBook;
     private AccountInfo accountInfo = null;
     private Ticker ticker;
 //    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
@@ -101,12 +96,9 @@ public class PoloniexService extends MarketService {
     Disposable orderBookSubscription;
     Disposable accountInfoSubscription;
 
-    public PoloniexService() {
-        init();
-    }
-
-    public void init() {
-        exchange = getExchange();
+    @Override
+    public void initializeMarket(String key, String secret) {
+        exchange = initExchange(key, secret);
         fetchOrderBook();
         initWebSocketConnection();
 
@@ -226,6 +218,7 @@ public class PoloniexService extends MarketService {
         }
     }
 
+    @Override
     public synchronized AccountInfo getAccountInfo() {
         return accountInfo;
     }
@@ -269,6 +262,29 @@ public class PoloniexService extends MarketService {
 //    public void check() {
 //        checkOrderBook(orderBook);
 //    }
+
+    @Override
+    public Observable<OrderBook> observeOrderBook() {
+        return Observable.create(observableOnSubscribe -> {
+            while (!observableOnSubscribe.isDisposed()) {
+                boolean noSleep = false;
+                try {
+                    final OrderBook orderBook = fetchOrderBook();
+                    observableOnSubscribe.onNext(orderBook);
+                } catch (ExchangeException e) {
+                    if (e.getMessage().startsWith("Nonce must be greater than")) {
+                        noSleep = true;
+                        logger.warn(e.getMessage());
+                    } else {
+                        observableOnSubscribe.onError(e);
+                    }
+                }
+
+                if (noSleep) sleep(10);
+                else sleep(250);
+            }
+        });
+    }
 
     public OrderBook fetchOrderBook() {
         try {

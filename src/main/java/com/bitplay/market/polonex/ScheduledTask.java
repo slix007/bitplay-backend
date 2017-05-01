@@ -17,7 +17,7 @@ public class ScheduledTask {
     @Autowired
     PoloniexService poloniexService;
 
-    @Scheduled(fixedRate = 250)
+//    @Scheduled(fixedRate = 250)
     public void reportCurrentTime() {
         poloniexService.fetchOrderBook();
     }
