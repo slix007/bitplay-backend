@@ -12,7 +12,7 @@ import javax.annotation.PostConstruct;
 /**
  * Created by Sergey Shurmin on 4/29/17.
  */
-@Service("twomarketstarter")
+@Service
 public class TwoMarketStarter {
 
     private Config config;

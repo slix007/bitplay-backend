@@ -30,8 +30,6 @@ public class ArbitrageService {
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
-    private TwoMarketStarter twoMarketStarter;
-
     //TODO rename them to first and second
     private MarketService poloniexService;
     private MarketService okCoinService;
@@ -45,7 +43,6 @@ public class ArbitrageService {
     private Instant previousEmitTime = Instant.now();
 
     public void init(TwoMarketStarter twoMarketStarter) {
-        this.twoMarketStarter = twoMarketStarter;
         this.poloniexService = twoMarketStarter.getFirstMarketService();
         this.okCoinService = twoMarketStarter.getSecondMarketService();
         startArbitrageMonitoring();
