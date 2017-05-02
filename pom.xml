@@ -80,6 +80,11 @@
             <artifactId>xchange-okcoin</artifactId>
             <version>4.2.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.bitplay.marketapi</groupId>
+            <artifactId>bitmex-api</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
 
         <!-- Streaming xchange-stream -->
         <dependency>

@@ -31,8 +31,8 @@ public class ArbitrageService {
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     //TODO rename them to first and second
-    private MarketService poloniexService;
-    private MarketService okCoinService;
+    private MarketService firstMarketService;
+    private MarketService secondMarketService;
 
     private BigDecimal delta1 = BigDecimal.ZERO;
     private BigDecimal delta2 = BigDecimal.ZERO;
@@ -43,14 +43,14 @@ public class ArbitrageService {
     private Instant previousEmitTime = Instant.now();
 
     public void init(TwoMarketStarter twoMarketStarter) {
-        this.poloniexService = twoMarketStarter.getFirstMarketService();
-        this.okCoinService = twoMarketStarter.getSecondMarketService();
+        this.firstMarketService = twoMarketStarter.getFirstMarketService();
+        this.secondMarketService = twoMarketStarter.getSecondMarketService();
         startArbitrageMonitoring();
     }
 
     private void startArbitrageMonitoring() {
 
-        observableAccountInfo()
+        observableOrderBooks()
                 .subscribeOn(Schedulers.computation())
                 .subscribe(bestQuotes -> {
                     // Log not often then 5 sec
@@ -61,32 +61,32 @@ public class ArbitrageService {
                         previousEmitTime = Instant.now();
                         deltasLogger.info(bestQuotes.toString());
                     }
+                }, throwable -> {
+                    logger.error("On combine orderBooks", throwable);
                 });
 
     }
 
-    private Observable<BestQuotes> observableAccountInfo() {
-        final Observable<OrderBook> firstOrderBook = poloniexService.observeOrderBook();
-        final Observable<OrderBook> secondOrderBook = okCoinService.observeOrderBook();
+    private Observable<BestQuotes> observableOrderBooks() {
+        final Observable<OrderBook> firstOrderBook = firstMarketService.observeOrderBook();
+        final Observable<OrderBook> secondOrderBook = secondMarketService.observeOrderBook();
 
-        return Observable.combineLatest(
-                firstOrderBook
-                        .filter(orderBook -> orderBook.getAsks().size() > 0),
-                secondOrderBook
-                        .filter(orderBook -> orderBook.getAsks().size() > 0),
-                this::doComparison);
+        // Observable.combineLatest - doesn't work while observable isn't completed
+        return Observable
+                .concat(firstOrderBook, secondOrderBook)
+                .map(orderBook -> doComparison());
     }
 
-    public BestQuotes doComparison(OrderBook poloniexOrderBook, OrderBook okCoinOrderBook) {
-//        calcDeltas(okCoinOrderBook, poloniexOrderBook);
+    private BestQuotes doComparison() {
+        final OrderBook poloniexOrderBook = firstMarketService.getOrderBook();
+        final OrderBook okCoinOrderBook = secondMarketService.getOrderBook();
 
-//        final int sizeOKCoin = okCoinService.getOpenOrders().size();
-//        final int sizePoloniex = poloniexService.getOpenOrders().size();
 
-        BestQuotes bestQuotes = null;
-        if (poloniexService.getAccountInfo() != null) {
-//                && sizeOKCoin == 0
-//                && sizePoloniex == 0) {
+        BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        if (poloniexOrderBook != null
+                && okCoinOrderBook != null
+                && firstMarketService.getAccountInfo() != null
+                && secondMarketService.getAccountInfo() != null) {
             bestQuotes = calcAndDoArbitrage(okCoinOrderBook, poloniexOrderBook);
         }
         return bestQuotes;
@@ -112,10 +112,10 @@ public class ArbitrageService {
         }
         final BestQuotes bestQuotes = new BestQuotes(ask1_o, ask1_p, bid1_o, bid1_p);
 
-        final Wallet walletP = poloniexService.getAccountInfo().getWallet();
+        final Wallet walletP = firstMarketService.getAccountInfo().getWallet();
         final BigDecimal btcP = walletP.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdP = walletP.getBalance(PoloniexService.CURRENCY_PAIR_USDT_BTC.counter).getAvailable();
-        final Wallet walletO = okCoinService.getAccountInfo().getWallet();
+        final Wallet walletO = secondMarketService.getAccountInfo().getWallet();
         final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
 
@@ -130,8 +130,8 @@ public class ArbitrageService {
                             delta1.toPlainString(),
                             border1.toPlainString(),
                             btcP, usdP, btcO, usdO));
-                    poloniexService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
-                    okCoinService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
+                    firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
+                    secondMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                 } else {
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
@@ -147,8 +147,8 @@ public class ArbitrageService {
                             delta2.toPlainString(),
                             border2.toPlainString(),
                             btcP, usdP, btcO, usdO));
-                    poloniexService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
-                    okCoinService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
+                    firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
+                    secondMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                 } else {
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
@@ -159,10 +159,10 @@ public class ArbitrageService {
     }
 
     private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {
-        final Wallet walletP = poloniexService.getAccountInfo().getWallet();
+        final Wallet walletP = firstMarketService.getAccountInfo().getWallet();
         final BigDecimal btcP = walletP.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdP = walletP.getBalance(PoloniexService.CURRENCY_PAIR_USDT_BTC.counter).getAvailable();
-        final Wallet walletO = okCoinService.getAccountInfo().getWallet();
+        final Wallet walletO = secondMarketService.getAccountInfo().getWallet();
         final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
 
@@ -171,10 +171,10 @@ public class ArbitrageService {
             // sell p, buy o
 
             // Only poloniex need to check the first item.
-            final BigDecimal bestBidP = Utils.getBestBids(poloniexService.getOrderBook().getBids(), 1).get(0).getLimitPrice();
+            final BigDecimal bestBidP = Utils.getBestBids(firstMarketService.getOrderBook().getBids(), 1).get(0).getLimitPrice();
 
             if ((btcP.compareTo(tradableAmount) == -1 || bestBidP.compareTo(tradableAmount) == -1)
-                    || usdO.compareTo(okCoinService.getTotalPriceOfAmountToBuy(tradableAmount)) == -1) {
+                    || usdO.compareTo(secondMarketService.getTotalPriceOfAmountToBuy(tradableAmount)) == -1) {
                 affordable = false;
             } else {
                 affordable = true;
@@ -183,10 +183,10 @@ public class ArbitrageService {
             // sell o, buy c
 
             // Only poloniex need to check the first item.
-            final BigDecimal bestAskP = Utils.getBestAsks(poloniexService.getOrderBook().getAsks(), 1).get(0).getLimitPrice();
+            final BigDecimal bestAskP = Utils.getBestAsks(firstMarketService.getOrderBook().getAsks(), 1).get(0).getLimitPrice();
 
             if (btcO.compareTo(tradableAmount) == -1 || bestAskP.compareTo(tradableAmount) == -1
-                    || usdP.compareTo(poloniexService.getTotalPriceOfAmountToBuy(tradableAmount)) == -1) {
+                    || usdP.compareTo(firstMarketService.getTotalPriceOfAmountToBuy(tradableAmount)) == -1) {
                 affordable = false;
             } else {
                 affordable = true;

@@ -20,7 +20,7 @@
                         </goals>
                         <configuration>
                             <!-- specify the swagger yaml -->
-                            <inputSpec>https://www.bitmex.com/api/explorer/swagger.json</inputSpec>
+                            <inputSpec>bitmex/src/main/resources/swagger.json</inputSpec>
 
                             <!-- target to generate java client code -->
                             <language>java</language>

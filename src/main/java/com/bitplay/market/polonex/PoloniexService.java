@@ -270,7 +270,9 @@ public class PoloniexService extends MarketService {
                 boolean noSleep = false;
                 try {
                     final OrderBook orderBook = fetchOrderBook();
-                    observableOnSubscribe.onNext(orderBook);
+                    if (orderBook != null) {
+                        observableOnSubscribe.onNext(orderBook);
+                    }
                 } catch (ExchangeException e) {
                     if (e.getMessage().startsWith("Nonce must be greater than")) {
                         noSleep = true;
