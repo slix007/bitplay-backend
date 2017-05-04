@@ -33,10 +33,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public abstract List<VisualTrade> fetchTrades();
 
-    public abstract OrderBookJson getOrderBook();
-
-    public abstract AccountInfoJson getAccountInfo();
-
     public abstract T getBusinessService();
 
     VisualTrade toVisualTrade(Trade trade) {
@@ -50,6 +46,13 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         );
     }
 
+    public OrderBookJson getOrderBook() {
+        return convertOrderBookAndFilter(getBusinessService().getOrderBook());
+    }
+
+    public AccountInfoJson getAccountInfo() {
+        return convertAccountInfo(getBusinessService().getAccountInfo());
+    }
 
     protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook) {
         final OrderBookJson orderJson = new OrderBookJson();

@@ -1,12 +1,10 @@
 package com.bitplay.api.service;
 
-import com.bitplay.market.model.TradeResponse;
-import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.api.domain.AccountInfoJson;
-import com.bitplay.api.domain.OrderBookJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.model.TradeResponse;
 
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -22,16 +20,16 @@ import java.util.stream.Collectors;
 /**
  * Created by Sergey Shurmin on 4/4/17.
  */
-@Component("OkCoin")
-public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinService> {
+@Component("Bitmex")
+public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexService> {
 
-    private static final Logger logger = LoggerFactory.getLogger(BitplayUIServiceOkCoin.class);
+    private static final Logger logger = LoggerFactory.getLogger(BitplayUIServiceBitmex.class);
 
     @Autowired
-    OkCoinService service;
+    BitmexService service;
 
     @Override
-    public OkCoinService getBusinessService() {
+    public BitmexService getBusinessService() {
         return service;
     }
 
@@ -62,7 +60,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
 
         String orderId = null;
         if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
-            orderId = service.placeTakerOrder(orderType, amount);
+//            orderId = service.placeTakerOrder(orderType, amount);
         } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
             final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount, null);
             orderId = tradeResponse.getOrderId();

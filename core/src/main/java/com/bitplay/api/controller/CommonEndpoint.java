@@ -1,8 +1,10 @@
 package com.bitplay.api.controller;
 
+import com.bitplay.TwoMarketStarter;
 import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.MakerDeltalUpdateJson;
+import com.bitplay.api.domain.MarketList;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 
@@ -26,6 +28,9 @@ public class CommonEndpoint {
     @Autowired
     private CommonUIService commonUIService;
 
+    @Autowired
+    private TwoMarketStarter twoMarketStarter;
+
     @GET
     @Path("/")
     public String help() {
@@ -36,6 +41,15 @@ public class CommonEndpoint {
     @Path("/market")
     public String message() {
         return "Hello. Use /market/{marketName}/{operationName}";
+    }
+
+    @GET
+    @Path("/market/list")
+    @Produces("application/json")
+    public MarketList getMarkets() {
+        final String first = twoMarketStarter.getFirstMarketService().getName();
+        final String second = twoMarketStarter.getSecondMarketService().getName();
+        return new MarketList(first, second);
     }
 
     @GET

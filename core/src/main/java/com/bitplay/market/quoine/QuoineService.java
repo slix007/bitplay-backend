@@ -23,6 +23,13 @@ import io.reactivex.Observable;
 @Service("quoine")
 public class QuoineService extends MarketService {
 
+    private final static String NAME = "quoine";
+
+    @Override
+    public String getName() {
+        return NAME;
+    }
+
     @Override
     public void initializeMarket(String key, String secret) {
 

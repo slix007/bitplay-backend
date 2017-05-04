@@ -52,6 +52,7 @@ public class OkCoinService extends MarketService {
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
 
     private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
+    private final static String NAME = "okcoin";
 
     ArbitrageService arbitrageService;
 
@@ -63,6 +64,11 @@ public class OkCoinService extends MarketService {
     private OkCoinStreamingExchange exchange;
 
     Disposable orderBookSubscription;
+
+    @Override
+    public String getName() {
+        return NAME;
+    }
 
     @Override
     public void initializeMarket(String key, String secret) {

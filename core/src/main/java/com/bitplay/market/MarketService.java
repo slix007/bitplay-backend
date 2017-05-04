@@ -54,6 +54,8 @@ public abstract class MarketService {
 
     public abstract Observable<OrderBook> observeOrderBook();
 
+    public abstract String getName();
+
     public AccountInfo getAccountInfo() {
         return accountInfo;
     }

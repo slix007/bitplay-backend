@@ -35,6 +35,7 @@ import javax.annotation.PreDestroy;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import io.swagger.client.ApiException;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
@@ -42,6 +43,8 @@ import io.reactivex.schedulers.Schedulers;
 @Service("bitmex")
 public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
+
+    private final static String NAME = "bitmex";
 
     private final static CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
@@ -51,7 +54,6 @@ public class BitmexService extends MarketService {
 
     Disposable accountInfoSubscription;
 
-
     ArbitrageService arbitrageService;
 
     @Autowired
@@ -60,10 +62,15 @@ public class BitmexService extends MarketService {
     }
 
     @Override
+    public String getName() {
+        return NAME;
+    }
+
+    @Override
     public void initializeMarket(String key, String secret) {
         initExchange(key, secret);
 
-        startAccountInfoListener();
+//        startAccountInfoListener();
     }
 
     private void initExchange(String key, String secret) {
@@ -112,23 +119,24 @@ public class BitmexService extends MarketService {
     public Observable<OrderBook> observeOrderBook() {
         return Observable.create(observableOnSubscribe -> {
             while (!observableOnSubscribe.isDisposed()) {
-                boolean noSleep = false;
+                int sleepTime = 1000;
+
                 try {
                     final OrderBook orderBook = fetchOrderBook();
                     if (orderBook != null) {
                         observableOnSubscribe.onNext(orderBook);
                     }
-                } catch (ExchangeException e) {
-                    if (e.getMessage().startsWith("Nonce must be greater than")) {
-                        noSleep = true;
-                        logger.warn(e.getMessage());
+                } catch (Exception e) {
+                    if (e.getCause() != null
+                            && e.getCause().getMessage().startsWith("Rate limit exceeded")) {
+                        sleepTime = 10000;
                     } else {
-                        observableOnSubscribe.onError(e);
+                        sleepTime = 1000;
                     }
-                }
 
-                if (noSleep) sleep(10);
-                else sleep(250);
+                    observableOnSubscribe.onError(e);
+                }
+                sleep(sleepTime);
             }
         });
     }
@@ -174,37 +182,29 @@ public class BitmexService extends MarketService {
         });
     }
 
-    public OrderBook fetchOrderBook() {
-        try {
-//                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, -1);
-            final long startFetch = System.nanoTime();
-            orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_XBTUSD, 5);
-            final long endFetch = System.nanoTime();
+    public OrderBook fetchOrderBook() throws IOException, ExchangeException {
 
-            latencyList.add(endFetch - startFetch);
-            if (latencyList.size() > 100) {
-                logger.debug("Average get orderBook(5) time is {} ms",
-                        latencyList
-                                .stream()
-                                .mapToDouble(a -> a)
-                                .average().orElse(0) / 1000 / 1000);
-                latencyList.clear();
-            }
+        final long startFetch = System.nanoTime();
+        orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_XBTUSD, 5);
+        final long endFetch = System.nanoTime();
 
-            logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
-                    orderBook.getTimeStamp());
-
-//            orderBookChangedSubject.onNext(orderBook);
-
-            CompletableFuture.runAsync(() -> {
-                checkOrderBook(orderBook);
-            });
-
-        } catch (IOException e) {
-            logger.error("Can not fetchOrderBook", e);
-        } catch (Exception e) {
-            logger.error("Unexpected error on fetchOrderBook", e);
+        latencyList.add(endFetch - startFetch);
+        if (latencyList.size() > 100) {
+            logger.debug("Average get orderBook(5) time is {} ms",
+                    latencyList
+                            .stream()
+                            .mapToDouble(a -> a)
+                            .average().orElse(0) / 1000 / 1000);
+            latencyList.clear();
         }
+
+        logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
+                orderBook.getTimeStamp());
+
+        CompletableFuture.runAsync(() -> {
+            checkOrderBook(orderBook);
+        });
+
         return orderBook;
     }
 

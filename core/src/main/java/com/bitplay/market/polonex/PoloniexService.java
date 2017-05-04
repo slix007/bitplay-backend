@@ -62,7 +62,7 @@ public class PoloniexService extends MarketService {
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
     private final static BigDecimal POLONIEX_STEP = new BigDecimal("0.00000001");
-
+    private final static String NAME = "poloniex";
     ArbitrageService arbitrageService;
 
     @Autowired
@@ -77,6 +77,11 @@ public class PoloniexService extends MarketService {
     public final static Currency CURRENCY_USDT = new Currency("USDT");
 
     private List<Long> latencyList = new ArrayList<>();
+
+    @Override
+    public String getName() {
+        return NAME;
+    }
 
     private StreamingExchange initExchange(String key, String secret) {
 
