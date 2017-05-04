@@ -6,6 +6,7 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +39,7 @@ public class BitmexAdapters {
                 LimitOrder limitOrder = new LimitOrder
                         .Builder(orderType, currencyPair)
                         .tradableAmount(orderBookL2.getSize())
-                        .limitPrice(new BigDecimal(orderBookL2.getPrice()))
+                        .limitPrice(new BigDecimal(orderBookL2.getPrice()).setScale(2, RoundingMode.HALF_UP))
                         .build();
                 limitOrderList.add(limitOrder);
             }
