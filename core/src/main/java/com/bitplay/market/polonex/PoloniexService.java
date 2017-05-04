@@ -89,7 +89,6 @@ public class PoloniexService extends MarketService {
 
     private StreamingExchange exchange;
 
-    private AccountInfo accountInfo = null;
     private Ticker ticker;
 //    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
 
@@ -167,10 +166,6 @@ public class PoloniexService extends MarketService {
                 .subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
-    public synchronized void setAccountInfo(AccountInfo accountInfo) {
-        this.accountInfo = accountInfo;
-    }
-
     private void startAccountInfoListener() {
         accountInfoSubscription = observableAccountInfo()
                 .subscribeOn(Schedulers.io())
@@ -208,19 +203,6 @@ public class PoloniexService extends MarketService {
                 else sleep(2000);
             }
         });
-    }
-
-    private void sleep(int time) {
-        try {
-            Thread.sleep(time);
-        } catch (InterruptedException e) {
-            logger.error("Error on sleep", e);
-        }
-    }
-
-    @Override
-    public synchronized AccountInfo getAccountInfo() {
-        return accountInfo;
     }
 
     @Override

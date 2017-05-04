@@ -14,7 +14,7 @@
     <artifactId>bitplay-aggregator</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
     <modules>
-        <module>bitmex</module>
+        <module>xchange-bitmex</module>
         <module>core</module>
     </modules>
     <packaging>pom</packaging>

@@ -4,7 +4,11 @@
     <artifactId>bitmex-api</artifactId>
     <packaging>jar</packaging>
     <version>1.0-SNAPSHOT</version>
-    <name>bitmex-api</name>
+    <name>XChange Bitmex</name>
+    <description>XChange implementation for the Bitmex Exchange</description>
+
+    <inceptionYear>2017</inceptionYear>
+
     <url>http://maven.apache.org</url>
     <build>
         <plugins>
@@ -20,7 +24,7 @@
                         </goals>
                         <configuration>
                             <!-- specify the swagger yaml -->
-                            <inputSpec>bitmex/src/main/resources/swagger.json</inputSpec>
+                            <inputSpec>src/main/resources/swagger.json</inputSpec>
 
                             <!-- target to generate java client code -->
                             <language>java</language>
@@ -114,7 +118,32 @@
             <groupId>com.brsanthu</groupId>
             <artifactId>migbase64</artifactId>
             <version>2.2</version>
-        </dependency>       
+        </dependency>
+
+
+        <!-- Cryptocurrency markets -->
+        <dependency>
+            <groupId>org.knowm.xchange</groupId>
+            <artifactId>xchange-core</artifactId>
+            <version>4.2.0</version>
+        </dependency>
+
+        <!-- Rest client -->
+        <!--<dependency>-->
+            <!--<groupId>com.github.mmazi</groupId>-->
+            <!--<artifactId>rescu</artifactId>-->
+            <!--<version>1.9.0</version>-->
+        <!--</dependency>-->
+
+
+        <!-- https://mvnrepository.com/artifact/junit/junit -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit-version}</version>
+        </dependency>
+
+
     </dependencies>
     
     <properties>
@@ -123,7 +152,8 @@
         <jackson-version>2.7.0</jackson-version>
         <jodatime-version>2.7</jodatime-version>
         <maven-plugin-version>1.0.0</maven-plugin-version>
-        <junit-version>4.8.1</junit-version>
+        <junit-version>4.12</junit-version>
+        <java.version>1.8</java.version>
     </properties>
 </project>
 

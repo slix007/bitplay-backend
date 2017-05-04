@@ -1,0 +1,37 @@
+package org.knowm.xchange.bitmex;
+
+import org.knowm.xchange.BaseExchange;
+import org.knowm.xchange.Exchange;
+import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.bitmex.service.BitmexAccountService;
+import org.knowm.xchange.bitmex.service.BitmexMarketDataService;
+
+import si.mazi.rescu.SynchronizedValueFactory;
+
+/**
+ * Created by Sergey Shurmin on 5/3/17.
+ */
+public class BitmexExchange extends BaseExchange implements Exchange {
+
+    @Override
+    protected void initServices() {
+        this.marketDataService = new BitmexMarketDataService(this);
+        this.accountService = new BitmexAccountService(this);
+    }
+
+    public SynchronizedValueFactory<Long> getNonceFactory() {
+        return null;
+    }
+
+    public ExchangeSpecification getDefaultExchangeSpecification() {
+        ExchangeSpecification exchangeSpecification = new ExchangeSpecification(this.getClass().getCanonicalName());
+        exchangeSpecification.setSslUri("https://www.bitmex.com/api/v1");
+        exchangeSpecification.setHost("www.bitmex.com");
+        exchangeSpecification.setPort(443);
+        exchangeSpecification.setExchangeName("Bitmex");
+        exchangeSpecification.setExchangeDescription("Bitmex is a Bitcoin exchange");
+        exchangeSpecification.setMetaDataJsonFileOverride(null);
+
+        return exchangeSpecification;
+    }
+}

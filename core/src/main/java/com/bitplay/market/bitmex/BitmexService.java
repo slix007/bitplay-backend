@@ -1,31 +1,40 @@
 package com.bitplay.market.bitmex;
 
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 
+import org.knowm.xchange.Exchange;
+import org.knowm.xchange.ExchangeFactory;
+import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.bitmex.BitmexExchange;
 import org.knowm.xchange.currency.Currency;
+import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
+import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.PreDestroy;
 
 import io.reactivex.Observable;
-import io.swagger.client.ApiException;
-import io.swagger.client.api.APIKeyApi;
-import io.swagger.client.api.UserApi;
-import io.swagger.client.model.APIKey;
-import io.swagger.client.model.Wallet;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
@@ -34,19 +43,34 @@ import io.swagger.client.model.Wallet;
 public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
 
+    private final static CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
+
+    private Exchange exchange;
+
+    private List<Long> latencyList = new ArrayList<>();
+
+    Disposable accountInfoSubscription;
+
+
+    ArbitrageService arbitrageService;
+
+    @Autowired
+    public void setArbitrageService(ArbitrageService arbitrageService) {
+        this.arbitrageService = arbitrageService;
+    }
 
     @Override
     public void initializeMarket(String key, String secret) {
-        APIKeyApi apiInstance = new APIKeyApi();
-        String apiKeyID = key; // String | API Key ID (public component).
-        try {
-            final List<APIKey> apiKeys = apiInstance.aPIKeyGet(false);
-//            logger.info(apiKeys);
-        } catch (ApiException e) {
-            System.err.println("Exception when calling APIKeyApi#aPIKeyDisable");
-            e.printStackTrace();
-        }
+        initExchange(key, secret);
 
+        startAccountInfoListener();
+    }
+
+    private void initExchange(String key, String secret) {
+        ExchangeSpecification spec = new ExchangeSpecification(BitmexExchange.class);
+        spec.setApiKey(key);
+        spec.setSecretKey(secret);
+        this.exchange = ExchangeFactory.INSTANCE.createExchange(BitmexExchange.class.getName());
     }
 
     @Override
@@ -86,26 +110,107 @@ public class BitmexService extends MarketService {
 
     @Override
     public Observable<OrderBook> observeOrderBook() {
-        return null;
+        return Observable.create(observableOnSubscribe -> {
+            while (!observableOnSubscribe.isDisposed()) {
+                boolean noSleep = false;
+                try {
+                    final OrderBook orderBook = fetchOrderBook();
+                    if (orderBook != null) {
+                        observableOnSubscribe.onNext(orderBook);
+                    }
+                } catch (ExchangeException e) {
+                    if (e.getMessage().startsWith("Nonce must be greater than")) {
+                        noSleep = true;
+                        logger.warn(e.getMessage());
+                    } else {
+                        observableOnSubscribe.onError(e);
+                    }
+                }
+
+                if (noSleep) sleep(10);
+                else sleep(250);
+            }
+        });
     }
 
-    @Override
-    public AccountInfo getAccountInfo() {
-        AccountInfo accountInfo = new AccountInfo();
-        final UserApi userApi = new UserApi();
-        try {
-            final Wallet btc = userApi.userGetWallet("XBT");
-            final BigDecimal btcAmount = btc.getAmount();
-            final Wallet usd = userApi.userGetWallet("USD");
-            final BigDecimal usdAmount = usd.getAmount();
 
-            accountInfo = new AccountInfo(new org.knowm.xchange.dto.account.Wallet(
-                    new Balance(Currency.XBT, btcAmount),
-                    new Balance(Currency.USD, usdAmount)
-            ));
-        } catch (ApiException e) {
-            logger.error("Get account info error");
+    private void startAccountInfoListener() {
+        accountInfoSubscription = observableAccountInfo()
+                .subscribeOn(Schedulers.io())
+                .doOnError(throwable -> logger.error("Account fetch error", throwable))
+                .subscribe(accountInfo1 -> {
+                    setAccountInfo(accountInfo1);
+                    logger.info("Balance BTC={}, USD={}",
+                            accountInfo.getWallet().getBalance(Currency.XBT).getAvailable().toPlainString(),
+                            accountInfo.getWallet().getBalance(Currency.USD).getAvailable().toPlainString());
+                }, throwable -> {
+                    logger.error("Can not fetchAccountInfo", throwable);
+                    // schedule it again
+                    sleep(5000);
+                    startAccountInfoListener();
+                });
+    }
+
+
+    public Observable<AccountInfo> observableAccountInfo() {
+        return Observable.create(observableOnSubscribe -> {
+            while (!observableOnSubscribe.isDisposed()) {
+                boolean noSleep = false;
+                try {
+                    accountInfo = exchange.getAccountService().getAccountInfo();
+                    observableOnSubscribe.onNext(accountInfo);
+                } catch (ExchangeException e) {
+                    if (e.getMessage().startsWith("Nonce must be greater than")) {
+                        noSleep = true;
+                        logger.warn(e.getMessage());
+                    } else {
+                        observableOnSubscribe.onError(e);
+                    }
+                }
+
+                if (noSleep) sleep(10);
+                else sleep(2000);
+            }
+        });
+    }
+
+    public OrderBook fetchOrderBook() {
+        try {
+//                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, -1);
+            final long startFetch = System.nanoTime();
+            orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_XBTUSD, 5);
+            final long endFetch = System.nanoTime();
+
+            latencyList.add(endFetch - startFetch);
+            if (latencyList.size() > 100) {
+                logger.debug("Average get orderBook(5) time is {} ms",
+                        latencyList
+                                .stream()
+                                .mapToDouble(a -> a)
+                                .average().orElse(0) / 1000 / 1000);
+                latencyList.clear();
+            }
+
+            logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
+                    orderBook.getTimeStamp());
+
+//            orderBookChangedSubject.onNext(orderBook);
+
+            CompletableFuture.runAsync(() -> {
+                checkOrderBook(orderBook);
+            });
+
+        } catch (IOException e) {
+            logger.error("Can not fetchOrderBook", e);
+        } catch (Exception e) {
+            logger.error("Unexpected error on fetchOrderBook", e);
         }
-        return accountInfo;
+        return orderBook;
+    }
+
+    @PreDestroy
+    public void preDestroy() {
+        // Unsubscribe from data order book.
+        accountInfoSubscription.dispose();
     }
 }

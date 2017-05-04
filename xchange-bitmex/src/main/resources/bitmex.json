@@ -1,0 +1,20 @@
+{
+  "currency_pairs": {
+    "XBT/USD": {
+      "price_scale": 8,
+      "trading_fee": 0.002
+    }
+  },
+  "currencies": {
+    "XBT": {
+      "scale": 8
+    }
+  },
+  "private_rate_limits": [
+    {
+      "calls": 180,
+      "time_unit": "minutes"
+    }
+  ],
+  "share_rate_limits": true
+}

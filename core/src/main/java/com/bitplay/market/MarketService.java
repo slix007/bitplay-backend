@@ -36,6 +36,7 @@ public abstract class MarketService {
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected List<LimitOrder> openOrders = new ArrayList<>();
     protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+    protected AccountInfo accountInfo = null;
 
     protected Subject<BigDecimal> bestAskChangedSubject = PublishSubject.create();
     protected Subject<BigDecimal> bestBidChangedSubject = PublishSubject.create();
@@ -53,7 +54,13 @@ public abstract class MarketService {
 
     public abstract Observable<OrderBook> observeOrderBook();
 
-    public abstract AccountInfo getAccountInfo();
+    public AccountInfo getAccountInfo() {
+        return accountInfo;
+    }
+
+    public synchronized void setAccountInfo(AccountInfo accountInfo) {
+        this.accountInfo = accountInfo;
+    }
 
     public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes);
 
@@ -107,9 +114,9 @@ public abstract class MarketService {
 //            orderIdToSignalInfo.entrySet()
 //                    .removeIf(entry -> openOrders.stream()
 //                            .noneMatch(l -> l.getId().equals(entry.getKey())));
-            logger.info(String.format("OpenOrders.size=%s, bestQuotesSize=%s",
-                    openOrders.size(),
-                    orderIdToSignalInfo.size()));
+//            logger.info(String.format("OpenOrders.size=%s, bestQuotesSize=%s",
+//                    openOrders.size(),
+//                    orderIdToSignalInfo.size()));
         }
 
         return openOrders;
@@ -300,4 +307,13 @@ public abstract class MarketService {
         }
         return response;
     }
+
+    protected void sleep(int time) {
+        try {
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+            logger.error("Error on sleep", e);
+        }
+    }
+
 }

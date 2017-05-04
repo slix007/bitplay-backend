@@ -62,8 +62,6 @@ public class OkCoinService extends MarketService {
 
     private OkCoinStreamingExchange exchange;
 
-    AccountInfo accountInfo = null;
-
     Disposable orderBookSubscription;
 
     @Override
@@ -180,10 +178,6 @@ public class OkCoinService extends MarketService {
         return accountInfo;
     }
 
-    @Override
-    public AccountInfo getAccountInfo() {
-        return accountInfo;
-    }
 
     public OrderBook fetchOrderBook() {
         try {
