@@ -76,6 +76,11 @@ public class PoloniexService extends MarketService {
     public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
     public final static Currency CURRENCY_USDT = new Currency("USDT");
 
+    @Override
+    public Currency getSecondCurrency() {
+        return CURRENCY_USDT;
+    }
+
     private List<Long> latencyList = new ArrayList<>();
 
     @Override

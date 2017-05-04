@@ -114,7 +114,7 @@ public class ArbitrageService {
 
         final Wallet walletP = firstMarketService.getAccountInfo().getWallet();
         final BigDecimal btcP = walletP.getBalance(Currency.BTC).getAvailable();
-        final BigDecimal usdP = walletP.getBalance(PoloniexService.CURRENCY_PAIR_USDT_BTC.counter).getAvailable();
+        final BigDecimal usdP = walletP.getBalance(firstMarketService.getSecondCurrency()).getAvailable();
         final Wallet walletO = secondMarketService.getAccountInfo().getWallet();
         final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
@@ -161,7 +161,7 @@ public class ArbitrageService {
     private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {
         final Wallet walletP = firstMarketService.getAccountInfo().getWallet();
         final BigDecimal btcP = walletP.getBalance(Currency.BTC).getAvailable();
-        final BigDecimal usdP = walletP.getBalance(PoloniexService.CURRENCY_PAIR_USDT_BTC.counter).getAvailable();
+        final BigDecimal usdP = walletP.getBalance(firstMarketService.getSecondCurrency()).getAvailable();
         final Wallet walletO = secondMarketService.getAccountInfo().getWallet();
         final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();

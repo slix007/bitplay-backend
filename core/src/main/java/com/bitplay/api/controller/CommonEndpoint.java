@@ -60,6 +60,13 @@ public class CommonEndpoint {
     }
 
     @GET
+    @Path("/market/trade-log/bitmex")
+    @Produces(MediaType.APPLICATION_JSON)
+    public TradeLogJson getBitmexTradeLog() {
+        return commonUIService.getBitmexTradeLog();
+    }
+
+    @GET
     @Path("/market/trade-log/okcoin")
     @Produces(MediaType.APPLICATION_JSON)
     public TradeLogJson getOkcoinTradeLog() {

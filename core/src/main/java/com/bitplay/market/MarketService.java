@@ -5,6 +5,7 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
+import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -318,4 +319,7 @@ public abstract class MarketService {
         }
     }
 
+    public Currency getSecondCurrency() {
+        return Currency.USD;
+    }
 }

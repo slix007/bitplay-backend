@@ -1,5 +1,6 @@
 package com.bitplay.api.controller.config;
 
+import com.bitplay.api.controller.BitmexEndpoint;
 import com.bitplay.api.controller.OkCoinEndpoint;
 import com.bitplay.api.controller.PoloniexEndpoint;
 import com.bitplay.api.controller.CommonEndpoint;
@@ -16,10 +17,11 @@ public class JerseyConfig extends ResourceConfig {
 
     public JerseyConfig() {
         register(CORSFilter.class);
+        register(ExceptionMapper.class);
         register(CommonEndpoint.class);
         register(OkCoinEndpoint.class);
         register(PoloniexEndpoint.class);
-        register(ExceptionMapper.class);
+        register(BitmexEndpoint.class);
     }
 
 }

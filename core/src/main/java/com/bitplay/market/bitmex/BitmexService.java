@@ -14,6 +14,8 @@ import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -212,5 +214,10 @@ public class BitmexService extends MarketService {
     public void preDestroy() {
         // Unsubscribe from data order book.
         accountInfoSubscription.dispose();
+    }
+
+    @Override
+    public AccountInfo getAccountInfo() {
+        return new AccountInfo(new Wallet(new Balance(Currency.XBT, BigDecimal.ZERO), new Balance(Currency.USD, BigDecimal.ZERO)));
     }
 }

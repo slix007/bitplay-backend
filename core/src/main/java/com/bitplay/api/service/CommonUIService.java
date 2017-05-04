@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -28,6 +29,10 @@ public class CommonUIService {
         return getTradeLogJson("./logs/poloniex-trades.log");
     }
 
+    public TradeLogJson getBitmexTradeLog() {
+        return getTradeLogJson("./logs/bitmex-trades.log");
+    }
+
     public TradeLogJson getOkCoinTradeLog() {
         return getTradeLogJson("./logs/okcoin-trades.log");
     }
@@ -39,6 +44,8 @@ public class CommonUIService {
 
             tradeLogJson = new TradeLogJson(allLines);
 
+        } catch (NoSuchFileException e) {
+            //do nothing
         } catch (IOException e) {
             e.printStackTrace();
         }
