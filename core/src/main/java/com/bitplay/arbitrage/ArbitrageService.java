@@ -2,7 +2,6 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.polonex.PoloniexService;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.currency.Currency;
@@ -52,6 +51,8 @@ public class ArbitrageService {
 
         observableOrderBooks()
                 .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.computation())
+//                .doOnError(throwable -> logger.error("doOnError On combine orderBooks", throwable))
                 .subscribe(bestQuotes -> {
                     // Log not often then 5 sec
                     if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
@@ -63,6 +64,7 @@ public class ArbitrageService {
                     }
                 }, throwable -> {
                     logger.error("On combine orderBooks", throwable);
+                    startArbitrageMonitoring();
                 });
 
     }
