@@ -121,7 +121,7 @@ public class ArbitrageService {
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
 
 
-        BigDecimal amount = new BigDecimal("0.01");
+        BigDecimal amount = new BigDecimal("0.02");
 //            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
