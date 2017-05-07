@@ -208,7 +208,7 @@ public abstract class BitmexNettyStreamingService<T> {
                 e.onError(throwable);
             }
         }).doOnDispose(() -> {
-            sendMessage(getUnsubscribeMessage(tableName));
+            sendMessage(getUnsubscribeMessage(channelName));
             channels.remove(tableName);
         });
     }
