@@ -71,7 +71,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public Observable<OrderBook> observeOrderBook() {
+    public Observable<OrderBook> getOrderBookObservable() {
         return null;
     }
 

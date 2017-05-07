@@ -63,8 +63,17 @@ public class PoloniexService extends MarketService {
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
     private final static BigDecimal POLONIEX_STEP = new BigDecimal("0.00000001");
     private final static String NAME = "poloniex";
-    ArbitrageService arbitrageService;
 
+    private StreamingExchange exchange;
+
+    private Ticker ticker;
+//    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
+
+    Disposable orderBookSubscription;
+    Disposable accountInfoSubscription;
+    Observable<OrderBook> orderBookObservable;
+
+    ArbitrageService arbitrageService;
     @Autowired
     public void setArbitrageService(ArbitrageService arbitrageService) {
         this.arbitrageService = arbitrageService;
@@ -96,14 +105,6 @@ public class PoloniexService extends MarketService {
 
         return StreamingExchangeFactory.INSTANCE.createExchange(spec);
     }
-
-    private StreamingExchange exchange;
-
-    private Ticker ticker;
-//    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
-
-    Disposable orderBookSubscription;
-    Disposable accountInfoSubscription;
 
     @Override
     public void initializeMarket(String key, String secret) {
@@ -255,9 +256,8 @@ public class PoloniexService extends MarketService {
 //        checkOrderBook(orderBook);
 //    }
 
-    @Override
-    public Observable<OrderBook> observeOrderBook() {
-        return Observable.create(observableOnSubscribe -> {
+    private void createOrderBookObservable() {
+        final Observable<OrderBook> orderBookObservable = Observable.create(observableOnSubscribe -> {
             while (!observableOnSubscribe.isDisposed()) {
                 boolean noSleep = false;
                 try {
@@ -278,6 +278,13 @@ public class PoloniexService extends MarketService {
                 else sleep(250);
             }
         });
+
+        this.orderBookObservable = orderBookObservable.share();
+    }
+
+    @Override
+    public Observable<OrderBook> getOrderBookObservable() {
+        return orderBookObservable;
     }
 
     public OrderBook fetchOrderBook() {

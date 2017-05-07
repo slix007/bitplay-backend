@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,11 +54,11 @@ public class BitmexService extends MarketService {
 
     private List<Long> latencyList = new ArrayList<>();
 
-    Disposable accountInfoSubscription;
-    Disposable orderBookSubscription;
+    private Disposable accountInfoSubscription;
+    private Disposable orderBookSubscription;
 
-
-    ArbitrageService arbitrageService;
+    private ArbitrageService arbitrageService;
+    private Observable<OrderBook> orderBookObservable;
 
     @Autowired
     public void setArbitrageService(ArbitrageService arbitrageService) {
@@ -76,6 +75,8 @@ public class BitmexService extends MarketService {
         this.exchange = initExchange(key, secret);
 
         initWebSocketConnection();
+
+        createOrderBookObservable();
 
         subscribeOnOrderBook();
 
@@ -141,7 +142,8 @@ public class BitmexService extends MarketService {
 
     private void subscribeOnOrderBook() {
         //TODO subscribe on updates only to increase the speed
-        orderBookSubscription = observeOrderBook()
+        orderBookSubscription = getOrderBookObservable()
+                .subscribeOn(Schedulers.computation())
                 .subscribe(orderBook -> {
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
@@ -162,12 +164,17 @@ public class BitmexService extends MarketService {
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }
 
-    @Override
-    public Observable<OrderBook> observeOrderBook() {
-        return exchange.getStreamingMarketDataService()
+    private void createOrderBookObservable() {
+        orderBookObservable = exchange.getStreamingMarketDataService()
                 .getOrderBook(CurrencyPair.BTC_USD, 20)
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
-                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"));
+                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
+                .share();
+    }
+
+    @Override
+    public Observable<OrderBook> getOrderBookObservable() {
+        return orderBookObservable;
     }
 
     @Override
@@ -206,7 +213,7 @@ public class BitmexService extends MarketService {
     }
 /*
     @Override
-    public Observable<OrderBook> observeOrderBook() {
+    public Observable<OrderBook> getOrderBookObservable() {
         return Observable.create(observableOnSubscribe -> {
             while (!observableOnSubscribe.isDisposed()) {
                 int sleepTime = 1000;
@@ -271,7 +278,7 @@ public class BitmexService extends MarketService {
             }
         });
     }
-
+/*
     public OrderBook fetchOrderBook() throws IOException, ExchangeException {
 
         final long startFetch = System.nanoTime();
@@ -296,12 +303,14 @@ public class BitmexService extends MarketService {
         });
 
         return orderBook;
-    }
+    }*/
 
     @PreDestroy
     public void preDestroy() {
         // Unsubscribe from data order book.
         accountInfoSubscription.dispose();
+
+        orderBookSubscription.dispose();
     }
 
     @Override

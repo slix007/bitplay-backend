@@ -9,7 +9,6 @@ import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.okcoin.OkCoinStreamingExchange;
 
-import org.knowm.xchange.BaseExchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -39,6 +38,7 @@ import javax.annotation.PreDestroy;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
@@ -64,6 +64,7 @@ public class OkCoinService extends MarketService {
     private OkCoinStreamingExchange exchange;
 
     Disposable orderBookSubscription;
+    Observable<OrderBook> orderBookObservable;
 
     @Override
     public String getName() {
@@ -76,9 +77,19 @@ public class OkCoinService extends MarketService {
 
         initWebSocketConnection();
 
+        createOrderBookObservable();
+
         subscribeOnOrderBook();
 
         subscribeOnOthers();
+    }
+
+    private void createOrderBookObservable() {
+        orderBookObservable = exchange.getStreamingMarketDataService()
+                .getOrderBook(CurrencyPair.BTC_USD, 20)
+                .doOnDispose(() -> logger.info("okcoin subscription doOnDispose"))
+                .doOnTerminate(() -> logger.info("okcoin subscription doOnTerminate"))
+                .share();
     }
 
     private OkCoinStreamingExchange initExchange(String key, String secret) {
@@ -118,7 +129,8 @@ public class OkCoinService extends MarketService {
 
     private void subscribeOnOrderBook() {
         //TODO subscribe on updates only to increase the speed
-        orderBookSubscription = observeOrderBook()
+        orderBookSubscription = getOrderBookObservable()
+                .subscribeOn(Schedulers.computation())
                 .subscribe(orderBook -> {
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
@@ -140,11 +152,8 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public Observable<OrderBook> observeOrderBook() {
-        return exchange.getStreamingMarketDataService()
-                .getOrderBook(CurrencyPair.BTC_USD, 20)
-                .doOnDispose(() -> logger.info("okcoin subscription doOnDispose"))
-                .doOnTerminate(() -> logger.info("okcoin subscription doOnTerminate"));
+    public Observable<OrderBook> getOrderBookObservable() {
+        return orderBookObservable;
     }
 
     @PreDestroy

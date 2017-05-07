@@ -52,7 +52,7 @@ public class ArbitrageService {
         observableOrderBooks()
                 .subscribeOn(Schedulers.computation())
                 .observeOn(Schedulers.computation())
-//                .doOnError(throwable -> logger.error("doOnError On combine orderBooks", throwable))
+                .doOnError(throwable -> logger.error("doOnError On combine orderBooks", throwable))
                 .subscribe(bestQuotes -> {
                     // Log not often then 5 sec
                     if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
@@ -70,8 +70,8 @@ public class ArbitrageService {
     }
 
     private Observable<BestQuotes> observableOrderBooks() {
-        final Observable<OrderBook> firstOrderBook = firstMarketService.observeOrderBook();
-        final Observable<OrderBook> secondOrderBook = secondMarketService.observeOrderBook();
+        final Observable<OrderBook> firstOrderBook = firstMarketService.getOrderBookObservable();
+        final Observable<OrderBook> secondOrderBook = secondMarketService.getOrderBookObservable();
 
         // Observable.combineLatest - doesn't work while observable isn't completed
         return Observable
@@ -80,16 +80,15 @@ public class ArbitrageService {
     }
 
     private BestQuotes doComparison() {
-        final OrderBook poloniexOrderBook = firstMarketService.getOrderBook();
-        final OrderBook okCoinOrderBook = secondMarketService.getOrderBook();
-
+        final OrderBook firstOrderBook = firstMarketService.getOrderBook();
+        final OrderBook secondOrderBook = secondMarketService.getOrderBook();
 
         BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
-        if (poloniexOrderBook != null
-                && okCoinOrderBook != null
+        if (firstOrderBook != null
+                && secondOrderBook != null
                 && firstMarketService.getAccountInfo() != null
                 && secondMarketService.getAccountInfo() != null) {
-            bestQuotes = calcAndDoArbitrage(okCoinOrderBook, poloniexOrderBook);
+            bestQuotes = calcAndDoArbitrage(secondOrderBook, firstOrderBook);
         }
         return bestQuotes;
     }

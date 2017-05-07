@@ -53,7 +53,13 @@ public abstract class MarketService {
 
     public abstract OrderBook getOrderBook();
 
-    public abstract Observable<OrderBook> observeOrderBook();
+    /**
+     * Create only one observable on initialization.<br>
+     * Use also .share() to make it multisubscribers compatible.
+     *
+     * @return observable that was created before this method.
+     */
+    public abstract Observable<OrderBook> getOrderBookObservable();
 
     public abstract String getName();
 
