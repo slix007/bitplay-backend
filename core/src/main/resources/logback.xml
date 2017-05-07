@@ -163,4 +163,6 @@
     <!-- Logging api requests for poloniex -->
     <!--<logger name="si.mazi.rescu" level="trace"/>-->
 
+    <logger name="info.bitrich.xchangestream.bitmex.netty" level="debug"/>
+
 </configuration>

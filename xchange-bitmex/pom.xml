@@ -1,9 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <parent>
+        <artifactId>bitplay-aggregator</artifactId>
+        <groupId>com.bitplay</groupId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.bitplay.marketapi</groupId>
-    <artifactId>bitmex-api</artifactId>
+    <groupId>org.knowm.xchange</groupId>
+    <artifactId>xchange-bitmex</artifactId>
     <packaging>jar</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <!--<version>4.2.1-SNAPSHOT</version>-->
+
     <name>XChange Bitmex</name>
     <description>XChange implementation for the Bitmex Exchange</description>
 
@@ -122,6 +130,8 @@
 
 
         <!-- Cryptocurrency markets -->
+
+        <!-- TODO move it to xchange. Parent should be org.knowm.xchange otherwise do not set the next dependency -->
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-core</artifactId>

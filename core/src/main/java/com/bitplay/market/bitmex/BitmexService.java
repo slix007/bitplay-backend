@@ -5,11 +5,12 @@ import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.utils.Utils;
+
+import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 
 import org.knowm.xchange.Exchange;
-import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
-import org.knowm.xchange.bitmex.BitmexExchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
@@ -21,6 +22,7 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
+import org.knowm.xchange.utils.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +39,6 @@ import javax.annotation.PreDestroy;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
-import io.swagger.client.ApiException;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
@@ -50,11 +51,13 @@ public class BitmexService extends MarketService {
 
     private final static CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
-    private Exchange exchange;
+    private BitmexStreamingExchange exchange;
 
     private List<Long> latencyList = new ArrayList<>();
 
     Disposable accountInfoSubscription;
+    Disposable orderBookSubscription;
+
 
     ArbitrageService arbitrageService;
 
@@ -70,16 +73,101 @@ public class BitmexService extends MarketService {
 
     @Override
     public void initializeMarket(String key, String secret) {
-        initExchange(key, secret);
+        this.exchange = initExchange(key, secret);
+
+        initWebSocketConnection();
+
+        subscribeOnOrderBook();
+
 
 //        startAccountInfoListener();
     }
 
-    private void initExchange(String key, String secret) {
-        ExchangeSpecification spec = new ExchangeSpecification(BitmexExchange.class);
+    private BitmexStreamingExchange initExchange(String key, String secret) {
+        ExchangeSpecification spec = new ExchangeSpecification(BitmexStreamingExchange.class);
         spec.setApiKey(key);
         spec.setSecretKey(secret);
-        this.exchange = ExchangeFactory.INSTANCE.createExchange(BitmexExchange.class.getName());
+
+        //ExchangeFactory.INSTANCE.createExchange(spec); - class cast exception, because
+        // bitmex-* implementations should be moved into libraries.
+        return (BitmexStreamingExchange) createExchange(spec);
+    }
+
+    private Exchange createExchange(ExchangeSpecification exchangeSpecification) {
+
+        Assert.notNull(exchangeSpecification, "exchangeSpecfication cannot be null");
+
+        logger.debug("Creating exchange from specification");
+
+        String exchangeClassName = exchangeSpecification.getExchangeClassName();
+
+        // Attempt to create an instance of the exchange provider
+        try {
+
+            // Attempt to locate the exchange provider on the classpath
+            Class exchangeProviderClass = Class.forName(exchangeClassName);
+
+            // Test that the class implements Exchange
+            if (Exchange.class.isAssignableFrom(exchangeProviderClass)) {
+                // Instantiate through the default constructor
+                Exchange exchange = (Exchange) exchangeProviderClass.newInstance();
+                exchange.applySpecification(exchangeSpecification);
+                return exchange;
+            } else {
+                throw new ExchangeException("Class '" + exchangeClassName + "' does not implement Exchange");
+            }
+        } catch (ClassNotFoundException e) {
+            throw new ExchangeException("Problem starting exchange provider (class not found)", e);
+        } catch (InstantiationException e) {
+            throw new ExchangeException("Problem starting exchange provider (instantiation)", e);
+        } catch (IllegalAccessException e) {
+            throw new ExchangeException("Problem starting exchange provider (illegal access)", e);
+        }
+
+        // Cannot be here due to exceptions
+    }
+
+    private void initWebSocketConnection() {
+        // Connect to the Exchange WebSocket API. Blocking wait for the connection.
+        exchange.connect().blockingAwait();
+
+        // Retry on disconnect. (It's disconneced each 5 min)
+        exchange.onDisconnect().doOnComplete(() -> {
+            logger.warn("onClientDisconnect BitmexService");
+            initWebSocketConnection();
+            subscribeOnOrderBook();
+        }).subscribe();
+    }
+
+    private void subscribeOnOrderBook() {
+        //TODO subscribe on updates only to increase the speed
+        orderBookSubscription = observeOrderBook()
+                .subscribe(orderBook -> {
+                    final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
+                    final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
+                    final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
+                    final LimitOrder bestBid = bestBids.size() > 0 ? bestBids.get(0) : null;
+                    logger.debug("ask: {}, bid: {}",
+                            bestAsk != null ? bestAsk.getLimitPrice() : null,
+                            bestBid != null ? bestBid.getLimitPrice() : null);
+                    this.orderBook = orderBook;
+
+//                    orderBookChangedSubject.onNext(orderBook);
+
+                    CompletableFuture.runAsync(() -> {
+                        checkOrderBook(orderBook);
+                    });
+
+
+                }, throwable -> logger.error("ERROR in getting order book: ", throwable));
+    }
+
+    @Override
+    public Observable<OrderBook> observeOrderBook() {
+        return exchange.getStreamingMarketDataService()
+                .getOrderBook(CurrencyPair.BTC_USD, 20)
+                .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
+                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"));
     }
 
     @Override
@@ -116,7 +204,7 @@ public class BitmexService extends MarketService {
     protected BigDecimal getMakerDelta() {
         return null;
     }
-
+/*
     @Override
     public Observable<OrderBook> observeOrderBook() {
         return Observable.create(observableOnSubscribe -> {
@@ -141,7 +229,7 @@ public class BitmexService extends MarketService {
                 sleep(sleepTime);
             }
         });
-    }
+    }*/
 
 
     private void startAccountInfoListener() {

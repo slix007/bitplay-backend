@@ -50,7 +50,7 @@ public class BitmexMarketDataService extends BitmexMarketDataServiceRaw implemen
         } catch (ApiException e) {
             throw new ExchangeException("Can not get such a symbol depth", e);
         }
-        return BitmexAdapters.adoptBitmexOrderBook(bitmexMarketDepth, currencyPair);
+        return BitmexAdapters.adaptBitmexOrderBook(bitmexMarketDepth, currencyPair);
     }
 
     public Trades getTrades(CurrencyPair currencyPair, Object... args) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {

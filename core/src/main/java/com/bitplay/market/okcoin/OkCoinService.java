@@ -89,8 +89,8 @@ public class OkCoinService extends MarketService {
         spec.setExchangeSpecificParametersItem("Use_Intl", true);
 
         OkCoinStreamingExchange exchange = (OkCoinStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
-        String metaDataFileName = ((BaseExchange) exchange).getMetaDataFileName(spec);
-        logger.info("OKCOING metaDataFileName=" + metaDataFileName);
+//        String metaDataFileName = ((BaseExchange) exchange).getMetaDataFileName(spec);
+//        logger.info("OKCOING metaDataFileName=" + metaDataFileName);
 
         return exchange;
     }
