@@ -135,9 +135,18 @@ public class BitmexService extends MarketService {
         // Retry on disconnect. (It's disconneced each 5 min)
         exchange.onDisconnect().doOnComplete(() -> {
             logger.warn("onClientDisconnect BitmexService");
+            doDisconnect();
+
             initWebSocketConnection();
+            createOrderBookObservable();
             subscribeOnOrderBook();
         }).subscribe();
+    }
+
+    private void doDisconnect() {
+        exchange.disconnect();
+        orderBookSubscription.dispose();
+        accountInfoSubscription.dispose();
     }
 
     private void subscribeOnOrderBook() {
