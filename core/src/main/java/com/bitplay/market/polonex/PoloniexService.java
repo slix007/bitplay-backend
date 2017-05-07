@@ -109,9 +109,10 @@ public class PoloniexService extends MarketService {
     @Override
     public void initializeMarket(String key, String secret) {
         exchange = initExchange(key, secret);
-        fetchOrderBook();
+//        fetchOrderBook();
         initWebSocketConnection();
 
+        createOrderBookObservable();
 //        initOrderBookSubscribers(logger);
 //        initLocalSubscribers();
         startAccountInfoListener();
