@@ -64,7 +64,20 @@
 
         <!-- You can find the dependencies for the library configuation you chose by looking in JavaClientCodegen.
              Then find the corresponding dependency on Maven Central, and set the versions in the property section below -->
-                
+
+
+        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>fluent-hc</artifactId>
+            <version>4.5.3</version>
+        </dependency>
+
         <!-- HTTP client: jersey-client -->
         <dependency>
           <groupId>org.glassfish.jersey.core</groupId>

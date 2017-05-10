@@ -20,6 +20,6 @@ public class BitmexBaseService extends BaseExchangeService implements BaseServic
     protected BitmexBaseService(Exchange exchange) {
         super(exchange);
         bitmexPublic = new BitmexPublic();
-        bitmexAuthenticated = new BitmexAuthenticated();
+        bitmexAuthenticated = new BitmexAuthenticated(exchange);
     }
 }

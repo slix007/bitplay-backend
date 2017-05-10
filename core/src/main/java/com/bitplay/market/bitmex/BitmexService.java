@@ -21,6 +21,7 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.exceptions.ExchangeException;
+import org.knowm.xchange.service.account.AccountService;
 import org.knowm.xchange.service.trade.TradeService;
 import org.knowm.xchange.utils.Assert;
 import org.slf4j.Logger;
@@ -54,12 +55,13 @@ public class BitmexService extends MarketService {
 
     private List<Long> latencyList = new ArrayList<>();
 
+    private Observable<AccountInfo> accountInfoObservable;
     private Disposable accountInfoSubscription;
+
+    private Observable<OrderBook> orderBookObservable;
     private Disposable orderBookSubscription;
 
     private ArbitrageService arbitrageService;
-    private Observable<OrderBook> orderBookObservable;
-
     @Autowired
     public void setArbitrageService(ArbitrageService arbitrageService) {
         this.arbitrageService = arbitrageService;
@@ -74,14 +76,15 @@ public class BitmexService extends MarketService {
     public void initializeMarket(String key, String secret) {
         this.exchange = initExchange(key, secret);
 
+        initWebSocketAndAllSubscribers();
+
+        startAccountInfoListener();
+    }
+
+    private void initWebSocketAndAllSubscribers() {
         initWebSocketConnection();
-
         createOrderBookObservable();
-
         subscribeOnOrderBook();
-
-
-//        startAccountInfoListener();
     }
 
     private BitmexStreamingExchange initExchange(String key, String secret) {
@@ -136,10 +139,7 @@ public class BitmexService extends MarketService {
         exchange.onDisconnect().doOnComplete(() -> {
             logger.warn("onClientDisconnect BitmexService");
             doDisconnect();
-
-            initWebSocketConnection();
-            createOrderBookObservable();
-            subscribeOnOrderBook();
+            initWebSocketAndAllSubscribers();
         }).subscribe();
     }
 
@@ -220,54 +220,11 @@ public class BitmexService extends MarketService {
     protected BigDecimal getMakerDelta() {
         return null;
     }
-/*
-    @Override
-    public Observable<OrderBook> getOrderBookObservable() {
-        return Observable.create(observableOnSubscribe -> {
-            while (!observableOnSubscribe.isDisposed()) {
-                int sleepTime = 1000;
-
-                try {
-                    final OrderBook orderBook = fetchOrderBook();
-                    if (orderBook != null) {
-                        observableOnSubscribe.onNext(orderBook);
-                    }
-                } catch (Exception e) {
-                    if (e.getCause() != null
-                            && e.getCause().getMessage().startsWith("Rate limit exceeded")) {
-                        sleepTime = 10000;
-                    } else {
-                        sleepTime = 1000;
-                    }
-
-                    observableOnSubscribe.onError(e);
-                }
-                sleep(sleepTime);
-            }
-        });
-    }*/
-
 
     private void startAccountInfoListener() {
-        accountInfoSubscription = observableAccountInfo()
-                .subscribeOn(Schedulers.io())
-                .doOnError(throwable -> logger.error("Account fetch error", throwable))
-                .subscribe(accountInfo1 -> {
-                    setAccountInfo(accountInfo1);
-                    logger.info("Balance BTC={}, USD={}",
-                            accountInfo.getWallet().getBalance(Currency.XBT).getAvailable().toPlainString(),
-                            accountInfo.getWallet().getBalance(Currency.USD).getAvailable().toPlainString());
-                }, throwable -> {
-                    logger.error("Can not fetchAccountInfo", throwable);
-                    // schedule it again
-                    sleep(5000);
-                    startAccountInfoListener();
-                });
-    }
-
-
-    public Observable<AccountInfo> observableAccountInfo() {
-        return Observable.create(observableOnSubscribe -> {
+        // Create observable. It can be shared.
+        final AccountService accountService = exchange.getAccountService();
+        accountInfoObservable = Observable.create(observableOnSubscribe -> {
             while (!observableOnSubscribe.isDisposed()) {
                 boolean noSleep = false;
                 try {
@@ -286,6 +243,33 @@ public class BitmexService extends MarketService {
                 else sleep(2000);
             }
         });
+
+//                streamingMarketDataService
+//                .getOrderBook(CurrencyPair.BTC_USD, 20)
+//                .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
+//                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
+//                .share();
+        // Create first subscriber.
+
+        accountInfoSubscription = getAccountInfoObservable()
+                .subscribeOn(Schedulers.io())
+                .doOnError(throwable -> logger.error("Account fetch error", throwable))
+                .subscribe(accountInfo1 -> {
+                    setAccountInfo(accountInfo1);
+                    logger.info("Balance BTC={}, USD={}",
+                            this.accountInfo.getWallet().getBalance(Currency.XBT).getAvailable().toPlainString(),
+                            this.accountInfo.getWallet().getBalance(Currency.USD).getAvailable().toPlainString());
+                }, throwable -> {
+                    logger.error("Can not fetchAccountInfo", throwable);
+                    // schedule it again
+                    sleep(5000);
+                    startAccountInfoListener();
+                });
+    }
+
+
+    public Observable<AccountInfo> getAccountInfoObservable() {
+        return accountInfoObservable;
     }
 /*
     public OrderBook fetchOrderBook() throws IOException, ExchangeException {

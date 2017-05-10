@@ -75,6 +75,10 @@ public class OkCoinService extends MarketService {
     public void initializeMarket(String key, String secret) {
         exchange = initExchange(key, secret);
 
+        initWebSocketAndAllSubscribers();
+    }
+
+    private void initWebSocketAndAllSubscribers() {
         initWebSocketConnection();
 
         createOrderBookObservable();
@@ -113,7 +117,7 @@ public class OkCoinService extends MarketService {
         // Retry on disconnect. (It's disconneced each 5 min)
         exchange.onDisconnect().doOnComplete(() -> {
             logger.warn("onClientDisconnect okCoinService");
-            initWebSocketConnection();
+            initWebSocketAndAllSubscribers();
         }).subscribe();
     }
 

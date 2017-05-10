@@ -179,7 +179,7 @@ public abstract class BitmexNettyStreamingService<T> {
     public void sendMessage(String message) {
         LOG.debug("Sending message: {}", message);
 
-        if (webSocketChannel == null || !webSocketChannel.isOpen()) {
+        if (webSocketChannel == null || !webSocketChannel.isOpen()) { //
             LOG.warn("WebSocket is not open! Call connect first.");
             return;
         }
