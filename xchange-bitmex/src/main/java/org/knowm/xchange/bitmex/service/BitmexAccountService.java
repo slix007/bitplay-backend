@@ -32,7 +32,7 @@ public class BitmexAccountService extends BitmexAccountServiceRaw implements Acc
         List<Balance> balances;
         try {
             balances = getWallets();
-        } catch (ApiException e) {
+        } catch (ApiException | IOException e) {
             throw new ExchangeException("Can not get wallets", e);
         }
         return new AccountInfo(new Wallet(balances));

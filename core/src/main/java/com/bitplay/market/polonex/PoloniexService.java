@@ -1,8 +1,8 @@
 package com.bitplay.market.polonex;
 
-import com.bitplay.market.MarketService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
@@ -12,11 +12,11 @@ import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingExchange;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingMarketDataService;
 
+import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
@@ -95,6 +95,11 @@ public class PoloniexService extends MarketService {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Override
+    protected Exchange getExchange() {
+        return exchange;
     }
 
     private StreamingExchange initExchange(String key, String secret) {
@@ -179,7 +184,7 @@ public class PoloniexService extends MarketService {
     }
 
     private void startAccountInfoListener() {
-        accountInfoSubscription = observableAccountInfo()
+        accountInfoSubscription = createAccountInfoObservable()
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(accountInfo1 -> {
@@ -193,28 +198,6 @@ public class PoloniexService extends MarketService {
                     sleep(5000);
                     startAccountInfoListener();
                 });
-    }
-
-    public Observable<AccountInfo> observableAccountInfo() {
-        return Observable.create(observableOnSubscribe -> {
-            while (!observableOnSubscribe.isDisposed()) {
-                boolean noSleep = false;
-                try {
-                    accountInfo = exchange.getAccountService().getAccountInfo();
-                    observableOnSubscribe.onNext(accountInfo);
-                } catch (ExchangeException e) {
-                    if (e.getMessage().startsWith("Nonce must be greater than")) {
-                        noSleep = true;
-                        logger.warn(e.getMessage());
-                    } else {
-                        observableOnSubscribe.onError(e);
-                    }
-                }
-
-                if (noSleep) sleep(10);
-                else sleep(2000);
-            }
-        });
     }
 
     @Override

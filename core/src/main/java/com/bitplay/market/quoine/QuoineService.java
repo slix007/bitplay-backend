@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 
+import org.knowm.xchange.Exchange;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -28,6 +29,11 @@ public class QuoineService extends MarketService {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Override
+    protected Exchange getExchange() {
+        return null;
     }
 
     @Override

@@ -9,6 +9,7 @@ import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.okcoin.OkCoinStreamingExchange;
 
+import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -69,6 +70,11 @@ public class OkCoinService extends MarketService {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Override
+    protected Exchange getExchange() {
+        return exchange;
     }
 
     @Override

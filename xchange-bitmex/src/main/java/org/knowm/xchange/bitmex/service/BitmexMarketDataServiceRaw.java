@@ -28,7 +28,10 @@ public class BitmexMarketDataServiceRaw extends BitmexBaseService {
 
     public List<OrderBookL2> getBitmexMarketDepth(String symbol, Integer depth) throws IOException, ApiException {
 
-        return bitmexPublic.getOrderBook(symbol, depth);
+        return bitmexPublicApi.getOrderBook(
+                symbol,
+                depth
+        );
     }
 
 //    public PaymiumTrade[] getPaymiumTrades() throws IOException {

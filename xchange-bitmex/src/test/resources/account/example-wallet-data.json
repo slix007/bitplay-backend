@@ -1,0 +1,20 @@
+{
+  "account": 24545,
+  "currency": "XBt",
+  "prevDeposited": 0,
+  "prevWithdrawn": 0,
+  "prevAmount": 0,
+  "prevTimestamp": "2017-05-12T12:00:00.000Z",
+  "deltaDeposited": 0,
+  "deltaWithdrawn": 0,
+  "deltaAmount": 0,
+  "deposited": 0,
+  "withdrawn": 0,
+  "amount": 0,
+  "pendingCredit": 0,
+  "pendingDebit": 0,
+  "confirmedDebit": 0,
+  "timestamp": "2017-05-12T16:36:27.964Z",
+  "addr": "3BMEXxznwzoFJBS34uDYfmG1d55mdNbiRJ",
+  "withdrawalLock": []
+}

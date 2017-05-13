@@ -5,12 +5,14 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
+import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
+import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -328,4 +330,29 @@ public abstract class MarketService {
     public Currency getSecondCurrency() {
         return Currency.USD;
     }
+
+    protected abstract Exchange getExchange();
+
+    protected Observable<AccountInfo> createAccountInfoObservable() {
+        return Observable.<AccountInfo>create(observableOnSubscribe -> {
+            while (!observableOnSubscribe.isDisposed()) {
+                boolean noSleep = false;
+                try {
+                    accountInfo = getExchange().getAccountService().getAccountInfo();
+                    observableOnSubscribe.onNext(accountInfo);
+                } catch (ExchangeException e) {
+                    if (e.getMessage().startsWith("Nonce must be greater than")) {
+                        noSleep = true;
+                        logger.warn(e.getMessage());
+                    } else {
+                        observableOnSubscribe.onError(e);
+                    }
+                }
+
+                if (noSleep) sleep(10);
+                else sleep(2000);
+            }
+        }).share();
+    }
+
 }

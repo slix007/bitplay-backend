@@ -21,7 +21,6 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.exceptions.ExchangeException;
-import org.knowm.xchange.service.account.AccountService;
 import org.knowm.xchange.service.trade.TradeService;
 import org.knowm.xchange.utils.Assert;
 import org.slf4j.Logger;
@@ -70,6 +69,11 @@ public class BitmexService extends MarketService {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Override
+    protected Exchange getExchange() {
+        return exchange;
     }
 
     @Override
@@ -180,6 +184,28 @@ public class BitmexService extends MarketService {
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                 .share();
     }
+/*
+    protected void createOrderBookObservable() {
+        orderBookObservable =  Observable.create(observableOnSubscribe -> {
+            while (!observableOnSubscribe.isDisposed()) {
+                boolean noSleep = false;
+                try {
+                    orderBook = getExchange().getMarketDataService().getOrderBook(CURRENCY_PAIR_XBTUSD, 5);
+                    observableOnSubscribe.onNext(orderBook);
+                } catch (ExchangeException e) {
+                    if (e.getMessage().startsWith("Nonce must be greater than")) {
+                        noSleep = true;
+                        logger.warn(e.getMessage());
+                    } else {
+                        observableOnSubscribe.onError(e);
+                    }
+                }
+
+                if (noSleep) sleep(10);
+                else sleep(2000);
+            }
+        });
+    }*/
 
     @Override
     public Observable<OrderBook> getOrderBookObservable() {
@@ -223,26 +249,7 @@ public class BitmexService extends MarketService {
 
     private void startAccountInfoListener() {
         // Create observable. It can be shared.
-        final AccountService accountService = exchange.getAccountService();
-        accountInfoObservable = Observable.create(observableOnSubscribe -> {
-            while (!observableOnSubscribe.isDisposed()) {
-                boolean noSleep = false;
-                try {
-                    accountInfo = exchange.getAccountService().getAccountInfo();
-                    observableOnSubscribe.onNext(accountInfo);
-                } catch (ExchangeException e) {
-                    if (e.getMessage().startsWith("Nonce must be greater than")) {
-                        noSleep = true;
-                        logger.warn(e.getMessage());
-                    } else {
-                        observableOnSubscribe.onError(e);
-                    }
-                }
-
-                if (noSleep) sleep(10);
-                else sleep(2000);
-            }
-        });
+        accountInfoObservable = createAccountInfoObservable();
 
 //                streamingMarketDataService
 //                .getOrderBook(CurrencyPair.BTC_USD, 20)

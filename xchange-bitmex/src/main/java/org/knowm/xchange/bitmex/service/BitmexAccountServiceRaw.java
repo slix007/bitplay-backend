@@ -1,10 +1,13 @@
 package org.knowm.xchange.bitmex.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import org.knowm.xchange.Exchange;
-import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.account.Balance;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,15 +25,28 @@ public class BitmexAccountServiceRaw extends BitmexBaseService {
         super(exchange);
     }
 
-    public List<Balance> getWallets() throws ApiException {
+    public List<Balance> getWallets() throws ApiException, IOException {
         String xbt = "XBT";
         String usd = "USD";
 
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+
+
         List<Balance> balances = new ArrayList<Balance>();
-        final Wallet xbtWallet = bitmexAuthenticated.getWallet(xbt);
-        final Wallet usdWallet = bitmexAuthenticated.getWallet(usd);
-        balances.add(adaptBitmexBalance(xbtWallet));
-        balances.add(adaptBitmexBalance(usdWallet));
+        final Wallet wallet = bitmexAuthenitcatedApi.wallet(
+                exchange.getExchangeSpecification().getApiKey(),
+                signatureCreator,
+                exchange.getNonceFactory());
+
+        System.out.println(wallet);
+
+        balances.add(adaptBitmexBalance(wallet));
+
+//        final Wallet xbtWallet = bitmexAuthenticated.getWallet(xbt);
+//        final Wallet usdWallet = bitmexAuthenticated.getWallet(usd);
+//        balances.add(adaptBitmexBalance(xbtWallet));
+//        balances.add(adaptBitmexBalance(usdWallet));
 
         return balances;
     }
