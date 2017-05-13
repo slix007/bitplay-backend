@@ -47,10 +47,11 @@ public class BitmexDigest extends BaseParamsDigest {
     public String digestParams(RestInvocation restInvocation) {
         final String verb = restInvocation.getHttpMethod();
         final String path = restInvocation.getPath();
+        final String pathWithQuery = path + "?" + restInvocation.getQueryString();
         final String nonce = restInvocation.getParamValue(HeaderParam.class, "api-nonce").toString();
         final String requestBody = restInvocation.getRequestBody();
 
-        final String signatureSource = verb + path + nonce + requestBody;
+        final String signatureSource = verb + pathWithQuery + nonce + requestBody;
         final String signature;
         try {
             signature = generateBitmexSignature(signatureSource);

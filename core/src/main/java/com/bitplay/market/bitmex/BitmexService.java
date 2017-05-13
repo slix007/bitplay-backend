@@ -263,9 +263,9 @@ public class BitmexService extends MarketService {
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(accountInfo1 -> {
                     setAccountInfo(accountInfo1);
-                    logger.info("Balance BTC={}, USD={}",
+                    logger.info("Balance XBt={}, Margin={}",
                             this.accountInfo.getWallet().getBalance(Currency.XBT).getAvailable().toPlainString(),
-                            this.accountInfo.getWallet().getBalance(Currency.USD).getAvailable().toPlainString());
+                            this.accountInfo.getWallet().getBalance(new Currency("MARGIN")).getAvailable().toPlainString());
                 }, throwable -> {
                     logger.error("Can not fetchAccountInfo", throwable);
                     // schedule it again
@@ -315,6 +315,6 @@ public class BitmexService extends MarketService {
 
     @Override
     public AccountInfo getAccountInfo() {
-        return new AccountInfo(new Wallet(new Balance(Currency.XBT, BigDecimal.ZERO), new Balance(Currency.USD, BigDecimal.ZERO)));
+        return accountInfo;
     }
 }
