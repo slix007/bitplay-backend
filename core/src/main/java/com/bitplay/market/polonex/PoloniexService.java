@@ -259,7 +259,7 @@ public class PoloniexService extends MarketService {
                 }
 
                 if (noSleep) sleep(10);
-                else sleep(250);
+                else sleep(500);
             }
         });
 
