@@ -1,5 +1,6 @@
 package info.bitrich.xchangestream.bitmex.dto;
 
+import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -35,6 +36,6 @@ public class BitmexStreamAdapters {
 
     private static LimitOrder adaptLimitOrder(Order.OrderType type, BigDecimal[] data, CurrencyPair currencyPair, String id, Date timestamp) {
 
-        return new LimitOrder(type, data[1], currencyPair, id, timestamp, data[0]);
+        return new LimitOrder(type, BitmexAdapters.satoshiToBtc(data[1]), currencyPair, id, timestamp, data[0]);
     }
 }

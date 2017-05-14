@@ -12,6 +12,8 @@ import io.swagger.client.ApiException;
 import io.swagger.client.model.Margin;
 import io.swagger.client.model.Wallet;
 
+import static org.knowm.xchange.bitmex.BitmexAdapters.satoshiToBtc;
+
 /**
  * Created by Sergey Shurmin on 5/3/17.
  */
@@ -31,13 +33,21 @@ public class BitmexAccountServiceRaw extends BitmexBaseService {
         balances.add(adaptBitmexBalance(xbtWallet));
 
         final Margin margin = bitmexAuthenitcatedApi.margin(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(), xbt);
-        balances.add(new Balance(new Currency("MARGIN"), margin.getMarginBalance(), margin.getAvailableMargin()));
+        balances.add(adaptBitmexMargin(margin));
 
         return balances;
     }
 
+    private Balance adaptBitmexMargin(Margin margin) {
+        return new Balance(new Currency("MARGIN"),
+                satoshiToBtc(margin.getMarginBalance()),
+                satoshiToBtc(margin.getAvailableMargin()));
+    }
+
     private Balance adaptBitmexBalance(Wallet wallet) {
-        return new Balance(new Currency(wallet.getCurrency()), wallet.getAmount(), wallet.getAmount());
+        return new Balance(new Currency(wallet.getCurrency()),
+                satoshiToBtc(wallet.getAmount()),
+                satoshiToBtc(wallet.getAmount()));
     }
 
 }

@@ -38,8 +38,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     VisualTrade toVisualTrade(Trade trade) {
         return new VisualTrade(
                 trade.getCurrencyPair().toString(),
-                trade.getPrice().toString(),
-                trade.getTradableAmount().toString(),
+                trade.getPrice().toPlainString(),
+                trade.getTradableAmount().toPlainString(),
                 trade.getType().toString(),
                 LocalDateTime.ofInstant(trade.getTimestamp().toInstant(), ZoneId.systemDefault())
                         .toLocalTime().toString()
@@ -85,8 +85,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     Function<LimitOrder, OrderJson> toOrderJson = limitOrder -> {
         final OrderJson orderJson = new OrderJson();
         orderJson.setOrderType(limitOrder.getType().toString());
-        orderJson.setPrice(limitOrder.getLimitPrice().toString());
-        orderJson.setAmount(limitOrder.getTradableAmount().toString());
+        orderJson.setPrice(limitOrder.getLimitPrice().toPlainString());
+        orderJson.setAmount(limitOrder.getTradableAmount().toPlainString());
         orderJson.setCurrency(limitOrder.getCurrencyPair().toString());
         orderJson.setTimestamp(limitOrder.getTimestamp() != null
                 ? LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault()).toLocalTime().toString()
