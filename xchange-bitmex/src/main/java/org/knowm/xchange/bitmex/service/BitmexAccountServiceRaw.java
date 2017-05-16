@@ -1,7 +1,6 @@
 package org.knowm.xchange.bitmex.service;
 
 import org.knowm.xchange.Exchange;
-import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.account.Balance;
 
 import java.io.IOException;
@@ -12,7 +11,8 @@ import io.swagger.client.ApiException;
 import io.swagger.client.model.Margin;
 import io.swagger.client.model.Wallet;
 
-import static org.knowm.xchange.bitmex.BitmexAdapters.satoshiToBtc;
+import static org.knowm.xchange.bitmex.BitmexAdapters.adaptBitmexBalance;
+import static org.knowm.xchange.bitmex.BitmexAdapters.adaptBitmexMargin;
 
 /**
  * Created by Sergey Shurmin on 5/3/17.
@@ -36,18 +36,6 @@ public class BitmexAccountServiceRaw extends BitmexBaseService {
         balances.add(adaptBitmexMargin(margin));
 
         return balances;
-    }
-
-    private Balance adaptBitmexMargin(Margin margin) {
-        return new Balance(new Currency("MARGIN"),
-                satoshiToBtc(margin.getMarginBalance()),
-                satoshiToBtc(margin.getAvailableMargin()));
-    }
-
-    private Balance adaptBitmexBalance(Wallet wallet) {
-        return new Balance(new Currency(wallet.getCurrency()),
-                satoshiToBtc(wallet.getAmount()),
-                satoshiToBtc(wallet.getAmount()));
     }
 
 }

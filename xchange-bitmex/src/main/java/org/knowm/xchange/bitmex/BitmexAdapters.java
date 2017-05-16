@@ -1,7 +1,9 @@
 package org.knowm.xchange.bitmex;
 
+import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
@@ -10,7 +12,9 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.swagger.client.model.Margin;
 import io.swagger.client.model.OrderBookL2;
+import io.swagger.client.model.Wallet;
 
 /**
  * Created by Sergey Shurmin on 5/3/17.
@@ -53,4 +57,18 @@ public class BitmexAdapters {
         final int satoshiScale = 8;
         return amount.divide(satoshiInBtc, satoshiScale, BigDecimal.ROUND_HALF_UP);
     }
+
+
+    public static Balance adaptBitmexMargin(Margin margin) {
+        return new Balance(new Currency("MARGIN"),
+                satoshiToBtc(margin.getMarginBalance()),
+                satoshiToBtc(margin.getAvailableMargin()));
+    }
+
+    public static Balance adaptBitmexBalance(Wallet wallet) {
+        return new Balance(new Currency(wallet.getCurrency()),
+                satoshiToBtc(wallet.getAmount()),
+                satoshiToBtc(wallet.getAmount()));
+    }
+
 }

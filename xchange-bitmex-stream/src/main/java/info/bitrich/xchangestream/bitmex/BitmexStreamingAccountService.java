@@ -1,48 +1,40 @@
 package info.bitrich.xchangestream.bitmex;
 
-import org.knowm.xchange.currency.Currency;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
+import info.bitrich.xchangestream.core.StreamingAccountService;
+
+import org.knowm.xchange.bitmex.BitmexAdapters;
+import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.exceptions.ExchangeException;
-import org.knowm.xchange.exceptions.NotAvailableFromExchangeException;
-import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
-import org.knowm.xchange.service.account.AccountService;
+import org.knowm.xchange.dto.account.Balance;
 
-import java.io.IOException;
-import java.math.BigDecimal;
+import io.reactivex.Observable;
+import io.swagger.client.model.Wallet;
 
-public class BitmexStreamingAccountService implements AccountService {
+public class BitmexStreamingAccountService implements StreamingAccountService {
 
-    private final BitmexStreamingServiceBitmex service;
+    private final StreamingServiceBitmex service;
 
-    BitmexStreamingAccountService(BitmexStreamingServiceBitmex service) {
+    BitmexStreamingAccountService(StreamingServiceBitmex service) {
         this.service = service;
     }
 
-
-    public boolean authorize(String apiKey, String secret) {
-        return false;
-
-    }
-
-    private String generateBitmexSignature(String apiSecret, String verb, String url, String nonce,
-                                           String postdict) {
-
-        return "";
-    }
-
-
     @Override
-    public AccountInfo getAccountInfo() throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        return null;
-    }
+    public Observable<AccountInfo> getAccountInfoObservable(CurrencyPair currencyPair, Object... objects) {
+        return service.subscribeChannel("wallet", "wallet")
+                .map(s -> {
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    @Override
-    public String withdrawFunds(Currency currency, BigDecimal amount, String address) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        return null;
-    }
+                    Wallet bitmexWallet = mapper.treeToValue(s.get("data").get(0), Wallet.class);
 
-    @Override
-    public String requestDepositAddress(Currency currency, String... args) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        return null;
+                    final Balance balance = BitmexAdapters.adaptBitmexBalance(bitmexWallet);
+                    return new AccountInfo(
+                            new org.knowm.xchange.dto.account.Wallet(balance)
+                    );
+                });
     }
 }

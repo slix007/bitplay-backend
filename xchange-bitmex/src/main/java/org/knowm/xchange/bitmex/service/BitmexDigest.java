@@ -54,7 +54,7 @@ public class BitmexDigest extends BaseParamsDigest {
         final String signatureSource = verb + pathWithQuery + nonce + requestBody;
         final String signature;
         try {
-            signature = generateBitmexSignature(signatureSource);
+            signature = generateBitmexSignature(secretKey, signatureSource);
         } catch (InvalidKeyException e) {
             throw new RuntimeException("Invalid key. Check it.");
         } catch (NoSuchAlgorithmException e) {
@@ -63,13 +63,23 @@ public class BitmexDigest extends BaseParamsDigest {
 
         return signature;
     }
-
-    private String generateBitmexSignature(String message) throws InvalidKeyException, NoSuchAlgorithmException {
+/*
+    public static String generateBitmexSignature(String message, String secretKey) throws InvalidKeyException, NoSuchAlgorithmException {
         Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
         SecretKeySpec secret_key = new SecretKeySpec(secretKey.getBytes(), "HmacSHA256");
         sha256_HMAC.init(secret_key);
 
         final byte[] binaryData = sha256_HMAC.doFinal(message.getBytes());
         return DatatypeConverter.printHexBinary(binaryData);
+    }*/
+    public static String generateBitmexSignature(String secretKey, String signatureSource) throws InvalidKeyException, NoSuchAlgorithmException {
+        Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+        SecretKeySpec secret_key = new SecretKeySpec(secretKey.getBytes(), "HmacSHA256");
+        sha256_HMAC.init(secret_key);
+
+        final byte[] binaryData = sha256_HMAC.doFinal(signatureSource.getBytes());
+        return DatatypeConverter.printHexBinary(binaryData);
     }
+
+
 }

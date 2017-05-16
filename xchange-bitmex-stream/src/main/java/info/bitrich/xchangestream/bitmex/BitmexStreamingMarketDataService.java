@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
+import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 
 import org.knowm.xchange.currency.CurrencyPair;
@@ -17,15 +18,15 @@ import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
 import io.reactivex.Observable;
 
 public class BitmexStreamingMarketDataService implements StreamingMarketDataService {
-    private final BitmexStreamingServiceBitmex service;
+    private final StreamingServiceBitmex service;
 
-    BitmexStreamingMarketDataService(BitmexStreamingServiceBitmex service) {
+    BitmexStreamingMarketDataService(StreamingServiceBitmex service) {
         this.service = service;
     }
 
     @Override
     public Observable<OrderBook> getOrderBook(CurrencyPair currencyPair, Object... args) {
-        return service.subscribeChannel("orderBook10", "XBTUSD", "orderBook10:XBTUSD")
+        return service.subscribeChannel("orderBook10", "orderBook10:XBTUSD")
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -33,18 +34,6 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                     BitmexDepth bitmexDepth = mapper.treeToValue(s.get("data").get(0), BitmexDepth.class);
 
                     return BitmexStreamAdapters.adaptBitmexOrderBook(bitmexDepth, currencyPair);
-                });
-    }
-
-    public Observable<AccountInfo> getAccountInfo(CurrencyPair currencyPair, Object... args) {
-        return service.subscribeChannel("wallet", "XBTUSD", "wallet:XBTUSD")
-                .map(s -> {
-                    ObjectMapper mapper = new ObjectMapper();
-                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-//                    BitmexDepth bitmexDepth = mapper.treeToValue(s.get("data").get(0), BitmexDepth.class);
-
-                    return null;
                 });
     }
 

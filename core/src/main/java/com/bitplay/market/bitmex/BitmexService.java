@@ -15,8 +15,6 @@ import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.Balance;
-import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -139,12 +137,14 @@ public class BitmexService extends MarketService {
         // Connect to the Exchange WebSocket API. Blocking wait for the connection.
         exchange.connect().blockingAwait();
 
+        exchange.authenticate().blockingAwait();
+
         // Retry on disconnect. (It's disconneced each 5 min)
-        exchange.onDisconnect().doOnComplete(() -> {
-            logger.warn("onClientDisconnect BitmexService");
-            doDisconnect();
-            initWebSocketAndAllSubscribers();
-        }).subscribe();
+//        exchange.onDisconnect().doOnComplete(() -> {
+//            logger.warn("onClientDisconnect BitmexService");
+//            doDisconnect();
+//            initWebSocketAndAllSubscribers();
+//        }).subscribe();
     }
 
     private void doDisconnect() {
@@ -249,13 +249,12 @@ public class BitmexService extends MarketService {
 
     private void startAccountInfoListener() {
         // Create observable. It can be shared.
-        accountInfoObservable = createAccountInfoObservable();
-
-//                streamingMarketDataService
-//                .getOrderBook(CurrencyPair.BTC_USD, 20)
-//                .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
-//                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
-//                .share();
+        accountInfoObservable = //createAccountInfoObservable();
+                exchange.getStreamingAccountService()
+                        .getAccountInfoObservable(CurrencyPair.BTC_USD, 20)
+                        .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
+                        .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
+                        .share();
         // Create first subscriber.
 
         accountInfoSubscription = getAccountInfoObservable()
