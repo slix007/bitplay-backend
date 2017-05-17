@@ -4,6 +4,7 @@ import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingAccountService;
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
+import info.bitrich.xchangestream.core.StreamingTradingService;
 
 import org.knowm.xchange.bitmex.BitmexExchange;
 
@@ -23,6 +24,7 @@ public class BitmexStreamingExchange extends BitmexExchange implements Streaming
     private final StreamingServiceBitmex streamingService;
     private BitmexStreamingMarketDataService streamingMarketDataService;
     private BitmexStreamingAccountService streamingAccountService;
+    private BitmexStreamingTradingService streamingTradingService;
 
     public BitmexStreamingExchange() throws URISyntaxException {
         streamingService = new StreamingServiceBitmex(API_URI);
@@ -33,6 +35,7 @@ public class BitmexStreamingExchange extends BitmexExchange implements Streaming
         super.initServices();
         streamingMarketDataService = new BitmexStreamingMarketDataService(streamingService);
         streamingAccountService = new BitmexStreamingAccountService(streamingService);
+        streamingTradingService = new BitmexStreamingTradingService(streamingService);
     }
 
     @Override
@@ -66,5 +69,10 @@ public class BitmexStreamingExchange extends BitmexExchange implements Streaming
     @Override
     public StreamingAccountService getStreamingAccountService() {
         return streamingAccountService;
+    }
+
+    @Override
+    public StreamingTradingService getStreamingTradingService() {
+        return null;
     }
 }

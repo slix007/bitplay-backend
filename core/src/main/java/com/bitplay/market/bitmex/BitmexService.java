@@ -55,9 +55,9 @@ public class BitmexService extends MarketService {
 
     private Observable<AccountInfo> accountInfoObservable;
     private Disposable accountInfoSubscription;
-
     private Observable<OrderBook> orderBookObservable;
     private Disposable orderBookSubscription;
+    private Disposable openOrdersSubscription;
 
     private ArbitrageService arbitrageService;
     @Autowired
@@ -79,17 +79,17 @@ public class BitmexService extends MarketService {
     public void initializeMarket(String key, String secret) {
         this.exchange = initExchange(key, secret);
 
-        initWebSocketAndAllSubscribers();
+        initWebSocketConnection();
+
+        startOrderBookListener();
 
         Completable.timer(1000, TimeUnit.MILLISECONDS)
                 .doOnCompleted(this::startAccountInfoListener)
                 .subscribe();
-    }
+        Completable.timer(2000, TimeUnit.MILLISECONDS)
+                .doOnCompleted(this::startOpenOrderListener)
+                .subscribe();
 
-    private void initWebSocketAndAllSubscribers() {
-        initWebSocketConnection();
-        createOrderBookObservable();
-        subscribeOnOrderBook();
     }
 
     private BitmexStreamingExchange initExchange(String key, String secret) {
@@ -154,11 +154,13 @@ public class BitmexService extends MarketService {
         exchange.disconnect();
         orderBookSubscription.dispose();
         accountInfoSubscription.dispose();
+        openOrdersSubscription.dispose();
     }
 
-    private void subscribeOnOrderBook() {
-        //TODO subscribe on updates only to increase the speed
-        orderBookSubscription = getOrderBookObservable()
+    private void startOrderBookListener() {
+        orderBookObservable = createOrderBookObservable();
+
+        orderBookSubscription = orderBookObservable
                 .subscribeOn(Schedulers.computation())
                 .subscribe(orderBook -> {
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
@@ -181,8 +183,8 @@ public class BitmexService extends MarketService {
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }
 
-    private void createOrderBookObservable() {
-        orderBookObservable = exchange.getStreamingMarketDataService()
+    private Observable<OrderBook> createOrderBookObservable() {
+        return exchange.getStreamingMarketDataService()
                 .getOrderBook(CurrencyPair.BTC_USD, 20)
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
@@ -192,6 +194,16 @@ public class BitmexService extends MarketService {
     @Override
     public Observable<OrderBook> getOrderBookObservable() {
         return orderBookObservable;
+    }
+
+
+    private void startOpenOrderListener() {
+        openOrdersSubscription = exchange.getStreamingTradingService()
+                .getOpenOrdersObservable()
+                .subscribeOn(Schedulers.computation())
+                .subscribe(openOrders -> {
+                    this.openOrders = openOrders.getOpenOrders();
+                });
     }
 
     @Override
@@ -231,13 +243,11 @@ public class BitmexService extends MarketService {
 
     @Override
     protected Observable<AccountInfo> createAccountInfoObservable() {
-        accountInfoObservable =
-                exchange.getStreamingAccountService()
+        return exchange.getStreamingAccountService()
                         .getAccountInfoObservable(CurrencyPair.BTC_USD, 20)
                         .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                         .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                         .share();
-        return accountInfoObservable;
     }
 
     private void startAccountInfoListener() {
