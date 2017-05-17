@@ -60,9 +60,15 @@ public class BitmexAdapters {
 
 
     public static Balance adaptBitmexMargin(Margin margin) {
-        return new Balance(new Currency("MARGIN"),
+        return new Balance(new Currency(margin.getCurrency()),
+                satoshiToBtc(margin.getWalletBalance()),
+                satoshiToBtc(margin.getAvailableMargin()),
+                BigDecimal.ZERO,
                 satoshiToBtc(margin.getMarginBalance()),
-                satoshiToBtc(margin.getAvailableMargin()));
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO
+                );
     }
 
     public static Balance adaptBitmexBalance(Wallet wallet) {

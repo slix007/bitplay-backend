@@ -1,12 +1,17 @@
 package com.bitplay.api.service;
 
+import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.TradeResponse;
 
+import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +72,20 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         }
 
         return new TradeResponseJson(orderId, null);
+    }
+
+    @Override
+    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo) {
+        if (accountInfo == null) {
+            return new AccountInfoJson(null, null, null);
+        }
+        final Wallet wallet = accountInfo.getWallet();
+        final Balance balance = wallet.getBalance(Currency.BTC);
+        return new AccountInfoJson(
+                balance.getTotal().toPlainString(),
+                balance.getAvailable().toPlainString(),
+                balance.getBorrowed().toPlainString(),
+                accountInfo.toString());
     }
 
 }

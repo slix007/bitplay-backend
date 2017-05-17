@@ -29,8 +29,8 @@ public class BitmexAccountServiceRaw extends BitmexBaseService {
         String xbt = "XBt";
 
         List<Balance> balances = new ArrayList<Balance>();
-        final Wallet xbtWallet = bitmexAuthenitcatedApi.wallet(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(), xbt);
-        balances.add(adaptBitmexBalance(xbtWallet));
+//        final Wallet xbtWallet = bitmexAuthenitcatedApi.wallet(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(), xbt);
+//        balances.add(adaptBitmexBalance(xbtWallet));
 
         final Margin margin = bitmexAuthenitcatedApi.margin(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(), xbt);
         balances.add(adaptBitmexMargin(margin));

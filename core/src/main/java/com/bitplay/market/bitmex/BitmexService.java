@@ -29,13 +29,14 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import rx.Completable;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
@@ -80,7 +81,9 @@ public class BitmexService extends MarketService {
 
         initWebSocketAndAllSubscribers();
 
-        startAccountInfoListener();
+        Completable.timer(1000, TimeUnit.MILLISECONDS)
+                .doOnCompleted(this::startAccountInfoListener)
+                .subscribe();
     }
 
     private void initWebSocketAndAllSubscribers() {
@@ -169,9 +172,10 @@ public class BitmexService extends MarketService {
 
 //                    orderBookChangedSubject.onNext(orderBook);
 
-                    CompletableFuture.runAsync(() -> {
-                        checkOrderBook(orderBook);
-                    });
+                    //TODO subscribe on orderBook
+//                    CompletableFuture.runAsync(() -> {
+//                        checkOrderBook(orderBook);
+//                    });
 
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
@@ -184,28 +188,6 @@ public class BitmexService extends MarketService {
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                 .share();
     }
-/*
-    protected void createOrderBookObservable() {
-        orderBookObservable =  Observable.create(observableOnSubscribe -> {
-            while (!observableOnSubscribe.isDisposed()) {
-                boolean noSleep = false;
-                try {
-                    orderBook = getExchange().getMarketDataService().getOrderBook(CURRENCY_PAIR_XBTUSD, 5);
-                    observableOnSubscribe.onNext(orderBook);
-                } catch (ExchangeException e) {
-                    if (e.getMessage().startsWith("Nonce must be greater than")) {
-                        noSleep = true;
-                        logger.warn(e.getMessage());
-                    } else {
-                        observableOnSubscribe.onError(e);
-                    }
-                }
-
-                if (noSleep) sleep(10);
-                else sleep(2000);
-            }
-        });
-    }*/
 
     @Override
     public Observable<OrderBook> getOrderBookObservable() {
@@ -247,15 +229,19 @@ public class BitmexService extends MarketService {
         return null;
     }
 
-    private void startAccountInfoListener() {
-        // Create observable. It can be shared.
-        accountInfoObservable = //createAccountInfoObservable();
+    @Override
+    protected Observable<AccountInfo> createAccountInfoObservable() {
+        accountInfoObservable =
                 exchange.getStreamingAccountService()
                         .getAccountInfoObservable(CurrencyPair.BTC_USD, 20)
                         .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                         .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                         .share();
-        // Create first subscriber.
+        return accountInfoObservable;
+    }
+
+    private void startAccountInfoListener() {
+        accountInfoObservable = createAccountInfoObservable();
 
         accountInfoSubscription = getAccountInfoObservable()
                 .subscribeOn(Schedulers.io())
@@ -277,32 +263,6 @@ public class BitmexService extends MarketService {
     public Observable<AccountInfo> getAccountInfoObservable() {
         return accountInfoObservable;
     }
-/*
-    public OrderBook fetchOrderBook() throws IOException, ExchangeException {
-
-        final long startFetch = System.nanoTime();
-        orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_XBTUSD, 5);
-        final long endFetch = System.nanoTime();
-
-        latencyList.add(endFetch - startFetch);
-        if (latencyList.size() > 100) {
-            logger.debug("Average get orderBook(5) time is {} ms",
-                    latencyList
-                            .stream()
-                            .mapToDouble(a -> a)
-                            .average().orElse(0) / 1000 / 1000);
-            latencyList.clear();
-        }
-
-        logger.debug("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
-                orderBook.getTimeStamp());
-
-        CompletableFuture.runAsync(() -> {
-            checkOrderBook(orderBook);
-        });
-
-        return orderBook;
-    }*/
 
     @PreDestroy
     public void preDestroy() {
