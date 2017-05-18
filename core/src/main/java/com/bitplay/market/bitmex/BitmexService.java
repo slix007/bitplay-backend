@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -44,6 +45,7 @@ import rx.Completable;
 @Service("bitmex")
 public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
+    private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
 
     private final static String NAME = "bitmex";
 
@@ -216,14 +218,55 @@ public class BitmexService extends MarketService {
         return orderBook;
     }
 
+
     @Override
     public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes) {
-        return null;
+        return placeMakerOrder(orderType, amount, bestQuotes, false);
+    }
+
+    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean isMoving) {
+        final TradeResponse tradeResponse = new TradeResponse();
+        try {
+            final TradeService tradeService = exchange.getTradeService();
+            BigDecimal thePrice;
+
+            thePrice = createBestMakerPrice(orderType, false);
+
+            final LimitOrder limitOrder = new LimitOrder(orderType,
+                    amount, CURRENCY_PAIR_XBTUSD, "0", new Date(),
+                    thePrice);
+
+            String orderId = tradeService.placeLimitOrder(limitOrder);
+            tradeResponse.setOrderId(orderId);
+
+            String diffWithSignal = "";
+            if (bestQuotes != null) {
+                diffWithSignal = orderType.equals(Order.OrderType.BID)
+                        ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", bestQuotes.getAsk1_o().subtract(thePrice).toPlainString()) //"BUY"
+                        : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s",thePrice.subtract(bestQuotes.getBid1_o()).toPlainString()); //"SELL"
+            }
+            tradeLogger.info("{} {} amount={} with quote={} was placed.orderId={}. {}",
+                    isMoving ? "Moved" : "maker",
+                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                    amount.toPlainString(),
+                    thePrice,
+                    orderId,
+                    diffWithSignal);
+
+            orderIdToSignalInfo.put(orderId, bestQuotes);
+
+        } catch (Exception e) {
+            logger.error("Place market order error", e);
+            tradeLogger.info("maker error {}", e.toString());
+            tradeResponse.setOrderId(e.getMessage());
+            tradeResponse.setErrorMessage(e.getMessage());
+        }
+        return tradeResponse;
     }
 
     @Override
     public TradeService getTradeService() {
-        return null;
+        return exchange.getTradeService();
     }
 
     @Override
@@ -238,7 +281,7 @@ public class BitmexService extends MarketService {
 
     @Override
     protected BigDecimal getMakerDelta() {
-        return null;
+        return new BigDecimal("0.00000001");
     }
 
     @Override

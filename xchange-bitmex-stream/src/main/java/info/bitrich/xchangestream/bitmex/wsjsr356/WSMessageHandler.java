@@ -43,7 +43,7 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     }
 
     private void parseAndProcessJsonMessage(String message) {
-        log.info("Received message: {}", message);
+//        log.info("Received message: {}", message);
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode jsonNode;
 

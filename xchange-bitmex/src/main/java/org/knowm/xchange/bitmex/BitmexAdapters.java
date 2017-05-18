@@ -77,4 +77,7 @@ public class BitmexAdapters {
                 satoshiToBtc(wallet.getAmount()));
     }
 
+    public static String adaptSymbol(CurrencyPair currencyPair) {
+        return currencyPair.base.getSymbol().toUpperCase() + currencyPair.counter.getSymbol().toUpperCase();
+    }
 }

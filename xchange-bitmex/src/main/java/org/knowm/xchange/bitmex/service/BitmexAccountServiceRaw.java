@@ -18,9 +18,7 @@ import static org.knowm.xchange.bitmex.BitmexAdapters.adaptBitmexMargin;
  * Created by Sergey Shurmin on 5/3/17.
  */
 public class BitmexAccountServiceRaw extends BitmexBaseService {
-    /**
-     * Constructor
-     */
+
     protected BitmexAccountServiceRaw(Exchange exchange) {
         super(exchange);
     }

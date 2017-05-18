@@ -1,16 +1,20 @@
 package org.knowm.xchange.bitmex;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import io.swagger.client.model.Margin;
+import io.swagger.client.model.Order;
 import io.swagger.client.model.User;
 import io.swagger.client.model.Wallet;
 import si.mazi.rescu.ParamsDigest;
@@ -48,5 +52,18 @@ public interface BitmexAuthenitcatedApi {
                   @QueryParam("currency") String currency
     ) throws IOException;
 
+    @POST
+    @Path("/order")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    Order order(@HeaderParam("api-key") String apiKey,
+                @HeaderParam("api-signature") ParamsDigest signer,
+                @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+                @FormParam("symbol") String symbol,
+                @FormParam("side") String side,
+                @FormParam("simpleOrderQty") BigDecimal simpleOrderQty,
+                @FormParam("price") BigDecimal price,
+                @FormParam("ordType") String ordType,
+                @FormParam("timeInForce") String timeInForce
+    ) throws IOException;
 
 }

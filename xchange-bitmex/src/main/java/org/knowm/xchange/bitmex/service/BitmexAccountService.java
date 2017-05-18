@@ -21,9 +21,6 @@ import io.swagger.client.ApiException;
  */
 public class BitmexAccountService extends BitmexAccountServiceRaw implements AccountService {
 
-    /**
-     * Constructor
-     */
     public BitmexAccountService(Exchange exchange) {
         super(exchange);
     }

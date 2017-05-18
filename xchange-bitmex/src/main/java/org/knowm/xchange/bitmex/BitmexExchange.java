@@ -5,6 +5,7 @@ import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.bitmex.service.BitmexAccountService;
 import org.knowm.xchange.bitmex.service.BitmexMarketDataService;
+import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.utils.nonce.TimestampIncrementingNonceFactory;
 
 import si.mazi.rescu.SynchronizedValueFactory;
@@ -20,6 +21,7 @@ public class BitmexExchange extends BaseExchange implements Exchange {
     protected void initServices() {
         this.marketDataService = new BitmexMarketDataService(this);
         this.accountService = new BitmexAccountService(this);
+        this.tradeService = new BitmexTradeService(this);
     }
 
     public ExchangeSpecification getDefaultExchangeSpecification() {
