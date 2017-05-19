@@ -1,13 +1,13 @@
 package org.knowm.xchange.bitmex;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -63,6 +63,20 @@ public interface BitmexAuthenitcatedApi {
                 @FormParam("simpleOrderQty") Double simpleOrderQty,
                 @FormParam("price") Double price,
                 @FormParam("ordType") String ordType
+    ) throws IOException;
+
+    @PUT
+    @Path("/order")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    Order updateOrder(@HeaderParam("api-key") String apiKey,
+                      @HeaderParam("api-signature") ParamsDigest signer,
+                      @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+                      @FormParam("orderID") String orderID,
+                      @FormParam("symbol") String symbol,
+                      @FormParam("side") String side,
+                      @FormParam("simpleOrderQty") Double simpleOrderQty,
+                      @FormParam("price") Double price,
+                      @FormParam("ordType") String ordType
     ) throws IOException;
 
 }

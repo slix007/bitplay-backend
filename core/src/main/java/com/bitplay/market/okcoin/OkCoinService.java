@@ -154,7 +154,7 @@ public class OkCoinService extends MarketService {
 //                    orderBookChangedSubject.onNext(orderBook);
 
                     CompletableFuture.runAsync(() -> {
-                        checkOrderBook(orderBook);
+                        checkOpenOrdersForMoving(orderBook);
                     });
 
 

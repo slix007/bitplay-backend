@@ -238,7 +238,7 @@ public class PoloniexService extends MarketService {
 
 //    @Scheduled(fixedRate = 5000)
 //    public void check() {
-//        checkOrderBook(orderBook);
+//        checkOpenOrdersForMoving(orderBook);
 //    }
 
     @Scheduled(fixedRate = 2000)
@@ -300,7 +300,7 @@ public class PoloniexService extends MarketService {
 //            orderBookChangedSubject.onNext(orderBook);
 
             CompletableFuture.runAsync(() -> {
-                checkOrderBook(orderBook);
+                checkOpenOrdersForMoving(orderBook);
             });
 
         } catch (IOException e) {

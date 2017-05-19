@@ -11,6 +11,7 @@ import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
@@ -178,7 +179,7 @@ public class BitmexService extends MarketService {
 
                     //TODO subscribe on orderBook
 //                    CompletableFuture.runAsync(() -> {
-//                        checkOrderBook(orderBook);
+//                        checkOpenOrdersForMoving(orderBook);
 //                    });
 
 
@@ -272,7 +273,74 @@ public class BitmexService extends MarketService {
 
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder) {
-        return null;
+        MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
+        int attemptCount = 0;
+        String lastExceptionMsg = "";
+//        PoloniexMoveResponse moveResponse = null;
+        BigDecimal bestMakerPrice = BigDecimal.ZERO;
+        BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
+
+        while (attemptCount < 2) {
+            attemptCount++;
+            try {
+                bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true);
+                final BitmexTradeService tradeService = (BitmexTradeService) exchange.getTradeService();
+                final String order = tradeService.moveLimitOrder(limitOrder, bestMakerPrice);
+
+                if (order != null) {
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, "");
+                    break;
+                }
+
+//            } catch (ExchangeException e) {
+//                if (e.getMessage().equals("Invalid order number, or you are not the person who placed the order.")) {
+//                    logger.info(e.getMessage());
+////                    orderFinished = true;
+//                    return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, e.getMessage());
+//                } else {
+//                    lastExceptionMsg = e.getMessage();
+//                    logger.error("{} attempt on move maker order", attemptCount, e);
+//                }
+
+            } catch (Exception e) {
+                lastExceptionMsg = e.getMessage();
+                logger.error("{} attempt on move maker order {}", attemptCount, e.getMessage());
+            }
+        }
+
+        if (moveResponse != null && moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
+            String diffWithSignal = "";
+            if (bestQuotes != null) {
+                diffWithSignal = limitOrder.getType().equals(Order.OrderType.BID)
+                        ? String.format("diff2__buy_p = ask_p[1] - order_price_buy_p = %s", bestQuotes.getAsk1_p().subtract(bestMakerPrice).toPlainString()) //"BUY"
+                        : String.format("diff1_sell_p = order_price_sell_p - bid_p[1] = %s",bestMakerPrice.subtract(bestQuotes.getBid1_p()).toPlainString()); //"SELL"
+            }
+
+            final String logString = String.format("Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s",
+                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                    limitOrder.getTradableAmount(),
+                    bestMakerPrice.toPlainString(),
+                    limitOrder.getId(),
+                    attemptCount,
+                    diffWithSignal);
+
+            orderIdToSignalInfo.put(limitOrder.getId(), bestQuotes);
+
+            tradeLogger.info(logString);
+            moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
+        } else {
+            final String logString = String.format("Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
+                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                    limitOrder.getTradableAmount(),
+                    limitOrder.getLimitPrice().toPlainString(),
+                    limitOrder.getId(),
+                    attemptCount,
+                    lastExceptionMsg);
+            tradeLogger.info(logString);
+            sleep(200);
+            moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
+        }
+        return moveResponse;
     }
 
     @Override

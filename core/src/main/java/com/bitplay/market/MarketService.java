@@ -132,7 +132,7 @@ public abstract class MarketService {
         return openOrders;
     }
 
-    protected void checkOrderBook(OrderBook orderBook) {
+    protected void checkOpenOrdersForMoving(OrderBook orderBook) {
         final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
         final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
 
