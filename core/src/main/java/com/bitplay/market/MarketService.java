@@ -105,8 +105,7 @@ public abstract class MarketService {
         return openOrders != null ? openOrders : new ArrayList<>();
     }
 
-    @Scheduled(fixedRate = 2000)
-    public List<LimitOrder> fetchOpenOrders() {
+    protected List<LimitOrder> fetchOpenOrders() {
         Exception lastException = null;
             try {
                 openOrders = getTradeService().getOpenOrders(null)

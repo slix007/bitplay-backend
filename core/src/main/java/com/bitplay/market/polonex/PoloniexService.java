@@ -35,6 +35,7 @@ import org.knowm.xchange.service.trade.params.TradeHistoryParamsZero;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -239,6 +240,11 @@ public class PoloniexService extends MarketService {
 //    public void check() {
 //        checkOrderBook(orderBook);
 //    }
+
+    @Scheduled(fixedRate = 2000)
+    public void fetchOpenOrdersSchedule() {
+        this.fetchOpenOrders();
+    }
 
     private void createOrderBookObservable() {
         final Observable<OrderBook> orderBookObservable = Observable.create(observableOnSubscribe -> {

@@ -203,6 +203,10 @@ public class OkCoinService extends MarketService {
         return accountInfo;
     }
 
+    @Scheduled(fixedRate = 2000)
+    public void fetchOpenOrdersSchedule() {
+        this.fetchOpenOrders();
+    }
 
     public OrderBook fetchOrderBook() {
         try {
