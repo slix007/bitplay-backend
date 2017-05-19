@@ -95,4 +95,10 @@ public class BitmexAdapters {
                 BigDecimal.ZERO
         );
     }
+
+    public static BigDecimal priceToBigDecimal(Double aDouble) {
+        return new BigDecimal(aDouble)
+                .setScale(1, RoundingMode.HALF_UP);
+    }
+
 }

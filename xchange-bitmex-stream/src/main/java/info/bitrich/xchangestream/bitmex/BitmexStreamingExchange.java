@@ -73,6 +73,6 @@ public class BitmexStreamingExchange extends BitmexExchange implements Streaming
 
     @Override
     public StreamingTradingService getStreamingTradingService() {
-        return null;
+        return streamingTradingService;
     }
 }
