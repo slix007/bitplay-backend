@@ -60,10 +60,9 @@ public interface BitmexAuthenitcatedApi {
                 @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
                 @FormParam("symbol") String symbol,
                 @FormParam("side") String side,
-                @FormParam("simpleOrderQty") BigDecimal simpleOrderQty,
-                @FormParam("price") BigDecimal price,
-                @FormParam("ordType") String ordType,
-                @FormParam("timeInForce") String timeInForce
+                @FormParam("simpleOrderQty") Double simpleOrderQty,
+                @FormParam("price") Double price,
+                @FormParam("ordType") String ordType
     ) throws IOException;
 
 }

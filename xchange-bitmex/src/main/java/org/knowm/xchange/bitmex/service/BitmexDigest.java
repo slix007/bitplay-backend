@@ -47,7 +47,12 @@ public class BitmexDigest extends BaseParamsDigest {
     public String digestParams(RestInvocation restInvocation) {
         final String verb = restInvocation.getHttpMethod();
         final String path = restInvocation.getPath();
-        final String pathWithQuery = path + "?" + restInvocation.getQueryString();
+
+        final String queryString = restInvocation.getQueryString();
+        final String pathWithQuery = queryString.length() == 0
+                ? path
+                : path + "?" + queryString;
+
         final String nonce = restInvocation.getParamValue(HeaderParam.class, "api-nonce").toString();
         final String requestBody = restInvocation.getRequestBody();
 
@@ -63,15 +68,7 @@ public class BitmexDigest extends BaseParamsDigest {
 
         return signature;
     }
-/*
-    public static String generateBitmexSignature(String message, String secretKey) throws InvalidKeyException, NoSuchAlgorithmException {
-        Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-        SecretKeySpec secret_key = new SecretKeySpec(secretKey.getBytes(), "HmacSHA256");
-        sha256_HMAC.init(secret_key);
 
-        final byte[] binaryData = sha256_HMAC.doFinal(message.getBytes());
-        return DatatypeConverter.printHexBinary(binaryData);
-    }*/
     public static String generateBitmexSignature(String secretKey, String signatureSource) throws InvalidKeyException, NoSuchAlgorithmException {
         Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
         SecretKeySpec secret_key = new SecretKeySpec(secretKey.getBytes(), "HmacSHA256");

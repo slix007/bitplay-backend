@@ -1,7 +1,6 @@
 package org.knowm.xchange.bitmex.service;
 
 import org.knowm.xchange.Exchange;
-import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
@@ -15,6 +14,7 @@ import org.knowm.xchange.service.trade.params.TradeHistoryParams;
 import org.knowm.xchange.service.trade.params.orders.OpenOrdersParams;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Collection;
 
 /**
@@ -43,13 +43,16 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
 
     @Override
     public String placeLimitOrder(LimitOrder limitOrder) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+        final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());
+        final String side = limitOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
+        final Double tradableAmount = limitOrder.getTradableAmount().setScale(8, BigDecimal.ROUND_UP).doubleValue();
+        final Double limitPrice = limitOrder.getLimitPrice().setScale(1, BigDecimal.ROUND_UP).doubleValue();
         final io.swagger.client.model.Order order = bitmexAuthenitcatedApi.order(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
-                BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair()),
-                limitOrder.getType() == Order.OrderType.BID ? "buy" : "sell",
-                limitOrder.getTradableAmount(),
-                limitOrder.getLimitPrice(),
-                "Limit",
-                "Day");
+                symbol,
+                side,
+                tradableAmount,
+                limitPrice,
+                "Limit");
 
         return String.valueOf(order.getOrderID());
     }
