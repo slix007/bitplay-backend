@@ -7,6 +7,7 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
+import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 
 import org.knowm.xchange.Exchange;
@@ -16,6 +17,8 @@ import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -58,6 +61,8 @@ public class BitmexService extends MarketService {
 
     private Observable<AccountInfo> accountInfoObservable;
     private Disposable accountInfoSubscription;
+    private Disposable positionSubscription;
+
     private Observable<OrderBook> orderBookObservable;
     private Disposable orderBookSubscription;
     private Disposable openOrdersSubscription;
@@ -91,6 +96,10 @@ public class BitmexService extends MarketService {
                 .subscribe();
         Completable.timer(2000, TimeUnit.MILLISECONDS)
                 .doOnCompleted(this::startOpenOrderListener)
+                .subscribe();
+
+        Completable.timer(3000, TimeUnit.MILLISECONDS)
+                .doOnCompleted(this::startPositionListener)
                 .subscribe();
 
     }
@@ -158,6 +167,7 @@ public class BitmexService extends MarketService {
         orderBookSubscription.dispose();
         accountInfoSubscription.dispose();
         openOrdersSubscription.dispose();
+        positionSubscription.dispose();
     }
 
     private void startOrderBookListener() {
@@ -276,7 +286,6 @@ public class BitmexService extends MarketService {
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
         int attemptCount = 0;
         String lastExceptionMsg = "";
-//        PoloniexMoveResponse moveResponse = null;
         BigDecimal bestMakerPrice = BigDecimal.ZERO;
         BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
 
@@ -291,17 +300,6 @@ public class BitmexService extends MarketService {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, "");
                     break;
                 }
-
-//            } catch (ExchangeException e) {
-//                if (e.getMessage().equals("Invalid order number, or you are not the person who placed the order.")) {
-//                    logger.info(e.getMessage());
-////                    orderFinished = true;
-//                    return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, e.getMessage());
-//                } else {
-//                    lastExceptionMsg = e.getMessage();
-//                    logger.error("{} attempt on move maker order", attemptCount, e);
-//                }
-
             } catch (Exception e) {
                 lastExceptionMsg = e.getMessage();
                 logger.error("{} attempt on move maker order {}", attemptCount, e.getMessage());
@@ -369,10 +367,15 @@ public class BitmexService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(accountInfo1 -> {
-                    setAccountInfo(accountInfo1);
-                    logger.info("Balance XBt={}, Margin={}",
-                            this.accountInfo.getWallet().getBalance(Currency.XBT).getAvailable().toPlainString(),
-                            this.accountInfo.getWallet().getBalance(new Currency("MARGIN")).getAvailable().toPlainString());
+                    final Balance marginBalance = accountInfo1.getWallet().getBalance(new Currency("MARGIN"));
+                    final Balance positionBalance = this.accountInfo != null
+                            ? this.accountInfo.getWallet().getBalance(new Currency("POSITION"))
+                            : new Balance(new Currency("POSITION"), BigDecimal.ZERO);
+
+                    final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(marginBalance, positionBalance));
+                    setAccountInfo(resultAccountInfo);
+                    logger.info("Balance Margin={}, Position={}", marginBalance.getAvailable().toPlainString(), positionBalance.getAvailable().toPlainString());
+
                 }, throwable -> {
                     logger.error("Can not fetchAccountInfo", throwable);
                     // schedule it again
@@ -381,6 +384,30 @@ public class BitmexService extends MarketService {
                 });
     }
 
+    private void startPositionListener() {
+        Observable<AccountInfo> positionObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
+                .getPositionObservable();
+
+        positionSubscription = positionObservable
+                .subscribeOn(Schedulers.io())
+                .doOnError(throwable -> logger.error("Position fetch error", throwable))
+                .subscribe(accountInfo1 -> {
+                    final Balance marginBalance = this.accountInfo != null
+                            ? this.accountInfo.getWallet().getBalance(new Currency("MARGIN"))
+                            : new Balance(new Currency("MARGIN"), BigDecimal.ZERO);
+                    final Balance positionBalance = accountInfo1.getWallet().getBalance(new Currency("POSITION"));
+
+                    final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(marginBalance, positionBalance));
+                    setAccountInfo(resultAccountInfo);
+                    logger.info("Balance Margin={}, Position={}", marginBalance.getAvailable().toPlainString(), positionBalance.getAvailable().toPlainString());
+
+                }, throwable -> {
+                    logger.error("Can not Position", throwable);
+                    // schedule it again
+                    sleep(5000);
+                    startPositionListener();
+                });
+    }
 
     public Observable<AccountInfo> getAccountInfoObservable() {
         return accountInfoObservable;

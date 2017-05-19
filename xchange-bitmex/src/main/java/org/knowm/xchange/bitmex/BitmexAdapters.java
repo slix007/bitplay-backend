@@ -14,6 +14,7 @@ import java.util.List;
 
 import io.swagger.client.model.Margin;
 import io.swagger.client.model.OrderBookL2;
+import io.swagger.client.model.Position;
 import io.swagger.client.model.Wallet;
 
 /**
@@ -62,7 +63,7 @@ public class BitmexAdapters {
 
 
     public static Balance adaptBitmexMargin(Margin margin) {
-        return new Balance(new Currency(margin.getCurrency()),
+        return new Balance(new Currency("MARGIN"),
                 satoshiToBtc(margin.getWalletBalance()),
                 satoshiToBtc(margin.getAvailableMargin()),
                 BigDecimal.ZERO,
@@ -81,5 +82,17 @@ public class BitmexAdapters {
 
     public static String adaptSymbol(CurrencyPair currencyPair) {
         return currencyPair.base.getSymbol().toUpperCase() + currencyPair.counter.getSymbol().toUpperCase();
+    }
+
+    public static Balance adaptBitmexPosition(Position position) {
+        return new Balance(new Currency("POSITION"),
+                position.getCurrentQty(),
+                new BigDecimal(position.getSimpleQty()).setScale(4, BigDecimal.ROUND_HALF_UP),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO
+        );
     }
 }

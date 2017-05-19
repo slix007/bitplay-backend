@@ -11,9 +11,11 @@ import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Wallet;
 
 import io.reactivex.Observable;
 import io.swagger.client.model.Margin;
+import io.swagger.client.model.Position;
 
 public class BitmexStreamingAccountService implements StreamingAccountService {
 
@@ -37,7 +39,26 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
                     final Balance balance = BitmexAdapters.adaptBitmexMargin(margin);
 
                     return new AccountInfo(
-                            new org.knowm.xchange.dto.account.Wallet(balance)
+                            new Wallet(balance)
+                    );
+                }).share();
+
+    }
+
+    public Observable<AccountInfo> getPositionObservable() {
+        return service.subscribeChannel("position", "position")
+                .map(s -> {
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                    mapper.registerModule(new JavaTimeModule());
+
+//                    Wallet bitmexWallet = mapper.treeToValue(s.get("data").get(0), Wallet.class);
+                    Position position = mapper.treeToValue(s.get("data").get(0), Position.class);
+
+                    final Balance balance = BitmexAdapters.adaptBitmexPosition(position);
+
+                    return new AccountInfo(
+                            new Wallet(balance)
                     );
                 });
     }
