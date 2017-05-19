@@ -204,6 +204,7 @@ public class BitmexService extends MarketService {
                 .getOpenOrdersObservable()
                 .subscribeOn(Schedulers.computation())
                 .subscribe(openOrders -> {
+                    logger.info("OpenOrders: " + openOrders.toString());
                     this.openOrders = openOrders.getOpenOrders();
                 });
     }

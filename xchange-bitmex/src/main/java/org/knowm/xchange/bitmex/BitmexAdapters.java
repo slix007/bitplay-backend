@@ -55,7 +55,9 @@ public class BitmexAdapters {
     public static BigDecimal satoshiToBtc(BigDecimal amount) {
         BigDecimal satoshiInBtc = BigDecimal.valueOf(100000000);
         final int satoshiScale = 8;
-        return amount.divide(satoshiInBtc, satoshiScale, BigDecimal.ROUND_HALF_UP);
+        return amount != null
+                ? amount.divide(satoshiInBtc, satoshiScale, BigDecimal.ROUND_HALF_UP)
+                : BigDecimal.ZERO;
     }
 
 
