@@ -67,7 +67,7 @@ public abstract class MarketService {
                 }
             }
             if (orderType.equals(Order.OrderType.ASK)) {
-                if (btcBalance.compareTo(tradableAmount) != 1) {
+                if (btcBalance.compareTo(tradableAmount) != -1) {
                     isAffordable = true;
                 }
             }
@@ -327,7 +327,7 @@ public abstract class MarketService {
         } else if (limitOrder.getType() == Order.OrderType.BID) {
             bestPrice = bestBid;
         } else {
-            throw new IllegalArgumentException("Order type is not supported");
+            throw new IllegalArgumentException("Order type is not supported" + limitOrder.getType());
         }
 
         if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving

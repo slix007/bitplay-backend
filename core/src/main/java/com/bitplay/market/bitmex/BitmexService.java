@@ -375,6 +375,12 @@ public class BitmexService extends MarketService {
 
             orderIdToSignalInfo.put(orderId, bestQuotes);
 
+        } catch (HttpStatusIOException e) {
+            final String errorMessage = e.getHttpBody();
+            logger.error("Place market order error: " + errorMessage, e);
+            tradeLogger.info("maker error {}", errorMessage);
+            tradeResponse.setOrderId(e.getMessage());
+            tradeResponse.setErrorMessage(errorMessage);
         } catch (Exception e) {
             logger.error("Place market order error", e);
             tradeLogger.info("maker error {}", e.toString());

@@ -339,7 +339,7 @@ public class PoloniexService extends MarketService {
                 // Only poloniex need to check the first item.
                 final BigDecimal bestBidAmount = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getTradableAmount();
 
-                if (btcBalance.compareTo(tradableAmount) != 1
+                if (btcBalance.compareTo(tradableAmount) != -1
                         && bestBidAmount.compareTo(tradableAmount) != -1) {
                     isAffordable = true;
                 }
