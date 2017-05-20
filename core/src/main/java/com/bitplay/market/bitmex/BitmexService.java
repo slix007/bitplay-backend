@@ -6,6 +6,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
@@ -42,10 +44,12 @@ import javax.annotation.PreDestroy;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import io.swagger.client.model.Error;
 import rx.Completable;
+import si.mazi.rescu.HttpStatusIOException;
 
-import static org.knowm.xchange.bitmex.BitmexAdapters.POSITION_CURRENCY;
 import static org.knowm.xchange.bitmex.BitmexAdapters.MARGIN_CURRENCY;
+import static org.knowm.xchange.bitmex.BitmexAdapters.POSITION_CURRENCY;
 import static org.knowm.xchange.bitmex.BitmexAdapters.WALLET_CURRENCY;
 
 /**
@@ -112,11 +116,37 @@ public class BitmexService extends MarketService {
                 .subscribe();
     }
 
+    private boolean canMoveOpenOrders = true;
+
     private void startOpenOrderMovingListener() {
         orderBookObservable
                 .subscribeOn(Schedulers.computation())
                 .subscribe(orderBook1 -> {
-                    openOrders.forEach(this::moveMakerOrderIfNotFirst);
+
+                    if (canMoveOpenOrders) {
+
+                        canMoveOpenOrders = false;
+
+                        Completable.timer(2000, TimeUnit.MILLISECONDS)
+                                .doOnCompleted(() -> canMoveOpenOrders = true)
+                                .subscribe();
+
+                        boolean haveToClear = false;
+                        synchronized (openOrders) {
+                            for (LimitOrder openOrder : openOrders) {
+                                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
+                                if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                                    haveToClear = true;
+                                }
+                            }
+
+                        }
+
+                        if (haveToClear) {
+                            openOrders = new ArrayList<>();
+                        }
+                    }
+
                 }, throwable -> {
                     logger.error("On Moving OpenOrders.", throwable);
                     startOpenOrderMovingListener();//restart
@@ -378,9 +408,25 @@ public class BitmexService extends MarketService {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, "");
                     break;
                 }
+            } catch (HttpStatusIOException e) {
+
+                final String httpBody = e.getHttpBody();
+                lastExceptionMsg = httpBody;
+                ObjectMapper objectMapper = new ObjectMapper();
+
+                try {
+                    final Error error = objectMapper.readValue(httpBody, Error.class);
+                    if (error.getError().getMessage().startsWith("Invalid ordStatus")) {
+                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
+                        break;
+                    }
+                } catch (IOException e1) {
+                    logger.error("On parse error", e1);
+                }
+
             } catch (Exception e) {
                 lastExceptionMsg = e.getMessage();
-                logger.error("{} attempt on move maker order {}", attemptCount, e.getMessage());
+                logger.error("{} attempt on move maker order {}", attemptCount, e);
             }
         }
 
@@ -404,7 +450,7 @@ public class BitmexService extends MarketService {
 
             tradeLogger.info(logString);
             moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
-        } else {
+        } else if (moveResponse == null) {
             final String logString = String.format("Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
