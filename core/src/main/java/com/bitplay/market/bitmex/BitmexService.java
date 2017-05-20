@@ -431,17 +431,17 @@ public class BitmexService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(newAccountInfo -> {
-                    Balance newMarginBalance = newAccountInfo.getWallet().getBalance(WALLET_CURRENCY);
-                    Balance newPossibleBalance = newAccountInfo.getWallet().getBalance(WALLET_CURRENCY);
-                    if (newMarginBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
+                    Balance newWalletBalance = newAccountInfo.getWallet().getBalance(WALLET_CURRENCY);
+                    Balance newMarginBalance = newAccountInfo.getWallet().getBalance(MARGIN_CURRENCY);
+                    if (newWalletBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
                         // get old then
-                        newMarginBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                        newWalletBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
                                 ? this.accountInfo.getWallet().getBalance(WALLET_CURRENCY)
                                 : new Balance(WALLET_CURRENCY, BigDecimal.ZERO);
                     }
-                    if (newPossibleBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
+                    if (newMarginBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
                         // get old then
-                        newPossibleBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                        newMarginBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
                                 ? this.accountInfo.getWallet().getBalance(MARGIN_CURRENCY)
                                 : new Balance(MARGIN_CURRENCY, BigDecimal.ZERO);
                     }
@@ -450,12 +450,12 @@ public class BitmexService extends MarketService {
                             ? this.accountInfo.getWallet().getBalance(POSITION_CURRENCY)
                             : new Balance(POSITION_CURRENCY, BigDecimal.ZERO);
 
-                    final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(newMarginBalance, newPossibleBalance, oldPositionBalance));
+                    final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(newWalletBalance, newMarginBalance, oldPositionBalance));
 
                     setAccountInfo(resultAccountInfo);
                     logger.debug("Balance Wallet={}, Margin={}, Position={}",
-                            newMarginBalance.getTotal().toPlainString(),
-                            newMarginBalance.getAvailable().toPlainString(),
+                            newWalletBalance.getTotal().toPlainString(),
+                            newWalletBalance.getAvailable().toPlainString(),
                             oldPositionBalance.getAvailable().toPlainString());
 
                 }, throwable -> {
@@ -473,18 +473,18 @@ public class BitmexService extends MarketService {
         positionSubscription = positionObservable
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Position fetch error", throwable))
-                .subscribe(accountInfo1 -> {
-                    final Balance oldMarginBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                .subscribe(newAccountInfo -> {
+                    final Balance oldWalletBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
                             ? this.accountInfo.getWallet().getBalance(WALLET_CURRENCY)
                             : new Balance(WALLET_CURRENCY, BigDecimal.ZERO);
-                    final Balance oldPossibleBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                    final Balance oldMarginBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
                             ? this.accountInfo.getWallet().getBalance(MARGIN_CURRENCY)
                             : new Balance(MARGIN_CURRENCY, BigDecimal.ZERO);
-                    final Balance newPositionBalance = accountInfo1.getWallet().getBalance(POSITION_CURRENCY);
+                    final Balance newPositionBalance = newAccountInfo.getWallet().getBalance(POSITION_CURRENCY);
 
-                    final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(oldMarginBalance, oldPossibleBalance, newPositionBalance));
+                    final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(oldWalletBalance, oldMarginBalance, newPositionBalance));
                     setAccountInfo(resultAccountInfo);
-                    logger.debug("Balance Margin={}, Position={}", oldMarginBalance.getAvailable().toPlainString(), newPositionBalance.getAvailable().toPlainString());
+                    logger.debug("Balance Margin={}, Position={}", oldWalletBalance.getAvailable().toPlainString(), newPositionBalance.getAvailable().toPlainString());
 
                 }, throwable -> {
                     logger.error("Can not Position", throwable);
