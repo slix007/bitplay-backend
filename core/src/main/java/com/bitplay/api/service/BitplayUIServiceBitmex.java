@@ -7,7 +7,7 @@ import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.TradeResponse;
 
-import org.knowm.xchange.currency.Currency;
+import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
@@ -80,14 +80,14 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
             return new AccountInfoJson(null, null, null);
         }
         final Wallet wallet = accountInfo.getWallet();
-        final Balance marginBalance = wallet.getBalance(new Currency("WALLET_MARGIN"));
-        final Balance possibleBalance = wallet.getBalance(new Currency("POSSIBLE_MARGIN"));
-        final Balance position = wallet.getBalance(new Currency("POSITION"));
+        final Balance walletBalance = wallet.getBalance(BitmexAdapters.WALLET_CURRENCY);
+        final Balance marginBalance = wallet.getBalance(BitmexAdapters.MARGIN_CURRENCY);
+        final Balance position = wallet.getBalance(BitmexAdapters.POSITION_CURRENCY);
 
         return new AccountInfoJson(
+                walletBalance.getTotal().toPlainString(),
+                walletBalance.getAvailable().toPlainString(),
                 marginBalance.getTotal().toPlainString(),
-                marginBalance.getAvailable().toPlainString(),
-                possibleBalance.getTotal().toPlainString(),
                 position != null ? position.getAvailable().toPlainString() : "0",
                 accountInfo.toString());
     }

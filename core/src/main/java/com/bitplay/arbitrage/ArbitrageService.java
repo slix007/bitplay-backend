@@ -160,36 +160,17 @@ public class ArbitrageService {
     }
 
     private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {
-        final Wallet walletP = firstMarketService.getAccountInfo().getWallet();
-        final BigDecimal btcP = walletP.getBalance(Currency.BTC).getAvailable();
-        final BigDecimal usdP = walletP.getBalance(firstMarketService.getSecondCurrency()).getAvailable();
-        final Wallet walletO = secondMarketService.getAccountInfo().getWallet();
-        final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
-        final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
-
         boolean affordable = false;
         if (deltaRef.equals("delta1")) {
             // sell p, buy o
-
-            // Only poloniex need to check the first item.
-            final BigDecimal bestBidP = Utils.getBestBids(firstMarketService.getOrderBook().getBids(), 1).get(0).getLimitPrice();
-
-            if ((btcP.compareTo(tradableAmount) == -1 || bestBidP.compareTo(tradableAmount) == -1)
-                    || usdO.compareTo(secondMarketService.getTotalPriceOfAmountToBuy(tradableAmount)) == -1) {
-                affordable = false;
-            } else {
+            if (firstMarketService.isAffordable(Order.OrderType.ASK, tradableAmount)
+                    && secondMarketService.isAffordable(Order.OrderType.BID, tradableAmount)) {
                 affordable = true;
             }
         } else if (deltaRef.equals("delta2")) {
-            // sell o, buy c
-
-            // Only poloniex need to check the first item.
-            final BigDecimal bestAskP = Utils.getBestAsks(firstMarketService.getOrderBook().getAsks(), 1).get(0).getLimitPrice();
-
-            if (btcO.compareTo(tradableAmount) == -1 || bestAskP.compareTo(tradableAmount) == -1
-                    || usdP.compareTo(firstMarketService.getTotalPriceOfAmountToBuy(tradableAmount)) == -1) {
-                affordable = false;
-            } else {
+            // buy p , sell o
+            if (firstMarketService.isAffordable(Order.OrderType.BID, tradableAmount)
+                    && secondMarketService.isAffordable(Order.OrderType.ASK, tradableAmount)) {
                 affordable = true;
             }
         }

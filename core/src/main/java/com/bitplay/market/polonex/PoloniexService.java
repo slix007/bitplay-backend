@@ -17,6 +17,7 @@ import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
@@ -314,6 +315,37 @@ public class PoloniexService extends MarketService {
     @Override
     public OrderBook getOrderBook() {
         return this.orderBook;
+    }
+
+    public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
+        boolean isAffordable = false;
+
+        if (accountInfo != null && accountInfo.getWallet() != null) {
+            final Wallet wallet = getAccountInfo().getWallet();
+            final BigDecimal btcBalance = wallet.getBalance(Currency.BTC).getAvailable();
+            final BigDecimal usdBalance = wallet.getBalance(getSecondCurrency()).getAvailable();
+            if (orderType.equals(Order.OrderType.BID)) {
+
+                // Only poloniex need to check the first item.
+                final BigDecimal bestAskAmount = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getTradableAmount();
+
+                if (usdBalance.compareTo(getTotalPriceOfAmountToBuy(tradableAmount)) != -1
+                        && bestAskAmount.compareTo(tradableAmount) != -1) {
+                    isAffordable = true;
+                }
+            }
+            if (orderType.equals(Order.OrderType.ASK)) {
+
+                // Only poloniex need to check the first item.
+                final BigDecimal bestBidAmount = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getTradableAmount();
+
+                if (btcBalance.compareTo(tradableAmount) != 1
+                        && bestBidAmount.compareTo(tradableAmount) != -1) {
+                    isAffordable = true;
+                }
+            }
+        }
+        return isAffordable;
     }
 
     public Ticker getTicker() {

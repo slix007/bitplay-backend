@@ -13,7 +13,6 @@ import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.bitmex.service.BitmexTradeService;
-import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
@@ -44,6 +43,10 @@ import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import rx.Completable;
+
+import static org.knowm.xchange.bitmex.BitmexAdapters.POSITION_CURRENCY;
+import static org.knowm.xchange.bitmex.BitmexAdapters.MARGIN_CURRENCY;
+import static org.knowm.xchange.bitmex.BitmexAdapters.WALLET_CURRENCY;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
@@ -259,6 +262,38 @@ public class BitmexService extends MarketService {
         return orderBook;
     }
 
+    @Override
+    public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
+        boolean isAffordable = false;
+
+        if (accountInfo != null && accountInfo.getWallet() != null) {
+            final BigDecimal availableBalance = accountInfo.getWallet().getBalance(WALLET_CURRENCY).getAvailable();
+            final BigDecimal positionBalance = accountInfo.getWallet().getBalance(POSITION_CURRENCY).getAvailable();
+            if (availableBalance.signum() > 0) {
+                if (orderType.equals(Order.OrderType.BID)) {
+                    BigDecimal sumBalance;
+                    if (positionBalance.signum() < 0) {
+                        sumBalance = availableBalance.add(positionBalance.abs());
+                    } else {
+                        sumBalance = availableBalance;
+                    }
+                    isAffordable = sumBalance.compareTo(tradableAmount) != -1;
+                }
+
+                if (orderType.equals(Order.OrderType.ASK)) {
+                    BigDecimal sumBalance;
+                    if (positionBalance.signum() > 0) {
+                        sumBalance = availableBalance.add(positionBalance.abs());
+                    } else {
+                        sumBalance = availableBalance;
+                    }
+                    isAffordable = sumBalance.compareTo(tradableAmount) != -1;
+                }
+            }
+        }
+
+        return isAffordable;
+    }
 
     @Override
     public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes) {
@@ -396,24 +431,24 @@ public class BitmexService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(newAccountInfo -> {
-                    Balance newMarginBalance = newAccountInfo.getWallet().getBalance(new Currency("WALLET_MARGIN"));
-                    Balance newPossibleBalance = newAccountInfo.getWallet().getBalance(new Currency("POSSIBLE_MARGIN"));
+                    Balance newMarginBalance = newAccountInfo.getWallet().getBalance(WALLET_CURRENCY);
+                    Balance newPossibleBalance = newAccountInfo.getWallet().getBalance(WALLET_CURRENCY);
                     if (newMarginBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
                         // get old then
                         newMarginBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                                ? this.accountInfo.getWallet().getBalance(new Currency("WALLET_MARGIN"))
-                                : new Balance(new Currency("WALLET_MARGIN"), BigDecimal.ZERO);
+                                ? this.accountInfo.getWallet().getBalance(WALLET_CURRENCY)
+                                : new Balance(WALLET_CURRENCY, BigDecimal.ZERO);
                     }
                     if (newPossibleBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
                         // get old then
                         newPossibleBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                                ? this.accountInfo.getWallet().getBalance(new Currency("POSSIBLE_MARGIN"))
-                                : new Balance(new Currency("POSSIBLE_MARGIN"), BigDecimal.ZERO);
+                                ? this.accountInfo.getWallet().getBalance(MARGIN_CURRENCY)
+                                : new Balance(MARGIN_CURRENCY, BigDecimal.ZERO);
                     }
 
                     final Balance oldPositionBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                            ? this.accountInfo.getWallet().getBalance(new Currency("POSITION"))
-                            : new Balance(new Currency("POSITION"), BigDecimal.ZERO);
+                            ? this.accountInfo.getWallet().getBalance(POSITION_CURRENCY)
+                            : new Balance(POSITION_CURRENCY, BigDecimal.ZERO);
 
                     final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(newMarginBalance, newPossibleBalance, oldPositionBalance));
 
@@ -440,12 +475,12 @@ public class BitmexService extends MarketService {
                 .doOnError(throwable -> logger.error("Position fetch error", throwable))
                 .subscribe(accountInfo1 -> {
                     final Balance oldMarginBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                            ? this.accountInfo.getWallet().getBalance(new Currency("WALLET_MARGIN"))
-                            : new Balance(new Currency("WALLET_MARGIN"), BigDecimal.ZERO);
+                            ? this.accountInfo.getWallet().getBalance(WALLET_CURRENCY)
+                            : new Balance(WALLET_CURRENCY, BigDecimal.ZERO);
                     final Balance oldPossibleBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                            ? this.accountInfo.getWallet().getBalance(new Currency("POSSIBLE_MARGIN"))
-                            : new Balance(new Currency("POSSIBLE_MARGIN"), BigDecimal.ZERO);
-                    final Balance newPositionBalance = accountInfo1.getWallet().getBalance(new Currency("POSITION"));
+                            ? this.accountInfo.getWallet().getBalance(MARGIN_CURRENCY)
+                            : new Balance(MARGIN_CURRENCY, BigDecimal.ZERO);
+                    final Balance newPositionBalance = accountInfo1.getWallet().getBalance(POSITION_CURRENCY);
 
                     final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(oldMarginBalance, oldPossibleBalance, newPositionBalance));
                     setAccountInfo(resultAccountInfo);

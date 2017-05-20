@@ -9,6 +9,7 @@ import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -53,6 +54,26 @@ public abstract class MarketService {
     public abstract UserTrades fetchMyTradeHistory();
 
     public abstract OrderBook getOrderBook();
+
+    public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
+        boolean isAffordable = false;
+        if (accountInfo != null && accountInfo.getWallet() != null) {
+            final Wallet wallet = getAccountInfo().getWallet();
+            final BigDecimal btcBalance = wallet.getBalance(Currency.BTC).getAvailable();
+            final BigDecimal usdBalance = wallet.getBalance(getSecondCurrency()).getAvailable();
+            if (orderType.equals(Order.OrderType.BID)) {
+                if (usdBalance.compareTo(getTotalPriceOfAmountToBuy(tradableAmount)) != -1) {
+                    isAffordable = true;
+                }
+            }
+            if (orderType.equals(Order.OrderType.ASK)) {
+                if (btcBalance.compareTo(tradableAmount) != 1) {
+                    isAffordable = true;
+                }
+            }
+        }
+        return isAffordable;
+    }
 
     /**
      * Create only one observable on initialization.<br>

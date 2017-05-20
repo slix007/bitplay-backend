@@ -33,6 +33,22 @@ public class BitmexAdapters {
     private final static String BID_TYPE = "Buy";
     private final static String ASK_TYPE = "Sell";
 
+    /**
+     * getTotal == Wallet Balance
+     * getAvailable == Available Balance
+     */
+    public final static Currency WALLET_CURRENCY = new Currency("WALLET");
+    /**
+     * getTotal == Margin Balance
+     * getAvailable == Margin Balance
+     */
+    public final static Currency MARGIN_CURRENCY = new Currency("MARGIN");
+    /**
+     * getTotal == Size(contract)
+     * getAvailable == Value(XBT)
+     */
+    public final static Currency POSITION_CURRENCY = new Currency("POSITION");
+
     public static OrderBook adaptBitmexOrderBook(List<OrderBookL2> bitmexMarketDepth, CurrencyPair currencyPair) {
         List<LimitOrder> asks = adaptBitmexPublicOrders(bitmexMarketDepth, Order.OrderType.ASK, currencyPair);
         List<LimitOrder> bids = adaptBitmexPublicOrders(bitmexMarketDepth, Order.OrderType.BID, currencyPair);
@@ -74,12 +90,12 @@ public class BitmexAdapters {
     public static List<Balance> adaptBitmexMargin(Margin margin) {
         List<Balance> balanceList = new ArrayList<>();
         if (margin.getWalletBalance() != null) {
-            balanceList.add(new Balance(new Currency("WALLET_MARGIN"),
+            balanceList.add(new Balance(WALLET_CURRENCY,
                     satoshiToBtc(margin.getWalletBalance()),
                     satoshiToBtc(margin.getAvailableMargin())
             ));
         }
-        balanceList.add(new Balance(new Currency("POSSIBLE_MARGIN"),
+        balanceList.add(new Balance(MARGIN_CURRENCY,
                 satoshiToBtc(margin.getMarginBalance()),
                 satoshiToBtc(margin.getMarginBalance())
         ));
@@ -97,7 +113,7 @@ public class BitmexAdapters {
     }
 
     public static Balance adaptBitmexPosition(Position position) {
-        return new Balance(new Currency("POSITION"),
+        return new Balance(POSITION_CURRENCY,
                 position.getCurrentQty(),
                 new BigDecimal(position.getSimpleQty()).setScale(4, BigDecimal.ROUND_HALF_UP)
         );
