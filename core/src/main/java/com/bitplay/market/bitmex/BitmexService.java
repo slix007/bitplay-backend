@@ -107,6 +107,20 @@ public class BitmexService extends MarketService {
                 .doOnCompleted(this::startPositionListener)
                 .subscribe();
 
+        Completable.timer(4000, TimeUnit.MILLISECONDS)
+                .doOnCompleted(this::startOpenOrderMovingListener)
+                .subscribe();
+    }
+
+    private void startOpenOrderMovingListener() {
+        orderBookObservable
+                .subscribeOn(Schedulers.computation())
+                .subscribe(orderBook1 -> {
+                    openOrders.forEach(this::moveMakerOrderIfNotFirst);
+                }, throwable -> {
+                    logger.error("On Moving OpenOrders.", throwable);
+                    startOpenOrderMovingListener();//restart
+                });
     }
 
     private BitmexStreamingExchange initExchange(String key, String secret) {
