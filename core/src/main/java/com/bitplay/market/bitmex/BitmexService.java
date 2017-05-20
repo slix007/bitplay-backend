@@ -34,7 +34,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 
@@ -214,9 +216,33 @@ public class BitmexService extends MarketService {
         openOrdersSubscription = exchange.getStreamingTradingService()
                 .getOpenOrdersObservable()
                 .subscribeOn(Schedulers.computation())
-                .subscribe(openOrders -> {
-                    logger.info("OpenOrders: " + openOrders.toString());
-                    this.openOrders = openOrders.getOpenOrders();
+                .subscribe(updateOfOpenOrders -> {
+                    logger.info("OpenOrders: " + updateOfOpenOrders.toString());
+                    this.openOrders = updateOfOpenOrders.getOpenOrders().stream()
+                            .map(update -> {
+                                // merge the orders
+                                LimitOrder mergedOrder = update;
+                                final Optional<LimitOrder> optionalExisting = this.openOrders.stream()
+                                        .filter(existing -> update.getId().equals(existing.getId()))
+                                        .findFirst();
+                                if (optionalExisting.isPresent()) {
+                                    final LimitOrder existing = optionalExisting.get();
+                                    mergedOrder = new LimitOrder(
+                                            existing.getType(),
+                                            update.getTradableAmount() != null ? update.getTradableAmount() : existing.getTradableAmount(),
+                                            existing.getCurrencyPair(),
+                                            existing.getId(),
+                                            update.getTimestamp(),
+                                            update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice()
+                                    );
+                                }
+                                return mergedOrder;
+                            }).collect(Collectors.toList());
+
+                }, throwable -> {
+                    logger.error("OO.Exception: ", throwable);
+                    // Restart the listener
+                    startOpenOrderListener();
                 });
     }
 
@@ -342,8 +368,8 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    protected BigDecimal getMakerStep() {
-        return null;
+    protected BigDecimal getMakerPriceStep() {
+        return new BigDecimal("0.1");
     }
 
     @Override

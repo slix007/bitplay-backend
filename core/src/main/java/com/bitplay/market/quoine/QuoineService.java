@@ -67,7 +67,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    protected BigDecimal getMakerStep() {
+    protected BigDecimal getMakerPriceStep() {
         return null;
     }
 

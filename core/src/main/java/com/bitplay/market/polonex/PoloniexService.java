@@ -517,7 +517,7 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    protected BigDecimal getMakerStep() {
+    protected BigDecimal getMakerPriceStep() {
         return POLONIEX_STEP;
     }
 

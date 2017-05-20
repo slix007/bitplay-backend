@@ -1,15 +1,24 @@
 package org.knowm.xchange.bitmex;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.dto.trade.OpenOrders;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import io.swagger.client.model.Margin;
@@ -99,6 +108,58 @@ public class BitmexAdapters {
     public static BigDecimal priceToBigDecimal(Double aDouble) {
         return new BigDecimal(aDouble)
                 .setScale(1, RoundingMode.HALF_UP);
+    }
+
+    public static OpenOrders adaptOpenOrdersUpdate(JsonNode fullInputJson) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.registerModule(new JavaTimeModule());
+
+        final ArrayList<LimitOrder> openOrders = new ArrayList<>();
+
+        final JsonNode jsonNode = fullInputJson.get("data");
+        if (jsonNode.getNodeType().equals(JsonNodeType.ARRAY)) {
+            for (JsonNode node : jsonNode) {
+                io.swagger.client.model.Order order = mapper.treeToValue(node, io.swagger.client.model.Order.class);
+
+                final String side = order.getSide(); // may be null
+                org.knowm.xchange.dto.Order.OrderType orderType = null;
+                BigDecimal tradableAmount = null;
+                CurrencyPair currencyPair = null;
+                BigDecimal price = null;
+
+                if (side != null) {
+                    orderType = side.equals("Buy")
+                            ? org.knowm.xchange.dto.Order.OrderType.BID
+                            : org.knowm.xchange.dto.Order.OrderType.ASK;
+
+                }
+                if (order.getSimpleLeavesQty() != null) {
+                    tradableAmount = new BigDecimal(order.getSimpleLeavesQty()).setScale(4, RoundingMode.HALF_UP);
+                }
+                if (order.getSymbol() != null) {
+                    final String first = order.getSymbol().substring(0, 3);
+                    final String second = order.getSymbol().substring(3);
+                    currencyPair = new CurrencyPair(new Currency(first), new Currency(second));
+                }
+                if (order.getPrice() != null) {
+                    price = priceToBigDecimal(order.getPrice());
+                }
+
+                final Date timestamp = Date.from(order.getTimestamp().toInstant());
+
+                openOrders.add(
+                        new LimitOrder(orderType,
+                                tradableAmount,
+                                currencyPair,
+                                order.getOrderID(),
+                                timestamp,
+                                price)
+                );
+            }
+        }
+
+        return new OpenOrders(openOrders);
     }
 
 }

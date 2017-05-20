@@ -176,7 +176,7 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    protected BigDecimal getMakerStep() {
+    protected BigDecimal getMakerPriceStep() {
         return OKCOIN_STEP;
     }
 

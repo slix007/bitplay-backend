@@ -16,7 +16,6 @@ import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -251,7 +250,7 @@ public abstract class MarketService {
 
     public abstract MoveResponse moveMakerOrder(LimitOrder limitOrder);
 
-    protected abstract BigDecimal getMakerStep();
+    protected abstract BigDecimal getMakerPriceStep();
 
     protected abstract BigDecimal getMakerDelta();
 
@@ -259,7 +258,7 @@ public abstract class MarketService {
         BigDecimal thePrice = null;
         BigDecimal makerDelta = getMakerDelta();
         if (makerDelta.compareTo(BigDecimal.ZERO) == 0 || forceUsingStep) {
-            makerDelta = getMakerStep();
+            makerDelta = getMakerPriceStep();
         }
 
         final BigDecimal bestBid = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getLimitPrice();
@@ -275,7 +274,7 @@ public abstract class MarketService {
                 thePrice = bestBid.add(makerDelta);
                 // 3 check if we are already on the edge
                 if (thePrice.compareTo(bestAsk) == 1 || thePrice.compareTo(bestAsk) == 0) {
-                    thePrice = bestAsk.subtract(getMakerStep());
+                    thePrice = bestAsk.subtract(getMakerPriceStep());
                 }
             }
         } else if (orderType == Order.OrderType.ASK) {
@@ -288,7 +287,7 @@ public abstract class MarketService {
                 thePrice = bestAsk.subtract(makerDelta);
                 // 3 check if we are already on the edge
                 if (thePrice.compareTo(bestBid) == -1 || thePrice.compareTo(bestBid) == 0) {
-                    thePrice = bestBid.add(getMakerStep());
+                    thePrice = bestBid.add(getMakerPriceStep());
                 }
             }
         }
