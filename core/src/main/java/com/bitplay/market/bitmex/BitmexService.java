@@ -238,6 +238,9 @@ public class BitmexService extends MarketService {
                                 }
                                 return mergedOrder;
                             }).collect(Collectors.toList());
+                    if (this.openOrders == null) {
+                        this.openOrders = new ArrayList<>();
+                    }
 
                 }, throwable -> {
                     logger.error("OO.Exception: ", throwable);
