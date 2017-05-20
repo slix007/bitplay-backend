@@ -33,16 +33,12 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
                     mapper.registerModule(new JavaTimeModule());
 
-//                    Wallet bitmexWallet = mapper.treeToValue(s.get("data").get(0), Wallet.class);
                     Margin margin = mapper.treeToValue(s.get("data").get(0), Margin.class);
 
-                    final Balance balance = BitmexAdapters.adaptBitmexMargin(margin);
-
                     return new AccountInfo(
-                            new Wallet(balance)
+                            new Wallet(BitmexAdapters.adaptBitmexMargin(margin))
                     );
                 }).share();
-
     }
 
     public Observable<AccountInfo> getPositionObservable() {

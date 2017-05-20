@@ -9,9 +9,7 @@ import java.util.List;
 
 import io.swagger.client.ApiException;
 import io.swagger.client.model.Margin;
-import io.swagger.client.model.Wallet;
 
-import static org.knowm.xchange.bitmex.BitmexAdapters.adaptBitmexBalance;
 import static org.knowm.xchange.bitmex.BitmexAdapters.adaptBitmexMargin;
 
 /**
@@ -26,12 +24,12 @@ public class BitmexAccountServiceRaw extends BitmexBaseService {
     public List<Balance> getWallets() throws ApiException, IOException {
         String xbt = "XBt";
 
-        List<Balance> balances = new ArrayList<Balance>();
+        List<Balance> balances = new ArrayList<>();
 //        final Wallet xbtWallet = bitmexAuthenitcatedApi.wallet(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(), xbt);
 //        balances.add(adaptBitmexBalance(xbtWallet));
 
         final Margin margin = bitmexAuthenitcatedApi.margin(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(), xbt);
-        balances.add(adaptBitmexMargin(margin));
+        balances.addAll(adaptBitmexMargin(margin));
 
         return balances;
     }

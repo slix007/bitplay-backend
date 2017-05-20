@@ -80,13 +80,14 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
             return new AccountInfoJson(null, null, null);
         }
         final Wallet wallet = accountInfo.getWallet();
-        final Balance marginBalance = wallet.getBalance(new Currency("MARGIN"));
+        final Balance marginBalance = wallet.getBalance(new Currency("WALLET_MARGIN"));
+        final Balance possibleBalance = wallet.getBalance(new Currency("POSSIBLE_MARGIN"));
         final Balance position = wallet.getBalance(new Currency("POSITION"));
 
         return new AccountInfoJson(
                 marginBalance.getTotal().toPlainString(),
                 marginBalance.getAvailable().toPlainString(),
-                marginBalance.getBorrowed().toPlainString(),
+                possibleBalance.getTotal().toPlainString(),
                 position != null ? position.getAvailable().toPlainString() : "0",
                 accountInfo.toString());
     }

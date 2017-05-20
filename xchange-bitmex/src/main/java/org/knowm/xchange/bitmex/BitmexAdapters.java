@@ -71,16 +71,19 @@ public class BitmexAdapters {
     }
 
 
-    public static Balance adaptBitmexMargin(Margin margin) {
-        return new Balance(new Currency("MARGIN"),
-                satoshiToBtc(margin.getWalletBalance()),
-                satoshiToBtc(margin.getAvailableMargin()),
-                BigDecimal.ZERO,
+    public static List<Balance> adaptBitmexMargin(Margin margin) {
+        List<Balance> balanceList = new ArrayList<>();
+        if (margin.getWalletBalance() != null) {
+            balanceList.add(new Balance(new Currency("WALLET_MARGIN"),
+                    satoshiToBtc(margin.getWalletBalance()),
+                    satoshiToBtc(margin.getAvailableMargin())
+            ));
+        }
+        balanceList.add(new Balance(new Currency("POSSIBLE_MARGIN"),
                 satoshiToBtc(margin.getMarginBalance()),
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO
-                );
+                satoshiToBtc(margin.getMarginBalance())
+        ));
+        return balanceList;
     }
 
     public static Balance adaptBitmexBalance(Wallet wallet) {
@@ -96,12 +99,7 @@ public class BitmexAdapters {
     public static Balance adaptBitmexPosition(Position position) {
         return new Balance(new Currency("POSITION"),
                 position.getCurrentQty(),
-                new BigDecimal(position.getSimpleQty()).setScale(4, BigDecimal.ROUND_HALF_UP),
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO
+                new BigDecimal(position.getSimpleQty()).setScale(4, BigDecimal.ROUND_HALF_UP)
         );
     }
 
