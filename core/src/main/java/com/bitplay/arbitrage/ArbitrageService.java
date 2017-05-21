@@ -26,7 +26,6 @@ import io.reactivex.schedulers.Schedulers;
 public class ArbitrageService {
 
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
-    private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     //TODO rename them to first and second
@@ -60,7 +59,7 @@ public class ArbitrageService {
                             && bestQuotes.getArbitrageEvent() != BestQuotes.ArbitrageEvent.NONE) {
 
                         previousEmitTime = Instant.now();
-                        deltasLogger.info(bestQuotes.toString());
+//                        deltasLogger.info(bestQuotes.toString());
                     }
                 }, throwable -> {
                     logger.error("On combine orderBooks", throwable);
@@ -126,7 +125,7 @@ public class ArbitrageService {
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
                 if (checkBalance("delta1", amount)) {
-                    tradeLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
+                    deltasLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
                             bid1_p.toPlainString(), ask1_o.toPlainString(),
                             delta1.toPlainString(),
                             border1.toPlainString(),
@@ -143,7 +142,7 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
                 if (checkBalance("delta2", amount)) {
-                    tradeLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
+                    deltasLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
                             bid1_o.toPlainString(), ask1_p.toPlainString(),
                             delta2.toPlainString(),
                             border2.toPlainString(),

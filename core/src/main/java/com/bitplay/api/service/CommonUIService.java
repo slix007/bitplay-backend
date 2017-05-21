@@ -37,6 +37,10 @@ public class CommonUIService {
         return getTradeLogJson("./logs/okcoin-trades.log");
     }
 
+    public TradeLogJson getDeltasLog() {
+        return getTradeLogJson("./logs/deltas.log");
+    }
+
     private TradeLogJson getTradeLogJson(String fileName) {
         TradeLogJson tradeLogJson = null;
         try {

@@ -74,6 +74,13 @@ public class CommonEndpoint {
     }
 
     @GET
+    @Path("/market/deltas-log")
+    @Produces(MediaType.APPLICATION_JSON)
+    public TradeLogJson getDeltasLog() {
+        return commonUIService.getDeltasLog();
+    }
+
+    @GET
     @Path("/market/deltas")
     @Produces(MediaType.APPLICATION_JSON)
     public DeltasJson deltas() {
