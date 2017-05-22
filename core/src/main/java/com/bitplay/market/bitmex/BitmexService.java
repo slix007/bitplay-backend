@@ -134,9 +134,11 @@ public class BitmexService extends MarketService {
                         boolean haveToClear = false;
                         synchronized (openOrders) {
                             for (LimitOrder openOrder : openOrders) {
-                                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
-                                if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                                    haveToClear = true;
+                                if (openOrder.getType() != null) {
+                                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
+                                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                                        haveToClear = true;
+                                    }
                                 }
                             }
 
@@ -264,7 +266,7 @@ public class BitmexService extends MarketService {
                 .getOpenOrdersObservable()
                 .subscribeOn(Schedulers.computation())
                 .subscribe(updateOfOpenOrders -> {
-                    logger.info("OpenOrders: " + updateOfOpenOrders.toString());
+                    logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
                     this.openOrders = updateOfOpenOrders.getOpenOrders().stream()
                             .map(update -> {
                                 // merge the orders

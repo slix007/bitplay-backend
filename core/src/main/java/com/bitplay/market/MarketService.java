@@ -331,6 +331,10 @@ public abstract class MarketService {
         }
 
         if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
+
+            logger.info("{} Try to move maker order {} {}, from {} to {}",
+                    getName(), limitOrder.getId(), limitOrder.getType(),
+                    limitOrder.getLimitPrice(), bestPrice);
             response = moveMakerOrder(limitOrder);
         } else {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");

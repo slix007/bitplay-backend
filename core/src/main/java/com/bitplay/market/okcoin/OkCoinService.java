@@ -349,7 +349,6 @@ public class OkCoinService extends MarketService {
         // IT doesn't support moving
         // Do cancel ant place
         final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
-        logger.info("Try to move maker order " + limitOrder.getId());
         MoveResponse response;
         BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
 

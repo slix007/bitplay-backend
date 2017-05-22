@@ -15,8 +15,11 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Completable;
 import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
 /**
@@ -40,10 +43,23 @@ public class ArbitrageService {
     private BigDecimal makerDelta = BigDecimal.ZERO;
     private Instant previousEmitTime = Instant.now();
 
+    private Boolean isReadyForTheArbitrage = true;
+    private Disposable theTimer;
+
     public void init(TwoMarketStarter twoMarketStarter) {
         this.firstMarketService = twoMarketStarter.getFirstMarketService();
         this.secondMarketService = twoMarketStarter.getSecondMarketService();
         startArbitrageMonitoring();
+    }
+
+    private void setTimeoutAfterStartTrading() {
+        isReadyForTheArbitrage = false;
+        if (theTimer != null) {
+            theTimer.dispose();
+        }
+        theTimer = Completable.timer(5, TimeUnit.SECONDS)
+                .doOnComplete(() -> isReadyForTheArbitrage = true)
+                .subscribe();
     }
 
     private void startArbitrageMonitoring() {
@@ -79,15 +95,20 @@ public class ArbitrageService {
     }
 
     private BestQuotes doComparison() {
-        final OrderBook firstOrderBook = firstMarketService.getOrderBook();
-        final OrderBook secondOrderBook = secondMarketService.getOrderBook();
-
         BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
-        if (firstOrderBook != null
-                && secondOrderBook != null
-                && firstMarketService.getAccountInfo() != null
-                && secondMarketService.getAccountInfo() != null) {
-            bestQuotes = calcAndDoArbitrage(secondOrderBook, firstOrderBook);
+
+        if (isReadyForTheArbitrage) {
+            synchronized (this) {
+                final OrderBook firstOrderBook = firstMarketService.getOrderBook();
+                final OrderBook secondOrderBook = secondMarketService.getOrderBook();
+
+                if (firstOrderBook != null
+                        && secondOrderBook != null
+                        && firstMarketService.getAccountInfo() != null
+                        && secondMarketService.getAccountInfo() != null) {
+                    bestQuotes = calcAndDoArbitrage(secondOrderBook, firstOrderBook);
+                }
+            }
         }
         return bestQuotes;
     }
@@ -133,6 +154,7 @@ public class ArbitrageService {
                     firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
                     secondMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
+                    setTimeoutAfterStartTrading();
                 } else {
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
                 }
@@ -150,6 +172,7 @@ public class ArbitrageService {
                     firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
                     secondMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
+                    setTimeoutAfterStartTrading();
                 } else {
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
                 }

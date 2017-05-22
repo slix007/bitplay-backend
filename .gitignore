@@ -1,6 +1,10 @@
 target/
 !.mvn/wrapper/maven-wrapper.jar
 
+### Libraries ###
+XChange/
+xchange-stream/
+
 ### STS ###
 .apt_generated
 .classpath
@@ -22,4 +26,5 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+
 logs/
