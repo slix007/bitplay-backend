@@ -11,7 +11,6 @@ import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -44,6 +43,7 @@ public class ArbitrageService {
     private BigDecimal border2 = BigDecimal.ZERO;
     private BigDecimal makerDelta = BigDecimal.ZERO;
     private BigDecimal sumDelta = new BigDecimal(5);
+    private BigDecimal buValue = BigDecimal.ZERO;
     private Integer periodSec = 300;
     Disposable schdeduleUpdateBorders;
 
@@ -162,15 +162,14 @@ public class ArbitrageService {
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
                 if (checkBalance("delta1", amount)) {
-                    String firstWalletBalance = "";
+                    BigDecimal firstWalletBalance = BigDecimal.ZERO;
                     if (firstMarketService.getAccountInfo() != null
                             && firstMarketService.getAccountInfo().getWallet() != null
                             && firstMarketService.getAccountInfo().getWallet().getBalance(BitmexAdapters.WALLET_CURRENCY) != null) {
                         firstWalletBalance = firstMarketService.getAccountInfo()
                                 .getWallet()
                                 .getBalance(BitmexAdapters.WALLET_CURRENCY)
-                                .getTotal()
-                                .toPlainString();
+                                .getTotal();
                     }
 
                     deltasLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s",
@@ -178,7 +177,21 @@ public class ArbitrageService {
                             delta1.toPlainString(),
                             border1.toPlainString(),
                             btcP, usdP, btcO, usdO,
-                            firstWalletBalance
+                            firstWalletBalance.toPlainString()
+                    ));
+
+                    BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0)
+                            ? ask1_o : buValue;
+                    BigDecimal sumBal = firstWalletBalance.add(btcO).add(
+                            usdO.divide(bu, 6, BigDecimal.ROUND_HALF_UP)
+                    );
+                    //sum_bal = wallet_b + btc_o + usd_o / bu , где bu типа double задаем с ui
+                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s=%s",
+                            firstWalletBalance,
+                            btcO,
+                            usdO,
+                            bu,
+                            sumBal
                     ));
                     firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
                     secondMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
@@ -339,5 +352,13 @@ public class ArbitrageService {
     public void setPeriodSec(Integer periodSec) {
         this.periodSec = periodSec;
         scheduleRecalculateBorders();
+    }
+
+    public BigDecimal getBuValue() {
+        return buValue;
+    }
+
+    public void setBuValue(BigDecimal buValue) {
+        this.buValue = buValue;
     }
 }

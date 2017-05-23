@@ -11,6 +11,7 @@ public class DeltalUpdateJson {
     private String makerDelta;
     private String sumDelta;
     private String periodSec;
+    private String buValue;
 
     public String getMakerDelta() {
         return makerDelta;
@@ -34,5 +35,13 @@ public class DeltalUpdateJson {
 
     public void setPeriodSec(String periodSec) {
         this.periodSec = periodSec;
+    }
+
+    public String getBuValue() {
+        return buValue;
+    }
+
+    public void setBuValue(String buValue) {
+        this.buValue = buValue;
     }
 }

@@ -1,10 +1,10 @@
 package com.bitplay.api.service;
 
-import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.api.domain.BorderUpdateJson;
-import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
+import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.TradeLogJson;
+import com.bitplay.arbitrage.ArbitrageService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -65,7 +65,8 @@ public class CommonUIService {
                 arbitrageService.getBorder2().toPlainString(),
                 arbitrageService.getMakerDelta().toPlainString(),
                 arbitrageService.getSumDelta().toPlainString(),
-                arbitrageService.getPeriodSec().toString()
+                arbitrageService.getPeriodSec().toString(),
+                arbitrageService.getBuValue().toPlainString()
         );
     }
 
@@ -84,7 +85,8 @@ public class CommonUIService {
                 arbitrageService.getBorder2().toPlainString(),
                 arbitrageService.getMakerDelta().toPlainString(),
                 arbitrageService.getSumDelta().toPlainString(),
-                arbitrageService.getPeriodSec().toString()
+                arbitrageService.getPeriodSec().toString(),
+                arbitrageService.getBuValue().toPlainString()
         );
     }
 
@@ -98,6 +100,9 @@ public class CommonUIService {
         if (deltalUpdateJson.getPeriodSec() != null) {
             arbitrageService.setPeriodSec(Integer.valueOf(deltalUpdateJson.getPeriodSec()));
         }
+        if (deltalUpdateJson.getBuValue() != null) {
+            arbitrageService.setBuValue(new BigDecimal(deltalUpdateJson.getBuValue()));
+        }
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
@@ -106,7 +111,8 @@ public class CommonUIService {
                 arbitrageService.getBorder2().toPlainString(),
                 arbitrageService.getMakerDelta().toPlainString(),
                 arbitrageService.getSumDelta().toPlainString(),
-                arbitrageService.getPeriodSec().toString()
+                arbitrageService.getPeriodSec().toString(),
+                arbitrageService.getBuValue().toPlainString()
         );
     }
 }
