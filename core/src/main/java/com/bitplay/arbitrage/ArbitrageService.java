@@ -44,6 +44,7 @@ public class ArbitrageService {
     private BigDecimal border2 = BigDecimal.ZERO;
     private BigDecimal makerDelta = BigDecimal.ZERO;
     private BigDecimal sumDelta = new BigDecimal(5);
+    private Integer periodSec = 300;
 
     private Instant previousEmitTime = Instant.now();
 
@@ -60,6 +61,7 @@ public class ArbitrageService {
         this.firstMarketService = twoMarketStarter.getFirstMarketService();
         this.secondMarketService = twoMarketStarter.getSecondMarketService();
         startArbitrageMonitoring();
+        scheduleRecalculateBorders();
     }
 
     private void setTimeoutAfterStartTrading() {
@@ -254,7 +256,15 @@ public class ArbitrageService {
         }
     }
 
-    @Scheduled(fixedDelay = 300 * 1000) // each 300 sec
+    public void scheduleRecalculateBorders() {
+        Completable.timer(periodSec, TimeUnit.SECONDS, Schedulers.computation())
+                .doOnComplete(() -> {
+                    recalculateBorders();
+                    scheduleRecalculateBorders();
+                })
+                .subscribe();
+    }
+
     public void recalculateBorders() {
         final BigDecimal two = new BigDecimal(2);
         if (sumDelta.compareTo(BigDecimal.ZERO) != 0) {
@@ -315,5 +325,13 @@ public class ArbitrageService {
 
     public void setSumDelta(BigDecimal sumDelta) {
         this.sumDelta = sumDelta;
+    }
+
+    public Integer getPeriodSec() {
+        return periodSec;
+    }
+
+    public void setPeriodSec(Integer periodSec) {
+        this.periodSec = periodSec;
     }
 }
