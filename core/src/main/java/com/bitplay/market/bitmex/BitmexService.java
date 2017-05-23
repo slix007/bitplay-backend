@@ -369,8 +369,8 @@ public class BitmexService extends MarketService {
             String diffWithSignal = "";
             if (bestQuotes != null) {
                 diffWithSignal = orderType.equals(Order.OrderType.BID)
-                        ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", bestQuotes.getAsk1_o().subtract(thePrice).toPlainString()) //"BUY"
-                        : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s",thePrice.subtract(bestQuotes.getBid1_o()).toPlainString()); //"SELL"
+                        ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", bestQuotes.getAsk1_p().subtract(thePrice).toPlainString()) //"BUY"
+                        : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s",thePrice.subtract(bestQuotes.getBid1_p()).toPlainString()); //"SELL"
             }
             tradeLogger.info("{} {} amount={} with quote={} was placed.orderId={}. {}",
                     isMoving ? "Moved" : "maker",
@@ -456,7 +456,7 @@ public class BitmexService extends MarketService {
             final String logString = String.format("Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
-                    bestMakerPrice.toPlainString(),
+                    bestMakerPrice.setScale(1, BigDecimal.ROUND_HALF_UP).toPlainString(),
                     limitOrder.getId(),
                     attemptCount,
                     diffWithSignal);
