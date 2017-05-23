@@ -4,6 +4,7 @@ import com.bitplay.TwoMarketStarter;
 import com.bitplay.market.MarketService;
 import com.bitplay.utils.Utils;
 
+import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Wallet;
@@ -158,11 +159,24 @@ public class ArbitrageService {
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
                 if (checkBalance("delta1", amount)) {
-                    deltasLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
+                    String firstWalletBalance = "";
+                    if (firstMarketService.getAccountInfo() != null
+                            && firstMarketService.getAccountInfo().getWallet() != null
+                            && firstMarketService.getAccountInfo().getWallet().getBalance(BitmexAdapters.WALLET_CURRENCY) != null) {
+                        firstWalletBalance = firstMarketService.getAccountInfo()
+                                .getWallet()
+                                .getBalance(BitmexAdapters.WALLET_CURRENCY)
+                                .getTotal()
+                                .toPlainString();
+                    }
+
+                    deltasLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s",
                             bid1_p.toPlainString(), ask1_o.toPlainString(),
                             delta1.toPlainString(),
                             border1.toPlainString(),
-                            btcP, usdP, btcO, usdO));
+                            btcP, usdP, btcO, usdO,
+                            firstWalletBalance
+                    ));
                     firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
                     secondMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
@@ -176,11 +190,24 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
                 if (checkBalance("delta2", amount)) {
-                    deltasLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s",
+                    String firstWalletBalance = "";
+                    if (firstMarketService.getAccountInfo() != null
+                            && firstMarketService.getAccountInfo().getWallet() != null
+                            && firstMarketService.getAccountInfo().getWallet().getBalance(BitmexAdapters.WALLET_CURRENCY) != null) {
+                        firstWalletBalance = firstMarketService.getAccountInfo()
+                                .getWallet()
+                                .getBalance(BitmexAdapters.WALLET_CURRENCY)
+                                .getTotal()
+                                .toPlainString();
+                    }
+
+                    deltasLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s",
                             bid1_o.toPlainString(), ask1_p.toPlainString(),
                             delta2.toPlainString(),
                             border2.toPlainString(),
-                            btcP, usdP, btcO, usdO));
+                            btcP, usdP, btcO, usdO,
+                            firstWalletBalance
+                    ));
                     firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
                     secondMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
@@ -230,20 +257,22 @@ public class ArbitrageService {
     @Scheduled(fixedDelay = 300 * 1000) // each 300 sec
     public void recalculateBorders() {
         final BigDecimal two = new BigDecimal(2);
-        if (delta1.compareTo(delta2) == 1) {
+        if (sumDelta.compareTo(BigDecimal.ZERO) != 0) {
+            if (delta1.compareTo(delta2) == 1) {
 //            border1 = (abs(delta1) + abs(delta2)) / 2 + sum_delta / 2;
 //            border2 = -((abs(delta1) + abs(delta2)) / 2 - sum_delta / 2);
-            border1 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
-                    .add(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP));
-            border2 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
-                    .subtract(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)).negate();
-        } else {
+                border1 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
+                        .add(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP));
+                border2 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
+                        .subtract(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)).negate();
+            } else {
 //            border1 = -(abs(delta1) + abs(delta2)) / 2 - sum_delta / 2;
 //            border2 = abs(delta1) + abs(delta2)) / 2 + sum_delta / 2;
-            border1 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
-                    .subtract(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)).negate();
-            border2 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
-                    .add(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP));
+                border1 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
+                        .subtract(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)).negate();
+                border2 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
+                        .add(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP));
+            }
         }
 
     }
