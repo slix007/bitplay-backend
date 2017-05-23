@@ -10,13 +10,15 @@ public class DeltasJson {
     private String border1;
     private String border2;
     private String makerDelta;
+    private String sumDelta;
 
-    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta) {
+    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta) {
         this.delta1 = delta1;
         this.delta2 = delta2;
         this.border1 = border1;
         this.border2 = border2;
         this.makerDelta = makerDelta;
+        this.sumDelta = sumDelta;
     }
 
     public String getDelta1() {
@@ -37,5 +39,9 @@ public class DeltasJson {
 
     public String getMakerDelta() {
         return makerDelta;
+    }
+
+    public String getSumDelta() {
+        return sumDelta;
     }
 }

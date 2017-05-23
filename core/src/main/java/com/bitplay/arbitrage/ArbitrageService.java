@@ -10,6 +10,7 @@ import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -41,6 +42,8 @@ public class ArbitrageService {
     private BigDecimal border1 = BigDecimal.ZERO;
     private BigDecimal border2 = BigDecimal.ZERO;
     private BigDecimal makerDelta = BigDecimal.ZERO;
+    private BigDecimal sumDelta = new BigDecimal(5);
+
     private Instant previousEmitTime = Instant.now();
 
     private Boolean isReadyForTheArbitrage = true;
@@ -224,6 +227,27 @@ public class ArbitrageService {
         }
     }
 
+    @Scheduled(fixedDelay = 300 * 1000) // each 300 sec
+    public void recalculateBorders() {
+        final BigDecimal two = new BigDecimal(2);
+        if (delta1.compareTo(delta2) == 1) {
+//            border1 = (abs(delta1) + abs(delta2)) / 2 + sum_delta / 2;
+//            border2 = -((abs(delta1) + abs(delta2)) / 2 - sum_delta / 2);
+            border1 = ((delta1.abs().add(delta2.abs())).divide(two, 5, BigDecimal.ROUND_HALF_UP))
+                    .add(sumDelta).divide(two, 0, BigDecimal.ROUND_HALF_UP);
+            border2 = (((delta1.abs().add(delta2.abs())).divide(two, 5, BigDecimal.ROUND_HALF_UP))
+                    .subtract(sumDelta).divide(two, 0, BigDecimal.ROUND_HALF_UP)).negate();
+        } else {
+//            border1 = -(abs(delta1) + abs(delta2)) / 2 - sum_delta / 2;
+//            border2 = abs(delta1) + abs(delta2)) / 2 + sum_delta / 2;
+            border1 = ((delta1.abs().add(delta2.abs())).divide(two, 5, BigDecimal.ROUND_HALF_UP))
+                    .subtract(sumDelta).divide(two, 0, BigDecimal.ROUND_HALF_UP).negate();
+            border2 = ((delta1.abs().add(delta2.abs())).divide(two, 5, BigDecimal.ROUND_HALF_UP))
+                    .add(sumDelta).divide(two, 0, BigDecimal.ROUND_HALF_UP);
+        }
+
+    }
+
     public BigDecimal getDelta1() {
         return delta1;
     }
@@ -254,5 +278,13 @@ public class ArbitrageService {
 
     public BigDecimal getMakerDelta() {
         return makerDelta;
+    }
+
+    public BigDecimal getSumDelta() {
+        return sumDelta;
+    }
+
+    public void setSumDelta(BigDecimal sumDelta) {
+        this.sumDelta = sumDelta;
     }
 }

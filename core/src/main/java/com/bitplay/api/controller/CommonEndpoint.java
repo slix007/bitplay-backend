@@ -3,7 +3,7 @@ package com.bitplay.api.controller;
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
-import com.bitplay.api.domain.MakerDeltalUpdateJson;
+import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.MarketList;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
@@ -99,7 +99,7 @@ public class CommonEndpoint {
     @Path("/market/update-maker-delta")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public DeltasJson updateMakerDelta(MakerDeltalUpdateJson makerDeltalUpdateJson) {
-        return commonUIService.updateMakerDelta(makerDeltalUpdateJson);
+    public DeltasJson updateMakerDelta(DeltalUpdateJson deltalUpdateJson) {
+        return commonUIService.updateMakerDelta(deltalUpdateJson);
     }
 }

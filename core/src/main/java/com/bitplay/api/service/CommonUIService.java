@@ -3,7 +3,7 @@ package com.bitplay.api.service;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
-import com.bitplay.api.domain.MakerDeltalUpdateJson;
+import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.TradeLogJson;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +63,8 @@ public class CommonUIService {
                 arbitrageService.getDelta2().toPlainString(),
                 arbitrageService.getBorder1().toPlainString(),
                 arbitrageService.getBorder2().toPlainString(),
-                arbitrageService.getMakerDelta().toPlainString()
+                arbitrageService.getMakerDelta().toPlainString(),
+                arbitrageService.getSumDelta().toPlainString()
         );
     }
 
@@ -80,15 +81,17 @@ public class CommonUIService {
                 arbitrageService.getDelta2().toPlainString(),
                 arbitrageService.getBorder1().toPlainString(),
                 arbitrageService.getBorder2().toPlainString(),
-                arbitrageService.getMakerDelta().toPlainString()
+                arbitrageService.getMakerDelta().toPlainString(),
+                arbitrageService.getSumDelta().toPlainString()
         );
     }
 
-    public DeltasJson updateMakerDelta(MakerDeltalUpdateJson makerDeltalUpdateJson) {
-        if (makerDeltalUpdateJson.getMakerDelta() != null) {
-            arbitrageService.setMakerDelta(
-                    new BigDecimal(makerDeltalUpdateJson.getMakerDelta())
-            );
+    public DeltasJson updateMakerDelta(DeltalUpdateJson deltalUpdateJson) {
+        if (deltalUpdateJson.getMakerDelta() != null) {
+            arbitrageService.setMakerDelta(new BigDecimal(deltalUpdateJson.getMakerDelta()));
+        }
+        if (deltalUpdateJson.getSumDelta() != null) {
+            arbitrageService.setSumDelta(new BigDecimal(deltalUpdateJson.getSumDelta()));
         }
 
         return new DeltasJson(
@@ -96,7 +99,8 @@ public class CommonUIService {
                 arbitrageService.getDelta2().toPlainString(),
                 arbitrageService.getBorder1().toPlainString(),
                 arbitrageService.getBorder2().toPlainString(),
-                arbitrageService.getMakerDelta().toPlainString()
+                arbitrageService.getMakerDelta().toPlainString(),
+                arbitrageService.getSumDelta().toPlainString()
         );
     }
 }
