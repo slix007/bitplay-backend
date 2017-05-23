@@ -376,7 +376,7 @@ public class BitmexService extends MarketService {
                     isMoving ? "Moved" : "maker",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
-                    thePrice,
+                    thePrice.setScale(1, BigDecimal.ROUND_HALF_UP),
                     orderId,
                     diffWithSignal);
 
@@ -468,7 +468,7 @@ public class BitmexService extends MarketService {
         } else if (moveResponse == null) {
             final String logString = String.format("Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-                    limitOrder.getTradableAmount(),
+                    limitOrder.getTradableAmount().setScale(1, BigDecimal.ROUND_HALF_UP),
                     limitOrder.getLimitPrice().toPlainString(),
                     limitOrder.getId(),
                     attemptCount,
