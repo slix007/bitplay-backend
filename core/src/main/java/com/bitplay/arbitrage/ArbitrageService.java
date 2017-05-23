@@ -233,17 +233,17 @@ public class ArbitrageService {
         if (delta1.compareTo(delta2) == 1) {
 //            border1 = (abs(delta1) + abs(delta2)) / 2 + sum_delta / 2;
 //            border2 = -((abs(delta1) + abs(delta2)) / 2 - sum_delta / 2);
-            border1 = ((delta1.abs().add(delta2.abs())).divide(two, 5, BigDecimal.ROUND_HALF_UP))
-                    .add(sumDelta).divide(two, 0, BigDecimal.ROUND_HALF_UP);
-            border2 = (((delta1.abs().add(delta2.abs())).divide(two, 5, BigDecimal.ROUND_HALF_UP))
-                    .subtract(sumDelta).divide(two, 0, BigDecimal.ROUND_HALF_UP)).negate();
+            border1 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
+                    .add(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP));
+            border2 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
+                    .subtract(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)).negate();
         } else {
 //            border1 = -(abs(delta1) + abs(delta2)) / 2 - sum_delta / 2;
 //            border2 = abs(delta1) + abs(delta2)) / 2 + sum_delta / 2;
-            border1 = ((delta1.abs().add(delta2.abs())).divide(two, 5, BigDecimal.ROUND_HALF_UP))
-                    .subtract(sumDelta).divide(two, 0, BigDecimal.ROUND_HALF_UP).negate();
-            border2 = ((delta1.abs().add(delta2.abs())).divide(two, 5, BigDecimal.ROUND_HALF_UP))
-                    .add(sumDelta).divide(two, 0, BigDecimal.ROUND_HALF_UP);
+            border1 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
+                    .subtract(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)).negate();
+            border2 = ((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
+                    .add(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP));
         }
 
     }
