@@ -45,6 +45,7 @@ public class ArbitrageService {
     private BigDecimal makerDelta = BigDecimal.ZERO;
     private BigDecimal sumDelta = new BigDecimal(5);
     private Integer periodSec = 300;
+    Disposable schdeduleUpdateBorders;
 
     private Instant previousEmitTime = Instant.now();
 
@@ -257,7 +258,11 @@ public class ArbitrageService {
     }
 
     public void scheduleRecalculateBorders() {
-        Completable.timer(periodSec, TimeUnit.SECONDS, Schedulers.computation())
+        if (schdeduleUpdateBorders != null && !schdeduleUpdateBorders.isDisposed()) {
+            schdeduleUpdateBorders.dispose();
+        }
+
+        schdeduleUpdateBorders = Completable.timer(periodSec, TimeUnit.SECONDS, Schedulers.computation())
                 .doOnComplete(() -> {
                     recalculateBorders();
                     scheduleRecalculateBorders();
@@ -333,5 +338,6 @@ public class ArbitrageService {
 
     public void setPeriodSec(Integer periodSec) {
         this.periodSec = periodSec;
+        scheduleRecalculateBorders();
     }
 }
