@@ -183,7 +183,7 @@ public class ArbitrageService {
                     BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0)
                             ? ask1_o : buValue;
                     BigDecimal sumBal = firstWalletBalance.add(btcO).add(
-                            usdO.divide(bu, 6, BigDecimal.ROUND_HALF_UP)
+                            usdO.divide(bu, 20, BigDecimal.ROUND_HALF_UP)
                     );
                     //sum_bal = wallet_b + btc_o + usd_o / bu , где bu типа double задаем с ui
                     deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s=%s",
@@ -206,15 +206,14 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
                 if (checkBalance("delta2", amount)) {
-                    String firstWalletBalance = "";
+                    BigDecimal firstWalletBalance = BigDecimal.ZERO;
                     if (firstMarketService.getAccountInfo() != null
                             && firstMarketService.getAccountInfo().getWallet() != null
                             && firstMarketService.getAccountInfo().getWallet().getBalance(BitmexAdapters.WALLET_CURRENCY) != null) {
                         firstWalletBalance = firstMarketService.getAccountInfo()
                                 .getWallet()
                                 .getBalance(BitmexAdapters.WALLET_CURRENCY)
-                                .getTotal()
-                                .toPlainString();
+                                .getTotal();
                     }
 
                     deltasLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s",
@@ -224,6 +223,21 @@ public class ArbitrageService {
                             btcP, usdP, btcO, usdO,
                             firstWalletBalance
                     ));
+
+                    BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0)
+                            ? ask1_o : buValue;
+                    BigDecimal sumBal = firstWalletBalance.add(btcO).add(
+                            usdO.divide(bu, 20, BigDecimal.ROUND_HALF_UP)
+                    );
+                    //sum_bal = wallet_b + btc_o + usd_o / bu , где bu типа double задаем с ui
+                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s=%s",
+                            firstWalletBalance,
+                            btcO,
+                            usdO,
+                            bu,
+                            sumBal
+                    ));
+
                     firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
                     secondMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
