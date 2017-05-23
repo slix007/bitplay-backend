@@ -28,6 +28,7 @@ import org.knowm.xchange.utils.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -114,6 +115,17 @@ public class BitmexService extends MarketService {
         Completable.timer(4000, TimeUnit.MILLISECONDS)
                 .doOnCompleted(this::startOpenOrderMovingListener)
                 .subscribe();
+    }
+
+    @Scheduled(fixedRate = 5000)
+    public void dobleCheckAvailableBalance() {
+        if (accountInfo == null
+                || accountInfo.getWallet() == null
+                || accountInfo.getWallet().getBalance(WALLET_CURRENCY) == null
+                || accountInfo.getWallet().getBalance(WALLET_CURRENCY).getAvailable().compareTo(BigDecimal.ZERO) == 0) {
+            accountInfoSubscription.dispose();
+            startAccountInfoListener();
+        }
     }
 
     private boolean canMoveOpenOrders = true;
