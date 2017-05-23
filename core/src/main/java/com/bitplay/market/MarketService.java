@@ -294,6 +294,7 @@ public abstract class MarketService {
             if (openOrders.stream()
                     .filter(Objects::nonNull)
                     .anyMatch(limitOrder -> limitOrder != null
+                            && limitOrder.getLimitPrice() != null
                             && bestBid != null
                             && limitOrder.getLimitPrice().compareTo(bestBid) == 0)) {
                 thePrice = bestBid;
@@ -310,6 +311,7 @@ public abstract class MarketService {
             if (openOrders.stream()
                     .filter(Objects::nonNull)
                     .anyMatch(limitOrder -> limitOrder != null
+                            && limitOrder.getLimitPrice() != null
                             && bestAsk != null
                             && limitOrder.getLimitPrice().compareTo(bestAsk) == 0)) {
                 thePrice = bestAsk;
