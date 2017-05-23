@@ -227,6 +227,11 @@ public class BitmexService extends MarketService {
         orderBookSubscription = orderBookObservable
                 .subscribeOn(Schedulers.computation())
                 .subscribe(orderBook -> {
+                    //workaround
+                    if (openOrders == null) {
+                        openOrders = new ArrayList<>();
+                    }
+
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
                     final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
@@ -426,6 +431,8 @@ public class BitmexService extends MarketService {
                     final Error error = objectMapper.readValue(httpBody, Error.class);
                     if (error.getError().getMessage().startsWith("Invalid ordStatus")) {
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
+                        // add flag
+                        arbitrageService.getFlagOpenOrder().setFirstReady(true);
                         break;
                     }
                 } catch (IOException e1) {

@@ -46,6 +46,12 @@ public class ArbitrageService {
     private Boolean isReadyForTheArbitrage = true;
     private Disposable theTimer;
 
+    private FlagOpenOrder flagOpenOrder = new FlagOpenOrder();
+
+    public FlagOpenOrder getFlagOpenOrder() {
+        return flagOpenOrder;
+    }
+
     public void init(TwoMarketStarter twoMarketStarter) {
         this.firstMarketService = twoMarketStarter.getFirstMarketService();
         this.secondMarketService = twoMarketStarter.getSecondMarketService();
@@ -53,6 +59,9 @@ public class ArbitrageService {
     }
 
     private void setTimeoutAfterStartTrading() {
+        flagOpenOrder.setFirstReady(false);
+//        flagOpenOrder.setSecondReady(false);
+
         isReadyForTheArbitrage = false;
         if (theTimer != null) {
             theTimer.dispose();
@@ -97,7 +106,7 @@ public class ArbitrageService {
     private BestQuotes doComparison() {
         BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
 
-        if (isReadyForTheArbitrage) {
+        if (isReadyForTheArbitrage && flagOpenOrder.isReady()) {
             synchronized (this) {
                 final OrderBook firstOrderBook = firstMarketService.getOrderBook();
                 final OrderBook secondOrderBook = secondMarketService.getOrderBook();

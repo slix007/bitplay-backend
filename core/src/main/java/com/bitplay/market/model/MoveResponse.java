@@ -12,7 +12,8 @@ public class MoveResponse {
         ALREADY_FIRST,
         ALREADY_CLOSED,
         MOVED,
-        EXCEPTION
+        EXCEPTION,
+        WAITING_TIMEOUT
     }
 
     public MoveResponse(MoveOrderStatus moveOrderStatus, String description) {

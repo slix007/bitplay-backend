@@ -24,9 +24,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Completable;
 import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
 
@@ -288,7 +292,10 @@ public abstract class MarketService {
         if (orderType == Order.OrderType.BID) {
             // 1 use the best price if it is ours.
             if (openOrders.stream()
-                    .anyMatch(limitOrder -> limitOrder.getLimitPrice().compareTo(bestBid) == 0)) {
+                    .filter(Objects::nonNull)
+                    .anyMatch(limitOrder -> limitOrder != null
+                            && bestBid != null
+                            && limitOrder.getLimitPrice().compareTo(bestBid) == 0)) {
                 thePrice = bestBid;
             } else {
                 // 2 the best with delta
@@ -301,7 +308,10 @@ public abstract class MarketService {
         } else if (orderType == Order.OrderType.ASK) {
             // 1 use the best price if it is ours.
             if (openOrders.stream()
-                    .anyMatch(limitOrder -> limitOrder.getLimitPrice().compareTo(bestAsk) == 0)) {
+                    .filter(Objects::nonNull)
+                    .anyMatch(limitOrder -> limitOrder != null
+                            && bestAsk != null
+                            && limitOrder.getLimitPrice().compareTo(bestAsk) == 0)) {
                 thePrice = bestAsk;
             } else {
                 // 2 the best with delta
@@ -315,29 +325,48 @@ public abstract class MarketService {
         return thePrice;
     }
 
+    private Boolean isReadyForMoving = true;
+    private Disposable theTimer;
+
+    private void setTimeoutAfterStartMoving() {
+        isReadyForMoving = false;
+        if (theTimer != null) {
+            theTimer.dispose();
+        }
+        theTimer = Completable.timer(2, TimeUnit.SECONDS)
+                .doOnComplete(() -> isReadyForMoving = true)
+                .subscribe();
+    }
+
     protected MoveResponse moveMakerOrderIfNotFirst(LimitOrder limitOrder) {
         MoveResponse response;
         BigDecimal bestPrice;
 
-        BigDecimal bestAsk = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
-        BigDecimal bestBid = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
-
-        if (limitOrder.getType() == Order.OrderType.ASK) {
-            bestPrice = bestAsk;
-        } else if (limitOrder.getType() == Order.OrderType.BID) {
-            bestPrice = bestBid;
+        if (!isReadyForMoving) {
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.WAITING_TIMEOUT, "");
         } else {
-            throw new IllegalArgumentException("Order type is not supported" + limitOrder.getType());
-        }
 
-        if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
 
-            logger.info("{} Try to move maker order {} {}, from {} to {}",
-                    getName(), limitOrder.getId(), limitOrder.getType(),
-                    limitOrder.getLimitPrice(), bestPrice);
-            response = moveMakerOrder(limitOrder);
-        } else {
-            response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
+            BigDecimal bestAsk = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
+            BigDecimal bestBid = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
+
+            if (limitOrder.getType() == Order.OrderType.ASK) {
+                bestPrice = bestAsk;
+            } else if (limitOrder.getType() == Order.OrderType.BID) {
+                bestPrice = bestBid;
+            } else {
+                throw new IllegalArgumentException("Order type is not supported" + limitOrder.getType());
+            }
+
+            if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
+                logger.info("{} Try to move maker order {} {}, from {} to {}",
+                        getName(), limitOrder.getId(), limitOrder.getType(),
+                        limitOrder.getLimitPrice(), bestPrice);
+                response = moveMakerOrder(limitOrder);
+                setTimeoutAfterStartMoving();
+            } else {
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
+            }
         }
         return response;
     }
