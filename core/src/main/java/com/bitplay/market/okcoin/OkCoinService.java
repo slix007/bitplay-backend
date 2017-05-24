@@ -299,6 +299,7 @@ public class OkCoinService extends MarketService {
 //            openOrders.add(new LimitOrder(limitOrder.getType(), amount, limitOrder.getCurrencyPair(),
 //                    orderId, new Date(), limitOrder.getLimitPrice(), null, null,
 //                    limitOrder.getStatus()));
+            arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
             orderIdToSignalInfo.put(orderId, bestQuotes);
 
         } catch (Exception e) {

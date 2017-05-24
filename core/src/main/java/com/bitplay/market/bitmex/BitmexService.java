@@ -392,6 +392,7 @@ public class BitmexService extends MarketService {
                     orderId,
                     diffWithSignal);
 
+            arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
             orderIdToSignalInfo.put(orderId, bestQuotes);
 
         } catch (HttpStatusIOException e) {
@@ -425,7 +426,8 @@ public class BitmexService extends MarketService {
         while (attemptCount < 2) {
             attemptCount++;
             try {
-                bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true);
+                bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true)
+                        .setScale(1, BigDecimal.ROUND_HALF_UP);
                 final BitmexTradeService tradeService = (BitmexTradeService) exchange.getTradeService();
                 final String order = tradeService.moveLimitOrder(limitOrder, bestMakerPrice);
 
@@ -468,12 +470,13 @@ public class BitmexService extends MarketService {
             final String logString = String.format("Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
-                    bestMakerPrice.setScale(1, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                    bestMakerPrice.toPlainString(),
                     limitOrder.getId(),
                     attemptCount,
                     diffWithSignal);
 
             orderIdToSignalInfo.put(limitOrder.getId(), bestQuotes);
+            arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
 
             tradeLogger.info(logString);
             moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);

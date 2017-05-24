@@ -31,6 +31,8 @@ public class ArbitrageService {
 
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
+    private static final String DELTA1 = "delta1";
+    private final String DELTA2 = "delta2";
 
     //TODO rename them to first and second
     private MarketService firstMarketService;
@@ -46,6 +48,7 @@ public class ArbitrageService {
     private BigDecimal buValue = BigDecimal.ZERO;
     private Integer periodSec = 300;
     private BigDecimal cumDelta = new BigDecimal(0);
+    private String lastDelta = null;
 
     Disposable schdeduleUpdateBorders;
 
@@ -55,9 +58,14 @@ public class ArbitrageService {
     private Disposable theTimer;
 
     private FlagOpenOrder flagOpenOrder = new FlagOpenOrder();
+    private OpenPrices openPrices = new OpenPrices();
 
     public FlagOpenOrder getFlagOpenOrder() {
         return flagOpenOrder;
+    }
+
+    public OpenPrices getOpenPrices() {
+        return openPrices;
     }
 
     public void init(TwoMarketStarter twoMarketStarter) {
@@ -158,58 +166,15 @@ public class ArbitrageService {
         final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
 
-
         BigDecimal amount = new BigDecimal("0.02");
 //            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
-                if (checkBalance("delta1", amount)) {
-                    BigDecimal firstWalletBalance = BigDecimal.ZERO;
-                    if (firstMarketService.getAccountInfo() != null
-                            && firstMarketService.getAccountInfo().getWallet() != null
-                            && firstMarketService.getAccountInfo().getWallet().getBalance(BitmexAdapters.WALLET_CURRENCY) != null) {
-                        firstWalletBalance = firstMarketService.getAccountInfo()
-                                .getWallet()
-                                .getBalance(BitmexAdapters.WALLET_CURRENCY)
-                                .getTotal();
-                    }
+                if (checkBalance(DELTA1, amount)
+                        && (lastDelta == null || lastDelta.equals(DELTA2))) {
+                    lastDelta = DELTA1;
 
-                    cumDelta = cumDelta.add(delta1);
-                    deltasLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s",
-                            bid1_p.toPlainString(), ask1_o.toPlainString(),
-                            delta1.toPlainString(),
-                            border1.toPlainString(),
-                            btcP, usdP, btcO, usdO,
-                            firstWalletBalance.toPlainString(),
-                            cumDelta.toPlainString()
-                    ));
-
-                    //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
-                    BigDecimal sumBal = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP));
-                    BigDecimal sumBalUsd = sumBal.multiply(ask1_o).setScale(4, BigDecimal.ROUND_HALF_UP);
-                    //sum_bal = wallet_b + btc_o + usd_o / bu , где bu типа double задаем с ui
-                    BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0) ? ask1_o : buValue;
-                    BigDecimal sumBal2 = BigDecimal.ZERO;
-                    BigDecimal sumBalUsd2 = BigDecimal.ZERO;
-                    if (buValue.compareTo(BigDecimal.ZERO) != 0) {
-                        sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
-                        sumBalUsd2 = sumBal2.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
-                    }
-                    BigDecimal sumBalUsd3 = firstWalletBalance.multiply(bu).add(
-                            btcO.multiply(bid1_o)
-                    ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
-                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s) = %sb = %sb = %s$ = %s$ = %s$",
-                            firstWalletBalance,
-                            btcO,
-                            usdO,
-                            bu,
-                            ask1_o,
-                            sumBal,
-                            sumBal2,
-                            sumBalUsd,
-                            sumBalUsd2,
-                            sumBalUsd3
-                    ));
+                    writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
 
                     firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
                     secondMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
@@ -223,53 +188,11 @@ public class ArbitrageService {
 //            2) если delta2 >= border2, то происходит buy у poloniex и sell у okcoin
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
-                if (checkBalance("delta2", amount)) {
-                    BigDecimal firstWalletBalance = BigDecimal.ZERO;
-                    if (firstMarketService.getAccountInfo() != null
-                            && firstMarketService.getAccountInfo().getWallet() != null
-                            && firstMarketService.getAccountInfo().getWallet().getBalance(BitmexAdapters.WALLET_CURRENCY) != null) {
-                        firstWalletBalance = firstMarketService.getAccountInfo()
-                                .getWallet()
-                                .getBalance(BitmexAdapters.WALLET_CURRENCY)
-                                .getTotal();
-                    }
+                if (checkBalance(DELTA2, amount)
+                        && (lastDelta == null || lastDelta.equals(DELTA1))) {
+                    lastDelta = DELTA2;
 
-                    cumDelta = cumDelta.add(delta2);
-                    deltasLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s",
-                            bid1_o.toPlainString(), ask1_p.toPlainString(),
-                            delta2.toPlainString(),
-                            border2.toPlainString(),
-                            btcP, usdP, btcO, usdO,
-                            firstWalletBalance,
-                            cumDelta.toPlainString()
-                    ));
-
-                    //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
-                    BigDecimal sumBal = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP));
-                    BigDecimal sumBalUsd = sumBal.multiply(ask1_o).setScale(4, BigDecimal.ROUND_HALF_UP);
-                    //sum_bal = wallet_b + btc_o + usd_o / bu , где bu типа double задаем с ui
-                    BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0) ? ask1_o : buValue;
-                    BigDecimal sumBal2 = BigDecimal.ZERO;
-                    BigDecimal sumBalUsd2 = BigDecimal.ZERO;
-                    if (buValue.compareTo(BigDecimal.ZERO) != 0) {
-                        sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
-                        sumBalUsd2 = sumBal2.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
-                    }
-                    BigDecimal sumBalUsd3 = firstWalletBalance.multiply(bu).add(
-                            btcO.multiply(bid1_o)
-                    ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
-                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s) = %sb = %sb = %s$ = %s$ = %s$",
-                            firstWalletBalance,
-                            btcO,
-                            usdO,
-                            bu,
-                            ask1_o,
-                            sumBal,
-                            sumBal2,
-                            sumBalUsd,
-                            sumBalUsd2,
-                            sumBalUsd3
-                    ));
+                    writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
 
                     firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
                     secondMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
@@ -283,15 +206,129 @@ public class ArbitrageService {
         return bestQuotes;
     }
 
+    private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_o, BigDecimal bid1_p, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
+        deltasLogger.info(String.format("delta1_fact = %s - %s = %s",
+                openPrices.getFirstOpenPrice().toPlainString(),
+                openPrices.getSecondOpenPrice().toPlainString(),
+                (openPrices.getFirstOpenPrice() != null && openPrices.getSecondOpenPrice() != null)
+                        ? openPrices.getFirstOpenPrice().subtract(openPrices.getSecondOpenPrice()).toPlainString()
+                        : "0"
+        ));
+
+        BigDecimal firstWalletBalance = BigDecimal.ZERO;
+        if (firstMarketService.getAccountInfo() != null
+                && firstMarketService.getAccountInfo().getWallet() != null
+                && firstMarketService.getAccountInfo().getWallet().getBalance(BitmexAdapters.WALLET_CURRENCY) != null) {
+            firstWalletBalance = firstMarketService.getAccountInfo()
+                    .getWallet()
+                    .getBalance(BitmexAdapters.WALLET_CURRENCY)
+                    .getTotal();
+        }
+
+        cumDelta = cumDelta.add(delta1);
+        deltasLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s",
+                bid1_p.toPlainString(), ask1_o.toPlainString(),
+                delta1.toPlainString(),
+                border1.toPlainString(),
+                btcP, usdP, btcO, usdO,
+                firstWalletBalance.toPlainString(),
+                cumDelta.toPlainString()
+        ));
+
+        //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
+        BigDecimal sumBal = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP));
+        BigDecimal sumBalUsd = sumBal.multiply(ask1_o).setScale(4, BigDecimal.ROUND_HALF_UP);
+        //sum_bal = wallet_b + btc_o + usd_o / bu , где bu типа double задаем с ui
+        BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0) ? ask1_o : buValue;
+        BigDecimal sumBal2 = BigDecimal.ZERO;
+        BigDecimal sumBalUsd2 = BigDecimal.ZERO;
+        if (buValue.compareTo(BigDecimal.ZERO) != 0) {
+            sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
+            sumBalUsd2 = sumBal2.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
+        }
+        BigDecimal sumBalUsd3 = firstWalletBalance.multiply(bu).add(
+                btcO.multiply(bid1_o)
+        ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
+        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s) = %sb = %sb = %s$ = %s$ = %s$",
+                firstWalletBalance,
+                btcO,
+                usdO,
+                bu,
+                ask1_o,
+                sumBal,
+                sumBal2,
+                sumBalUsd,
+                sumBalUsd2,
+                sumBalUsd3
+        ));
+    }
+
+    private void writeLogDelta2(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
+        deltasLogger.info(String.format("delta2_fact = %s - %s = %s",
+                openPrices.getSecondOpenPrice().toPlainString(),
+                openPrices.getFirstOpenPrice().toPlainString(),
+                (openPrices.getFirstOpenPrice() != null && openPrices.getSecondOpenPrice() != null)
+                        ? openPrices.getSecondOpenPrice().subtract(openPrices.getFirstOpenPrice()).toPlainString()
+                        : "0"
+        ));
+
+        BigDecimal firstWalletBalance = BigDecimal.ZERO;
+        if (firstMarketService.getAccountInfo() != null
+                && firstMarketService.getAccountInfo().getWallet() != null
+                && firstMarketService.getAccountInfo().getWallet().getBalance(BitmexAdapters.WALLET_CURRENCY) != null) {
+            firstWalletBalance = firstMarketService.getAccountInfo()
+                    .getWallet()
+                    .getBalance(BitmexAdapters.WALLET_CURRENCY)
+                    .getTotal();
+        }
+
+        cumDelta = cumDelta.add(delta2);
+        deltasLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s",
+                bid1_o.toPlainString(), ask1_p.toPlainString(),
+                delta2.toPlainString(),
+                border2.toPlainString(),
+                btcP, usdP, btcO, usdO,
+                firstWalletBalance,
+                cumDelta.toPlainString()
+        ));
+
+        //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
+        BigDecimal sumBal = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP));
+        BigDecimal sumBalUsd = sumBal.multiply(ask1_o).setScale(4, BigDecimal.ROUND_HALF_UP);
+        //sum_bal = wallet_b + btc_o + usd_o / bu , где bu типа double задаем с ui
+        BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0) ? ask1_o : buValue;
+        BigDecimal sumBal2 = BigDecimal.ZERO;
+        BigDecimal sumBalUsd2 = BigDecimal.ZERO;
+        if (buValue.compareTo(BigDecimal.ZERO) != 0) {
+            sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
+            sumBalUsd2 = sumBal2.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
+        }
+        BigDecimal sumBalUsd3 = firstWalletBalance.multiply(bu).add(
+                btcO.multiply(bid1_o)
+        ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
+        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s) = %sb = %sb = %s$ = %s$ = %s$",
+                firstWalletBalance,
+                btcO,
+                usdO,
+                bu,
+                ask1_o,
+                sumBal,
+                sumBal2,
+                sumBalUsd,
+                sumBalUsd2,
+                sumBalUsd3
+        ));
+    }
+
     private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {
         boolean affordable = false;
-        if (deltaRef.equals("delta1")) {
+        if (deltaRef.equals(DELTA1)) {
             // sell p, buy o
             if (firstMarketService.isAffordable(Order.OrderType.ASK, tradableAmount)
                     && secondMarketService.isAffordable(Order.OrderType.BID, tradableAmount)) {
                 affordable = true;
             }
-        } else if (deltaRef.equals("delta2")) {
+        } else if (deltaRef.equals(DELTA2)) {
             // buy p , sell o
             if (firstMarketService.isAffordable(Order.OrderType.BID, tradableAmount)
                     && secondMarketService.isAffordable(Order.OrderType.ASK, tradableAmount)) {
