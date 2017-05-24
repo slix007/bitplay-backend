@@ -195,7 +195,10 @@ public class ArbitrageService {
                         sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
                         sumBalUsd2 = sumBal2.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
                     }
-                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s) = %sb = %sb = %s$ = %s$",
+                    BigDecimal sumBalUsd3 = firstWalletBalance.multiply(bu).add(
+                            btcO.multiply(bid1_o)
+                    ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
+                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s) = %sb = %sb = %s$ = %s$ = %s$",
                             firstWalletBalance,
                             btcO,
                             usdO,
@@ -204,7 +207,8 @@ public class ArbitrageService {
                             sumBal,
                             sumBal2,
                             sumBalUsd,
-                            sumBalUsd2
+                            sumBalUsd2,
+                            sumBalUsd3
                     ));
 
                     firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
@@ -251,7 +255,10 @@ public class ArbitrageService {
                         sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
                         sumBalUsd2 = sumBal2.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
                     }
-                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s) = %sb = %sb = %s$ = %s$",
+                    BigDecimal sumBalUsd3 = firstWalletBalance.multiply(bu).add(
+                            btcO.multiply(bid1_o)
+                    ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
+                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s) = %sb = %sb = %s$ = %s$ = %s$",
                             firstWalletBalance,
                             btcO,
                             usdO,
@@ -260,7 +267,8 @@ public class ArbitrageService {
                             sumBal,
                             sumBal2,
                             sumBalUsd,
-                            sumBalUsd2
+                            sumBalUsd2,
+                            sumBalUsd3
                     ));
 
                     firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
