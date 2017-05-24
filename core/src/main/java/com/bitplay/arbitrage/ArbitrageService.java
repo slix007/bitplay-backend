@@ -48,7 +48,8 @@ public class ArbitrageService {
     private BigDecimal sumDelta = new BigDecimal(5);
     private BigDecimal buValue = BigDecimal.ZERO;
     private Integer periodSec = 300;
-    private BigDecimal cumDelta = new BigDecimal(0);
+    private BigDecimal cumDelta = BigDecimal.ZERO;
+    private BigDecimal cumDeltaFact = BigDecimal.ZERO;
     private String lastDelta = null;
 
     Disposable schdeduleUpdateBorders;
@@ -208,16 +209,17 @@ public class ArbitrageService {
     }
 
     private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_o, BigDecimal bid1_p, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
-        deltasLogger.info("------------------------------------------");
         if (openPrices != null) {
-            deltasLogger.info(String.format("delta2_fact = %s - %s = %s",
-                    openPrices.getFirstOpenPrice() != null ? openPrices.getFirstOpenPrice().toPlainString() : null,
-                    openPrices.getSecondOpenPrice() != null ? openPrices.getSecondOpenPrice().toPlainString() : null,
-                    (openPrices.getFirstOpenPrice() != null && openPrices.getSecondOpenPrice() != null)
-                            ? openPrices.getFirstOpenPrice().subtract(openPrices.getSecondOpenPrice()).toPlainString()
-                            : "0"
+            BigDecimal deltaFact = openPrices.getDelta2Fact();
+            cumDeltaFact = cumDeltaFact.add(deltaFact);
+            deltasLogger.info(String.format("delta2_fact = %s - %s = %s; cum_delta_fact = %s",
+                    openPrices.getFirstOpenPrice().toPlainString(),
+                    openPrices.getSecondOpenPrice().toPlainString(),
+                    deltaFact.toPlainString(),
+                    cumDeltaFact.toPlainString()
             ));
         }
+        deltasLogger.info("------------------------------------------");
 
         BigDecimal firstWalletBalance = BigDecimal.ZERO;
         if (firstMarketService.getAccountInfo() != null
@@ -268,16 +270,17 @@ public class ArbitrageService {
     }
 
     private void writeLogDelta2(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
-        deltasLogger.info("------------------------------------------");
         if (openPrices != null) {
-            deltasLogger.info(String.format("delta1_fact = %s - %s = %s.",
-                    openPrices.getSecondOpenPrice() != null ? openPrices.getSecondOpenPrice().toPlainString() : null,
-                    openPrices.getFirstOpenPrice() != null ? openPrices.getFirstOpenPrice().toPlainString() : null,
-                    (openPrices.getFirstOpenPrice() != null && openPrices.getSecondOpenPrice() != null)
-                            ? openPrices.getSecondOpenPrice().subtract(openPrices.getFirstOpenPrice()).toPlainString()
-                            : "0"
+            BigDecimal deltaFact = openPrices.getDelta1Fact();
+            cumDeltaFact = cumDeltaFact.add(deltaFact);
+            deltasLogger.info(String.format("delta1_fact = %s - %s = %s; cum_delta_fact = %s",
+                    openPrices.getSecondOpenPrice().toPlainString(),
+                    openPrices.getFirstOpenPrice().toPlainString(),
+                    deltaFact,
+                    cumDeltaFact
             ));
         }
+        deltasLogger.info("------------------------------------------");
 
         BigDecimal firstWalletBalance = BigDecimal.ZERO;
         if (firstMarketService.getAccountInfo() != null

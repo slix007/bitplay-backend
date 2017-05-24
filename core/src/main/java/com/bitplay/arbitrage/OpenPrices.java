@@ -6,15 +6,15 @@ import java.math.BigDecimal;
  * Created by Sergey Shurmin on 5/24/17.
  */
 public class OpenPrices {
-    BigDecimal firstOpenPrice;
-    BigDecimal secondOpenPrice;
+    BigDecimal firstOpenPrice = BigDecimal.ZERO;
+    BigDecimal secondOpenPrice = BigDecimal.ZERO;
 
     public BigDecimal getFirstOpenPrice() {
         return firstOpenPrice;
     }
 
     public void setFirstOpenPrice(BigDecimal firstOpenPrice) {
-        this.firstOpenPrice = firstOpenPrice;
+        this.firstOpenPrice = firstOpenPrice.setScale(1, BigDecimal.ROUND_HALF_UP);
     }
 
     public BigDecimal getSecondOpenPrice() {
@@ -22,6 +22,18 @@ public class OpenPrices {
     }
 
     public void setSecondOpenPrice(BigDecimal secondOpenPrice) {
-        this.secondOpenPrice = secondOpenPrice;
+        this.secondOpenPrice = secondOpenPrice.setScale(1, BigDecimal.ROUND_HALF_UP);
+    }
+
+    public BigDecimal getDelta1Fact() {
+        return (firstOpenPrice != null && secondOpenPrice != null)
+                ? firstOpenPrice.subtract(secondOpenPrice).setScale(1, BigDecimal.ROUND_HALF_UP)
+                : BigDecimal.ZERO;
+    }
+
+    public BigDecimal getDelta2Fact() {
+        return (firstOpenPrice != null && secondOpenPrice != null)
+                ? secondOpenPrice.subtract(firstOpenPrice).setScale(1, BigDecimal.ROUND_HALF_UP)
+                : BigDecimal.ZERO;
     }
 }
