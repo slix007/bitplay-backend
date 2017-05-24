@@ -31,6 +31,7 @@ public class ArbitrageService {
 
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
+    private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final String DELTA1 = "delta1";
     private final String DELTA2 = "delta2";
 
@@ -101,7 +102,7 @@ public class ArbitrageService {
                             && bestQuotes.getArbitrageEvent() != BestQuotes.ArbitrageEvent.NONE) {
 
                         previousEmitTime = Instant.now();
-//                        deltasLogger.info(bestQuotes.toString());
+                        signalLogger.info(bestQuotes.toString());
                     }
                 }, throwable -> {
                     logger.error("On combine orderBooks", throwable);
@@ -170,7 +171,7 @@ public class ArbitrageService {
 //            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
-                if (checkBalance(DELTA1, amount)
+                if (checkBalance(DELTA1, amount) //) {
                         && (lastDelta == null || lastDelta.equals(DELTA2))) {
                     lastDelta = DELTA1;
 
@@ -188,7 +189,7 @@ public class ArbitrageService {
 //            2) если delta2 >= border2, то происходит buy у poloniex и sell у okcoin
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
-                if (checkBalance(DELTA2, amount)
+                if (checkBalance(DELTA2, amount) //) {
                         && (lastDelta == null || lastDelta.equals(DELTA1))) {
                     lastDelta = DELTA2;
 
@@ -207,13 +208,16 @@ public class ArbitrageService {
     }
 
     private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_o, BigDecimal bid1_p, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
-        deltasLogger.info(String.format("delta1_fact = %s - %s = %s",
-                openPrices.getFirstOpenPrice().toPlainString(),
-                openPrices.getSecondOpenPrice().toPlainString(),
-                (openPrices.getFirstOpenPrice() != null && openPrices.getSecondOpenPrice() != null)
-                        ? openPrices.getFirstOpenPrice().subtract(openPrices.getSecondOpenPrice()).toPlainString()
-                        : "0"
-        ));
+        deltasLogger.info("------------------------------------------");
+        if (openPrices != null) {
+            deltasLogger.info(String.format("delta2_fact = %s - %s = %s",
+                    openPrices.getFirstOpenPrice() != null ? openPrices.getFirstOpenPrice().toPlainString() : null,
+                    openPrices.getSecondOpenPrice() != null ? openPrices.getSecondOpenPrice().toPlainString() : null,
+                    (openPrices.getFirstOpenPrice() != null && openPrices.getSecondOpenPrice() != null)
+                            ? openPrices.getFirstOpenPrice().subtract(openPrices.getSecondOpenPrice()).toPlainString()
+                            : "0"
+            ));
+        }
 
         BigDecimal firstWalletBalance = BigDecimal.ZERO;
         if (firstMarketService.getAccountInfo() != null
@@ -264,13 +268,16 @@ public class ArbitrageService {
     }
 
     private void writeLogDelta2(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
-        deltasLogger.info(String.format("delta2_fact = %s - %s = %s",
-                openPrices.getSecondOpenPrice().toPlainString(),
-                openPrices.getFirstOpenPrice().toPlainString(),
-                (openPrices.getFirstOpenPrice() != null && openPrices.getSecondOpenPrice() != null)
-                        ? openPrices.getSecondOpenPrice().subtract(openPrices.getFirstOpenPrice()).toPlainString()
-                        : "0"
-        ));
+        deltasLogger.info("------------------------------------------");
+        if (openPrices != null) {
+            deltasLogger.info(String.format("delta1_fact = %s - %s = %s.",
+                    openPrices.getSecondOpenPrice() != null ? openPrices.getSecondOpenPrice().toPlainString() : null,
+                    openPrices.getFirstOpenPrice() != null ? openPrices.getFirstOpenPrice().toPlainString() : null,
+                    (openPrices.getFirstOpenPrice() != null && openPrices.getSecondOpenPrice() != null)
+                            ? openPrices.getSecondOpenPrice().subtract(openPrices.getFirstOpenPrice()).toPlainString()
+                            : "0"
+            ));
+        }
 
         BigDecimal firstWalletBalance = BigDecimal.ZERO;
         if (firstMarketService.getAccountInfo() != null
