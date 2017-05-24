@@ -14,7 +14,7 @@ public class OpenPrices {
     }
 
     public void setFirstOpenPrice(BigDecimal firstOpenPrice) {
-        this.firstOpenPrice = firstOpenPrice.setScale(1, BigDecimal.ROUND_HALF_UP);
+        this.firstOpenPrice = firstOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
     }
 
     public BigDecimal getSecondOpenPrice() {
@@ -22,18 +22,18 @@ public class OpenPrices {
     }
 
     public void setSecondOpenPrice(BigDecimal secondOpenPrice) {
-        this.secondOpenPrice = secondOpenPrice.setScale(1, BigDecimal.ROUND_HALF_UP);
+        this.secondOpenPrice = secondOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
     }
 
     public BigDecimal getDelta1Fact() {
         return (firstOpenPrice != null && secondOpenPrice != null)
-                ? firstOpenPrice.subtract(secondOpenPrice).setScale(1, BigDecimal.ROUND_HALF_UP)
+                ? firstOpenPrice.subtract(secondOpenPrice).setScale(2, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO;
     }
 
     public BigDecimal getDelta2Fact() {
         return (firstOpenPrice != null && secondOpenPrice != null)
-                ? secondOpenPrice.subtract(firstOpenPrice).setScale(1, BigDecimal.ROUND_HALF_UP)
+                ? secondOpenPrice.subtract(firstOpenPrice).setScale(2, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO;
     }
 }

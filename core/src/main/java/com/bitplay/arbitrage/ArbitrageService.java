@@ -51,6 +51,7 @@ public class ArbitrageService {
     private BigDecimal cumDelta = BigDecimal.ZERO;
     private BigDecimal cumDeltaFact = BigDecimal.ZERO;
     private String lastDelta = null;
+    private BigDecimal cumDiffs = BigDecimal.ZERO;
 
     Disposable schdeduleUpdateBorders;
 
@@ -61,6 +62,7 @@ public class ArbitrageService {
 
     private FlagOpenOrder flagOpenOrder = new FlagOpenOrder();
     private OpenPrices openPrices = new OpenPrices();
+    private OpenPrices openDiffs = new OpenPrices();
 
     public FlagOpenOrder getFlagOpenOrder() {
         return flagOpenOrder;
@@ -209,14 +211,20 @@ public class ArbitrageService {
     }
 
     private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_o, BigDecimal bid1_p, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
-        if (openPrices != null) {
+        if (openPrices != null && openDiffs != null) {
             BigDecimal deltaFact = openPrices.getDelta2Fact();
             cumDeltaFact = cumDeltaFact.add(deltaFact);
-            deltasLogger.info(String.format("delta2_fact = %s - %s = %s; cum_delta_fact = %s",
-                    openPrices.getFirstOpenPrice().toPlainString(),
+            BigDecimal diffFact = openDiffs.getFirstOpenPrice().add(openDiffs.getSecondOpenPrice());
+            cumDiffs = cumDiffs.add(diffFact);
+            deltasLogger.info(String.format("delta2_fact=%s-%s=%s; cum_delta_fact=%s; diffFact=%s+%s=%s; cum_diff_fact=%s",
                     openPrices.getSecondOpenPrice().toPlainString(),
+                    openPrices.getFirstOpenPrice().toPlainString(),
                     deltaFact.toPlainString(),
-                    cumDeltaFact.toPlainString()
+                    cumDeltaFact.toPlainString(),
+                    openDiffs.getFirstOpenPrice(),
+                    openDiffs.getSecondOpenPrice(),
+                    deltaFact,
+                    cumDiffs
             ));
         }
         deltasLogger.info("------------------------------------------");
@@ -273,11 +281,17 @@ public class ArbitrageService {
         if (openPrices != null) {
             BigDecimal deltaFact = openPrices.getDelta1Fact();
             cumDeltaFact = cumDeltaFact.add(deltaFact);
-            deltasLogger.info(String.format("delta1_fact = %s - %s = %s; cum_delta_fact = %s",
-                    openPrices.getSecondOpenPrice().toPlainString(),
+            BigDecimal diffFact = openDiffs.getFirstOpenPrice().add(openDiffs.getSecondOpenPrice());
+            cumDiffs = cumDiffs.add(diffFact);
+            deltasLogger.info(String.format("delta1_fact=%s-%s=%s; cum_delta_fact=%s; diffFact=%s+%s=%s; cum_diff_fact=%s",
                     openPrices.getFirstOpenPrice().toPlainString(),
+                    openPrices.getSecondOpenPrice().toPlainString(),
+                    deltaFact.toPlainString(),
+                    cumDeltaFact.toPlainString(),
+                    openDiffs.getFirstOpenPrice(),
+                    openDiffs.getSecondOpenPrice(),
                     deltaFact,
-                    cumDeltaFact
+                    cumDiffs
             ));
         }
         deltasLogger.info("------------------------------------------");
@@ -470,5 +484,25 @@ public class ArbitrageService {
 
     public void setLastDelta(String lastDelta) {
         this.lastDelta = lastDelta;
+    }
+
+    public OpenPrices getOpenDiffs() {
+        return openDiffs;
+    }
+
+    public BigDecimal getCumDeltaFact() {
+        return cumDeltaFact;
+    }
+
+    public void setCumDeltaFact(BigDecimal cumDeltaFact) {
+        this.cumDeltaFact = cumDeltaFact;
+    }
+
+    public BigDecimal getCumDiffs() {
+        return cumDiffs;
+    }
+
+    public void setCumDiffs(BigDecimal cumDiffs) {
+        this.cumDiffs = cumDiffs;
     }
 }

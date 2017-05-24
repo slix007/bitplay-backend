@@ -68,7 +68,9 @@ public class CommonUIService {
                 arbitrageService.getPeriodSec().toString(),
                 arbitrageService.getBuValue().toPlainString(),
                 arbitrageService.getCumDelta().toPlainString(),
-                arbitrageService.getLastDelta()
+                arbitrageService.getLastDelta(),
+                arbitrageService.getCumDeltaFact().toPlainString(),
+                arbitrageService.getCumDiffs().toPlainString()
         );
     }
 
@@ -90,7 +92,9 @@ public class CommonUIService {
                 arbitrageService.getPeriodSec().toString(),
                 arbitrageService.getBuValue().toPlainString(),
                 arbitrageService.getCumDelta().toPlainString(),
-                arbitrageService.getLastDelta()
+                arbitrageService.getLastDelta(),
+                arbitrageService.getCumDeltaFact().toPlainString(),
+                arbitrageService.getCumDiffs().toPlainString()
         );
     }
 
@@ -113,6 +117,12 @@ public class CommonUIService {
         if (deltalUpdateJson.getLastDelta() != null) {
             arbitrageService.setLastDelta(deltalUpdateJson.getLastDelta());
         }
+        if (deltalUpdateJson.getCumDeltaFact() != null) {
+            arbitrageService.setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
+        }
+        if (deltalUpdateJson.getCumDiffs() != null) {
+            arbitrageService.setCumDiffs(new BigDecimal(deltalUpdateJson.getCumDiffs()));
+        }
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
@@ -124,7 +134,9 @@ public class CommonUIService {
                 arbitrageService.getPeriodSec().toString(),
                 arbitrageService.getBuValue().toPlainString(),
                 arbitrageService.getCumDelta().toPlainString(),
-                arbitrageService.getLastDelta()
+                arbitrageService.getLastDelta(),
+                arbitrageService.getCumDeltaFact().toPlainString(),
+                arbitrageService.getCumDiffs().toPlainString()
         );
     }
 }

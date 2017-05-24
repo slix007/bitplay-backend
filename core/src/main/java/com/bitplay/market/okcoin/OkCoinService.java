@@ -284,9 +284,13 @@ public class OkCoinService extends MarketService {
 
             String diffWithSignal = "";
             if (bestQuotes != null) {
+                final BigDecimal diff1 = bestQuotes.getAsk1_o().subtract(thePrice);
+                final BigDecimal diff2 = thePrice.subtract(bestQuotes.getBid1_o());
                 diffWithSignal = orderType.equals(Order.OrderType.BID)
-                        ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", bestQuotes.getAsk1_o().subtract(thePrice).toPlainString()) //"BUY"
-                        : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s",thePrice.subtract(bestQuotes.getBid1_o()).toPlainString()); //"SELL"
+                        ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", diff1.toPlainString()) //"BUY"
+                        : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s", diff2.toPlainString()); //"SELL"
+                arbitrageService.getOpenDiffs().setSecondOpenPrice(orderType.equals(Order.OrderType.BID)
+                        ? diff1 : diff2);
             }
             tradeLogger.info("{} {} amount={} with quote={} was placed.orderId={}. {}",
                     isMoving ? "Moved" : "maker",

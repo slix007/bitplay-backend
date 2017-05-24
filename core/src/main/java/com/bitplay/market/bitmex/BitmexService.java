@@ -380,9 +380,13 @@ public class BitmexService extends MarketService {
 
             String diffWithSignal = "";
             if (bestQuotes != null) {
+                final BigDecimal diff1 = bestQuotes.getAsk1_p().subtract(thePrice).setScale(1, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal diff2 = thePrice.subtract(bestQuotes.getBid1_p()).setScale(1, BigDecimal.ROUND_HALF_UP);
                 diffWithSignal = orderType.equals(Order.OrderType.BID)
-                        ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", bestQuotes.getAsk1_p().subtract(thePrice).setScale(1, BigDecimal.ROUND_HALF_UP).toPlainString()) //"BUY"
-                        : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s",thePrice.subtract(bestQuotes.getBid1_p()).setScale(1, BigDecimal.ROUND_HALF_UP).toPlainString()); //"SELL"
+                        ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
+                        : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
+                arbitrageService.getOpenDiffs().setFirstOpenPrice(orderType.equals(Order.OrderType.BID)
+                        ? diff1 : diff2);
             }
             tradeLogger.info("{} {} amount={} with quote={} was placed.orderId={}. {}",
                     isMoving ? "Moved" : "maker",
@@ -462,9 +466,13 @@ public class BitmexService extends MarketService {
         if (moveResponse != null && moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
             String diffWithSignal = "";
             if (bestQuotes != null) {
-                diffWithSignal = limitOrder.getType().equals(Order.OrderType.BID)
-                        ? String.format("diff2__buy_p = ask_p[1] - order_price_buy_p = %s", bestQuotes.getAsk1_p().subtract(bestMakerPrice).toPlainString()) //"BUY"
-                        : String.format("diff1_sell_p = order_price_sell_p - bid_p[1] = %s",bestMakerPrice.subtract(bestQuotes.getBid1_p()).toPlainString()); //"SELL"
+                final BigDecimal diff1 = bestQuotes.getAsk1_p().subtract(bestMakerPrice).setScale(1, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal diff2 = bestMakerPrice.subtract(bestQuotes.getBid1_p()).setScale(1, BigDecimal.ROUND_HALF_UP);
+                diffWithSignal = limitOrder.equals(Order.OrderType.BID)
+                        ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
+                        : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
+                arbitrageService.getOpenDiffs().setFirstOpenPrice(limitOrder.equals(Order.OrderType.BID)
+                        ? diff1 : diff2);
             }
 
             final String logString = String.format("Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s",
