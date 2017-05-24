@@ -223,7 +223,7 @@ public class ArbitrageService {
                     cumDeltaFact.toPlainString(),
                     openDiffs.getFirstOpenPrice(),
                     openDiffs.getSecondOpenPrice(),
-                    deltaFact,
+                    diffFact,
                     cumDiffs
             ));
         }
@@ -290,7 +290,7 @@ public class ArbitrageService {
                     cumDeltaFact.toPlainString(),
                     openDiffs.getFirstOpenPrice(),
                     openDiffs.getSecondOpenPrice(),
-                    deltaFact,
+                    diffFact,
                     cumDiffs
             ));
         }
