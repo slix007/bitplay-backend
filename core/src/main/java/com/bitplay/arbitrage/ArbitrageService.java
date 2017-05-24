@@ -201,8 +201,8 @@ public class ArbitrageService {
                             usdO,
                             bu,
                             sumBal,
-                            sumBalUsd,
                             sumBal2,
+                            sumBalUsd,
                             sumBalUsd2
                     ));
 
@@ -256,8 +256,8 @@ public class ArbitrageService {
                             usdO,
                             bu,
                             sumBal,
-                            sumBalUsd,
                             sumBal2,
+                            sumBalUsd,
                             sumBalUsd2
                     ));
 
