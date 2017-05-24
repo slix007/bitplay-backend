@@ -193,7 +193,7 @@ public class ArbitrageService {
                     BigDecimal sumBalUsd2 = BigDecimal.ZERO;
                     if (buValue.compareTo(BigDecimal.ZERO) != 0) {
                         sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
-                        sumBalUsd2 = sumBal.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
+                        sumBalUsd2 = sumBal2.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
                     }
                     deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s = %sb = %sb = %s$ = %s$",
                             firstWalletBalance,
@@ -248,7 +248,7 @@ public class ArbitrageService {
                     BigDecimal sumBalUsd2 = BigDecimal.ZERO;
                     if (buValue.compareTo(BigDecimal.ZERO) != 0) {
                         sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
-                        sumBalUsd2 = sumBal.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
+                        sumBalUsd2 = sumBal2.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
                     }
                     deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s = %sb = %sb = %s$ = %s$",
                             firstWalletBalance,
