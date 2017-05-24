@@ -67,7 +67,8 @@ public class CommonUIService {
                 arbitrageService.getSumDelta().toPlainString(),
                 arbitrageService.getPeriodSec().toString(),
                 arbitrageService.getBuValue().toPlainString(),
-                arbitrageService.getCumDelta().toPlainString()
+                arbitrageService.getCumDelta().toPlainString(),
+                arbitrageService.getLastDelta()
         );
     }
 
@@ -88,7 +89,8 @@ public class CommonUIService {
                 arbitrageService.getSumDelta().toPlainString(),
                 arbitrageService.getPeriodSec().toString(),
                 arbitrageService.getBuValue().toPlainString(),
-                arbitrageService.getCumDelta().toPlainString()
+                arbitrageService.getCumDelta().toPlainString(),
+                arbitrageService.getLastDelta()
         );
     }
 
@@ -108,6 +110,9 @@ public class CommonUIService {
         if (deltalUpdateJson.getCumDelta() != null) {
             arbitrageService.setCumDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
         }
+        if (deltalUpdateJson.getLastDelta() != null) {
+            arbitrageService.setLastDelta(deltalUpdateJson.getLastDelta());
+        }
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
@@ -118,7 +123,8 @@ public class CommonUIService {
                 arbitrageService.getSumDelta().toPlainString(),
                 arbitrageService.getPeriodSec().toString(),
                 arbitrageService.getBuValue().toPlainString(),
-                arbitrageService.getCumDelta().toPlainString()
+                arbitrageService.getCumDelta().toPlainString(),
+                arbitrageService.getLastDelta()
         );
     }
 }

@@ -453,4 +453,12 @@ public class ArbitrageService {
     public void setCumDelta(BigDecimal cumDelta) {
         this.cumDelta = cumDelta;
     }
+
+    public String getLastDelta() {
+        return lastDelta;
+    }
+
+    public void setLastDelta(String lastDelta) {
+        this.lastDelta = lastDelta;
+    }
 }
