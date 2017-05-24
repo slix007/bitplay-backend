@@ -13,8 +13,9 @@ public class DeltasJson {
     private String sumDelta;
     private String periodSec;
     private String buValue;
+    private String cumDelta;
 
-    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue) {
+    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta) {
         this.delta1 = delta1;
         this.delta2 = delta2;
         this.border1 = border1;
@@ -23,6 +24,7 @@ public class DeltasJson {
         this.sumDelta = sumDelta;
         this.periodSec = periodSec;
         this.buValue = buValue;
+        this.cumDelta = cumDelta;
     }
 
     public String getDelta1() {
@@ -55,5 +57,9 @@ public class DeltasJson {
 
     public String getBuValue() {
         return buValue;
+    }
+
+    public String getCumDelta() {
+        return cumDelta;
     }
 }

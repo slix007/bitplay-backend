@@ -381,8 +381,8 @@ public class BitmexService extends MarketService {
             String diffWithSignal = "";
             if (bestQuotes != null) {
                 diffWithSignal = orderType.equals(Order.OrderType.BID)
-                        ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", bestQuotes.getAsk1_p().subtract(thePrice).toPlainString()) //"BUY"
-                        : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s",thePrice.subtract(bestQuotes.getBid1_p()).toPlainString()); //"SELL"
+                        ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", bestQuotes.getAsk1_p().subtract(thePrice).setScale(1, BigDecimal.ROUND_HALF_UP).toPlainString()) //"BUY"
+                        : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s",thePrice.subtract(bestQuotes.getBid1_p()).setScale(1, BigDecimal.ROUND_HALF_UP).toPlainString()); //"SELL"
             }
             tradeLogger.info("{} {} amount={} with quote={} was placed.orderId={}. {}",
                     isMoving ? "Moved" : "maker",
