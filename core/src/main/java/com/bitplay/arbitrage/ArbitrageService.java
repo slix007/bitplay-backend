@@ -184,22 +184,26 @@ public class ArbitrageService {
                             cumDelta.toPlainString()
                     ));
 
-                    BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0)
-                            ? ask1_o : buValue;
-                    BigDecimal sumBal = firstWalletBalance.add(btcO).add(
-                            usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP)
-                    );
-                    BigDecimal sumBalUsd = firstWalletBalance.add(btcO).add(
-                            usdO.divide(bu, 4, BigDecimal.ROUND_HALF_UP)
-                    );
+                    //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
+                    BigDecimal sumBal = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP));
+                    BigDecimal sumBalUsd = sumBal.multiply(ask1_o).setScale(4, BigDecimal.ROUND_HALF_UP);
                     //sum_bal = wallet_b + btc_o + usd_o / bu , где bu типа double задаем с ui
-                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s = %s b = %s $",
+                    BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0) ? ask1_o : buValue;
+                    BigDecimal sumBal2 = BigDecimal.ZERO;
+                    BigDecimal sumBalUsd2 = BigDecimal.ZERO;
+                    if (buValue.compareTo(BigDecimal.ZERO) != 0) {
+                        sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
+                        sumBalUsd2 = sumBal.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
+                    }
+                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s = %sb = %sb = %s$ = %s$",
                             firstWalletBalance,
                             btcO,
                             usdO,
                             bu,
                             sumBal,
-                            sumBalUsd
+                            sumBalUsd,
+                            sumBal2,
+                            sumBalUsd2
                     ));
 
                     firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
@@ -235,22 +239,26 @@ public class ArbitrageService {
                             cumDelta.toPlainString()
                     ));
 
-                    BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0)
-                            ? ask1_o : buValue;
-                    BigDecimal sumBal = firstWalletBalance.add(btcO).add(
-                            usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP)
-                    );
-                    BigDecimal sumBalUsd = firstWalletBalance.add(btcO).add(
-                            usdO.divide(bu, 4, BigDecimal.ROUND_HALF_UP)
-                    );
+                    //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
+                    BigDecimal sumBal = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP));
+                    BigDecimal sumBalUsd = sumBal.multiply(ask1_o).setScale(4, BigDecimal.ROUND_HALF_UP);
                     //sum_bal = wallet_b + btc_o + usd_o / bu , где bu типа double задаем с ui
-                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s = %s b = %s $",
+                    BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0) ? ask1_o : buValue;
+                    BigDecimal sumBal2 = BigDecimal.ZERO;
+                    BigDecimal sumBalUsd2 = BigDecimal.ZERO;
+                    if (buValue.compareTo(BigDecimal.ZERO) != 0) {
+                        sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
+                        sumBalUsd2 = sumBal.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
+                    }
+                    deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s = %sb = %sb = %s$ = %s$",
                             firstWalletBalance,
                             btcO,
                             usdO,
                             bu,
                             sumBal,
-                            sumBalUsd
+                            sumBalUsd,
+                            sumBal2,
+                            sumBalUsd2
                     ));
 
                     firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
