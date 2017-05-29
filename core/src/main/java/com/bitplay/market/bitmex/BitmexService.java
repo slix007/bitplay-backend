@@ -369,7 +369,8 @@ public class BitmexService extends MarketService {
             final TradeService tradeService = exchange.getTradeService();
             BigDecimal thePrice;
 
-            thePrice = createBestMakerPrice(orderType, false);
+            thePrice = createBestMakerPrice(orderType, false)
+                    .setScale(1, BigDecimal.ROUND_HALF_UP);
 
             final LimitOrder limitOrder = new LimitOrder(orderType,
                     amount, CURRENCY_PAIR_XBTUSD, "0", new Date(),
@@ -380,8 +381,10 @@ public class BitmexService extends MarketService {
 
             String diffWithSignal = "";
             if (bestQuotes != null) {
-                final BigDecimal diff1 = bestQuotes.getAsk1_p().subtract(thePrice).setScale(1, BigDecimal.ROUND_HALF_UP);
-                final BigDecimal diff2 = thePrice.subtract(bestQuotes.getBid1_p()).setScale(1, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal ask1_p = bestQuotes.getAsk1_p().setScale(1, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal bid1_p = bestQuotes.getBid1_p().setScale(1, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal diff1 = ask1_p.subtract(thePrice);
+                final BigDecimal diff2 = thePrice.subtract(bid1_p);
                 diffWithSignal = orderType.equals(Order.OrderType.BID)
                         ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
                         : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
@@ -392,7 +395,7 @@ public class BitmexService extends MarketService {
                     isMoving ? "Moved" : "maker",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
-                    thePrice.setScale(1, BigDecimal.ROUND_HALF_UP),
+                    thePrice,
                     orderId,
                     diffWithSignal);
 

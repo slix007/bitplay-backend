@@ -45,8 +45,8 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
     public String placeLimitOrder(LimitOrder limitOrder) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());
         final String side = limitOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
-        final Double tradableAmount = limitOrder.getTradableAmount().setScale(8, BigDecimal.ROUND_UP).doubleValue();
-        final Double limitPrice = limitOrder.getLimitPrice().setScale(1, BigDecimal.ROUND_UP).doubleValue();
+        final Double tradableAmount = limitOrder.getTradableAmount().setScale(8, BigDecimal.ROUND_HALF_UP).doubleValue();
+        final Double limitPrice = limitOrder.getLimitPrice().setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
         final io.swagger.client.model.Order order = bitmexAuthenitcatedApi.order(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
                 symbol,
                 side,
@@ -60,8 +60,8 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
     public String moveLimitOrder(LimitOrder limitOrder, BigDecimal bestMakerPrice) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());
         final String side = limitOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
-        final Double tradableAmount = limitOrder.getTradableAmount().setScale(8, BigDecimal.ROUND_UP).doubleValue();
-        final Double newPrice = bestMakerPrice.setScale(1, BigDecimal.ROUND_UP).doubleValue();
+        final Double tradableAmount = limitOrder.getTradableAmount().setScale(8, BigDecimal.ROUND_HALF_UP).doubleValue();
+        final Double newPrice = bestMakerPrice.setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
         final io.swagger.client.model.Order order = bitmexAuthenitcatedApi.updateOrder(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
                 limitOrder.getId(),
                 symbol,
