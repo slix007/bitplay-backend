@@ -468,10 +468,10 @@ public class BitmexService extends MarketService {
             if (bestQuotes != null) {
                 final BigDecimal diff1 = bestQuotes.getAsk1_p().subtract(bestMakerPrice).setScale(1, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal diff2 = bestMakerPrice.subtract(bestQuotes.getBid1_p()).setScale(1, BigDecimal.ROUND_HALF_UP);
-                diffWithSignal = limitOrder.equals(Order.OrderType.BID)
+                diffWithSignal = limitOrder.getType().equals(Order.OrderType.BID)
                         ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
                         : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
-                arbitrageService.getOpenDiffs().setFirstOpenPrice(limitOrder.equals(Order.OrderType.BID)
+                arbitrageService.getOpenDiffs().setFirstOpenPrice(limitOrder.getType().equals(Order.OrderType.BID)
                         ? diff1 : diff2);
             }
 
