@@ -49,6 +49,8 @@ public class ArbitrageService {
     private BigDecimal buValue = BigDecimal.ZERO;
     private Integer periodSec = 300;
     private BigDecimal cumDelta = BigDecimal.ZERO;
+    private BigDecimal cumDeltaMin = BigDecimal.ZERO;
+    private BigDecimal cumDeltaMax = BigDecimal.valueOf(100000000);
     private BigDecimal cumDeltaFact = BigDecimal.ZERO;
     private String lastDelta = null;
     private BigDecimal cumDiff1 = BigDecimal.ZERO;
@@ -246,13 +248,17 @@ public class ArbitrageService {
         }
 
         cumDelta = cumDelta.add(delta1);
-        deltasLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s",
+        if (cumDelta.compareTo(cumDeltaMin) == -1) cumDeltaMin = cumDelta;
+        if (cumDelta.compareTo(cumDeltaMax) == 1) cumDeltaMax = cumDelta;
+        deltasLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
                 bid1_p.toPlainString(), ask1_o.toPlainString(),
                 delta1.toPlainString(),
                 border1.toPlainString(),
                 btcP, usdP, btcO, usdO,
                 firstWalletBalance.toPlainString(),
-                cumDelta.toPlainString()
+                cumDelta.toPlainString(),
+                cumDeltaMin,
+                cumDeltaMax
         ));
 
         //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
@@ -317,13 +323,17 @@ public class ArbitrageService {
         }
 
         cumDelta = cumDelta.add(delta2);
-        deltasLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s",
+        if (cumDelta.compareTo(cumDeltaMin) == -1) cumDeltaMin = cumDelta;
+        if (cumDelta.compareTo(cumDeltaMax) == 1) cumDeltaMax = cumDelta;
+        deltasLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
                 bid1_o.toPlainString(), ask1_p.toPlainString(),
                 delta2.toPlainString(),
                 border2.toPlainString(),
                 btcP, usdP, btcO, usdO,
                 firstWalletBalance,
-                cumDelta.toPlainString()
+                cumDelta.toPlainString(),
+                cumDeltaMin,
+                cumDeltaMax
         ));
 
         //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
