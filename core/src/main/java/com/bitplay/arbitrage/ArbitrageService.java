@@ -310,7 +310,9 @@ public class ArbitrageService {
         BigDecimal sumBalUsd3 = firstWalletBalance.multiply(bu).add(
                 btcO.multiply(bid1_o)
         ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
-        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s) = %sb = %sb = %s$ = %s$ = %s$",
+        BigDecimal sumBalUsd4 = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP))
+                .multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
+        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$",
                 firstWalletBalance,
                 btcO,
                 usdO,
@@ -320,7 +322,8 @@ public class ArbitrageService {
                 sumBal2,
                 sumBalUsd,
                 sumBalUsd2,
-                sumBalUsd3
+                sumBalUsd3,
+                sumBalUsd4
         ));
 
         counter++;
@@ -408,7 +411,9 @@ public class ArbitrageService {
         BigDecimal sumBalUsd3 = firstWalletBalance.multiply(bu).add(
                 btcO.multiply(bid1_o)
         ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
-        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s) = %sb = %sb = %s$ = %s$ = %s$",
+        BigDecimal sumBalUsd4 = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP))
+                .multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
+        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$",
                 firstWalletBalance,
                 btcO,
                 usdO,
@@ -418,7 +423,8 @@ public class ArbitrageService {
                 sumBal2,
                 sumBalUsd,
                 sumBalUsd2,
-                sumBalUsd3
+                sumBalUsd3,
+                sumBalUsd4
         ));
 
         counter++;
