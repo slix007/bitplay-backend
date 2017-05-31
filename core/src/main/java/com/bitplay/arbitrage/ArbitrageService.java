@@ -55,9 +55,15 @@ public class ArbitrageService {
     private BigDecimal cumDeltaFactMin = BigDecimal.valueOf(10000);
     private BigDecimal cumDeltaFactMax = BigDecimal.ZERO;
     private String lastDelta = null;
-    private BigDecimal cumDiff1 = BigDecimal.ZERO;
-    private BigDecimal cumDiff2 = BigDecimal.ZERO;
-    private BigDecimal cumDiffs = BigDecimal.ZERO;
+    private BigDecimal cumDiffFact1 = BigDecimal.ZERO;
+    private BigDecimal cumDiffFact1Min = BigDecimal.valueOf(10000);
+    private BigDecimal cumDiffFact1Max = BigDecimal.ZERO;
+    private BigDecimal cumDiffFact2 = BigDecimal.ZERO;
+    private BigDecimal cumDiffFact2Min = BigDecimal.valueOf(10000);
+    private BigDecimal cumDiffFact2Max = BigDecimal.ZERO;
+    private BigDecimal cumDiffsFact = BigDecimal.ZERO;
+    private BigDecimal cumDiffsFactMin = BigDecimal.valueOf(10000);
+    private BigDecimal cumDiffsFactMax = BigDecimal.ZERO;
     private BigDecimal diffFactMin = BigDecimal.valueOf(10000);
     private BigDecimal diffFactMax = BigDecimal.ZERO;
     private BigDecimal diffFact1Min = BigDecimal.valueOf(10000);
@@ -237,10 +243,18 @@ public class ArbitrageService {
             if (diffFact.compareTo(diffFactMin) == -1) diffFactMin = diffFact;
             if (diffFact.compareTo(diffFactMax) == 1) diffFactMax = diffFact;
 
-            cumDiff1 = cumDiff1.add(openDiffs.getFirstOpenPrice());
-            cumDiff2 = cumDiff2.add(openDiffs.getSecondOpenPrice());
-            cumDiffs = cumDiffs.add(diffFact);
-            deltasLogger.info(String.format("delta2_fact=%s-%s=%s; cum_delta_fact=%s/%s/%s; diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_diff_fact=%s+%s=%s",
+            cumDiffFact1 = cumDiffFact1.add(openDiffs.getFirstOpenPrice());
+            if (cumDiffFact1.compareTo(cumDiffFact1Min) == -1) cumDiffFact1Min = cumDiffFact1;
+            if (cumDiffFact1.compareTo(cumDiffFact1Max) == 1) cumDiffFact1Max = cumDiffFact1;
+            cumDiffFact2 = cumDiffFact2.add(openDiffs.getSecondOpenPrice());
+            if (cumDiffFact2.compareTo(cumDiffFact2Min) == -1) cumDiffFact2Min = cumDiffFact2;
+            if (cumDiffFact2.compareTo(cumDiffFact2Max) == 1) cumDiffFact2Max = cumDiffFact2;
+            cumDiffsFact = cumDiffsFact.add(diffFact);
+            if (cumDiffsFact.compareTo(cumDiffsFactMin) == -1) cumDiffsFactMin = cumDiffsFact;
+            if (cumDiffsFact.compareTo(cumDiffsFactMax) == 1) cumDiffsFactMax = cumDiffsFact;
+
+            deltasLogger.info(String.format("delta2_fact=%s-%s=%s; " +
+                            "cum_delta_fact=%s/%s/%s; diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s",
                     openPrices.getSecondOpenPrice().toPlainString(),
                     openPrices.getFirstOpenPrice().toPlainString(),
                     deltaFact.toPlainString(),
@@ -250,9 +264,9 @@ public class ArbitrageService {
                     openDiffs.getFirstOpenPrice(), diffFact1Min, diffFact1Max,
                     openDiffs.getSecondOpenPrice(), diffFact2Min, diffFact2Max,
                     diffFact, diffFactMin, diffFactMax,
-                    cumDiff1,
-                    cumDiff2,
-                    cumDiffs
+                    cumDiffFact1, cumDiffFact1Min, cumDiffFact1Max,
+                    cumDiffFact2, cumDiffFact2Min, cumDiffFact2Max,
+                    cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax
             ));
         }
         deltasLogger.info("------------------------------------------");
@@ -324,10 +338,18 @@ public class ArbitrageService {
             if (diffFact.compareTo(diffFactMin) == -1) diffFactMin = diffFact;
             if (diffFact.compareTo(diffFactMax) == 1) diffFactMax = diffFact;
 
-            cumDiff1 = cumDiff1.add(openDiffs.getFirstOpenPrice());
-            cumDiff2 = cumDiff2.add(openDiffs.getSecondOpenPrice());
-            cumDiffs = cumDiffs.add(diffFact);
-            deltasLogger.info(String.format("delta1_fact=%s-%s=%s; cum_delta_fact=%s/%s/%s; diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_diff_fact=%s+%s=%s",
+            cumDiffFact1 = cumDiffFact1.add(openDiffs.getFirstOpenPrice());
+            if (cumDiffFact1.compareTo(cumDiffFact1Min) == -1) cumDiffFact1Min = cumDiffFact1;
+            if (cumDiffFact1.compareTo(cumDiffFact1Max) == 1) cumDiffFact1Max = cumDiffFact1;
+            cumDiffFact2 = cumDiffFact2.add(openDiffs.getSecondOpenPrice());
+            if (cumDiffFact2.compareTo(cumDiffFact2Min) == -1) cumDiffFact2Min = cumDiffFact2;
+            if (cumDiffFact2.compareTo(cumDiffFact2Max) == 1) cumDiffFact2Max = cumDiffFact2;
+            cumDiffsFact = cumDiffsFact.add(diffFact);
+            if (cumDiffsFact.compareTo(cumDiffsFactMin) == -1) cumDiffsFactMin = cumDiffsFact;
+            if (cumDiffsFact.compareTo(cumDiffsFactMax) == 1) cumDiffsFactMax = cumDiffsFact;
+
+            deltasLogger.info(String.format("delta1_fact=%s-%s=%s; " +
+                            "cum_delta_fact=%s/%s/%s; diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s",
                     openPrices.getFirstOpenPrice().toPlainString(),
                     openPrices.getSecondOpenPrice().toPlainString(),
                     deltaFact.toPlainString(),
@@ -337,9 +359,9 @@ public class ArbitrageService {
                     openDiffs.getFirstOpenPrice(), diffFact1Min, diffFact1Max,
                     openDiffs.getSecondOpenPrice(), diffFact2Min, diffFact2Max,
                     diffFact, diffFactMin, diffFactMax,
-                    cumDiff1,
-                    cumDiff2,
-                    cumDiffs
+                    cumDiffFact1, cumDiffFact1Min, cumDiffFact1Max,
+                    cumDiffFact2, cumDiffFact2Min, cumDiffFact2Max,
+                    cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax
             ));
         }
         deltasLogger.info("------------------------------------------");
@@ -550,13 +572,13 @@ public class ArbitrageService {
         this.cumDeltaFact = cumDeltaFact;
     }
 
-    public BigDecimal getCumDiffs() {
-        return cumDiffs;
+    public BigDecimal getCumDiffsFact() {
+        return cumDiffsFact;
     }
 
-    public void setCumDiffs(BigDecimal cumDiffs) {
-        this.cumDiffs = BigDecimal.ZERO;
-        this.cumDiff1 = BigDecimal.ZERO;
-        this.cumDiff2 = BigDecimal.ZERO;
+    public void setCumDiffsFact(BigDecimal cumDiffsFact) {
+        this.cumDiffsFact = BigDecimal.ZERO;
+        this.cumDiffFact1 = BigDecimal.ZERO;
+        this.cumDiffFact2 = BigDecimal.ZERO;
     }
 }

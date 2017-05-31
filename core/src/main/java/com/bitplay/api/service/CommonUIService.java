@@ -70,7 +70,7 @@ public class CommonUIService {
                 arbitrageService.getCumDelta().toPlainString(),
                 arbitrageService.getLastDelta(),
                 arbitrageService.getCumDeltaFact().toPlainString(),
-                arbitrageService.getCumDiffs().toPlainString()
+                arbitrageService.getCumDiffsFact().toPlainString()
         );
     }
 
@@ -94,7 +94,7 @@ public class CommonUIService {
                 arbitrageService.getCumDelta().toPlainString(),
                 arbitrageService.getLastDelta(),
                 arbitrageService.getCumDeltaFact().toPlainString(),
-                arbitrageService.getCumDiffs().toPlainString()
+                arbitrageService.getCumDiffsFact().toPlainString()
         );
     }
 
@@ -121,7 +121,7 @@ public class CommonUIService {
             arbitrageService.setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
         }
         if (deltalUpdateJson.getCumDiffs() != null) {
-            arbitrageService.setCumDiffs(new BigDecimal(deltalUpdateJson.getCumDiffs()));
+            arbitrageService.setCumDiffsFact(new BigDecimal(deltalUpdateJson.getCumDiffs()));
         }
 
         return new DeltasJson(
@@ -136,7 +136,7 @@ public class CommonUIService {
                 arbitrageService.getCumDelta().toPlainString(),
                 arbitrageService.getLastDelta(),
                 arbitrageService.getCumDeltaFact().toPlainString(),
-                arbitrageService.getCumDiffs().toPlainString()
+                arbitrageService.getCumDiffsFact().toPlainString()
         );
     }
 }
