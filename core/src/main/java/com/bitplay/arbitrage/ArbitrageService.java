@@ -33,7 +33,8 @@ public class ArbitrageService {
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final String DELTA1 = "delta1";
-    private final String DELTA2 = "delta2";
+    private static final String DELTA2 = "delta2";
+    private static final BigDecimal amount = new BigDecimal("0.02");
 
     //TODO rename them to first and second
     private MarketService firstMarketService;
@@ -70,6 +71,25 @@ public class ArbitrageService {
     private BigDecimal diffFact1Max = BigDecimal.ZERO;
     private BigDecimal diffFact2Min = BigDecimal.valueOf(10000);
     private BigDecimal diffFact2Max = BigDecimal.ZERO;
+    private BigDecimal comMin = BigDecimal.valueOf(10000);
+    private BigDecimal comMax = BigDecimal.ZERO;
+    private BigDecimal com1 = BigDecimal.ZERO;
+    private BigDecimal com1Min = BigDecimal.valueOf(10000);
+    private BigDecimal com1Max = BigDecimal.ZERO;
+    private BigDecimal com2 = BigDecimal.ZERO;
+    private BigDecimal com2Min = BigDecimal.valueOf(10000);
+    private BigDecimal com2Max = BigDecimal.ZERO;
+
+    private BigDecimal cumCom = BigDecimal.ZERO;
+    private BigDecimal cumComMin = BigDecimal.valueOf(10000);
+    private BigDecimal cumComMax = BigDecimal.ZERO;
+    private BigDecimal cumCom1 = BigDecimal.ZERO;
+    private BigDecimal cumCom1Min = BigDecimal.valueOf(10000);
+    private BigDecimal cumCom1Max = BigDecimal.ZERO;
+    private BigDecimal cumCom2 = BigDecimal.ZERO;
+    private BigDecimal cumCom2Min = BigDecimal.valueOf(10000);
+    private BigDecimal cumCom2Max = BigDecimal.ZERO;
+
     private int counter = 0;
 
     Disposable schdeduleUpdateBorders;
@@ -189,7 +209,6 @@ public class ArbitrageService {
         final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
 
-        BigDecimal amount = new BigDecimal("0.02");
 //            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
@@ -296,6 +315,31 @@ public class ArbitrageService {
                 cumDeltaMax
         ));
 
+        com1 = bid1_p.multiply(amount).multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"),8, BigDecimal.ROUND_HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
+        com2 = ask1_o.multiply(amount).multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"),8, BigDecimal.ROUND_HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
+
+        if (com1.compareTo(com1Min) == -1) com1Min = com1;
+        if (com1.compareTo(com1Max) == 1) com1Max = com1;
+        if (com2.compareTo(com2Min) == -1) com2Min = com2;
+        if (com2.compareTo(com2Max) == 1) com2Max = com2;
+        BigDecimal com = com1.add(com2);
+        if (com.compareTo(comMin) == -1) comMin = com;
+        if (com.compareTo(comMax) == 1) comMax = com;
+        cumCom1 = cumCom1.add(com1);
+        cumCom2 = cumCom2.add(com2);
+        if (cumCom1.compareTo(cumCom1Min) == -1) cumCom1Min = cumCom1;
+        if (cumCom1.compareTo(cumCom1Max) == 1) cumCom1Max = cumCom1;
+        if (cumCom2.compareTo(cumCom2Min) == -1) cumCom2Min = cumCom2;
+        if (cumCom2.compareTo(cumCom2Max) == 1) cumCom2Max = cumCom2;
+        deltasLogger.info(String.format("com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s/%s/%s+%s/%s/%s=%s/%s/%s",
+                com1, com1Min, com1Max,
+                com2, com2Min, com2Max,
+                com, comMin, comMax,
+                cumCom1, cumCom1Min, cumCom1Max,
+                cumCom2, cumCom2Min, cumCom2Max,
+                cumCom, cumComMin, cumComMax
+        ));
+
         //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
         BigDecimal sumBal = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP));
         BigDecimal sumBalUsd = sumBal.multiply(ask1_o).setScale(4, BigDecimal.ROUND_HALF_UP);
@@ -395,6 +439,31 @@ public class ArbitrageService {
                 cumDelta.toPlainString(),
                 cumDeltaMin,
                 cumDeltaMax
+        ));
+
+        com1 = ask1_p.multiply(amount).multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"),8, BigDecimal.ROUND_HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
+        com2 = bid1_o.multiply(amount).multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"),8, BigDecimal.ROUND_HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
+
+        if (com1.compareTo(com1Min) == -1) com1Min = com1;
+        if (com1.compareTo(com1Max) == 1) com1Max = com1;
+        if (com2.compareTo(com2Min) == -1) com2Min = com2;
+        if (com2.compareTo(com2Max) == 1) com2Max = com2;
+        BigDecimal com = com1.add(com2);
+        if (com.compareTo(comMin) == -1) comMin = com;
+        if (com.compareTo(comMax) == 1) comMax = com;
+        cumCom1 = cumCom1.add(com1);
+        cumCom2 = cumCom2.add(com2);
+        if (cumCom1.compareTo(cumCom1Min) == -1) cumCom1Min = cumCom1;
+        if (cumCom1.compareTo(cumCom1Max) == 1) cumCom1Max = cumCom1;
+        if (cumCom2.compareTo(cumCom2Min) == -1) cumCom2Min = cumCom2;
+        if (cumCom2.compareTo(cumCom2Max) == 1) cumCom2Max = cumCom2;
+        deltasLogger.info(String.format("com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s/%s/%s+%s/%s/%s=%s/%s/%s",
+                com1, com1Min, com1Max,
+                com2, com2Min, com2Max,
+                com, comMin, comMax,
+                cumCom1, cumCom1Min, cumCom1Max,
+                cumCom2, cumCom2Min, cumCom2Max,
+                cumCom, cumComMin, cumComMax
         ));
 
         //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
@@ -599,5 +668,21 @@ public class ArbitrageService {
 
     public void setCumDiffFact2(BigDecimal cumDiffFact2) {
         this.cumDiffFact2 = cumDiffFact2;
+    }
+
+    public BigDecimal getCumCom1() {
+        return cumCom1;
+    }
+
+    public void setCumCom1(BigDecimal cumCom1) {
+        this.cumCom1 = cumCom1;
+    }
+
+    public BigDecimal getCumCom2() {
+        return cumCom2;
+    }
+
+    public void setCumCom2(BigDecimal cumCom2) {
+        this.cumCom2 = cumCom2;
     }
 }

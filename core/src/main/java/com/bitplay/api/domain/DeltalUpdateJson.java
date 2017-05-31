@@ -17,6 +17,8 @@ public class DeltalUpdateJson {
     private String cumDeltaFact;
     private String cumDiffFact1;
     private String cumDiffFact2;
+    private String cumCom1;
+    private String cumCom2;
 
     public String getMakerDelta() {
         return makerDelta;
@@ -88,5 +90,21 @@ public class DeltalUpdateJson {
 
     public void setCumDiffFact2(String cumDiffFact2) {
         this.cumDiffFact2 = cumDiffFact2;
+    }
+
+    public String getCumCom1() {
+        return cumCom1;
+    }
+
+    public void setCumCom1(String cumCom1) {
+        this.cumCom1 = cumCom1;
+    }
+
+    public String getCumCom2() {
+        return cumCom2;
+    }
+
+    public void setCumCom2(String cumCom2) {
+        this.cumCom2 = cumCom2;
     }
 }

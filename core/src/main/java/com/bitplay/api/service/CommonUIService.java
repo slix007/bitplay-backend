@@ -71,7 +71,10 @@ public class CommonUIService {
                 arbitrageService.getLastDelta(),
                 arbitrageService.getCumDeltaFact().toPlainString(),
                 arbitrageService.getCumDiffFact1().toPlainString(),
-                arbitrageService.getCumDiffFact2().toPlainString()
+                arbitrageService.getCumDiffFact2().toPlainString(),
+                arbitrageService.getCumCom1().toPlainString(),
+                arbitrageService.getCumCom2().toPlainString()
+
         );
     }
 
@@ -96,7 +99,9 @@ public class CommonUIService {
                 arbitrageService.getLastDelta(),
                 arbitrageService.getCumDeltaFact().toPlainString(),
                 arbitrageService.getCumDiffFact1().toPlainString(),
-                arbitrageService.getCumDiffFact2().toPlainString()
+                arbitrageService.getCumDiffFact2().toPlainString(),
+                arbitrageService.getCumCom1().toPlainString(),
+                arbitrageService.getCumCom2().toPlainString()
         );
     }
 
@@ -128,6 +133,12 @@ public class CommonUIService {
         if (deltalUpdateJson.getCumDiffFact2() != null) {
             arbitrageService.setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
         }
+        if (deltalUpdateJson.getCumCom1() != null) {
+            arbitrageService.setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
+        }
+        if (deltalUpdateJson.getCumCom2() != null) {
+            arbitrageService.setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom2()));
+        }
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
@@ -142,7 +153,9 @@ public class CommonUIService {
                 arbitrageService.getLastDelta(),
                 arbitrageService.getCumDeltaFact().toPlainString(),
                 arbitrageService.getCumDiffFact1().toPlainString(),
-                arbitrageService.getCumDiffFact2().toPlainString()
+                arbitrageService.getCumDiffFact2().toPlainString(),
+                arbitrageService.getCumCom1().toPlainString(),
+                arbitrageService.getCumCom2().toPlainString()
         );
     }
 }
