@@ -275,36 +275,41 @@ public class OkCoinService extends MarketService {
 
             thePrice = createBestMakerPrice(orderType, false);
 
-            final LimitOrder limitOrder = new LimitOrder(orderType,
-                    amount, CURRENCY_PAIR_BTC_USD, "123", new Date(),
-                    thePrice);
+            BigDecimal tradeableAmount = adjustAmount(amount);
+            if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
+                tradeResponse.setErrorMessage("Not enough amount left");
+            } else {
+                final LimitOrder limitOrder = new LimitOrder(orderType,
+                        tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(),
+                        thePrice);
 
-            String orderId = tradeService.placeLimitOrder(limitOrder);
-            tradeResponse.setOrderId(orderId);
+                String orderId = tradeService.placeLimitOrder(limitOrder);
+                tradeResponse.setOrderId(orderId);
 
-            String diffWithSignal = "";
-            if (bestQuotes != null) {
-                final BigDecimal diff1 = bestQuotes.getAsk1_o().subtract(thePrice);
-                final BigDecimal diff2 = thePrice.subtract(bestQuotes.getBid1_o());
-                diffWithSignal = orderType.equals(Order.OrderType.BID)
-                        ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", diff1.toPlainString()) //"BUY"
-                        : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s", diff2.toPlainString()); //"SELL"
-                arbitrageService.getOpenDiffs().setSecondOpenPrice(orderType.equals(Order.OrderType.BID)
-                        ? diff1 : diff2);
-            }
-            tradeLogger.info("{} {} amount={} with quote={} was placed.orderId={}. {}",
-                    isMoving ? "Moved" : "maker",
-                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
-                    amount.toPlainString(),
-                    thePrice,
-                    orderId,
-                    diffWithSignal);
+                String diffWithSignal = "";
+                if (bestQuotes != null) {
+                    final BigDecimal diff1 = bestQuotes.getAsk1_o().subtract(thePrice);
+                    final BigDecimal diff2 = thePrice.subtract(bestQuotes.getBid1_o());
+                    diffWithSignal = orderType.equals(Order.OrderType.BID)
+                            ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", diff1.toPlainString()) //"BUY"
+                            : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s", diff2.toPlainString()); //"SELL"
+                    arbitrageService.getOpenDiffs().setSecondOpenPrice(orderType.equals(Order.OrderType.BID)
+                            ? diff1 : diff2);
+                }
+                tradeLogger.info("{} {} amount={} with quote={} was placed.orderId={}. {}",
+                        isMoving ? "Moved" : "maker",
+                        orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                        tradeableAmount.toPlainString(),
+                        thePrice,
+                        orderId,
+                        diffWithSignal);
 
-//            openOrders.add(new LimitOrder(limitOrder.getType(), amount, limitOrder.getCurrencyPair(),
+//            openOrders.add(new LimitOrder(limitOrder.getType(), tradeableAmount, limitOrder.getCurrencyPair(),
 //                    orderId, new Date(), limitOrder.getLimitPrice(), null, null,
 //                    limitOrder.getStatus()));
-            arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
-            orderIdToSignalInfo.put(orderId, bestQuotes);
+                arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
+                orderIdToSignalInfo.put(orderId, bestQuotes);
+            }
 
         } catch (Exception e) {
             logger.error("Place market order error", e);
@@ -313,6 +318,21 @@ public class OkCoinService extends MarketService {
             tradeResponse.setErrorMessage(e.getMessage());
         }
         return tradeResponse;
+    }
+
+    private BigDecimal adjustAmount(BigDecimal initialAmount) {
+        BigDecimal amount = initialAmount.setScale(3, BigDecimal.ROUND_HALF_UP);
+        if (amount.compareTo(OKCOIN_STEP) == -1) {
+            amount = amount.setScale(2, BigDecimal.ROUND_HALF_UP);
+        }
+        if (amount.compareTo(OKCOIN_STEP) == -1) {
+            amount = BigDecimal.ZERO;
+        }
+
+        if (amount.compareTo(initialAmount) != 0) {
+            tradeLogger.info(String.format("Amount change %s -> %s", initialAmount.toPlainString(), amount.toPlainString()));
+        }
+        return amount;
     }
 
     private Order fetchOrderInfo(String orderId) {
