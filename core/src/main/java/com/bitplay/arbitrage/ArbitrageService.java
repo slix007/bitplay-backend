@@ -585,13 +585,19 @@ public class ArbitrageService {
         this.cumDeltaFact = cumDeltaFact;
     }
 
-    public BigDecimal getCumDiffsFact() {
-        return cumDiffsFact;
+    public BigDecimal getCumDiffFact1() {
+        return cumDiffFact1;
     }
 
-    public void setCumDiffsFact(BigDecimal cumDiffsFact) {
-        this.cumDiffsFact = BigDecimal.ZERO;
-        this.cumDiffFact1 = BigDecimal.ZERO;
-        this.cumDiffFact2 = BigDecimal.ZERO;
+    public void setCumDiffFact1(BigDecimal cumDiffFact1) {
+        this.cumDiffFact1 = cumDiffFact1;
+    }
+
+    public BigDecimal getCumDiffFact2() {
+        return cumDiffFact2;
+    }
+
+    public void setCumDiffFact2(BigDecimal cumDiffFact2) {
+        this.cumDiffFact2 = cumDiffFact2;
     }
 }

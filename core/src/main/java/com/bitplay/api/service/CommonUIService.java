@@ -70,7 +70,8 @@ public class CommonUIService {
                 arbitrageService.getCumDelta().toPlainString(),
                 arbitrageService.getLastDelta(),
                 arbitrageService.getCumDeltaFact().toPlainString(),
-                arbitrageService.getCumDiffsFact().toPlainString()
+                arbitrageService.getCumDiffFact1().toPlainString(),
+                arbitrageService.getCumDiffFact2().toPlainString()
         );
     }
 
@@ -94,7 +95,8 @@ public class CommonUIService {
                 arbitrageService.getCumDelta().toPlainString(),
                 arbitrageService.getLastDelta(),
                 arbitrageService.getCumDeltaFact().toPlainString(),
-                arbitrageService.getCumDiffsFact().toPlainString()
+                arbitrageService.getCumDiffFact1().toPlainString(),
+                arbitrageService.getCumDiffFact2().toPlainString()
         );
     }
 
@@ -120,8 +122,11 @@ public class CommonUIService {
         if (deltalUpdateJson.getCumDeltaFact() != null) {
             arbitrageService.setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
         }
-        if (deltalUpdateJson.getCumDiffs() != null) {
-            arbitrageService.setCumDiffsFact(new BigDecimal(deltalUpdateJson.getCumDiffs()));
+        if (deltalUpdateJson.getCumDiffFact1() != null) {
+            arbitrageService.setCumDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
+        }
+        if (deltalUpdateJson.getCumDiffFact2() != null) {
+            arbitrageService.setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
         }
 
         return new DeltasJson(
@@ -136,7 +141,8 @@ public class CommonUIService {
                 arbitrageService.getCumDelta().toPlainString(),
                 arbitrageService.getLastDelta(),
                 arbitrageService.getCumDeltaFact().toPlainString(),
-                arbitrageService.getCumDiffsFact().toPlainString()
+                arbitrageService.getCumDiffFact1().toPlainString(),
+                arbitrageService.getCumDiffFact2().toPlainString()
         );
     }
 }
