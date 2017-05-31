@@ -137,7 +137,7 @@ public class CommonUIService {
             arbitrageService.setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
         }
         if (deltalUpdateJson.getCumCom2() != null) {
-            arbitrageService.setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom2()));
+            arbitrageService.setCumCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
         }
 
         return new DeltasJson(

@@ -80,15 +80,8 @@ public class ArbitrageService {
     private BigDecimal com2Min = BigDecimal.valueOf(10000);
     private BigDecimal com2Max = BigDecimal.ZERO;
 
-    private BigDecimal cumCom = BigDecimal.ZERO;
-    private BigDecimal cumComMin = BigDecimal.valueOf(10000);
-    private BigDecimal cumComMax = BigDecimal.ZERO;
     private BigDecimal cumCom1 = BigDecimal.ZERO;
-    private BigDecimal cumCom1Min = BigDecimal.valueOf(10000);
-    private BigDecimal cumCom1Max = BigDecimal.ZERO;
     private BigDecimal cumCom2 = BigDecimal.ZERO;
-    private BigDecimal cumCom2Min = BigDecimal.valueOf(10000);
-    private BigDecimal cumCom2Max = BigDecimal.ZERO;
 
     private int counter = 0;
 
@@ -328,17 +321,14 @@ public class ArbitrageService {
         if (com.compareTo(comMax) == 1) comMax = com;
         cumCom1 = cumCom1.add(com1);
         cumCom2 = cumCom2.add(com2);
-        if (cumCom1.compareTo(cumCom1Min) == -1) cumCom1Min = cumCom1;
-        if (cumCom1.compareTo(cumCom1Max) == 1) cumCom1Max = cumCom1;
-        if (cumCom2.compareTo(cumCom2Min) == -1) cumCom2Min = cumCom2;
-        if (cumCom2.compareTo(cumCom2Max) == 1) cumCom2Max = cumCom2;
-        deltasLogger.info(String.format("com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s/%s/%s+%s/%s/%s=%s/%s/%s",
+        BigDecimal cumCom = cumCom1.add(cumCom2);
+        deltasLogger.info(String.format("com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
                 com1, com1Min, com1Max,
                 com2, com2Min, com2Max,
                 com, comMin, comMax,
-                cumCom1, cumCom1Min, cumCom1Max,
-                cumCom2, cumCom2Min, cumCom2Max,
-                cumCom, cumComMin, cumComMax
+                cumCom1,
+                cumCom2,
+                cumCom
         ));
 
         //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
@@ -454,17 +444,14 @@ public class ArbitrageService {
         if (com.compareTo(comMax) == 1) comMax = com;
         cumCom1 = cumCom1.add(com1);
         cumCom2 = cumCom2.add(com2);
-        if (cumCom1.compareTo(cumCom1Min) == -1) cumCom1Min = cumCom1;
-        if (cumCom1.compareTo(cumCom1Max) == 1) cumCom1Max = cumCom1;
-        if (cumCom2.compareTo(cumCom2Min) == -1) cumCom2Min = cumCom2;
-        if (cumCom2.compareTo(cumCom2Max) == 1) cumCom2Max = cumCom2;
-        deltasLogger.info(String.format("com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s/%s/%s+%s/%s/%s=%s/%s/%s",
+        BigDecimal cumCom = cumCom1.add(cumCom2);
+        deltasLogger.info(String.format("com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
                 com1, com1Min, com1Max,
                 com2, com2Min, com2Max,
                 com, comMin, comMax,
-                cumCom1, cumCom1Min, cumCom1Max,
-                cumCom2, cumCom2Min, cumCom2Max,
-                cumCom, cumComMin, cumComMax
+                cumCom1,
+                cumCom2,
+                cumCom
         ));
 
         //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
