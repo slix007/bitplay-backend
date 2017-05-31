@@ -83,7 +83,8 @@ public class ArbitrageService {
     private BigDecimal cumCom1 = BigDecimal.ZERO;
     private BigDecimal cumCom2 = BigDecimal.ZERO;
 
-    private int counter = 0;
+    private int counter1 = 0;
+    private int counter2 = 0;
 
     Disposable schdeduleUpdateBorders;
 
@@ -361,8 +362,8 @@ public class ArbitrageService {
                 sumBalUsd4
         ));
 
-        counter++;
-        deltasLogger.info(String.format("count=%s", counter));
+        counter1++;
+        deltasLogger.info(String.format("count=%s+%s=%s", counter1, counter2, counter1 + counter2));
     }
 
     private void writeLogDelta2(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
@@ -484,8 +485,8 @@ public class ArbitrageService {
                 sumBalUsd4
         ));
 
-        counter++;
-        deltasLogger.info(String.format("count=%s", counter));
+        counter2++;
+        deltasLogger.info(String.format("count=%s+%s=%s", counter1, counter2, counter1 + counter2));
     }
 
     private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {
