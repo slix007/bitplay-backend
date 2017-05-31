@@ -49,9 +49,11 @@ public class ArbitrageService {
     private BigDecimal buValue = BigDecimal.ZERO;
     private Integer periodSec = 300;
     private BigDecimal cumDelta = BigDecimal.ZERO;
-    private BigDecimal cumDeltaMin = BigDecimal.ZERO;
-    private BigDecimal cumDeltaMax = BigDecimal.valueOf(100000000);
+    private BigDecimal cumDeltaMin = BigDecimal.valueOf(100000000);
+    private BigDecimal cumDeltaMax = BigDecimal.ZERO;
     private BigDecimal cumDeltaFact = BigDecimal.ZERO;
+    private BigDecimal cumDeltaFactMin = BigDecimal.valueOf(100000000);
+    private BigDecimal cumDeltaFactMax = BigDecimal.ZERO;
     private String lastDelta = null;
     private BigDecimal cumDiff1 = BigDecimal.ZERO;
     private BigDecimal cumDiff2 = BigDecimal.ZERO;
@@ -218,15 +220,19 @@ public class ArbitrageService {
         if (openPrices != null && openDiffs != null) {
             BigDecimal deltaFact = openPrices.getDelta2Fact();
             cumDeltaFact = cumDeltaFact.add(deltaFact);
+            if (cumDeltaFact.compareTo(cumDeltaFactMin) == -1) cumDeltaFactMin = cumDeltaFact;
+            if (cumDeltaFact.compareTo(cumDeltaFactMax) == 1) cumDeltaFactMax = cumDeltaFact;
             BigDecimal diffFact = openDiffs.getFirstOpenPrice().add(openDiffs.getSecondOpenPrice());
             cumDiff1 = cumDiff1.add(openDiffs.getFirstOpenPrice());
             cumDiff2 = cumDiff2.add(openDiffs.getSecondOpenPrice());
             cumDiffs = cumDiffs.add(diffFact);
-            deltasLogger.info(String.format("delta2_fact=%s-%s=%s; cum_delta_fact=%s; diffFact=%s+%s=%s; cum_diff_fact=%s+%s=%s",
+            deltasLogger.info(String.format("delta2_fact=%s-%s=%s; cum_delta_fact=%s/%s/%s; diffFact=%s+%s=%s; cum_diff_fact=%s+%s=%s",
                     openPrices.getSecondOpenPrice().toPlainString(),
                     openPrices.getFirstOpenPrice().toPlainString(),
                     deltaFact.toPlainString(),
                     cumDeltaFact.toPlainString(),
+                    cumDeltaFactMin.toPlainString(),
+                    cumDeltaFactMax.toPlainString(),
                     openDiffs.getFirstOpenPrice(),
                     openDiffs.getSecondOpenPrice(),
                     diffFact,
@@ -293,15 +299,19 @@ public class ArbitrageService {
         if (openPrices != null) {
             BigDecimal deltaFact = openPrices.getDelta1Fact();
             cumDeltaFact = cumDeltaFact.add(deltaFact);
+            if (cumDeltaFact.compareTo(cumDeltaFactMin) == -1) cumDeltaFactMin = cumDeltaFact;
+            if (cumDeltaFact.compareTo(cumDeltaFactMax) == 1) cumDeltaFactMax = cumDeltaFact;
             BigDecimal diffFact = openDiffs.getFirstOpenPrice().add(openDiffs.getSecondOpenPrice());
             cumDiff1 = cumDiff1.add(openDiffs.getFirstOpenPrice());
             cumDiff2 = cumDiff2.add(openDiffs.getSecondOpenPrice());
             cumDiffs = cumDiffs.add(diffFact);
-            deltasLogger.info(String.format("delta1_fact=%s-%s=%s; cum_delta_fact=%s; diffFact=%s+%s=%s; cum_diff_fact=%s+%s=%s",
+            deltasLogger.info(String.format("delta1_fact=%s-%s=%s; cum_delta_fact=%s/%s/%s; diffFact=%s+%s=%s; cum_diff_fact=%s+%s=%s",
                     openPrices.getFirstOpenPrice().toPlainString(),
                     openPrices.getSecondOpenPrice().toPlainString(),
                     deltaFact.toPlainString(),
                     cumDeltaFact.toPlainString(),
+                    cumDeltaFactMin.toPlainString(),
+                    cumDeltaFactMax.toPlainString(),
                     openDiffs.getFirstOpenPrice(),
                     openDiffs.getSecondOpenPrice(),
                     diffFact,
