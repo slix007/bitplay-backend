@@ -137,6 +137,7 @@ public class ArbitrageService {
                 .subscribeOn(Schedulers.computation())
                 .observeOn(Schedulers.computation())
                 .doOnError(throwable -> logger.error("doOnError On combine orderBooks", throwable))
+                .retryWhen(throwables -> throwables.delay(1, TimeUnit.SECONDS))
                 .subscribe(bestQuotes -> {
                     // Log not often then 5 sec
                     if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5

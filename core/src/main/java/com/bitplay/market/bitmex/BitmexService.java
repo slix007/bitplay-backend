@@ -139,7 +139,7 @@ public class BitmexService extends MarketService {
 
                         canMoveOpenOrders = false;
 
-                        Completable.timer(2000, TimeUnit.MILLISECONDS)
+                        Completable.timer(1000, TimeUnit.MILLISECONDS)
                                 .doOnCompleted(() -> canMoveOpenOrders = true)
                                 .subscribe();
 
@@ -269,6 +269,7 @@ public class BitmexService extends MarketService {
                 .getOrderBook(CurrencyPair.BTC_USD, 20)
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
+                .retryWhen(throwables -> throwables.delay(1, TimeUnit.SECONDS))
                 .share();
     }
 
