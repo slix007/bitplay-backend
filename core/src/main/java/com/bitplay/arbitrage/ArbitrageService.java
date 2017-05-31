@@ -70,6 +70,7 @@ public class ArbitrageService {
     private BigDecimal diffFact1Max = BigDecimal.ZERO;
     private BigDecimal diffFact2Min = BigDecimal.valueOf(10000);
     private BigDecimal diffFact2Max = BigDecimal.ZERO;
+    private int counter = 0;
 
     Disposable schdeduleUpdateBorders;
 
@@ -321,6 +322,9 @@ public class ArbitrageService {
                 sumBalUsd2,
                 sumBalUsd3
         ));
+
+        counter++;
+        deltasLogger.info(String.format("count=%s", counter));
     }
 
     private void writeLogDelta2(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
@@ -416,6 +420,9 @@ public class ArbitrageService {
                 sumBalUsd2,
                 sumBalUsd3
         ));
+
+        counter++;
+        deltasLogger.info(String.format("count=%s", counter));
     }
 
     private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {
