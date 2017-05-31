@@ -310,8 +310,8 @@ public class ArbitrageService {
                 cumDeltaMax
         ));
 
-        com1 = bid1_p.multiply(amount).multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"),8, BigDecimal.ROUND_HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
-        com2 = ask1_o.multiply(amount).multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"),8, BigDecimal.ROUND_HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
+        com1 = bid1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
+        com2 = ask1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
 
         if (com1.compareTo(com1Min) == -1) com1Min = com1;
         if (com1.compareTo(com1Max) == 1) com1Max = com1;
@@ -433,8 +433,8 @@ public class ArbitrageService {
                 cumDeltaMax
         ));
 
-        com1 = ask1_p.multiply(amount).multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"),8, BigDecimal.ROUND_HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
-        com2 = bid1_o.multiply(amount).multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"),8, BigDecimal.ROUND_HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
+        com1 = ask1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
+        com2 = bid1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
 
         if (com1.compareTo(com1Min) == -1) com1Min = com1;
         if (com1.compareTo(com1Max) == 1) com1Max = com1;
