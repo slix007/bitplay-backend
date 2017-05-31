@@ -49,15 +49,21 @@ public class ArbitrageService {
     private BigDecimal buValue = BigDecimal.ZERO;
     private Integer periodSec = 300;
     private BigDecimal cumDelta = BigDecimal.ZERO;
-    private BigDecimal cumDeltaMin = BigDecimal.valueOf(100000000);
+    private BigDecimal cumDeltaMin = BigDecimal.valueOf(10000);
     private BigDecimal cumDeltaMax = BigDecimal.ZERO;
     private BigDecimal cumDeltaFact = BigDecimal.ZERO;
-    private BigDecimal cumDeltaFactMin = BigDecimal.valueOf(100000000);
+    private BigDecimal cumDeltaFactMin = BigDecimal.valueOf(10000);
     private BigDecimal cumDeltaFactMax = BigDecimal.ZERO;
     private String lastDelta = null;
     private BigDecimal cumDiff1 = BigDecimal.ZERO;
     private BigDecimal cumDiff2 = BigDecimal.ZERO;
     private BigDecimal cumDiffs = BigDecimal.ZERO;
+    private BigDecimal diffFactMin = BigDecimal.valueOf(10000);
+    private BigDecimal diffFactMax = BigDecimal.ZERO;
+    private BigDecimal diffFact1Min = BigDecimal.valueOf(10000);
+    private BigDecimal diffFact1Max = BigDecimal.ZERO;
+    private BigDecimal diffFact2Min = BigDecimal.valueOf(10000);
+    private BigDecimal diffFact2Max = BigDecimal.ZERO;
 
     Disposable schdeduleUpdateBorders;
 
@@ -222,20 +228,28 @@ public class ArbitrageService {
             cumDeltaFact = cumDeltaFact.add(deltaFact);
             if (cumDeltaFact.compareTo(cumDeltaFactMin) == -1) cumDeltaFactMin = cumDeltaFact;
             if (cumDeltaFact.compareTo(cumDeltaFactMax) == 1) cumDeltaFactMax = cumDeltaFact;
+
             BigDecimal diffFact = openDiffs.getFirstOpenPrice().add(openDiffs.getSecondOpenPrice());
+            if (openDiffs.getFirstOpenPrice().compareTo(diffFact1Min) == -1) diffFact1Min = openDiffs.getFirstOpenPrice();
+            if (openDiffs.getFirstOpenPrice().compareTo(diffFact1Max) == 1) diffFact1Max = openDiffs.getFirstOpenPrice();
+            if (openDiffs.getSecondOpenPrice().compareTo(diffFact2Min) == -1) diffFact2Min = openDiffs.getSecondOpenPrice();
+            if (openDiffs.getSecondOpenPrice().compareTo(diffFact2Max) == 1) diffFact2Max = openDiffs.getSecondOpenPrice();
+            if (diffFact.compareTo(diffFactMin) == -1) diffFactMin = diffFact;
+            if (diffFact.compareTo(diffFactMax) == 1) diffFactMax = diffFact;
+
             cumDiff1 = cumDiff1.add(openDiffs.getFirstOpenPrice());
             cumDiff2 = cumDiff2.add(openDiffs.getSecondOpenPrice());
             cumDiffs = cumDiffs.add(diffFact);
-            deltasLogger.info(String.format("delta2_fact=%s-%s=%s; cum_delta_fact=%s/%s/%s; diffFact=%s+%s=%s; cum_diff_fact=%s+%s=%s",
+            deltasLogger.info(String.format("delta2_fact=%s-%s=%s; cum_delta_fact=%s/%s/%s; diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_diff_fact=%s+%s=%s",
                     openPrices.getSecondOpenPrice().toPlainString(),
                     openPrices.getFirstOpenPrice().toPlainString(),
                     deltaFact.toPlainString(),
                     cumDeltaFact.toPlainString(),
                     cumDeltaFactMin.toPlainString(),
                     cumDeltaFactMax.toPlainString(),
-                    openDiffs.getFirstOpenPrice(),
-                    openDiffs.getSecondOpenPrice(),
-                    diffFact,
+                    openDiffs.getFirstOpenPrice(), diffFact1Min, diffFact1Max,
+                    openDiffs.getSecondOpenPrice(), diffFact2Min, diffFact2Max,
+                    diffFact, diffFactMin, diffFactMax,
                     cumDiff1,
                     cumDiff2,
                     cumDiffs
@@ -301,20 +315,28 @@ public class ArbitrageService {
             cumDeltaFact = cumDeltaFact.add(deltaFact);
             if (cumDeltaFact.compareTo(cumDeltaFactMin) == -1) cumDeltaFactMin = cumDeltaFact;
             if (cumDeltaFact.compareTo(cumDeltaFactMax) == 1) cumDeltaFactMax = cumDeltaFact;
+
             BigDecimal diffFact = openDiffs.getFirstOpenPrice().add(openDiffs.getSecondOpenPrice());
+            if (openDiffs.getFirstOpenPrice().compareTo(diffFact1Min) == -1) diffFact1Min = openDiffs.getFirstOpenPrice();
+            if (openDiffs.getFirstOpenPrice().compareTo(diffFact1Max) == 1) diffFact1Max = openDiffs.getFirstOpenPrice();
+            if (openDiffs.getSecondOpenPrice().compareTo(diffFact2Min) == -1) diffFact2Min = openDiffs.getSecondOpenPrice();
+            if (openDiffs.getSecondOpenPrice().compareTo(diffFact2Max) == 1) diffFact2Max = openDiffs.getSecondOpenPrice();
+            if (diffFact.compareTo(diffFactMin) == -1) diffFactMin = diffFact;
+            if (diffFact.compareTo(diffFactMax) == 1) diffFactMax = diffFact;
+
             cumDiff1 = cumDiff1.add(openDiffs.getFirstOpenPrice());
             cumDiff2 = cumDiff2.add(openDiffs.getSecondOpenPrice());
             cumDiffs = cumDiffs.add(diffFact);
-            deltasLogger.info(String.format("delta1_fact=%s-%s=%s; cum_delta_fact=%s/%s/%s; diffFact=%s+%s=%s; cum_diff_fact=%s+%s=%s",
+            deltasLogger.info(String.format("delta1_fact=%s-%s=%s; cum_delta_fact=%s/%s/%s; diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_diff_fact=%s+%s=%s",
                     openPrices.getFirstOpenPrice().toPlainString(),
                     openPrices.getSecondOpenPrice().toPlainString(),
                     deltaFact.toPlainString(),
                     cumDeltaFact.toPlainString(),
                     cumDeltaFactMin.toPlainString(),
                     cumDeltaFactMax.toPlainString(),
-                    openDiffs.getFirstOpenPrice(),
-                    openDiffs.getSecondOpenPrice(),
-                    diffFact,
+                    openDiffs.getFirstOpenPrice(), diffFact1Min, diffFact1Max,
+                    openDiffs.getSecondOpenPrice(), diffFact2Min, diffFact2Max,
+                    diffFact, diffFactMin, diffFactMax,
                     cumDiff1,
                     cumDiff2,
                     cumDiffs
