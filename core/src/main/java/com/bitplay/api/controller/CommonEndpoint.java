@@ -5,6 +5,7 @@ import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.MarketList;
+import com.bitplay.api.domain.StopMovingJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 
@@ -102,4 +103,19 @@ public class CommonEndpoint {
     public DeltasJson updateMakerDelta(DeltalUpdateJson deltalUpdateJson) {
         return commonUIService.updateMakerDelta(deltalUpdateJson);
     }
+
+    @GET
+    @Path("/market/stop-moving")
+    @Produces(MediaType.APPLICATION_JSON)
+    public StopMovingJson getMovingStop() {
+        return commonUIService.getStopMoving();
+    }
+
+    @POST
+    @Path("/market/stop-moving")
+    @Produces(MediaType.APPLICATION_JSON)
+    public StopMovingJson updateMovingStop(StopMovingJson stopMovingJson) {
+        return commonUIService.setStopMoving(stopMovingJson);
+    }
+
 }

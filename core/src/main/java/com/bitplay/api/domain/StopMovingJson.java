@@ -1,0 +1,30 @@
+package com.bitplay.api.domain;
+
+/**
+ * Created by Sergey Shurmin on 6/1/17.
+ */
+public class StopMovingJson {
+    Boolean firstMarket;
+    Boolean secondMarket;
+
+    public StopMovingJson(Boolean firstMarket, Boolean secondMarket) {
+        this.firstMarket = firstMarket;
+        this.secondMarket = secondMarket;
+    }
+
+    public Boolean getFirstMarket() {
+        return firstMarket;
+    }
+
+    public void setFirstMarket(Boolean firstMarket) {
+        this.firstMarket = firstMarket;
+    }
+
+    public Boolean getSecondMarket() {
+        return secondMarket;
+    }
+
+    public void setSecondMarket(Boolean secondMarket) {
+        this.secondMarket = secondMarket;
+    }
+}

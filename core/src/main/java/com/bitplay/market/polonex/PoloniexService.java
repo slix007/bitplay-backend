@@ -301,7 +301,7 @@ public class PoloniexService extends MarketService {
 //            orderBookChangedSubject.onNext(orderBook);
 
             CompletableFuture.runAsync(() -> {
-                checkOpenOrdersForMoving(orderBook);
+                checkOpenOrdersForMoving();
             });
 
         } catch (IOException e) {

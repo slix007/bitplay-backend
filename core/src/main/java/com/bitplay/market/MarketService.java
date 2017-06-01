@@ -50,6 +50,8 @@ public abstract class MarketService {
     protected Subject<OrderBook> orderBookChangedSubject = PublishSubject.create();
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
+    protected MarketState marketState = MarketState.IDLE;
+
     private final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
 
@@ -156,28 +158,19 @@ public abstract class MarketService {
         return openOrders;
     }
 
-    protected void checkOpenOrdersForMoving(OrderBook orderBook) {
-        final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
-        final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
-
-        if (this.bestAsk.compareTo(bestAsk) != 0 || this.bestBid.compareTo(bestBid) != 0) {
-            this.bestAsk = bestAsk;
-            this.bestBid = bestBid;
-//            bestAskChangedSubject.onNext(bestAsk);
-//            bestBidChangedSubject.onNext(bestBid);
-//            fetchOpenOrders().forEach(this::moveMakerOrderIfNotFirst);
-            moveOpenOrdersOrDelete();
+    protected void checkOpenOrdersForMoving() {
+        if (isReadyForMoving && marketState != MarketState.STOP_MOVING) {
+            iterateOpenOrdersMove();
         }
     }
 
-    private void moveOpenOrdersOrDelete() {
+    protected void iterateOpenOrdersMove() {
         //TODO poloniex can be changed for half price. So then only 2 step of changing
         openOrders.removeIf(openOrder -> {
             boolean isNeedToDelete;
             try {
                 final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
-                isNeedToDelete = response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.ALREADY_FIRST)
-                        || response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.ALREADY_CLOSED);
+                isNeedToDelete = response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.ALREADY_CLOSED);
             } catch (Exception e) {
                 e.printStackTrace();
                 isNeedToDelete = true;
@@ -344,7 +337,7 @@ public abstract class MarketService {
         MoveResponse response;
         BigDecimal bestPrice;
 
-        if (!isReadyForMoving) {
+        if (!isReadyForMoving || marketState == MarketState.STOP_MOVING) {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.WAITING_TIMEOUT, "");
         } else {
 
@@ -407,6 +400,18 @@ public abstract class MarketService {
                 else sleep(2000);
             }
         }).share();
+    }
+
+    public boolean isMovingStop() {
+        return marketState == MarketState.STOP_MOVING;
+    }
+
+    public void setMovingStop(boolean shouldStopMoving) {
+        if (shouldStopMoving) {
+            marketState = MarketState.STOP_MOVING;
+        } else {
+            marketState = MarketState.IDLE;
+        }
     }
 
 }

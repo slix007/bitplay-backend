@@ -112,6 +112,14 @@ public class ArbitrageService {
         scheduleRecalculateBorders();
     }
 
+    public MarketService getFirstMarketService() {
+        return firstMarketService;
+    }
+
+    public MarketService getSecondMarketService() {
+        return secondMarketService;
+    }
+
     private void setTimeoutAfterStartTrading() {
         flagOpenOrder.setFirstReady(false);
 //        flagOpenOrder.setSecondReady(false);

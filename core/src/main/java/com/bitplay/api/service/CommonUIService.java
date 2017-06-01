@@ -3,6 +3,7 @@ package com.bitplay.api.service;
 import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
+import com.bitplay.api.domain.StopMovingJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 
@@ -156,6 +157,22 @@ public class CommonUIService {
                 arbitrageService.getCumDiffFact2().toPlainString(),
                 arbitrageService.getCumCom1().toPlainString(),
                 arbitrageService.getCumCom2().toPlainString()
+        );
+    }
+
+    public StopMovingJson getStopMoving() {
+        return new StopMovingJson(
+                arbitrageService.getFirstMarketService().isMovingStop(),
+                arbitrageService.getSecondMarketService().isMovingStop()
+        );
+    }
+
+    public StopMovingJson setStopMoving(StopMovingJson stopMovingJson) {
+        arbitrageService.getFirstMarketService().setMovingStop(stopMovingJson.getFirstMarket());
+        arbitrageService.getSecondMarketService().setMovingStop(stopMovingJson.getSecondMarket());
+        return new StopMovingJson(
+                arbitrageService.getFirstMarketService().isMovingStop(),
+                arbitrageService.getSecondMarketService().isMovingStop()
         );
     }
 }

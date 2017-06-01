@@ -128,43 +128,33 @@ public class BitmexService extends MarketService {
         }
     }
 
-    private boolean canMoveOpenOrders = true;
-
     private void startOpenOrderMovingListener() {
         orderBookObservable
                 .subscribeOn(Schedulers.computation())
                 .subscribe(orderBook1 -> {
-
-                    if (canMoveOpenOrders) {
-
-                        canMoveOpenOrders = false;
-
-                        Completable.timer(1000, TimeUnit.MILLISECONDS)
-                                .doOnCompleted(() -> canMoveOpenOrders = true)
-                                .subscribe();
-
-                        boolean haveToClear = false;
-                        synchronized (openOrders) {
-                            for (LimitOrder openOrder : openOrders) {
-                                if (openOrder.getType() != null) {
-                                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
-                                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                                        haveToClear = true;
-                                    }
-                                }
-                            }
-
-                        }
-
-                        if (haveToClear) {
-                            openOrders = new ArrayList<>();
-                        }
-                    }
-
+                    checkOpenOrdersForMoving();
                 }, throwable -> {
-                    logger.error("On Moving OpenOrders.", throwable);
-                    startOpenOrderMovingListener();//restart
+                    logger.error("On Moving OpenOrders.", throwable); // restart
                 });
+    }
+
+    @Override
+    protected void iterateOpenOrdersMove() {
+        boolean haveToClear = false;
+        synchronized (openOrders) {
+            for (LimitOrder openOrder : openOrders) {
+                if (openOrder.getType() != null) {
+                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
+                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                        haveToClear = true;
+                    }
+                }
+            }
+        }
+
+        if (haveToClear) {
+            openOrders = new ArrayList<>();
+        }
     }
 
     private BitmexStreamingExchange initExchange(String key, String secret) {
@@ -269,7 +259,8 @@ public class BitmexService extends MarketService {
                 .getOrderBook(CurrencyPair.BTC_USD, 20)
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
-                .retryWhen(throwables -> throwables.delay(1, TimeUnit.SECONDS))
+                .doOnError((throwable) -> logger.error("bitmex subscription doOnErro", throwable))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .share();
     }
 
