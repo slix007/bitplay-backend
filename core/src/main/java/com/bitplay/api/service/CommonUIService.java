@@ -4,6 +4,7 @@ import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.StopMovingJson;
+import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 
@@ -175,4 +176,14 @@ public class CommonUIService {
                 arbitrageService.getSecondMarketService().isMovingStop()
         );
     }
+
+    public TradableAmountJson getTradableAmount() {
+        return new TradableAmountJson(arbitrageService.getAmount().toPlainString());
+    }
+
+    public TradableAmountJson updateTradableAmount(TradableAmountJson tradableAmountJson) {
+        arbitrageService.setAmount(new BigDecimal(tradableAmountJson.getAmount()));
+        return new TradableAmountJson(arbitrageService.getAmount().toPlainString());
+    }
+
 }

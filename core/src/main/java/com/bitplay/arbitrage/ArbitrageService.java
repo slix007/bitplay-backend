@@ -34,7 +34,8 @@ public class ArbitrageService {
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final String DELTA1 = "delta1";
     private static final String DELTA2 = "delta2";
-    private static final BigDecimal amount = new BigDecimal("0.02");
+
+    private BigDecimal amount = new BigDecimal("0.02");
 
     //TODO rename them to first and second
     private MarketService firstMarketService;
@@ -681,5 +682,13 @@ public class ArbitrageService {
 
     public void setCumCom2(BigDecimal cumCom2) {
         this.cumCom2 = cumCom2;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
     }
 }

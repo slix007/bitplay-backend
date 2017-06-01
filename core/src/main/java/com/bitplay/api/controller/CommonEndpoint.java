@@ -6,6 +6,7 @@ import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.MarketList;
 import com.bitplay.api.domain.StopMovingJson;
+import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 
@@ -119,4 +120,18 @@ public class CommonEndpoint {
         return commonUIService.toggleStopMoving();
     }
 
+    @GET
+    @Path("/market/tradable-amount")
+    @Produces(MediaType.APPLICATION_JSON)
+    public TradableAmountJson getTradableAmount() {
+        return commonUIService.getTradableAmount();
+    }
+
+    @POST
+    @Path("/market/tradable-amount")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public TradableAmountJson setTradableAmount(TradableAmountJson tradableAmountJson) {
+        return commonUIService.updateTradableAmount(tradableAmountJson);
+    }
 }
