@@ -273,7 +273,8 @@ public class OkCoinService extends MarketService {
             final TradeService tradeService = exchange.getTradeService();
             BigDecimal thePrice;
 
-            thePrice = createBestMakerPrice(orderType, false);
+            thePrice = createBestMakerPrice(orderType, false)
+                    .setScale(2, BigDecimal.ROUND_HALF_UP);
 
             BigDecimal tradeableAmount = adjustAmount(amount);
             if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
