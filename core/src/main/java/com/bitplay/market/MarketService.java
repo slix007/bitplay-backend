@@ -273,49 +273,12 @@ public abstract class MarketService {
     protected abstract BigDecimal getMakerDelta();
 
     protected BigDecimal createBestMakerPrice(Order.OrderType orderType, boolean forceUsingStep) {
-        BigDecimal thePrice = null;
-        BigDecimal makerDelta = getMakerDelta();
-        if (makerDelta.compareTo(BigDecimal.ZERO) == 0 || forceUsingStep) {
-            makerDelta = getMakerPriceStep();
-        }
-
-        final BigDecimal bestBid = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getLimitPrice();
-        final BigDecimal bestAsk = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getLimitPrice();
-
+//        final BigDecimal thePrice = createBetterPrice(orderType, forceUsingStep);
+        BigDecimal thePrice = BigDecimal.ZERO;
         if (orderType == Order.OrderType.BID) {
-            // 1 use the best price if it is ours.
-            if (openOrders.stream()
-                    .filter(Objects::nonNull)
-                    .anyMatch(limitOrder -> limitOrder != null
-                            && limitOrder.getLimitPrice() != null
-                            && bestBid != null
-                            && limitOrder.getLimitPrice().compareTo(bestBid) == 0)) {
-                thePrice = bestBid;
-            } else {
-                // 2 the best with delta
-                thePrice = bestBid.add(makerDelta);
-                // 3 check if we are already on the edge
-                if (thePrice.compareTo(bestAsk) == 1 || thePrice.compareTo(bestAsk) == 0) {
-                    thePrice = bestAsk.subtract(getMakerPriceStep());
-                }
-            }
+            thePrice = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getLimitPrice();
         } else if (orderType == Order.OrderType.ASK) {
-            // 1 use the best price if it is ours.
-            if (openOrders.stream()
-                    .filter(Objects::nonNull)
-                    .anyMatch(limitOrder -> limitOrder != null
-                            && limitOrder.getLimitPrice() != null
-                            && bestAsk != null
-                            && limitOrder.getLimitPrice().compareTo(bestAsk) == 0)) {
-                thePrice = bestAsk;
-            } else {
-                // 2 the best with delta
-                thePrice = bestAsk.subtract(makerDelta);
-                // 3 check if we are already on the edge
-                if (thePrice.compareTo(bestBid) == -1 || thePrice.compareTo(bestBid) == 0) {
-                    thePrice = bestBid.add(getMakerPriceStep());
-                }
-            }
+            thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getLimitPrice();
         }
         return thePrice;
     }
