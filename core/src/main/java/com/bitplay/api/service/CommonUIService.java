@@ -167,9 +167,9 @@ public class CommonUIService {
         );
     }
 
-    public StopMovingJson setStopMoving(StopMovingJson stopMovingJson) {
-        arbitrageService.getFirstMarketService().setMovingStop(stopMovingJson.getFirstMarket());
-        arbitrageService.getSecondMarketService().setMovingStop(stopMovingJson.getSecondMarket());
+    public StopMovingJson toggleStopMoving() {
+        arbitrageService.getFirstMarketService().setMovingStop(!arbitrageService.getFirstMarketService().isMovingStop());
+        arbitrageService.getSecondMarketService().setMovingStop(!arbitrageService.getSecondMarketService().isMovingStop());
         return new StopMovingJson(
                 arbitrageService.getFirstMarketService().isMovingStop(),
                 arbitrageService.getSecondMarketService().isMovingStop()

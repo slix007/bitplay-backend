@@ -112,10 +112,11 @@ public class CommonEndpoint {
     }
 
     @POST
-    @Path("/market/stop-moving")
+    @Path("/market/toggle-stop-moving")
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public StopMovingJson updateMovingStop(StopMovingJson stopMovingJson) {
-        return commonUIService.setStopMoving(stopMovingJson);
+    public StopMovingJson updateMovingStop() {
+        return commonUIService.toggleStopMoving();
     }
 
 }
