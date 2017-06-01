@@ -52,7 +52,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes) {
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean fromGui) {
         return null;
     }
 
@@ -62,7 +62,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder) {
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui) {
         return null;
     }
 

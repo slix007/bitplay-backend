@@ -403,7 +403,7 @@ public class PoloniexService extends MarketService {
         return thePrice;
     }
 
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes) {
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean fromGui) {
         TradeResponse tradeResponse = new TradeResponse();
 
         int attemptCount = 0;
@@ -459,9 +459,9 @@ public class PoloniexService extends MarketService {
 
     /**
      * Use when you're sure that order should be moved(has not the best price)
-     * Use {@link MarketService#moveMakerOrderIfNotFirst(LimitOrder)} when you know that price is not the best.
+     * Use {@link MarketService#moveMakerOrderIfNotFirst(LimitOrder, boolean)} when you know that price is not the best.
      */
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder) {
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui) {
         MoveResponse response;
         int attemptCount = 0;
         String lastExceptionMsg = "";

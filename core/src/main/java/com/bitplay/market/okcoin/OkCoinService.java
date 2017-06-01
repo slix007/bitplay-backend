@@ -263,11 +263,12 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes) {
-        return placeMakerOrder(orderType, amount, bestQuotes, false);
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean fromGui) {
+        return placeMakerOrder(orderType, amount, bestQuotes, false, fromGui);
     }
 
-    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean isMoving) {
+    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+                                          boolean isMoving, boolean fromGui) {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
             final TradeService tradeService = exchange.getTradeService();
@@ -308,7 +309,9 @@ public class OkCoinService extends MarketService {
 //            openOrders.add(new LimitOrder(limitOrder.getType(), tradeableAmount, limitOrder.getCurrencyPair(),
 //                    orderId, new Date(), limitOrder.getLimitPrice(), null, null,
 //                    limitOrder.getStatus()));
-                arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
+                if (!fromGui) {
+                    arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
+                }
                 orderIdToSignalInfo.put(orderId, bestQuotes);
             }
 
@@ -371,7 +374,7 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder) {
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui) {
         // IT doesn't support moving
         // Do cancel ant place
         final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
@@ -406,7 +409,7 @@ public class OkCoinService extends MarketService {
             // Place order
             while (attemptCount < 5) {
                 attemptCount++;
-                final TradeResponse tradeResponse = placeMakerOrder(limitOrder.getType(), limitOrder.getTradableAmount(), bestQuotes, true);
+                final TradeResponse tradeResponse = placeMakerOrder(limitOrder.getType(), limitOrder.getTradableAmount(), bestQuotes, true, fromGui);
                 if (tradeResponse.getErrorCode() == null) {
                     break;
                 }

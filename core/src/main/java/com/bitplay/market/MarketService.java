@@ -99,7 +99,7 @@ public abstract class MarketService {
         this.accountInfo = accountInfo;
     }
 
-    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes);
+    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean fromGui);
 
     public BigDecimal getTotalPriceOfAmountToBuy(BigDecimal requiredAmountToBuy) {
         BigDecimal totalPrice = BigDecimal.ZERO;
@@ -169,7 +169,7 @@ public abstract class MarketService {
         openOrders.removeIf(openOrder -> {
             boolean isNeedToDelete;
             try {
-                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
+                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
                 isNeedToDelete = response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.ALREADY_CLOSED);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -260,13 +260,13 @@ public abstract class MarketService {
             response = this.openOrders.stream()
                     .filter(limitOrder -> limitOrder.getId().equals(orderId))
                     .findFirst()
-                    .map(this::moveMakerOrderIfNotFirst)
+                    .map(limitOrder -> moveMakerOrderIfNotFirst(limitOrder, true))
                     .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
         }
         return response;
     }
 
-    public abstract MoveResponse moveMakerOrder(LimitOrder limitOrder);
+    public abstract MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui);
 
     protected abstract BigDecimal getMakerPriceStep();
 
@@ -333,7 +333,7 @@ public abstract class MarketService {
                 .subscribe();
     }
 
-    protected MoveResponse moveMakerOrderIfNotFirst(LimitOrder limitOrder) {
+    protected MoveResponse moveMakerOrderIfNotFirst(LimitOrder limitOrder, boolean fromGui) {
         MoveResponse response;
         BigDecimal bestPrice;
 
@@ -357,7 +357,7 @@ public abstract class MarketService {
                 logger.info("{} Try to move maker order {} {}, from {} to {}",
                         getName(), limitOrder.getId(), limitOrder.getType(),
                         limitOrder.getLimitPrice(), bestPrice);
-                response = moveMakerOrder(limitOrder);
+                response = moveMakerOrder(limitOrder, fromGui);
                 setTimeoutAfterStartMoving();
             } else {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");

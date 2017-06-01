@@ -144,7 +144,7 @@ public class BitmexService extends MarketService {
         synchronized (openOrders) {
             for (LimitOrder openOrder : openOrders) {
                 if (openOrder.getType() != null) {
-                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
+                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
                         haveToClear = true;
                     }
@@ -351,11 +351,11 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes) {
-        return placeMakerOrder(orderType, amount, bestQuotes, false);
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean fromGui) {
+        return placeMakerOrder(orderType, amount, bestQuotes, false, fromGui);
     }
 
-    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean isMoving) {
+    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean isMoving, boolean fromGui) {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
             final TradeService tradeService = exchange.getTradeService();
@@ -391,7 +391,9 @@ public class BitmexService extends MarketService {
                     orderId,
                     diffWithSignal);
 
-            arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
+            if (!fromGui) {
+                arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
+            }
             orderIdToSignalInfo.put(orderId, bestQuotes);
 
         } catch (HttpStatusIOException e) {
@@ -415,7 +417,7 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder) {
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui) {
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
         int attemptCount = 0;
         String lastExceptionMsg = "";
@@ -479,7 +481,9 @@ public class BitmexService extends MarketService {
                     diffWithSignal);
 
             orderIdToSignalInfo.put(limitOrder.getId(), bestQuotes);
-            arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
+            if (!fromGui) {
+                arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
+            }
 
             tradeLogger.info(logString);
             moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);

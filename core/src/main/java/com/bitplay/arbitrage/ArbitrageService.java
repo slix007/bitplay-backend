@@ -222,8 +222,8 @@ public class ArbitrageService {
 
                     writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
 
-                    firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
-                    secondMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
+                    firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes, false);
+                    secondMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes, false);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setTimeoutAfterStartTrading();
                 } else {
@@ -240,8 +240,8 @@ public class ArbitrageService {
 
                     writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
 
-                    firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes);
-                    secondMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes);
+                    firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes, false);
+                    secondMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes, false);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setTimeoutAfterStartTrading();
                 } else {
