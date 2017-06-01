@@ -380,6 +380,7 @@ public class OkCoinService extends MarketService {
         final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
         MoveResponse response;
         BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
+        isMovingInProgress = true;
 
         int attemptCount = 0;
         Exception lastException = null;
@@ -428,8 +429,10 @@ public class OkCoinService extends MarketService {
 //                    limitOrder.getId(),
 //                    attemptCount);
 //            tradeLogger.info(logString);
+            isMovingInProgress = false;
             response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, "");
         } else {
+            isMovingInProgress = false;
             final String logString = String.format("Cancel failed %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),

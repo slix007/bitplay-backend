@@ -217,7 +217,7 @@ public class ArbitrageService {
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
                 if (checkBalance(DELTA1, amount) //) {
-                        && (lastDelta == null || lastDelta.equals(DELTA2))) {
+                        && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
                     lastDelta = DELTA1;
 
                     writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
@@ -235,7 +235,7 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
                 if (checkBalance(DELTA2, amount) //) {
-                        && (lastDelta == null || lastDelta.equals(DELTA1))) {
+                        && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
                     lastDelta = DELTA2;
 
                     writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);

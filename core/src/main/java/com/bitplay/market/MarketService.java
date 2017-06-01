@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -51,6 +50,7 @@ public abstract class MarketService {
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
     protected MarketState marketState = MarketState.IDLE;
+    protected boolean isMovingInProgress = false;
 
     private final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
@@ -79,6 +79,10 @@ public abstract class MarketService {
             }
         }
         return isAffordable;
+    }
+
+    public boolean isReadyForArbitrage() {
+        return (openOrders.size() == 0 && !isMovingInProgress);
     }
 
     /**
@@ -174,6 +178,7 @@ public abstract class MarketService {
             } catch (Exception e) {
                 e.printStackTrace();
                 isNeedToDelete = true;
+                isMovingInProgress = false;
             }
 
             if (isNeedToDelete) {
