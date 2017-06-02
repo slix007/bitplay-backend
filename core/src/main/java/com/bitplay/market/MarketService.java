@@ -149,6 +149,7 @@ public abstract class MarketService {
         } else {
             if (orderIdToSignalInfo.size() > 100000) {
                 orderIdToSignalInfo.clear();
+                logger.warn("orderIdToSignalInfo over 100000");
             }
 
 //            orderIdToSignalInfo.entrySet()
@@ -307,11 +308,11 @@ public abstract class MarketService {
 
         if (!isReadyForMoving || marketState == MarketState.STOP_MOVING) {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.WAITING_TIMEOUT, "");
+        } else if ((limitOrder.getType() == Order.OrderType.ASK && limitOrder.getLimitPrice().compareTo(bestAsk) == 0)
+                || (limitOrder.getType() == Order.OrderType.BID && limitOrder.getLimitPrice().compareTo(bestBid) == 0)) {
+
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
         } else {
-
-
-            BigDecimal bestAsk = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
-            BigDecimal bestBid = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
 
             if (limitOrder.getType() == Order.OrderType.ASK) {
                 bestPrice = bestAsk;

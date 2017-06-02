@@ -165,6 +165,10 @@ public class PoloniexService extends MarketService {
                     logger.debug(poloniexWebSocketDepth.toString());
 
                     orderBook = PoloniexOrderBookMerger.merge(orderBook, poloniexWebSocketDepth);
+                    bestAsk = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
+                    bestBid = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
+
+
 //                    updates.add(poloniexWebSocketDepth);
 
 //                    updates.stream().filter(depth -> depth.getData().getRate().compareTo(new BigDecimal("1206.0"))==0).collect(Collectors.toList())
@@ -283,6 +287,10 @@ public class PoloniexService extends MarketService {
 //                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, -1);
             final long startFetch = System.nanoTime();
             orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, 5);
+            bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
+            bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
+            logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
+
             final long endFetch = System.nanoTime();
 
             latencyList.add(endFetch - startFetch);

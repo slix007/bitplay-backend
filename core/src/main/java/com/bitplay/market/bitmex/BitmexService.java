@@ -238,9 +238,9 @@ public class BitmexService extends MarketService {
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
                     final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
                     final LimitOrder bestBid = bestBids.size() > 0 ? bestBids.get(0) : null;
-                    logger.debug("ask: {}, bid: {}",
-                            bestAsk != null ? bestAsk.getLimitPrice() : null,
-                            bestBid != null ? bestBid.getLimitPrice() : null);
+                    this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
+                    this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
+                    logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
                     this.orderBook = orderBook;
 
 //                    orderBookChangedSubject.onNext(orderBook);

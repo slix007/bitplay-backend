@@ -146,9 +146,9 @@ public class OkCoinService extends MarketService {
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
                     final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
                     final LimitOrder bestBid = bestBids.size() > 0 ? bestBids.get(0) : null;
-                    logger.debug("ask: {}, bid: {}",
-                            bestAsk != null ? bestAsk.getLimitPrice() : null,
-                            bestBid != null ? bestBid.getLimitPrice() : null);
+                    this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
+                    this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
+                    logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
                     this.orderBook = orderBook;
 
 //                    orderBookChangedSubject.onNext(orderBook);
@@ -211,6 +211,10 @@ public class OkCoinService extends MarketService {
     public OrderBook fetchOrderBook() {
         try {
             orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_BTC_USD);
+
+            bestBid = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
+            bestAsk = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
+
             logger.info("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
                     orderBook.getTimeStamp());
         } catch (Exception e) {
@@ -234,10 +238,10 @@ public class OkCoinService extends MarketService {
             if (orderType.equals(Order.OrderType.BID)) {
                 // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
                 tradingDigit = getTotalPriceOfAmountToBuy(amount);
-                theBestPrice = Utils.getBestAsks(orderBook.getAsks(), 1).get(0).getLimitPrice();
+                theBestPrice = bestAsk;
             } else { // orderType.equals(Order.OrderType.ASK)
                 tradingDigit = amount;
-                theBestPrice = Utils.getBestBids(orderBook.getBids(), 1).get(0).getLimitPrice();
+                theBestPrice = bestBid;
             }
 
 //          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()
