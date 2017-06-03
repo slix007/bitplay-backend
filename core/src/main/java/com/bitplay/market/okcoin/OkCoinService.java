@@ -229,7 +229,7 @@ public class OkCoinService extends MarketService {
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.computation())
                 .subscribe(updatedOrder -> {
-                    logger.debug("Order update: " + updatedOrder.toString());
+                    logger.info("Order update: " + updatedOrder.toString());
                     this.openOrders = this.openOrders.stream()
                             .flatMap(existingInMemory -> {
                                 // merge if the update of an existingInMemory
@@ -523,7 +523,8 @@ public class OkCoinService extends MarketService {
                     limitOrder.getId(),
                     attemptCount,
                     lastException != null ? lastException.getMessage() : null);
-//            tradeLogger.info(logString);
+            tradeLogger.info(logString);
+            fetchOpenOrders();
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }
         return response;
