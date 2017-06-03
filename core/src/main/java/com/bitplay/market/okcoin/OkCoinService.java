@@ -216,11 +216,11 @@ public class OkCoinService extends MarketService {
         return accountInfo;
     }
 
-//    @Scheduled(fixedRate = 2000)
-//    public void fetchOpenOrdersSchedule() {
-//        this.fetchOpenOrders();
-//    }
-
+    @Scheduled(fixedRate = 2000)
+    public void fetchOpenOrdersSchedule() {
+        this.fetchOpenOrders();
+    }
+/*
     private Disposable startOrderListener(String orderId) {
         return exchange.getStreamingTradingService()
                 //TODO use different method like getOrderObservable
@@ -269,7 +269,7 @@ public class OkCoinService extends MarketService {
                 }, throwable -> {
                     logger.error("OO.Exception: ", throwable);
                 });
-    }
+    }*/
 
     private Disposable startTradesListener() {
         return exchange.getStreamingMarketDataService()
@@ -386,8 +386,8 @@ public class OkCoinService extends MarketService {
                         orderId,
                         diffWithSignal);
 
-                final Disposable orderListener = startOrderListener(orderId);
-                orderSubscriptions.put(orderId, orderListener);
+//                final Disposable orderListener = startOrderListener(orderId);
+//                orderSubscriptions.put(orderId, orderListener);
                 openOrders.add(new LimitOrder(limitOrder.getType(), tradeableAmount, limitOrder.getCurrencyPair(),
                         orderId, new Date(), limitOrder.getLimitPrice(), null, null,
                         limitOrder.getStatus()));
@@ -515,7 +515,6 @@ public class OkCoinService extends MarketService {
 //            tradeLogger.info(logString);
             response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, "");
         } else {
-            isMovingInProgress = false;
             final String logString = String.format("Cancel failed %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
@@ -524,7 +523,10 @@ public class OkCoinService extends MarketService {
                     attemptCount,
                     lastException != null ? lastException.getMessage() : null);
             tradeLogger.info(logString);
+
             fetchOpenOrders();
+            isMovingInProgress = false;
+
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }
         return response;

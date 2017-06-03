@@ -296,7 +296,7 @@ public abstract class MarketService {
         if (theTimer != null) {
             theTimer.dispose();
         }
-        theTimer = Completable.timer(2, TimeUnit.SECONDS)
+        theTimer = Completable.timer(1, TimeUnit.SECONDS)
                 .doOnComplete(() -> isReadyForMoving = true)
                 .subscribe();
     }
