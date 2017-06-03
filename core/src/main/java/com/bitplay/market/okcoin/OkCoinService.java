@@ -29,11 +29,17 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 
@@ -65,7 +71,8 @@ public class OkCoinService extends MarketService {
     private OkCoinStreamingExchange exchange;
 
     Disposable orderBookSubscription;
-    Observable<OrderBook> orderBookObservable;
+    private Observable<OrderBook> orderBookObservable;
+    private Map<String, Disposable> orderSubscriptions = new HashMap<>();
 
     @Override
     public String getName() {
@@ -92,6 +99,9 @@ public class OkCoinService extends MarketService {
         subscribeOnOrderBook();
 
         subscribeOnOthers();
+
+        // it works but we don't need it
+//        startTradesListener();
     }
 
     private void createOrderBookObservable() {
@@ -99,6 +109,8 @@ public class OkCoinService extends MarketService {
                 .getOrderBook(CurrencyPair.BTC_USD, 20)
                 .doOnDispose(() -> logger.info("okcoin subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("okcoin subscription doOnTerminate"))
+                .doOnError(throwable -> logger.error("okcoin onError orderBook", throwable))
+                .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS))
                 .share();
     }
 
@@ -170,6 +182,7 @@ public class OkCoinService extends MarketService {
     public void preDestroy() {
         // Unsubscribe from data order book.
         orderBookSubscription.dispose();
+        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
 
         // Disconnect from exchange (non-blocking)
         exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
@@ -203,9 +216,72 @@ public class OkCoinService extends MarketService {
         return accountInfo;
     }
 
-    @Scheduled(fixedRate = 2000)
-    public void fetchOpenOrdersSchedule() {
-        this.fetchOpenOrders();
+//    @Scheduled(fixedRate = 2000)
+//    public void fetchOpenOrdersSchedule() {
+//        this.fetchOpenOrders();
+//    }
+
+    private Disposable startOrderListener(String orderId) {
+        return exchange.getStreamingTradingService()
+                //TODO use different method like getOrderObservable
+                .getOpenOrdersObservable("btc_usd", orderId)
+                .doOnError(throwable -> logger.error("onOrder onError", throwable))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.computation())
+                .subscribe(updatedOrder -> {
+                    logger.debug("Order update: " + updatedOrder.toString());
+                    this.openOrders = this.openOrders.stream()
+                            .flatMap(existingInMemory -> {
+                                // merge if the update of an existingInMemory
+                                LimitOrder order = existingInMemory;
+                                final Optional<LimitOrder> optionalMatch = updatedOrder.getOpenOrders().stream()
+                                        .filter(existing -> existingInMemory.getId().equals(existing.getId()))
+                                        .findFirst();
+                                if (optionalMatch.isPresent()) {
+                                    final LimitOrder existing = optionalMatch.get();
+                                    order = new LimitOrder(
+                                            existing.getType(),
+                                            existingInMemory.getTradableAmount() != null ? existingInMemory.getTradableAmount() : existing.getTradableAmount(),
+                                            existing.getCurrencyPair(),
+                                            existing.getId(),
+                                            existingInMemory.getTimestamp(),
+                                            existingInMemory.getLimitPrice() != null ? existingInMemory.getLimitPrice() : existing.getLimitPrice()
+                                    );
+                                }
+                                final List<LimitOrder> optionalOrder = new ArrayList<>();
+                                if (order.getStatus() != Order.OrderStatus.CANCELED
+                                        && order.getStatus() != Order.OrderStatus.EXPIRED
+                                        && order.getStatus() != Order.OrderStatus.FILLED
+                                        && order.getStatus() != Order.OrderStatus.REJECTED
+                                        && order.getStatus() != Order.OrderStatus.REPLACED
+                                        && order.getStatus() != Order.OrderStatus.STOPPED) {
+                                    optionalOrder.add(order);
+                                } else {
+                                    orderSubscriptions.computeIfPresent(orderId, (s, disposable) -> {
+                                        disposable.dispose();
+                                        return disposable;
+                                    });
+                                    orderSubscriptions.remove(orderId);
+                                }
+                                return optionalOrder.stream();
+                            }).collect(Collectors.toList());
+
+                }, throwable -> {
+                    logger.error("OO.Exception: ", throwable);
+                });
+    }
+
+    private Disposable startTradesListener() {
+        return exchange.getStreamingMarketDataService()
+                .getTrades(CurrencyPair.BTC_USD, 20)
+                .retryWhen(throwables -> throwables.delay(1, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.computation())
+                .subscribe(trades -> {
+                    logger.info("Trades: " + trades.toString());
+                    if (this.openOrders == null) {
+                        this.openOrders = new ArrayList<>();
+                    }
+                }, throwable -> logger.error("Trades.Exception: ", throwable));
     }
 
     public OrderBook fetchOrderBook() {
@@ -310,9 +386,13 @@ public class OkCoinService extends MarketService {
                         orderId,
                         diffWithSignal);
 
-//            openOrders.add(new LimitOrder(limitOrder.getType(), tradeableAmount, limitOrder.getCurrencyPair(),
-//                    orderId, new Date(), limitOrder.getLimitPrice(), null, null,
-//                    limitOrder.getStatus()));
+                final Disposable orderListener = startOrderListener(orderId);
+                orderSubscriptions.put(orderId, orderListener);
+                openOrders.add(new LimitOrder(limitOrder.getType(), tradeableAmount, limitOrder.getCurrencyPair(),
+                        orderId, new Date(), limitOrder.getLimitPrice(), null, null,
+                        limitOrder.getStatus()));
+                isMovingInProgress = false;
+
                 if (!fromGui) {
                     arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
                 }
@@ -433,7 +513,6 @@ public class OkCoinService extends MarketService {
 //                    limitOrder.getId(),
 //                    attemptCount);
 //            tradeLogger.info(logString);
-            isMovingInProgress = false;
             response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, "");
         } else {
             isMovingInProgress = false;

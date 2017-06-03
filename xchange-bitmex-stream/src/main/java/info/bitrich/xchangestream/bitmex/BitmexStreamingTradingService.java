@@ -20,7 +20,7 @@ public class BitmexStreamingTradingService implements StreamingTradingService {
     }
 
     @Override
-    public Observable<OpenOrders> getOpenOrdersObservable() {
+    public Observable<OpenOrders> getOpenOrdersObservable(Object... args) {
         return service.subscribeChannel("order", "order")
                 .map(BitmexAdapters::adaptOpenOrdersUpdate);
     }

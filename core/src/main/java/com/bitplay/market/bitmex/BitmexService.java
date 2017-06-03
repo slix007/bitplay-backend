@@ -215,7 +215,8 @@ public class BitmexService extends MarketService {
 //        }).subscribe();
     }
 
-    private void doDisconnect() {
+    @PreDestroy
+    private void doDestoy() {
         exchange.disconnect();
         orderBookSubscription.dispose();
         accountInfoSubscription.dispose();
@@ -273,6 +274,7 @@ public class BitmexService extends MarketService {
     private void startOpenOrderListener() {
         openOrdersSubscription = exchange.getStreamingTradingService()
                 .getOpenOrdersObservable()
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.computation())
                 .subscribe(updateOfOpenOrders -> {
                     logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
@@ -302,8 +304,6 @@ public class BitmexService extends MarketService {
 
                 }, throwable -> {
                     logger.error("OO.Exception: ", throwable);
-                    // Restart the listener
-                    startOpenOrderListener();
                 });
     }
 

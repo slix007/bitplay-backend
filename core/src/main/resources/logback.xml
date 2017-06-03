@@ -197,6 +197,8 @@
     <!-- Logging api requests for poloniex -->
     <!--<logger name="si.mazi.rescu" level="trace"/>-->
 
-    <!--<logger name="info.bitrich.xchangestream.bitmex.netty" level="debug"/>-->
+    <!--<logger name="info.bitrich.xchangestream.bitmex.netty" level="debug">-->
+        <!--<appender-ref ref="CONSOLE_APPENDER"/>-->
+    <!--</logger>-->
 
 </configuration>

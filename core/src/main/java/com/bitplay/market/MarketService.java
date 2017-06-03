@@ -179,7 +179,6 @@ public abstract class MarketService {
             } catch (Exception e) {
                 e.printStackTrace();
                 isNeedToDelete = true;
-                isMovingInProgress = false;
             }
 
             if (isNeedToDelete) {
