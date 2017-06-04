@@ -47,7 +47,7 @@ public abstract class MarketService {
     protected MarketState marketState = MarketState.IDLE;
     protected boolean isMovingInProgress = false;
 
-    private final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
+    protected final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
 
     public abstract void initializeMarket(String key, String secret);
@@ -167,12 +167,14 @@ public abstract class MarketService {
     protected void iterateOpenOrdersMove() {
         boolean haveToFetch = false;
         try {
-            for (LimitOrder openOrder : openOrders) {
-                if (openOrder.getType() != null) {
-                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
-                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                            || response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.NEED_TO_DELETE)) {
-                        haveToFetch = true;
+            synchronized (openOrders) {
+                for (LimitOrder openOrder : openOrders) {
+                    if (openOrder.getType() != null) {
+                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
+                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                                || response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.NEED_TO_DELETE)) {
+                            haveToFetch = true;
+                        }
                     }
                 }
             }
