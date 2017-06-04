@@ -144,11 +144,11 @@ public class ArbitrageService {
 
         theCheckBusyTimer = Completable.timer(5, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
-                    if (firstMarketService.isArbitrageInProgress() && secondMarketService.isArbitrageInProgress()) {
+                    if (firstMarketService.isArbitrageInProgress() || secondMarketService.isArbitrageInProgress()) {
                         deltasLogger.warn(String.format("Warning: busy by isArbitrageInProgress for 5 min. first:%s, second:%s",
                                 firstMarketService.isArbitrageInProgress(), secondMarketService.isArbitrageInProgress()));
-                    } else if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
-                        deltasLogger.warn(String.format("Warning: busy by isReadyForArbitrage for 5 min. first:%s, second:%s",
+                    } else if (!firstMarketService.isReadyForArbitrage() || !secondMarketService.isReadyForArbitrage()) {
+                        deltasLogger.warn(String.format("Warning: busy by not isReadyForArbitrage for 5 min. first:%s, second:%s",
                                 firstMarketService.isReadyForArbitrage(), secondMarketService.isReadyForArbitrage()));
                     }
                 })
