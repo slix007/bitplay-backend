@@ -45,6 +45,7 @@ public abstract class MarketService {
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
     protected MarketState marketState = MarketState.IDLE;
+    protected boolean isMovingInProgress = false;
 
     private final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
@@ -76,7 +77,7 @@ public abstract class MarketService {
     }
 
     public boolean isReadyForArbitrage() {
-        return (openOrders.size() == 0);
+        return (openOrders.size() == 0 && !isMovingInProgress);
     }
 
     /**

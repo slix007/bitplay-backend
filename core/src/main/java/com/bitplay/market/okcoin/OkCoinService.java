@@ -44,6 +44,7 @@ import javax.annotation.PreDestroy;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import rx.Completable;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
@@ -213,9 +214,12 @@ public class OkCoinService extends MarketService {
         return accountInfo;
     }
 
-    @Scheduled(fixedRate = 2000)
-    public void fetchOpenOrdersSchedule() {
-        this.fetchOpenOrders();
+//    @Scheduled(fixedRate = 2000)
+    public void fetchOpenOrdersWithDelay() {
+        Completable.timer(1000, TimeUnit.MILLISECONDS)
+                .doOnCompleted(this::fetchOpenOrders)
+                .subscribe();
+//        this.fetchOpenOrders();
     }
 /*
     private Disposable startOrderListener(String orderId) {
@@ -391,6 +395,8 @@ public class OkCoinService extends MarketService {
                 openOrders.add(new LimitOrder(limitOrder.getType(), tradeableAmount, limitOrder.getCurrencyPair(),
                         orderId, new Date(), limitOrder.getLimitPrice(), null, null,
                         limitOrder.getStatus()));
+                isMovingInProgress = false;
+                fetchOpenOrdersWithDelay();
 
                 if (!fromGui) {
                     arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
@@ -481,6 +487,7 @@ public class OkCoinService extends MarketService {
         }
 
         if (cancelledSuccessfully) {
+//            isMovingInProgress = true;
             tradeLogger.info("Cancelled {} amount={},quote={},id={},attempt={}",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
@@ -521,7 +528,7 @@ public class OkCoinService extends MarketService {
                     lastException != null ? lastException.getMessage() : null);
             tradeLogger.info(logString);
 
-            fetchOpenOrders();
+            fetchOpenOrdersWithDelay();
 
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }
