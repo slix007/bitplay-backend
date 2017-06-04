@@ -30,8 +30,6 @@ import java.util.concurrent.TimeUnit;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.subjects.PublishSubject;
-import io.reactivex.subjects.Subject;
 
 /**
  * Created by Sergey Shurmin on 4/16/17.
@@ -44,13 +42,9 @@ public abstract class MarketService {
     protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected AccountInfo accountInfo = null;
 
-    protected Subject<BigDecimal> bestAskChangedSubject = PublishSubject.create();
-    protected Subject<BigDecimal> bestBidChangedSubject = PublishSubject.create();
-    protected Subject<OrderBook> orderBookChangedSubject = PublishSubject.create();
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
     protected MarketState marketState = MarketState.IDLE;
-    protected boolean isMovingInProgress = false;
 
     private final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
@@ -82,7 +76,7 @@ public abstract class MarketService {
     }
 
     public boolean isReadyForArbitrage() {
-        return (openOrders.size() == 0 && !isMovingInProgress);
+        return (openOrders.size() == 0);
     }
 
     /**
@@ -170,24 +164,31 @@ public abstract class MarketService {
     }
 
     protected void iterateOpenOrdersMove() {
-        //TODO poloniex can be changed for half price. So then only 2 step of changing
-        openOrders.removeIf(openOrder -> {
-            boolean isNeedToDelete;
-            try {
-                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
-                isNeedToDelete = response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.ALREADY_CLOSED);
-            } catch (Exception e) {
-                e.printStackTrace();
-                isNeedToDelete = true;
+        boolean haveToFetch = false;
+        try {
+            for (LimitOrder openOrder : openOrders) {
+                if (openOrder.getType() != null) {
+                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
+                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                            || response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.NEED_TO_DELETE)) {
+                        haveToFetch = true;
+                    }
+                }
             }
+        } catch (Exception e) {
+            logger.error("On moving", e);
+            haveToFetch = true;
+        }
 
-            if (isNeedToDelete) {
-                CompletableFuture.runAsync(this::fetchOpenOrders);
-            }
-
-            return isNeedToDelete;
-        });
+        if (haveToFetch) {
+            CompletableFuture.runAsync(this::fetchOpenOrders)
+                    .exceptionally(throwable -> {
+                        logger.error("On fetch openOrders", throwable);
+                        return null;
+                    });
+        }
     }
+
 /*
     protected void initOrderBookSubscribers(Logger logger) {
         orderBookChangedSubject.subscribe(orderBook -> {

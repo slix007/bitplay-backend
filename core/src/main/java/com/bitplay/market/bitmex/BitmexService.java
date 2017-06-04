@@ -274,6 +274,7 @@ public class BitmexService extends MarketService {
     private void startOpenOrderListener() {
         openOrdersSubscription = exchange.getStreamingTradingService()
                 .getOpenOrdersObservable()
+                .doOnError(throwable -> logger.error("onOpenOrdersListening", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.computation())
                 .subscribe(updateOfOpenOrders -> {

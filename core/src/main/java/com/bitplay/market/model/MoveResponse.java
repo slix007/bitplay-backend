@@ -13,7 +13,8 @@ public class MoveResponse {
         ALREADY_CLOSED,
         MOVED,
         EXCEPTION,
-        WAITING_TIMEOUT
+        WAITING_TIMEOUT,
+        NEED_TO_DELETE
     }
 
     public MoveResponse(MoveOrderStatus moveOrderStatus, String description) {

@@ -36,10 +36,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 
@@ -100,8 +98,7 @@ public class OkCoinService extends MarketService {
 
         subscribeOnOthers();
 
-        // it works but we don't need it
-//        startTradesListener();
+        startTradesListener(); // to remove openOrders
     }
 
     private void createOrderBookObservable() {
@@ -163,11 +160,11 @@ public class OkCoinService extends MarketService {
                     logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
                     this.orderBook = orderBook;
 
-//                    orderBookChangedSubject.onNext(orderBook);
-
-                    CompletableFuture.runAsync(() -> {
-                        checkOpenOrdersForMoving();
-                    });
+                    CompletableFuture.runAsync(this::checkOpenOrdersForMoving)
+                            .exceptionally(throwable -> {
+                                logger.error("OnCheckOpenOrders", throwable);
+                                return null;
+                            });
 
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
@@ -274,6 +271,7 @@ public class OkCoinService extends MarketService {
     private Disposable startTradesListener() {
         return exchange.getStreamingMarketDataService()
                 .getTrades(CurrencyPair.BTC_USD, 20)
+                .doOnError(throwable -> logger.error("onTrades", throwable))
                 .retryWhen(throwables -> throwables.delay(1, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.computation())
                 .subscribe(trades -> {
@@ -281,6 +279,8 @@ public class OkCoinService extends MarketService {
                     if (this.openOrders == null) {
                         this.openOrders = new ArrayList<>();
                     }
+                    this.openOrders.removeIf(limitOrder ->
+                            trades.getId().equals(limitOrder.getId()));
                 }, throwable -> logger.error("Trades.Exception: ", throwable));
     }
 
@@ -305,11 +305,11 @@ public class OkCoinService extends MarketService {
     }
 
     public String placeTakerOrder(Order.OrderType orderType, BigDecimal amount) {
-        String orderId = null;
+        String orderId;
         try {
             final TradeService tradeService = exchange.getTradeService();
-            BigDecimal tradingDigit = null;
-            BigDecimal theBestPrice = BigDecimal.ZERO;
+            BigDecimal tradingDigit;
+            BigDecimal theBestPrice;
 
             if (orderType.equals(Order.OrderType.BID)) {
                 // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
@@ -391,7 +391,6 @@ public class OkCoinService extends MarketService {
                 openOrders.add(new LimitOrder(limitOrder.getType(), tradeableAmount, limitOrder.getCurrencyPair(),
                         orderId, new Date(), limitOrder.getLimitPrice(), null, null,
                         limitOrder.getStatus()));
-                isMovingInProgress = false;
 
                 if (!fromGui) {
                     arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
@@ -464,7 +463,6 @@ public class OkCoinService extends MarketService {
         final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
         MoveResponse response;
         BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
-        isMovingInProgress = true;
 
         int attemptCount = 0;
         Exception lastException = null;
@@ -483,7 +481,6 @@ public class OkCoinService extends MarketService {
         }
 
         if (cancelledSuccessfully) {
-            openOrders.remove(limitOrder);
             tradeLogger.info("Cancelled {} amount={},quote={},id={},attempt={}",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
@@ -513,7 +510,7 @@ public class OkCoinService extends MarketService {
 //                    limitOrder.getId(),
 //                    attemptCount);
 //            tradeLogger.info(logString);
-            response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, "");
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.NEED_TO_DELETE, "");
         } else {
             final String logString = String.format("Cancel failed %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
@@ -525,7 +522,6 @@ public class OkCoinService extends MarketService {
             tradeLogger.info(logString);
 
             fetchOpenOrders();
-            isMovingInProgress = false;
 
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }

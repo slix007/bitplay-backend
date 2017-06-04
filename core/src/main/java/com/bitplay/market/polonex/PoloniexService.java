@@ -308,9 +308,11 @@ public class PoloniexService extends MarketService {
 
 //            orderBookChangedSubject.onNext(orderBook);
 
-            CompletableFuture.runAsync(() -> {
-                checkOpenOrdersForMoving();
-            });
+            CompletableFuture.runAsync(this::checkOpenOrdersForMoving)
+                    .exceptionally(throwable -> {
+                        logger.error("OnCheckOpenOrders", throwable);
+                        return null;
+                    });
 
         } catch (IOException e) {
             logger.error("Can not fetchOrderBook", e);
