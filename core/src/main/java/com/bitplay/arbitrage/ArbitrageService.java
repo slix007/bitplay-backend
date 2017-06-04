@@ -93,6 +93,7 @@ public class ArbitrageService {
 
     private Boolean isReadyForTheArbitrage = true;
     private Disposable theTimer;
+    private Disposable theCheckBusyTimer;
 
     private FlagOpenOrder flagOpenOrder = new FlagOpenOrder();
     private OpenPrices openPrices = new OpenPrices();
@@ -131,6 +132,28 @@ public class ArbitrageService {
         }
         theTimer = Completable.timer(5, TimeUnit.SECONDS)
                 .doOnComplete(() -> isReadyForTheArbitrage = true)
+                .subscribe();
+        setBusyStackChecker();
+    }
+
+    private void setBusyStackChecker() {
+
+        if (theCheckBusyTimer != null) {
+            theCheckBusyTimer.dispose();
+        }
+
+        theCheckBusyTimer = Completable.timer(5, TimeUnit.MINUTES, Schedulers.computation())
+                .doOnComplete(() -> {
+                    if (firstMarketService.isArbitrageInProgress() && secondMarketService.isArbitrageInProgress()) {
+                        deltasLogger.warn(String.format("Warning: busy by isArbitrageInProgress for 5 min. first:%s, second:%s",
+                                firstMarketService.isArbitrageInProgress(), secondMarketService.isArbitrageInProgress()));
+                    } else if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
+                        deltasLogger.warn(String.format("Warning: busy by isReadyForArbitrage for 5 min. first:%s, second:%s",
+                                firstMarketService.isReadyForArbitrage(), secondMarketService.isReadyForArbitrage()));
+                    }
+                })
+                .repeat()
+                .retry()
                 .subscribe();
     }
 

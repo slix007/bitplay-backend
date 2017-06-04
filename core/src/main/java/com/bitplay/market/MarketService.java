@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
@@ -58,6 +57,8 @@ public abstract class MarketService {
 
     public abstract OrderBook getOrderBook();
 
+    public abstract Logger getTradeLogger();
+
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable = false;
         if (accountInfo != null && accountInfo.getWallet() != null) {
@@ -80,6 +81,10 @@ public abstract class MarketService {
 
     public boolean isReadyForArbitrage() {
         return (openOrders.size() == 0 && !isMovingInProgress && !arbitrageInProgress);
+    }
+
+    public boolean isArbitrageInProgress() {
+        return arbitrageInProgress;
     }
 
     public synchronized void setArbitrageInProgress(boolean arbitrageInProgress) {
@@ -149,8 +154,13 @@ public abstract class MarketService {
             throw new IllegalStateException("GetOpenOrdersError", lastException);
         } else {
             if (orderIdToSignalInfo.size() > 100000) {
-                orderIdToSignalInfo.clear();
                 logger.warn("orderIdToSignalInfo over 100000");
+                final Map<String, BestQuotes> newMap = new HashMap<>();
+                openOrders.stream()
+                        .map(LimitOrder::getId)
+                        .filter(id -> orderIdToSignalInfo.containsKey(id))
+                        .forEach(id -> newMap.put(id, orderIdToSignalInfo.get(id)));
+                orderIdToSignalInfo = newMap;
             }
 
 //            orderIdToSignalInfo.entrySet()
@@ -159,6 +169,10 @@ public abstract class MarketService {
 //            logger.info(String.format("OpenOrders.size=%s, bestQuotesSize=%s",
 //                    openOrders.size(),
 //                    orderIdToSignalInfo.size()));
+        }
+
+        if (openOrders.size() > 1) {
+            getTradeLogger().warn("Warning: openOrders count " + openOrders.size());
         }
 
         return openOrders;

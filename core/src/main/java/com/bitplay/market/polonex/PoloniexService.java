@@ -100,6 +100,11 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
+    public Logger getTradeLogger() {
+        return tradeLogger;
+    }
+
+    @Override
     protected Exchange getExchange() {
         return exchange;
     }

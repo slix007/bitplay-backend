@@ -174,6 +174,11 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
+    public Logger getTradeLogger() {
+        return tradeLogger;
+    }
+
+    @Override
     public Observable<OrderBook> getOrderBookObservable() {
         return orderBookObservable;
     }
@@ -375,7 +380,10 @@ public class OkCoinService extends MarketService {
 
             BigDecimal tradeableAmount = adjustAmount(amount);
             if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
+
                 tradeResponse.setErrorMessage("Not enough amount left");
+                fetchOpenOrdersWithDelay();
+
             } else {
                 final LimitOrder limitOrder = new LimitOrder(orderType,
                         tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(),
@@ -407,7 +415,7 @@ public class OkCoinService extends MarketService {
 //                final LimitOrder limitOrderWithId = new LimitOrder(orderType,
 //                        tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(),
 //                        thePrice);
-//                openOrders.add(limitOrderWithId); - java.util.ConcurrentModificationException with checkOpenOrdersForMoving
+//                openOrders.add(limitOrderWithId); - java.util.ConcurrentModificationException with checkOpenOrdersForMoving()
                 fetchOpenOrdersWithDelay();
 
                 if (!fromGui) {
@@ -421,6 +429,7 @@ public class OkCoinService extends MarketService {
             tradeLogger.info("maker error {}", e.toString());
             tradeResponse.setOrderId(e.getMessage());
             tradeResponse.setErrorMessage(e.getMessage());
+            fetchOpenOrdersWithDelay();
         }
         return tradeResponse;
     }
@@ -515,19 +524,6 @@ public class OkCoinService extends MarketService {
                 }
             }
 
-//            String diffWithSignal = "";
-//            if (bestQuotes != null) {
-//                diffWithSignal = limitOrder.getType().equals(Order.OrderType.BID)
-//                        ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", bestQuotes.getAsk1_o().subtract(thePrice).toPlainString()) //"BUY"
-//                        : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s",thePrice.subtract(bestQuotes.getBid1_o()).toPlainString()); //"SELL"
-//            }
-//            final String logString = String.format("Moving finished %s amount=%s,oldQuote=%s,id=%s,attempt=%s",
-//                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-//                    limitOrder.getTradableAmount(),
-//                    limitOrder.getLimitPrice(),
-//                    limitOrder.getId(),
-//                    attemptCount);
-//            tradeLogger.info(logString);
             response = new MoveResponse(MoveResponse.MoveOrderStatus.NEED_TO_DELETE, "");
         } else {
             final String logString = String.format("Cancel failed %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
