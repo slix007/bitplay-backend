@@ -132,6 +132,9 @@ public class ArbitrageService {
         }
         theTimer = Completable.timer(5, TimeUnit.SECONDS)
                 .doOnComplete(() -> isReadyForTheArbitrage = true)
+                .doOnError(throwable -> logger.error("onError timer", throwable))
+                .repeat()
+                .retry()
                 .subscribe();
         setBusyStackChecker();
     }
@@ -245,7 +248,7 @@ public class ArbitrageService {
                     writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
 
                     lastDelta = DELTA1;//obsolete. it's just info now
-//                    firstMarketService.setArbitrageInProgress(true);
+                    firstMarketService.setArbitrageInProgress(true);
                     secondMarketService.setArbitrageInProgress(true);
 
                     firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes, false);
@@ -266,7 +269,7 @@ public class ArbitrageService {
                     writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
 
                     lastDelta = DELTA2;
-//                    firstMarketService.setArbitrageInProgress(true);
+                    firstMarketService.setArbitrageInProgress(true);
                     secondMarketService.setArbitrageInProgress(true);
 
                     firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes, false);
