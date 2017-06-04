@@ -12,6 +12,7 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.service.trade.TradeService;
+import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -29,6 +30,11 @@ public class QuoineService extends MarketService {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Override
+    public Logger getTradeLogger() {
+        return null;
     }
 
     @Override
