@@ -218,9 +218,12 @@ public class ArbitrageService {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
                 if (checkBalance(DELTA1, amount) //) {
                         && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
-                    lastDelta = DELTA1;
 
                     writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
+
+                    lastDelta = DELTA1;//obsolete. it's just info now
+                    firstMarketService.setArbitrageInProgress(true);
+                    secondMarketService.setArbitrageInProgress(true);
 
                     firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes, false);
                     secondMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes, false);
@@ -236,9 +239,12 @@ public class ArbitrageService {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
                 if (checkBalance(DELTA2, amount) //) {
                         && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
-                    lastDelta = DELTA2;
 
                     writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
+
+                    lastDelta = DELTA2;
+                    firstMarketService.setArbitrageInProgress(true);
+                    secondMarketService.setArbitrageInProgress(true);
 
                     firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes, false);
                     secondMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes, false);

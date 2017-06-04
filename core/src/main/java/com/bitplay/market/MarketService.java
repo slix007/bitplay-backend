@@ -45,6 +45,8 @@ public abstract class MarketService {
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
     protected MarketState marketState = MarketState.IDLE;
+    protected boolean arbitrageInProgress = false;
+//    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
     protected boolean isMovingInProgress = false;
 
     protected final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
@@ -77,7 +79,11 @@ public abstract class MarketService {
     }
 
     public boolean isReadyForArbitrage() {
-        return (openOrders.size() == 0 && !isMovingInProgress);
+        return (openOrders.size() == 0 && !isMovingInProgress && !arbitrageInProgress);
+    }
+
+    public synchronized void setArbitrageInProgress(boolean arbitrageInProgress) {
+        this.arbitrageInProgress = arbitrageInProgress;
     }
 
     /**
@@ -158,7 +164,8 @@ public abstract class MarketService {
         return openOrders;
     }
 
-    protected void checkOpenOrdersForMoving() {
+    protected synchronized void checkOpenOrdersForMoving() {
+        debugLog.info(getName() + ":checkOpenOrdersForMoving");
         if (isReadyForMoving && marketState != MarketState.STOP_MOVING) {
             iterateOpenOrdersMove();
         }
@@ -184,11 +191,12 @@ public abstract class MarketService {
         }
 
         if (haveToFetch) {
-            CompletableFuture.runAsync(this::fetchOpenOrders)
-                    .exceptionally(throwable -> {
-                        logger.error("On fetch openOrders", throwable);
-                        return null;
-                    });
+            fetchOpenOrders();
+//            CompletableFuture.runAsync(this::fetchOpenOrders)
+//                    .exceptionally(throwable -> {
+//                        logger.error("On fetch openOrders", throwable);
+//                        return null;
+//                    });
         }
     }
 

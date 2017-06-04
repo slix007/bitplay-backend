@@ -6,7 +6,6 @@ package com.bitplay.market;
 public enum MarketState {
 
     IDLE,
-    ORDER_IN_PROGRESS,
     STOP_MOVING
 
 }

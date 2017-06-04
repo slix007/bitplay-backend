@@ -154,6 +154,7 @@ public class BitmexService extends MarketService {
 
         if (haveToClear) {
             openOrders = new ArrayList<>();
+            arbitrageInProgress = false;
         }
     }
 
@@ -301,6 +302,9 @@ public class BitmexService extends MarketService {
                             }).collect(Collectors.toList());
                     if (this.openOrders == null) {
                         this.openOrders = new ArrayList<>();
+                    }
+                    if (openOrders.size() == 0) {
+                        arbitrageInProgress = false;
                     }
 
                 }, throwable -> {

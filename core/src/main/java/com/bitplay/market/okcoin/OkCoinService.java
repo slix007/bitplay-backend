@@ -217,12 +217,16 @@ public class OkCoinService extends MarketService {
     }
 
 //    @Scheduled(fixedRate = 2000)
+    //TODO use subscribing on open orders
     public void fetchOpenOrdersWithDelay() {
         isMovingInProgress = true;
         Completable.timer(2000, TimeUnit.MILLISECONDS)
                 .doOnCompleted(() -> {
                     fetchOpenOrders(); // Synchronous
                     isMovingInProgress = false;
+                    if (openOrders.size() == 0) {
+                        arbitrageInProgress = false;
+                    }
                 })
                 .subscribe();
 //        this.fetchOpenOrders();
@@ -536,6 +540,11 @@ public class OkCoinService extends MarketService {
             tradeLogger.info(logString);
 
             fetchOpenOrdersWithDelay();
+            // TODO use orderInfoSubscription to make sure that we're done
+
+            if (lastException == null) { // For now we assume that order is filled when no Exceptions
+                arbitrageInProgress = false;
+            }
 
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }
