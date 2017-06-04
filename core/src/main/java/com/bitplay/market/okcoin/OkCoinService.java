@@ -224,11 +224,9 @@ public class OkCoinService extends MarketService {
 //    @Scheduled(fixedRate = 2000)
     //TODO use subscribing on open orders
     public void fetchOpenOrdersWithDelay() {
-        isMovingInProgress = true;
         Completable.timer(2000, TimeUnit.MILLISECONDS)
                 .doOnCompleted(() -> {
                     fetchOpenOrders(); // Synchronous
-                    isMovingInProgress = false;
                     if (openOrders.size() == 0) {
                         arbitrageInProgress = false;
                     }

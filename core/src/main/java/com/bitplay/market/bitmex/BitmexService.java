@@ -239,6 +239,7 @@ public class BitmexService extends MarketService {
                     //workaround
                     if (openOrders == null) {
                         openOrders = new ArrayList<>();
+                        arbitrageInProgress = false;
                     }
 
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);

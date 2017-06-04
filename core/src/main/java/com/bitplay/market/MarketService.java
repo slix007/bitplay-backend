@@ -46,7 +46,6 @@ public abstract class MarketService {
     protected MarketState marketState = MarketState.IDLE;
     protected boolean arbitrageInProgress = false;
 //    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
-    protected boolean isMovingInProgress = false;
 
     protected final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
@@ -80,7 +79,7 @@ public abstract class MarketService {
     }
 
     public boolean isReadyForArbitrage() {
-        return (openOrders.size() == 0 && !isMovingInProgress && !arbitrageInProgress);
+        return (openOrders.size() == 0 && !arbitrageInProgress);
     }
 
     public boolean isArbitrageInProgress() {
