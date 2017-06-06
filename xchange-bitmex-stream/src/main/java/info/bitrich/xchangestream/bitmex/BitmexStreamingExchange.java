@@ -49,7 +49,7 @@ public class BitmexStreamingExchange extends BitmexExchange implements Streaming
     }
 
     public Completable authenticate() {
-        return streamingService.sendAuthenticateMessage(
+        return streamingService.authenticate(
                 exchangeSpecification.getApiKey(),
                 exchangeSpecification.getSecretKey(),
                 getNonceFactory().createValue()

@@ -19,10 +19,7 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import javax.xml.bind.DatatypeConverter;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
 import io.reactivex.Observable;
@@ -95,7 +92,31 @@ public class StreamingServiceBitmex {
     }
 
     public Completable onDisconnect() {
-        return Completable.never(); //TODO
+        return Completable.create(completable ->
+                Observable.interval(1, 1, TimeUnit.MINUTES)
+                        .subscribe(aLong -> {
+
+                            final boolean pongSuccessfully = Completable.create(e -> {
+                                msgHandler.setPingCompleteEmitter(e);
+
+                                if (!clientEndPoint.isOpen()) {
+                                    completable.onComplete();
+                                } else {
+                                    log.debug("Send: ping");
+                                    clientEndPoint.sendMessage("ping");
+                                }
+
+                            }).blockingAwait(1000, TimeUnit.MILLISECONDS);
+
+                            if (!pongSuccessfully) {
+                                completable.onComplete();
+                                log.error("ping failed");
+                            }
+
+                        }, throwable -> {
+                            log.error("ping failed", throwable);
+                            completable.onComplete();
+                        }));
     }
 
     public Completable disconnect() {
@@ -110,7 +131,7 @@ public class StreamingServiceBitmex {
     }
 
 
-    public Completable sendAuthenticateMessage(String apiKey, String secretKey, Long nonce) {
+    public Completable authenticate(String apiKey, String secretKey, Long nonce) {
         return Completable.create(completableEmitter -> {
             msgHandler.setAuthCompleteEmitter(completableEmitter);
 

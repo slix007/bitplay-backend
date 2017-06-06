@@ -26,6 +26,7 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     private Map<String, ObservableEmitter<JsonNode>> channels = new ConcurrentHashMap<>();
     private boolean isAuthenticated = false;
     private CompletableEmitter authCompleteEmitter;
+    private CompletableEmitter pingCompleteEmitter;
 
     @Override
     public void handleMessage(String message) {
@@ -43,32 +44,42 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     }
 
     private void parseAndProcessJsonMessage(String message) {
-//        log.info("Received message: {}", message);
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode;
-
-        // Parse incoming message to JSON
-        try {
-            jsonNode = objectMapper.readTree(message);
-        } catch (IOException e) {
-            if (!message.equals("pong")) {
-                log.error("Error parsing incoming message to JSON: {}", message);
-            }
-            return;
-        }
-
-        // In case of array - handle every message separately.
-        if (jsonNode.getNodeType().equals(JsonNodeType.ARRAY)) {
-            for (JsonNode node : jsonNode) {
-                handleJsonMessage(node);
+        if (message.equals("pong")) {
+            log.debug("Received message: " + message);
+            if (pingCompleteEmitter != null && !pingCompleteEmitter.isDisposed()) {
+                pingCompleteEmitter.onComplete();
             }
         } else {
-            handleJsonMessage(jsonNode);
+            log.debug("Received message: " + message);
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode;
+
+            // Parse incoming message to JSON
+            try {
+                jsonNode = objectMapper.readTree(message);
+            } catch (IOException e) {
+                log.error("Error parsing incoming message to JSON: {}", message);
+                return;
+            }
+
+            // In case of array - handle every message separately.
+            if (jsonNode.getNodeType().equals(JsonNodeType.ARRAY)) {
+                for (JsonNode node : jsonNode) {
+                    handleJsonMessage(node);
+                }
+            } else {
+                handleJsonMessage(jsonNode);
+            }
         }
     }
 
     private void handleJsonMessage(JsonNode jsonMessage) {
+        if (!authCompleteEmitter.isDisposed()) {
+            checkIfAuthenticationResponse(jsonMessage);
+        }
+
         String channel = parseChannelNameFromMessage(jsonMessage);
+
         if (channel != null) {
             handleChannelMessage(channel, jsonMessage);
         }
@@ -78,7 +89,6 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
         String channelName = null;
         if (message.get("success") != null) {
             log.debug("Success response: " + message.toString());
-            checkIfAuthenticationResponse(message);
         } else if (message.get("info") != null) {
             log.debug("Connect response: " + message.toString());
         } else if (message.get("error") != null) {
@@ -119,8 +129,11 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
         emitter.onNext(message);
     }
 
-
     public void setAuthCompleteEmitter(CompletableEmitter authCompleteEmitter) {
         this.authCompleteEmitter = authCompleteEmitter;
+    }
+
+    public void setPingCompleteEmitter(CompletableEmitter pingCompleteEmitter) {
+        this.pingCompleteEmitter = pingCompleteEmitter;
     }
 }

@@ -104,6 +104,11 @@ public class BitmexService extends MarketService {
 
         initWebSocketConnection();
 
+        startAllListeners();
+    }
+
+    private void startAllListeners() {
+
         startOrderBookListener();
 
         Completable.timer(1000, TimeUnit.MILLISECONDS)
@@ -135,7 +140,7 @@ public class BitmexService extends MarketService {
 
     private void startOpenOrderMovingListener() {
         orderBookObservable
-                .subscribeOn(Schedulers.computation())
+                .subscribeOn(Schedulers.io())
                 .subscribe(orderBook1 -> {
                     checkOpenOrdersForMoving();
                 }, throwable -> {
@@ -209,16 +214,21 @@ public class BitmexService extends MarketService {
 
     private void initWebSocketConnection() {
         // Connect to the Exchange WebSocket API. Blocking wait for the connection.
-        exchange.connect().blockingAwait();
+        exchange.connect()
+                .retryWhen(throwableFlowable -> throwableFlowable.delay(10, TimeUnit.SECONDS))
+                .doOnError(throwable -> logger.error("connection error", throwable))
+                .blockingAwait();
 
         exchange.authenticate().blockingAwait();
 
-        // Retry on disconnect. (It's disconneced each 5 min)
-//        exchange.onDisconnect().doOnComplete(() -> {
-//            logger.warn("onClientDisconnect BitmexService");
-//            doDisconnect();
-//            initWebSocketAndAllSubscribers();
-//        }).subscribe();
+        // Retry on disconnect.
+        exchange.onDisconnect().subscribe(() -> {
+                    logger.warn("onClientDisconnect BitmexService");
+                    doDestoy();
+                    initWebSocketConnection();
+                    startAllListeners();
+                },
+                throwable -> logger.error("onClientDisconnect BitmexService error", throwable));
     }
 
     @PreDestroy
@@ -576,7 +586,8 @@ public class BitmexService extends MarketService {
 
     private void startPositionListener() {
         Observable<AccountInfo> positionObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
-                .getPositionObservable();
+                .getPositionObservable()
+                .doOnError(throwable -> logger.error("Position fetch error", throwable));
 
         positionSubscription = positionObservable
                 .subscribeOn(Schedulers.io())
