@@ -229,9 +229,9 @@ public class OkCoinService extends MarketService {
                 .doOnError(throwable -> logger.error("onError fetchOOWithDelay", throwable))
                 .doOnCompleted(() -> {
                     fetchOpenOrders(); // Synchronous
-                    if (openOrders.size() == 0) {
-                        eventBus.send(BtsEvent.MARKET_FREE);
-                    }
+//                    if (openOrders.size() == 0) {
+//                        eventBus.send(BtsEvent.MARKET_FREE);
+//                    }
                 })
                 .retry(3)
                 .subscribe();
@@ -541,6 +541,8 @@ public class OkCoinService extends MarketService {
 
             if (lastException == null) { // For now we assume that order is filled when no Exceptions
                 eventBus.send(BtsEvent.MARKET_FREE);
+                openOrders.removeIf(o -> o.getId().equals(limitOrder.getId()));
+                orderIdToSignalInfo.remove(limitOrder.getId());
             }
 
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
