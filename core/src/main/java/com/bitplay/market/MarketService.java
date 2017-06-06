@@ -79,7 +79,16 @@ public abstract class MarketService {
     }
 
     public boolean isReadyForArbitrage() {
-        return (openOrders.size() == 0 && !arbitrageInProgress);
+        final long openOrdersCount = openOrders.stream()
+                .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0) // filter as for gui
+                .count();
+        if (openOrders.size() != openOrdersCount) {
+            logger.warn("OO with zero price: " + openOrders.stream()
+                    .map(LimitOrder::toString)
+                    .reduce((s, s2) -> s + "; " + s2));
+        }
+
+        return (openOrdersCount == 0 && !arbitrageInProgress);
     }
 
     public boolean isArbitrageInProgress() {
@@ -303,7 +312,6 @@ public abstract class MarketService {
     protected abstract BigDecimal getMakerDelta();
 
     protected BigDecimal createBestMakerPrice(Order.OrderType orderType, boolean forceUsingStep) {
-//        final BigDecimal thePrice = createBetterPrice(orderType, forceUsingStep);
         BigDecimal thePrice = BigDecimal.ZERO;
         if (orderType == Order.OrderType.BID) {
             thePrice = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getLimitPrice();
