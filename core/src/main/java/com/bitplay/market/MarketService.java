@@ -179,40 +179,41 @@ public abstract class MarketService {
      * @return list of open orders.
      */
     protected List<LimitOrder> fetchOpenOrders() {
-        try {
-            final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
-                    .getOpenOrders();
-            if (fetchedList == null) {
-                logger.error("GetOpenOrdersError");
-                throw new IllegalStateException("GetOpenOrdersError");
+        if (getExchange() != null && getTradeService() != null) {
+            try {
+                final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
+                        .getOpenOrders();
+                if (fetchedList == null) {
+                    logger.error("GetOpenOrdersError");
+                    throw new IllegalStateException("GetOpenOrdersError");
+                }
+
+                final List<LimitOrder> allNew = fetchedList.stream()
+                        .filter(fetched -> this.openOrders.stream()
+                                .noneMatch(o -> o.getId().equals(fetched.getId())))
+                        .collect(Collectors.toList());
+
+                this.openOrders.addAll(allNew);
+
+            } catch (Exception e) {
+                logger.error("GetOpenOrdersError", e);
+                throw new IllegalStateException("GetOpenOrdersError", e);
             }
 
-            final List<LimitOrder> allNew = fetchedList.stream()
-                    .filter(fetched -> this.openOrders.stream()
-                            .noneMatch(o -> o.getId().equals(fetched.getId())))
-                    .collect(Collectors.toList());
+            if (orderIdToSignalInfo.size() > 100000) {
+                logger.warn("orderIdToSignalInfo over 100000");
+                final Map<String, BestQuotes> newMap = new HashMap<>();
+                openOrders.stream()
+                        .map(LimitOrder::getId)
+                        .filter(id -> orderIdToSignalInfo.containsKey(id))
+                        .forEach(id -> newMap.put(id, orderIdToSignalInfo.get(id)));
+                orderIdToSignalInfo = newMap;
+            }
 
-            this.openOrders.addAll(allNew);
-
-        } catch (Exception e) {
-            logger.error("GetOpenOrdersError", e);
-            throw new IllegalStateException("GetOpenOrdersError", e);
+            if (openOrders.size() > 1) {
+                getTradeLogger().warn("Warning: openOrders count " + openOrders.size());
+            }
         }
-
-        if (orderIdToSignalInfo.size() > 100000) {
-            logger.warn("orderIdToSignalInfo over 100000");
-            final Map<String, BestQuotes> newMap = new HashMap<>();
-            openOrders.stream()
-                    .map(LimitOrder::getId)
-                    .filter(id -> orderIdToSignalInfo.containsKey(id))
-                    .forEach(id -> newMap.put(id, orderIdToSignalInfo.get(id)));
-            orderIdToSignalInfo = newMap;
-        }
-
-        if (openOrders.size() > 1) {
-            getTradeLogger().warn("Warning: openOrders count " + openOrders.size());
-        }
-
         return openOrders;
     }
 
