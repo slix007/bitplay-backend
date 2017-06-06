@@ -758,4 +758,12 @@ public class ArbitrageService {
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
+
+    public int getCounter1() {
+        return counter1;
+    }
+
+    public int getCounter2() {
+        return counter2;
+    }
 }

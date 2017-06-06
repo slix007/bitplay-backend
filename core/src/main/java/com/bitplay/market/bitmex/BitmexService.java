@@ -1,5 +1,6 @@
 package com.bitplay.market.bitmex;
 
+import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.market.MarketService;
@@ -14,6 +15,7 @@ import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
@@ -405,13 +407,16 @@ public class BitmexService extends MarketService {
                 arbitrageService.getOpenDiffs().setFirstOpenPrice(orderType.equals(Order.OrderType.BID)
                         ? diff1 : diff2);
             }
-            tradeLogger.info("{} {} amount={} with quote={} was placed.orderId={}. {}",
+
+            tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
+                    arbitrageService.getCounter1(),
                     isMoving ? "Moved" : "maker",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
                     thePrice,
                     orderId,
-                    diffWithSignal);
+                    diffWithSignal,
+                    getPosition());
 
             if (!fromGui) {
                 arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
@@ -494,13 +499,15 @@ public class BitmexService extends MarketService {
                         ? diff1 : diff2);
             }
 
-            final String logString = String.format("Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s",
+            final String logString = String.format("#%s Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s. position=%s",
+                    arbitrageService.getCounter1(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     bestMakerPrice.toPlainString(),
                     limitOrder.getId(),
                     attemptCount,
-                    diffWithSignal);
+                    diffWithSignal,
+                    getPosition());
 
             orderIdToSignalInfo.put(limitOrder.getId(), bestQuotes);
             if (!fromGui) {
@@ -607,7 +614,7 @@ public class BitmexService extends MarketService {
                     logger.debug("Balance Margin={}, Position={}", oldWalletBalance.getAvailable().toPlainString(), newPositionBalance.getAvailable().toPlainString());
 
                 }, throwable -> {
-                    logger.error("Can not Position", throwable);
+                    logger.error("Can not fetch Position", throwable);
                     // schedule it again
                     sleep(5000);
                     startPositionListener();
@@ -629,5 +636,10 @@ public class BitmexService extends MarketService {
     @Override
     public AccountInfo getAccountInfo() {
         return accountInfo;
+    }
+
+    private String getPosition() {
+        final Balance position = accountInfo.getWallet().getBalance(BitmexAdapters.POSITION_CURRENCY);
+        return position != null ? position.getAvailable().toPlainString() : "0";
     }
 }
