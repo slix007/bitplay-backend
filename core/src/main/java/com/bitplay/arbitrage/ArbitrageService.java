@@ -151,8 +151,9 @@ public class ArbitrageService {
                         deltasLogger.warn(String.format("Warning: busy by isArbitrageInProgress for 5 min. first:%s, second:%s",
                                 firstMarketService.isArbitrageInProgress(), secondMarketService.isArbitrageInProgress()));
                     } else if (!firstMarketService.isReadyForArbitrage() || !secondMarketService.isReadyForArbitrage()) {
-                        deltasLogger.warn(String.format("Warning: busy by not isReadyForArbitrage for 5 min. first:%s, second:%s",
-                                firstMarketService.isReadyForArbitrage(), secondMarketService.isReadyForArbitrage()));
+                        deltasLogger.warn(String.format("Warning: busy for 5 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
+                                firstMarketService.isReadyForArbitrage(), firstMarketService.getOpenOrders().size(),
+                                secondMarketService.isReadyForArbitrage(), secondMarketService.getOpenOrders().size()));
                     }
                 })
                 .repeat()
