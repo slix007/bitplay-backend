@@ -103,7 +103,7 @@ public abstract class MarketService {
 
     private void initEventBus() {
         eventBus.toObserverable()
-                .doOnError(throwable -> logger.error("On event handling", throwable))
+                .doOnError(throwable -> logger.error("doOnError handling", throwable))
                 .retry()
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_FREE) {

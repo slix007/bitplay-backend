@@ -117,8 +117,6 @@ public class ArbitrageService {
 
     private void initArbitrageStateListener() {
         firstMarketService.getEventBus().toObserverable()
-                .doOnError(throwable -> logger.error("On event handling", throwable))
-                .retry()
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_FREE) {
                         if (secondMarketService.isReadyForArbitrage()) {
@@ -127,8 +125,6 @@ public class ArbitrageService {
                     }
                 }, throwable -> logger.error("On event handling", throwable));
         secondMarketService.getEventBus().toObserverable()
-                .doOnError(throwable -> logger.error("On event handling", throwable))
-                .retry()
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_FREE) {
                         if (firstMarketService.isReadyForArbitrage()) {
@@ -139,7 +135,7 @@ public class ArbitrageService {
     }
 
     private void writeLogArbitrageIsDone() {
-        if (openPrices != null && openDiffs != null) {
+        if (openPrices != null && openDiffs != null && lastDelta != null) {
             if (lastDelta.equals(DELTA1)) {
                 BigDecimal deltaFact = openPrices.getDelta1Fact();
                 cumDeltaFact = cumDeltaFact.add(deltaFact);
