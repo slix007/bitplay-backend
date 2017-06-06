@@ -543,12 +543,10 @@ public class OkCoinService extends MarketService {
             // TODO use orderInfoSubscription to make sure that we're done
 
             if (lastException == null) { // For now we assume that order is filled when no Exceptions
-                eventBus.send(BtsEvent.MARKET_FREE);
-                openOrders.removeIf(o -> o.getId().equals(limitOrder.getId()));
-                orderIdToSignalInfo.remove(limitOrder.getId());
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, logString);
+            } else {
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
             }
-
-            response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }
         return response;
     }

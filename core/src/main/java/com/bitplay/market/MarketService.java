@@ -227,31 +227,40 @@ public abstract class MarketService {
 
     protected void iterateOpenOrdersMove() {
         boolean haveToFetch = false;
+        boolean haveToFree = false;
+        List<String> toRemove = new ArrayList<>();
         try {
-            synchronized (openOrders) {
-                for (LimitOrder openOrder : openOrders) {
-                    if (openOrder.getType() != null) {
-                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
-                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                                || response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.NEED_TO_DELETE)) {
-                            haveToFetch = true;
-                        }
+            for (LimitOrder openOrder : openOrders) {
+                if (openOrder.getType() != null) {
+
+                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
+
+                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                        haveToFree = true;
+                    }
+
+                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                            || response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.NEED_TO_DELETE)) {
+                        toRemove.add(openOrder.getId());
+                        haveToFetch = true;
                     }
                 }
             }
         } catch (Exception e) {
             logger.error("On moving", e);
-            haveToFetch = true;
+            fetchOpenOrders();
         }
 
         if (haveToFetch) {
             fetchOpenOrders();
-//            CompletableFuture.runAsync(this::fetchOpenOrders)
-//                    .exceptionally(throwable -> {
-//                        logger.error("On fetch openOrders", throwable);
-//                        return null;
-//                    });
+            openOrders.removeIf(o -> toRemove.contains(o.getId()));
+            toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
         }
+
+        if (haveToFree) {
+            eventBus.send(BtsEvent.MARKET_FREE);
+        }
+
     }
 
 /*
