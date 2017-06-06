@@ -188,6 +188,10 @@ public abstract class MarketService {
                     throw new IllegalStateException("GetOpenOrdersError");
                 }
 
+                if (fetchedList.size() > 1) {
+                    getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
+                }
+
                 final List<LimitOrder> allNew = fetchedList.stream()
                         .filter(fetched -> this.openOrders.stream()
                                 .noneMatch(o -> o.getId().equals(fetched.getId())))
@@ -210,9 +214,6 @@ public abstract class MarketService {
                 orderIdToSignalInfo = newMap;
             }
 
-            if (openOrders.size() > 1) {
-                getTradeLogger().warn("Warning: openOrders count " + openOrders.size());
-            }
         }
         return openOrders;
     }
