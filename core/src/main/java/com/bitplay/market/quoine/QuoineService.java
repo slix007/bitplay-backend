@@ -91,4 +91,10 @@ public class QuoineService extends MarketService {
     public AccountInfo getAccountInfo() {
         return null;
     }
+
+    @Override
+    public String getPosition() {
+        return null;
+    }
+
 }

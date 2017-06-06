@@ -169,7 +169,9 @@ public class ArbitrageService {
                 if (cumDiffsFact.compareTo(cumDiffsFactMax) == 1) cumDiffsFactMax = cumDiffsFact;
 
                 deltasLogger.info(String.format("delta1_fact=%s-%s=%s; " +
-                                "cum_delta_fact=%s/%s/%s; diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s",
+                                "cum_delta_fact=%s/%s/%s; " +
+                                "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
+                                "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; position=%s",
                         openPrices.getFirstOpenPrice().toPlainString(),
                         openPrices.getSecondOpenPrice().toPlainString(),
                         deltaFact.toPlainString(),
@@ -181,7 +183,8 @@ public class ArbitrageService {
                         diffFact, diffFactMin, diffFactMax,
                         cumDiffFact1, cumDiffFact1Min, cumDiffFact1Max,
                         cumDiffFact2, cumDiffFact2Min, cumDiffFact2Max,
-                        cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax
+                        cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax,
+                        firstMarketService.getPosition()
                 ));
             } else if (lastDelta.equals(DELTA2)) {
                 BigDecimal deltaFact = openPrices.getDelta2Fact();
@@ -212,7 +215,9 @@ public class ArbitrageService {
                 if (cumDiffsFact.compareTo(cumDiffsFactMax) == 1) cumDiffsFactMax = cumDiffsFact;
 
                 deltasLogger.info(String.format("delta2_fact=%s-%s=%s; " +
-                                "cum_delta_fact=%s/%s/%s; diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s",
+                                "cum_delta_fact=%s/%s/%s; " +
+                                "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
+                                "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; position=%s",
                         openPrices.getSecondOpenPrice().toPlainString(),
                         openPrices.getFirstOpenPrice().toPlainString(),
                         deltaFact.toPlainString(),
@@ -224,7 +229,8 @@ public class ArbitrageService {
                         diffFact, diffFactMin, diffFactMax,
                         cumDiffFact1, cumDiffFact1Min, cumDiffFact1Max,
                         cumDiffFact2, cumDiffFact2Min, cumDiffFact2Max,
-                        cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax
+                        cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax,
+                        firstMarketService.getPosition()
                 ));
             }
         }
@@ -466,7 +472,7 @@ public class ArbitrageService {
         ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
         BigDecimal sumBalUsd4 = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP))
                 .multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
-        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$",
+        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$; position=%s",
                 firstWalletBalance,
                 btcO,
                 usdO,
@@ -477,7 +483,8 @@ public class ArbitrageService {
                 sumBalUsd,
                 sumBalUsd2,
                 sumBalUsd3,
-                sumBalUsd4
+                sumBalUsd4,
+                firstMarketService.getPosition()
         ));
 
         counter1++;
@@ -547,7 +554,7 @@ public class ArbitrageService {
         ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
         BigDecimal sumBalUsd4 = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP))
                 .multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
-        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$",
+        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$; position=%s",
                 firstWalletBalance,
                 btcO,
                 usdO,
@@ -558,7 +565,8 @@ public class ArbitrageService {
                 sumBalUsd,
                 sumBalUsd2,
                 sumBalUsd3,
-                sumBalUsd4
+                sumBalUsd4,
+                firstMarketService.getPosition()
         ));
 
         counter2++;

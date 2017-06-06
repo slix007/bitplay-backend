@@ -67,6 +67,8 @@ public abstract class MarketService {
 
     public abstract Logger getTradeLogger();
 
+    public abstract String getPosition();
+
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable = false;
         if (accountInfo != null && accountInfo.getWallet() != null) {

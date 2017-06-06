@@ -552,4 +552,10 @@ public class OkCoinService extends MarketService {
         }
         return response;
     }
+
+    @Override
+    public String getPosition() {
+        return null;
+    }
+
 }

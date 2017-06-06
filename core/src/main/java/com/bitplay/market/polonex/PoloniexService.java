@@ -584,4 +584,10 @@ public class PoloniexService extends MarketService {
         return tradeHistory;
 
     }
+
+    @Override
+    public String getPosition() {
+        return null;
+    }
+
 }
