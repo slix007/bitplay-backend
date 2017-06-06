@@ -1,6 +1,8 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
@@ -44,13 +46,19 @@ public abstract class MarketService {
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
     protected MarketState marketState = MarketState.IDLE;
-    protected boolean arbitrageInProgress = false;
+    protected boolean isBusy = false;
+    protected EventBus eventBus = new EventBus();
 //    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
 
     protected final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
 
-    public abstract void initializeMarket(String key, String secret);
+    public void init(String key, String secret) {
+        initEventBus();
+        initializeMarket(key, secret);
+    }
+
+    protected abstract void initializeMarket(String key, String secret);
 
     public abstract UserTrades fetchMyTradeHistory();
 
@@ -87,16 +95,28 @@ public abstract class MarketService {
                     .map(LimitOrder::toString)
                     .reduce((s, s2) -> s + "; " + s2));
         }
+        return (openOrdersCount == 0 && !isBusy);
+    }
 
-        return (openOrdersCount == 0 && !arbitrageInProgress);
+    protected void initEventBus() {
+        eventBus.toObserverable()
+                .doOnError(throwable -> logger.error("On event handling", throwable))
+                .retry()
+                .subscribe(btsEvent -> {
+                    if (btsEvent == BtsEvent.MARKET_FREE) {
+                        isBusy = false;
+                    } else if (btsEvent == BtsEvent.MARKET_BUSY) {
+                        isBusy = true;
+                    }
+                }, throwable -> logger.error("On event handling", throwable));
+    }
+
+    public EventBus getEventBus() {
+        return eventBus;
     }
 
     public boolean isArbitrageInProgress() {
-        return arbitrageInProgress;
-    }
-
-    public synchronized void setArbitrageInProgress(boolean arbitrageInProgress) {
-        this.arbitrageInProgress = arbitrageInProgress;
+        return isBusy;
     }
 
     /**

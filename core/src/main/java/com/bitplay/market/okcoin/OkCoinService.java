@@ -3,6 +3,7 @@ package com.bitplay.market.okcoin;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
@@ -229,7 +230,7 @@ public class OkCoinService extends MarketService {
                 .doOnCompleted(() -> {
                     fetchOpenOrders(); // Synchronous
                     if (openOrders.size() == 0) {
-                        arbitrageInProgress = false;
+                        eventBus.send(BtsEvent.MARKET_FREE);
                     }
                 })
                 .retry(3)
@@ -539,7 +540,7 @@ public class OkCoinService extends MarketService {
             // TODO use orderInfoSubscription to make sure that we're done
 
             if (lastException == null) { // For now we assume that order is filled when no Exceptions
-                arbitrageInProgress = false;
+                eventBus.send(BtsEvent.MARKET_FREE);
             }
 
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);

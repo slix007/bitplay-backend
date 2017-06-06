@@ -37,12 +37,12 @@ public class TwoMarketStarter {
     private void init() {
         final String firstMarketName = config.getFirstMarketName();
         firstMarketService = (MarketService) context.getBean(firstMarketName);
-        firstMarketService.initializeMarket(config.getFirstMarketKey(), config.getFirstMarketSecret());
+        firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret());
         System.out.println("MARKET1: " + firstMarketService);
 
         final String secondMarketName = config.getSecondMarketName();
         secondMarketService = (MarketService) context.getBean(secondMarketName);
-        secondMarketService.initializeMarket(config.getSecondMarketKey(), config.getSecondMarketSecret());
+        secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret());
         System.out.println("MARKET2: " + secondMarketService);
 
         arbitrageService.init(this);

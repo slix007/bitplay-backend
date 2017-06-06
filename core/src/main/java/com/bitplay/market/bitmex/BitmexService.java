@@ -3,6 +3,7 @@ package com.bitplay.market.bitmex;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
@@ -164,7 +165,7 @@ public class BitmexService extends MarketService {
 
         if (haveToClear) {
             openOrders = new ArrayList<>();
-            arbitrageInProgress = false;
+            eventBus.send(BtsEvent.MARKET_FREE);
         }
     }
 
@@ -249,7 +250,7 @@ public class BitmexService extends MarketService {
                     //workaround
                     if (openOrders == null) {
                         openOrders = new ArrayList<>();
-                        arbitrageInProgress = false;
+                        eventBus.send(BtsEvent.MARKET_FREE);
                     }
 
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
@@ -320,7 +321,7 @@ public class BitmexService extends MarketService {
                         this.openOrders = new ArrayList<>();
                     }
                     if (openOrders.size() == 0) {
-                        arbitrageInProgress = false;
+                        eventBus.send(BtsEvent.MARKET_FREE);
                     }
 
                 }, throwable -> {
