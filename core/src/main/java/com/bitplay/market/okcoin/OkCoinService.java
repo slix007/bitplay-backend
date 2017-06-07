@@ -3,7 +3,6 @@ package com.bitplay.market.okcoin;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
@@ -383,7 +382,6 @@ public class OkCoinService extends MarketService {
             if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
 
                 tradeResponse.setErrorMessage("Not enough amount left");
-                fetchOpenOrdersWithDelay();
 
             } else {
                 final LimitOrder limitOrder = new LimitOrder(orderType,
@@ -414,11 +412,11 @@ public class OkCoinService extends MarketService {
 
 //                final Disposable orderListener = startOrderListener(orderId);
 //                orderSubscriptions.put(orderId, orderListener);
-//                final LimitOrder limitOrderWithId = new LimitOrder(orderType,
-//                        tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(),
-//                        thePrice);
+                final LimitOrder limitOrderWithId = new LimitOrder(orderType,
+                        tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(),
+                        thePrice);
+                tradeResponse.setLimitOrder(limitOrderWithId);
 //                openOrders.add(limitOrderWithId); - java.util.ConcurrentModificationException with checkOpenOrdersForMoving()
-                fetchOpenOrdersWithDelay();
 
                 if (!fromGui) {
                     arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
@@ -431,8 +429,9 @@ public class OkCoinService extends MarketService {
             tradeLogger.info("maker error {}", e.toString());
             tradeResponse.setOrderId(e.getMessage());
             tradeResponse.setErrorMessage(e.getMessage());
-            fetchOpenOrdersWithDelay();
         }
+
+        fetchOpenOrdersWithDelay();
         return tradeResponse;
     }
 
@@ -519,17 +518,21 @@ public class OkCoinService extends MarketService {
                     attemptCount);
 
             // Place order
+            TradeResponse tradeResponse = new TradeResponse();
             while (attemptCount < 5) {
                 attemptCount++;
-                final TradeResponse tradeResponse = placeMakerOrder(limitOrder.getType(), limitOrder.getTradableAmount(), bestQuotes, true, fromGui);
+                tradeResponse = placeMakerOrder(limitOrder.getType(), limitOrder.getTradableAmount(), bestQuotes, true, fromGui);
                 if (tradeResponse.getErrorCode() == null) {
                     break;
                 }
             }
-
-            response = new MoveResponse(MoveResponse.MoveOrderStatus.NEED_TO_DELETE, "");
+            if (tradeResponse.getOrderId() != null) {
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
+            } else {
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Placing new order has not returned id");
+            }
         } else {
-            final String logString = String.format("%s Cancel failed %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
+            final String logString = String.format("#%s Cancel failed %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
                     arbitrageService.getCounter2(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
@@ -539,7 +542,7 @@ public class OkCoinService extends MarketService {
                     lastException != null ? lastException.getMessage() : null);
             tradeLogger.info(logString);
 
-            fetchOpenOrdersWithDelay();
+//            fetchOpenOrdersWithDelay();
             // TODO use orderInfoSubscription to make sure that we're done
 
             if (lastException == null) { // For now we assume that order is filled when no Exceptions

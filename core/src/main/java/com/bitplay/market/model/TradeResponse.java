@@ -1,5 +1,7 @@
 package com.bitplay.market.model;
 
+import org.knowm.xchange.dto.trade.LimitOrder;
+
 /**
  * Created by Sergey Shurmin on 4/21/17.
  */
@@ -8,6 +10,7 @@ public class TradeResponse {
     String orderId;
     Object specificResponse;
     String errorCode;
+    LimitOrder limitOrder;
 
     public TradeResponse() {
     }
@@ -40,5 +43,13 @@ public class TradeResponse {
 
     public void setErrorMessage(String errorCode) {
         this.errorCode = errorCode;
+    }
+
+    public LimitOrder getLimitOrder() {
+        return limitOrder;
+    }
+
+    public void setLimitOrder(LimitOrder limitOrder) {
+        this.limitOrder = limitOrder;
     }
 }

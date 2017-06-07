@@ -229,8 +229,9 @@ public abstract class MarketService {
 
     protected void iterateOpenOrdersMove() {
         boolean haveToFetch = false;
-        boolean haveToFree = false;
+        boolean freeTheMarket = false;
         List<String> toRemove = new ArrayList<>();
+        List<LimitOrder> toAdd = new ArrayList<>();
         try {
             for (LimitOrder openOrder : openOrders) {
                 if (openOrder.getType() != null) {
@@ -238,31 +239,39 @@ public abstract class MarketService {
                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
 
                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                        haveToFree = true;
-                    }
-
-                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                            || response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.NEED_TO_DELETE)) {
+                        freeTheMarket = true;
                         toRemove.add(openOrder.getId());
                         haveToFetch = true;
                     }
+
+                    if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
+                        toRemove.add(openOrder.getId());
+                        haveToFetch = true;
+                        if (response.getNewOrder() != null) {
+                            toAdd.add(response.getNewOrder());
+                        }
+                    }
                 }
+            }
+
+            openOrders.removeIf(o -> toRemove.contains(o.getId()));
+            toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
+            openOrders.addAll(toAdd);
+
+            if (freeTheMarket) {
+                eventBus.send(BtsEvent.MARKET_FREE);
             }
         } catch (Exception e) {
             logger.error("On moving", e);
-            fetchOpenOrders();
+            final List<LimitOrder> orderList = fetchOpenOrders();
+            if (orderList.size() == 0) {
+                eventBus.send(BtsEvent.MARKET_FREE);
+            }
         }
 
         if (haveToFetch) {
             fetchOpenOrders();
-            openOrders.removeIf(o -> toRemove.contains(o.getId()));
-            toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
         }
-
-        if (haveToFree) {
-            eventBus.send(BtsEvent.MARKET_FREE);
-        }
-
     }
 
 /*
