@@ -765,11 +765,7 @@ public class ArbitrageService {
         this.amount = amount;
     }
 
-    public int getCounter1() {
-        return counter1;
-    }
-
-    public int getCounter2() {
-        return counter2;
+    public int getCounter() {
+        return counter1 + counter2;
     }
 }

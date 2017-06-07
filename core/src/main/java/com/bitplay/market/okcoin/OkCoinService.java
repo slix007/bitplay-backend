@@ -402,7 +402,7 @@ public class OkCoinService extends MarketService {
                             ? diff1 : diff2);
                 }
                 tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}",
-                        arbitrageService.getCounter2(),
+                        arbitrageService.getCounter(),
                         isMoving ? "Moved" : "maker",
                         orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                         tradeableAmount.toPlainString(),
@@ -514,7 +514,7 @@ public class OkCoinService extends MarketService {
 
         if (cancelledSuccessfully) {
             tradeLogger.info("#{} Cancelled {} amount={},quote={},id={},attempt={}",
-                    arbitrageService.getCounter2(),
+                    arbitrageService.getCounter(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     limitOrder.getLimitPrice().toPlainString(),
@@ -545,7 +545,7 @@ public class OkCoinService extends MarketService {
                 logResponse = "Cancel failed";
             }
             final String logString = String.format("#%s %s %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
-                    arbitrageService.getCounter2(),
+                    arbitrageService.getCounter(),
                     logResponse,
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),

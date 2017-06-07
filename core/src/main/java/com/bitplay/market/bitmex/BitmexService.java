@@ -409,7 +409,7 @@ public class BitmexService extends MarketService {
             }
 
             tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
-                    arbitrageService.getCounter1(),
+                    arbitrageService.getCounter(),
                     isMoving ? "Moved" : "maker",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
@@ -500,7 +500,7 @@ public class BitmexService extends MarketService {
             }
 
             final String logString = String.format("#%s Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s. position=%s",
-                    arbitrageService.getCounter1(),
+                    arbitrageService.getCounter(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     bestMakerPrice.toPlainString(),
