@@ -416,7 +416,11 @@ public class OkCoinService extends MarketService {
                         tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(),
                         thePrice);
                 tradeResponse.setLimitOrder(limitOrderWithId);
-//                openOrders.add(limitOrderWithId); - java.util.ConcurrentModificationException with checkOpenOrdersForMoving()
+                if (!isMoving) {
+                    // Warning java.util.ConcurrentModificationException with checkOpenOrdersForMoving()
+                    // (do not use from iterate over Open orders checkOpenOrdersForMoving())
+                    openOrders.add(limitOrderWithId);
+                }
 
                 if (!fromGui) {
                     arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
@@ -532,8 +536,17 @@ public class OkCoinService extends MarketService {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Placing new order has not returned id");
             }
         } else {
-            final String logString = String.format("#%s Cancel failed %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
+            String logResponse = "";
+            if (lastException == null) { // For now we assume that order is filled when no Exceptions
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
+                logResponse = "Already closed";
+            } else {
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, lastException.getMessage());
+                logResponse = "Cancel failed";
+            }
+            final String logString = String.format("#%s %s %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
                     arbitrageService.getCounter2(),
+                    logResponse,
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     limitOrder.getLimitPrice().toPlainString(),
@@ -541,15 +554,6 @@ public class OkCoinService extends MarketService {
                     attemptCount,
                     lastException != null ? lastException.getMessage() : null);
             tradeLogger.info(logString);
-
-//            fetchOpenOrdersWithDelay();
-            // TODO use orderInfoSubscription to make sure that we're done
-
-            if (lastException == null) { // For now we assume that order is filled when no Exceptions
-                response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, logString);
-            } else {
-                response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
-            }
         }
         return response;
     }
