@@ -119,7 +119,7 @@ public class ArbitrageService {
         firstMarketService.getEventBus().toObserverable()
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_FREE) {
-                        if (secondMarketService.isArbitrageInProgress()) {
+                        if (!secondMarketService.isArbitrageInProgress()) {
                             writeLogArbitrageIsDone();
                         }
                     }
@@ -127,7 +127,7 @@ public class ArbitrageService {
         secondMarketService.getEventBus().toObserverable()
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_FREE) {
-                        if (firstMarketService.isArbitrageInProgress()) {
+                        if (!firstMarketService.isArbitrageInProgress()) {
                             writeLogArbitrageIsDone();
                         }
                     }
