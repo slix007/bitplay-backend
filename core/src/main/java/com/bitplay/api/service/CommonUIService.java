@@ -3,10 +3,11 @@ package com.bitplay.api.service;
 import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
-import com.bitplay.api.domain.StopMovingJson;
+import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.market.events.BtsEvent;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -161,19 +162,35 @@ public class CommonUIService {
         );
     }
 
-    public StopMovingJson getStopMoving() {
-        return new StopMovingJson(
+    public MarketFlagsJson getStopMoving() {
+        return new MarketFlagsJson(
                 arbitrageService.getFirstMarketService().isMovingStop(),
                 arbitrageService.getSecondMarketService().isMovingStop()
         );
     }
 
-    public StopMovingJson toggleStopMoving() {
+    public MarketFlagsJson toggleStopMoving() {
         arbitrageService.getFirstMarketService().setMovingStop(!arbitrageService.getFirstMarketService().isMovingStop());
         arbitrageService.getSecondMarketService().setMovingStop(!arbitrageService.getSecondMarketService().isMovingStop());
-        return new StopMovingJson(
+        return new MarketFlagsJson(
                 arbitrageService.getFirstMarketService().isMovingStop(),
                 arbitrageService.getSecondMarketService().isMovingStop()
+        );
+    }
+
+    public MarketFlagsJson getMarketsStates() {
+        return new MarketFlagsJson(
+                arbitrageService.getFirstMarketService().isReadyForArbitrage(),
+                arbitrageService.getSecondMarketService().isReadyForArbitrage()
+        );
+    }
+
+    public MarketFlagsJson freeMarketsStates() {
+        arbitrageService.getFirstMarketService().getEventBus().send(BtsEvent.MARKET_FREE);
+        arbitrageService.getSecondMarketService().getEventBus().send(BtsEvent.MARKET_FREE);
+        return new MarketFlagsJson(
+                arbitrageService.getFirstMarketService().isReadyForArbitrage(),
+                arbitrageService.getSecondMarketService().isReadyForArbitrage()
         );
     }
 

@@ -5,7 +5,7 @@ import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.MarketList;
-import com.bitplay.api.domain.StopMovingJson;
+import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
@@ -108,7 +108,7 @@ public class CommonEndpoint {
     @GET
     @Path("/market/stop-moving")
     @Produces(MediaType.APPLICATION_JSON)
-    public StopMovingJson getMovingStop() {
+    public MarketFlagsJson getMovingStop() {
         return commonUIService.getStopMoving();
     }
 
@@ -116,8 +116,23 @@ public class CommonEndpoint {
     @Path("/market/toggle-stop-moving")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public StopMovingJson updateMovingStop() {
+    public MarketFlagsJson updateMovingStop() {
         return commonUIService.toggleStopMoving();
+    }
+
+    @GET
+    @Path("/market/states")
+    @Produces(MediaType.APPLICATION_JSON)
+    public MarketFlagsJson getMarketsState() {
+        return commonUIService.getMarketsStates();
+    }
+
+    @POST
+    @Path("/market/free-states")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public MarketFlagsJson freeStates() {
+        return commonUIService.freeMarketsStates();
     }
 
     @GET
