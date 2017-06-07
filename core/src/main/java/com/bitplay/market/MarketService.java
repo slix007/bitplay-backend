@@ -108,8 +108,10 @@ public abstract class MarketService {
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_FREE) {
                         isBusy = false;
+                        getTradeLogger().info("{}: {}", getName(), isBusy);
                     } else if (btsEvent == BtsEvent.MARKET_BUSY) {
                         isBusy = true;
+                        getTradeLogger().info("{}: {}", getName(), isBusy);
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }
