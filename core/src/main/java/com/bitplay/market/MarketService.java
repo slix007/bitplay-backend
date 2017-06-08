@@ -260,7 +260,7 @@ public abstract class MarketService {
             openOrders.addAll(toAdd);
 
             if (freeTheMarket && openOrders.size() > 0) {
-                getTradeLogger().warn("Warning: get ALREADY_CLOSED, but there are still open orders");
+                logger.warn("Warning: get ALREADY_CLOSED, but there are still open orders");
             }
 
             if (freeTheMarket && openOrders.size() == 0) {

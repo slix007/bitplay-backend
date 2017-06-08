@@ -1,5 +1,8 @@
 package com.bitplay.market.events;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
@@ -9,6 +12,8 @@ import io.reactivex.subjects.Subject;
  */
 public class EventBus {
 
+    private static final Logger logger = LoggerFactory.getLogger(EventBus.class);
+
     private final Subject<BtsEvent> _bus = PublishSubject.create();
 
     public void send(BtsEvent o) {
@@ -16,6 +21,8 @@ public class EventBus {
     }
 
     public Observable<BtsEvent> toObserverable() {
-        return _bus;
+        return _bus
+                .doOnError(throwable -> logger.error("EventBus.", throwable))
+                .retry();
     }
 }

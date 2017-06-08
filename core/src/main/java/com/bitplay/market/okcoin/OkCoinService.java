@@ -38,8 +38,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 
@@ -238,7 +240,7 @@ public class OkCoinService extends MarketService {
                 .subscribe();
 //        this.fetchOpenOrders();
     }
-/*
+
     private Disposable startOrderListener(String orderId) {
         return exchange.getStreamingTradingService()
                 //TODO use different method like getOrderObservable
@@ -256,15 +258,7 @@ public class OkCoinService extends MarketService {
                                         .filter(existing -> existingInMemory.getId().equals(existing.getId()))
                                         .findFirst();
                                 if (optionalMatch.isPresent()) {
-                                    final LimitOrder existing = optionalMatch.get();
-                                    order = new LimitOrder(
-                                            existing.getType(),
-                                            existingInMemory.getTradableAmount() != null ? existingInMemory.getTradableAmount() : existing.getTradableAmount(),
-                                            existing.getCurrencyPair(),
-                                            existing.getId(),
-                                            existingInMemory.getTimestamp(),
-                                            existingInMemory.getLimitPrice() != null ? existingInMemory.getLimitPrice() : existing.getLimitPrice()
-                                    );
+                                    order = optionalMatch.get();
                                 }
                                 final List<LimitOrder> optionalOrder = new ArrayList<>();
                                 if (order.getStatus() != Order.OrderStatus.CANCELED
@@ -287,7 +281,7 @@ public class OkCoinService extends MarketService {
                 }, throwable -> {
                     logger.error("OO.Exception: ", throwable);
                 });
-    }*/
+    }
 
     private Disposable startTradesListener() {
         return exchange.getStreamingMarketDataService()
@@ -423,8 +417,8 @@ public class OkCoinService extends MarketService {
                         orderId,
                         diffWithSignal);
 
-//                final Disposable orderListener = startOrderListener(orderId);
-//                orderSubscriptions.put(orderId, orderListener);
+                final Disposable orderListener = startOrderListener(orderId);
+                orderSubscriptions.put(orderId, orderListener);
                 final LimitOrder limitOrderWithId = new LimitOrder(orderType,
                         tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(),
                         thePrice);

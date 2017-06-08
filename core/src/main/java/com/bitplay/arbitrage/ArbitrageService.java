@@ -241,7 +241,7 @@ public class ArbitrageService {
     }
 
     private void setTimeoutAfterStartTrading() {
-        flagOpenOrder.setFirstReady(false);
+//        flagOpenOrder.setFirstReady(false);
 //        flagOpenOrder.setSecondReady(false);
 
         isReadyForTheArbitrage = false;
@@ -315,7 +315,7 @@ public class ArbitrageService {
     private BestQuotes doComparison() {
         BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
 
-        if (isReadyForTheArbitrage && flagOpenOrder.isReady()) {
+        if (isReadyForTheArbitrage) {
             synchronized (this) {
                 final OrderBook firstOrderBook = firstMarketService.getOrderBook();
                 final OrderBook secondOrderBook = secondMarketService.getOrderBook();
