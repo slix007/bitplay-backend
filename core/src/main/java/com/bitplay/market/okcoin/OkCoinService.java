@@ -12,9 +12,11 @@ import info.bitrich.xchangestream.okcoin.OkCoinStreamingExchange;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
@@ -379,7 +381,18 @@ public class OkCoinService extends MarketService {
                     .setScale(2, BigDecimal.ROUND_HALF_UP);
 
             BigDecimal tradeableAmount = adjustAmount(amount);
-            if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
+
+            if (!isAffordable(orderType, tradeableAmount)) {
+                
+                final Wallet wallet = getAccountInfo().getWallet();
+                final BigDecimal btcBalance = wallet.getBalance(Currency.BTC).getAvailable();
+                final BigDecimal usdBalance = wallet.getBalance(getSecondCurrency()).getAvailable();
+
+                tradeResponse.setErrorMessage(String.format("Not enough money left. Type:%s;amont:%s;bal_btc:%s;bal_usd:%s",
+                        orderType.toString(), tradeableAmount.toPlainString(),
+                        btcBalance, usdBalance));
+
+            } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
 
                 tradeResponse.setErrorMessage("Not enough amount left");
 
@@ -526,14 +539,15 @@ public class OkCoinService extends MarketService {
             while (attemptCount < 5) {
                 attemptCount++;
                 tradeResponse = placeMakerOrder(limitOrder.getType(), limitOrder.getTradableAmount(), bestQuotes, true, fromGui);
-                if (tradeResponse.getErrorCode() == null) {
+                if (tradeResponse.getErrorCode() == null) { // when amount less then affordable.
                     break;
                 }
             }
             if (tradeResponse.getOrderId() != null) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
             } else {
-                response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Placing new order has not returned id");
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, String.format("Moving error. Cancelled amount %s, but %s",
+                        limitOrder.getTradableAmount().toPlainString(), tradeResponse.getErrorCode()));
             }
         } else {
             String logResponse = "";

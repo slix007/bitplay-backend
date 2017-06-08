@@ -238,7 +238,8 @@ public abstract class MarketService {
 
                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
 
-                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                            || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
                         freeTheMarket = true;
                         toRemove.add(openOrder.getId());
                         haveToFetch = true;

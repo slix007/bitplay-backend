@@ -17,7 +17,8 @@ public class MoveResponse {
         MOVED,
         EXCEPTION,
         WAITING_TIMEOUT,
-        MOVED_WITH_NEW_ID
+        MOVED_WITH_NEW_ID,
+        ONLY_CANCEL
     }
 
     public MoveResponse(MoveOrderStatus moveOrderStatus, String description) {
