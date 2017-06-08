@@ -258,7 +258,11 @@ public abstract class MarketService {
             toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
             openOrders.addAll(toAdd);
 
-            if (freeTheMarket) {
+            if (freeTheMarket && openOrders.size() > 0) {
+                getTradeLogger().warn("Warning: get ALREADY_CLOSED, but there are still open orders");
+            }
+
+            if (freeTheMarket && openOrders.size() == 0) {
                 eventBus.send(BtsEvent.MARKET_FREE);
             }
         } catch (Exception e) {
