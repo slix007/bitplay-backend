@@ -452,7 +452,7 @@ public class OkCoinService extends MarketService {
         return tradeResponse;
     }
 
-    private BigDecimal adjustAmount(BigDecimal initialAmount) {
+    private BigDecimal adjustAmount(final BigDecimal initialAmount) {
         BigDecimal amount = initialAmount.setScale(3, BigDecimal.ROUND_HALF_UP);
         if (amount.compareTo(OKCOIN_STEP) == -1) {
             amount = amount.setScale(2, BigDecimal.ROUND_HALF_UP);

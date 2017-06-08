@@ -76,8 +76,9 @@ public class CommonUIService {
                 arbitrageService.getCumDiffFact1().toPlainString(),
                 arbitrageService.getCumDiffFact2().toPlainString(),
                 arbitrageService.getCumCom1().toPlainString(),
-                arbitrageService.getCumCom2().toPlainString()
-
+                arbitrageService.getCumCom2().toPlainString(),
+                String.valueOf(arbitrageService.getCounter1()),
+                String.valueOf(arbitrageService.getCounter2())
         );
     }
 
@@ -104,7 +105,9 @@ public class CommonUIService {
                 arbitrageService.getCumDiffFact1().toPlainString(),
                 arbitrageService.getCumDiffFact2().toPlainString(),
                 arbitrageService.getCumCom1().toPlainString(),
-                arbitrageService.getCumCom2().toPlainString()
+                arbitrageService.getCumCom2().toPlainString(),
+                String.valueOf(arbitrageService.getCounter1()),
+                String.valueOf(arbitrageService.getCounter2())
         );
     }
 
@@ -142,6 +145,12 @@ public class CommonUIService {
         if (deltalUpdateJson.getCumCom2() != null) {
             arbitrageService.setCumCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
         }
+        if (deltalUpdateJson.getCount1() != null) {
+            arbitrageService.setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
+        }
+        if (deltalUpdateJson.getCount2() != null) {
+            arbitrageService.setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
+        }
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
@@ -158,7 +167,9 @@ public class CommonUIService {
                 arbitrageService.getCumDiffFact1().toPlainString(),
                 arbitrageService.getCumDiffFact2().toPlainString(),
                 arbitrageService.getCumCom1().toPlainString(),
-                arbitrageService.getCumCom2().toPlainString()
+                arbitrageService.getCumCom2().toPlainString(),
+                String.valueOf(arbitrageService.getCounter1()),
+                String.valueOf(arbitrageService.getCounter2())
         );
     }
 
