@@ -103,7 +103,7 @@ public class OkCoinService extends MarketService {
 
         subscribeOnOthers();
 
-        startTradesListener(); // to remove openOrders
+//        startTradesListener(); // to remove openOrders
 
         fetchOpenOrdersWithDelay();
     }
@@ -251,7 +251,7 @@ public class OkCoinService extends MarketService {
                 .subscribe(updatedOrder -> {
                     logger.info("Order update: " + updatedOrder.toString());
                     this.openOrders = this.openOrders.stream()
-                            .flatMap(existingInMemory -> {
+                            .map(existingInMemory -> {
                                 // merge if the update of an existingInMemory
                                 LimitOrder order = existingInMemory;
                                 final Optional<LimitOrder> optionalMatch = updatedOrder.getOpenOrders().stream()
@@ -259,23 +259,38 @@ public class OkCoinService extends MarketService {
                                         .findFirst();
                                 if (optionalMatch.isPresent()) {
                                     order = optionalMatch.get();
+                                    logger.info("Order has been updated: " + order.toString());
                                 }
-                                final List<LimitOrder> optionalOrder = new ArrayList<>();
-                                if (order.getStatus() != Order.OrderStatus.CANCELED
-                                        && order.getStatus() != Order.OrderStatus.EXPIRED
-                                        && order.getStatus() != Order.OrderStatus.FILLED
-                                        && order.getStatus() != Order.OrderStatus.REJECTED
-                                        && order.getStatus() != Order.OrderStatus.REPLACED
-                                        && order.getStatus() != Order.OrderStatus.STOPPED) {
-                                    optionalOrder.add(order);
-                                } else {
+//                                final List<LimitOrder> optionalOrder = new ArrayList<>();
+//                                if (order.getStatus() != Order.OrderStatus.CANCELED
+//                                        && order.getStatus() != Order.OrderStatus.EXPIRED
+//                                        && order.getStatus() != Order.OrderStatus.FILLED
+//                                        && order.getStatus() != Order.OrderStatus.REJECTED
+//                                        && order.getStatus() != Order.OrderStatus.REPLACED
+//                                        && order.getStatus() != Order.OrderStatus.STOPPED) {
+//                                    optionalOrder.add(order);
+//                                } else {
+//                                    orderSubscriptions.computeIfPresent(orderId, (s, disposable) -> {
+//                                        disposable.dispose();
+//                                        return disposable;
+//                                    });
+//                                    orderSubscriptions.remove(orderId);
+//                                }
+                                if (order.getStatus() == Order.OrderStatus.CANCELED
+                                        || order.getStatus() == Order.OrderStatus.EXPIRED
+                                        || order.getStatus() == Order.OrderStatus.FILLED
+                                        || order.getStatus() == Order.OrderStatus.REJECTED
+                                        || order.getStatus() == Order.OrderStatus.REPLACED
+                                        || order.getStatus() == Order.OrderStatus.STOPPED) {
                                     orderSubscriptions.computeIfPresent(orderId, (s, disposable) -> {
                                         disposable.dispose();
                                         return disposable;
                                     });
                                     orderSubscriptions.remove(orderId);
+                                    logger.info("");
                                 }
-                                return optionalOrder.stream();
+
+                                return order;
                             }).collect(Collectors.toList());
 
                 }, throwable -> {
@@ -283,7 +298,7 @@ public class OkCoinService extends MarketService {
                 });
     }
 
-    private Disposable startTradesListener() {
+    private Disposable startTradesListener() { //It doesn't work
         return exchange.getStreamingMarketDataService()
                 .getTrades(CurrencyPair.BTC_USD, 20)
                 .doOnError(throwable -> logger.error("onTrades", throwable))
@@ -540,8 +555,11 @@ public class OkCoinService extends MarketService {
             if (tradeResponse.getOrderId() != null) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
             } else {
-                response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, String.format("Moving error. Cancelled amount %s, but %s",
-                        limitOrder.getTradableAmount().toPlainString(), tradeResponse.getErrorCode()));
+                final String description = String.format("#%s Moving error. Cancelled amount %s, but %s",
+                        arbitrageService.getCounter(),
+                        limitOrder.getTradableAmount().toPlainString(), tradeResponse.getErrorCode());
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, description);
+                tradeLogger.info(description);
             }
         } else {
             String logResponse = "";

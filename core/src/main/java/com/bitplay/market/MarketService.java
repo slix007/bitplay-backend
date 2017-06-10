@@ -94,7 +94,7 @@ public abstract class MarketService {
                 .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0) // filter as for gui
                 .count();
         if (openOrders.size() != openOrdersCount) {
-            logger.warn("OO with zero price: " + openOrders.stream()
+            logger.warn("OO with zero amount: " + openOrders.stream()
                     .map(LimitOrder::toString)
                     .reduce((s, s2) -> s + "; " + s2));
         }
@@ -243,6 +243,7 @@ public abstract class MarketService {
                         freeTheMarket = true;
                         toRemove.add(openOrder.getId());
                         haveToFetch = true;
+                        logger.info(getName() + response.getDescription());
                     }
 
                     if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
