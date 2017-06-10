@@ -391,6 +391,8 @@ public class OkCoinService extends MarketService {
 
             BigDecimal tradeableAmount = adjustAmount(amount);
 
+            /* TODO update balance right after cancelling before enable the following code.
+             for now, we use response error message 'Insuficient coins(fonds)'
             if (!isAffordable(orderType, tradeableAmount)) {
                 
                 final Wallet wallet = getAccountInfo().getWallet();
@@ -401,9 +403,11 @@ public class OkCoinService extends MarketService {
                         orderType.toString(), tradeableAmount.toPlainString(),
                         btcBalance, usdBalance));
 
-            } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
+            } else
+            */
+            if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
 
-                tradeResponse.setErrorMessage("Not enough amount left");
+                tradeResponse.setErrorMessage("Not enough amount left. amount=" + tradeableAmount.toPlainString());
 
             } else {
                 final LimitOrder limitOrder = new LimitOrder(orderType,
@@ -453,7 +457,7 @@ public class OkCoinService extends MarketService {
         } catch (Exception e) {
             logger.error("Place market order error", e);
             tradeLogger.info("maker error {}", e.toString());
-            tradeResponse.setOrderId(e.getMessage());
+            tradeResponse.setOrderId(null);
             tradeResponse.setErrorMessage(e.getMessage());
         }
 
@@ -545,10 +549,11 @@ public class OkCoinService extends MarketService {
 
             // Place order
             TradeResponse tradeResponse = new TradeResponse();
-            while (attemptCount < 5) {
+            while (attemptCount < 3) {
                 attemptCount++;
                 tradeResponse = placeMakerOrder(limitOrder.getType(), limitOrder.getTradableAmount(), bestQuotes, true, fromGui);
-                if (tradeResponse.getErrorCode() == null) { // when amount less then affordable.
+                if (tradeResponse.getErrorCode() == null
+                        || tradeResponse.getErrorCode().startsWith("Insufficient")) { // when amount less then affordable.
                     break;
                 }
             }
