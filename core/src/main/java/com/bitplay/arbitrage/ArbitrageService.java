@@ -164,10 +164,11 @@ public class ArbitrageService {
                 if (cumDiffsFact.compareTo(cumDiffsFactMin) == -1) cumDiffsFactMin = cumDiffsFact;
                 if (cumDiffsFact.compareTo(cumDiffsFactMax) == 1) cumDiffsFactMax = cumDiffsFact;
 
-                deltasLogger.info(String.format("delta1_fact=%s-%s=%s; " +
+                deltasLogger.info(String.format("#%s delta1_fact=%s-%s=%s; " +
                                 "cum_delta_fact=%s/%s/%s; " +
                                 "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
                                 "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; position=%s",
+                        getCounter(),
                         openPrices.getFirstOpenPrice().toPlainString(),
                         openPrices.getSecondOpenPrice().toPlainString(),
                         deltaFact.toPlainString(),
@@ -210,10 +211,11 @@ public class ArbitrageService {
                 if (cumDiffsFact.compareTo(cumDiffsFactMin) == -1) cumDiffsFactMin = cumDiffsFact;
                 if (cumDiffsFact.compareTo(cumDiffsFactMax) == 1) cumDiffsFactMax = cumDiffsFact;
 
-                deltasLogger.info(String.format("delta2_fact=%s-%s=%s; " +
+                deltasLogger.info(String.format("#%s delta2_fact=%s-%s=%s; " +
                                 "cum_delta_fact=%s/%s/%s; " +
                                 "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
                                 "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; position=%s",
+                        getCounter(),
                         openPrices.getSecondOpenPrice().toPlainString(),
                         openPrices.getFirstOpenPrice().toPlainString(),
                         deltaFact.toPlainString(),
@@ -269,10 +271,12 @@ public class ArbitrageService {
         theCheckBusyTimer = Completable.timer(5, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
                     if (firstMarketService.isArbitrageInProgress() || secondMarketService.isArbitrageInProgress()) {
-                        deltasLogger.warn(String.format("Warning: busy by isArbitrageInProgress for 5 min. first:%s, second:%s",
+                        deltasLogger.warn(String.format("#%s Warning: busy by isArbitrageInProgress for 5 min. first:%s, second:%s",
+                                getCounter(),
                                 firstMarketService.isArbitrageInProgress(), secondMarketService.isArbitrageInProgress()));
                     } else if (!firstMarketService.isReadyForArbitrage() || !secondMarketService.isReadyForArbitrage()) {
-                        deltasLogger.warn(String.format("Warning: busy for 5 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
+                        deltasLogger.warn(String.format("#%s Warning: busy for 5 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
+                                getCounter(),
                                 firstMarketService.isReadyForArbitrage(), firstMarketService.getOpenOrders().size(),
                                 secondMarketService.isReadyForArbitrage(), secondMarketService.getOpenOrders().size()));
                     }
@@ -422,7 +426,8 @@ public class ArbitrageService {
         cumDelta = cumDelta.add(delta1);
         if (cumDelta.compareTo(cumDeltaMin) == -1) cumDeltaMin = cumDelta;
         if (cumDelta.compareTo(cumDeltaMax) == 1) cumDeltaMax = cumDelta;
-        deltasLogger.info(String.format("delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
+        deltasLogger.info(String.format("#%s delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
+                getCounter(),
                 bid1_p.toPlainString(), ask1_o.toPlainString(),
                 delta1.toPlainString(),
                 border1.toPlainString(),
@@ -446,7 +451,8 @@ public class ArbitrageService {
         cumCom1 = cumCom1.add(com1);
         cumCom2 = cumCom2.add(com2);
         BigDecimal cumCom = cumCom1.add(cumCom2);
-        deltasLogger.info(String.format("com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
+        deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
+                getCounter(),
                 com1, com1Min, com1Max,
                 com2, com2Min, com2Max,
                 com, comMin, comMax,
@@ -458,7 +464,7 @@ public class ArbitrageService {
         printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance);
 
         counter1++;
-        deltasLogger.info(String.format("count=%s+%s=%s", counter1, counter2, counter1 + counter2));
+        deltasLogger.info(String.format("#%s count=%s+%s=%s", getCounter(), counter1, counter2, counter1 + counter2));
     }
 
     private void printSumBal() {
@@ -515,7 +521,8 @@ public class ArbitrageService {
         ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
         BigDecimal sumBalUsd4 = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP))
                 .multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
-        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$; position=%s",
+        deltasLogger.info(String.format("#%s sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$; position=%s",
+                getCounter(),
                 firstWalletBalance,
                 btcO,
                 usdO,
@@ -547,7 +554,8 @@ public class ArbitrageService {
         cumDelta = cumDelta.add(delta2);
         if (cumDelta.compareTo(cumDeltaMin) == -1) cumDeltaMin = cumDelta;
         if (cumDelta.compareTo(cumDeltaMax) == 1) cumDeltaMax = cumDelta;
-        deltasLogger.info(String.format("delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
+        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
+                getCounter(),
                 bid1_o.toPlainString(), ask1_p.toPlainString(),
                 delta2.toPlainString(),
                 border2.toPlainString(),
@@ -571,7 +579,8 @@ public class ArbitrageService {
         cumCom1 = cumCom1.add(com1);
         cumCom2 = cumCom2.add(com2);
         BigDecimal cumCom = cumCom1.add(cumCom2);
-        deltasLogger.info(String.format("com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
+        deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
+                getCounter(),
                 com1, com1Min, com1Max,
                 com2, com2Min, com2Max,
                 com, comMin, comMax,
@@ -583,7 +592,7 @@ public class ArbitrageService {
         printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance);
 
         counter2++;
-        deltasLogger.info(String.format("count=%s+%s=%s", counter1, counter2, counter1 + counter2));
+        deltasLogger.info(String.format("#%s count=%s+%s=%s", getCounter(), counter1, counter2, counter1 + counter2));
     }
 
     private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {
