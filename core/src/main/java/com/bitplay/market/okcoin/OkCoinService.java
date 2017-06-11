@@ -12,11 +12,9 @@ import info.bitrich.xchangestream.okcoin.OkCoinStreamingExchange;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
-import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
@@ -31,13 +29,10 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -74,8 +69,9 @@ public class OkCoinService extends MarketService {
     private OkCoinStreamingExchange exchange;
 
     Disposable orderBookSubscription;
+    Disposable privateDataSubscription;
     private Observable<OrderBook> orderBookObservable;
-    private Map<String, Disposable> orderSubscriptions = new HashMap<>();
+//    private Map<String, Disposable> orderSubscriptions = new HashMap<>();
 
     @Override
     public String getName() {
@@ -101,11 +97,13 @@ public class OkCoinService extends MarketService {
 
         subscribeOnOrderBook();
 
-        subscribeOnOthers();
-
 //        startTradesListener(); // to remove openOrders
 
+        privateDataSubscription = startPrivateDataListener();
+
         fetchOpenOrdersWithDelay();
+
+        fetchAccountInfo();
     }
 
     private void createOrderBookObservable() {
@@ -141,16 +139,6 @@ public class OkCoinService extends MarketService {
             logger.warn("onClientDisconnect okCoinService");
             initWebSocketAndAllSubscribers();
         }).subscribe();
-    }
-
-    private void subscribeOnOthers() {
-        //        exchange.getStreamingMarketDataService().getTicker(CurrencyPair.BTC_USD).subscribe(ticker -> {
-//            logger.info("TICKER: {}", ticker);
-//        }, throwable -> logger.error("ERROR in getting ticker: ", throwable));
-
-//        exchange.getStreamingMarketDataService().getTrades(CurrencyPair.BTC_USD).subscribe(trade -> {
-//            logger.info("TRADE: {}", trade);
-//        }, throwable -> logger.error("ERROR in getting trades: ", throwable));
     }
 
     private void subscribeOnOrderBook() {
@@ -191,7 +179,8 @@ public class OkCoinService extends MarketService {
     public void preDestroy() {
         // Unsubscribe from data order book.
         orderBookSubscription.dispose();
-        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
+//        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
+        privateDataSubscription.dispose();
 
         // Disconnect from exchange (non-blocking)
         exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
@@ -214,11 +203,11 @@ public class OkCoinService extends MarketService {
         return toString;
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 1000 * 60 * 15) // The subscription should handle it.
     public AccountInfo fetchAccountInfo() {
         try {
             accountInfo = exchange.getAccountService().getAccountInfo();
-            logger.debug(accountInfo.toString());
+            logger.info(accountInfo.toString());
         } catch (IOException e) {
             logger.error("AccountInfo error", e);
         }
@@ -241,69 +230,70 @@ public class OkCoinService extends MarketService {
 //        this.fetchOpenOrders();
     }
 
-    private Disposable startOrderListener(String orderId) {
-        return exchange.getStreamingTradingService()
-                //TODO use different method like getOrderObservable
-                .getOpenOrdersObservable("btc_usd", orderId)
-                .doOnError(throwable -> logger.error("onOrder onError", throwable))
-                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
-                .subscribeOn(Schedulers.computation())
-                .subscribe(updatedOrder -> {
-                    logger.info("Order update: " + updatedOrder.toString());
-                    this.openOrders = this.openOrders.stream()
-                            .map(existingInMemory -> {
-                                // merge if the update of an existingInMemory
-                                LimitOrder order = existingInMemory;
-                                final Optional<LimitOrder> optionalMatch = updatedOrder.getOpenOrders().stream()
-                                        .filter(existing -> existingInMemory.getId().equals(existing.getId()))
-                                        .findFirst();
-                                if (optionalMatch.isPresent()) {
-                                    order = optionalMatch.get();
-                                    logger.info("Order has been updated: " + order.toString());
-                                }
-//                                final List<LimitOrder> optionalOrder = new ArrayList<>();
-//                                if (order.getStatus() != Order.OrderStatus.CANCELED
-//                                        && order.getStatus() != Order.OrderStatus.EXPIRED
-//                                        && order.getStatus() != Order.OrderStatus.FILLED
-//                                        && order.getStatus() != Order.OrderStatus.REJECTED
-//                                        && order.getStatus() != Order.OrderStatus.REPLACED
-//                                        && order.getStatus() != Order.OrderStatus.STOPPED) {
-//                                    optionalOrder.add(order);
-//                                } else {
-//                                    orderSubscriptions.computeIfPresent(orderId, (s, disposable) -> {
-//                                        disposable.dispose();
-//                                        return disposable;
-//                                    });
-//                                    orderSubscriptions.remove(orderId);
-//                                }
-                                if (order.getStatus() == Order.OrderStatus.CANCELED
-                                        || order.getStatus() == Order.OrderStatus.EXPIRED
-                                        || order.getStatus() == Order.OrderStatus.FILLED
-                                        || order.getStatus() == Order.OrderStatus.REJECTED
-                                        || order.getStatus() == Order.OrderStatus.REPLACED
-                                        || order.getStatus() == Order.OrderStatus.STOPPED) {
-                                    orderSubscriptions.computeIfPresent(orderId, (s, disposable) -> {
-                                        disposable.dispose();
-                                        return disposable;
-                                    });
-                                    orderSubscriptions.remove(orderId);
-                                    logger.info("");
-                                }
+    /*
+        private Disposable startOrderListener(String orderId) {
+            return exchange.getStreamingTradingService()
+                    .getOpenOrderObservable("btc_usd", orderId)
+                    .doOnError(throwable -> logger.error("onOrder onError", throwable))
+                    .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
+                    .subscribeOn(Schedulers.io())
+                    .subscribe(updatedOrder -> {
+                        logger.info("Order update: " + updatedOrder.toString());
+                        this.openOrders = this.openOrders.stream()
+                                .map(existingInMemory -> {
+                                    // merge if the update of an existingInMemory
+                                    LimitOrder order = existingInMemory;
+                                    final Optional<LimitOrder> optionalMatch = updatedOrder.getOpenOrders().stream()
+                                            .filter(existing -> existingInMemory.getId().equals(existing.getId()))
+                                            .findFirst();
+                                    if (optionalMatch.isPresent()) {
+                                        order.getCumulativeAmount();
+                                        order = optionalMatch.get();
+                                        logger.info("Order has been updated: " + order.toString());
+                                    }
+    //                                final List<LimitOrder> optionalOrder = new ArrayList<>();
+    //                                if (order.getStatus() != Order.OrderStatus.CANCELED
+    //                                        && order.getStatus() != Order.OrderStatus.EXPIRED
+    //                                        && order.getStatus() != Order.OrderStatus.FILLED
+    //                                        && order.getStatus() != Order.OrderStatus.REJECTED
+    //                                        && order.getStatus() != Order.OrderStatus.REPLACED
+    //                                        && order.getStatus() != Order.OrderStatus.STOPPED) {
+    //                                    optionalOrder.add(order);
+    //                                } else {
+    //                                    orderSubscriptions.computeIfPresent(orderId, (s, disposable) -> {
+    //                                        disposable.dispose();
+    //                                        return disposable;
+    //                                    });
+    //                                    orderSubscriptions.remove(orderId);
+    //                                }
+                                    if (order.getStatus() == Order.OrderStatus.CANCELED
+                                            || order.getStatus() == Order.OrderStatus.EXPIRED
+                                            || order.getStatus() == Order.OrderStatus.FILLED
+                                            || order.getStatus() == Order.OrderStatus.REJECTED
+                                            || order.getStatus() == Order.OrderStatus.REPLACED
+                                            || order.getStatus() == Order.OrderStatus.STOPPED) {
+                                        orderSubscriptions.computeIfPresent(orderId, (s, disposable) -> {
+                                            disposable.dispose();
+                                            return disposable;
+                                        });
+                                        orderSubscriptions.remove(orderId);
+                                        logger.info("");
+                                    }
 
-                                return order;
-                            }).collect(Collectors.toList());
+                                    return order;
+                                }).collect(Collectors.toList());
 
-                }, throwable -> {
-                    logger.error("OO.Exception: ", throwable);
-                });
-    }
-
-    private Disposable startTradesListener() { //It doesn't work
+                    }, throwable -> {
+                        logger.error("OO.Exception: ", throwable);
+                    });
+        }
+    */
+/*    private Disposable startTradesListener() { //It doesn't work
         return exchange.getStreamingMarketDataService()
                 .getTrades(CurrencyPair.BTC_USD, 20)
                 .doOnError(throwable -> logger.error("onTrades", throwable))
                 .retryWhen(throwables -> throwables.delay(1, TimeUnit.SECONDS))
-                .subscribeOn(Schedulers.computation())
+                .subscribeOn(Schedulers.io())
                 .subscribe(trades -> {
                     if (this.openOrders == null) {
                         this.openOrders = new ArrayList<>();
@@ -314,6 +304,66 @@ public class OkCoinService extends MarketService {
 //                    this.openOrders.removeIf(limitOrder ->
 //                            trades.getId().equals(limitOrder.getId()));
                 }, throwable -> logger.error("Trades.Exception: ", throwable));
+    }
+*/
+    private Disposable startPrivateDataListener() {
+        return exchange.getStreamingPrivateDataService()
+                .getTradesAndBalances()
+                .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.io())
+                .subscribe(privateData -> {
+                    logger.debug(privateData.toString());
+                    if (privateData.getAccountInfo() != null) {
+                        accountInfo = privateData.getAccountInfo();
+                    }
+                    if (privateData.getTrades() != null) {
+                        updateOpenOrders(privateData.getTrades());
+                    }
+                }, throwable -> {
+                    logger.error("PrivateData.Exception: ", throwable);
+                });
+    }
+
+    private void updateOpenOrders(List<LimitOrder> trades) {
+
+        // Replace all existing with new info
+        this.openOrders = this.openOrders.stream()
+                .map(existingInMemory -> {
+                    // merge if the update of an existingInMemory
+                    LimitOrder order = existingInMemory;
+                    final Optional<LimitOrder> optionalMatch = trades.stream()
+                            .filter(existing -> existingInMemory.getId().equals(existing.getId()))
+                            .findFirst();
+                    if (optionalMatch.isPresent()) {
+                        order = optionalMatch.get();
+                        tradeLogger.info("Order update:id={},status={},amount={},filled={}",
+                                order.getId(), order.getStatus(), order.getTradableAmount(),
+                                order.getCumulativeAmount());
+                    }
+
+                    return order;
+                }).collect(Collectors.toList());
+
+        // Add new orders
+        List<LimitOrder> newOrders = trades.stream()
+                .filter(order -> order.getStatus() != Order.OrderStatus.CANCELED
+                        && order.getStatus() != Order.OrderStatus.EXPIRED
+                        && order.getStatus() != Order.OrderStatus.FILLED
+                        && order.getStatus() != Order.OrderStatus.REJECTED
+                        && order.getStatus() != Order.OrderStatus.REPLACED
+                        && order.getStatus() != Order.OrderStatus.PENDING_CANCEL
+                        && order.getStatus() != Order.OrderStatus.PENDING_REPLACE
+                        && order.getStatus() != Order.OrderStatus.STOPPED)
+                .filter((LimitOrder limitOrder) -> {
+                    final String id = limitOrder.getId();
+                    return this.openOrders.stream()
+                            .anyMatch(existing -> id.equals(existing.getId()));
+                })
+                .collect(Collectors.toList());
+
+        debugLog.info("NewOrders: " + Arrays.toString(newOrders.toArray()));
+        this.openOrders.addAll(newOrders);
     }
 
     public OrderBook fetchOrderBook() {
@@ -366,7 +416,6 @@ public class OkCoinService extends MarketService {
                     amount.toPlainString(),
                     theBestPrice);
 
-            fetchAccountInfo();
         } catch (Exception e) {
             logger.error("Place market order error", e);
             orderId = e.getMessage();
@@ -436,8 +485,8 @@ public class OkCoinService extends MarketService {
                         orderId,
                         diffWithSignal);
 
-                final Disposable orderListener = startOrderListener(orderId);
-                orderSubscriptions.put(orderId, orderListener);
+//                final Disposable orderListener = startOrderListener(orderId);
+//                orderSubscriptions.put(orderId, orderListener);
                 final LimitOrder limitOrderWithId = new LimitOrder(orderType,
                         tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(),
                         thePrice);
@@ -549,11 +598,24 @@ public class OkCoinService extends MarketService {
 
             // Place order
             TradeResponse tradeResponse = new TradeResponse();
-            while (attemptCount < 3) {
+            while (attemptCount < 5) {
                 attemptCount++;
-                tradeResponse = placeMakerOrder(limitOrder.getType(), limitOrder.getTradableAmount(), bestQuotes, true, fromGui);
-                if (tradeResponse.getErrorCode() == null
-                        || tradeResponse.getErrorCode().startsWith("Insufficient")) { // when amount less then affordable.
+                final BigDecimal newAmount = limitOrder.getTradableAmount()
+                        .subtract(limitOrder.getCumulativeAmount());
+                tradeResponse = placeMakerOrder(limitOrder.getType(),
+                        newAmount, bestQuotes, true, fromGui);
+                if (tradeResponse.getErrorCode().startsWith("Insufficient")) {
+                    tradeLogger.info("#{} Failed {} amount={},quote={},id={},attempt={}. Error: {}",
+                            arbitrageService.getCounter(),
+                            limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                            limitOrder.getTradableAmount(),
+                            limitOrder.getLimitPrice().toPlainString(),
+                            limitOrder.getId(),
+                            attemptCount,
+                            tradeResponse.getErrorCode());
+                }
+                if (tradeResponse.getErrorCode() == null) {
+                    // tradeResponse.getErrorCode().startsWith("Insufficient")) { // when amount less then affordable.
                     break;
                 }
             }

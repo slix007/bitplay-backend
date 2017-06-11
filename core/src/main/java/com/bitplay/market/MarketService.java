@@ -221,7 +221,7 @@ public abstract class MarketService {
     }
 
     protected synchronized void checkOpenOrdersForMoving() {
-        debugLog.info(getName() + ":checkOpenOrdersForMoving");
+//        debugLog.info(getName() + ":checkOpenOrdersForMoving");
         if (isReadyForMoving && marketState != MarketState.STOP_MOVING) {
             iterateOpenOrdersMove();
         }
