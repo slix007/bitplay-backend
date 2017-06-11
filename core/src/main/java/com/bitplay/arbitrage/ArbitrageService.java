@@ -230,6 +230,9 @@ public class ArbitrageService {
                 ));
             }
         }
+
+        printSumBal();
+
     }
 
     public MarketService getFirstMarketService() {
@@ -452,6 +455,50 @@ public class ArbitrageService {
                 cumCom
         ));
 
+        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance);
+
+        counter1++;
+        deltasLogger.info(String.format("count=%s+%s=%s", counter1, counter2, counter1 + counter2));
+    }
+
+    private void printSumBal() {
+        final OrderBook firstOrderBook = firstMarketService.getOrderBook();
+        final OrderBook secondOrderBook = secondMarketService.getOrderBook();
+        BigDecimal ask1_o = BigDecimal.ZERO;
+        BigDecimal ask1_p = BigDecimal.ZERO;
+        BigDecimal bid1_o = BigDecimal.ZERO;
+        BigDecimal bid1_p = BigDecimal.ZERO;
+        if (firstOrderBook != null && secondOrderBook != null
+                && firstOrderBook.getAsks().size() > 1
+                && secondOrderBook.getAsks().size() > 1) {
+            ask1_o = Utils.getBestAsks(firstOrderBook.getAsks(), 1).get(0).getLimitPrice();
+            ask1_p = Utils.getBestAsks(secondOrderBook.getAsks(), 1).get(0).getLimitPrice();
+
+            bid1_o = Utils.getBestBids(firstOrderBook.getBids(), 1).get(0).getLimitPrice();
+            bid1_p = Utils.getBestBids(secondOrderBook.getBids(), 1).get(0).getLimitPrice();
+
+            delta1 = bid1_p.subtract(ask1_o);
+            delta2 = bid1_o.subtract(ask1_p);
+        }
+
+        BigDecimal firstWalletBalance = BigDecimal.ZERO;
+        if (firstMarketService.getAccountInfo() != null
+                && firstMarketService.getAccountInfo().getWallet() != null
+                && firstMarketService.getAccountInfo().getWallet().getBalance(BitmexAdapters.WALLET_CURRENCY) != null) {
+            firstWalletBalance = firstMarketService.getAccountInfo()
+                    .getWallet()
+                    .getBalance(BitmexAdapters.WALLET_CURRENCY)
+                    .getTotal();
+        }
+
+        final Wallet walletO = secondMarketService.getAccountInfo().getWallet();
+        final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
+        final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
+
+        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance);
+    }
+
+    private void printSumBal(BigDecimal ask1_o, BigDecimal bid1_o, BigDecimal btcO, BigDecimal usdO, BigDecimal firstWalletBalance) {
         //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
         BigDecimal sumBal = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP));
         BigDecimal sumBalUsd = sumBal.multiply(ask1_o).setScale(4, BigDecimal.ROUND_HALF_UP);
@@ -482,9 +529,6 @@ public class ArbitrageService {
                 sumBalUsd4,
                 firstMarketService.getPosition()
         ));
-
-        counter1++;
-        deltasLogger.info(String.format("count=%s+%s=%s", counter1, counter2, counter1 + counter2));
     }
 
     private void writeLogDelta2(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
@@ -536,36 +580,7 @@ public class ArbitrageService {
                 cumCom
         ));
 
-        //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
-        BigDecimal sumBal = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP));
-        BigDecimal sumBalUsd = sumBal.multiply(ask1_o).setScale(4, BigDecimal.ROUND_HALF_UP);
-        //sum_bal = wallet_b + btc_o + usd_o / bu , где bu типа double задаем с ui
-        BigDecimal bu = (buValue.compareTo(BigDecimal.ZERO) == 0) ? ask1_o : buValue;
-        BigDecimal sumBal2 = BigDecimal.ZERO;
-        BigDecimal sumBalUsd2 = BigDecimal.ZERO;
-        if (buValue.compareTo(BigDecimal.ZERO) != 0) {
-            sumBal2 = firstWalletBalance.add(btcO).add(usdO.divide(bu, 8, BigDecimal.ROUND_HALF_UP));
-            sumBalUsd2 = sumBal2.multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
-        }
-        BigDecimal sumBalUsd3 = firstWalletBalance.multiply(bu).add(
-                btcO.multiply(bid1_o)
-        ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
-        BigDecimal sumBalUsd4 = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP))
-                .multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
-        deltasLogger.info(String.format("sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$; position=%s",
-                firstWalletBalance,
-                btcO,
-                usdO,
-                bu,
-                ask1_o,
-                sumBal,
-                sumBal2,
-                sumBalUsd,
-                sumBalUsd2,
-                sumBalUsd3,
-                sumBalUsd4,
-                firstMarketService.getPosition()
-        ));
+        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance);
 
         counter2++;
         deltasLogger.info(String.format("count=%s+%s=%s", counter1, counter2, counter1 + counter2));
