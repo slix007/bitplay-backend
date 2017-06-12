@@ -233,7 +233,7 @@ public class ArbitrageService {
             }
         }
 
-        printSumBal();
+        printSumBal(false);
 
     }
 
@@ -464,10 +464,10 @@ public class ArbitrageService {
                 cumCom
         ));
 
-        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance);
+        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance, false);
     }
 
-    private void printSumBal() {
+    public void printSumBal(boolean isGuiButton) {
         final OrderBook firstOrderBook = secondMarketService.getOrderBook();
         BigDecimal ask1_o = BigDecimal.ZERO;
         BigDecimal bid1_o = BigDecimal.ZERO;
@@ -491,10 +491,11 @@ public class ArbitrageService {
         final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
 
-        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance);
+        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance, isGuiButton);
     }
 
-    private void printSumBal(BigDecimal ask1_o, BigDecimal bid1_o, BigDecimal btcO, BigDecimal usdO, BigDecimal firstWalletBalance) {
+    private void printSumBal(BigDecimal ask1_o, BigDecimal bid1_o, BigDecimal btcO, BigDecimal usdO,
+                             BigDecimal firstWalletBalance, boolean isGuiButton) {
         //sum_bal = wallet_b + btc_o + usd_o / ask1 , где bu типа double задаем с ui
         BigDecimal sumBal = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP));
         BigDecimal sumBalUsd = sumBal.multiply(ask1_o).setScale(4, BigDecimal.ROUND_HALF_UP);
@@ -512,7 +513,7 @@ public class ArbitrageService {
         BigDecimal sumBalUsd4 = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP))
                 .multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
         deltasLogger.info(String.format("#%s sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$; position=%s",
-                getCounter(),
+                isGuiButton ? "button" : getCounter(),
                 firstWalletBalance,
                 btcO,
                 usdO,
@@ -582,7 +583,7 @@ public class ArbitrageService {
                 cumCom
         ));
 
-        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance);
+        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance, false);
     }
 
     private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {

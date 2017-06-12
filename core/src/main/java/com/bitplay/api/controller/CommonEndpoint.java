@@ -6,6 +6,7 @@ import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.MarketList;
 import com.bitplay.api.domain.MarketFlagsJson;
+import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
@@ -149,4 +150,13 @@ public class CommonEndpoint {
     public TradableAmountJson setTradableAmount(TradableAmountJson tradableAmountJson) {
         return commonUIService.updateTradableAmount(tradableAmountJson);
     }
+
+    @POST
+    @Path("/market/print-sum-bal")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public ResultJson printSumBal() {
+        return commonUIService.printSumBal();
+    }
+
 }

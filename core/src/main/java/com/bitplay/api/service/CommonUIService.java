@@ -4,6 +4,7 @@ import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.MarketFlagsJson;
+import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
@@ -214,4 +215,8 @@ public class CommonUIService {
         return new TradableAmountJson(arbitrageService.getAmount().toPlainString());
     }
 
+    public ResultJson printSumBal() {
+        arbitrageService.printSumBal(true);
+        return new ResultJson("OK", "");
+    }
 }
