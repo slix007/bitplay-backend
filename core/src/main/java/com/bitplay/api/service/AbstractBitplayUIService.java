@@ -1,16 +1,17 @@
 package com.bitplay.api.service;
 
-import com.bitplay.api.domain.OrderJson;
-import com.bitplay.api.domain.ResultJson;
-import com.bitplay.market.MarketService;
 import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.OrderBookJson;
+import com.bitplay.api.domain.OrderJson;
+import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TickerJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.currency.Currency;
+import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -122,6 +123,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     public List<OrderJson> getOpenOrders() {
         return getBusinessService().getOpenOrders().stream()
                 .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
+                .filter(limitOrder -> limitOrder.getStatus() != Order.OrderStatus.CANCELED)
                 .map(toOrderJson)
                 .collect(Collectors.toList());
 
