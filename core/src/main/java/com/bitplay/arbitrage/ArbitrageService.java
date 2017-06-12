@@ -362,7 +362,7 @@ public class ArbitrageService {
         final BigDecimal btcP = walletP.getBalance(Currency.BTC).getAvailable();
         final BigDecimal usdP = walletP.getBalance(firstMarketService.getSecondCurrency()).getAvailable();
         final Wallet walletO = secondMarketService.getAccountInfo().getWallet();
-        final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
+        final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable().setScale(8, BigDecimal.ROUND_HALF_UP);
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
 
 //            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
@@ -488,7 +488,7 @@ public class ArbitrageService {
         }
 
         final Wallet walletO = secondMarketService.getAccountInfo().getWallet();
-        final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable();
+        final BigDecimal btcO = walletO.getBalance(Currency.BTC).getAvailable().setScale(8, BigDecimal.ROUND_HALF_UP);
         final BigDecimal usdO = walletO.getBalance(Currency.USD).getAvailable();
 
         printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance, isGuiButton);
