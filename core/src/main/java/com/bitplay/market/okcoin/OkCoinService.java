@@ -58,6 +58,7 @@ public class OkCoinService extends MarketService {
 
     private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
     private final static String NAME = "okcoin";
+    private static final String BY_BUTTON = "ByButton";
 
     ArbitrageService arbitrageService;
 
@@ -432,6 +433,8 @@ public class OkCoinService extends MarketService {
                                           boolean isMoving, boolean fromGui) {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
+            arbitrageService.setManual(fromGui);
+
             final TradeService tradeService = exchange.getTradeService();
             BigDecimal thePrice;
 
@@ -477,7 +480,7 @@ public class OkCoinService extends MarketService {
                             ? diff1 : diff2);
                 }
                 tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}",
-                        arbitrageService.getCounter(),
+                        fromGui ? BY_BUTTON : arbitrageService.getCounter(),
                         isMoving ? "Moved" : "maker",
                         orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                         tradeableAmount.toPlainString(),
@@ -565,6 +568,8 @@ public class OkCoinService extends MarketService {
 
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui) {
+        arbitrageService.setManual(fromGui);
+
         // IT doesn't support moving
         // Do cancel ant place
         final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
@@ -589,7 +594,7 @@ public class OkCoinService extends MarketService {
 
         if (cancelledSuccessfully) {
             tradeLogger.info("#{} Cancelled {} amount={},quote={},id={},attempt={}",
-                    arbitrageService.getCounter(),
+                    fromGui ? BY_BUTTON : arbitrageService.getCounter(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     limitOrder.getLimitPrice().toPlainString(),
@@ -606,7 +611,7 @@ public class OkCoinService extends MarketService {
                         newAmount, bestQuotes, true, fromGui);
                 if (tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info("#{} Failed {} amount={},quote={},id={},attempt={}. Error: {}",
-                            arbitrageService.getCounter(),
+                            fromGui ? BY_BUTTON : arbitrageService.getCounter(),
                             limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                             limitOrder.getTradableAmount(),
                             limitOrder.getLimitPrice().toPlainString(),
@@ -623,7 +628,7 @@ public class OkCoinService extends MarketService {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
             } else {
                 final String description = String.format("#%s Moving error. Cancelled amount %s, but %s",
-                        arbitrageService.getCounter(),
+                        fromGui ? BY_BUTTON : arbitrageService.getCounter(),
                         limitOrder.getTradableAmount().toPlainString(), tradeResponse.getErrorCode());
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, description);
                 tradeLogger.info(description);
@@ -638,7 +643,7 @@ public class OkCoinService extends MarketService {
                 logResponse = "Cancel failed";
             }
             final String logString = String.format("#%s %s %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
-                    arbitrageService.getCounter(),
+                    fromGui ? BY_BUTTON : arbitrageService.getCounter(),
                     logResponse,
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),

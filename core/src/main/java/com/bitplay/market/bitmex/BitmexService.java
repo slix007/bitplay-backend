@@ -64,6 +64,8 @@ public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
 
+    private static final String BY_BUTTON = "ByButton";
+
     private final static String NAME = "bitmex";
 
     private final static CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
@@ -382,6 +384,8 @@ public class BitmexService extends MarketService {
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean isMoving, boolean fromGui) {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
+            arbitrageService.setManual(fromGui);
+
             final TradeService tradeService = exchange.getTradeService();
             BigDecimal thePrice;
 
@@ -409,7 +413,7 @@ public class BitmexService extends MarketService {
             }
 
             tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
-                    arbitrageService.getCounter(),
+                    fromGui ? BY_BUTTON : arbitrageService.getCounter(),
                     isMoving ? "Moved" : "maker",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
@@ -500,7 +504,7 @@ public class BitmexService extends MarketService {
             }
 
             final String logString = String.format("#%s Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s. position=%s",
-                    arbitrageService.getCounter(),
+                    fromGui ? BY_BUTTON : arbitrageService.getCounter(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     bestMakerPrice.toPlainString(),
