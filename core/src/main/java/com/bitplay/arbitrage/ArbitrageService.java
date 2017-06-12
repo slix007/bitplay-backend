@@ -425,7 +425,11 @@ public class ArbitrageService {
         deltasLogger.info("------------------------------------------");
 
         counter1++;
-        deltasLogger.info(String.format("#%s count=%s+%s=%s", getCounter(), counter1, counter2, counter1 + counter2));
+        String iterationMarker = "";
+        if (counter1 == counter2) {
+            iterationMarker = "whole iteration";
+        }
+        deltasLogger.info(String.format("#%s count=%s+%s=%s %s", getCounter(), counter1, counter2, counter1 + counter2, iterationMarker));
 
         BigDecimal firstWalletBalance = BigDecimal.ZERO;
         if (firstMarketService.getAccountInfo() != null
@@ -568,7 +572,11 @@ public class ArbitrageService {
         deltasLogger.info("------------------------------------------");
 
         counter2++;
-        deltasLogger.info(String.format("#%s count=%s+%s=%s", getCounter(), counter1, counter2, counter1 + counter2));
+        String iterationMarker = "";
+        if (counter1 == counter2) {
+            iterationMarker = "whole iteration";
+        }
+        deltasLogger.info(String.format("#%s count=%s+%s=%s %s", getCounter(), counter1, counter2, counter1 + counter2, iterationMarker));
 
         BigDecimal firstWalletBalance = BigDecimal.ZERO;
         if (firstMarketService.getAccountInfo() != null
