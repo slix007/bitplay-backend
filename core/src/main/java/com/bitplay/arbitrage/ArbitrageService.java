@@ -515,7 +515,7 @@ public class ArbitrageService {
         deltasLogger.info(String.format("#%s sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$; position=%s",
                 isGuiButton ? "button" : getCounter(),
                 firstWalletBalance,
-                btcO,
+                btcO.toPlainString(),
                 usdO,
                 bu,
                 ask1_o,
