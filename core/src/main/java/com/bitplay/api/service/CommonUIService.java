@@ -33,12 +33,14 @@ public class CommonUIService {
         return getTradeLogJson("./logs/poloniex-trades.log");
     }
 
-    public TradeLogJson getBitmexTradeLog() {
-        return getTradeLogJson("./logs/bitmex-trades.log");
-    }
-
-    public TradeLogJson getOkCoinTradeLog() {
-        return getTradeLogJson("./logs/okcoin-trades.log");
+    public TradeLogJson getTradeLog(String marketName, String date) {
+        String logName;
+        if (date == null || date.trim().length() == 0) {
+            logName = String.format("./logs/%s-trades.log", marketName);
+        } else {
+            logName = String.format("./logs/%s-trades.%s.log", marketName, date);
+        }
+        return getTradeLogJson(logName);
     }
 
     public TradeLogJson getDeltasLog() {

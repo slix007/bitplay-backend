@@ -598,7 +598,7 @@ public class OkCoinService extends MarketService {
 
             // Place order
             TradeResponse tradeResponse = new TradeResponse();
-            while (attemptCount < 5) {
+            while (attemptCount < 4) {
                 attemptCount++;
                 final BigDecimal newAmount = limitOrder.getTradableAmount()
                         .subtract(limitOrder.getCumulativeAmount());

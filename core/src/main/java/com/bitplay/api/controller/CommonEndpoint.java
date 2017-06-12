@@ -2,10 +2,10 @@ package com.bitplay.api.controller;
 
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.api.domain.BorderUpdateJson;
-import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
-import com.bitplay.api.domain.MarketList;
+import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.MarketFlagsJson;
+import com.bitplay.api.domain.MarketList;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
@@ -19,6 +19,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 /**
@@ -65,15 +66,15 @@ public class CommonEndpoint {
     @GET
     @Path("/market/trade-log/bitmex")
     @Produces(MediaType.APPLICATION_JSON)
-    public TradeLogJson getBitmexTradeLog() {
-        return commonUIService.getBitmexTradeLog();
+    public TradeLogJson getBitmexTradeLog(@QueryParam("date") String date) {
+        return commonUIService.getTradeLog("bitmex", date);
     }
 
     @GET
     @Path("/market/trade-log/okcoin")
     @Produces(MediaType.APPLICATION_JSON)
-    public TradeLogJson getOkcoinTradeLog() {
-        return commonUIService.getOkCoinTradeLog();
+    public TradeLogJson getOkcoinTradeLog(@QueryParam("date") String date) {
+        return commonUIService.getTradeLog("okcoin", date);
     }
 
     @GET
