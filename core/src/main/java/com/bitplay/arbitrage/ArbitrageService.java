@@ -468,23 +468,13 @@ public class ArbitrageService {
     }
 
     private void printSumBal() {
-        final OrderBook firstOrderBook = firstMarketService.getOrderBook();
-        final OrderBook secondOrderBook = secondMarketService.getOrderBook();
+        final OrderBook firstOrderBook = secondMarketService.getOrderBook();
         BigDecimal ask1_o = BigDecimal.ZERO;
-        BigDecimal ask1_p = BigDecimal.ZERO;
         BigDecimal bid1_o = BigDecimal.ZERO;
-        BigDecimal bid1_p = BigDecimal.ZERO;
-        if (firstOrderBook != null && secondOrderBook != null
-                && firstOrderBook.getAsks().size() > 1
-                && secondOrderBook.getAsks().size() > 1) {
+        if (firstOrderBook != null
+                && firstOrderBook.getAsks().size() > 1) {
             ask1_o = Utils.getBestAsks(firstOrderBook.getAsks(), 1).get(0).getLimitPrice();
-            ask1_p = Utils.getBestAsks(secondOrderBook.getAsks(), 1).get(0).getLimitPrice();
-
             bid1_o = Utils.getBestBids(firstOrderBook.getBids(), 1).get(0).getLimitPrice();
-            bid1_p = Utils.getBestBids(secondOrderBook.getBids(), 1).get(0).getLimitPrice();
-
-            delta1 = bid1_p.subtract(ask1_o);
-            delta2 = bid1_o.subtract(ask1_p);
         }
 
         BigDecimal firstWalletBalance = BigDecimal.ZERO;
