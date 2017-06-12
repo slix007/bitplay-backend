@@ -80,6 +80,8 @@ public class ArbitrageService {
     private BigDecimal com2 = BigDecimal.ZERO;
     private BigDecimal com2Min = BigDecimal.valueOf(10000);
     private BigDecimal com2Max = BigDecimal.ZERO;
+    private BigDecimal bitmexMComMin = BigDecimal.valueOf(10000);
+    private BigDecimal bitmexMComMax = BigDecimal.ZERO;
 
     private BigDecimal cumCom1 = BigDecimal.ZERO;
     private BigDecimal cumCom2 = BigDecimal.ZERO;
@@ -447,9 +449,16 @@ public class ArbitrageService {
                 cumDeltaMax
         ));
 
+        // Count com
         com1 = bid1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
         com2 = ask1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
 
+        printCom();
+
+        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance, false);
+    }
+
+    private void printCom() {
         if (com1.compareTo(com1Min) == -1) com1Min = com1;
         if (com1.compareTo(com1Max) == 1) com1Max = com1;
         if (com2.compareTo(com2Min) == -1) com2Min = com2;
@@ -460,17 +469,21 @@ public class ArbitrageService {
         cumCom1 = cumCom1.add(com1);
         cumCom2 = cumCom2.add(com2);
         BigDecimal cumCom = cumCom1.add(cumCom2);
-        deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
+        // bitmex_m_com = round(open_price_fact * 0.025 / 100; 4),
+        BigDecimal bitmexMCom = openPrices.getFirstOpenPrice().multiply(new BigDecimal(0.025)).divide(new BigDecimal(100), 4, BigDecimal.ROUND_HALF_UP);
+        if (bitmexMCom.compareTo(bitmexMComMin) == -1) bitmexMComMin = bitmexMCom;
+        if (bitmexMCom.compareTo(bitmexMComMax) == 1) bitmexMComMax = bitmexMCom;
+        deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s; " +
+                        "bitmex_m_com=%s/%s/%s",
                 getCounter(),
                 com1, com1Min, com1Max,
                 com2, com2Min, com2Max,
                 com, comMin, comMax,
                 cumCom1,
                 cumCom2,
-                cumCom
+                cumCom,
+                bitmexMCom, bitmexMComMin, bitmexMComMax
         ));
-
-        printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance, false);
     }
 
     public void printSumBal(boolean isGuiButton) {
@@ -573,28 +586,11 @@ public class ArbitrageService {
                 cumDeltaMax
         ));
 
+        // Count com
         com1 = ask1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
         com2 = bid1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-        if (com1.compareTo(com1Min) == -1) com1Min = com1;
-        if (com1.compareTo(com1Max) == 1) com1Max = com1;
-        if (com2.compareTo(com2Min) == -1) com2Min = com2;
-        if (com2.compareTo(com2Max) == 1) com2Max = com2;
-        BigDecimal com = com1.add(com2);
-        if (com.compareTo(comMin) == -1) comMin = com;
-        if (com.compareTo(comMax) == 1) comMax = com;
-        cumCom1 = cumCom1.add(com1);
-        cumCom2 = cumCom2.add(com2);
-        BigDecimal cumCom = cumCom1.add(cumCom2);
-        deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
-                getCounter(),
-                com1, com1Min, com1Max,
-                com2, com2Min, com2Max,
-                com, comMin, comMax,
-                cumCom1,
-                cumCom2,
-                cumCom
-        ));
+        printCom();
 
         printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance, false);
     }
