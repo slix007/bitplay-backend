@@ -80,8 +80,8 @@ public class CommonEndpoint {
     @GET
     @Path("/market/deltas-log")
     @Produces(MediaType.APPLICATION_JSON)
-    public TradeLogJson getDeltasLog() {
-        return commonUIService.getDeltasLog();
+    public TradeLogJson getDeltasLog(@QueryParam("date") String date) {
+        return commonUIService.getDeltasLog(date);
     }
 
     @GET
