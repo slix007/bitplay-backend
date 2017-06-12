@@ -413,6 +413,9 @@ public class ArbitrageService {
     private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_o, BigDecimal bid1_p, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
         deltasLogger.info("------------------------------------------");
 
+        counter1++;
+        deltasLogger.info(String.format("#%s count=%s+%s=%s", getCounter(), counter1, counter2, counter1 + counter2));
+
         BigDecimal firstWalletBalance = BigDecimal.ZERO;
         if (firstMarketService.getAccountInfo() != null
                 && firstMarketService.getAccountInfo().getWallet() != null
@@ -462,9 +465,6 @@ public class ArbitrageService {
         ));
 
         printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance);
-
-        counter1++;
-        deltasLogger.info(String.format("#%s count=%s+%s=%s", getCounter(), counter1, counter2, counter1 + counter2));
     }
 
     private void printSumBal() {
@@ -531,6 +531,9 @@ public class ArbitrageService {
     private void writeLogDelta2(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
         deltasLogger.info("------------------------------------------");
 
+        counter2++;
+        deltasLogger.info(String.format("#%s count=%s+%s=%s", getCounter(), counter1, counter2, counter1 + counter2));
+
         BigDecimal firstWalletBalance = BigDecimal.ZERO;
         if (firstMarketService.getAccountInfo() != null
                 && firstMarketService.getAccountInfo().getWallet() != null
@@ -580,9 +583,6 @@ public class ArbitrageService {
         ));
 
         printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance);
-
-        counter2++;
-        deltasLogger.info(String.format("#%s count=%s+%s=%s", getCounter(), counter1, counter2, counter1 + counter2));
     }
 
     private boolean checkBalance(String deltaRef, BigDecimal tradableAmount) {
