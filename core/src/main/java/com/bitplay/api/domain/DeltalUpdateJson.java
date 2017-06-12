@@ -21,6 +21,7 @@ public class DeltalUpdateJson {
     private String cumCom2;
     private String count1;
     private String count2;
+    private String cumBitmexMCom;
 
     public String getMakerDelta() {
         return makerDelta;
@@ -124,5 +125,13 @@ public class DeltalUpdateJson {
 
     public void setCount2(String count2) {
         this.count2 = count2;
+    }
+
+    public String getCumBitmexMCom() {
+        return cumBitmexMCom;
+    }
+
+    public void setCumBitmexMCom(String cumBitmexMCom) {
+        this.cumBitmexMCom = cumBitmexMCom;
     }
 }

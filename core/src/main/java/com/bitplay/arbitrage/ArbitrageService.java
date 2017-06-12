@@ -829,4 +829,12 @@ public class ArbitrageService {
     public void setManual(Boolean manual) {
         isManual = manual;
     }
+
+    public BigDecimal getCumBitmexMCom() {
+        return cumBitmexMCom;
+    }
+
+    public void setCumBitmexMCom(BigDecimal cumBitmexMCom) {
+        this.cumBitmexMCom = cumBitmexMCom;
+    }
 }

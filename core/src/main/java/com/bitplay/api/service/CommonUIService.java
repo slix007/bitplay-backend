@@ -87,7 +87,8 @@ public class CommonUIService {
                 arbitrageService.getCumCom1().toPlainString(),
                 arbitrageService.getCumCom2().toPlainString(),
                 String.valueOf(arbitrageService.getCounter1()),
-                String.valueOf(arbitrageService.getCounter2())
+                String.valueOf(arbitrageService.getCounter2()),
+                arbitrageService.getCumBitmexMCom().toPlainString()
         );
     }
 
@@ -116,7 +117,8 @@ public class CommonUIService {
                 arbitrageService.getCumCom1().toPlainString(),
                 arbitrageService.getCumCom2().toPlainString(),
                 String.valueOf(arbitrageService.getCounter1()),
-                String.valueOf(arbitrageService.getCounter2())
+                String.valueOf(arbitrageService.getCounter2()),
+                arbitrageService.getCumBitmexMCom().toPlainString()
         );
     }
 
@@ -160,6 +162,9 @@ public class CommonUIService {
         if (deltalUpdateJson.getCount2() != null) {
             arbitrageService.setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
         }
+        if (deltalUpdateJson.getCumBitmexMCom() != null) {
+            arbitrageService.setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
+        }
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
@@ -178,7 +183,8 @@ public class CommonUIService {
                 arbitrageService.getCumCom1().toPlainString(),
                 arbitrageService.getCumCom2().toPlainString(),
                 String.valueOf(arbitrageService.getCounter1()),
-                String.valueOf(arbitrageService.getCounter2())
+                String.valueOf(arbitrageService.getCounter2()),
+                arbitrageService.getCumBitmexMCom().toPlainString()
         );
     }
 
