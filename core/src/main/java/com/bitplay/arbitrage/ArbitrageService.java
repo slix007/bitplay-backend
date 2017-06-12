@@ -82,6 +82,9 @@ public class ArbitrageService {
     private BigDecimal com2Max = BigDecimal.ZERO;
     private BigDecimal bitmexMComMin = BigDecimal.valueOf(10000);
     private BigDecimal bitmexMComMax = BigDecimal.ZERO;
+    private BigDecimal cumBitmexMCom = BigDecimal.ZERO;
+    private BigDecimal cumBitmexMComMin = BigDecimal.valueOf(10000);
+    private BigDecimal cumBitmexMComMax = BigDecimal.ZERO;
 
     private BigDecimal cumCom1 = BigDecimal.ZERO;
     private BigDecimal cumCom2 = BigDecimal.ZERO;
@@ -473,8 +476,13 @@ public class ArbitrageService {
         BigDecimal bitmexMCom = openPrices.getFirstOpenPrice().multiply(new BigDecimal(0.025)).divide(new BigDecimal(100), 4, BigDecimal.ROUND_HALF_UP);
         if (bitmexMCom.compareTo(bitmexMComMin) == -1) bitmexMComMin = bitmexMCom;
         if (bitmexMCom.compareTo(bitmexMComMax) == 1) bitmexMComMax = bitmexMCom;
+
+        cumBitmexMCom = cumBitmexMCom.add(bitmexMCom);
+        if (cumBitmexMCom.compareTo(cumBitmexMComMin) == -1) cumBitmexMComMin = cumBitmexMCom;
+        if (cumBitmexMCom.compareTo(cumBitmexMComMax) == 1) cumBitmexMComMax = cumBitmexMCom;
+
         deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s; " +
-                        "bitmex_m_com=%s/%s/%s",
+                        "bitmex_m_com=%s/%s/%s; cum_bitmex_m_com=%s/%s/%s",
                 getCounter(),
                 com1, com1Min, com1Max,
                 com2, com2Min, com2Max,
@@ -482,7 +490,8 @@ public class ArbitrageService {
                 cumCom1,
                 cumCom2,
                 cumCom,
-                bitmexMCom, bitmexMComMin, bitmexMComMax
+                bitmexMCom, bitmexMComMin, bitmexMComMax,
+                cumBitmexMCom, cumBitmexMComMin, cumBitmexMComMax
         ));
     }
 
