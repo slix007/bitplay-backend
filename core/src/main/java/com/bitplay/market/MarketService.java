@@ -1,6 +1,7 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.MoveResponse;
@@ -142,7 +143,7 @@ public abstract class MarketService {
         this.accountInfo = accountInfo;
     }
 
-    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean fromGui);
+    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType);
 
     public BigDecimal getTotalPriceOfAmountToBuy(BigDecimal requiredAmountToBuy) {
         BigDecimal totalPrice = BigDecimal.ZERO;
@@ -176,7 +177,7 @@ public abstract class MarketService {
 
     /**
      * Add new openOrders.<br>
-     * Do not remove old. They will be checked in {@link #moveMakerOrder(LimitOrder, boolean)}
+     * Do not remove old. They will be checked in moveMakerOrder()
      *
      * @return list of open orders.
      */
@@ -236,7 +237,7 @@ public abstract class MarketService {
             for (LimitOrder openOrder : openOrders) {
                 if (openOrder.getType() != null) {
 
-                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
+                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, SignalType.AUTOMATIC);
 
                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
                             || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
@@ -340,7 +341,7 @@ public abstract class MarketService {
         });
     }*/
 
-    public MoveResponse moveMakerOrderFromGui(String orderId) {
+    public MoveResponse moveMakerOrderFromGui(String orderId, SignalType signalType) {
         MoveResponse response;
 
         List<LimitOrder> orderList = null;
@@ -357,13 +358,13 @@ public abstract class MarketService {
             response = this.openOrders.stream()
                     .filter(limitOrder -> limitOrder.getId().equals(orderId))
                     .findFirst()
-                    .map(limitOrder -> moveMakerOrderIfNotFirst(limitOrder, true))
+                    .map(limitOrder -> moveMakerOrderIfNotFirst(limitOrder, signalType))
                     .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
         }
         return response;
     }
 
-    public abstract MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui);
+    public abstract MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType);
 
     protected abstract BigDecimal getMakerPriceStep();
 
@@ -392,7 +393,7 @@ public abstract class MarketService {
                 .subscribe();
     }
 
-    protected MoveResponse moveMakerOrderIfNotFirst(LimitOrder limitOrder, boolean fromGui) {
+    protected MoveResponse moveMakerOrderIfNotFirst(LimitOrder limitOrder, SignalType signalType) {
         MoveResponse response;
         BigDecimal bestPrice;
 
@@ -416,7 +417,7 @@ public abstract class MarketService {
                 logger.info("{} Try to move maker order {} {}, from {} to {}",
                         getName(), limitOrder.getId(), limitOrder.getType(),
                         limitOrder.getLimitPrice(), bestPrice);
-                response = moveMakerOrder(limitOrder, fromGui);
+                response = moveMakerOrder(limitOrder, signalType);
                 setTimeoutAfterStartMoving();
             } else {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");

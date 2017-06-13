@@ -1,5 +1,6 @@
 package com.bitplay.api.service;
 
+import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.api.domain.TradeRequestJson;
@@ -62,7 +63,16 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
             orderId = service.placeTakerOrder(orderType, amount);
         } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
-            final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount, null, true);
+            SignalType signalType;
+            if (orderType.equals(Order.OrderType.ASK)) {
+                signalType = SignalType.MANUAL_SELL;
+            } else if (orderType.equals(Order.OrderType.BID)) {
+                signalType = SignalType.MANUAL_BUY;
+            } else {
+                return new TradeResponseJson("Wrong orderType", "Wrong orderType");
+            }
+
+            final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount, null, signalType);
             orderId = tradeResponse.getOrderId();
         }
 

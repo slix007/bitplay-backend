@@ -4,6 +4,7 @@ import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.TradeResponse;
 
@@ -67,7 +68,16 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
 //            orderId = service.placeTakerOrder(orderType, amount);
         } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
-            final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount, null, true);
+            SignalType signalType;
+            if (orderType.equals(Order.OrderType.ASK)) {
+                signalType = SignalType.MANUAL_SELL;
+            } else if (orderType.equals(Order.OrderType.BID)) {
+                signalType = SignalType.MANUAL_BUY;
+            } else {
+                return new TradeResponseJson("Wrong orderType", "Wrong orderType");
+            }
+
+            final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount, null, signalType);
             orderId = tradeResponse.getOrderId();
         }
 

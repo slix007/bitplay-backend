@@ -1,7 +1,8 @@
 package com.bitplay.market.quoine;
 
-import com.bitplay.market.MarketService;
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 
@@ -58,7 +59,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean fromGui) {
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType) {
         return null;
     }
 
@@ -68,7 +69,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui) {
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
         return null;
     }
 

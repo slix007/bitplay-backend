@@ -2,6 +2,7 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
@@ -58,7 +59,6 @@ public class OkCoinService extends MarketService {
 
     private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
     private final static String NAME = "okcoin";
-    private static final String BY_BUTTON = "ByButton";
 
     ArbitrageService arbitrageService;
 
@@ -425,15 +425,16 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean fromGui) {
-        return placeMakerOrder(orderType, amount, bestQuotes, false, fromGui);
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+                                         SignalType signalType) {
+        return placeMakerOrder(orderType, amount, bestQuotes, false, signalType);
     }
 
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
-                                          boolean isMoving, boolean fromGui) {
+                                          boolean isMoving, SignalType signalType) {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
-            arbitrageService.setManual(fromGui);
+            arbitrageService.setSignalType(signalType);
 
             final TradeService tradeService = exchange.getTradeService();
             BigDecimal thePrice;
@@ -480,7 +481,7 @@ public class OkCoinService extends MarketService {
                             ? diff1 : diff2);
                 }
                 tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}",
-                        fromGui ? BY_BUTTON : arbitrageService.getCounter(),
+                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                         isMoving ? "Moved" : "maker",
                         orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                         tradeableAmount.toPlainString(),
@@ -500,7 +501,7 @@ public class OkCoinService extends MarketService {
                     openOrders.add(limitOrderWithId);
                 }
 
-                if (!fromGui) {
+                if (signalType == SignalType.AUTOMATIC) {
                     arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
                 }
                 orderIdToSignalInfo.put(orderId, bestQuotes);
@@ -567,8 +568,8 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui) {
-        arbitrageService.setManual(fromGui);
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
+        arbitrageService.setSignalType(signalType);
 
         // IT doesn't support moving
         // Do cancel ant place
@@ -594,7 +595,7 @@ public class OkCoinService extends MarketService {
 
         if (cancelledSuccessfully) {
             tradeLogger.info("#{} Cancelled {} amount={},quote={},id={},attempt={}",
-                    fromGui ? BY_BUTTON : arbitrageService.getCounter(),
+                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     limitOrder.getLimitPrice().toPlainString(),
@@ -608,10 +609,10 @@ public class OkCoinService extends MarketService {
                 final BigDecimal newAmount = limitOrder.getTradableAmount()
                         .subtract(limitOrder.getCumulativeAmount());
                 tradeResponse = placeMakerOrder(limitOrder.getType(),
-                        newAmount, bestQuotes, true, fromGui);
+                        newAmount, bestQuotes, true, signalType);
                 if (tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info("#{} Failed {} amount={},quote={},id={},attempt={}. Error: {}",
-                            fromGui ? BY_BUTTON : arbitrageService.getCounter(),
+                            signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                             limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                             limitOrder.getTradableAmount(),
                             limitOrder.getLimitPrice().toPlainString(),
@@ -628,7 +629,7 @@ public class OkCoinService extends MarketService {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
             } else {
                 final String description = String.format("#%s Moving error. Cancelled amount %s, but %s",
-                        fromGui ? BY_BUTTON : arbitrageService.getCounter(),
+                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                         limitOrder.getTradableAmount().toPlainString(), tradeResponse.getErrorCode());
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, description);
                 tradeLogger.info(description);
@@ -643,7 +644,7 @@ public class OkCoinService extends MarketService {
                 logResponse = "Cancel failed";
             }
             final String logString = String.format("#%s %s %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
-                    fromGui ? BY_BUTTON : arbitrageService.getCounter(),
+                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                     logResponse,
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),

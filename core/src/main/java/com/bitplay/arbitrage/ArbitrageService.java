@@ -103,8 +103,7 @@ public class ArbitrageService {
     private FlagOpenOrder flagOpenOrder = new FlagOpenOrder();
     private OpenPrices openPrices = new OpenPrices();
     private OpenPrices openDiffs = new OpenPrices();
-    private Boolean isManual = false;
-    private static final String BY_BUTTON = "ByButton";
+    private SignalType signalType = SignalType.AUTOMATIC;
 
     public FlagOpenOrder getFlagOpenOrder() {
         return flagOpenOrder;
@@ -142,7 +141,8 @@ public class ArbitrageService {
     }
 
     private void writeLogArbitrageIsDone() {
-        if (!isManual && openPrices != null && openDiffs != null && lastDelta != null) {
+        if (signalType == SignalType.AUTOMATIC
+                && openPrices != null && openDiffs != null && lastDelta != null) {
             if (lastDelta.equals(DELTA1)) {
                 BigDecimal deltaFact = openPrices.getDelta1Fact();
                 cumDeltaFact = cumDeltaFact.add(deltaFact);
@@ -378,7 +378,7 @@ public class ArbitrageService {
                 if (checkBalance(DELTA1, amount) //) {
                         && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
 
-                    if (!isManual) {
+                    if (signalType == SignalType.AUTOMATIC) {
                         writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
                     }
 
@@ -386,8 +386,8 @@ public class ArbitrageService {
                     firstMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
                     secondMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
 
-                    firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes, false);
-                    secondMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes, false);
+                    firstMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes, SignalType.AUTOMATIC);
+                    secondMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes, SignalType.AUTOMATIC);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setTimeoutAfterStartTrading();
                 } else {
@@ -401,7 +401,7 @@ public class ArbitrageService {
                 if (checkBalance(DELTA2, amount) //) {
                         && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
 
-                    if (!isManual) {
+                    if (signalType == SignalType.AUTOMATIC) {
                         writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
                     }
 
@@ -409,8 +409,8 @@ public class ArbitrageService {
                     firstMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
                     secondMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
 
-                    firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes, false);
-                    secondMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes, false);
+                    firstMarketService.placeMakerOrder(Order.OrderType.BID, amount, bestQuotes, SignalType.AUTOMATIC);
+                    secondMarketService.placeMakerOrder(Order.OrderType.ASK, amount, bestQuotes, SignalType.AUTOMATIC);
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setTimeoutAfterStartTrading();
                 } else {
@@ -460,7 +460,9 @@ public class ArbitrageService {
         com1 = bid1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
         com2 = ask1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-        printCom();
+        if (signalType == SignalType.AUTOMATIC) {
+            printCom();
+        }
 
         printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance, false);
     }
@@ -546,9 +548,9 @@ public class ArbitrageService {
                 .multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
         String counterName = String.valueOf(getCounter());
         if (isGuiButton) {
-            counterName = "SUM";
-        } else if (isManual) {
-            counterName = BY_BUTTON;
+            counterName = "button";
+        } else if (signalType != SignalType.AUTOMATIC) {
+            counterName = signalType.getCounterName();
         }
 
         deltasLogger.info(String.format("#%s sum_bal=%s+%s+%s/%s (%s)=%sb=%sb=%s$=%s$=%s$=%s$; position=%s",
@@ -607,7 +609,9 @@ public class ArbitrageService {
         com1 = ask1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
         com2 = bid1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"),2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-        printCom();
+        if (signalType == SignalType.AUTOMATIC) {
+            printCom();
+        }
 
         printSumBal(ask1_o, bid1_o, btcO, usdO, firstWalletBalance, false);
     }
@@ -826,8 +830,8 @@ public class ArbitrageService {
         this.counter2 = counter2;
     }
 
-    public void setManual(Boolean manual) {
-        isManual = manual;
+    public void setSignalType(SignalType signalType) {
+        this.signalType = signalType;
     }
 
     public BigDecimal getCumBitmexMCom() {

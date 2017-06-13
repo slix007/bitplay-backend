@@ -6,6 +6,7 @@ import com.bitplay.api.domain.OrderJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TickerJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.utils.Utils;
@@ -130,7 +131,16 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public ResultJson moveOpenOrder(OrderJson orderJson) {
         final String id = orderJson.getId();
-        final MoveResponse response = getBusinessService().moveMakerOrderFromGui(id);
+        SignalType signalType;
+        if (orderJson.getOrderType().equals("ASK")) {
+            signalType = SignalType.MANUAL_SELL;
+        } else if (orderJson.getOrderType().equals("BID")) {
+            signalType = SignalType.MANUAL_BUY;
+        } else {
+            return new ResultJson(MoveResponse.MoveOrderStatus.EXCEPTION.toString(), "Wrong orderType");
+        }
+
+        final MoveResponse response = getBusinessService().moveMakerOrderFromGui(id, signalType);
         return new ResultJson(response.getMoveOrderStatus().toString(), response.getDescription());
     }
 

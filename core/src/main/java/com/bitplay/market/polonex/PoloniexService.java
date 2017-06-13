@@ -2,6 +2,7 @@ package com.bitplay.market.polonex;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
@@ -418,7 +419,7 @@ public class PoloniexService extends MarketService {
         return thePrice;
     }
 
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean fromGui) {
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType) {
         TradeResponse tradeResponse = new TradeResponse();
 
         int attemptCount = 0;
@@ -474,9 +475,9 @@ public class PoloniexService extends MarketService {
 
     /**
      * Use when you're sure that order should be moved(has not the best price)
-     * Use {@link MarketService#moveMakerOrderIfNotFirst(LimitOrder, boolean)} when you know that price is not the best.
+     * Use {@link MarketService#moveMakerOrderIfNotFirst(LimitOrder, com.bitplay.arbitrage.SignalType)} when you know that price is not the best.
      */
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui) {
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
         MoveResponse response;
         int attemptCount = 0;
         String lastExceptionMsg = "";

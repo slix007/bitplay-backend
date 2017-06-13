@@ -1,8 +1,8 @@
 package com.bitplay.market.bitmex;
 
-import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.MoveResponse;
@@ -64,15 +64,11 @@ public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
 
-    private static final String BY_BUTTON = "ByButton";
-
     private final static String NAME = "bitmex";
 
     private final static CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
     private BitmexStreamingExchange exchange;
-
-    private List<Long> latencyList = new ArrayList<>();
 
     private Observable<AccountInfo> accountInfoObservable;
     private Disposable accountInfoSubscription;
@@ -159,7 +155,7 @@ public class BitmexService extends MarketService {
         synchronized (openOrders) {
             for (LimitOrder openOrder : openOrders) {
                 if (openOrder.getType() != null) {
-                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, false);
+                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, SignalType.AUTOMATIC);
                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
                         haveToClear = true;
                     }
@@ -377,14 +373,16 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean fromGui) {
-        return placeMakerOrder(orderType, amount, bestQuotes, false, fromGui);
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+                                         SignalType signalType) {
+        return placeMakerOrder(orderType, amount, bestQuotes, false, signalType);
     }
 
-    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, boolean isMoving, boolean fromGui) {
+    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+                                          boolean isMoving, SignalType signalType) {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
-            arbitrageService.setManual(fromGui);
+            arbitrageService.setSignalType(signalType);
 
             final TradeService tradeService = exchange.getTradeService();
             BigDecimal thePrice;
@@ -413,7 +411,7 @@ public class BitmexService extends MarketService {
             }
 
             tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
-                    fromGui ? BY_BUTTON : arbitrageService.getCounter(),
+                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                     isMoving ? "Moved" : "maker",
                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                     amount.toPlainString(),
@@ -422,7 +420,7 @@ public class BitmexService extends MarketService {
                     diffWithSignal,
                     getPosition());
 
-            if (!fromGui) {
+            if (signalType == SignalType.AUTOMATIC) {
                 arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
             }
             orderIdToSignalInfo.put(orderId, bestQuotes);
@@ -448,7 +446,7 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder, boolean fromGui) {
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
         int attemptCount = 0;
         String lastExceptionMsg = "";
@@ -504,7 +502,7 @@ public class BitmexService extends MarketService {
             }
 
             final String logString = String.format("#%s Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s. position=%s",
-                    fromGui ? BY_BUTTON : arbitrageService.getCounter(),
+                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     bestMakerPrice.toPlainString(),
@@ -514,7 +512,7 @@ public class BitmexService extends MarketService {
                     getPosition());
 
             orderIdToSignalInfo.put(limitOrder.getId(), bestQuotes);
-            if (!fromGui) {
+            if (signalType == SignalType.AUTOMATIC) {
                 arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
             }
 
