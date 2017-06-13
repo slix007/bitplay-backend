@@ -385,52 +385,64 @@ public class BitmexService extends MarketService {
             arbitrageService.setSignalType(signalType);
 
             final TradeService tradeService = exchange.getTradeService();
-            BigDecimal thePrice;
+            BigDecimal thePrice = BigDecimal.ZERO;
 
-            thePrice = createBestMakerPrice(orderType, false)
-                    .setScale(1, BigDecimal.ROUND_HALF_UP);
+            String orderId = null;
+            int attemptCount = 0;
+            while (attemptCount < 5) {
+                attemptCount++;
+                try {
+                    thePrice = createBestMakerPrice(orderType, false)
+                            .setScale(1, BigDecimal.ROUND_HALF_UP);
 
-            final LimitOrder limitOrder = new LimitOrder(orderType,
-                    amount, CURRENCY_PAIR_XBTUSD, "0", new Date(),
-                    thePrice);
+                    final LimitOrder limitOrder = new LimitOrder(orderType,
+                            amount, CURRENCY_PAIR_XBTUSD, "0", new Date(),
+                            thePrice);
 
-            String orderId = tradeService.placeLimitOrder(limitOrder);
-            tradeResponse.setOrderId(orderId);
+                    orderId = tradeService.placeLimitOrder(limitOrder);
+                    break;
+                } catch (Exception e) {
+                    final String errorMessage = e.getMessage();
+                    logger.error("Error on placeLimitOrder", e);
+                    tradeLogger.info("maker error {}", errorMessage);
+                    tradeResponse.setOrderId(e.getMessage());
+                    tradeResponse.setErrorMessage(errorMessage);
+                }
+            }
+            if (orderId != null) {
 
-            String diffWithSignal = "";
-            if (bestQuotes != null) {
-                final BigDecimal ask1_p = bestQuotes.getAsk1_p().setScale(1, BigDecimal.ROUND_HALF_UP);
-                final BigDecimal bid1_p = bestQuotes.getBid1_p().setScale(1, BigDecimal.ROUND_HALF_UP);
-                final BigDecimal diff1 = ask1_p.subtract(thePrice);
-                final BigDecimal diff2 = thePrice.subtract(bid1_p);
-                diffWithSignal = orderType.equals(Order.OrderType.BID)
-                        ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
-                        : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
-                arbitrageService.getOpenDiffs().setFirstOpenPrice(orderType.equals(Order.OrderType.BID)
-                        ? diff1 : diff2);
+                tradeResponse.setOrderId(orderId);
+
+                String diffWithSignal = "";
+                if (bestQuotes != null) {
+                    final BigDecimal ask1_p = bestQuotes.getAsk1_p().setScale(1, BigDecimal.ROUND_HALF_UP);
+                    final BigDecimal bid1_p = bestQuotes.getBid1_p().setScale(1, BigDecimal.ROUND_HALF_UP);
+                    final BigDecimal diff1 = ask1_p.subtract(thePrice);
+                    final BigDecimal diff2 = thePrice.subtract(bid1_p);
+                    diffWithSignal = orderType.equals(Order.OrderType.BID)
+                            ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
+                            : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
+                    arbitrageService.getOpenDiffs().setFirstOpenPrice(orderType.equals(Order.OrderType.BID)
+                            ? diff1 : diff2);
+                }
+
+                tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
+                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                        isMoving ? "Moved" : "maker",
+                        orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                        amount.toPlainString(),
+                        thePrice,
+                        orderId,
+                        diffWithSignal,
+                        getPosition());
+
+                if (signalType == SignalType.AUTOMATIC) {
+                    arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
+                }
+                orderIdToSignalInfo.put(orderId, bestQuotes);
+
             }
 
-            tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
-                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
-                    isMoving ? "Moved" : "maker",
-                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
-                    amount.toPlainString(),
-                    thePrice,
-                    orderId,
-                    diffWithSignal,
-                    getPosition());
-
-            if (signalType == SignalType.AUTOMATIC) {
-                arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
-            }
-            orderIdToSignalInfo.put(orderId, bestQuotes);
-
-        } catch (HttpStatusIOException e) {
-            final String errorMessage = e.getHttpBody();
-            logger.error("Place market order error: " + errorMessage, e);
-            tradeLogger.info("maker error {}", errorMessage);
-            tradeResponse.setOrderId(e.getMessage());
-            tradeResponse.setErrorMessage(errorMessage);
         } catch (Exception e) {
             logger.error("Place market order error", e);
             tradeLogger.info("maker error {}", e.toString());
