@@ -190,6 +190,9 @@ public class ArbitrageService {
                         cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax,
                         firstMarketService.getPosition()
                 ));
+
+                printCumBitmexMCom();
+
             } else if (lastDelta.equals(DELTA2)) {
                 BigDecimal deltaFact = openPrices.getDelta2Fact();
                 cumDeltaFact = cumDeltaFact.add(deltaFact);
@@ -237,6 +240,9 @@ public class ArbitrageService {
                         cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax,
                         firstMarketService.getPosition()
                 ));
+
+                printCumBitmexMCom();
+
             }
         }
 
@@ -487,15 +493,29 @@ public class ArbitrageService {
         if (cumBitmexMCom.compareTo(cumBitmexMComMin) == -1) cumBitmexMComMin = cumBitmexMCom;
         if (cumBitmexMCom.compareTo(cumBitmexMComMax) == 1) cumBitmexMComMax = cumBitmexMCom;
 
-        deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s; " +
-                        "bitmex_m_com=%s/%s/%s; cum_bitmex_m_com=%s/%s/%s",
+        deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
                 getCounter(),
                 com1, com1Min, com1Max,
                 com2, com2Min, com2Max,
                 com, comMin, comMax,
                 cumCom1,
                 cumCom2,
-                cumCom,
+                cumCom
+        ));
+    }
+
+    private void printCumBitmexMCom() {
+        // bitmex_m_com = round(open_price_fact * 0.025 / 100; 4),
+        BigDecimal bitmexMCom = openPrices.getFirstOpenPrice().multiply(new BigDecimal(0.025)).divide(new BigDecimal(100), 4, BigDecimal.ROUND_HALF_UP);
+        if (bitmexMCom.compareTo(bitmexMComMin) == -1) bitmexMComMin = bitmexMCom;
+        if (bitmexMCom.compareTo(bitmexMComMax) == 1) bitmexMComMax = bitmexMCom;
+
+        cumBitmexMCom = cumBitmexMCom.add(bitmexMCom);
+        if (cumBitmexMCom.compareTo(cumBitmexMComMin) == -1) cumBitmexMComMin = cumBitmexMCom;
+        if (cumBitmexMCom.compareTo(cumBitmexMComMax) == 1) cumBitmexMComMax = cumBitmexMCom;
+
+        deltasLogger.info(String.format("#%s bitmex_m_com=%s/%s/%s; cum_bitmex_m_com=%s/%s/%s",
+                getCounter(),
                 bitmexMCom, bitmexMComMin, bitmexMComMax,
                 cumBitmexMCom, cumBitmexMComMin, cumBitmexMComMax
         ));
