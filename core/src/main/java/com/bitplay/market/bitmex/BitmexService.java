@@ -85,6 +85,11 @@ public class BitmexService extends MarketService {
     }
 
     @Override
+    public ArbitrageService getArbitrageService() {
+        return arbitrageService;
+    }
+
+    @Override
     public String getName() {
         return NAME;
     }
@@ -155,7 +160,8 @@ public class BitmexService extends MarketService {
         synchronized (openOrders) {
             for (LimitOrder openOrder : openOrders) {
                 if (openOrder.getType() != null) {
-                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, SignalType.AUTOMATIC);
+                    final SignalType signalType = arbitrageService.getSignalType();
+                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
                         haveToClear = true;
                     }

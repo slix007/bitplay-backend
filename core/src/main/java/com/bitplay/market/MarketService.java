@@ -1,5 +1,6 @@
 package com.bitplay.market;
 
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.events.BtsEvent;
@@ -135,6 +136,8 @@ public abstract class MarketService {
 
     public abstract String getName();
 
+    public abstract ArbitrageService getArbitrageService();
+
     public AccountInfo getAccountInfo() {
         return accountInfo;
     }
@@ -236,8 +239,8 @@ public abstract class MarketService {
         try {
             for (LimitOrder openOrder : openOrders) {
                 if (openOrder.getType() != null) {
-
-                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, SignalType.AUTOMATIC);
+                    final SignalType signalType = getArbitrageService().getSignalType();
+                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
 
                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
                             || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {

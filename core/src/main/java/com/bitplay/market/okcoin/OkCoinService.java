@@ -67,6 +67,11 @@ public class OkCoinService extends MarketService {
         this.arbitrageService = arbitrageService;
     }
 
+    @Override
+    public ArbitrageService getArbitrageService() {
+        return arbitrageService;
+    }
+
     private OkCoinStreamingExchange exchange;
 
     Disposable orderBookSubscription;

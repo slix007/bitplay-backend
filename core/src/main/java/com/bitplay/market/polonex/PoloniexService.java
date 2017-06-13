@@ -82,6 +82,11 @@ public class PoloniexService extends MarketService {
         this.arbitrageService = arbitrageService;
     }
 
+    @Override
+    public ArbitrageService getArbitrageService() {
+        return arbitrageService;
+    }
+
     //    @Autowired
 //    WebSocketEndpoint webSocketEndpoint;
 

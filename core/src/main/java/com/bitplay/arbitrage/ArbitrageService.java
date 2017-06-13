@@ -854,6 +854,10 @@ public class ArbitrageService {
         this.signalType = signalType;
     }
 
+    public SignalType getSignalType() {
+        return signalType;
+    }
+
     public BigDecimal getCumBitmexMCom() {
         return cumBitmexMCom;
     }

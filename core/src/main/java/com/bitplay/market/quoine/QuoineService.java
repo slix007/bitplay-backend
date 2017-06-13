@@ -1,5 +1,6 @@
 package com.bitplay.market.quoine;
 
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
@@ -27,6 +28,11 @@ import io.reactivex.Observable;
 public class QuoineService extends MarketService {
 
     private final static String NAME = "quoine";
+
+    @Override
+    public ArbitrageService getArbitrageService() {
+        return null;
+    }
 
     @Override
     public String getName() {
