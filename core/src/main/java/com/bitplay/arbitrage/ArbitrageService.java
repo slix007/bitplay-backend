@@ -384,9 +384,8 @@ public class ArbitrageService {
                 if (checkBalance(DELTA1, amount) //) {
                         && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
 
-                    if (signalType == SignalType.AUTOMATIC) {
-                        writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
-                    }
+                    setSignalType(SignalType.AUTOMATIC);
+                    writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
 
                     lastDelta = DELTA1;
                     firstMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
@@ -407,9 +406,8 @@ public class ArbitrageService {
                 if (checkBalance(DELTA2, amount) //) {
                         && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
 
-                    if (signalType == SignalType.AUTOMATIC) {
-                        writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
-                    }
+                    setSignalType(SignalType.AUTOMATIC);
+                    writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
 
                     lastDelta = DELTA2;
                     firstMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
