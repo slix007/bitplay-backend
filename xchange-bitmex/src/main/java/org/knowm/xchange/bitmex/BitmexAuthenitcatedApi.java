@@ -76,7 +76,8 @@ public interface BitmexAuthenitcatedApi {
                       @FormParam("symbol") String symbol,
                       @FormParam("side") String side,
                       @FormParam("price") Double price,
-                      @FormParam("ordType") String ordType
+                      @FormParam("ordType") String ordType,
+                      @FormParam("execInsts") String execInsts
     ) throws IOException;
 
 }

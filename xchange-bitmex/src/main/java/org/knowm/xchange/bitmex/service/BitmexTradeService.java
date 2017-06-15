@@ -68,7 +68,8 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 symbol,
                 side,
                 newPrice,
-                "Limit");
+                "Limit",
+                "ParticipateDoNotInitiate");
 
         return String.valueOf(order.getOrderID());
     }

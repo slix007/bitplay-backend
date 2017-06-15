@@ -471,7 +471,7 @@ public class BitmexService extends MarketService {
         BigDecimal bestMakerPrice = BigDecimal.ZERO;
         BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
 
-        while (attemptCount < 2) {
+        while (attemptCount < 3) {
             attemptCount++;
             try {
                 bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true)
