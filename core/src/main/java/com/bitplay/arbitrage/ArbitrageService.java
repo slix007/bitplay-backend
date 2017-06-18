@@ -239,7 +239,26 @@ public class ArbitrageService {
 
         printSumBal(false);
 
+        printVolFact();
+
         saveParamsToDb();
+    }
+
+    private void printVolFact() {
+        //vol_fact = pos_after - pos_befor
+        final BigDecimal posAfter = new BigDecimal(firstMarketService.getPosition());
+        final BigDecimal posBefore = params.getPosBefore();
+        final BigDecimal volFact = posAfter.subtract(posBefore);
+        // vol_diff = vol_plan - vol_fact
+        final BigDecimal volPlan = params.getVolPlan();
+        final BigDecimal volDiff = volPlan.subtract(volFact);
+
+        final String warningString = volDiff.compareTo(BigDecimal.ZERO) == 1 ? "WARNING vol_diff > 0" : "";
+        deltasLogger.info(String.format("#%s %s vol_fact=%s-%s=%s; vol_diff=%s-%s=%s",
+                getCounter(),
+                warningString,
+                posAfter, posBefore, volFact,
+                volPlan, volFact, volDiff));
     }
 
     public MarketService getFirstMarketService() {
@@ -379,16 +398,19 @@ public class ArbitrageService {
                 if (checkBalance(DELTA1, params.getAmount()) //) {
                         && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
 
+                    bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setSignalType(SignalType.AUTOMATIC);
-                    writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
-
-                    params.setLastDelta(DELTA1);
                     firstMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
                     secondMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
+                    params.setLastDelta(DELTA1);
+                    // Market specific params
+                    params.setPosBefore(new BigDecimal(firstMarketService.getPosition()));
+                    params.setVolPlan(params.getAmount()); // buy
+
+                    writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
 
                     firstMarketService.placeMakerOrder(Order.OrderType.ASK, params.getAmount(), bestQuotes, SignalType.AUTOMATIC);
                     secondMarketService.placeMakerOrder(Order.OrderType.BID, params.getAmount(), bestQuotes, SignalType.AUTOMATIC);
-                    bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setTimeoutAfterStartTrading();
 
                     saveParamsToDb();
@@ -404,16 +426,19 @@ public class ArbitrageService {
                 if (checkBalance(DELTA2, params.getAmount()) //) {
                         && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
 
+                    bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setSignalType(SignalType.AUTOMATIC);
-                    writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
-
-                    params.setLastDelta(DELTA2);
                     firstMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
                     secondMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
+                    params.setLastDelta(DELTA2);
+                    // Market specific params
+                    params.setPosBefore(new BigDecimal(firstMarketService.getPosition()));
+                    params.setVolPlan(params.getAmount().negate());//sell
+
+                    writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
 
                     firstMarketService.placeMakerOrder(Order.OrderType.BID, params.getAmount(), bestQuotes, SignalType.AUTOMATIC);
                     secondMarketService.placeMakerOrder(Order.OrderType.ASK, params.getAmount(), bestQuotes, SignalType.AUTOMATIC);
-                    bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setTimeoutAfterStartTrading();
 
                     saveParamsToDb();

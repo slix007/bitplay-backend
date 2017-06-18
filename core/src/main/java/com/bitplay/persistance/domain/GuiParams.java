@@ -50,14 +50,13 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal bitmexMComMin = BigDecimal.valueOf(10000);
     private BigDecimal bitmexMComMax = BigDecimal.ZERO;
     private BigDecimal cumBitmexMCom = BigDecimal.ZERO;
-
     private BigDecimal cumCom1 = BigDecimal.ZERO;
     private BigDecimal cumCom2 = BigDecimal.ZERO;
-
     private int counter1 = 0;
     private int counter2 = 0;
-
     private BigDecimal amount = new BigDecimal("0.02");
+    private BigDecimal posBefore = BigDecimal.ZERO;
+    private BigDecimal volPlan = BigDecimal.ZERO;
 
     public GuiParams() {
     }
@@ -404,5 +403,21 @@ public class GuiParams extends AbstractDocument {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public BigDecimal getPosBefore() {
+        return posBefore;
+    }
+
+    public void setPosBefore(BigDecimal posBefore) {
+        this.posBefore = posBefore;
+    }
+
+    public BigDecimal getVolPlan() {
+        return volPlan;
+    }
+
+    public void setVolPlan(BigDecimal volPlan) {
+        this.volPlan = volPlan;
     }
 }
