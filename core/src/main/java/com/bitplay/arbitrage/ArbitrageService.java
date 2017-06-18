@@ -723,6 +723,7 @@ public class ArbitrageService {
                 params.setBorder2(((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
                         .add(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)));
             }
+            saveParamsToDb();
         }
 
     }
