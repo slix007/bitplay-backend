@@ -131,7 +131,7 @@ public class CommonUIService {
             arbitrageService.getParams().setSumDelta(new BigDecimal(deltalUpdateJson.getSumDelta()));
         }
         if (deltalUpdateJson.getPeriodSec() != null) {
-            arbitrageService.getParams().setPeriodSec(Integer.valueOf(deltalUpdateJson.getPeriodSec()));
+            arbitrageService.setPeriodSec(Integer.valueOf(deltalUpdateJson.getPeriodSec()));
         }
         if (deltalUpdateJson.getBuValue() != null) {
             arbitrageService.getParams().setBuValue(new BigDecimal(deltalUpdateJson.getBuValue()));

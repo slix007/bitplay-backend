@@ -153,7 +153,7 @@ public class ArbitrageService {
                                 "cum_delta_fact=%s/%s/%s; " +
                                 "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
                                 "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; position=%s",
-                        params.getCounter(),
+                        getCounter(),
                         openPrices.getFirstOpenPrice().toPlainString(),
                         openPrices.getSecondOpenPrice().toPlainString(),
                         deltaFact.toPlainString(),
@@ -216,7 +216,7 @@ public class ArbitrageService {
                                 "cum_delta_fact=%s/%s/%s; " +
                                 "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
                                 "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; position=%s",
-                        params.getCounter(),
+                        getCounter(),
                         openPrices.getSecondOpenPrice().toPlainString(),
                         openPrices.getFirstOpenPrice().toPlainString(),
                         deltaFact.toPlainString(),
@@ -277,11 +277,11 @@ public class ArbitrageService {
                 .doOnComplete(() -> {
                     if (firstMarketService.isArbitrageInProgress() || secondMarketService.isArbitrageInProgress()) {
                         deltasLogger.warn(String.format("#%s Warning: busy by isArbitrageInProgress for 5 min. first:%s, second:%s",
-                                params.getCounter(),
+                                getCounter(),
                                 firstMarketService.isArbitrageInProgress(), secondMarketService.isArbitrageInProgress()));
                     } else if (!firstMarketService.isReadyForArbitrage() || !secondMarketService.isReadyForArbitrage()) {
                         deltasLogger.warn(String.format("#%s Warning: busy for 5 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
-                                params.getCounter(),
+                                getCounter(),
                                 firstMarketService.isReadyForArbitrage(), firstMarketService.getOpenOrders().size(),
                                 secondMarketService.isReadyForArbitrage(), secondMarketService.getOpenOrders().size()));
                     }
@@ -457,7 +457,7 @@ public class ArbitrageService {
         if (cumDelta.compareTo(cumDeltaMin) == -1) params.setCumDeltaMin(cumDelta);
         if (cumDelta.compareTo(cumDeltaMax) == 1) params.setCumDeltaMax(cumDelta);
         deltasLogger.info(String.format("#%s delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
-                params.getCounter(),
+                getCounter(),
                 bid1_p.toPlainString(), ask1_o.toPlainString(),
                 delta1.toPlainString(),
                 border1.toPlainString(),
@@ -505,7 +505,7 @@ public class ArbitrageService {
         BigDecimal cumCom = cumCom1.add(cumCom2);
 
         deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
-                params.getCounter(),
+                getCounter(),
                 com1, com1Min, com1Max,
                 com2, com2Min, com2Max,
                 com, comMin, comMax,
@@ -527,7 +527,7 @@ public class ArbitrageService {
         params.setCumBitmexMCom(cumBitmexMCom.add(bitmexMCom));
 
         deltasLogger.info(String.format("#%s bitmex_m_com=%s/%s/%s; cum_bitmex_m_com=%s",
-                params.getCounter(),
+                getCounter(),
                 bitmexMCom, bitmexMComMin, bitmexMComMax,
                 cumBitmexMCom
         ));
@@ -580,7 +580,7 @@ public class ArbitrageService {
         ).add(usdO).setScale(4, BigDecimal.ROUND_HALF_UP);
         BigDecimal sumBalUsd4 = firstWalletBalance.add(btcO).add(usdO.divide(ask1_o, 8, BigDecimal.ROUND_HALF_UP))
                 .multiply(bu).setScale(4, BigDecimal.ROUND_HALF_UP);
-        String counterName = String.valueOf(params.getCounter());
+        String counterName = String.valueOf(getCounter());
         if (isGuiButton) {
             counterName = "button";
         } else if (signalType != SignalType.AUTOMATIC) {
@@ -619,7 +619,7 @@ public class ArbitrageService {
         if (counter1.equals(counter2)) {
             iterationMarker = "whole iteration";
         }
-        deltasLogger.info(String.format("#%s count=%s+%s=%s %s", params.getCounter(), counter1, counter2, counter1 + counter2, iterationMarker));
+        deltasLogger.info(String.format("#%s count=%s+%s=%s %s", getCounter(), counter1, counter2, counter1 + counter2, iterationMarker));
 
         BigDecimal firstWalletBalance = BigDecimal.ZERO;
         if (firstMarketService.getAccountInfo() != null
@@ -635,7 +635,7 @@ public class ArbitrageService {
         if (cumDelta.compareTo(cumDeltaMin) == -1) params.setCumDeltaMin(cumDelta);
         if (cumDelta.compareTo(cumDeltaMax) == 1) params.setCumDeltaMax(cumDelta);
         deltasLogger.info(String.format("#%s delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
-                params.getCounter(),
+                getCounter(),
                 bid1_o.toPlainString(), ask1_p.toPlainString(),
                 delta2.toPlainString(),
                 border2.toPlainString(),
@@ -769,4 +769,12 @@ public class ArbitrageService {
         return signalType;
     }
 
+    public void setPeriodSec(Integer integer) {
+        params.setPeriodSec(integer);
+        scheduleRecalculateBorders();
+    }
+
+    public int getCounter() {
+        return params.getCounter1() + params.getCounter2();
+    }
 }

@@ -398,10 +398,6 @@ public class GuiParams extends AbstractDocument {
         this.counter2 = counter2;
     }
 
-    public int getCounter() {
-        return counter1 + counter2;
-    }
-
     public BigDecimal getAmount() {
         return amount;
     }
