@@ -1,0 +1,412 @@
+package com.bitplay.persistance.domain;
+
+import org.springframework.data.annotation.TypeAlias;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.math.BigDecimal;
+
+/**
+ * Created by Sergey Shurmin on 4/18/17.
+ */
+@Document(collection="guiParamsCollection")
+@TypeAlias("guiParams")
+public class GuiParams extends AbstractDocument {
+
+    private BigDecimal border1 = BigDecimal.ZERO;
+    private BigDecimal border2 = BigDecimal.ZERO;
+    private BigDecimal makerDelta = BigDecimal.ZERO;
+    private BigDecimal sumDelta = new BigDecimal(5);
+    private BigDecimal buValue = BigDecimal.ZERO;
+    private Integer periodSec = 300;
+    private BigDecimal cumDelta = BigDecimal.ZERO;
+    private BigDecimal cumDeltaMin = BigDecimal.valueOf(10000);
+    private BigDecimal cumDeltaMax = BigDecimal.ZERO;
+    private BigDecimal cumDeltaFact = BigDecimal.ZERO;
+    private BigDecimal cumDeltaFactMin = BigDecimal.valueOf(10000);
+    private BigDecimal cumDeltaFactMax = BigDecimal.ZERO;
+    private String lastDelta = null;
+    private BigDecimal cumDiffFact1 = BigDecimal.ZERO;
+    private BigDecimal cumDiffFact1Min = BigDecimal.valueOf(10000);
+    private BigDecimal cumDiffFact1Max = BigDecimal.ZERO;
+    private BigDecimal cumDiffFact2 = BigDecimal.ZERO;
+    private BigDecimal cumDiffFact2Min = BigDecimal.valueOf(10000);
+    private BigDecimal cumDiffFact2Max = BigDecimal.ZERO;
+    private BigDecimal cumDiffsFactMin = BigDecimal.valueOf(10000);
+    private BigDecimal cumDiffsFactMax = BigDecimal.ZERO;
+    private BigDecimal diffFactMin = BigDecimal.valueOf(10000);
+    private BigDecimal diffFactMax = BigDecimal.ZERO;
+    private BigDecimal diffFact1Min = BigDecimal.valueOf(10000);
+    private BigDecimal diffFact1Max = BigDecimal.ZERO;
+    private BigDecimal diffFact2Min = BigDecimal.valueOf(10000);
+    private BigDecimal diffFact2Max = BigDecimal.ZERO;
+    private BigDecimal comMin = BigDecimal.valueOf(10000);
+    private BigDecimal comMax = BigDecimal.ZERO;
+    private BigDecimal com1 = BigDecimal.ZERO;
+    private BigDecimal com1Min = BigDecimal.valueOf(10000);
+    private BigDecimal com1Max = BigDecimal.ZERO;
+    private BigDecimal com2 = BigDecimal.ZERO;
+    private BigDecimal com2Min = BigDecimal.valueOf(10000);
+    private BigDecimal com2Max = BigDecimal.ZERO;
+    private BigDecimal bitmexMComMin = BigDecimal.valueOf(10000);
+    private BigDecimal bitmexMComMax = BigDecimal.ZERO;
+    private BigDecimal cumBitmexMCom = BigDecimal.ZERO;
+
+    private BigDecimal cumCom1 = BigDecimal.ZERO;
+    private BigDecimal cumCom2 = BigDecimal.ZERO;
+
+    private int counter1 = 0;
+    private int counter2 = 0;
+
+    private BigDecimal amount = new BigDecimal("0.02");
+
+    public GuiParams() {
+    }
+
+    public BigDecimal getBorder1() {
+        return border1;
+    }
+
+    public void setBorder1(BigDecimal border1) {
+        this.border1 = border1;
+    }
+
+    public BigDecimal getBorder2() {
+        return border2;
+    }
+
+    public void setBorder2(BigDecimal border2) {
+        this.border2 = border2;
+    }
+
+    public BigDecimal getMakerDelta() {
+        return makerDelta;
+    }
+
+    public void setMakerDelta(BigDecimal makerDelta) {
+        this.makerDelta = makerDelta;
+    }
+
+    public BigDecimal getSumDelta() {
+        return sumDelta;
+    }
+
+    public void setSumDelta(BigDecimal sumDelta) {
+        this.sumDelta = sumDelta;
+    }
+
+    public BigDecimal getBuValue() {
+        return buValue;
+    }
+
+    public void setBuValue(BigDecimal buValue) {
+        this.buValue = buValue;
+    }
+
+    public Integer getPeriodSec() {
+        return periodSec;
+    }
+
+    public void setPeriodSec(Integer periodSec) {
+        this.periodSec = periodSec;
+    }
+
+    public BigDecimal getCumDelta() {
+        return cumDelta;
+    }
+
+    public void setCumDelta(BigDecimal cumDelta) {
+        this.cumDelta = cumDelta;
+    }
+
+    public BigDecimal getCumDeltaMin() {
+        return cumDeltaMin;
+    }
+
+    public void setCumDeltaMin(BigDecimal cumDeltaMin) {
+        this.cumDeltaMin = cumDeltaMin;
+    }
+
+    public BigDecimal getCumDeltaMax() {
+        return cumDeltaMax;
+    }
+
+    public void setCumDeltaMax(BigDecimal cumDeltaMax) {
+        this.cumDeltaMax = cumDeltaMax;
+    }
+
+    public BigDecimal getCumDeltaFact() {
+        return cumDeltaFact;
+    }
+
+    public void setCumDeltaFact(BigDecimal cumDeltaFact) {
+        this.cumDeltaFact = cumDeltaFact;
+    }
+
+    public BigDecimal getCumDeltaFactMin() {
+        return cumDeltaFactMin;
+    }
+
+    public void setCumDeltaFactMin(BigDecimal cumDeltaFactMin) {
+        this.cumDeltaFactMin = cumDeltaFactMin;
+    }
+
+    public BigDecimal getCumDeltaFactMax() {
+        return cumDeltaFactMax;
+    }
+
+    public void setCumDeltaFactMax(BigDecimal cumDeltaFactMax) {
+        this.cumDeltaFactMax = cumDeltaFactMax;
+    }
+
+    public String getLastDelta() {
+        return lastDelta;
+    }
+
+    public void setLastDelta(String lastDelta) {
+        this.lastDelta = lastDelta;
+    }
+
+    public BigDecimal getCumDiffFact1() {
+        return cumDiffFact1;
+    }
+
+    public void setCumDiffFact1(BigDecimal cumDiffFact1) {
+        this.cumDiffFact1 = cumDiffFact1;
+    }
+
+    public BigDecimal getCumDiffFact1Min() {
+        return cumDiffFact1Min;
+    }
+
+    public void setCumDiffFact1Min(BigDecimal cumDiffFact1Min) {
+        this.cumDiffFact1Min = cumDiffFact1Min;
+    }
+
+    public BigDecimal getCumDiffFact1Max() {
+        return cumDiffFact1Max;
+    }
+
+    public void setCumDiffFact1Max(BigDecimal cumDiffFact1Max) {
+        this.cumDiffFact1Max = cumDiffFact1Max;
+    }
+
+    public BigDecimal getCumDiffFact2() {
+        return cumDiffFact2;
+    }
+
+    public void setCumDiffFact2(BigDecimal cumDiffFact2) {
+        this.cumDiffFact2 = cumDiffFact2;
+    }
+
+    public BigDecimal getCumDiffFact2Min() {
+        return cumDiffFact2Min;
+    }
+
+    public void setCumDiffFact2Min(BigDecimal cumDiffFact2Min) {
+        this.cumDiffFact2Min = cumDiffFact2Min;
+    }
+
+    public BigDecimal getCumDiffFact2Max() {
+        return cumDiffFact2Max;
+    }
+
+    public void setCumDiffFact2Max(BigDecimal cumDiffFact2Max) {
+        this.cumDiffFact2Max = cumDiffFact2Max;
+    }
+
+    public BigDecimal getCumDiffsFactMin() {
+        return cumDiffsFactMin;
+    }
+
+    public void setCumDiffsFactMin(BigDecimal cumDiffsFactMin) {
+        this.cumDiffsFactMin = cumDiffsFactMin;
+    }
+
+    public BigDecimal getCumDiffsFactMax() {
+        return cumDiffsFactMax;
+    }
+
+    public void setCumDiffsFactMax(BigDecimal cumDiffsFactMax) {
+        this.cumDiffsFactMax = cumDiffsFactMax;
+    }
+
+    public BigDecimal getDiffFactMin() {
+        return diffFactMin;
+    }
+
+    public void setDiffFactMin(BigDecimal diffFactMin) {
+        this.diffFactMin = diffFactMin;
+    }
+
+    public BigDecimal getDiffFactMax() {
+        return diffFactMax;
+    }
+
+    public void setDiffFactMax(BigDecimal diffFactMax) {
+        this.diffFactMax = diffFactMax;
+    }
+
+    public BigDecimal getDiffFact1Min() {
+        return diffFact1Min;
+    }
+
+    public void setDiffFact1Min(BigDecimal diffFact1Min) {
+        this.diffFact1Min = diffFact1Min;
+    }
+
+    public BigDecimal getDiffFact1Max() {
+        return diffFact1Max;
+    }
+
+    public void setDiffFact1Max(BigDecimal diffFact1Max) {
+        this.diffFact1Max = diffFact1Max;
+    }
+
+    public BigDecimal getDiffFact2Min() {
+        return diffFact2Min;
+    }
+
+    public void setDiffFact2Min(BigDecimal diffFact2Min) {
+        this.diffFact2Min = diffFact2Min;
+    }
+
+    public BigDecimal getDiffFact2Max() {
+        return diffFact2Max;
+    }
+
+    public void setDiffFact2Max(BigDecimal diffFact2Max) {
+        this.diffFact2Max = diffFact2Max;
+    }
+
+    public BigDecimal getComMin() {
+        return comMin;
+    }
+
+    public void setComMin(BigDecimal comMin) {
+        this.comMin = comMin;
+    }
+
+    public BigDecimal getComMax() {
+        return comMax;
+    }
+
+    public void setComMax(BigDecimal comMax) {
+        this.comMax = comMax;
+    }
+
+    public BigDecimal getCom1() {
+        return com1;
+    }
+
+    public void setCom1(BigDecimal com1) {
+        this.com1 = com1;
+    }
+
+    public BigDecimal getCom1Min() {
+        return com1Min;
+    }
+
+    public void setCom1Min(BigDecimal com1Min) {
+        this.com1Min = com1Min;
+    }
+
+    public BigDecimal getCom1Max() {
+        return com1Max;
+    }
+
+    public void setCom1Max(BigDecimal com1Max) {
+        this.com1Max = com1Max;
+    }
+
+    public BigDecimal getCom2() {
+        return com2;
+    }
+
+    public void setCom2(BigDecimal com2) {
+        this.com2 = com2;
+    }
+
+    public BigDecimal getCom2Min() {
+        return com2Min;
+    }
+
+    public void setCom2Min(BigDecimal com2Min) {
+        this.com2Min = com2Min;
+    }
+
+    public BigDecimal getCom2Max() {
+        return com2Max;
+    }
+
+    public void setCom2Max(BigDecimal com2Max) {
+        this.com2Max = com2Max;
+    }
+
+    public BigDecimal getBitmexMComMin() {
+        return bitmexMComMin;
+    }
+
+    public void setBitmexMComMin(BigDecimal bitmexMComMin) {
+        this.bitmexMComMin = bitmexMComMin;
+    }
+
+    public BigDecimal getBitmexMComMax() {
+        return bitmexMComMax;
+    }
+
+    public void setBitmexMComMax(BigDecimal bitmexMComMax) {
+        this.bitmexMComMax = bitmexMComMax;
+    }
+
+    public BigDecimal getCumBitmexMCom() {
+        return cumBitmexMCom;
+    }
+
+    public void setCumBitmexMCom(BigDecimal cumBitmexMCom) {
+        this.cumBitmexMCom = cumBitmexMCom;
+    }
+
+    public BigDecimal getCumCom1() {
+        return cumCom1;
+    }
+
+    public void setCumCom1(BigDecimal cumCom1) {
+        this.cumCom1 = cumCom1;
+    }
+
+    public BigDecimal getCumCom2() {
+        return cumCom2;
+    }
+
+    public void setCumCom2(BigDecimal cumCom2) {
+        this.cumCom2 = cumCom2;
+    }
+
+    public int getCounter1() {
+        return counter1;
+    }
+
+    public void setCounter1(int counter1) {
+        this.counter1 = counter1;
+    }
+
+    public int getCounter2() {
+        return counter2;
+    }
+
+    public void setCounter2(int counter2) {
+        this.counter2 = counter2;
+    }
+
+    public int getCounter() {
+        return counter1 + counter2;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+}

@@ -576,7 +576,7 @@ public class PoloniexService extends MarketService {
 
     @Override
     protected BigDecimal getMakerDelta() {
-        return arbitrageService.getMakerDelta();
+        return arbitrageService.getParams().getMakerDelta();
     }
 
     public UserTrades fetchMyTradeHistory() {

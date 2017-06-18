@@ -73,118 +73,121 @@ public class CommonUIService {
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
                 arbitrageService.getDelta2().toPlainString(),
-                arbitrageService.getBorder1().toPlainString(),
-                arbitrageService.getBorder2().toPlainString(),
-                arbitrageService.getMakerDelta().toPlainString(),
-                arbitrageService.getSumDelta().toPlainString(),
-                arbitrageService.getPeriodSec().toString(),
-                arbitrageService.getBuValue().toPlainString(),
-                arbitrageService.getCumDelta().toPlainString(),
-                arbitrageService.getLastDelta(),
-                arbitrageService.getCumDeltaFact().toPlainString(),
-                arbitrageService.getCumDiffFact1().toPlainString(),
-                arbitrageService.getCumDiffFact2().toPlainString(),
-                arbitrageService.getCumCom1().toPlainString(),
-                arbitrageService.getCumCom2().toPlainString(),
-                String.valueOf(arbitrageService.getCounter1()),
-                String.valueOf(arbitrageService.getCounter2()),
-                arbitrageService.getCumBitmexMCom().toPlainString()
+                arbitrageService.getParams().getBorder1().toPlainString(),
+                arbitrageService.getParams().getBorder2().toPlainString(),
+                arbitrageService.getParams().getMakerDelta().toPlainString(),
+                arbitrageService.getParams().getSumDelta().toPlainString(),
+                arbitrageService.getParams().getPeriodSec().toString(),
+                arbitrageService.getParams().getBuValue().toPlainString(),
+                arbitrageService.getParams().getCumDelta().toPlainString(),
+                arbitrageService.getParams().getLastDelta(),
+                arbitrageService.getParams().getCumDeltaFact().toPlainString(),
+                arbitrageService.getParams().getCumDiffFact1().toPlainString(),
+                arbitrageService.getParams().getCumDiffFact2().toPlainString(),
+                arbitrageService.getParams().getCumCom1().toPlainString(),
+                arbitrageService.getParams().getCumCom2().toPlainString(),
+                String.valueOf(arbitrageService.getParams().getCounter1()),
+                String.valueOf(arbitrageService.getParams().getCounter2()),
+                arbitrageService.getParams().getCumBitmexMCom().toPlainString()
         );
     }
 
     public DeltasJson updateBorders(BorderUpdateJson borderUpdateJson) {
         if (borderUpdateJson.getBorder1() != null) {
-            arbitrageService.setBorder1(new BigDecimal(borderUpdateJson.getBorder1()));
+            arbitrageService.getParams().setBorder1(new BigDecimal(borderUpdateJson.getBorder1()));
         }
         if (borderUpdateJson.getBorder2() != null) {
-            arbitrageService.setBorder2(new BigDecimal(borderUpdateJson.getBorder2()));
+            arbitrageService.getParams().setBorder2(new BigDecimal(borderUpdateJson.getBorder2()));
         }
+        arbitrageService.saveParamsToDb();
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
                 arbitrageService.getDelta2().toPlainString(),
-                arbitrageService.getBorder1().toPlainString(),
-                arbitrageService.getBorder2().toPlainString(),
-                arbitrageService.getMakerDelta().toPlainString(),
-                arbitrageService.getSumDelta().toPlainString(),
-                arbitrageService.getPeriodSec().toString(),
-                arbitrageService.getBuValue().toPlainString(),
-                arbitrageService.getCumDelta().toPlainString(),
-                arbitrageService.getLastDelta(),
-                arbitrageService.getCumDeltaFact().toPlainString(),
-                arbitrageService.getCumDiffFact1().toPlainString(),
-                arbitrageService.getCumDiffFact2().toPlainString(),
-                arbitrageService.getCumCom1().toPlainString(),
-                arbitrageService.getCumCom2().toPlainString(),
-                String.valueOf(arbitrageService.getCounter1()),
-                String.valueOf(arbitrageService.getCounter2()),
-                arbitrageService.getCumBitmexMCom().toPlainString()
+                arbitrageService.getParams().getBorder1().toPlainString(),
+                arbitrageService.getParams().getBorder2().toPlainString(),
+                arbitrageService.getParams().getMakerDelta().toPlainString(),
+                arbitrageService.getParams().getSumDelta().toPlainString(),
+                arbitrageService.getParams().getPeriodSec().toString(),
+                arbitrageService.getParams().getBuValue().toPlainString(),
+                arbitrageService.getParams().getCumDelta().toPlainString(),
+                arbitrageService.getParams().getLastDelta(),
+                arbitrageService.getParams().getCumDeltaFact().toPlainString(),
+                arbitrageService.getParams().getCumDiffFact1().toPlainString(),
+                arbitrageService.getParams().getCumDiffFact2().toPlainString(),
+                arbitrageService.getParams().getCumCom1().toPlainString(),
+                arbitrageService.getParams().getCumCom2().toPlainString(),
+                String.valueOf(arbitrageService.getParams().getCounter1()),
+                String.valueOf(arbitrageService.getParams().getCounter2()),
+                arbitrageService.getParams().getCumBitmexMCom().toPlainString()
         );
     }
 
     public DeltasJson updateMakerDelta(DeltalUpdateJson deltalUpdateJson) {
         if (deltalUpdateJson.getMakerDelta() != null) {
-            arbitrageService.setMakerDelta(new BigDecimal(deltalUpdateJson.getMakerDelta()));
+            arbitrageService.getParams().setMakerDelta(new BigDecimal(deltalUpdateJson.getMakerDelta()));
         }
         if (deltalUpdateJson.getSumDelta() != null) {
-            arbitrageService.setSumDelta(new BigDecimal(deltalUpdateJson.getSumDelta()));
+            arbitrageService.getParams().setSumDelta(new BigDecimal(deltalUpdateJson.getSumDelta()));
         }
         if (deltalUpdateJson.getPeriodSec() != null) {
-            arbitrageService.setPeriodSec(Integer.valueOf(deltalUpdateJson.getPeriodSec()));
+            arbitrageService.getParams().setPeriodSec(Integer.valueOf(deltalUpdateJson.getPeriodSec()));
         }
         if (deltalUpdateJson.getBuValue() != null) {
-            arbitrageService.setBuValue(new BigDecimal(deltalUpdateJson.getBuValue()));
+            arbitrageService.getParams().setBuValue(new BigDecimal(deltalUpdateJson.getBuValue()));
         }
         if (deltalUpdateJson.getCumDelta() != null) {
-            arbitrageService.setCumDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
+            arbitrageService.getParams().setCumDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
         }
         if (deltalUpdateJson.getLastDelta() != null) {
-            arbitrageService.setLastDelta(deltalUpdateJson.getLastDelta());
+            arbitrageService.getParams().setLastDelta(deltalUpdateJson.getLastDelta());
         }
         if (deltalUpdateJson.getCumDeltaFact() != null) {
-            arbitrageService.setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
+            arbitrageService.getParams().setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
         }
         if (deltalUpdateJson.getCumDiffFact1() != null) {
-            arbitrageService.setCumDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
+            arbitrageService.getParams().setCumDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
         }
         if (deltalUpdateJson.getCumDiffFact2() != null) {
-            arbitrageService.setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
+            arbitrageService.getParams().setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
         }
         if (deltalUpdateJson.getCumCom1() != null) {
-            arbitrageService.setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
+            arbitrageService.getParams().setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
         }
         if (deltalUpdateJson.getCumCom2() != null) {
-            arbitrageService.setCumCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
+            arbitrageService.getParams().setCumCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
         }
         if (deltalUpdateJson.getCount1() != null) {
-            arbitrageService.setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
+            arbitrageService.getParams().setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
         }
         if (deltalUpdateJson.getCount2() != null) {
-            arbitrageService.setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
+            arbitrageService.getParams().setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
         }
         if (deltalUpdateJson.getCumBitmexMCom() != null) {
-            arbitrageService.setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
+            arbitrageService.getParams().setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
         }
+
+        arbitrageService.saveParamsToDb();
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
                 arbitrageService.getDelta2().toPlainString(),
-                arbitrageService.getBorder1().toPlainString(),
-                arbitrageService.getBorder2().toPlainString(),
-                arbitrageService.getMakerDelta().toPlainString(),
-                arbitrageService.getSumDelta().toPlainString(),
-                arbitrageService.getPeriodSec().toString(),
-                arbitrageService.getBuValue().toPlainString(),
-                arbitrageService.getCumDelta().toPlainString(),
-                arbitrageService.getLastDelta(),
-                arbitrageService.getCumDeltaFact().toPlainString(),
-                arbitrageService.getCumDiffFact1().toPlainString(),
-                arbitrageService.getCumDiffFact2().toPlainString(),
-                arbitrageService.getCumCom1().toPlainString(),
-                arbitrageService.getCumCom2().toPlainString(),
-                String.valueOf(arbitrageService.getCounter1()),
-                String.valueOf(arbitrageService.getCounter2()),
-                arbitrageService.getCumBitmexMCom().toPlainString()
+                arbitrageService.getParams().getBorder1().toPlainString(),
+                arbitrageService.getParams().getBorder2().toPlainString(),
+                arbitrageService.getParams().getMakerDelta().toPlainString(),
+                arbitrageService.getParams().getSumDelta().toPlainString(),
+                arbitrageService.getParams().getPeriodSec().toString(),
+                arbitrageService.getParams().getBuValue().toPlainString(),
+                arbitrageService.getParams().getCumDelta().toPlainString(),
+                arbitrageService.getParams().getLastDelta(),
+                arbitrageService.getParams().getCumDeltaFact().toPlainString(),
+                arbitrageService.getParams().getCumDiffFact1().toPlainString(),
+                arbitrageService.getParams().getCumDiffFact2().toPlainString(),
+                arbitrageService.getParams().getCumCom1().toPlainString(),
+                arbitrageService.getParams().getCumCom2().toPlainString(),
+                String.valueOf(arbitrageService.getParams().getCounter1()),
+                String.valueOf(arbitrageService.getParams().getCounter2()),
+                arbitrageService.getParams().getCumBitmexMCom().toPlainString()
         );
     }
 
@@ -221,12 +224,13 @@ public class CommonUIService {
     }
 
     public TradableAmountJson getTradableAmount() {
-        return new TradableAmountJson(arbitrageService.getAmount().toPlainString());
+        return new TradableAmountJson(arbitrageService.getParams().getAmount().toPlainString());
     }
 
     public TradableAmountJson updateTradableAmount(TradableAmountJson tradableAmountJson) {
-        arbitrageService.setAmount(new BigDecimal(tradableAmountJson.getAmount()));
-        return new TradableAmountJson(arbitrageService.getAmount().toPlainString());
+        arbitrageService.getParams().setAmount(new BigDecimal(tradableAmountJson.getAmount()));
+        arbitrageService.saveParamsToDb();
+        return new TradableAmountJson(arbitrageService.getParams().getAmount().toPlainString());
     }
 
     public ResultJson printSumBal() {

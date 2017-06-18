@@ -199,7 +199,7 @@ public class OkCoinService extends MarketService {
 
     @Override
     protected BigDecimal getMakerDelta() {
-        return arbitrageService.getMakerDelta();
+        return arbitrageService.getParams().getMakerDelta();
     }
 
     public String fetchCurrencies() {
@@ -486,7 +486,7 @@ public class OkCoinService extends MarketService {
                             ? diff1 : diff2);
                 }
                 tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}",
-                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                        signalType == SignalType.AUTOMATIC ? arbitrageService.getParams().getCounter() : signalType.getCounterName(),
                         isMoving ? "Moved" : "maker",
                         orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                         tradeableAmount.toPlainString(),
@@ -600,7 +600,7 @@ public class OkCoinService extends MarketService {
 
         if (cancelledSuccessfully) {
             tradeLogger.info("#{} Cancelled {} amount={},quote={},id={},attempt={}",
-                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                    signalType == SignalType.AUTOMATIC ? arbitrageService.getParams().getCounter() : signalType.getCounterName(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     limitOrder.getLimitPrice().toPlainString(),
@@ -617,7 +617,7 @@ public class OkCoinService extends MarketService {
                         newAmount, bestQuotes, true, signalType);
                 if (tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info("#{} Failed {} amount={},quote={},id={},attempt={}. Error: {}",
-                            signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                            signalType == SignalType.AUTOMATIC ? arbitrageService.getParams().getCounter() : signalType.getCounterName(),
                             limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                             limitOrder.getTradableAmount(),
                             limitOrder.getLimitPrice().toPlainString(),
@@ -634,7 +634,7 @@ public class OkCoinService extends MarketService {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
             } else {
                 final String description = String.format("#%s Moving error. Cancelled amount %s, but %s",
-                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                        signalType == SignalType.AUTOMATIC ? arbitrageService.getParams().getCounter() : signalType.getCounterName(),
                         limitOrder.getTradableAmount().toPlainString(), tradeResponse.getErrorCode());
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, description);
                 tradeLogger.info(description);
@@ -649,7 +649,7 @@ public class OkCoinService extends MarketService {
                 logResponse = "Cancel failed";
             }
             final String logString = String.format("#%s %s %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
-                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                    signalType == SignalType.AUTOMATIC ? arbitrageService.getParams().getCounter() : signalType.getCounterName(),
                     logResponse,
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
