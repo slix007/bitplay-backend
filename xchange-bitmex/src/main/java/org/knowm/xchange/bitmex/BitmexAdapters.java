@@ -68,7 +68,7 @@ public class BitmexAdapters {
 
                 LimitOrder limitOrder = new LimitOrder
                         .Builder(orderType, currencyPair)
-                        .tradableAmount(satoshiToBtc(orderBookL2.getSize()))
+                        .tradableAmount(orderBookL2.getSize())
                         .limitPrice(new BigDecimal(orderBookL2.getPrice()).setScale(1, RoundingMode.HALF_UP))
                         .build();
                 limitOrderList.add(limitOrder);
