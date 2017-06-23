@@ -17,6 +17,7 @@ import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
+import org.knowm.xchange.dto.trade.ContractLimitOrder;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 
@@ -94,6 +95,11 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 : null);
         orderJson.setId(limitOrder.getId());
         orderJson.setStatus(limitOrder.getStatus() != null ? limitOrder.getStatus().toString() : null);
+        if (limitOrder instanceof ContractLimitOrder) {
+            final BigDecimal contractPrice = ((ContractLimitOrder) limitOrder).getContractPrice();
+            orderJson.setContracts(contractPrice != null ? contractPrice.toPlainString() : "");
+        }
+
         return orderJson;
     };
 

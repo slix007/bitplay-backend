@@ -14,6 +14,7 @@ public class OrderJson {
     String amount;
     String orderType;
     String timestamp;
+    String contracts;
 
     public String getId() {
         return id;
@@ -69,6 +70,14 @@ public class OrderJson {
 
     public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getContracts() {
+        return contracts;
+    }
+
+    public void setContracts(String contracts) {
+        this.contracts = contracts;
     }
 
     @Override

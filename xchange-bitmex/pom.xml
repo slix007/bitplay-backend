@@ -148,7 +148,7 @@
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-core</artifactId>
-            <version>4.2.0</version>
+            <version>${xchange-core.version}</version>
         </dependency>
 
         <!-- Rest client -->
@@ -177,6 +177,7 @@
         <maven-plugin-version>1.0.0</maven-plugin-version>
         <junit-version>4.12</junit-version>
         <java.version>1.8</java.version>
+        <xchange-core.version>4.2.1-SNAPSHOT</xchange-core.version>
     </properties>
 </project>
 

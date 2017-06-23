@@ -1,5 +1,6 @@
 package com.bitplay.api.service;
 
+import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -7,7 +8,12 @@ import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 
+import info.bitrich.xchangestream.okex.OkExAdapters;
+
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +83,29 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         }
 
         return new TradeResponseJson(orderId, null);
+    }
+
+    @Override
+    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo) {
+        if (accountInfo == null) {
+            return new AccountInfoJson(null, null, null);
+        }
+        final Wallet wallet = accountInfo.getWallet();
+        final Balance walletBalance = wallet.getBalance(OkExAdapters.WALLET_CURRENCY);
+//        final Balance marginBalance = wallet.getBalance(OkExAdapters.MARGIN_CURRENCY);
+        final Balance position_long = wallet.getBalance(OkExAdapters.POSITION_LONG_CURRENCY);
+        final Balance position_short = wallet.getBalance(OkExAdapters.POSITION_SHORT_CURRENCY);
+        String position = String.format("%s + %s = %s",
+                position_long.getFrozen().toPlainString(),
+                position_short.getFrozen().negate().toPlainString(),
+                position_long.getFrozen().subtract(position_short.getFrozen()).toPlainString());
+
+        return new AccountInfoJson(
+                walletBalance.getTotal().toPlainString(),
+                walletBalance.getAvailable().toPlainString(),
+                walletBalance.getFrozen().toPlainString(),
+                position,
+                accountInfo.toString());
     }
 
 }

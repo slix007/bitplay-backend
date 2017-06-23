@@ -8,7 +8,10 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
-import info.bitrich.xchangestream.okcoin.OkCoinStreamingExchange;
+import info.bitrich.xchangestream.okex.OkExAdapters;
+import info.bitrich.xchangestream.okex.OkExStreamingExchange;
+import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
+import info.bitrich.xchangestream.okex.dto.BalanceEx;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
@@ -16,10 +19,13 @@ import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
+import org.knowm.xchange.okcoin.FuturesContract;
+import org.knowm.xchange.okcoin.service.OkCoinFuturesTradeService;
 import org.knowm.xchange.okcoin.service.OkCoinTradeService;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
@@ -72,7 +78,7 @@ public class OkCoinService extends MarketService {
         return arbitrageService;
     }
 
-    private OkCoinStreamingExchange exchange;
+    private OkExStreamingExchange exchange;
 
     Disposable orderBookSubscription;
     Disposable privateDataSubscription;
@@ -100,7 +106,6 @@ public class OkCoinService extends MarketService {
         initWebSocketConnection();
 
         createOrderBookObservable();
-
         subscribeOnOrderBook();
 
 //        startTradesListener(); // to remove openOrders
@@ -109,12 +114,16 @@ public class OkCoinService extends MarketService {
 
         fetchOpenOrdersWithDelay();
 
-        fetchAccountInfo();
+//        fetchAccountInfo();
+        fetchAccountInfoViaWebsocket();
     }
 
     private void createOrderBookObservable() {
-        orderBookObservable = exchange.getStreamingMarketDataService()
-                .getOrderBook(CurrencyPair.BTC_USD, 20)
+        orderBookObservable = ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                .getOrderBook(CurrencyPair.BTC_USD,
+                        OkExStreamingMarketDataService.Tool.BTC,
+                        FuturesContract.ThisWeek,
+                        OkExStreamingMarketDataService.Depth.DEPTH_20)
                 .doOnDispose(() -> logger.info("okcoin subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("okcoin subscription doOnTerminate"))
                 .doOnError(throwable -> logger.error("okcoin onError orderBook", throwable))
@@ -122,18 +131,16 @@ public class OkCoinService extends MarketService {
                 .share();
     }
 
-    private OkCoinStreamingExchange initExchange(String key, String secret) {
-        ExchangeSpecification spec = new ExchangeSpecification(OkCoinStreamingExchange.class);
+    private OkExStreamingExchange initExchange(String key, String secret) {
+        ExchangeSpecification spec = new ExchangeSpecification(OkExStreamingExchange.class);
         spec.setApiKey(key);
         spec.setSecretKey(secret);
 
         spec.setExchangeSpecificParametersItem("Use_Intl", true);
+        spec.setExchangeSpecificParametersItem("Use_Futures", true);
+        spec.setExchangeSpecificParametersItem("Futures_Contract", FuturesContract.ThisWeek);
 
-        OkCoinStreamingExchange exchange = (OkCoinStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
-//        String metaDataFileName = ((BaseExchange) exchange).getMetaDataFileName(spec);
-//        logger.info("OKCOING metaDataFileName=" + metaDataFileName);
-
-        return exchange;
+        return (OkExStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
     }
 
     private void initWebSocketConnection() {
@@ -209,15 +216,76 @@ public class OkCoinService extends MarketService {
         return toString;
     }
 
-    @Scheduled(fixedRate = 1000 * 60 * 15) // The subscription should handle it.
     public AccountInfo fetchAccountInfo() {
         try {
-            accountInfo = exchange.getAccountService().getAccountInfo();
-            logger.info(accountInfo.toString());
+            accountInfo = exchange.getAccountService().getAccountInfo(); // only available wallet
         } catch (IOException e) {
             logger.error("AccountInfo error", e);
         }
         return accountInfo;
+    }
+
+    //    @Scheduled(fixedRate = 1000 * 60 * 15) // The subscription should handle it.
+    public AccountInfo fetchAccountInfoViaWebsocket() {
+        try {
+            final AccountInfo newAccountInfo = exchange.getStreamingAccountInfoService().getAccountInfo();
+            mergeAccountInfo(newAccountInfo);
+//            logger.info(this.accountInfo.toString());
+        } catch (Exception e) {
+            logger.error("AccountInfo error", e);
+        }
+        return accountInfo;
+    }
+
+    private void mergeAccountInfo(AccountInfo newAccountInfo) {
+        // merge account info
+        Balance newWalletBalance = newAccountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY);
+        Balance newMarginBalance = newAccountInfo.getWallet().getBalance(OkExAdapters.MARGIN_CURRENCY);
+        if (newWalletBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
+            // get old then
+            newWalletBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                    ? this.accountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY)
+                    : new Balance(OkExAdapters.WALLET_CURRENCY, BigDecimal.ZERO);
+        }
+        if (newMarginBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
+            // get old then
+            newMarginBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                    ? this.accountInfo.getWallet().getBalance(OkExAdapters.MARGIN_CURRENCY)
+                    : new Balance(OkExAdapters.MARGIN_CURRENCY, BigDecimal.ZERO);
+        }
+
+        final Balance oldPositionLongBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                ? this.accountInfo.getWallet().getBalance(OkExAdapters.POSITION_LONG_CURRENCY)
+                : new Balance(OkExAdapters.POSITION_LONG_CURRENCY, BigDecimal.ZERO);
+        final Balance oldPositionShortBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                ? this.accountInfo.getWallet().getBalance(OkExAdapters.POSITION_SHORT_CURRENCY)
+                : new Balance(OkExAdapters.POSITION_SHORT_CURRENCY, BigDecimal.ZERO);
+
+        final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(newWalletBalance, newMarginBalance,
+                oldPositionLongBalance, oldPositionShortBalance));
+
+        setAccountInfo(resultAccountInfo);
+        logger.debug("Balance Wallet={}, Margin={}, Position={},{}",
+                newWalletBalance.getTotal().toPlainString(),
+                newWalletBalance.getFrozen().toPlainString(),
+                oldPositionLongBalance.getFrozen().toPlainString(),
+                oldPositionShortBalance.getFrozen().toPlainString());
+
+        String walletRaw = "";
+        String positionsRaw = "";
+        if (newWalletBalance instanceof BalanceEx) {
+            walletRaw = ((BalanceEx) newWalletBalance).getRaw();
+        }
+        if (oldPositionLongBalance instanceof BalanceEx) {
+            positionsRaw = ((BalanceEx) oldPositionLongBalance).getRaw();
+            positionsRaw += "\n";
+            positionsRaw += ((BalanceEx) oldPositionShortBalance).getRaw();
+        }
+        tradeLogger.info("AccountInfo:\n"
+                + walletRaw
+                + "\n"
+                + positionsRaw
+        );
     }
 
     //TODO use subscribing on open orders
@@ -314,14 +382,15 @@ public class OkCoinService extends MarketService {
 */
     private Disposable startPrivateDataListener() {
         return exchange.getStreamingPrivateDataService()
-                .getTradesAndBalances()
+                .getAllPrivateDataObservable()
                 .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(privateData -> {
                     logger.debug(privateData.toString());
                     if (privateData.getAccountInfo() != null) {
-                        accountInfo = privateData.getAccountInfo();
+                        AccountInfo newAccountInfo = privateData.getAccountInfo();
+                        mergeAccountInfo(newAccountInfo);
                     }
                     if (privateData.getTrades() != null) {
                         updateOpenOrders(privateData.getTrades());
@@ -393,39 +462,39 @@ public class OkCoinService extends MarketService {
     }
 
     public String placeTakerOrder(Order.OrderType orderType, BigDecimal amount) {
-        String orderId;
-        try {
-            final TradeService tradeService = exchange.getTradeService();
-            BigDecimal tradingDigit;
-            BigDecimal theBestPrice;
-
-            if (orderType.equals(Order.OrderType.BID)) {
-                // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
-                tradingDigit = getTotalPriceOfAmountToBuy(amount);
-                theBestPrice = bestAsk;
-            } else { // orderType.equals(Order.OrderType.ASK)
-                tradingDigit = amount;
-                theBestPrice = bestBid;
-            }
-
-//          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()
-            final MarketOrder marketOrder = new MarketOrder(orderType,
-                    tradingDigit,
-                    CURRENCY_PAIR_BTC_USD, new Date());
-            orderId = tradeService.placeMarketOrder(marketOrder);
-
-//            final Order successfulOrder = fetchOrderInfo(orderId);
-
-            // TODO save trading history into DB
-            tradeLogger.info("taker {} amount={} with theBestPrice={}",
-                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
-                    amount.toPlainString(),
-                    theBestPrice);
-
-        } catch (Exception e) {
-            logger.error("Place market order error", e);
-            orderId = e.getMessage();
-        }
+        String orderId = "Not implemented yet";
+//        try {
+//            final TradeService tradeService = exchange.getTradeService();
+//            BigDecimal tradingDigit;
+//            BigDecimal theBestPrice;
+//
+//            if (orderType.equals(Order.OrderType.BID)) {
+//                // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
+//                tradingDigit = getTotalPriceOfAmountToBuy(amount);
+//                theBestPrice = bestAsk;
+//            } else { // orderType.equals(Order.OrderType.ASK)
+//                tradingDigit = amount;
+//                theBestPrice = bestBid;
+//            }
+//
+////          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()
+//            final MarketOrder marketOrder = new MarketOrder(orderType,
+//                    tradingDigit,
+//                    CURRENCY_PAIR_BTC_USD, new Date());
+//            orderId = tradeService.placeMarketOrder(marketOrder);
+//
+////            final Order successfulOrder = fetchOrderInfo(orderId);
+//
+//            // TODO save trading history into DB
+//            tradeLogger.info("taker {} amount={} with theBestPrice={}",
+//                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+//                    amount.toPlainString(),
+//                    theBestPrice);
+//
+//        } catch (Exception e) {
+//            logger.error("Place market order error", e);
+//            orderId = e.getMessage();
+//        }
         return orderId;
     }
 
@@ -441,7 +510,6 @@ public class OkCoinService extends MarketService {
         try {
             arbitrageService.setSignalType(signalType);
 
-            final TradeService tradeService = exchange.getTradeService();
             BigDecimal thePrice;
 
             thePrice = createBestMakerPrice(orderType, false)
@@ -468,12 +536,28 @@ public class OkCoinService extends MarketService {
                 tradeResponse.setErrorMessage("Not enough amount left. amount=" + tradeableAmount.toPlainString());
 
             } else {
+                // USING REST API
                 final LimitOrder limitOrder = new LimitOrder(orderType,
                         tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(),
                         thePrice);
 
-                String orderId = tradeService.placeLimitOrder(limitOrder);
+                String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
                 tradeResponse.setOrderId(orderId);
+
+                // USING WEBSOCKET API
+//                ContractOrderType contractOrderType;
+//                if (orderType == Order.OrderType.BID) {
+//                    contractOrderType = ContractOrderType.OPEN_LONG_POSITION_BUY;
+//                } else {
+//                    contractOrderType = ContractOrderType.OPEN_SHORT_POSITION_SELL;
+//                }
+//
+//                final OkExStreamingTradingService tradingService = (OkExStreamingTradingService) exchange.getStreamingTradingService();
+//                String orderId = tradingService.placeContractOrder("btc_usd",
+//                        ContractType.THIS_WEEK,
+//                        thePrice, tradeableAmount,
+//                        contractOrderType);
+//                tradeResponse.setOrderId(orderId);
 
                 String diffWithSignal = "";
                 if (bestQuotes != null) {
@@ -578,7 +662,7 @@ public class OkCoinService extends MarketService {
 
         // IT doesn't support moving
         // Do cancel ant place
-        final OkCoinTradeService tradeService = (OkCoinTradeService) exchange.getTradeService();
+        final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
         MoveResponse response;
         BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
 

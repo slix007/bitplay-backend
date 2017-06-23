@@ -19,6 +19,8 @@
         <java.version>1.8</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <xchange-stream.version>4.2.3-SNAPSHOT</xchange-stream.version>
+        <xchange.version>4.2.1-SNAPSHOT</xchange.version>
     </properties>
 
     <dependencies>
@@ -57,17 +59,17 @@
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-core</artifactId>
-            <version>4.2.0</version>
+            <version>${xchange.version}</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-quoine</artifactId>
-            <version>4.2.0</version>
+            <version>${xchange.version}</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-poloniex</artifactId>
-            <version>4.2.0</version>
+            <version>${xchange.version}</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>
@@ -90,12 +92,12 @@
         <dependency>
             <groupId>info.bitrich.xchange-stream</groupId>
             <artifactId>xchange-stream-core</artifactId>
-            <version>4.2.1-SNAPSHOT</version>
+            <version>${xchange-stream.version}</version>
         </dependency>
         <dependency>
             <groupId>info.bitrich.xchange-stream</groupId>
             <artifactId>xchange-poloniex</artifactId>
-            <version>4.2.1-SNAPSHOT</version>
+            <version>${xchange-stream.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>io.netty</groupId>
@@ -126,7 +128,7 @@
         <dependency>
             <groupId>info.bitrich.xchange-stream</groupId>
             <artifactId>xchange-okcoin</artifactId>
-            <version>4.2.1-SNAPSHOT</version>
+            <version>${xchange-stream.version}</version>
         </dependency>
 
         <!--TODO move it into xchange-stream -->
