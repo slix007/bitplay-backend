@@ -86,7 +86,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     Function<LimitOrder, OrderJson> toOrderJson = limitOrder -> {
         final OrderJson orderJson = new OrderJson();
-        orderJson.setOrderType(limitOrder.getType().toString());
+        orderJson.setOrderType(limitOrder.getType() != null ? limitOrder.getType().toString() : "null");
         orderJson.setPrice(limitOrder.getLimitPrice().toPlainString());
         orderJson.setAmount(limitOrder.getTradableAmount().toPlainString());
         orderJson.setCurrency(limitOrder.getCurrencyPair().toString());

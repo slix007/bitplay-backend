@@ -375,9 +375,11 @@ public abstract class MarketService {
 
     protected BigDecimal createBestMakerPrice(Order.OrderType orderType, boolean forceUsingStep) {
         BigDecimal thePrice = BigDecimal.ZERO;
-        if (orderType == Order.OrderType.BID) {
+        if (orderType == Order.OrderType.BID
+                || orderType == Order.OrderType.EXIT_ASK) {
             thePrice = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getLimitPrice();
-        } else if (orderType == Order.OrderType.ASK) {
+        } else if (orderType == Order.OrderType.ASK
+                || orderType == Order.OrderType.EXIT_BID) {
             thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getLimitPrice();
         }
         return thePrice;
@@ -408,9 +410,11 @@ public abstract class MarketService {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
         } else {
 
-            if (limitOrder.getType() == Order.OrderType.ASK) {
+            if (limitOrder.getType() == Order.OrderType.ASK
+                    || limitOrder.getType() == Order.OrderType.EXIT_BID) {
                 bestPrice = bestAsk;
-            } else if (limitOrder.getType() == Order.OrderType.BID) {
+            } else if (limitOrder.getType() == Order.OrderType.BID
+                    || limitOrder.getType() == Order.OrderType.EXIT_ASK) {
                 bestPrice = bestBid;
             } else {
                 throw new IllegalArgumentException("Order type is not supported" + limitOrder.getType());

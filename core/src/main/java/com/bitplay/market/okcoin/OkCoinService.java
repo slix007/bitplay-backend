@@ -528,12 +528,16 @@ public class OkCoinService extends MarketService {
 
             } else
             */
-            if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
+            if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
+                tradeResponse.setErrorMessage("The new price is 0 ");
+            } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
 
                 tradeResponse.setErrorMessage("Not enough amount left. amount=" + tradeableAmount.toPlainString());
 
             } else {
                 // USING REST API
+                orderType = adjustOrderType(orderType, tradeableAmount);
+
                 final LimitOrder limitOrder = new LimitOrder(orderType,
                         tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(),
                         thePrice);
@@ -594,14 +598,36 @@ public class OkCoinService extends MarketService {
             }
 
         } catch (Exception e) {
-            logger.error("Place market order error", e);
-            tradeLogger.info("maker error {}", e.toString());
+            String details = String.format("type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
+                    orderType, amount, bestQuotes, isMoving, signalType);
+            logger.error("Place market order error. Details: " + details, e);
+            tradeLogger.info("maker error {}", e.toString() + ". Details: " + details);
             tradeResponse.setOrderId(null);
             tradeResponse.setErrorMessage(e.getMessage());
         }
 
         fetchOpenOrdersWithDelay();
         return tradeResponse;
+    }
+
+    private Order.OrderType adjustOrderType(Order.OrderType orderType, BigDecimal tradeableAmount) {
+        Balance pLongBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                ? this.accountInfo.getWallet().getBalance(OkExAdapters.POSITION_LONG_CURRENCY)
+                : new Balance(OkExAdapters.POSITION_LONG_CURRENCY, BigDecimal.ZERO);
+        Balance pShortBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                ? this.accountInfo.getWallet().getBalance(OkExAdapters.POSITION_SHORT_CURRENCY)
+                : new Balance(OkExAdapters.POSITION_SHORT_CURRENCY, BigDecimal.ZERO);
+        Order.OrderType newOrderType = orderType;
+        if (orderType == Order.OrderType.BID) { // buy - long
+            if (pShortBalance.getTotal().compareTo(tradeableAmount) != -1) {
+                newOrderType = Order.OrderType.EXIT_ASK;
+            }
+        } else if (orderType == Order.OrderType.ASK) { // sell - short
+            if (pLongBalance.getTotal().compareTo(tradeableAmount) != -1) {
+                newOrderType = Order.OrderType.EXIT_BID;
+            }
+        }
+        return newOrderType;
     }
 
     private BigDecimal adjustAmount(final BigDecimal initialAmount) {
