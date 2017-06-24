@@ -99,8 +99,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         orderJson.setId(limitOrder.getId());
         orderJson.setStatus(limitOrder.getStatus() != null ? limitOrder.getStatus().toString() : null);
         if (limitOrder instanceof ContractLimitOrder) {
-            final BigDecimal contractPrice = ((ContractLimitOrder) limitOrder).getContractPrice();
-            orderJson.setContracts(contractPrice != null ? contractPrice.toPlainString() : "");
+            final BigDecimal inBtc = ((ContractLimitOrder) limitOrder).getAmountInBaseCurrency();
+            orderJson.setAmountInBtc(inBtc != null ? inBtc.toPlainString() : "");
         }
 
         return orderJson;

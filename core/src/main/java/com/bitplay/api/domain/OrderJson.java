@@ -14,7 +14,7 @@ public class OrderJson {
     String amount;
     String orderType;
     String timestamp;
-    String contracts;
+    String amountInBtc;
 
     public String getId() {
         return id;
@@ -72,12 +72,12 @@ public class OrderJson {
         this.timestamp = timestamp;
     }
 
-    public String getContracts() {
-        return contracts;
+    public String getAmountInBtc() {
+        return amountInBtc;
     }
 
-    public void setContracts(String contracts) {
-        this.contracts = contracts;
+    public void setAmountInBtc(String amountInBtc) {
+        this.amountInBtc = amountInBtc;
     }
 
     @Override
