@@ -299,7 +299,8 @@ public class OkCoinService extends MarketService {
         if (walletBalance instanceof BalanceEx) {
             walletRaw = ((BalanceEx) walletBalance).getRaw();
         }
-        if (pLongBalance instanceof BalanceEx) {
+        if (pLongBalance instanceof BalanceEx
+                && pShortBalance instanceof BalanceEx) {
             positionsRaw = "Long: " + ((BalanceEx) pLongBalance).getRaw();
             positionsRaw += "\n";
             positionsRaw += "Short: " + ((BalanceEx) pShortBalance).getRaw();
