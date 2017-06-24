@@ -25,8 +25,11 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.FuturesContract;
+import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
+import org.knowm.xchange.okcoin.dto.trade.OkCoinPositionResult;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesTradeService;
 import org.knowm.xchange.okcoin.service.OkCoinTradeService;
+import org.knowm.xchange.okcoin.service.OkCoinTradeServiceRaw;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,6 +119,7 @@ public class OkCoinService extends MarketService {
 
 //        fetchAccountInfo();
         fetchAccountInfoViaWebsocket();
+        fetchPosition();
     }
 
     private void createOrderBookObservable() {
@@ -221,6 +225,25 @@ public class OkCoinService extends MarketService {
             accountInfo = exchange.getAccountService().getAccountInfo(); // only available wallet
         } catch (IOException e) {
             logger.error("AccountInfo error", e);
+        }
+        return accountInfo;
+    }
+
+    public AccountInfo fetchPosition() {
+        try {
+            final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
+            if (positionResult.getPositions().length > 1) {
+                logger.warn("More than one positions found");
+                tradeLogger.warn("More than one positions found");
+            }
+            final OkCoinPosition okCoinPosition = positionResult.getPositions()[0];
+            okCoinPosition.getBuyAmount();
+            final BalanceEx bLong = new BalanceEx(OkExAdapters.POSITION_LONG_CURRENCY, okCoinPosition.getBuyAmount());
+            final BalanceEx bShort = new BalanceEx(OkExAdapters.POSITION_SHORT_CURRENCY, okCoinPosition.getSellAmount());
+            mergeAccountInfo(new AccountInfo(new Wallet(bLong, bShort)));
+
+        } catch (Exception e) {
+            logger.error("position info error", e);
         }
         return accountInfo;
     }
