@@ -92,13 +92,12 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         }
         final Wallet wallet = accountInfo.getWallet();
         final Balance walletBalance = wallet.getBalance(OkExAdapters.WALLET_CURRENCY);
-//        final Balance marginBalance = wallet.getBalance(OkExAdapters.MARGIN_CURRENCY);
         final Balance position_long = wallet.getBalance(OkExAdapters.POSITION_LONG_CURRENCY);
         final Balance position_short = wallet.getBalance(OkExAdapters.POSITION_SHORT_CURRENCY);
         String position = String.format("%s + %s = %s",
-                position_long.getFrozen().toPlainString(),
-                position_short.getFrozen().negate().toPlainString(),
-                position_long.getFrozen().subtract(position_short.getFrozen()).toPlainString());
+                position_long.getTotal().toPlainString(),
+                position_short.getTotal().negate().toPlainString(),
+                position_long.getTotal().subtract(position_short.getTotal()).toPlainString());
 
         return new AccountInfoJson(
                 walletBalance.getTotal().toPlainString(),

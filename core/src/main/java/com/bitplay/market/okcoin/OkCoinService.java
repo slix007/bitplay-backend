@@ -238,51 +238,48 @@ public class OkCoinService extends MarketService {
     }
 
     private void mergeAccountInfo(AccountInfo newAccountInfo) {
-        // merge account info
-        Balance newWalletBalance = newAccountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY);
-        Balance newMarginBalance = newAccountInfo.getWallet().getBalance(OkExAdapters.MARGIN_CURRENCY);
-        if (newWalletBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
-            // get old then
-            newWalletBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                    ? this.accountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY)
-                    : new Balance(OkExAdapters.WALLET_CURRENCY, BigDecimal.ZERO);
-        }
-        if (newMarginBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
-            // get old then
-            newMarginBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                    ? this.accountInfo.getWallet().getBalance(OkExAdapters.MARGIN_CURRENCY)
-                    : new Balance(OkExAdapters.MARGIN_CURRENCY, BigDecimal.ZERO);
-        }
+        Balance walletBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+                ? this.accountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY)
+                : new Balance(OkExAdapters.WALLET_CURRENCY, BigDecimal.ZERO);
 
-        final Balance oldPositionLongBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+        Balance pLongBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
                 ? this.accountInfo.getWallet().getBalance(OkExAdapters.POSITION_LONG_CURRENCY)
                 : new Balance(OkExAdapters.POSITION_LONG_CURRENCY, BigDecimal.ZERO);
-        final Balance oldPositionShortBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
+        Balance pShortBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
                 ? this.accountInfo.getWallet().getBalance(OkExAdapters.POSITION_SHORT_CURRENCY)
                 : new Balance(OkExAdapters.POSITION_SHORT_CURRENCY, BigDecimal.ZERO);
 
-        final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(newWalletBalance, newMarginBalance,
-                oldPositionLongBalance, oldPositionShortBalance));
+        if (newAccountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY).getTotal().compareTo(BigDecimal.ZERO) != 0) {
+            walletBalance = newAccountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY);
+        }
+        if (newAccountInfo.getWallet().getBalance(OkExAdapters.POSITION_LONG_CURRENCY).getTotal().compareTo(BigDecimal.ZERO) != 0) {
+            pLongBalance = newAccountInfo.getWallet().getBalance(OkExAdapters.POSITION_LONG_CURRENCY);
+        }
+        if (newAccountInfo.getWallet().getBalance(OkExAdapters.POSITION_SHORT_CURRENCY).getTotal().compareTo(BigDecimal.ZERO) != 0) {
+            pShortBalance = newAccountInfo.getWallet().getBalance(OkExAdapters.POSITION_SHORT_CURRENCY);
+        }
+
+        final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(walletBalance, pLongBalance, pShortBalance));
 
         setAccountInfo(resultAccountInfo);
         logger.debug("Balance Wallet={}, Margin={}, Position={},{}",
-                newWalletBalance.getTotal().toPlainString(),
-                newWalletBalance.getFrozen().toPlainString(),
-                oldPositionLongBalance.getFrozen().toPlainString(),
-                oldPositionShortBalance.getFrozen().toPlainString());
+                walletBalance.getTotal().toPlainString(),
+                walletBalance.getFrozen().toPlainString(),
+                pLongBalance.getFrozen().toPlainString(),
+                pShortBalance.getFrozen().toPlainString());
 
         String walletRaw = "";
         String positionsRaw = "";
-        if (newWalletBalance instanceof BalanceEx) {
-            walletRaw = ((BalanceEx) newWalletBalance).getRaw();
+        if (walletBalance instanceof BalanceEx) {
+            walletRaw = ((BalanceEx) walletBalance).getRaw();
         }
-        if (oldPositionLongBalance instanceof BalanceEx) {
-            positionsRaw = ((BalanceEx) oldPositionLongBalance).getRaw();
+        if (pLongBalance instanceof BalanceEx) {
+            positionsRaw = "Long: " + ((BalanceEx) pLongBalance).getRaw();
             positionsRaw += "\n";
-            positionsRaw += ((BalanceEx) oldPositionShortBalance).getRaw();
+            positionsRaw += "Short: " + ((BalanceEx) pShortBalance).getRaw();
         }
         tradeLogger.info("AccountInfo:\n"
-                + walletRaw
+                + "Wallet: " + walletRaw
                 + "\n"
                 + positionsRaw
         );
