@@ -554,7 +554,7 @@ public class OkCoinService extends MarketService {
 //
 //                final OkExStreamingTradingService tradingService = (OkExStreamingTradingService) exchange.getStreamingTradingService();
 //                String orderId = tradingService.placeContractOrder("btc_usd",
-//                        ContractType.THIS_WEEK,
+//                        FuturesContract.ThisWeek,
 //                        thePrice, tradeableAmount,
 //                        contractOrderType);
 //                tradeResponse.setOrderId(orderId);
@@ -699,7 +699,7 @@ public class OkCoinService extends MarketService {
                         .subtract(limitOrder.getCumulativeAmount());
                 tradeResponse = placeMakerOrder(limitOrder.getType(),
                         newAmount, bestQuotes, true, signalType);
-                if (tradeResponse.getErrorCode().startsWith("Insufficient")) {
+                if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info("#{} Failed {} amount={},quote={},id={},attempt={}. Error: {}",
                             signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                             limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",

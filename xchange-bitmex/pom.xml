@@ -10,7 +10,7 @@
     <groupId>org.knowm.xchange</groupId>
     <artifactId>xchange-bitmex</artifactId>
     <packaging>jar</packaging>
-    <!--<version>4.2.1-SNAPSHOT</version>-->
+    <!--<version>4.2.1-bts-SNAPSHOT</version>-->
 
     <name>XChange Bitmex</name>
     <description>XChange implementation for the Bitmex Exchange</description>
@@ -177,7 +177,7 @@
         <maven-plugin-version>1.0.0</maven-plugin-version>
         <junit-version>4.12</junit-version>
         <java.version>1.8</java.version>
-        <xchange-core.version>4.2.1-SNAPSHOT</xchange-core.version>
+        <xchange-core.version>4.2.1-bts-SNAPSHOT</xchange-core.version>
     </properties>
 </project>
 
