@@ -1,6 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
+import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.OrderBookJson;
 import com.bitplay.api.domain.OrderJson;
 import com.bitplay.api.domain.ResultJson;
@@ -8,7 +9,6 @@ import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.service.BitplayUIServiceBitmex;
-import com.bitplay.api.service.BitplayUIServiceOkCoin;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -74,6 +74,13 @@ public class BitmexEndpoint {
     @Produces("application/json")
     public ResultJson openOrders(OrderJson orderJson) {
         return this.bitmex.moveOpenOrder(orderJson);
+    }
+
+    @GET
+    @Path("/future-index")
+    @Produces("application/json")
+    public FutureIndexJson futureIndex() {
+        return this.bitmex.getFutureIndex();
     }
 
 }

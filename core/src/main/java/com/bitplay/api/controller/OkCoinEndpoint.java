@@ -1,6 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
+import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.OrderJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
@@ -73,6 +74,13 @@ public class OkCoinEndpoint {
     @Produces("application/json")
     public ResultJson openOrders(OrderJson orderJson) {
         return this.okCoin.moveOpenOrder(orderJson);
+    }
+
+    @GET
+    @Path("/future-index")
+    @Produces("application/json")
+    public FutureIndexJson futureIndex() {
+        return this.okCoin.getFutureIndex();
     }
 
 }

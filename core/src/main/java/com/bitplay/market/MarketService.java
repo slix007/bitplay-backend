@@ -9,6 +9,8 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
+import info.bitrich.xchangestream.okex.dto.FutureIndex;
+
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
@@ -45,6 +47,7 @@ public abstract class MarketService {
     protected List<LimitOrder> openOrders = new ArrayList<>();
     protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected AccountInfo accountInfo = null;
+    protected FutureIndex futureIndex = new FutureIndex(BigDecimal.ZERO, new Date());
 
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
@@ -140,6 +143,10 @@ public abstract class MarketService {
 
     public AccountInfo getAccountInfo() {
         return accountInfo;
+    }
+
+    public FutureIndex getFutureIndex() {
+        return futureIndex;
     }
 
     public synchronized void setAccountInfo(AccountInfo accountInfo) {

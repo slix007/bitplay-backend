@@ -1,6 +1,7 @@
 package com.bitplay.api.service;
 
 import com.bitplay.api.domain.AccountInfoJson;
+import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.OrderBookJson;
 import com.bitplay.api.domain.OrderJson;
 import com.bitplay.api.domain.ResultJson;
@@ -10,6 +11,8 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.utils.Utils;
+
+import info.bitrich.xchangestream.okex.dto.FutureIndex;
 
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.account.AccountInfo;
@@ -150,4 +153,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         return new ResultJson(response.getMoveOrderStatus().toString(), response.getDescription());
     }
 
+    public FutureIndexJson getFutureIndex() {
+        final FutureIndex futureIndex = getBusinessService().getFutureIndex();
+        return new FutureIndexJson(futureIndex.getIndex().toPlainString(), futureIndex.getTimestamp().toString());
+    }
 }

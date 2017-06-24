@@ -85,6 +85,7 @@ public class OkCoinService extends MarketService {
 
     Disposable orderBookSubscription;
     Disposable privateDataSubscription;
+    Disposable futureIndexSubscription;
     private Observable<OrderBook> orderBookObservable;
 //    private Map<String, Disposable> orderSubscriptions = new HashMap<>();
 
@@ -114,6 +115,7 @@ public class OkCoinService extends MarketService {
 //        startTradesListener(); // to remove openOrders
 
         privateDataSubscription = startPrivateDataListener();
+        futureIndexSubscription = startFutureIndexListener();
 
         fetchOpenOrdersWithDelay();
 
@@ -198,6 +200,7 @@ public class OkCoinService extends MarketService {
         orderBookSubscription.dispose();
 //        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
         privateDataSubscription.dispose();
+        futureIndexSubscription.dispose();
 
         // Disconnect from exchange (non-blocking)
         exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
@@ -417,6 +420,20 @@ public class OkCoinService extends MarketService {
                     }
                 }, throwable -> {
                     logger.error("PrivateData.Exception: ", throwable);
+                });
+    }
+
+    private Disposable startFutureIndexListener() {
+        return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                .getFutureIndex()
+                .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
+                .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.io())
+                .subscribe(futureIndex -> {
+                    logger.debug(futureIndex.toString());
+                    this.futureIndex = futureIndex;
+                }, throwable -> {
+                    logger.error("FutureIndex.Exception: ", throwable);
                 });
     }
 
