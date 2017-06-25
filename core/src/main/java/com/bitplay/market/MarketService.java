@@ -161,7 +161,7 @@ public abstract class MarketService {
         this.accountInfo = accountInfo;
     }
 
-    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInBtc, BestQuotes bestQuotes, SignalType signalType);
+    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);
 
     public BigDecimal getTotalPriceOfAmountToBuy(BigDecimal requiredAmountToBuy) {
         BigDecimal totalPrice = BigDecimal.ZERO;

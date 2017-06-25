@@ -54,7 +54,8 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal cumCom2 = BigDecimal.ZERO;
     private int counter1 = 0;
     private int counter2 = 0;
-    private BigDecimal amount = new BigDecimal("0.02");
+    private BigDecimal blockSize1 = BigDecimal.valueOf(1);
+    private BigDecimal blockSize2 = BigDecimal.valueOf(100);
     private BigDecimal posBefore = BigDecimal.ZERO;
     private BigDecimal volPlan = BigDecimal.ZERO;
 
@@ -397,12 +398,20 @@ public class GuiParams extends AbstractDocument {
         this.counter2 = counter2;
     }
 
-    public BigDecimal getAmount() {
-        return amount;
+    public BigDecimal getBlockSize1() {
+        return blockSize1;
     }
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+    public void setBlockSize1(BigDecimal blockSize1) {
+        this.blockSize1 = blockSize1;
+    }
+
+    public BigDecimal getBlockSize2() {
+        return blockSize2;
+    }
+
+    public void setBlockSize2(BigDecimal blockSize2) {
+        this.blockSize2 = blockSize2;
     }
 
     public BigDecimal getPosBefore() {

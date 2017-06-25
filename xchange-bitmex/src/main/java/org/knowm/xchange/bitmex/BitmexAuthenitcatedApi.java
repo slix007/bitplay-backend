@@ -60,7 +60,7 @@ public interface BitmexAuthenitcatedApi {
                 @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
                 @FormParam("symbol") String symbol,
                 @FormParam("side") String side,
-                @FormParam("simpleOrderQty") Double simpleOrderQty,
+                @FormParam("orderQty") Double orderQty,
                 @FormParam("price") Double price,
                 @FormParam("ordType") String ordType,
                 @FormParam("execInsts") String execInsts

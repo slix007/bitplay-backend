@@ -583,14 +583,8 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInBtc, BestQuotes bestQuotes,
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                          SignalType signalType) {
-        final BigDecimal amountInContracts = convertBtcToContracts(amountInBtc);
-        return placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
-    }
-
-    public TradeResponse placeMakerOrderInContracts(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
-                                                    SignalType signalType) {
         return placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
     }
 
@@ -604,10 +598,6 @@ public class OkCoinService extends MarketService {
         if (futureIndex.getTimestamp().toInstant().isBefore(timeEdge)) {
             tradeLogger.info("WARNING: futureIndex has not been updated more than 30 sec");
         }
-        // HARDCODE 0.0362 btc = 1 c
-        // amountInBtc = x
-//        BigDecimal amountInContracts = amountInBtc.divide(new BigDecimal(0.0362), 0, BigDecimal.ROUND_HALF_UP);
-
         // vol_cont = round(cur_vol_btc * cur_index_price / 100; 0)
         BigDecimal amountInContracts = amountInBtc.multiply(futureIndex.getIndex())
                 .divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_HALF_UP);

@@ -424,8 +424,9 @@ public class PoloniexService extends MarketService {
         return thePrice;
     }
 
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInBtc, BestQuotes bestQuotes, SignalType signalType) {
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
         TradeResponse tradeResponse = new TradeResponse();
+        BigDecimal amountInBtc = amountInContracts; //TODO convert to btc
 
         int attemptCount = 0;
         Exception lastException = null;
