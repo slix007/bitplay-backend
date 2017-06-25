@@ -44,7 +44,7 @@ public class OkCoinEndpoint {
     @Path("/account")
     @Produces("application/json")
     public AccountInfoJson getAccountInfo() {
-        return this.okCoin.getAccountInfo();
+        return this.okCoin.getFullAccountInfo();
     }
 
     @POST

@@ -8,10 +8,9 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
-import info.bitrich.xchangestream.okex.OkExAdapters;
+import info.bitrich.xchangestream.core.dto.PositionInfo;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
-import info.bitrich.xchangestream.okex.dto.BalanceEx;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
@@ -19,8 +18,6 @@ import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.Balance;
-import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -85,6 +82,7 @@ public class OkCoinService extends MarketService {
 
     Disposable orderBookSubscription;
     Disposable privateDataSubscription;
+    Disposable accountInfoSubscription;
     Disposable futureIndexSubscription;
     private Observable<OrderBook> orderBookObservable;
 //    private Map<String, Disposable> orderSubscriptions = new HashMap<>();
@@ -115,12 +113,13 @@ public class OkCoinService extends MarketService {
 //        startTradesListener(); // to remove openOrders
 
         privateDataSubscription = startPrivateDataListener();
+        accountInfoSubscription = startAccountInfoSubscription();
         futureIndexSubscription = startFutureIndexListener();
 
         fetchOpenOrdersWithDelay();
 
 //        fetchAccountInfo();
-        fetchAccountInfoViaWebsocket();
+//        accountInfo = fetchAccountInfoViaWebsocket();
         fetchPosition();
     }
 
@@ -200,6 +199,7 @@ public class OkCoinService extends MarketService {
         orderBookSubscription.dispose();
 //        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
         privateDataSubscription.dispose();
+        accountInfoSubscription.dispose();
         futureIndexSubscription.dispose();
 
         // Disconnect from exchange (non-blocking)
@@ -232,7 +232,7 @@ public class OkCoinService extends MarketService {
         return accountInfo;
     }
 
-    public AccountInfo fetchPosition() {
+    public void fetchPosition() {
         try {
             final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
             if (positionResult.getPositions().length > 1) {
@@ -240,29 +240,32 @@ public class OkCoinService extends MarketService {
                 tradeLogger.warn("More than one positions found");
             }
             final OkCoinPosition okCoinPosition = positionResult.getPositions()[0];
-            okCoinPosition.getBuyAmount();
-            final BalanceEx bLong = new BalanceEx(OkExAdapters.POSITION_LONG_CURRENCY, okCoinPosition.getBuyAmount());
-            final BalanceEx bShort = new BalanceEx(OkExAdapters.POSITION_SHORT_CURRENCY, okCoinPosition.getSellAmount());
-            mergeAccountInfo(new AccountInfo(new Wallet(bLong, bShort)));
+            positionInfo = new PositionInfo(
+                    okCoinPosition.getBuyAmount(),
+                    okCoinPosition.getSellAmount(),
+                    okCoinPosition.toString()
+            );
+            tradeLogger.info("PositionInfo(rest): " + positionInfo);
 
         } catch (Exception e) {
-            logger.error("position info error", e);
+            tradeLogger.error("FetchPositionError", e);
+            logger.error("FetchPositionError", e);
         }
-        return accountInfo;
     }
 
     //    @Scheduled(fixedRate = 1000 * 60 * 15) // The subscription should handle it.
     public AccountInfo fetchAccountInfoViaWebsocket() {
+        AccountInfo accountInfo = null;
         try {
-            final AccountInfo newAccountInfo = exchange.getStreamingAccountInfoService().getAccountInfo();
-            mergeAccountInfo(newAccountInfo);
+            accountInfo = (exchange.getStreamingAccountInfoService().getAccountInfo());
+//            mergeAccountInfo(newAccountInfo);
 //            logger.info(this.accountInfo.toString());
         } catch (Exception e) {
             logger.error("AccountInfo error", e);
         }
         return accountInfo;
     }
-
+/*
     private void mergeAccountInfo(AccountInfo newAccountInfo) {
         Balance walletBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
                 ? this.accountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY)
@@ -299,9 +302,10 @@ public class OkCoinService extends MarketService {
         if (walletBalance instanceof BalanceEx) {
             walletRaw = ((BalanceEx) walletBalance).getRaw();
         }
-        if (pLongBalance instanceof BalanceEx
-                && pShortBalance instanceof BalanceEx) {
+        if (pLongBalance instanceof BalanceEx) {
             positionsRaw = "Long: " + ((BalanceEx) pLongBalance).getRaw();
+        }
+        if (pShortBalance instanceof BalanceEx) {
             positionsRaw += "\n";
             positionsRaw += "Short: " + ((BalanceEx) pShortBalance).getRaw();
         }
@@ -310,7 +314,7 @@ public class OkCoinService extends MarketService {
                 + "\n"
                 + positionsRaw
         );
-    }
+    }*/
 
     //TODO use subscribing on open orders
     @Scheduled(fixedRate = 1000 * 60 * 15)
@@ -404,6 +408,21 @@ public class OkCoinService extends MarketService {
                 }, throwable -> logger.error("Trades.Exception: ", throwable));
     }
 */
+    private Disposable startAccountInfoSubscription() {
+        return exchange.getStreamingAccountInfoService()
+                .accountInfoObservable()
+                .doOnError(throwable -> logger.error("Error on AccountInfo.Websocket observing", throwable))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.io())
+                .subscribe(accountInfo -> {
+                    logger.info("AccountInfo.Websocket: " + accountInfo.toString());
+                    this.accountInfo = accountInfo;
+
+                }, throwable -> {
+                    logger.error("AccountInfo.Websocket.Exception: ", throwable);
+                });
+    }
+
     private Disposable startPrivateDataListener() {
         return exchange.getStreamingPrivateDataService()
                 .getAllPrivateDataObservable()
@@ -413,8 +432,14 @@ public class OkCoinService extends MarketService {
                 .subscribe(privateData -> {
                     logger.debug(privateData.toString());
                     if (privateData.getAccountInfo() != null) {
-                        AccountInfo newAccountInfo = privateData.getAccountInfo();
-                        mergeAccountInfo(newAccountInfo);
+                        tradeLogger.info("AccountInfo1:" + privateData.getAccountInfo());
+                        tradeLogger.info("AccountInfo2:" + accountInfo);
+                        exchange.getStreamingAccountInfoService()
+                                .requestAccountInfo();
+                    }
+                    if (privateData.getPositionInfo() != null) {
+                        positionInfo = privateData.getPositionInfo();
+                        tradeLogger.info("PositionInfo:" + positionInfo);
                     }
                     if (privateData.getTrades() != null) {
                         updateOpenOrders(privateData.getTrades());
@@ -652,19 +677,19 @@ public class OkCoinService extends MarketService {
     }
 
     private Order.OrderType adjustOrderType(Order.OrderType orderType, BigDecimal tradeableAmount) {
-        Balance pLongBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                ? this.accountInfo.getWallet().getBalance(OkExAdapters.POSITION_LONG_CURRENCY)
-                : new Balance(OkExAdapters.POSITION_LONG_CURRENCY, BigDecimal.ZERO);
-        Balance pShortBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                ? this.accountInfo.getWallet().getBalance(OkExAdapters.POSITION_SHORT_CURRENCY)
-                : new Balance(OkExAdapters.POSITION_SHORT_CURRENCY, BigDecimal.ZERO);
+        BigDecimal pLongBalance = (this.positionInfo != null && this.positionInfo.getPositionLong() != null)
+                ? this.positionInfo.getPositionLong()
+                : BigDecimal.ZERO;
+        BigDecimal pShortBalance = (this.positionInfo != null && this.positionInfo.getPositionShort() != null)
+                ? this.positionInfo.getPositionShort()
+                : BigDecimal.ZERO;
         Order.OrderType newOrderType = orderType;
         if (orderType == Order.OrderType.BID) { // buy - long
-            if (pShortBalance.getTotal().compareTo(tradeableAmount) != -1) {
+            if (pShortBalance.compareTo(tradeableAmount) != -1) {
                 newOrderType = Order.OrderType.EXIT_ASK;
             }
         } else if (orderType == Order.OrderType.ASK) { // sell - short
-            if (pLongBalance.getTotal().compareTo(tradeableAmount) != -1) {
+            if (pLongBalance.compareTo(tradeableAmount) != -1) {
                 newOrderType = Order.OrderType.EXIT_BID;
             }
         }

@@ -1,15 +1,16 @@
 package com.bitplay.api.service;
 
 import com.bitplay.api.domain.AccountInfoJson;
-import com.bitplay.arbitrage.SignalType;
-import com.bitplay.market.model.TradeResponse;
-import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.okcoin.OkCoinService;
 
-import info.bitrich.xchangestream.okex.OkExAdapters;
+import info.bitrich.xchangestream.core.dto.PositionInfo;
 
+import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
@@ -85,26 +86,28 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         return new TradeResponseJson(orderId, null);
     }
 
-    @Override
-    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo) {
-        if (accountInfo == null) {
-            return new AccountInfoJson(null, null, null);
+    public AccountInfoJson getFullAccountInfo() {
+        final AccountInfo accountInfo = getBusinessService().getAccountInfo();
+        Wallet wallet = null;
+        try {
+            wallet = accountInfo.getWallet();
+        } catch (UnsupportedOperationException e) {
+            logger.error(e.getMessage());
+            return new AccountInfoJson("error", "error", "error", "error", "error");
         }
-        final Wallet wallet = accountInfo.getWallet();
-        final Balance walletBalance = wallet.getBalance(OkExAdapters.WALLET_CURRENCY);
-        final Balance position_long = wallet.getBalance(OkExAdapters.POSITION_LONG_CURRENCY);
-        final Balance position_short = wallet.getBalance(OkExAdapters.POSITION_SHORT_CURRENCY);
+        final Balance balance = wallet.getBalance(Currency.BTC);
+
+        final PositionInfo positionInfo = getBusinessService().getPositionInfo();
         String position = String.format("%s + %s = %s",
-                position_long.getTotal().toPlainString(),
-                position_short.getTotal().negate().toPlainString(),
-                position_long.getTotal().subtract(position_short.getTotal()).toPlainString());
+                positionInfo.getPositionLong().toPlainString(),
+                positionInfo.getPositionShort().negate().toPlainString(),
+                positionInfo.getPositionLong().subtract(positionInfo.getPositionShort()).toPlainString());
 
         return new AccountInfoJson(
-                walletBalance.getTotal().toPlainString(),
-                walletBalance.getAvailable().toPlainString(),
-                walletBalance.getFrozen().toPlainString(),
+                balance.getTotal().toPlainString(),
+                balance.getAvailable().toPlainString(),
+                balance.getFrozen().toPlainString(),
                 position,
                 accountInfo.toString());
     }
-
 }
