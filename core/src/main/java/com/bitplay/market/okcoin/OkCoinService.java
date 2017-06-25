@@ -249,7 +249,7 @@ public class OkCoinService extends MarketService {
                     okCoinPosition.getSellAmount(),
                     okCoinPosition.toString()
             );
-            tradeLogger.info("PositionInfo(rest): " + positionInfo);
+//            tradeLogger.info("PositionInfo(rest): " + positionInfo);
 
         } catch (Exception e) {
             tradeLogger.error("FetchPositionError", e);
@@ -436,14 +436,11 @@ public class OkCoinService extends MarketService {
                 .subscribe(privateData -> {
                     logger.debug(privateData.toString());
                     if (privateData.getAccountInfo() != null) {
-                        tradeLogger.info("AccountInfo1:" + privateData.getAccountInfo());
-                        tradeLogger.info("AccountInfo2:" + accountInfo);
                         exchange.getStreamingAccountInfoService()
                                 .requestAccountInfo();
                     }
                     if (privateData.getPositionInfo() != null) {
                         positionInfo = privateData.getPositionInfo();
-                        tradeLogger.info("PositionInfo:" + positionInfo);
                     }
                     if (privateData.getTrades() != null) {
                         updateOpenOrders(privateData.getTrades());

@@ -79,7 +79,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
                 return new TradeResponseJson("Wrong orderType", "Wrong orderType");
             }
 
-            final TradeResponse tradeResponse = service.placeMakerOrderInContracts(orderType, amount, null, signalType);
+            final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount, null, signalType);
             orderId = tradeResponse.getOrderId();
         }
 

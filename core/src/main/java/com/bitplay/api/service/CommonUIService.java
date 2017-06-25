@@ -224,13 +224,16 @@ public class CommonUIService {
     }
 
     public TradableAmountJson getTradableAmount() {
-        return new TradableAmountJson(arbitrageService.getParams().getAmount().toPlainString());
+        return new TradableAmountJson(arbitrageService.getParams().getBlockSize1().toPlainString(),
+                arbitrageService.getParams().getBlockSize2().toPlainString());
     }
 
     public TradableAmountJson updateTradableAmount(TradableAmountJson tradableAmountJson) {
-        arbitrageService.getParams().setAmount(new BigDecimal(tradableAmountJson.getAmount()));
+        arbitrageService.getParams().setBlockSize1(new BigDecimal(tradableAmountJson.getBlockSize1()));
+        arbitrageService.getParams().setBlockSize2(new BigDecimal(tradableAmountJson.getBlockSize2()));
         arbitrageService.saveParamsToDb();
-        return new TradableAmountJson(arbitrageService.getParams().getAmount().toPlainString());
+        return new TradableAmountJson(arbitrageService.getParams().getBlockSize1().toPlainString(),
+                arbitrageService.getParams().getBlockSize2().toPlainString());
     }
 
     public ResultJson printSumBal() {
