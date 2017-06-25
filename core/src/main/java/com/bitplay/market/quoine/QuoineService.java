@@ -55,6 +55,11 @@ public class QuoineService extends MarketService {
     }
 
     @Override
+    public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
+        return false;
+    }
+
+    @Override
     public UserTrades fetchMyTradeHistory() {
         return null;
     }
@@ -65,7 +70,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType) {
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInBtc, BestQuotes bestQuotes, SignalType signalType) {
         return null;
     }
 

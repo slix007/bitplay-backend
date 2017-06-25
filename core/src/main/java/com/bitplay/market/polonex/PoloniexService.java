@@ -424,7 +424,7 @@ public class PoloniexService extends MarketService {
         return thePrice;
     }
 
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType) {
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInBtc, BestQuotes bestQuotes, SignalType signalType) {
         TradeResponse tradeResponse = new TradeResponse();
 
         int attemptCount = 0;
@@ -433,7 +433,7 @@ public class PoloniexService extends MarketService {
         while (attemptCount < 5 && tradeResponse.getOrderId() == null) {
             attemptCount++;
             try {
-                PoloniexLimitOrder theOrder = tryToPlaceMakerOrder(orderType, amount);
+                PoloniexLimitOrder theOrder = tryToPlaceMakerOrder(orderType, amountInBtc);
 
                 final PoloniexTradeResponse response = theOrder.getResponse();
                 final String orderId = response.getOrderNumber().toString();
@@ -449,7 +449,7 @@ public class PoloniexService extends MarketService {
 
                 tradeLogger.info("maker {} with amount={},quote={}, id={}, attempt={}. {}",
                         orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
-                        amount,
+                        amountInBtc,
                         theOrder.getLimitPrice(),
                         orderId,
                         attemptCount,

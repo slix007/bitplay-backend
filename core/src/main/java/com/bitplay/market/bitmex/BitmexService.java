@@ -379,9 +379,9 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInBtc, BestQuotes bestQuotes,
                                          SignalType signalType) {
-        return placeMakerOrder(orderType, amount, bestQuotes, false, signalType);
+        return placeMakerOrder(orderType, amountInBtc, bestQuotes, false, signalType);
     }
 
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,

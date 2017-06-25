@@ -15,9 +15,12 @@ import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -36,6 +39,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -452,7 +456,7 @@ public class OkCoinService extends MarketService {
     private Disposable startFutureIndexListener() {
         return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getFutureIndex()
-                .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
+                .doOnError(throwable -> logger.error("Error on FutureIndex observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(futureIndex -> {
@@ -562,9 +566,56 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+    public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
+        boolean isAffordable = false;
+
+        if (accountInfo != null && accountInfo.getWallet() != null) {
+            final AccountInfo accountInfo = getAccountInfo();
+            Wallet wallet = accountInfo.getWallet();
+            final Balance balance = wallet.getBalance(Currency.BTC);
+            final BigDecimal availableBalance = balance.getAvailable();
+            if (availableBalance.signum() > 0) {
+                isAffordable = availableBalance.compareTo(tradableAmount) != -1;
+            }
+        }
+
+        return isAffordable;
+    }
+
+    @Override
+    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInBtc, BestQuotes bestQuotes,
                                          SignalType signalType) {
-        return placeMakerOrder(orderType, amount, bestQuotes, false, signalType);
+        final BigDecimal amountInContracts = convertBtcToContracts(amountInBtc);
+        return placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
+    }
+
+    public TradeResponse placeMakerOrderInContracts(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
+                                                    SignalType signalType) {
+        return placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
+    }
+
+    private BigDecimal convertBtcToContracts(BigDecimal amountInBtc) {
+
+        final Instant timeEdge = Instant.now().minusSeconds(30 * 1000); // 30 sec
+        if (futureIndex.getIndex().signum() == 0) {
+            tradeLogger.info("ERROR: futureIndex is zero");
+            throw new IllegalStateException("ERROR: futureIndex is zero");
+        }
+        if (futureIndex.getTimestamp().toInstant().isBefore(timeEdge)) {
+            tradeLogger.info("WARNING: futureIndex has not been updated more than 30 sec");
+        }
+        // HARDCODE 0.0362 btc = 1 c
+        // amountInBtc = x
+//        BigDecimal amountInContracts = amountInBtc.divide(new BigDecimal(0.0362), 0, BigDecimal.ROUND_HALF_UP);
+
+        // vol_cont = round(cur_vol_btc * cur_index_price / 100; 0)
+        BigDecimal amountInContracts = amountInBtc.multiply(futureIndex.getIndex())
+                .divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_HALF_UP);
+
+        if (amountInContracts.signum() == 0) {
+            amountInContracts = BigDecimal.ONE;
+        }
+        return amountInContracts;
     }
 
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,

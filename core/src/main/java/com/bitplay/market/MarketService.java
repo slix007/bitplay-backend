@@ -76,6 +76,8 @@ public abstract class MarketService {
 
     public abstract String getPosition();
 
+    public abstract boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount);
+    /*
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable = false;
         if (accountInfo != null && accountInfo.getWallet() != null) {
@@ -94,7 +96,7 @@ public abstract class MarketService {
             }
         }
         return isAffordable;
-    }
+    }*/
 
     public boolean isReadyForArbitrage() {
         final long openOrdersCount = openOrders.stream()
@@ -159,7 +161,7 @@ public abstract class MarketService {
         this.accountInfo = accountInfo;
     }
 
-    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType);
+    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInBtc, BestQuotes bestQuotes, SignalType signalType);
 
     public BigDecimal getTotalPriceOfAmountToBuy(BigDecimal requiredAmountToBuy) {
         BigDecimal totalPrice = BigDecimal.ZERO;
