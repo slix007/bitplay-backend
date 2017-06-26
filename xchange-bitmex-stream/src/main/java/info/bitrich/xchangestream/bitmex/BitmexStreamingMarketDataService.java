@@ -4,12 +4,13 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
+import info.bitrich.xchangestream.bitmex.dto.BitmexInstrument;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 
 import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
@@ -45,5 +46,17 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
     @Override
     public Observable<Trade> getTrades(CurrencyPair currencyPair, Object... objects) {
         throw new NotYetImplementedForExchangeException();
+    }
+
+    public Observable<ContractIndex> getContractIndexObservable() {
+        return service.subscribeChannel("instrument", "instrument:XBTUSD")
+                .map(s -> {
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+                    BitmexInstrument bitmexInstrument = mapper.treeToValue(s.get("data").get(0), BitmexInstrument.class);
+
+                    return new ContractIndex(bitmexInstrument.getMarkPrice(), bitmexInstrument.getTimestamp());
+                });
     }
 }

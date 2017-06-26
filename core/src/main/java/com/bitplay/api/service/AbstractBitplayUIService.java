@@ -12,11 +12,10 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.utils.Utils;
 
-import info.bitrich.xchangestream.okex.dto.FutureIndex;
-
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Wallet;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
@@ -154,7 +153,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public FutureIndexJson getFutureIndex() {
-        final FutureIndex futureIndex = getBusinessService().getFutureIndex();
-        return new FutureIndexJson(futureIndex.getIndex().toPlainString(), futureIndex.getTimestamp().toString());
+        final ContractIndex contractIndex = getBusinessService().getContractIndex();
+        return new FutureIndexJson(contractIndex.getIndexPrice().toPlainString(), contractIndex.getTimestamp().toString());
     }
 }

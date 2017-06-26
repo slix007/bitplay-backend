@@ -21,6 +21,7 @@ import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.account.Wallet;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -84,10 +85,10 @@ public class OkCoinService extends MarketService {
 
     private OkExStreamingExchange exchange;
 
-    Disposable orderBookSubscription;
-    Disposable privateDataSubscription;
-    Disposable accountInfoSubscription;
-    Disposable futureIndexSubscription;
+    private Disposable orderBookSubscription;
+    private Disposable privateDataSubscription;
+    private Disposable accountInfoSubscription;
+    private Disposable futureIndexSubscription;
     private Observable<OrderBook> orderBookObservable;
 //    private Map<String, Disposable> orderSubscriptions = new HashMap<>();
 
@@ -458,7 +459,8 @@ public class OkCoinService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .subscribe(futureIndex -> {
                     logger.debug(futureIndex.toString());
-                    this.futureIndex = futureIndex;
+                    this.contractIndex = new ContractIndex(futureIndex.getIndex(),
+                            futureIndex.getTimestamp());
                 }, throwable -> {
                     logger.error("FutureIndex.Exception: ", throwable);
                 });
@@ -588,15 +590,15 @@ public class OkCoinService extends MarketService {
     private BigDecimal convertBtcToContracts(BigDecimal amountInBtc) {
 
         final Instant timeEdge = Instant.now().minusSeconds(30 * 1000); // 30 sec
-        if (futureIndex.getIndex().signum() == 0) {
-            tradeLogger.info("ERROR: futureIndex is zero");
-            throw new IllegalStateException("ERROR: futureIndex is zero");
+        if (contractIndex.getIndexPrice().signum() == 0) {
+            tradeLogger.info("ERROR: contractIndex is zero");
+            throw new IllegalStateException("ERROR: contractIndex is zero");
         }
-        if (futureIndex.getTimestamp().toInstant().isBefore(timeEdge)) {
-            tradeLogger.info("WARNING: futureIndex has not been updated more than 30 sec");
+        if (contractIndex.getTimestamp().toInstant().isBefore(timeEdge)) {
+            tradeLogger.info("WARNING: contractIndex has not been updated more than 30 sec");
         }
         // vol_cont = round(cur_vol_btc * cur_index_price / 100; 0)
-        BigDecimal amountInContracts = amountInBtc.multiply(futureIndex.getIndex())
+        BigDecimal amountInContracts = amountInBtc.multiply(contractIndex.getIndexPrice())
                 .divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_HALF_UP);
 
         if (amountInContracts.signum() == 0) {

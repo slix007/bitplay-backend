@@ -9,6 +9,7 @@ public class AccountInfoJson {
 
     private String wallet;
     private String available;
+    private String equity;
     private String margin;
     private String position;
 
@@ -23,9 +24,10 @@ public class AccountInfoJson {
         this.raw = raw;
     }
 
-    public AccountInfoJson(String wallet, String available, String margin, String position, String raw) {
+    public AccountInfoJson(String wallet, String available, String equity, String margin, String position, String raw) {
         this.wallet = wallet;
         this.available = available;
+        this.equity = equity;
         this.margin = margin;
         this.position = position;
         this.raw = raw;
@@ -45,6 +47,10 @@ public class AccountInfoJson {
 
     public String getAvailable() {
         return available;
+    }
+
+    public String getEquity() {
+        return equity;
     }
 
     public String getMargin() {

@@ -93,7 +93,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
             wallet = accountInfo.getWallet();
         } catch (UnsupportedOperationException e) {
             logger.error(e.getMessage());
-            return new AccountInfoJson("error", "error", "error", "error", "error");
+            return new AccountInfoJson("error", "error", "error", "error", "error", "error");
         }
         final Balance balance = wallet.getBalance(Currency.BTC);
 
@@ -106,6 +106,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         return new AccountInfoJson(
                 balance.getTotal().toPlainString(),
                 balance.getAvailable().toPlainString(),
+                "--",
                 balance.getFrozen().toPlainString(),
                 position,
                 accountInfo.toString());

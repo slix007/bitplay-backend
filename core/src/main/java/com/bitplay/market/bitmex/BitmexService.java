@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
+import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
@@ -22,6 +23,7 @@ import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.account.Wallet;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -73,6 +75,8 @@ public class BitmexService extends MarketService {
     private Observable<AccountInfo> accountInfoObservable;
     private Disposable accountInfoSubscription;
     private Disposable positionSubscription;
+    private Disposable futureIndexSubscription;
+
 
     private Observable<OrderBook> orderBookObservable;
     private Disposable orderBookSubscription;
@@ -131,6 +135,11 @@ public class BitmexService extends MarketService {
         Completable.timer(4000, TimeUnit.MILLISECONDS)
                 .doOnCompleted(this::startOpenOrderMovingListener)
                 .subscribe();
+
+        Completable.timer(5000, TimeUnit.MILLISECONDS)
+                .doOnCompleted(this::startFutureIndexListener)
+                .subscribe();
+
     }
 
     @Scheduled(fixedRate = 5000)
@@ -245,6 +254,7 @@ public class BitmexService extends MarketService {
         accountInfoSubscription.dispose();
         openOrdersSubscription.dispose();
         positionSubscription.dispose();
+        futureIndexSubscription.dispose();
     }
 
     private void startOrderBookListener() {
@@ -638,6 +648,27 @@ public class BitmexService extends MarketService {
                     // schedule it again
                     sleep(5000);
                     startPositionListener();
+                });
+    }
+
+    private void startFutureIndexListener() {
+        Observable<ContractIndex> indexObservable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                .getContractIndexObservable()
+                .doOnError(throwable -> logger.error("Index fetch error", throwable))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
+
+        futureIndexSubscription = indexObservable
+                .subscribeOn(Schedulers.io())
+                .doOnError(throwable -> logger.error("Index fetch error", throwable))
+                .subscribe(contractIndex1 -> {
+                    if (contractIndex1.getIndexPrice() != null) {
+                        this.contractIndex = new ContractIndex(contractIndex1.getIndexPrice(), contractIndex1.getTimestamp());
+                    }
+                }, throwable -> {
+                    logger.error("Can not fetch Position", throwable);
+                    // schedule it again
+                    sleep(5000);
+                    startFutureIndexListener();
                 });
     }
 

@@ -98,6 +98,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 walletBalance.getTotal().toPlainString(),
                 walletBalance.getAvailable().toPlainString(),
                 marginBalance.getTotal().toPlainString(),
+                "--",
                 position != null ? position.getAvailable().toPlainString() : "0",
                 accountInfo.toString());
     }

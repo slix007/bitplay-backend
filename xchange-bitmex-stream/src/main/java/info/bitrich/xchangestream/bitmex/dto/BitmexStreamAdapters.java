@@ -1,6 +1,5 @@
 package info.bitrich.xchangestream.bitmex.dto;
 
-import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
