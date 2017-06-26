@@ -693,6 +693,6 @@ public class BitmexService extends MarketService {
     @Override
     public String getPosition() {
         final Balance position = accountInfo.getWallet().getBalance(BitmexAdapters.POSITION_CURRENCY);
-        return position != null ? position.getAvailable().toPlainString() : "0";
+        return position != null ? position.getTotal().toPlainString() : "0";
     }
 }

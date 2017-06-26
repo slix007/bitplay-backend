@@ -608,7 +608,7 @@ public class OkCoinService extends MarketService {
         return amountInContracts;
     }
 
-    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
                                           boolean isMoving, SignalType signalType) {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
@@ -619,7 +619,7 @@ public class OkCoinService extends MarketService {
             thePrice = createBestMakerPrice(orderType, false)
                     .setScale(2, BigDecimal.ROUND_HALF_UP);
 
-            BigDecimal tradeableAmount = adjustAmount(amount);
+//            BigDecimal tradeableAmount = adjustAmount(amount);
 
             /* TODO update balance right after cancelling before enable the following code.
              for now, we use response error message 'Insuficient coins(fonds)'
@@ -646,7 +646,8 @@ public class OkCoinService extends MarketService {
                 orderType = adjustOrderType(orderType, tradeableAmount);
 
                 final LimitOrder limitOrder = new LimitOrder(orderType,
-                        tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(),
+                        tradeableAmount,
+                        CURRENCY_PAIR_BTC_USD, "123", new Date(),
                         thePrice);
 
                 String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
@@ -677,6 +678,9 @@ public class OkCoinService extends MarketService {
                     arbitrageService.getOpenDiffs().setSecondOpenPrice(orderType.equals(Order.OrderType.BID)
                             ? diff1 : diff2);
                 }
+
+                // sell, buy, close sell, close buy
+
                 tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}",
                         signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                         isMoving ? "Moved" : "maker",
@@ -706,7 +710,7 @@ public class OkCoinService extends MarketService {
 
         } catch (Exception e) {
             String details = String.format("type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
-                    orderType, amount, bestQuotes, isMoving, signalType);
+                    orderType, tradeableAmount, bestQuotes, isMoving, signalType);
             logger.error("Place market order error. Details: " + details, e);
             tradeLogger.info("maker error {}", e.toString() + ". Details: " + details);
             tradeResponse.setOrderId(null);
