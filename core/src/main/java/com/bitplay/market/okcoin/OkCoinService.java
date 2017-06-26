@@ -24,6 +24,7 @@ import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.FuturesContract;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
@@ -529,39 +530,35 @@ public class OkCoinService extends MarketService {
     }
 
     public String placeTakerOrder(Order.OrderType orderType, BigDecimal amount) {
-        String orderId = "Not implemented yet";
-//        try {
-//            final TradeService tradeService = exchange.getTradeService();
-//            BigDecimal tradingDigit;
-//            BigDecimal theBestPrice;
-//
-//            if (orderType.equals(Order.OrderType.BID)) {
-//                // The price is to total amount you want to buy, and it must be higher than the current price of 0.01 BTC
-//                tradingDigit = getTotalPriceOfAmountToBuy(amount);
-//                theBestPrice = bestAsk;
-//            } else { // orderType.equals(Order.OrderType.ASK)
-//                tradingDigit = amount;
-//                theBestPrice = bestBid;
-//            }
-//
-////          TODO  Place unclear logic to BitplayOkCoinTradeService.placeTakerOrder()
-//            final MarketOrder marketOrder = new MarketOrder(orderType,
-//                    tradingDigit,
-//                    CURRENCY_PAIR_BTC_USD, new Date());
-//            orderId = tradeService.placeMarketOrder(marketOrder);
-//
-////            final Order successfulOrder = fetchOrderInfo(orderId);
-//
-//            // TODO save trading history into DB
-//            tradeLogger.info("taker {} amount={} with theBestPrice={}",
-//                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
-//                    amount.toPlainString(),
-//                    theBestPrice);
-//
-//        } catch (Exception e) {
-//            logger.error("Place market order error", e);
-//            orderId = e.getMessage();
-//        }
+        String orderId;
+        try {
+            final TradeService tradeService = exchange.getTradeService();
+            BigDecimal theBestPrice;
+
+            orderType = adjustOrderType(orderType, amount);
+
+            if (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK)) {
+                theBestPrice = bestAsk;
+            } else { // orderType.equals(Order.OrderType.ASK)|| orderType.equals(Order.OrderType.EXIT_BID)
+                theBestPrice = bestBid;
+            }
+
+            final MarketOrder marketOrder = new MarketOrder(orderType,
+                    amount,
+                    CURRENCY_PAIR_BTC_USD, new Date());
+            orderId = tradeService.placeMarketOrder(marketOrder);
+
+//            final Order successfulOrder = fetchOrderInfo(orderId);
+
+            tradeLogger.info("taker {} amount={} with theBestPrice={}",
+                    Utils.convertOrderTypeName(orderType),
+                    amount.toPlainString(),
+                    theBestPrice);
+
+        } catch (Exception e) {
+            logger.error("Place market order error", e);
+            orderId = e.getMessage();
+        }
         return orderId;
     }
 
@@ -588,26 +585,6 @@ public class OkCoinService extends MarketService {
         return placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
     }
 
-    private BigDecimal convertBtcToContracts(BigDecimal amountInBtc) {
-
-        final Instant timeEdge = Instant.now().minusSeconds(30 * 1000); // 30 sec
-        if (contractIndex.getIndexPrice().signum() == 0) {
-            tradeLogger.info("ERROR: contractIndex is zero");
-            throw new IllegalStateException("ERROR: contractIndex is zero");
-        }
-        if (contractIndex.getTimestamp().toInstant().isBefore(timeEdge)) {
-            tradeLogger.info("WARNING: contractIndex has not been updated more than 30 sec");
-        }
-        // vol_cont = round(cur_vol_btc * cur_index_price / 100; 0)
-        BigDecimal amountInContracts = amountInBtc.multiply(contractIndex.getIndexPrice())
-                .divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_HALF_UP);
-
-        if (amountInContracts.signum() == 0) {
-            amountInContracts = BigDecimal.ONE;
-        }
-        return amountInContracts;
-    }
-
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
                                           boolean isMoving, SignalType signalType) {
         final TradeResponse tradeResponse = new TradeResponse();
@@ -619,22 +596,6 @@ public class OkCoinService extends MarketService {
             thePrice = createBestMakerPrice(orderType, false)
                     .setScale(2, BigDecimal.ROUND_HALF_UP);
 
-//            BigDecimal tradeableAmount = adjustAmount(amount);
-
-            /* TODO update balance right after cancelling before enable the following code.
-             for now, we use response error message 'Insuficient coins(fonds)'
-            if (!isAffordable(orderType, tradeableAmount)) {
-                
-                final Wallet wallet = getAccountInfo().getWallet();
-                final BigDecimal btcBalance = wallet.getBalance(Currency.BTC).getAvailable();
-                final BigDecimal usdBalance = wallet.getBalance(getSecondCurrency()).getAvailable();
-
-                tradeResponse.setErrorMessage(String.format("Not enough money left. Type:%s;amont:%s;bal_btc:%s;bal_usd:%s",
-                        orderType.toString(), tradeableAmount.toPlainString(),
-                        btcBalance, usdBalance));
-
-            } else
-            */
             if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
                 tradeResponse.setErrorMessage("The new price is 0 ");
             } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
@@ -672,10 +633,11 @@ public class OkCoinService extends MarketService {
                 if (bestQuotes != null) {
                     final BigDecimal diff1 = bestQuotes.getAsk1_o().subtract(thePrice);
                     final BigDecimal diff2 = thePrice.subtract(bestQuotes.getBid1_o());
-                    diffWithSignal = orderType.equals(Order.OrderType.BID)
-                            ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", diff1.toPlainString()) //"BUY"
-                            : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s", diff2.toPlainString()); //"SELL"
-                    arbitrageService.getOpenDiffs().setSecondOpenPrice(orderType.equals(Order.OrderType.BID)
+                    diffWithSignal = (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK))
+                            ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", diff1.toPlainString()) //"BUY"/"EXIT_SELL"
+                            : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s", diff2.toPlainString()); //"SELL"/"EXIT_BUY"
+                    arbitrageService.getOpenDiffs().setSecondOpenPrice(
+                            (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK))
                             ? diff1 : diff2);
                 }
 
@@ -684,7 +646,7 @@ public class OkCoinService extends MarketService {
                 tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}",
                         signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                         isMoving ? "Moved" : "maker",
-                        orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                        Utils.convertOrderTypeName(orderType),
                         tradeableAmount.toPlainString(),
                         thePrice,
                         orderId,
@@ -739,21 +701,6 @@ public class OkCoinService extends MarketService {
             }
         }
         return newOrderType;
-    }
-
-    private BigDecimal adjustAmount(final BigDecimal initialAmount) {
-        BigDecimal amount = initialAmount.setScale(3, BigDecimal.ROUND_HALF_UP);
-        if (amount.compareTo(OKCOIN_STEP) == -1) {
-            amount = amount.setScale(2, BigDecimal.ROUND_HALF_UP);
-        }
-        if (amount.compareTo(OKCOIN_STEP) == -1) {
-            amount = BigDecimal.ZERO;
-        }
-
-        if (amount.compareTo(initialAmount) != 0) {
-            tradeLogger.info(String.format("Amount change %s -> %s", initialAmount.toPlainString(), amount.toPlainString()));
-        }
-        return amount;
     }
 
     private Order fetchOrderInfo(String orderId) {

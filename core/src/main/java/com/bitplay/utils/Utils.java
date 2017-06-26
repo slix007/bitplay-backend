@@ -1,5 +1,6 @@
 package com.bitplay.utils;
 
+import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
@@ -40,5 +41,23 @@ public class Utils {
                 .collect(Collectors.toList());
     }
 
+    public static String convertOrderTypeName(Order.OrderType orderType) {
+        String theName = "undefined";
+        switch (orderType) {
+            case ASK:
+                theName = "SELL";
+                break;
+            case BID:
+                theName = "BUY";
+                break;
+            case EXIT_BID:
+                theName = "CLOSE_BUY";
+                break;
+            case EXIT_ASK:
+                theName = "CLOSE_SELL";
+                break;
+        }
+        return theName;
+    }
 
 }

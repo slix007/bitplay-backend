@@ -88,10 +88,10 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
 
     public AccountInfoJson getFullAccountInfo() {
         final AccountInfo accountInfo = getBusinessService().getAccountInfo();
-        Wallet wallet = null;
+        Wallet wallet;
         try {
             wallet = accountInfo.getWallet();
-        } catch (UnsupportedOperationException e) {
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return new AccountInfoJson("error", "error", "error", "error", "error", "error");
         }

@@ -148,8 +148,8 @@ public class BitmexAdapters {
                             : org.knowm.xchange.dto.Order.OrderType.ASK;
 
                 }
-                if (order.getSimpleLeavesQty() != null) {
-                    tradableAmount = new BigDecimal(order.getSimpleLeavesQty()).setScale(4, RoundingMode.HALF_UP);
+                if (order.getOrderQty() != null) {
+                    tradableAmount = order.getOrderQty();
                 }
                 if (order.getSymbol() != null) {
                     final String first = order.getSymbol().substring(0, 3);

@@ -24,8 +24,10 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -157,6 +159,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final String index = String.format("%s (1c=%sbtc)",
                 contractIndex.getIndexPrice().toPlainString(),
                 getBusinessService().calcBtcInContract());
-        return new FutureIndexJson(index, contractIndex.getTimestamp().toString());
+        final Date timestamp = contractIndex.getTimestamp();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return new FutureIndexJson(index, sdf.format(timestamp));
     }
 }

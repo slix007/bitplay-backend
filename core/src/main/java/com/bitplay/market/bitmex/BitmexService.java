@@ -267,7 +267,9 @@ public class BitmexService extends MarketService {
                     //workaround
                     if (openOrders == null) {
                         openOrders = new ArrayList<>();
-                        eventBus.send(BtsEvent.MARKET_FREE);
+                        if (isBusy) {
+                            eventBus.send(BtsEvent.MARKET_FREE);
+                        }
                     }
 
                     final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
@@ -278,14 +280,6 @@ public class BitmexService extends MarketService {
                     this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                     logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
                     this.orderBook = orderBook;
-
-//                    orderBookChangedSubject.onNext(orderBook);
-
-                    //TODO subscribe on orderBook
-//                    CompletableFuture.runAsync(() -> {
-//                        checkOpenOrdersForMoving(orderBook);
-//                    });
-
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }
