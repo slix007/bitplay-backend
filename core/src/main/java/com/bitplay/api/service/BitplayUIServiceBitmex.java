@@ -93,12 +93,13 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         final Balance walletBalance = wallet.getBalance(BitmexAdapters.WALLET_CURRENCY);
         final Balance marginBalance = wallet.getBalance(BitmexAdapters.MARGIN_CURRENCY);
         final Balance position = wallet.getBalance(BitmexAdapters.POSITION_CURRENCY);
+        BigDecimal margin = marginBalance.getTotal().subtract(walletBalance.getAvailable());
 
         return new AccountInfoJson(
                 walletBalance.getTotal().toPlainString(),
                 walletBalance.getAvailable().toPlainString(),
                 marginBalance.getTotal().toPlainString(),
-                "--",
+                margin.toPlainString(),
                 position != null ? position.getAvailable().toPlainString() : "0",
                 accountInfo.toString());
     }
