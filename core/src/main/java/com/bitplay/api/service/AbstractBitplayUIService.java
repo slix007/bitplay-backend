@@ -154,6 +154,9 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public FutureIndexJson getFutureIndex() {
         final ContractIndex contractIndex = getBusinessService().getContractIndex();
-        return new FutureIndexJson(contractIndex.getIndexPrice().toPlainString(), contractIndex.getTimestamp().toString());
+        final String index = String.format("%s (1c=%sbtc)",
+                contractIndex.getIndexPrice().toPlainString(),
+                getBusinessService().calcBtcInContract());
+        return new FutureIndexJson(index, contractIndex.getTimestamp().toString());
     }
 }

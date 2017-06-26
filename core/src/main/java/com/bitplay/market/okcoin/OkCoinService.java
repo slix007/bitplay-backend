@@ -104,6 +104,7 @@ public class OkCoinService extends MarketService {
 
     @Override
     public void initializeMarket(String key, String secret) {
+        this.usdInContract = 100;
         exchange = initExchange(key, secret);
 
         initWebSocketAndAllSubscribers();

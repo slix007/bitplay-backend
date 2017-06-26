@@ -49,6 +49,7 @@ public abstract class MarketService {
     protected AccountInfo accountInfo = null;
     protected PositionInfo positionInfo = null;
     protected ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
+    protected int usdInContract = 0;
 
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
@@ -76,6 +77,14 @@ public abstract class MarketService {
     public abstract String getPosition();
 
     public abstract boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount);
+
+    public BigDecimal calcBtcInContract() {
+        if (contractIndex.getIndexPrice() != null && contractIndex.getIndexPrice().signum() != 0) {
+            return BigDecimal.valueOf(usdInContract).divide(contractIndex.getIndexPrice(), 4, BigDecimal.ROUND_HALF_UP);
+        }
+        return BigDecimal.ZERO;
+    }
+
     /*
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable = false;

@@ -110,6 +110,7 @@ public class BitmexService extends MarketService {
 
     @Override
     public void initializeMarket(String key, String secret) {
+        this.usdInContract = 1;
         this.exchange = initExchange(key, secret);
 
         initWebSocketConnection();
