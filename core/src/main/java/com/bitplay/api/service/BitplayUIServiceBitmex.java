@@ -66,7 +66,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         String orderId = null;
         if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
-//            orderId = service.placeTakerOrder(orderType, amount);
+            orderId = "Not implemented"; //service.placeTakerOrder(orderType, amount);
         } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
             SignalType signalType;
             if (orderType.equals(Order.OrderType.ASK)) {
