@@ -99,7 +99,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 ? position.getPositionLong().toPlainString() + "; leverage=" + position.getLeverage()
                 : "0";
 
-        positionString += String.format("; forAsk:%s, forBid:%s",
+        positionString += String.format("; AvailableForAsk:%s, AvailableForBid:%s",
                 getBusinessService().getAffordableContractsAsk(),
                 getBusinessService().getAffordableContractsBid()
         );
