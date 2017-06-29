@@ -54,8 +54,8 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal cumCom2 = BigDecimal.ZERO;
     private int counter1 = 0;
     private int counter2 = 0;
-    private BigDecimal blockSize1 = BigDecimal.valueOf(1);
-    private BigDecimal blockSize2 = BigDecimal.valueOf(100);
+    private BigDecimal block1 = BigDecimal.valueOf(100);
+    private BigDecimal block2 = BigDecimal.valueOf(1);
     private BigDecimal posBefore = BigDecimal.ZERO;
     private BigDecimal volPlan = BigDecimal.ZERO;
     private BigDecimal reserveBtc1 = BigDecimal.valueOf(0.00001);
@@ -400,20 +400,20 @@ public class GuiParams extends AbstractDocument {
         this.counter2 = counter2;
     }
 
-    public BigDecimal getBlockSize1() {
-        return blockSize1;
+    public BigDecimal getBlock1() {
+        return block1;
     }
 
-    public void setBlockSize1(BigDecimal blockSize1) {
-        this.blockSize1 = blockSize1;
+    public void setBlock1(BigDecimal block1) {
+        this.block1 = block1;
     }
 
-    public BigDecimal getBlockSize2() {
-        return blockSize2;
+    public BigDecimal getBlock2() {
+        return block2;
     }
 
-    public void setBlockSize2(BigDecimal blockSize2) {
-        this.blockSize2 = blockSize2;
+    public void setBlock2(BigDecimal block2) {
+        this.block2 = block2;
     }
 
     public BigDecimal getPosBefore() {

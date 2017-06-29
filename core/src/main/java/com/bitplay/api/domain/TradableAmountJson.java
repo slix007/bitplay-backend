@@ -7,22 +7,22 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TradableAmountJson {
-    private String blockSize1;
-    private String blockSize2;
+    private String block1;
+    private String block2;
 
     public TradableAmountJson() {
     }
 
-    public TradableAmountJson(String blockSize1, String blockSize2) {
-        this.blockSize1 = blockSize1;
-        this.blockSize2 = blockSize2;
+    public TradableAmountJson(String block1, String block2) {
+        this.block1 = block1;
+        this.block2 = block2;
     }
 
-    public String getBlockSize1() {
-        return blockSize1;
+    public String getBlock1() {
+        return block1;
     }
 
-    public String getBlockSize2() {
-        return blockSize2;
+    public String getBlock2() {
+        return block2;
     }
 }

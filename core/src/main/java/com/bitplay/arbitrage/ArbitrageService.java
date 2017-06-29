@@ -390,7 +390,7 @@ public class ArbitrageService {
 //            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
-                if (checkBalance(DELTA1, params.getBlockSize1(), params.getBlockSize2()) //) {
+                if (checkBalance(DELTA1, params.getBlock1(), params.getBlock2()) //) {
                         && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
 
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
@@ -400,12 +400,12 @@ public class ArbitrageService {
                     params.setLastDelta(DELTA1);
                     // Market specific params
                     params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
-                    params.setVolPlan(params.getBlockSize1()); // buy
+                    params.setVolPlan(params.getBlock1()); // buy
 
                     writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
 
-                    firstMarketService.placeMakerOrder(Order.OrderType.ASK, params.getBlockSize1(), bestQuotes, SignalType.AUTOMATIC);
-                    secondMarketService.placeMakerOrder(Order.OrderType.BID, params.getBlockSize2(), bestQuotes, SignalType.AUTOMATIC);
+                    firstMarketService.placeMakerOrder(Order.OrderType.ASK, params.getBlock1(), bestQuotes, SignalType.AUTOMATIC);
+                    secondMarketService.placeMakerOrder(Order.OrderType.BID, params.getBlock2(), bestQuotes, SignalType.AUTOMATIC);
                     setTimeoutAfterStartTrading();
 
                     saveParamsToDb();
@@ -418,7 +418,7 @@ public class ArbitrageService {
 //            2) если delta2 >= border2, то происходит buy у poloniex и sell у okcoin
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
-                if (checkBalance(DELTA2, params.getBlockSize1(), params.getBlockSize2()) //) {
+                if (checkBalance(DELTA2, params.getBlock1(), params.getBlock2()) //) {
                         && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
 
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
@@ -428,12 +428,12 @@ public class ArbitrageService {
                     params.setLastDelta(DELTA2);
                     // Market specific params
                     params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
-                    params.setVolPlan(params.getBlockSize1().negate());//sell
+                    params.setVolPlan(params.getBlock1().negate());//sell
 
                     writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
 
-                    firstMarketService.placeMakerOrder(Order.OrderType.BID, params.getBlockSize1(), bestQuotes, SignalType.AUTOMATIC);
-                    secondMarketService.placeMakerOrder(Order.OrderType.ASK, params.getBlockSize2(), bestQuotes, SignalType.AUTOMATIC);
+                    firstMarketService.placeMakerOrder(Order.OrderType.BID, params.getBlock1(), bestQuotes, SignalType.AUTOMATIC);
+                    secondMarketService.placeMakerOrder(Order.OrderType.ASK, params.getBlock2(), bestQuotes, SignalType.AUTOMATIC);
                     setTimeoutAfterStartTrading();
 
                     saveParamsToDb();

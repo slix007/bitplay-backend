@@ -360,7 +360,7 @@ public class OkCoinService extends MarketService {
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(accountInfo -> {
-                    logger.info("AccountInfo.Websocket: " + accountInfo.toString());
+                    logger.debug("AccountInfo.Websocket: " + accountInfo.toString());
                     this.accountInfo = accountInfo;
 
                 }, throwable -> {
@@ -512,7 +512,7 @@ public class OkCoinService extends MarketService {
     private BigDecimal recalcAffordablContractsForOrderType(Order.OrderType orderType) {
         BigDecimal volAvailable = BigDecimal.ZERO;
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
-        final BigDecimal volPlan = arbitrageService.getParams().getBlockSize2();
+        final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 
         if (accountInfo != null && accountInfo.getWallet() != null) {
             final Wallet wallet = accountInfo.getWallet();
