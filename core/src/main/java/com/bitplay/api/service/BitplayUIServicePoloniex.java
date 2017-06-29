@@ -13,6 +13,7 @@ import com.bitplay.market.polonex.PoloniexService;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexTradeResponse;
@@ -49,7 +50,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
     }
 
     @Override
-    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo) {
+    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo, Position position) {
         if (accountInfo == null) {
             return new AccountInfoJson(null, null, null);
         }

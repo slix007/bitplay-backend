@@ -9,12 +9,11 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
-import info.bitrich.xchangestream.core.dto.PositionInfo;
-
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -43,24 +42,23 @@ import io.reactivex.disposables.Disposable;
  */
 public abstract class MarketService {
 
+    protected final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
+    private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected List<LimitOrder> openOrders = new CopyOnWriteArrayList<>();
     protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected AccountInfo accountInfo = null;
-    protected PositionInfo positionInfo = null;
+    protected Position position = null;
     protected ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected int usdInContract = 0;
-
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
-
     protected MarketState marketState = MarketState.IDLE;
+//    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
     protected boolean isBusy = false;
     protected EventBus eventBus = new EventBus();
-//    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
-
-    protected final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
-    private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
+    private Boolean isReadyForMoving = true;
+    private Disposable theTimer;
 
     public void init(String key, String secret) {
         initEventBus();
@@ -75,16 +73,7 @@ public abstract class MarketService {
 
     public abstract Logger getTradeLogger();
 
-    public abstract String getPosition();
-
-    public abstract boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount);
-
-    public BigDecimal calcBtcInContract() {
-        if (contractIndex.getIndexPrice() != null && contractIndex.getIndexPrice().signum() != 0) {
-            return BigDecimal.valueOf(usdInContract).divide(contractIndex.getIndexPrice(), 4, BigDecimal.ROUND_HALF_UP);
-        }
-        return BigDecimal.ZERO;
-    }
+    public abstract String getPositionAsString();
 
     /*
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
@@ -106,6 +95,15 @@ public abstract class MarketService {
         }
         return isAffordable;
     }*/
+
+    public abstract boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount);
+
+    public BigDecimal calcBtcInContract() {
+        if (contractIndex.getIndexPrice() != null && contractIndex.getIndexPrice().signum() != 0) {
+            return BigDecimal.valueOf(usdInContract).divide(contractIndex.getIndexPrice(), 4, BigDecimal.ROUND_HALF_UP);
+        }
+        return BigDecimal.ZERO;
+    }
 
     public boolean isReadyForArbitrage() {
         final long openOrdersCount = openOrders.stream()
@@ -158,16 +156,16 @@ public abstract class MarketService {
         return accountInfo;
     }
 
-    public PositionInfo getPositionInfo() {
-        return positionInfo;
+    public synchronized void setAccountInfo(AccountInfo accountInfo) {
+        this.accountInfo = accountInfo;
+    }
+
+    public Position getPosition() {
+        return position;
     }
 
     public ContractIndex getContractIndex() {
         return contractIndex;
-    }
-
-    public synchronized void setAccountInfo(AccountInfo accountInfo) {
-        this.accountInfo = accountInfo;
     }
 
     public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);
@@ -248,66 +246,6 @@ public abstract class MarketService {
         return openOrders;
     }
 
-    protected synchronized void checkOpenOrdersForMoving() {
-//        debugLog.info(getName() + ":checkOpenOrdersForMoving");
-        if (isReadyForMoving && marketState != MarketState.STOP_MOVING) {
-            iterateOpenOrdersMove();
-        }
-    }
-
-    protected void iterateOpenOrdersMove() {
-        boolean haveToFetch = false;
-        boolean freeTheMarket = false;
-        List<String> toRemove = new ArrayList<>();
-        List<LimitOrder> toAdd = new ArrayList<>();
-        try {
-            for (LimitOrder openOrder : openOrders) {
-                if (openOrder.getType() != null) {
-                    final SignalType signalType = getArbitrageService().getSignalType();
-                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
-
-                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                            || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
-                        freeTheMarket = true;
-                        toRemove.add(openOrder.getId());
-                        haveToFetch = true;
-                        logger.info(getName() + response.getDescription());
-                    }
-
-                    if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
-                        toRemove.add(openOrder.getId());
-                        haveToFetch = true;
-                        if (response.getNewOrder() != null) {
-                            toAdd.add(response.getNewOrder());
-                        }
-                    }
-                }
-            }
-
-            openOrders.removeIf(o -> toRemove.contains(o.getId()));
-            toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
-            openOrders.addAll(toAdd);
-
-            if (freeTheMarket && openOrders.size() > 0) {
-                logger.warn("Warning: get ALREADY_CLOSED, but there are still open orders");
-            }
-
-            if (freeTheMarket && openOrders.size() == 0) {
-                eventBus.send(BtsEvent.MARKET_FREE);
-            }
-        } catch (Exception e) {
-            logger.error("On moving", e);
-            final List<LimitOrder> orderList = fetchOpenOrders();
-            if (orderList.size() == 0) {
-                eventBus.send(BtsEvent.MARKET_FREE);
-            }
-        }
-
-        if (haveToFetch) {
-            fetchOpenOrders();
-        }
-    }
-
 /*
     protected void initOrderBookSubscribers(Logger logger) {
         orderBookChangedSubject.subscribe(orderBook -> {
@@ -368,6 +306,66 @@ public abstract class MarketService {
         });
     }*/
 
+    protected synchronized void checkOpenOrdersForMoving() {
+//        debugLog.info(getName() + ":checkOpenOrdersForMoving");
+        if (isReadyForMoving && marketState != MarketState.STOP_MOVING) {
+            iterateOpenOrdersMove();
+        }
+    }
+
+    protected void iterateOpenOrdersMove() {
+        boolean haveToFetch = false;
+        boolean freeTheMarket = false;
+        List<String> toRemove = new ArrayList<>();
+        List<LimitOrder> toAdd = new ArrayList<>();
+        try {
+            for (LimitOrder openOrder : openOrders) {
+                if (openOrder.getType() != null) {
+                    final SignalType signalType = getArbitrageService().getSignalType();
+                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
+
+                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                            || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
+                        freeTheMarket = true;
+                        toRemove.add(openOrder.getId());
+                        haveToFetch = true;
+                        logger.info(getName() + response.getDescription());
+                    }
+
+                    if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
+                        toRemove.add(openOrder.getId());
+                        haveToFetch = true;
+                        if (response.getNewOrder() != null) {
+                            toAdd.add(response.getNewOrder());
+                        }
+                    }
+                }
+            }
+
+            openOrders.removeIf(o -> toRemove.contains(o.getId()));
+            toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
+            openOrders.addAll(toAdd);
+
+            if (freeTheMarket && openOrders.size() > 0) {
+                logger.warn("Warning: get ALREADY_CLOSED, but there are still open orders");
+            }
+
+            if (freeTheMarket && openOrders.size() == 0) {
+                eventBus.send(BtsEvent.MARKET_FREE);
+            }
+        } catch (Exception e) {
+            logger.error("On moving", e);
+            final List<LimitOrder> orderList = fetchOpenOrders();
+            if (orderList.size() == 0) {
+                eventBus.send(BtsEvent.MARKET_FREE);
+            }
+        }
+
+        if (haveToFetch) {
+            fetchOpenOrders();
+        }
+    }
+
     public MoveResponse moveMakerOrderFromGui(String orderId, SignalType signalType) {
         MoveResponse response;
 
@@ -408,9 +406,6 @@ public abstract class MarketService {
         }
         return thePrice;
     }
-
-    private Boolean isReadyForMoving = true;
-    private Disposable theTimer;
 
     private void setTimeoutAfterStartMoving() {
         isReadyForMoving = false;

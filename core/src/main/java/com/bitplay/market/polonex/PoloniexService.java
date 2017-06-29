@@ -62,43 +62,39 @@ import jersey.repackaged.com.google.common.collect.Sets;
 @Service("poloniex")
 public class PoloniexService extends MarketService {
 
+    public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
+    public final static Currency CURRENCY_USDT = new Currency("USDT");
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
     private final static BigDecimal POLONIEX_STEP = new BigDecimal("0.00000001");
     private final static String NAME = "poloniex";
-
-    private StreamingExchange exchange;
-
-    private Ticker ticker;
 //    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
-
     Disposable orderBookSubscription;
     Disposable accountInfoSubscription;
     Observable<OrderBook> orderBookObservable;
 
     ArbitrageService arbitrageService;
-    @Autowired
-    public void setArbitrageService(ArbitrageService arbitrageService) {
-        this.arbitrageService = arbitrageService;
-    }
+    private StreamingExchange exchange;
+    private Ticker ticker;
+
+    //    @Autowired
+//    WebSocketEndpoint webSocketEndpoint;
+    private List<Long> latencyList = new ArrayList<>();
 
     @Override
     public ArbitrageService getArbitrageService() {
         return arbitrageService;
     }
 
-    //    @Autowired
-//    WebSocketEndpoint webSocketEndpoint;
-
-    public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");
-    public final static Currency CURRENCY_USDT = new Currency("USDT");
+    @Autowired
+    public void setArbitrageService(ArbitrageService arbitrageService) {
+        this.arbitrageService = arbitrageService;
+    }
 
     @Override
     public Currency getSecondCurrency() {
         return CURRENCY_USDT;
     }
-
-    private List<Long> latencyList = new ArrayList<>();
 
     @Override
     public String getName() {
@@ -593,7 +589,7 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    public String getPosition() {
+    public String getPositionAsString() {
         return null;
     }
 

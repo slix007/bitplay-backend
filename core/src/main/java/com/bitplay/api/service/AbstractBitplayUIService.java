@@ -14,6 +14,7 @@ import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -37,6 +38,32 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractBitplayUIService<T extends MarketService> {
 
+    Function<LimitOrder, VisualTrade> toVisual = limitOrder -> new VisualTrade(
+            limitOrder.getCurrencyPair().toString(),
+            limitOrder.getLimitPrice().toString(),
+            limitOrder.getTradableAmount().toString(),
+            limitOrder.getType().toString(),
+            LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault())
+                    .toLocalTime().toString());
+    Function<LimitOrder, OrderJson> toOrderJson = limitOrder -> {
+        final OrderJson orderJson = new OrderJson();
+        orderJson.setOrderType(limitOrder.getType() != null ? limitOrder.getType().toString() : "null");
+        orderJson.setPrice(limitOrder.getLimitPrice().toPlainString());
+        orderJson.setAmount(limitOrder.getTradableAmount().toPlainString());
+        orderJson.setCurrency(limitOrder.getCurrencyPair().toString());
+        orderJson.setTimestamp(limitOrder.getTimestamp() != null
+                ? LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault()).toLocalTime().toString()
+                : null);
+        orderJson.setId(limitOrder.getId());
+        orderJson.setStatus(limitOrder.getStatus() != null ? limitOrder.getStatus().toString() : null);
+        if (limitOrder instanceof ContractLimitOrder) {
+            final BigDecimal inBtc = ((ContractLimitOrder) limitOrder).getAmountInBaseCurrency();
+            orderJson.setAmountInBtc(inBtc != null ? inBtc.toPlainString() : "");
+        }
+
+        return orderJson;
+    };
+
     public abstract List<VisualTrade> fetchTrades();
 
     public abstract T getBusinessService();
@@ -57,7 +84,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public AccountInfoJson getAccountInfo() {
-        return convertAccountInfo(getBusinessService().getAccountInfo());
+        return convertAccountInfo(getBusinessService().getAccountInfo(),
+                getBusinessService().getPosition());
     }
 
     protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook) {
@@ -80,34 +108,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         return new TickerJson(value);
     }
 
-    Function<LimitOrder, VisualTrade> toVisual = limitOrder -> new VisualTrade(
-            limitOrder.getCurrencyPair().toString(),
-            limitOrder.getLimitPrice().toString(),
-            limitOrder.getTradableAmount().toString(),
-            limitOrder.getType().toString(),
-            LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault())
-                    .toLocalTime().toString());
-
-    Function<LimitOrder, OrderJson> toOrderJson = limitOrder -> {
-        final OrderJson orderJson = new OrderJson();
-        orderJson.setOrderType(limitOrder.getType() != null ? limitOrder.getType().toString() : "null");
-        orderJson.setPrice(limitOrder.getLimitPrice().toPlainString());
-        orderJson.setAmount(limitOrder.getTradableAmount().toPlainString());
-        orderJson.setCurrency(limitOrder.getCurrencyPair().toString());
-        orderJson.setTimestamp(limitOrder.getTimestamp() != null
-                ? LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault()).toLocalTime().toString()
-                : null);
-        orderJson.setId(limitOrder.getId());
-        orderJson.setStatus(limitOrder.getStatus() != null ? limitOrder.getStatus().toString() : null);
-        if (limitOrder instanceof ContractLimitOrder) {
-            final BigDecimal inBtc = ((ContractLimitOrder) limitOrder).getAmountInBaseCurrency();
-            orderJson.setAmountInBtc(inBtc != null ? inBtc.toPlainString() : "");
-        }
-
-        return orderJson;
-    };
-
-    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo) {
+    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo, Position position) {
         if (accountInfo == null) {
             return new AccountInfoJson();
         }

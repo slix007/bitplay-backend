@@ -22,6 +22,7 @@ import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -83,14 +84,15 @@ public class BitmexService extends MarketService {
     private Disposable openOrdersSubscription;
 
     private ArbitrageService arbitrageService;
-    @Autowired
-    public void setArbitrageService(ArbitrageService arbitrageService) {
-        this.arbitrageService = arbitrageService;
-    }
 
     @Override
     public ArbitrageService getArbitrageService() {
         return arbitrageService;
+    }
+
+    @Autowired
+    public void setArbitrageService(ArbitrageService arbitrageService) {
+        this.arbitrageService = arbitrageService;
     }
 
     @Override
@@ -445,7 +447,7 @@ public class BitmexService extends MarketService {
                         thePrice,
                         orderId,
                         diffWithSignal,
-                        getPosition());
+                        getPositionAsString());
 
                 if (signalType == SignalType.AUTOMATIC) {
                     arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
@@ -532,7 +534,7 @@ public class BitmexService extends MarketService {
                     limitOrder.getId(),
                     attemptCount,
                     diffWithSignal,
-                    getPosition());
+                    getPositionAsString());
 
             orderIdToSignalInfo.put(limitOrder.getId(), bestQuotes);
             if (signalType == SignalType.AUTOMATIC) {
@@ -618,26 +620,16 @@ public class BitmexService extends MarketService {
     }
 
     private void startPositionListener() {
-        Observable<AccountInfo> positionObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
+        Observable<Position> positionObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
                 .getPositionObservable()
                 .doOnError(throwable -> logger.error("Position fetch error", throwable));
 
         positionSubscription = positionObservable
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Position fetch error", throwable))
-                .subscribe(newAccountInfo -> {
-                    final Balance oldWalletBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                            ? this.accountInfo.getWallet().getBalance(WALLET_CURRENCY)
-                            : new Balance(WALLET_CURRENCY, BigDecimal.ZERO);
-                    final Balance oldMarginBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                            ? this.accountInfo.getWallet().getBalance(MARGIN_CURRENCY)
-                            : new Balance(MARGIN_CURRENCY, BigDecimal.ZERO);
-                    final Balance newPositionBalance = newAccountInfo.getWallet().getBalance(POSITION_CURRENCY);
-
-                    final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(oldWalletBalance, oldMarginBalance, newPositionBalance));
-                    setAccountInfo(resultAccountInfo);
-                    logger.debug("Balance Margin={}, Position={}", oldWalletBalance.getAvailable().toPlainString(), newPositionBalance.getAvailable().toPlainString());
-
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
+                .subscribe(position -> {
+                    this.position = position;
                 }, throwable -> {
                     logger.error("Can not fetch Position", throwable);
                     // schedule it again
@@ -679,13 +671,9 @@ public class BitmexService extends MarketService {
         orderBookSubscription.dispose();
     }
 
-    @Override
-    public AccountInfo getAccountInfo() {
-        return accountInfo;
-    }
 
     @Override
-    public String getPosition() {
+    public String getPositionAsString() {
         final Balance position = accountInfo.getWallet().getBalance(BitmexAdapters.POSITION_CURRENCY);
         return position != null ? position.getTotal().toPlainString() : "0";
     }

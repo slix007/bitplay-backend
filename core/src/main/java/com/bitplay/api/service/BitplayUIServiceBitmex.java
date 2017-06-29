@@ -12,6 +12,7 @@ import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
@@ -85,22 +86,25 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     }
 
     @Override
-    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo) {
+    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo, Position position) {
         if (accountInfo == null) {
             return new AccountInfoJson(null, null, null);
         }
         final Wallet wallet = accountInfo.getWallet();
         final Balance walletBalance = wallet.getBalance(BitmexAdapters.WALLET_CURRENCY);
         final Balance marginBalance = wallet.getBalance(BitmexAdapters.MARGIN_CURRENCY);
-        final Balance position = wallet.getBalance(BitmexAdapters.POSITION_CURRENCY);
         BigDecimal margin = marginBalance.getTotal().subtract(walletBalance.getAvailable());
+
+        final String positionString = position != null
+                ? position.getPositionLong().toPlainString() + "; leverage=" + position.getLeverage()
+                : "0";
 
         return new AccountInfoJson(
                 walletBalance.getTotal().toPlainString(),
                 walletBalance.getAvailable().toPlainString(),
                 marginBalance.getTotal().toPlainString(),
                 margin.toPlainString(),
-                position != null ? position.getTotal().toPlainString() : "0",
+                positionString,
                 accountInfo.toString());
     }
 

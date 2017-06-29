@@ -41,18 +41,13 @@ public class ArbitrageService {
 
     @Autowired
     PersistenceService persistenceService;
-
+    Disposable schdeduleUpdateBorders;
     //TODO rename them to first and second
     private MarketService firstMarketService;
     private MarketService secondMarketService;
-
     private BigDecimal delta1 = BigDecimal.ZERO;
     private BigDecimal delta2 = BigDecimal.ZERO;
-
     private GuiParams params = new GuiParams();
-
-    Disposable schdeduleUpdateBorders;
-
     private Instant previousEmitTime = Instant.now();
 
     private Boolean isReadyForTheArbitrage = true;
@@ -166,7 +161,7 @@ public class ArbitrageService {
                         cumDiffFact1, cumDiffFact1Min, cumDiffFact1Max,
                         cumDiffFact2, cumDiffFact2Min, cumDiffFact2Max,
                         cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax,
-                        firstMarketService.getPosition()
+                        firstMarketService.getPositionAsString()
                 ));
 
                 printCumBitmexMCom();
@@ -229,7 +224,7 @@ public class ArbitrageService {
                         cumDiffFact1, cumDiffFact1Min, cumDiffFact1Max,
                         cumDiffFact2, cumDiffFact2Min, cumDiffFact2Max,
                         cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax,
-                        firstMarketService.getPosition()
+                        firstMarketService.getPositionAsString()
                 ));
 
                 printCumBitmexMCom();
@@ -246,7 +241,7 @@ public class ArbitrageService {
 
     private void printVolFact() {
         //vol_fact = pos_after - pos_befor
-        final BigDecimal posAfter = new BigDecimal(firstMarketService.getPosition());
+        final BigDecimal posAfter = new BigDecimal(firstMarketService.getPositionAsString());
         final BigDecimal posBefore = params.getPosBefore();
         final BigDecimal volFact = posAfter.subtract(posBefore);
         // vol_diff = vol_plan - vol_fact
@@ -404,7 +399,7 @@ public class ArbitrageService {
                     secondMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
                     params.setLastDelta(DELTA1);
                     // Market specific params
-                    params.setPosBefore(new BigDecimal(firstMarketService.getPosition()));
+                    params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
                     params.setVolPlan(params.getBlockSize1()); // buy
 
                     writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, usdP, btcO, usdO);
@@ -432,7 +427,7 @@ public class ArbitrageService {
                     secondMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
                     params.setLastDelta(DELTA2);
                     // Market specific params
-                    params.setPosBefore(new BigDecimal(firstMarketService.getPosition()));
+                    params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
                     params.setVolPlan(params.getBlockSize1().negate());//sell
 
                     writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP, usdP, btcO, usdO);
@@ -625,7 +620,7 @@ public class ArbitrageService {
                 sumBalUsd2,
                 sumBalUsd3,
                 sumBalUsd4,
-                firstMarketService.getPosition()
+                firstMarketService.getPositionAsString()
         ));
     }
 
@@ -786,12 +781,12 @@ public class ArbitrageService {
         return openDiffs;
     }
 
-    public void setSignalType(SignalType signalType) {
-        this.signalType = signalType;
-    }
-
     public SignalType getSignalType() {
         return signalType;
+    }
+
+    public void setSignalType(SignalType signalType) {
+        this.signalType = signalType;
     }
 
     public void setPeriodSec(Integer integer) {

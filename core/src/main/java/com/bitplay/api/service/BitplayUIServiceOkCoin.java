@@ -8,12 +8,11 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 
-import info.bitrich.xchangestream.core.dto.PositionInfo;
-
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
@@ -97,11 +96,12 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         }
         final Balance balance = wallet.getBalance(Currency.BTC);
 
-        final PositionInfo positionInfo = getBusinessService().getPositionInfo();
-        String position = String.format("%s + %s = %s",
-                positionInfo.getPositionLong().toPlainString(),
-                positionInfo.getPositionShort().negate().toPlainString(),
-                positionInfo.getPositionLong().subtract(positionInfo.getPositionShort()).toPlainString());
+        final Position position = getBusinessService().getPosition();
+        String positionString = String.format("%s + %s = %s; leverage=%s",
+                position.getPositionLong().toPlainString(),
+                position.getPositionShort().negate().toPlainString(),
+                position.getPositionLong().subtract(position.getPositionShort()).toPlainString(),
+                position.getLeverage());
 
         BigDecimal equity = balance.getAvailable().add(balance.getFrozen());
 
@@ -110,7 +110,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
                 balance.getAvailable().toPlainString(),
                 equity.toPlainString(),
                 balance.getFrozen().toPlainString(),
-                position,
+                positionString,
                 accountInfo.toString());
     }
 }

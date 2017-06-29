@@ -8,7 +8,6 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
 
-import info.bitrich.xchangestream.core.dto.PositionInfo;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 
@@ -20,6 +19,7 @@ import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -41,7 +41,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -73,24 +72,22 @@ public class OkCoinService extends MarketService {
     private final static String NAME = "okcoin";
 
     ArbitrageService arbitrageService;
-
-    @Autowired
-    public void setArbitrageService(ArbitrageService arbitrageService) {
-        this.arbitrageService = arbitrageService;
-    }
+    private OkExStreamingExchange exchange;
+    private Disposable orderBookSubscription;
+    private Disposable privateDataSubscription;
+    private Disposable accountInfoSubscription;
+    private Disposable futureIndexSubscription;
+    private Observable<OrderBook> orderBookObservable;
 
     @Override
     public ArbitrageService getArbitrageService() {
         return arbitrageService;
     }
 
-    private OkExStreamingExchange exchange;
-
-    private Disposable orderBookSubscription;
-    private Disposable privateDataSubscription;
-    private Disposable accountInfoSubscription;
-    private Disposable futureIndexSubscription;
-    private Observable<OrderBook> orderBookObservable;
+    @Autowired
+    public void setArbitrageService(ArbitrageService arbitrageService) {
+        this.arbitrageService = arbitrageService;
+    }
 //    private Map<String, Disposable> orderSubscriptions = new HashMap<>();
 
     @Override
@@ -126,7 +123,6 @@ public class OkCoinService extends MarketService {
         fetchOpenOrdersWithDelay();
 
 //        fetchAccountInfo();
-//        accountInfo = fetchAccountInfoViaWebsocket();
         fetchPosition();
     }
 
@@ -251,81 +247,16 @@ public class OkCoinService extends MarketService {
                 tradeLogger.warn("More than one positions found");
             }
             final OkCoinPosition okCoinPosition = positionResult.getPositions()[0];
-            positionInfo = new PositionInfo(
+            position = new Position(
                     okCoinPosition.getBuyAmount(),
                     okCoinPosition.getSellAmount(),
+                    okCoinPosition.getRate(),
                     okCoinPosition.toString()
             );
-//            tradeLogger.info("PositionInfo(rest): " + positionInfo);
-
         } catch (Exception e) {
-            tradeLogger.error("FetchPositionError", e);
             logger.error("FetchPositionError", e);
         }
     }
-
-    //    @Scheduled(fixedRate = 1000 * 60 * 15) // The subscription should handle it.
-    public AccountInfo fetchAccountInfoViaWebsocket() {
-        AccountInfo accountInfo = null;
-        try {
-            accountInfo = (exchange.getStreamingAccountInfoService().getAccountInfo());
-//            mergeAccountInfo(newAccountInfo);
-//            logger.info(this.accountInfo.toString());
-        } catch (Exception e) {
-            logger.error("AccountInfo error", e);
-        }
-        return accountInfo;
-    }
-/*
-    private void mergeAccountInfo(AccountInfo newAccountInfo) {
-        Balance walletBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                ? this.accountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY)
-                : new Balance(OkExAdapters.WALLET_CURRENCY, BigDecimal.ZERO);
-
-        Balance pLongBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                ? this.accountInfo.getWallet().getBalance(OkExAdapters.POSITION_LONG_CURRENCY)
-                : new Balance(OkExAdapters.POSITION_LONG_CURRENCY, BigDecimal.ZERO);
-        Balance pShortBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                ? this.accountInfo.getWallet().getBalance(OkExAdapters.POSITION_SHORT_CURRENCY)
-                : new Balance(OkExAdapters.POSITION_SHORT_CURRENCY, BigDecimal.ZERO);
-
-        if (newAccountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY).getTotal().compareTo(BigDecimal.ZERO) != 0) {
-            walletBalance = newAccountInfo.getWallet().getBalance(OkExAdapters.WALLET_CURRENCY);
-        }
-        if (newAccountInfo.getWallet().getBalance(OkExAdapters.POSITION_LONG_CURRENCY).getTotal().compareTo(BigDecimal.ZERO) != 0) {
-            pLongBalance = newAccountInfo.getWallet().getBalance(OkExAdapters.POSITION_LONG_CURRENCY);
-        }
-        if (newAccountInfo.getWallet().getBalance(OkExAdapters.POSITION_SHORT_CURRENCY).getTotal().compareTo(BigDecimal.ZERO) != 0) {
-            pShortBalance = newAccountInfo.getWallet().getBalance(OkExAdapters.POSITION_SHORT_CURRENCY);
-        }
-
-        final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(walletBalance, pLongBalance, pShortBalance));
-
-        setAccountInfo(resultAccountInfo);
-        logger.debug("Balance Wallet={}, Margin={}, Position={},{}",
-                walletBalance.getTotal().toPlainString(),
-                walletBalance.getFrozen().toPlainString(),
-                pLongBalance.getFrozen().toPlainString(),
-                pShortBalance.getFrozen().toPlainString());
-
-        String walletRaw = "";
-        String positionsRaw = "";
-        if (walletBalance instanceof BalanceEx) {
-            walletRaw = ((BalanceEx) walletBalance).getRaw();
-        }
-        if (pLongBalance instanceof BalanceEx) {
-            positionsRaw = "Long: " + ((BalanceEx) pLongBalance).getRaw();
-        }
-        if (pShortBalance instanceof BalanceEx) {
-            positionsRaw += "\n";
-            positionsRaw += "Short: " + ((BalanceEx) pShortBalance).getRaw();
-        }
-        tradeLogger.info("AccountInfo:\n"
-                + "Wallet: " + walletRaw
-                + "\n"
-                + positionsRaw
-        );
-    }*/
 
     //TODO use subscribing on open orders
     @Scheduled(fixedRate = 1000 * 60 * 15)
@@ -446,8 +377,12 @@ public class OkCoinService extends MarketService {
                         exchange.getStreamingAccountInfoService()
                                 .requestAccountInfo();
                     }
-                    if (privateData.getPositionInfo() != null) {
-                        positionInfo = privateData.getPositionInfo();
+                    final Position positionInfo = privateData.getPositionInfo();
+                    if (positionInfo != null) {
+                        position = new Position(positionInfo.getPositionLong(),
+                                positionInfo.getPositionShort(),
+                                this.position.getLeverage(),
+                                positionInfo.getRaw());
                     }
                     if (privateData.getTrades() != null) {
                         updateOpenOrders(privateData.getTrades());
@@ -688,11 +623,11 @@ public class OkCoinService extends MarketService {
     }
 
     private Order.OrderType adjustOrderType(Order.OrderType orderType, BigDecimal tradeableAmount) {
-        BigDecimal pLongBalance = (this.positionInfo != null && this.positionInfo.getPositionLong() != null)
-                ? this.positionInfo.getPositionLong()
+        BigDecimal pLongBalance = (this.position != null && this.position.getPositionLong() != null)
+                ? this.position.getPositionLong()
                 : BigDecimal.ZERO;
-        BigDecimal pShortBalance = (this.positionInfo != null && this.positionInfo.getPositionShort() != null)
-                ? this.positionInfo.getPositionShort()
+        BigDecimal pShortBalance = (this.position != null && this.position.getPositionShort() != null)
+                ? this.position.getPositionShort()
                 : BigDecimal.ZERO;
         Order.OrderType newOrderType = orderType;
         if (orderType == Order.OrderType.BID) { // buy - long
@@ -832,7 +767,7 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public String getPosition() {
+    public String getPositionAsString() {
         return null;
     }
 

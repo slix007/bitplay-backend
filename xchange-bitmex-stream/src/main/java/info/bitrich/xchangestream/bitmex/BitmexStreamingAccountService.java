@@ -41,7 +41,7 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
                 }).share();
     }
 
-    public Observable<AccountInfo> getPositionObservable() {
+    public Observable<org.knowm.xchange.dto.account.Position> getPositionObservable() {
         return service.subscribeChannel("position", "position")
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
@@ -51,11 +51,7 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
 //                    Wallet bitmexWallet = mapper.treeToValue(s.get("data").get(0), Wallet.class);
                     Position position = mapper.treeToValue(s.get("data").get(0), Position.class);
 
-                    final Balance balance = BitmexAdapters.adaptBitmexPosition(position);
-
-                    return new AccountInfo(
-                            new Wallet(balance)
-                    );
+                    return BitmexAdapters.adaptBitmexPosition(position);
                 });
     }
 }

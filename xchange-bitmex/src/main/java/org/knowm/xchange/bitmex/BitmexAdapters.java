@@ -30,9 +30,6 @@ import io.swagger.client.model.Wallet;
  * Created by Sergey Shurmin on 5/3/17.
  */
 public class BitmexAdapters {
-    private final static String BID_TYPE = "Buy";
-    private final static String ASK_TYPE = "Sell";
-
     /**
      * getTotal == Wallet Balance
      * getAvailable == Available Balance
@@ -48,6 +45,8 @@ public class BitmexAdapters {
      * getAvailable == Value(XBT)
      */
     public final static Currency POSITION_CURRENCY = new Currency("POSITION");
+    private final static String BID_TYPE = "Buy";
+    private final static String ASK_TYPE = "Sell";
 
     public static OrderBook adaptBitmexOrderBook(List<OrderBookL2> bitmexMarketDepth, CurrencyPair currencyPair) {
         List<LimitOrder> asks = adaptBitmexPublicOrders(bitmexMarketDepth, Order.OrderType.ASK, currencyPair);
@@ -112,10 +111,12 @@ public class BitmexAdapters {
         return currencyPair.base.getSymbol().toUpperCase() + currencyPair.counter.getSymbol().toUpperCase();
     }
 
-    public static Balance adaptBitmexPosition(Position position) {
-        return new Balance(POSITION_CURRENCY,
+    public static org.knowm.xchange.dto.account.Position adaptBitmexPosition(Position position) {
+        return new org.knowm.xchange.dto.account.Position(
                 position.getCurrentQty(),
-                new BigDecimal(position.getSimpleQty()).setScale(4, BigDecimal.ROUND_HALF_UP)
+                BigDecimal.ZERO,
+                BigDecimal.valueOf(position.getLeverage()),
+                position.toString()
         );
     }
 
