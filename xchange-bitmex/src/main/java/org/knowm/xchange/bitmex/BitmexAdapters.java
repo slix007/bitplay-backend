@@ -40,11 +40,7 @@ public class BitmexAdapters {
      * getAvailable == Margin Balance
      */
     public final static Currency MARGIN_CURRENCY = new Currency("MARGIN");
-    /**
-     * getTotal == Size(contract)
-     * getAvailable == Value(XBT)
-     */
-    public final static Currency POSITION_CURRENCY = new Currency("POSITION");
+
     private final static String BID_TYPE = "Buy";
     private final static String ASK_TYPE = "Sell";
 
@@ -58,7 +54,7 @@ public class BitmexAdapters {
 
     private static List<LimitOrder> adaptBitmexPublicOrders(List<OrderBookL2> bitmexMarketDepth,
                                                             Order.OrderType orderType, CurrencyPair currencyPair) {
-        List<LimitOrder> limitOrderList = new ArrayList<LimitOrder>();
+        List<LimitOrder> limitOrderList = new ArrayList<>();
 
         for (OrderBookL2 orderBookL2 : bitmexMarketDepth) {
 

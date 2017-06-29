@@ -58,6 +58,8 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal blockSize2 = BigDecimal.valueOf(100);
     private BigDecimal posBefore = BigDecimal.ZERO;
     private BigDecimal volPlan = BigDecimal.ZERO;
+    private BigDecimal reserveBtc1 = BigDecimal.valueOf(0.00001);
+    private BigDecimal reserveBtc2 = BigDecimal.valueOf(0.00001);
 
     public GuiParams() {
     }
@@ -428,5 +430,21 @@ public class GuiParams extends AbstractDocument {
 
     public void setVolPlan(BigDecimal volPlan) {
         this.volPlan = volPlan;
+    }
+
+    public BigDecimal getReserveBtc1() {
+        return reserveBtc1;
+    }
+
+    public void setReserveBtc1(BigDecimal reserveBtc1) {
+        this.reserveBtc1 = reserveBtc1;
+    }
+
+    public BigDecimal getReserveBtc2() {
+        return reserveBtc2;
+    }
+
+    public void setReserveBtc2(BigDecimal reserveBtc2) {
+        this.reserveBtc2 = reserveBtc2;
     }
 }

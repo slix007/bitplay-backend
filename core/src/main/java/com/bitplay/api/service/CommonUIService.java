@@ -88,7 +88,9 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumCom2().toPlainString(),
                 String.valueOf(arbitrageService.getParams().getCounter1()),
                 String.valueOf(arbitrageService.getParams().getCounter2()),
-                arbitrageService.getParams().getCumBitmexMCom().toPlainString()
+                arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
+                arbitrageService.getParams().getReserveBtc1().toPlainString(),
+                arbitrageService.getParams().getReserveBtc2().toPlainString()
         );
     }
 
@@ -119,7 +121,9 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumCom2().toPlainString(),
                 String.valueOf(arbitrageService.getParams().getCounter1()),
                 String.valueOf(arbitrageService.getParams().getCounter2()),
-                arbitrageService.getParams().getCumBitmexMCom().toPlainString()
+                arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
+                arbitrageService.getParams().getReserveBtc1().toPlainString(),
+                arbitrageService.getParams().getReserveBtc2().toPlainString()
         );
     }
 
@@ -166,7 +170,12 @@ public class CommonUIService {
         if (deltalUpdateJson.getCumBitmexMCom() != null) {
             arbitrageService.getParams().setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
         }
-
+        if (deltalUpdateJson.getReserveBtc1() != null) {
+            arbitrageService.getParams().setReserveBtc1(new BigDecimal(deltalUpdateJson.getReserveBtc1()));
+        }
+        if (deltalUpdateJson.getReserveBtc2() != null) {
+            arbitrageService.getParams().setReserveBtc2(new BigDecimal(deltalUpdateJson.getReserveBtc2()));
+        }
         arbitrageService.saveParamsToDb();
 
         return new DeltasJson(
@@ -187,7 +196,9 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumCom2().toPlainString(),
                 String.valueOf(arbitrageService.getParams().getCounter1()),
                 String.valueOf(arbitrageService.getParams().getCounter2()),
-                arbitrageService.getParams().getCumBitmexMCom().toPlainString()
+                arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
+                arbitrageService.getParams().getReserveBtc1().toPlainString(),
+                arbitrageService.getParams().getReserveBtc2().toPlainString()
         );
     }
 

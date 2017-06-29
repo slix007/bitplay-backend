@@ -23,8 +23,10 @@ public class DeltasJson {
     private String count1;
     private String count2;
     private String cumBitmexMCom;
+    private String reserveBtc1;
+    private String reserveBtc2;
 
-    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String lastDelta, String cumDeltaFact, String cumDiffFact1, String cumDiffFact2, String cumCom1, String cumCom2, String count1, String count2, String cumBitmexMCom) {
+    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String lastDelta, String cumDeltaFact, String cumDiffFact1, String cumDiffFact2, String cumCom1, String cumCom2, String count1, String count2, String cumBitmexMCom, String reserveBtc1, String reserveBtc2) {
         this.delta1 = delta1;
         this.delta2 = delta2;
         this.border1 = border1;
@@ -43,6 +45,8 @@ public class DeltasJson {
         this.count1 = count1;
         this.count2 = count2;
         this.cumBitmexMCom = cumBitmexMCom;
+        this.reserveBtc1 = reserveBtc1;
+        this.reserveBtc2 = reserveBtc2;
     }
 
     public String getDelta1() {
@@ -115,5 +119,13 @@ public class DeltasJson {
 
     public String getCumBitmexMCom() {
         return cumBitmexMCom;
+    }
+
+    public String getReserveBtc1() {
+        return reserveBtc1;
+    }
+
+    public String getReserveBtc2() {
+        return reserveBtc2;
     }
 }

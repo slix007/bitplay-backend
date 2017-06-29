@@ -95,9 +95,14 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         final Balance marginBalance = wallet.getBalance(BitmexAdapters.MARGIN_CURRENCY);
         BigDecimal margin = marginBalance.getTotal().subtract(walletBalance.getAvailable());
 
-        final String positionString = position != null
+        String positionString = position != null
                 ? position.getPositionLong().toPlainString() + "; leverage=" + position.getLeverage()
                 : "0";
+
+        positionString += String.format("; forAsk:%s, forBid:%s",
+                getBusinessService().getAffordableContractsAsk(),
+                getBusinessService().getAffordableContractsBid()
+        );
 
         return new AccountInfoJson(
                 walletBalance.getTotal().toPlainString(),

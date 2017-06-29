@@ -50,6 +50,8 @@ public abstract class MarketService {
     protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected AccountInfo accountInfo = null;
     protected Position position = null;
+    protected BigDecimal affordableContractsAsk = BigDecimal.ZERO;
+    protected BigDecimal affordableContractsBid = BigDecimal.ZERO;
     protected ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected int usdInContract = 0;
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
@@ -500,4 +502,11 @@ public abstract class MarketService {
         }
     }
 
+    public BigDecimal getAffordableContractsAsk() {
+        return affordableContractsAsk;
+    }
+
+    public BigDecimal getAffordableContractsBid() {
+        return affordableContractsBid;
+    }
 }

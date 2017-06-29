@@ -56,7 +56,6 @@ import rx.Completable;
 import si.mazi.rescu.HttpStatusIOException;
 
 import static org.knowm.xchange.bitmex.BitmexAdapters.MARGIN_CURRENCY;
-import static org.knowm.xchange.bitmex.BitmexAdapters.POSITION_CURRENCY;
 import static org.knowm.xchange.bitmex.BitmexAdapters.WALLET_CURRENCY;
 
 /**
@@ -352,35 +351,98 @@ public class BitmexService extends MarketService {
         return orderBook;
     }
 
-    @Override
-    public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
-        boolean isAffordable = false;
+    private void recalcAffordableContracts() {
+        recalcAffordablContractsForOrderType(Order.OrderType.BID);
+        recalcAffordablContractsForOrderType(Order.OrderType.ASK);
+    }
+
+    private BigDecimal recalcAffordablContractsForOrderType(Order.OrderType orderType) {
+        BigDecimal volAvailable = BigDecimal.ZERO;
+        final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
 
         if (accountInfo != null && accountInfo.getWallet() != null) {
-            final BigDecimal availableBalance = accountInfo.getWallet().getBalance(WALLET_CURRENCY).getAvailable();
-            final BigDecimal positionBalance = accountInfo.getWallet().getBalance(POSITION_CURRENCY).getAvailable();
-            if (availableBalance.signum() > 0) {
-                if (orderType.equals(Order.OrderType.BID)) {
-                    BigDecimal sumBalance;
-                    if (positionBalance.signum() < 0) {
-                        sumBalance = availableBalance.add(positionBalance.abs());
-                    } else {
-                        sumBalance = availableBalance;
-                    }
-                    isAffordable = sumBalance.compareTo(tradableAmount) != -1;
-                }
+            final Wallet wallet = accountInfo.getWallet();
+            final Balance walletBalance = wallet.getBalance(BitmexAdapters.WALLET_CURRENCY);
+            final Balance marginBalance = wallet.getBalance(BitmexAdapters.MARGIN_CURRENCY);
+            BigDecimal availableBtc = walletBalance.getAvailable();
+            BigDecimal equityBtc = marginBalance.getTotal();
+            final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
+            final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
+            final BigDecimal positionContracts = position.getPositionLong();
+            final BigDecimal leverage = position.getLeverage();
 
-                if (orderType.equals(Order.OrderType.ASK)) {
-                    BigDecimal sumBalance;
-                    if (positionBalance.signum() > 0) {
-                        sumBalance = availableBalance.add(positionBalance.abs());
+            if (availableBtc.signum() > 0) {
+                if (orderType.equals(Order.OrderType.BID)) {
+                    if (positionContracts.signum() < 0) {
+                        volAvailable = positionContracts.negate().add(
+                                (equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)
+                        ).setScale(0, BigDecimal.ROUND_DOWN);
                     } else {
-                        sumBalance = availableBalance;
+                        volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk.multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
                     }
-                    isAffordable = sumBalance.compareTo(tradableAmount) != -1;
+                    affordableContractsBid = volAvailable;
+                }
+                if (orderType.equals(Order.OrderType.ASK)) {
+                    if (positionContracts.signum() > 0) {
+                        volAvailable = positionContracts.add(
+                                (equityBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)
+                        ).setScale(0, BigDecimal.ROUND_DOWN);
+                    } else {
+                        volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
+                    }
+                    affordableContractsAsk = volAvailable;
                 }
             }
         }
+
+        return volAvailable;
+    }
+
+    @Override
+    public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
+        boolean isAffordable;
+        final BigDecimal affordableVol = recalcAffordablContractsForOrderType(orderType);
+        isAffordable = affordableVol.compareTo(tradableAmount) != -1;
+
+/*
+        if (accountInfo != null && accountInfo.getWallet() != null) {
+
+            final Wallet wallet = accountInfo.getWallet();
+            final Balance walletBalance = wallet.getBalance(BitmexAdapters.WALLET_CURRENCY);
+            final Balance marginBalance = wallet.getBalance(BitmexAdapters.MARGIN_CURRENCY);
+            BigDecimal availableBtc = walletBalance.getAvailable();
+            BigDecimal equityBtc = marginBalance.getTotal();
+            final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
+            final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
+            final BigDecimal positionContracts = position.getPositionLong();
+            final BigDecimal leverage = position.getLeverage();
+
+            BigDecimal volAvailable = BigDecimal.ZERO;
+
+            if (availableBtc.signum() > 0) {
+                if (orderType.equals(Order.OrderType.BID)) {
+                    if (positionContracts.signum() < 0) {
+                        volAvailable = positionContracts.negate().add(
+                                (equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)
+                        ).setScale(0, BigDecimal.ROUND_DOWN);
+                    } else {
+                        volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk.multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
+                    }
+                }
+                if (orderType.equals(Order.OrderType.ASK)) {
+                    if (positionContracts.signum() > 0) {
+                        volAvailable = positionContracts.add(
+                                (equityBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)
+                        ).setScale(0, BigDecimal.ROUND_DOWN);
+                    } else {
+                        volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
+                    }
+                }
+            }
+            affordableContracts = volAvailable;
+
+            isAffordable = volAvailable.compareTo(tradableAmount) != -1;
+        }*/
 
         return isAffordable;
     }
@@ -599,17 +661,12 @@ public class BitmexService extends MarketService {
                                 : new Balance(MARGIN_CURRENCY, BigDecimal.ZERO);
                     }
 
-                    final Balance oldPositionBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                            ? this.accountInfo.getWallet().getBalance(POSITION_CURRENCY)
-                            : new Balance(POSITION_CURRENCY, BigDecimal.ZERO);
-
-                    final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(newWalletBalance, newMarginBalance, oldPositionBalance));
+                    final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(newWalletBalance, newMarginBalance));
 
                     setAccountInfo(resultAccountInfo);
-                    logger.debug("Balance Wallet={}, Margin={}, Position={}",
+                    logger.debug("Balance Wallet={}, Margin={}",
                             newWalletBalance.getTotal().toPlainString(),
-                            newWalletBalance.getAvailable().toPlainString(),
-                            oldPositionBalance.getAvailable().toPlainString());
+                            newWalletBalance.getAvailable().toPlainString());
 
                 }, throwable -> {
                     logger.error("Can not fetchAccountInfo", throwable);
@@ -630,6 +687,7 @@ public class BitmexService extends MarketService {
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribe(position -> {
                     this.position = position;
+                    recalcAffordableContracts();
                 }, throwable -> {
                     logger.error("Can not fetch Position", throwable);
                     // schedule it again
@@ -671,10 +729,8 @@ public class BitmexService extends MarketService {
         orderBookSubscription.dispose();
     }
 
-
     @Override
     public String getPositionAsString() {
-        final Balance position = accountInfo.getWallet().getBalance(BitmexAdapters.POSITION_CURRENCY);
-        return position != null ? position.getTotal().toPlainString() : "0";
+        return position != null ? position.getPositionLong().toPlainString() : "0";
     }
 }

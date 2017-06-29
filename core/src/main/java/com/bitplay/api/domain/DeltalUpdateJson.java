@@ -22,6 +22,8 @@ public class DeltalUpdateJson {
     private String count1;
     private String count2;
     private String cumBitmexMCom;
+    private String reserveBtc1;
+    private String reserveBtc2;
 
     public String getMakerDelta() {
         return makerDelta;
@@ -133,5 +135,21 @@ public class DeltalUpdateJson {
 
     public void setCumBitmexMCom(String cumBitmexMCom) {
         this.cumBitmexMCom = cumBitmexMCom;
+    }
+
+    public String getReserveBtc1() {
+        return reserveBtc1;
+    }
+
+    public void setReserveBtc1(String reserveBtc1) {
+        this.reserveBtc1 = reserveBtc1;
+    }
+
+    public String getReserveBtc2() {
+        return reserveBtc2;
+    }
+
+    public void setReserveBtc2(String reserveBtc2) {
+        this.reserveBtc2 = reserveBtc2;
     }
 }
