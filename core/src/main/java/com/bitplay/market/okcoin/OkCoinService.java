@@ -230,15 +230,19 @@ public class OkCoinService extends MarketService {
         return toString;
     }
 
+    @Scheduled(fixedRate = 1000)
     public AccountInfo fetchAccountInfo() {
         try {
-            accountInfo = exchange.getAccountService().getAccountInfo(); // only available wallet
+            exchange.getStreamingAccountInfoService()
+                    .requestAccountInfo();
+//            accountInfo = exchange.getAccountService().getAccountInfo(); // only available wallet
         } catch (IOException e) {
             logger.error("AccountInfo error", e);
         }
         return accountInfo;
     }
 
+    @Scheduled(fixedRate = 1000)
     public void fetchPosition() {
         try {
             final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
