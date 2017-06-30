@@ -686,7 +686,16 @@ public class BitmexService extends MarketService {
                 .doOnError(throwable -> logger.error("Position fetch error", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribe(position -> {
-                    this.position = position;
+                    if (position.getLeverage().signum() == 0) {
+                        this.position = new Position(
+                                position.getPositionLong(),
+                                position.getPositionShort(),
+                                this.position.getLeverage(),
+                                position.getRaw()
+                        );
+                    } else {
+                        this.position = position;
+                    }
                     recalcAffordableContracts();
                 }, throwable -> {
                     logger.error("Can not fetch Position", throwable);
