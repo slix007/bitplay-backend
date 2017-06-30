@@ -528,6 +528,7 @@ public class OkCoinService extends MarketService {
                     if (position.getPositionShort().signum() != 0) { // there are sells
                         if (volPlan.compareTo(position.getPositionShort()) != 1) { // если мы хотим закрыть меньше чем есть
                             // We don't have to check balance. It will be EXIT_ASK == CLOSE_SHORT
+                            volAvailable = BigDecimal.valueOf(9999);
                         } else {
                             volAvailable = (availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
 //                            if ( o_vol_ava_con >= o_vol_plan_con )
@@ -535,7 +536,6 @@ public class OkCoinService extends MarketService {
 //                            else
 //                                не делаем OPEN_LONG; //CLOSE_SHORT не делаем
                         }
-
                     } else { // no sells
                         volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk.multiply(leverage))).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
 //                        if ( o_vol_ava_con >= o_vol_plan_con )
@@ -550,6 +550,7 @@ public class OkCoinService extends MarketService {
                     if (position.getPositionLong().signum() != 0) { // we have BIDs
                         if (volPlan.compareTo(position.getPositionLong()) != 1) { // если мы хотим закрыть меньше чем есть
                             // We don't have to check balance. It will be EXIT_ASK == CLOSE_SHORT
+                            volAvailable = BigDecimal.valueOf(9999);
                         } else {
                             volAvailable = (availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
 //                            if ( o_vol_ava_con >= o_vol_plan_con )

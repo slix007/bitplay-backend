@@ -103,9 +103,9 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
                 position.getPositionLong().subtract(position.getPositionShort()).toPlainString(),
                 position.getLeverage());
 
-        positionString += String.format("; AvailableForAsk:%s, AvailableForBid:%s",
-                getBusinessService().getAffordableContractsAsk(),
-                getBusinessService().getAffordableContractsBid()
+        positionString += String.format("; AvailableForLong:%s, AvailableForShort:%s",
+                getBusinessService().getAffordableContractsBid(),
+                getBusinessService().getAffordableContractsAsk()
         );
 
         final BigDecimal wallet = balance.getTotal();
