@@ -277,10 +277,17 @@ public class BitmexService extends MarketService {
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
                     final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
                     final LimitOrder bestBid = bestBids.size() > 0 ? bestBids.get(0) : null;
+
+                    this.orderBook = orderBook;
+
+                    if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
+                            && this.bestAsk.compareTo(bestAsk.getLimitPrice()) != 0
+                            && this.bestBid.compareTo(bestBid.getLimitPrice()) != 0) {
+                        recalcAffordableContracts();
+                    }
                     this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
                     this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                     logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
-                    this.orderBook = orderBook;
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }
@@ -352,12 +359,6 @@ public class BitmexService extends MarketService {
     }
 
     private void recalcAffordableContracts() {
-        recalcAffordablContractsForOrderType(Order.OrderType.BID);
-        recalcAffordablContractsForOrderType(Order.OrderType.ASK);
-    }
-
-    private BigDecimal recalcAffordablContractsForOrderType(Order.OrderType orderType) {
-        BigDecimal volAvailable = BigDecimal.ZERO;
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
 
         if (accountInfo != null && accountInfo.getWallet() != null) {
@@ -371,39 +372,31 @@ public class BitmexService extends MarketService {
             final BigDecimal positionContracts = position.getPositionLong();
             final BigDecimal leverage = position.getLeverage();
 
-            if (availableBtc.signum() > 0) {
-                if (orderType.equals(Order.OrderType.BID)) {
-                    if (positionContracts.signum() < 0) {
-                        volAvailable = positionContracts.negate().add(
-                                (equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)
-                        ).setScale(0, BigDecimal.ROUND_DOWN);
-                    } else {
-                        volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk.multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
-                    }
-                    affordableContractsBid = volAvailable;
+            if (positionContracts.signum() == 0) {
+                affordableContractsForLong = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
+                affordableContractsForShort = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
+            } else if (positionContracts.signum() > 0) {
+                affordableContractsForLong = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
+                affordableContractsForShort = (positionContracts.add((equityBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
+                if (affordableContractsForShort.compareTo(positionContracts) == -1) {
+                    affordableContractsForShort = positionContracts;
                 }
-                if (orderType.equals(Order.OrderType.ASK)) {
-                    if (positionContracts.signum() > 0) {
-                        volAvailable = positionContracts.add(
-                                (equityBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)
-                        ).setScale(0, BigDecimal.ROUND_DOWN);
-                    } else {
-                        volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
-                    }
-                    affordableContractsAsk = volAvailable;
+            } else if (positionContracts.signum() < 0) {
+                affordableContractsForLong = (positionContracts.negate().add((equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
+                if (affordableContractsForLong.compareTo(positionContracts.negate()) == -1) {
+                    affordableContractsForLong = positionContracts.negate();
                 }
+                affordableContractsForShort = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
             }
         }
-
-        return volAvailable;
     }
 
     @Override
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable;
-        final BigDecimal affordableVol = recalcAffordablContractsForOrderType(orderType);
+        final BigDecimal affordableVol = (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK)
+                ? this.affordableContractsForLong : this.affordableContractsForShort;
         isAffordable = affordableVol.compareTo(tradableAmount) != -1;
-
 /*
         if (accountInfo != null && accountInfo.getWallet() != null) {
 

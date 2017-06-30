@@ -505,12 +505,6 @@ public class OkCoinService extends MarketService {
     }
 
     private void recalcAffordableContracts() {
-        recalcAffordablContractsForOrderType(Order.OrderType.BID);
-        recalcAffordablContractsForOrderType(Order.OrderType.ASK);
-    }
-
-    private BigDecimal recalcAffordablContractsForOrderType(Order.OrderType orderType) {
-        BigDecimal volAvailable = BigDecimal.ZERO;
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
         final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 
@@ -518,68 +512,56 @@ public class OkCoinService extends MarketService {
             final Wallet theWallet = accountInfo.getWallet();
             final Balance balance = theWallet.getBalance(Currency.BTC);
             final BigDecimal availableBtc = balance.getAvailable();
+            final BigDecimal equityBtc = availableBtc.add(balance.getFrozen());
+
 
             final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal leverage = position.getLeverage();
 
             if (availableBtc.signum() > 0) {
-                if (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK)) {
+//                if (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK)) {
                     if (position.getPositionShort().signum() != 0) { // there are sells
-                        if (volPlan.compareTo(position.getPositionShort()) != 1) { // если мы хотим закрыть меньше чем есть
-                            // We don't have to check balance. It will be EXIT_ASK == CLOSE_SHORT
-                            volAvailable = BigDecimal.valueOf(9999);
+                        if (volPlan.compareTo(position.getPositionShort()) != 1) {
+                            affordableContractsForLong = (position.getPositionShort().subtract(position.getPositionLong()).add(
+                                    (equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN)
+                            )).setScale(0, BigDecimal.ROUND_DOWN);;
                         } else {
-                            volAvailable = (availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
-//                            if ( o_vol_ava_con >= o_vol_plan_con )
-//                                делаем OPEN_LONG; //CLOSE_SHORT не делаем
-//                            else
-//                                не делаем OPEN_LONG; //CLOSE_SHORT не делаем
+                            affordableContractsForLong = (availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
+                        }
+                        if (affordableContractsForLong.compareTo(position.getPositionShort()) == -1) {
+                            affordableContractsForLong = position.getPositionShort();
                         }
                     } else { // no sells
-                        volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk.multiply(leverage))).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
-//                        if ( o_vol_ava_con >= o_vol_plan_con )
-//                            делаем OPEN_LONG; //CLOSE_SHORT не делаем
-//                        else
-//                            не делаем OPEN_LONG; //CLOSE_SHORT не делаем
+                        affordableContractsForLong = (availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
                     }
-                    affordableContractsBid = volAvailable;
-                }
+//                }
 
-                if (orderType.equals(Order.OrderType.ASK) || orderType.equals(Order.OrderType.EXIT_BID)) {
+//                if (orderType.equals(Order.OrderType.ASK) || orderType.equals(Order.OrderType.EXIT_BID)) {
                     if (position.getPositionLong().signum() != 0) { // we have BIDs
                         if (volPlan.compareTo(position.getPositionLong()) != 1) { // если мы хотим закрыть меньше чем есть
-                            // We don't have to check balance. It will be EXIT_ASK == CLOSE_SHORT
-                            volAvailable = BigDecimal.valueOf(9999);
+                            affordableContractsForShort = position.getPositionLong().subtract(position.getPositionShort().add(
+                                    (equityBtc.subtract(reserveBtc)).multiply(bestBid.multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN)
+                            )).setScale(0, BigDecimal.ROUND_DOWN);
                         } else {
-                            volAvailable = (availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
-//                            if ( o_vol_ava_con >= o_vol_plan_con )
-//                                делаем OPEN_SHORT; //CLOSE_LONG не делаем
-//                            else
-//                                не делаем OPEN_SHORT; //CLOSE_LONG не делаем
+                            affordableContractsForShort = (availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
+                        }
+                        if (affordableContractsForShort.compareTo(position.getPositionLong()) == -1) {
+                            affordableContractsForShort = position.getPositionLong();
                         }
                     } else { // no BIDs
-                        volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
-//                        if ( o_vol_ava_con >= o_vol_plan_con ) {
-//                            делаем OPEN_SHORT; //CLOSE_LONG не делаем
-//                        }
-//                        else {
-//                            не делаем
-//                        } OPEN_SHORT; //CLOSE_LONG не делаем
+                        affordableContractsForShort = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
                     }
-
-                    affordableContractsAsk = volAvailable;
-                }
+//                }
             }
         }
-
-        return volAvailable;
     }
 
     @Override
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable;
-        final BigDecimal affordableVol = recalcAffordablContractsForOrderType(orderType);
+        final BigDecimal affordableVol = (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK)
+                ? this.affordableContractsForLong : this.affordableContractsForShort;
         isAffordable = affordableVol.compareTo(tradableAmount) != -1;
 
         return isAffordable;

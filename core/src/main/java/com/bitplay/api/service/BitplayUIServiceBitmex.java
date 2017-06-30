@@ -100,8 +100,8 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 : "0";
 
         positionString += String.format("; AvailableForLong:%s, AvailableForShort:%s",
-                getBusinessService().getAffordableContractsBid(),
-                getBusinessService().getAffordableContractsAsk()
+                getBusinessService().getAffordableContractsForLong(),
+                getBusinessService().getAffordableContractsShort()
         );
 
         return new AccountInfoJson(
