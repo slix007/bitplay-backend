@@ -87,14 +87,14 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
 
     public AccountInfoJson getFullAccountInfo() {
         final AccountInfo accountInfo = getBusinessService().getAccountInfo();
-        Wallet wallet;
+        Wallet theWallet;
         try {
-            wallet = accountInfo.getWallet();
+            theWallet = accountInfo.getWallet();
         } catch (Exception e) {
             logger.error(e.getMessage());
             return new AccountInfoJson("error", "error", "error", "error", "error", "error");
         }
-        final Balance balance = wallet.getBalance(Currency.BTC);
+        final Balance balance = theWallet.getBalance(Currency.BTC);
 
         final Position position = getBusinessService().getPosition();
         String positionString = String.format("%s + %s = %s; leverage=%s",
@@ -108,11 +108,13 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
                 getBusinessService().getAffordableContractsBid()
         );
 
-        BigDecimal equity = balance.getAvailable().add(balance.getFrozen());
+        final BigDecimal wallet = balance.getTotal();
+        final BigDecimal available = balance.getAvailable();
+        final BigDecimal equity = available.add(balance.getFrozen());
 
         return new AccountInfoJson(
-                balance.getTotal().toPlainString(),
-                balance.getAvailable().toPlainString(),
+                wallet.toPlainString(),
+                available.toPlainString(),
                 equity.toPlainString(),
                 balance.getFrozen().toPlainString(),
                 positionString,

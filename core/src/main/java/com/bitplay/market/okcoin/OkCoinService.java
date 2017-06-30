@@ -14,7 +14,7 @@ import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
-import org.knowm.xchange.bitmex.BitmexAdapters;
+import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
@@ -515,11 +515,10 @@ public class OkCoinService extends MarketService {
         final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 
         if (accountInfo != null && accountInfo.getWallet() != null) {
-            final Wallet wallet = accountInfo.getWallet();
-            final Balance walletBalance = wallet.getBalance(BitmexAdapters.WALLET_CURRENCY);
-            final Balance marginBalance = wallet.getBalance(BitmexAdapters.MARGIN_CURRENCY);
-            BigDecimal availableBtc = walletBalance.getAvailable();
-            BigDecimal equityBtc = marginBalance.getTotal();
+            final Wallet theWallet = accountInfo.getWallet();
+            final Balance balance = theWallet.getBalance(Currency.BTC);
+            final BigDecimal availableBtc = balance.getAvailable();
+
             final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal leverage = position.getLeverage();
