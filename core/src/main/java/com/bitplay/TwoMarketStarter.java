@@ -1,8 +1,10 @@
 package com.bitplay;
 
-import com.bitplay.market.MarketService;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.market.MarketService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,8 @@ import javax.annotation.PostConstruct;
 @Service
 public class TwoMarketStarter {
 
+    private final static Logger logger = LoggerFactory.getLogger(TwoMarketStarter.class);
+
     private Config config;
     private ApplicationContext context;
 
@@ -22,30 +26,34 @@ public class TwoMarketStarter {
     private MarketService secondMarketService;
 
     private ArbitrageService arbitrageService;
-    @Autowired
-    public void setArbitrageService(ArbitrageService arbitrageService) {
-        this.arbitrageService = arbitrageService;
-    }
-
     public TwoMarketStarter(ApplicationContext context,
                             Config config) {
         this.context = context;
         this.config = config;
     }
 
+    @Autowired
+    public void setArbitrageService(ArbitrageService arbitrageService) {
+        this.arbitrageService = arbitrageService;
+    }
+
     @PostConstruct
     private void init() {
-        final String firstMarketName = config.getFirstMarketName();
-        firstMarketService = (MarketService) context.getBean(firstMarketName);
-        firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret());
-        System.out.println("MARKET1: " + firstMarketService);
+        try {
+            final String firstMarketName = config.getFirstMarketName();
+            firstMarketService = (MarketService) context.getBean(firstMarketName);
+            firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret());
+            System.out.println("MARKET1: " + firstMarketService);
 
-        final String secondMarketName = config.getSecondMarketName();
-        secondMarketService = (MarketService) context.getBean(secondMarketName);
-        secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret());
-        System.out.println("MARKET2: " + secondMarketService);
+            final String secondMarketName = config.getSecondMarketName();
+            secondMarketService = (MarketService) context.getBean(secondMarketName);
+            secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret());
+            System.out.println("MARKET2: " + secondMarketService);
 
-        arbitrageService.init(this);
+            arbitrageService.init(this);
+        } catch (Exception e) {
+            logger.error("Initialization error", e);
+        }
     }
 
     public MarketService getFirstMarketService() {

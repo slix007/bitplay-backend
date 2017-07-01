@@ -231,7 +231,11 @@ public class BitmexService extends MarketService {
                 .doOnError(throwable -> logger.error("connection error", throwable))
                 .blockingAwait();
 
-        exchange.authenticate().blockingAwait();
+        try {
+            exchange.authenticate().blockingAwait();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         // Retry on disconnect.
         exchange.onDisconnect().subscribe(() -> {
@@ -257,7 +261,8 @@ public class BitmexService extends MarketService {
         orderBookObservable = createOrderBookObservable();
 
         orderBookSubscription = orderBookObservable
-                .subscribeOn(Schedulers.computation())
+                .subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.computation())
                 .subscribe(orderBook -> {
                     //workaround
                     if (openOrders == null) {
