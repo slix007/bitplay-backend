@@ -160,4 +160,10 @@ public class CommonEndpoint {
         return commonUIService.printSumBal();
     }
 
+    @GET
+    @Path("/market/sum-bal")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ResultJson getSumBal() {
+        return commonUIService.getSumBal();
+    }
 }

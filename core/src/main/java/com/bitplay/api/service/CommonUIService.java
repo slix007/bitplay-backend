@@ -256,4 +256,9 @@ public class CommonUIService {
         arbitrageService.printSumBal(true);
         return new ResultJson("OK", "");
     }
+
+    public ResultJson getSumBal() {
+        final String sumBalString = arbitrageService.getSumBalString();
+        return new ResultJson(sumBalString, "");
+    }
 }

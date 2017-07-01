@@ -482,7 +482,7 @@ public class OkCoinService extends MarketService {
     }
 
     private void recalcAffordableContracts() {
-        final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
+        final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc2();
         final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 
         if (accountInfoContracts != null && position != null) {

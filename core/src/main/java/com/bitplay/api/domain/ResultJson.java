@@ -4,20 +4,20 @@ package com.bitplay.api.domain;
  * Created by Sergey Shurmin on 4/24/17.
  */
 public class ResultJson {
-    private String resutl;
+    private String result;
     private String description;
 
-    public ResultJson(String resutl, String description) {
-        this.resutl = resutl;
+    public ResultJson(String result, String description) {
+        this.result = result;
         this.description = description;
     }
 
-    public String getResutl() {
-        return resutl;
+    public String getResult() {
+        return result;
     }
 
-    public void setResutl(String resutl) {
-        this.resutl = resutl;
+    public void setResult(String result) {
+        this.result = result;
     }
 
     public String getDescription() {

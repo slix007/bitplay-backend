@@ -114,9 +114,12 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final BigDecimal equity = accountInfoContracts.getEquity();
         final BigDecimal wallet = accountInfoContracts.getWallet();
         final BigDecimal margin = accountInfoContracts.getMargin();
+        final BigDecimal upl = accountInfoContracts.getUpl();
 
         final Position position = getBusinessService().getPosition();
-        String positionString = String.format("%s + %s = %s; leverage=%s",
+        String positionString = "upl=" + upl.toPlainString();
+
+        positionString += String.format("; %s + %s = %s; leverage=%s",
                 position.getPositionLong().toPlainString(),
                 position.getPositionShort().negate().toPlainString(),
                 position.getPositionLong().subtract(position.getPositionShort()).toPlainString(),

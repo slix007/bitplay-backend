@@ -635,11 +635,15 @@ public class BitmexService extends MarketService {
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(newInfo -> {
 
+                    final BigDecimal equity = newInfo.getEquity() != null ? newInfo.getEquity() : accountInfoContracts.getEquity();
+                    final BigDecimal available = newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable();
+                    final BigDecimal margin = equity.subtract(available); //equity and available may be updated with separate responses
+
                     accountInfoContracts = new AccountInfoContracts(
                             newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
-                            newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable(),
-                            newInfo.getEquity() != null ? newInfo.getEquity() : accountInfoContracts.getEquity(),
-                            newInfo.getMargin() != null ? newInfo.getMargin() : accountInfoContracts.getMargin(),
+                            available,
+                            equity,
+                            margin,
                             newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
                             newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
                             newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
