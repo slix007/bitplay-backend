@@ -10,6 +10,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -31,15 +32,11 @@ import io.swagger.client.model.Wallet;
  */
 public class BitmexAdapters {
     /**
+     * TODO remove it
      * getTotal == Wallet Balance
      * getAvailable == Available Balance
      */
     public final static Currency WALLET_CURRENCY = new Currency("WALLET");
-    /**
-     * getTotal == Margin Balance
-     * getAvailable == Margin Balance
-     */
-    public final static Currency MARGIN_CURRENCY = new Currency("MARGIN");
 
     private final static String BID_TYPE = "Buy";
     private final static String ASK_TYPE = "Sell";
@@ -82,19 +79,21 @@ public class BitmexAdapters {
     }
 
 
-    public static List<Balance> adaptBitmexMargin(Margin margin) {
-        List<Balance> balanceList = new ArrayList<>();
-        if (margin.getWalletBalance() != null) {
-            balanceList.add(new Balance(WALLET_CURRENCY,
-                    satoshiToBtc(margin.getWalletBalance()),
-                    satoshiToBtc(margin.getAvailableMargin())
-            ));
-        }
-        balanceList.add(new Balance(MARGIN_CURRENCY,
-                satoshiToBtc(margin.getMarginBalance()),
-                satoshiToBtc(margin.getMarginBalance())
-        ));
-        return balanceList;
+    public static AccountInfoContracts adaptBitmexMargin(Margin marginInfo) {
+        final BigDecimal wallet = marginInfo.getWalletBalance() != null ? satoshiToBtc(marginInfo.getWalletBalance()) : null;
+        final BigDecimal available = marginInfo.getAvailableMargin() != null ? satoshiToBtc(marginInfo.getAvailableMargin()) : null;
+        final BigDecimal equity = marginInfo.getMarginBalance() != null ? satoshiToBtc(marginInfo.getMarginBalance()) : null;
+        final BigDecimal upl = marginInfo.getUnrealisedPnl() != null ? satoshiToBtc(marginInfo.getUnrealisedPnl()) : null;
+        final BigDecimal margin = (equity != null && available != null)
+                ? equity.subtract(available)
+                : null;
+        return new AccountInfoContracts(
+                wallet,
+                available,
+                equity,
+                margin,
+                upl
+        );
     }
 
     public static Balance adaptBitmexBalance(Wallet wallet) {

@@ -20,7 +20,7 @@ import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
@@ -55,9 +55,6 @@ import io.swagger.client.model.Error;
 import rx.Completable;
 import si.mazi.rescu.HttpStatusIOException;
 
-import static org.knowm.xchange.bitmex.BitmexAdapters.MARGIN_CURRENCY;
-import static org.knowm.xchange.bitmex.BitmexAdapters.WALLET_CURRENCY;
-
 /**
  * Created by Sergey Shurmin on 4/29/17.
  */
@@ -72,7 +69,6 @@ public class BitmexService extends MarketService {
 
     private BitmexStreamingExchange exchange;
 
-    private Observable<AccountInfo> accountInfoObservable;
     private Disposable accountInfoSubscription;
     private Disposable positionSubscription;
     private Disposable futureIndexSubscription;
@@ -144,12 +140,10 @@ public class BitmexService extends MarketService {
 
     }
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 30000)
     public void dobleCheckAvailableBalance() {
-        if (accountInfo == null
-                || accountInfo.getWallet() == null
-                || accountInfo.getWallet().getBalance(WALLET_CURRENCY) == null
-                || accountInfo.getWallet().getBalance(WALLET_CURRENCY).getAvailable().compareTo(BigDecimal.ZERO) == 0) {
+        if (accountInfoContracts == null) {
+            tradeLogger.warn("WARNING: Bitmex Balance is null");
             accountInfoSubscription.dispose();
             startAccountInfoListener();
         }
@@ -361,12 +355,9 @@ public class BitmexService extends MarketService {
     private void recalcAffordableContracts() {
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
 
-        if (accountInfo != null && accountInfo.getWallet() != null) {
-            final Wallet wallet = accountInfo.getWallet();
-            final Balance walletBalance = wallet.getBalance(BitmexAdapters.WALLET_CURRENCY);
-            final Balance marginBalance = wallet.getBalance(BitmexAdapters.MARGIN_CURRENCY);
-            BigDecimal availableBtc = walletBalance.getAvailable();
-            BigDecimal equityBtc = marginBalance.getTotal();
+        if (accountInfoContracts != null) {
+            final BigDecimal availableBtc = accountInfoContracts.getAvailable();
+            final BigDecimal equityBtc = accountInfoContracts.getEquity();
             final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal positionContracts = position.getPositionLong();
@@ -623,44 +614,29 @@ public class BitmexService extends MarketService {
         return new BigDecimal("0.00000001");
     }
 
-    @Override
-    protected Observable<AccountInfo> createAccountInfoObservable() {
-        return exchange.getStreamingAccountService()
-                        .getAccountInfoObservable(CurrencyPair.BTC_USD, 20)
-                        .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
-                        .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
-                        .share();
-    }
-
     private void startAccountInfoListener() {
-        accountInfoObservable = createAccountInfoObservable();
+        Observable<AccountInfoContracts> accountInfoObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
+                .getAccountInfoContractsObservable()
+                .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
+                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
+                .share();
 
-        accountInfoSubscription = getAccountInfoObservable()
+        accountInfoSubscription = accountInfoObservable
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
-                .subscribe(newAccountInfo -> {
-                    Balance newWalletBalance = newAccountInfo.getWallet().getBalance(WALLET_CURRENCY);
-                    Balance newMarginBalance = newAccountInfo.getWallet().getBalance(MARGIN_CURRENCY);
-                    if (newWalletBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
-                        // get old then
-                        newWalletBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                                ? this.accountInfo.getWallet().getBalance(WALLET_CURRENCY)
-                                : new Balance(WALLET_CURRENCY, BigDecimal.ZERO);
-                    }
-                    if (newMarginBalance.getTotal().compareTo(BigDecimal.ZERO) == 0) {
-                        // get old then
-                        newMarginBalance = (this.accountInfo != null && this.accountInfo.getWallet() != null)
-                                ? this.accountInfo.getWallet().getBalance(MARGIN_CURRENCY)
-                                : new Balance(MARGIN_CURRENCY, BigDecimal.ZERO);
-                    }
+                .subscribe(newInfo -> {
 
-                    final AccountInfo resultAccountInfo = new AccountInfo(new Wallet(newWalletBalance, newMarginBalance));
+                    accountInfoContracts = new AccountInfoContracts(
+                            newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
+                            newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable(),
+                            newInfo.getEquity() != null ? newInfo.getEquity() : accountInfoContracts.getEquity(),
+                            newInfo.getMargin() != null ? newInfo.getMargin() : accountInfoContracts.getMargin(),
+                            newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
+                            newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
+                            newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
+                    );
 
-                    setAccountInfo(resultAccountInfo);
-                    logger.debug("Balance Wallet={}, Margin={}",
-                            newWalletBalance.getTotal().toPlainString(),
-                            newWalletBalance.getAvailable().toPlainString());
-
+                    logger.debug("Balance " + accountInfoContracts.toString());
                 }, throwable -> {
                     logger.error("Can not fetchAccountInfo", throwable);
                     // schedule it again
@@ -717,10 +693,6 @@ public class BitmexService extends MarketService {
                     sleep(5000);
                     startFutureIndexListener();
                 });
-    }
-
-    public Observable<AccountInfo> getAccountInfoObservable() {
-        return accountInfoObservable;
     }
 
     @PreDestroy

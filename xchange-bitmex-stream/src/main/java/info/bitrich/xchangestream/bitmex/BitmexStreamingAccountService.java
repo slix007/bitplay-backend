@@ -10,8 +10,8 @@ import info.bitrich.xchangestream.core.StreamingAccountService;
 import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.Balance;
-import org.knowm.xchange.dto.account.Wallet;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
+import org.knowm.xchange.exceptions.NotAvailableFromExchangeException;
 
 import io.reactivex.Observable;
 import io.swagger.client.model.Margin;
@@ -27,6 +27,10 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
 
     @Override
     public Observable<AccountInfo> getAccountInfoObservable(CurrencyPair currencyPair, Object... objects) {
+        throw new NotAvailableFromExchangeException();
+    }
+
+    public Observable<AccountInfoContracts> getAccountInfoContractsObservable() {
         return service.subscribeChannel("margin", "margin")
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
@@ -35,9 +39,7 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
 
                     Margin margin = mapper.treeToValue(s.get("data").get(0), Margin.class);
 
-                    return new AccountInfo(
-                            new Wallet(BitmexAdapters.adaptBitmexMargin(margin))
-                    );
+                    return BitmexAdapters.adaptBitmexMargin(margin);
                 }).share();
     }
 

@@ -1,6 +1,5 @@
 package com.bitplay.api.service;
 
-import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
@@ -8,12 +7,7 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.TradeResponse;
 
-import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.Balance;
-import org.knowm.xchange.dto.account.Position;
-import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,34 +77,6 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         }
 
         return new TradeResponseJson(orderId, null);
-    }
-
-    @Override
-    protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo, Position position) {
-        if (accountInfo == null) {
-            return new AccountInfoJson(null, null, null);
-        }
-        final Wallet wallet = accountInfo.getWallet();
-        final Balance walletBalance = wallet.getBalance(BitmexAdapters.WALLET_CURRENCY);
-        final Balance marginBalance = wallet.getBalance(BitmexAdapters.MARGIN_CURRENCY);
-        BigDecimal margin = marginBalance.getTotal().subtract(walletBalance.getAvailable());
-
-        String positionString = position != null
-                ? position.getPositionLong().toPlainString() + "; leverage=" + position.getLeverage()
-                : "0";
-
-        positionString += String.format("; AvailableForLong:%s, AvailableForShort:%s",
-                getBusinessService().getAffordableContractsForLong(),
-                getBusinessService().getAffordableContractsShort()
-        );
-
-        return new AccountInfoJson(
-                walletBalance.getTotal().toPlainString(),
-                walletBalance.getAvailable().toPlainString(),
-                marginBalance.getTotal().toPlainString(),
-                margin.toPlainString(),
-                positionString,
-                accountInfo.toString());
     }
 
 }

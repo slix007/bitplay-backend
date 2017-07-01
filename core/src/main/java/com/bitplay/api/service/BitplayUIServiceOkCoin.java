@@ -82,35 +82,4 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         return new TradeResponseJson(orderId, null);
     }
 
-    public AccountInfoJson getFullAccountInfo() {
-        final AccountInfoContracts accountInfoContracts = getBusinessService().getAccountInfoContracts();
-        if (accountInfoContracts == null) {
-            return new AccountInfoJson("error", "error", "error", "error", "error", "error");
-        }
-
-        final BigDecimal available = accountInfoContracts.getAvailable();
-        final BigDecimal equity = accountInfoContracts.getEquity();
-        final BigDecimal wallet = accountInfoContracts.getWallet();
-        final BigDecimal margin = accountInfoContracts.getMargin();
-
-        final Position position = getBusinessService().getPosition();
-        String positionString = String.format("%s + %s = %s; leverage=%s",
-                position.getPositionLong().toPlainString(),
-                position.getPositionShort().negate().toPlainString(),
-                position.getPositionLong().subtract(position.getPositionShort()).toPlainString(),
-                position.getLeverage());
-
-        positionString += String.format("; AvailableForLong:%s, AvailableForShort:%s",
-                getBusinessService().getAffordableContractsForLong(),
-                getBusinessService().getAffordableContractsShort()
-        );
-
-        return new AccountInfoJson(
-                wallet.toPlainString(),
-                available.toPlainString(),
-                equity.toPlainString(),
-                margin.toPlainString(),
-                positionString,
-                accountInfoContracts.toString());
-    }
 }

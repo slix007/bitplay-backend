@@ -44,7 +44,7 @@ public class BitmexEndpoint {
     @Path("/account")
     @Produces("application/json")
     public AccountInfoJson getAccountInfo() {
-        return this.bitmex.getAccountInfo();
+        return this.bitmex.getContractsAccountInfo();
     }
 
     @POST
