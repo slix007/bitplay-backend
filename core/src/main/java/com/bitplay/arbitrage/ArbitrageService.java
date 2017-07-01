@@ -346,7 +346,7 @@ public class ArbitrageService {
 
                 if (firstOrderBook != null
                         && secondOrderBook != null
-                        && firstMarketService.getAccountInfo() != null
+                        && firstMarketService.getAccountInfoContracts() != null
                         && secondMarketService.getAccountInfoContracts() != null) {
                     bestQuotes = calcAndDoArbitrage(secondOrderBook, firstOrderBook);
                 }
