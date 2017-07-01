@@ -227,15 +227,12 @@ public class OkCoinService extends MarketService {
     }
 
     @Scheduled(fixedRate = 1000)
-    public AccountInfo fetchAccountInfo() {
+    public void requestAccountInfo() {
         try {
-            exchange.getStreamingAccountInfoService()
-                    .requestAccountInfo();
-//            accountInfo = exchange.getAccountService().getAccountInfo(); // only available wallet
+            exchange.getStreamingAccountInfoService().requestAccountInfo();
         } catch (IOException e) {
-            logger.error("AccountInfo error", e);
+            logger.error("AccountInfo request error", e);
         }
-        return accountInfo;
     }
 
     @Scheduled(fixedRate = 1000)
@@ -359,9 +356,9 @@ public class OkCoinService extends MarketService {
                 .doOnError(throwable -> logger.error("Error on AccountInfo.Websocket observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
-                .subscribe(accountInfo -> {
-                    logger.debug("AccountInfo.Websocket: " + accountInfo.toString());
-                    this.accountInfo = accountInfo;
+                .subscribe(accountInfoContracts -> {
+                    logger.debug("AccountInfo.Websocket: " + accountInfoContracts.toString());
+                    this.accountInfoContracts = accountInfoContracts;
 
                 }, throwable -> {
                     logger.error("AccountInfo.Websocket.Exception: ", throwable);
@@ -376,9 +373,8 @@ public class OkCoinService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .subscribe(privateData -> {
                     logger.debug(privateData.toString());
-                    if (privateData.getAccountInfo() != null) {
-                        exchange.getStreamingAccountInfoService()
-                                .requestAccountInfo();
+                    if (privateData.getAccountInfoContracts() != null) {
+                        requestAccountInfo();
                     }
                     final Position positionInfo = privateData.getPositionInfo();
                     if (positionInfo != null) {

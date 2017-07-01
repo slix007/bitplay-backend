@@ -13,6 +13,7 @@ import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -49,6 +50,7 @@ public abstract class MarketService {
     protected List<LimitOrder> openOrders = new CopyOnWriteArrayList<>();
     protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected AccountInfo accountInfo = null;
+    protected AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
     protected Position position = null;
     protected BigDecimal affordableContractsForShort = BigDecimal.ZERO;
     protected BigDecimal affordableContractsForLong = BigDecimal.ZERO;
@@ -160,6 +162,10 @@ public abstract class MarketService {
 
     public synchronized void setAccountInfo(AccountInfo accountInfo) {
         this.accountInfo = accountInfo;
+    }
+
+    public AccountInfoContracts getAccountInfoContracts() {
+        return accountInfoContracts;
     }
 
     public Position getPosition() {

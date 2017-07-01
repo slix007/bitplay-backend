@@ -100,11 +100,6 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public AccountInfo getAccountInfo() {
-        return null;
-    }
-
-    @Override
     public String getPositionAsString() {
         return null;
     }

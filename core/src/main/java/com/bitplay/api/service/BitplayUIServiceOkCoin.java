@@ -8,12 +8,9 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 
-import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.Balance;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
-import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,15 +83,15 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
     }
 
     public AccountInfoJson getFullAccountInfo() {
-        final AccountInfo accountInfo = getBusinessService().getAccountInfo();
-        Wallet theWallet;
-        try {
-            theWallet = accountInfo.getWallet();
-        } catch (Exception e) {
-            logger.error(e.getMessage());
+        final AccountInfoContracts accountInfoContracts = getBusinessService().getAccountInfoContracts();
+        if (accountInfoContracts == null) {
             return new AccountInfoJson("error", "error", "error", "error", "error", "error");
         }
-        final Balance balance = theWallet.getBalance(Currency.BTC);
+
+        final BigDecimal available = accountInfoContracts.getAvailable();
+        final BigDecimal equity = accountInfoContracts.getEquity();
+        final BigDecimal wallet = accountInfoContracts.getWallet();
+        final BigDecimal margin = accountInfoContracts.getMargin();
 
         final Position position = getBusinessService().getPosition();
         String positionString = String.format("%s + %s = %s; leverage=%s",
@@ -108,16 +105,12 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
                 getBusinessService().getAffordableContractsShort()
         );
 
-        final BigDecimal wallet = balance.getTotal();
-        final BigDecimal available = balance.getAvailable();
-        final BigDecimal equity = available.add(balance.getFrozen());
-
         return new AccountInfoJson(
                 wallet.toPlainString(),
                 available.toPlainString(),
                 equity.toPlainString(),
-                balance.getFrozen().toPlainString(),
+                margin.toPlainString(),
                 positionString,
-                accountInfo.toString());
+                accountInfoContracts.toString());
     }
 }
