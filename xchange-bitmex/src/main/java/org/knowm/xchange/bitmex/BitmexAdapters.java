@@ -31,12 +31,6 @@ import io.swagger.client.model.Wallet;
  * Created by Sergey Shurmin on 5/3/17.
  */
 public class BitmexAdapters {
-    /**
-     * TODO remove it
-     * getTotal == Wallet Balance
-     * getAvailable == Available Balance
-     */
-    public final static Currency WALLET_CURRENCY = new Currency("WALLET");
 
     private final static String BID_TYPE = "Buy";
     private final static String ASK_TYPE = "Sell";

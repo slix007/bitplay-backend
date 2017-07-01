@@ -124,7 +124,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
         positionString += String.format("; AvailableForLong:%s, AvailableForShort:%s",
                 getBusinessService().getAffordableContractsForLong(),
-                getBusinessService().getAffordableContractsShort()
+                getBusinessService().getAffordableContractsForShort()
         );
 
         return new AccountInfoJson(

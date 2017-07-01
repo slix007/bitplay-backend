@@ -14,13 +14,9 @@ import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
-import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.account.Position;
-import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -447,21 +443,6 @@ public class OkCoinService extends MarketService {
         this.openOrders.addAll(newOrders);
     }
 
-    public OrderBook fetchOrderBook() {
-        try {
-            orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_BTC_USD);
-
-            bestBid = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
-            bestAsk = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
-
-            logger.info("Fetched orderBook: {} asks, {} bids. Timestamp {}", orderBook.getAsks().size(), orderBook.getBids().size(),
-                    orderBook.getTimeStamp());
-        } catch (Exception e) {
-            logger.error("fetchOrderBook error", e);
-        }
-        return orderBook;
-    }
-
     @Override
     public OrderBook getOrderBook() {
         return orderBook;
@@ -504,24 +485,24 @@ public class OkCoinService extends MarketService {
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
         final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 
-        if (accountInfo != null && accountInfo.getWallet() != null) {
-            final Wallet theWallet = accountInfo.getWallet();
-            final Balance balance = theWallet.getBalance(Currency.BTC);
-            final BigDecimal availableBtc = balance.getAvailable();
-            final BigDecimal equityBtc = availableBtc.add(balance.getFrozen());
-
+        if (accountInfoContracts != null && position != null) {
+            final BigDecimal availableBtc = accountInfoContracts.getAvailable();
+            final BigDecimal equityBtc = accountInfoContracts.getEquity();
 
             final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal leverage = position.getLeverage();
 
-            if (availableBtc.signum() > 0) {
+            if (availableBtc != null && equityBtc != null && leverage != null && position.getPositionLong() != null && position.getPositionShort() != null) {
+
+                if (availableBtc.signum() > 0) {
 //                if (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK)) {
                     if (position.getPositionShort().signum() != 0) { // there are sells
                         if (volPlan.compareTo(position.getPositionShort()) != 1) {
                             affordableContractsForLong = (position.getPositionShort().subtract(position.getPositionLong()).add(
                                     (equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN)
-                            )).setScale(0, BigDecimal.ROUND_DOWN);;
+                            )).setScale(0, BigDecimal.ROUND_DOWN);
+                            ;
                         } else {
                             affordableContractsForLong = (availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
                         }
@@ -536,8 +517,9 @@ public class OkCoinService extends MarketService {
 //                if (orderType.equals(Order.OrderType.ASK) || orderType.equals(Order.OrderType.EXIT_BID)) {
                     if (position.getPositionLong().signum() != 0) { // we have BIDs
                         if (volPlan.compareTo(position.getPositionLong()) != 1) { // если мы хотим закрыть меньше чем есть
-                            affordableContractsForShort = position.getPositionLong().subtract(position.getPositionShort().add(
-                                    (equityBtc.subtract(reserveBtc)).multiply(bestBid.multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN)
+                            final BigDecimal divide = (equityBtc.subtract(reserveBtc)).multiply(bestBid.multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
+                            affordableContractsForShort = (position.getPositionLong().subtract(position.getPositionShort()).add(
+                                    divide
                             )).setScale(0, BigDecimal.ROUND_DOWN);
                         } else {
                             affordableContractsForShort = (availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
@@ -549,6 +531,7 @@ public class OkCoinService extends MarketService {
                         affordableContractsForShort = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
                     }
 //                }
+                }
             }
         }
     }
