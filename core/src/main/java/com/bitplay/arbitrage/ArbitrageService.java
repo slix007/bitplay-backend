@@ -147,7 +147,7 @@ public class ArbitrageService {
                 deltasLogger.info(String.format("#%s delta1_fact=%s-%s=%s; " +
                                 "cum_delta_fact=%s/%s/%s; " +
                                 "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
-                                "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; position=%s",
+                                "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s;",// position=%s",
                         getCounter(),
                         openPrices.getFirstOpenPrice().toPlainString(),
                         openPrices.getSecondOpenPrice().toPlainString(),
@@ -160,8 +160,8 @@ public class ArbitrageService {
                         diffFact, diffFactMin, diffFactMax,
                         cumDiffFact1, cumDiffFact1Min, cumDiffFact1Max,
                         cumDiffFact2, cumDiffFact2Min, cumDiffFact2Max,
-                        cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax,
-                        firstMarketService.getPositionAsString()
+                        cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax
+//                        firstMarketService.getPositionAsString()
                 ));
 
                 printCumBitmexMCom();
@@ -210,7 +210,7 @@ public class ArbitrageService {
                 deltasLogger.info(String.format("#%s delta2_fact=%s-%s=%s; " +
                                 "cum_delta_fact=%s/%s/%s; " +
                                 "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
-                                "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; position=%s",
+                                "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s;",// position=%s",
                         getCounter(),
                         openPrices.getSecondOpenPrice().toPlainString(),
                         openPrices.getFirstOpenPrice().toPlainString(),
@@ -223,8 +223,8 @@ public class ArbitrageService {
                         diffFact, diffFactMin, diffFactMax,
                         cumDiffFact1, cumDiffFact1Min, cumDiffFact1Max,
                         cumDiffFact2, cumDiffFact2Min, cumDiffFact2Max,
-                        cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax,
-                        firstMarketService.getPositionAsString()
+                        cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax
+//                        firstMarketService.getPositionAsString()
                 ));
 
                 printCumBitmexMCom();
@@ -476,16 +476,18 @@ public class ArbitrageService {
         params.setCumDelta(cumDelta.add(delta1));
         if (cumDelta.compareTo(cumDeltaMin) == -1) params.setCumDeltaMin(cumDelta);
         if (cumDelta.compareTo(cumDeltaMax) == 1) params.setCumDeltaMax(cumDelta);
-        deltasLogger.info(String.format("#%s delta1=%s-%s=%s; b1=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
+        deltasLogger.info(String.format("#%s delta1=%s-%s=%s; b1=%s; btcP=%s;",
+                //usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
                 getCounter(),
                 bid1_p.toPlainString(), ask1_o.toPlainString(),
                 delta1.toPlainString(),
                 border1.toPlainString(),
-                btcP, usdP, btcO, usdO,
-                firstWalletBalance.toPlainString(),
-                cumDelta.toPlainString(),
-                cumDeltaMin,
-                cumDeltaMax
+                btcP
+//                usdP, btcO, usdO,
+//                firstWalletBalance.toPlainString(),
+//                cumDelta.toPlainString(),
+//                cumDeltaMin,
+//                cumDeltaMax
         ));
 
         // Count com
@@ -654,16 +656,17 @@ public class ArbitrageService {
         params.setCumDelta(cumDelta.add(delta2));
         if (cumDelta.compareTo(cumDeltaMin) == -1) params.setCumDeltaMin(cumDelta);
         if (cumDelta.compareTo(cumDeltaMax) == 1) params.setCumDeltaMax(cumDelta);
-        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; b2=%s; btcP=%s; usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
+        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; b2=%s; btcP=%s;",// usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
                 getCounter(),
                 bid1_o.toPlainString(), ask1_p.toPlainString(),
                 delta2.toPlainString(),
                 border2.toPlainString(),
-                btcP, usdP, btcO, usdO,
-                firstWalletBalance,
-                cumDelta.toPlainString(),
-                cumDeltaMin,
-                cumDeltaMax
+                btcP
+//                , usdP, btcO, usdO,
+//                firstWalletBalance,
+//                cumDelta.toPlainString(),
+//                cumDeltaMin,
+//                cumDeltaMax
         ));
 
         // Count com
