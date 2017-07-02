@@ -25,6 +25,7 @@ import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.FuturesContract;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPositionResult;
+import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesTradeService;
 import org.knowm.xchange.okcoin.service.OkCoinTradeService;
 import org.knowm.xchange.okcoin.service.OkCoinTradeServiceRaw;
@@ -403,44 +404,45 @@ public class OkCoinService extends MarketService {
     }
 
     private void updateOpenOrders(List<LimitOrder> trades) {
+        synchronized (openOrdersLock) {
+            // Replace all existing with new info
+            this.openOrders = this.openOrders.stream()
+                    .map(existingInMemory -> {
+                        // merge if the update of an existingInMemory
+                        LimitOrder order = existingInMemory;
+                        final Optional<LimitOrder> optionalMatch = trades.stream()
+                                .filter(existing -> existingInMemory.getId().equals(existing.getId()))
+                                .findFirst();
+                        if (optionalMatch.isPresent()) {
+                            order = optionalMatch.get();
+                            tradeLogger.info("Order update:id={},status={},amount={},filled={}",
+                                    order.getId(), order.getStatus(), order.getTradableAmount(),
+                                    order.getCumulativeAmount());
+                        }
 
-        // Replace all existing with new info
-        this.openOrders = this.openOrders.stream()
-                .map(existingInMemory -> {
-                    // merge if the update of an existingInMemory
-                    LimitOrder order = existingInMemory;
-                    final Optional<LimitOrder> optionalMatch = trades.stream()
-                            .filter(existing -> existingInMemory.getId().equals(existing.getId()))
-                            .findFirst();
-                    if (optionalMatch.isPresent()) {
-                        order = optionalMatch.get();
-                        tradeLogger.info("Order update:id={},status={},amount={},filled={}",
-                                order.getId(), order.getStatus(), order.getTradableAmount(),
-                                order.getCumulativeAmount());
-                    }
+                        return order;
+                    }).collect(Collectors.toList());
 
-                    return order;
-                }).collect(Collectors.toList());
+            // Add new orders
+            List<LimitOrder> newOrders = trades.stream()
+                    .filter(order -> order.getStatus() != Order.OrderStatus.CANCELED
+                            && order.getStatus() != Order.OrderStatus.EXPIRED
+                            && order.getStatus() != Order.OrderStatus.FILLED
+                            && order.getStatus() != Order.OrderStatus.REJECTED
+                            && order.getStatus() != Order.OrderStatus.REPLACED
+                            && order.getStatus() != Order.OrderStatus.PENDING_CANCEL
+                            && order.getStatus() != Order.OrderStatus.PENDING_REPLACE
+                            && order.getStatus() != Order.OrderStatus.STOPPED)
+                    .filter((LimitOrder limitOrder) -> {
+                        final String id = limitOrder.getId();
+                        return this.openOrders.stream()
+                                .anyMatch(existing -> id.equals(existing.getId()));
+                    })
+                    .collect(Collectors.toList());
 
-        // Add new orders
-        List<LimitOrder> newOrders = trades.stream()
-                .filter(order -> order.getStatus() != Order.OrderStatus.CANCELED
-                        && order.getStatus() != Order.OrderStatus.EXPIRED
-                        && order.getStatus() != Order.OrderStatus.FILLED
-                        && order.getStatus() != Order.OrderStatus.REJECTED
-                        && order.getStatus() != Order.OrderStatus.REPLACED
-                        && order.getStatus() != Order.OrderStatus.PENDING_CANCEL
-                        && order.getStatus() != Order.OrderStatus.PENDING_REPLACE
-                        && order.getStatus() != Order.OrderStatus.STOPPED)
-                .filter((LimitOrder limitOrder) -> {
-                    final String id = limitOrder.getId();
-                    return this.openOrders.stream()
-                            .anyMatch(existing -> id.equals(existing.getId()));
-                })
-                .collect(Collectors.toList());
-
-        debugLog.info("NewOrders: " + Arrays.toString(newOrders.toArray()));
-        this.openOrders.addAll(newOrders);
+            debugLog.info("NewOrders: " + Arrays.toString(newOrders.toArray()));
+            this.openOrders.addAll(newOrders);
+        }
     }
 
     @Override
@@ -612,7 +614,7 @@ public class OkCoinService extends MarketService {
 
                 tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}",
                         signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
-                        isMoving ? "Moved" : "maker",
+                        isMoving ? "Moving3:Moved" : "maker",
                         Utils.convertOrderTypeName(orderType),
                         tradeableAmount.toPlainString(),
                         thePrice,
@@ -714,14 +716,26 @@ public class OkCoinService extends MarketService {
         MoveResponse response;
         BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
 
+        // 1. cancell old order
         int attemptCount = 0;
         Exception lastException = null;
-        boolean cancelledSuccessfully = false;
+        OkCoinTradeResult okCoinTradeResult = null;
+        final String counterName = signalType == SignalType.AUTOMATIC ? String.valueOf(arbitrageService.getCounter()) : signalType.getCounterName();
         while (attemptCount < 2) {
             attemptCount++;
             try {
-                cancelledSuccessfully = tradeService.cancelOrder(limitOrder.getId());
-                if (cancelledSuccessfully) {
+                okCoinTradeResult = tradeService.cancelOrderWithResult(limitOrder.getId(), CurrencyPair.BTC_USD, FuturesContract.ThisWeek);
+                if (okCoinTradeResult != null) {
+                    tradeLogger.info("#{} Moving1:cancelled: {} amount={},quote={},id={},attempt={},res={},code={},details={}",
+                            counterName,
+                            limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                            limitOrder.getTradableAmount(),
+                            limitOrder.getLimitPrice().toPlainString(),
+                            limitOrder.getId(),
+                            attemptCount,
+                            okCoinTradeResult.isResult(),
+                            okCoinTradeResult.getErrorCode(),
+                            okCoinTradeResult.getDetails());
                     break;
                 }
             } catch (Exception e) {
@@ -730,15 +744,31 @@ public class OkCoinService extends MarketService {
             }
         }
 
-        if (cancelledSuccessfully) {
-            tradeLogger.info("#{} Cancelled {} amount={},quote={},id={},attempt={}",
-                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
-                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-                    limitOrder.getTradableAmount(),
-                    limitOrder.getLimitPrice().toPlainString(),
-                    limitOrder.getId(),
-                    attemptCount);
+        // 2. check status of an old order
+        Order cancelledOrder = null;
+        try {
+            final Collection<Order> order = tradeService.getOrder(limitOrder.getId());
+            cancelledOrder = order.iterator().next();
+            tradeLogger.info("#{} Moving2:cancelStatus: id={}, status={}",
+                    counterName,
+                    cancelledOrder.getId(),
+                    cancelledOrder.getStatus());
+        } catch (IOException e) {
+            logger.error("On get order status", e);
+        }
 
+        // 3. Place new or keep closed
+        if (okCoinTradeResult == null) {
+            final String msg = "Moving3:WARNING: Cancel result is null";
+            tradeLogger.info(msg);
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
+        }
+
+        if (cancelledOrder == null) {
+            final String msg = "Moving3:WARNING: cancelledOrder is null";
+            tradeLogger.info(msg);
+            response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
+        } else if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
             // Place order
             TradeResponse tradeResponse = new TradeResponse();
             while (attemptCount < 4) {
@@ -748,8 +778,8 @@ public class OkCoinService extends MarketService {
                 tradeResponse = placeMakerOrder(limitOrder.getType(),
                         newAmount, bestQuotes, true, signalType);
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
-                    tradeLogger.info("#{} Failed {} amount={},quote={},id={},attempt={}. Error: {}",
-                            signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                    tradeLogger.info("#{} Moving3:Failed {} amount={},quote={},id={},attempt={}. Error: {}",
+                            counterName,
                             limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                             limitOrder.getTradableAmount(),
                             limitOrder.getLimitPrice().toPlainString(),
@@ -765,8 +795,8 @@ public class OkCoinService extends MarketService {
             if (tradeResponse.getOrderId() != null) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
             } else {
-                final String description = String.format("#%s Moving error. Cancelled amount %s, but %s",
-                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                final String description = String.format("#%s Moving3:error: Cancelled amount %s, but %s",
+                        counterName,
                         limitOrder.getTradableAmount().toPlainString(), tradeResponse.getErrorCode());
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, description);
                 tradeLogger.info(description);
@@ -775,15 +805,16 @@ public class OkCoinService extends MarketService {
             String logResponse = "";
             if (lastException == null) { // For now we assume that order is filled when no Exceptions
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
-                logResponse = "Already closed";
+                logResponse = "Moving3:Already closed:";
             } else {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, lastException.getMessage());
-                logResponse = "Cancel failed";
+                logResponse = "Moving3:Cancel failed:";
             }
-            final String logString = String.format("#%s %s %s amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
-                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+            final String logString = String.format("#%s %s %s status=%s,amount=%s,quote=%s,id=%s,attempt=%s,lastException=%s",
+                    counterName,
                     logResponse,
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                    cancelledOrder.getStatus(),
                     limitOrder.getTradableAmount(),
                     limitOrder.getLimitPrice().toPlainString(),
                     limitOrder.getId(),

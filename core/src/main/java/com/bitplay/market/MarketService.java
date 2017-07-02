@@ -47,6 +47,7 @@ public abstract class MarketService {
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
+    protected Object openOrdersLock = new Object();
     protected List<LimitOrder> openOrders = new CopyOnWriteArrayList<>();
     protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected AccountInfo accountInfo = null;
@@ -215,41 +216,44 @@ public abstract class MarketService {
      * @return list of open orders.
      */
     protected List<LimitOrder> fetchOpenOrders() {
-        if (getExchange() != null && getTradeService() != null) {
-            try {
-                final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
-                        .getOpenOrders();
-                if (fetchedList == null) {
-                    logger.error("GetOpenOrdersError");
-                    throw new IllegalStateException("GetOpenOrdersError");
+        synchronized (openOrdersLock) {
+
+            if (getExchange() != null && getTradeService() != null) {
+                try {
+                    final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
+                            .getOpenOrders();
+                    if (fetchedList == null) {
+                        logger.error("GetOpenOrdersError");
+                        throw new IllegalStateException("GetOpenOrdersError");
+                    }
+
+                    if (fetchedList.size() > 1) {
+                        getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
+                    }
+
+                    final List<LimitOrder> allNew = fetchedList.stream()
+                            .filter(fetched -> this.openOrders.stream()
+                                    .noneMatch(o -> o.getId().equals(fetched.getId())))
+                            .collect(Collectors.toList());
+
+                    this.openOrders.addAll(allNew);
+
+                } catch (Exception e) {
+                    logger.error("GetOpenOrdersError", e);
+                    throw new IllegalStateException("GetOpenOrdersError", e);
                 }
 
-                if (fetchedList.size() > 1) {
-                    getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
+                if (orderIdToSignalInfo.size() > 100000) {
+                    logger.warn("orderIdToSignalInfo over 100000");
+                    final Map<String, BestQuotes> newMap = new HashMap<>();
+                    openOrders.stream()
+                            .map(LimitOrder::getId)
+                            .filter(id -> orderIdToSignalInfo.containsKey(id))
+                            .forEach(id -> newMap.put(id, orderIdToSignalInfo.get(id)));
+                    orderIdToSignalInfo = newMap;
                 }
 
-                final List<LimitOrder> allNew = fetchedList.stream()
-                        .filter(fetched -> this.openOrders.stream()
-                                .noneMatch(o -> o.getId().equals(fetched.getId())))
-                        .collect(Collectors.toList());
-
-                this.openOrders.addAll(allNew);
-
-            } catch (Exception e) {
-                logger.error("GetOpenOrdersError", e);
-                throw new IllegalStateException("GetOpenOrdersError", e);
             }
-
-            if (orderIdToSignalInfo.size() > 100000) {
-                logger.warn("orderIdToSignalInfo over 100000");
-                final Map<String, BestQuotes> newMap = new HashMap<>();
-                openOrders.stream()
-                        .map(LimitOrder::getId)
-                        .filter(id -> orderIdToSignalInfo.containsKey(id))
-                        .forEach(id -> newMap.put(id, orderIdToSignalInfo.get(id)));
-                orderIdToSignalInfo = newMap;
-            }
-
         }
         return openOrders;
     }
@@ -323,49 +327,52 @@ public abstract class MarketService {
 
     protected void iterateOpenOrdersMove() {
         boolean haveToFetch = false;
-        boolean freeTheMarket = false;
-        List<String> toRemove = new ArrayList<>();
-        List<LimitOrder> toAdd = new ArrayList<>();
-        try {
-            for (LimitOrder openOrder : openOrders) {
-                if (openOrder.getType() != null) {
-                    final SignalType signalType = getArbitrageService().getSignalType();
-                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
 
-                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                            || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
-                        freeTheMarket = true;
-                        toRemove.add(openOrder.getId());
-                        haveToFetch = true;
-                        logger.info(getName() + response.getDescription());
-                    }
+        synchronized (openOrdersLock) {
+            boolean freeTheMarket = false;
+            List<String> toRemove = new ArrayList<>();
+            List<LimitOrder> toAdd = new ArrayList<>();
+            try {
+                for (LimitOrder openOrder : openOrders) {
+                    if (openOrder.getType() != null) {
+                        final SignalType signalType = getArbitrageService().getSignalType();
+                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
 
-                    if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
-                        toRemove.add(openOrder.getId());
-                        haveToFetch = true;
-                        if (response.getNewOrder() != null) {
-                            toAdd.add(response.getNewOrder());
+                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
+                            freeTheMarket = true;
+                            toRemove.add(openOrder.getId());
+                            haveToFetch = true;
+                            logger.info(getName() + response.getDescription());
+                        }
+
+                        if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
+                            toRemove.add(openOrder.getId());
+                            haveToFetch = true;
+                            if (response.getNewOrder() != null) {
+                                toAdd.add(response.getNewOrder());
+                            }
                         }
                     }
                 }
-            }
 
-            openOrders.removeIf(o -> toRemove.contains(o.getId()));
-            toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
-            openOrders.addAll(toAdd);
+                openOrders.removeIf(o -> toRemove.contains(o.getId()));
+                toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
+                openOrders.addAll(toAdd);
 
-            if (freeTheMarket && openOrders.size() > 0) {
-                logger.warn("Warning: get ALREADY_CLOSED, but there are still open orders");
-            }
+                if (freeTheMarket && openOrders.size() > 0) {
+                    logger.warn("Warning: get ALREADY_CLOSED, but there are still open orders");
+                }
 
-            if (freeTheMarket && openOrders.size() == 0) {
-                eventBus.send(BtsEvent.MARKET_FREE);
-            }
-        } catch (Exception e) {
-            logger.error("On moving", e);
-            final List<LimitOrder> orderList = fetchOpenOrders();
-            if (orderList.size() == 0) {
-                eventBus.send(BtsEvent.MARKET_FREE);
+                if (freeTheMarket && openOrders.size() == 0) {
+                    eventBus.send(BtsEvent.MARKET_FREE);
+                }
+            } catch (Exception e) {
+                logger.error("On moving", e);
+                final List<LimitOrder> orderList = fetchOpenOrders();
+                if (orderList.size() == 0) {
+                    eventBus.send(BtsEvent.MARKET_FREE);
+                }
             }
         }
 
