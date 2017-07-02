@@ -6,6 +6,7 @@ import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketList;
+import com.bitplay.api.domain.PlacingTypeJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
@@ -165,5 +166,20 @@ public class CommonEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     public ResultJson getSumBal() {
         return commonUIService.getSumBal();
+    }
+
+    @GET
+    @Path("/market/placing-type")
+    @Produces(MediaType.APPLICATION_JSON)
+    public PlacingTypeJson getPlacingType() {
+        return commonUIService.getPlacingType();
+    }
+
+    @POST
+    @Path("/market/placing-type")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public PlacingTypeJson updatePlacingType(PlacingTypeJson placingTypeJson) {
+        return commonUIService.updatePlacingType(placingTypeJson);
     }
 }

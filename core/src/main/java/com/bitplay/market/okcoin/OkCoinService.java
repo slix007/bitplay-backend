@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.utils.Utils;
@@ -450,8 +451,8 @@ public class OkCoinService extends MarketService {
         return orderBook;
     }
 
-    public String placeTakerOrder(Order.OrderType orderType, BigDecimal amount) {
-        String orderId;
+    public TradeResponse placeTakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType) {
+        TradeResponse tradeResponse = new TradeResponse();
         try {
             final TradeService tradeService = exchange.getTradeService();
             BigDecimal theBestPrice;
@@ -467,20 +468,20 @@ public class OkCoinService extends MarketService {
             final MarketOrder marketOrder = new MarketOrder(orderType,
                     amount,
                     CURRENCY_PAIR_BTC_USD, new Date());
-            orderId = tradeService.placeMarketOrder(marketOrder);
+            String orderId = tradeService.placeMarketOrder(marketOrder);
+            tradeResponse.setOrderId(orderId);
 
-//            final Order successfulOrder = fetchOrderInfo(orderId);
-
-            tradeLogger.info("taker {} amount={} with theBestPrice={}",
-                    Utils.convertOrderTypeName(orderType),
-                    amount.toPlainString(),
-                    theBestPrice);
+            writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType, theBestPrice, orderId);
 
         } catch (Exception e) {
             logger.error("Place market order error", e);
-            orderId = e.getMessage();
+            tradeResponse.setErrorMessage(e.getMessage());
+        } finally {
+            if (isBusy) {
+                getEventBus().send(BtsEvent.MARKET_FREE);
+            }
         }
-        return orderId;
+        return tradeResponse;
     }
 
     private void recalcAffordableContracts() {
@@ -551,7 +552,11 @@ public class OkCoinService extends MarketService {
     @Override
     public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                          SignalType signalType) {
-        return placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
+        if (arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
+            return placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
+        } else {
+            return placeTakerOrder(orderType, amountInContracts, bestQuotes, signalType);
+        }
     }
 
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
@@ -598,28 +603,9 @@ public class OkCoinService extends MarketService {
 //                        contractOrderType);
 //                tradeResponse.setOrderId(orderId);
 
-                String diffWithSignal = "";
-                if (bestQuotes != null) {
-                    final BigDecimal diff1 = bestQuotes.getAsk1_o().subtract(thePrice);
-                    final BigDecimal diff2 = thePrice.subtract(bestQuotes.getBid1_o());
-                    diffWithSignal = (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK))
-                            ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", diff1.toPlainString()) //"BUY"/"EXIT_SELL"
-                            : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s", diff2.toPlainString()); //"SELL"/"EXIT_BUY"
-                    arbitrageService.getOpenDiffs().setSecondOpenPrice(
-                            (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK))
-                            ? diff1 : diff2);
-                }
-
-                // sell, buy, close sell, close buy
-
-                tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}",
-                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
                         isMoving ? "Moving3:Moved" : "maker",
-                        Utils.convertOrderTypeName(orderType),
-                        tradeableAmount.toPlainString(),
-                        thePrice,
-                        orderId,
-                        diffWithSignal);
+                        signalType, thePrice, orderId);
 
 //                final Disposable orderListener = startOrderListener(orderId);
 //                orderSubscriptions.put(orderId, orderListener);
@@ -650,6 +636,32 @@ public class OkCoinService extends MarketService {
 
         fetchOpenOrdersWithDelay();
         return tradeResponse;
+    }
+
+    private void writeLogPlaceOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
+                                    String placingType, SignalType signalType, BigDecimal thePrice, String orderId) {
+        String diffWithSignal = "";
+        if (bestQuotes != null) {
+            final BigDecimal diff1 = bestQuotes.getAsk1_o().subtract(thePrice);
+            final BigDecimal diff2 = thePrice.subtract(bestQuotes.getBid1_o());
+            diffWithSignal = (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK))
+                    ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", diff1.toPlainString()) //"BUY"/"EXIT_SELL"
+                    : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s", diff2.toPlainString()); //"SELL"/"EXIT_BUY"
+            arbitrageService.getOpenDiffs().setSecondOpenPrice(
+                    (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK))
+                    ? diff1 : diff2);
+        }
+
+        // sell, buy, close sell, close buy
+
+        tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}",
+                signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                placingType, //isMoving ? "Moving3:Moved" : "maker",
+                Utils.convertOrderTypeName(orderType),
+                tradeableAmount.toPlainString(),
+                thePrice,
+                orderId,
+                diffWithSignal);
     }
 
     private Order.OrderType adjustOrderType(Order.OrderType orderType, BigDecimal tradeableAmount) {

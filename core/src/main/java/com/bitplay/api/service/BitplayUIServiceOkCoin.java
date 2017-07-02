@@ -1,6 +1,5 @@
 package com.bitplay.api.service;
 
-import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
@@ -9,8 +8,6 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,19 +59,20 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
                 throw new IllegalArgumentException("No such order type " + tradeRequestJson.getType());
         }
 
+        SignalType signalType;
+        if (orderType.equals(Order.OrderType.ASK)) {
+            signalType = SignalType.MANUAL_SELL;
+        } else if (orderType.equals(Order.OrderType.BID)) {
+            signalType = SignalType.MANUAL_BUY;
+        } else {
+            return new TradeResponseJson("Wrong orderType", "Wrong orderType");
+        }
+
         String orderId = null;
         if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
-            orderId = service.placeTakerOrder(orderType, amount);
+            final TradeResponse tradeResponse = service.placeTakerOrder(orderType, amount, null, signalType);
+            orderId = tradeResponse.getOrderId();
         } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
-            SignalType signalType;
-            if (orderType.equals(Order.OrderType.ASK)) {
-                signalType = SignalType.MANUAL_SELL;
-            } else if (orderType.equals(Order.OrderType.BID)) {
-                signalType = SignalType.MANUAL_BUY;
-            } else {
-                return new TradeResponseJson("Wrong orderType", "Wrong orderType");
-            }
-
             final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount, null, signalType);
             orderId = tradeResponse.getOrderId();
         }

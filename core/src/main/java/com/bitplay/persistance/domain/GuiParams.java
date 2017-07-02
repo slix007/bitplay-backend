@@ -60,6 +60,7 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal volPlan = BigDecimal.ZERO;
     private BigDecimal reserveBtc1 = BigDecimal.valueOf(0.00001);
     private BigDecimal reserveBtc2 = BigDecimal.valueOf(0.00001);
+    private String okCoinOrderType = "maker";
 
     public GuiParams() {
     }
@@ -446,5 +447,13 @@ public class GuiParams extends AbstractDocument {
 
     public void setReserveBtc2(BigDecimal reserveBtc2) {
         this.reserveBtc2 = reserveBtc2;
+    }
+
+    public String getOkCoinOrderType() {
+        return okCoinOrderType;
+    }
+
+    public void setOkCoinOrderType(String okCoinOrderType) {
+        this.okCoinOrderType = okCoinOrderType;
     }
 }

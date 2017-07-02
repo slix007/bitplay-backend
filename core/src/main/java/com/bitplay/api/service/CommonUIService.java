@@ -4,6 +4,7 @@ import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.MarketFlagsJson;
+import com.bitplay.api.domain.PlacingTypeJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
@@ -260,5 +261,22 @@ public class CommonUIService {
     public ResultJson getSumBal() {
         final String sumBalString = arbitrageService.getSumBalString();
         return new ResultJson(sumBalString, "");
+    }
+
+    public PlacingTypeJson getPlacingType() {
+        return new PlacingTypeJson(
+                "maker",
+                arbitrageService.getParams().getOkCoinOrderType()
+        );
+    }
+
+    public PlacingTypeJson updatePlacingType(PlacingTypeJson placingTypeJson) {
+        arbitrageService.getParams().setOkCoinOrderType(placingTypeJson.getSecondMarket());
+        arbitrageService.saveParamsToDb();
+
+        return new PlacingTypeJson(
+                "maker",
+                arbitrageService.getParams().getOkCoinOrderType()
+        );
     }
 }
