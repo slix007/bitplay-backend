@@ -859,7 +859,7 @@ public class ArbitrageService {
         return signalType;
     }
 
-    public void setSignalType(SignalType signalType) {
+    public synchronized void setSignalType(SignalType signalType) {
         this.signalType = signalType;
     }
 

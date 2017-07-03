@@ -455,15 +455,8 @@ public class OkCoinService extends MarketService {
         TradeResponse tradeResponse = new TradeResponse();
         try {
             final TradeService tradeService = exchange.getTradeService();
-            BigDecimal theBestPrice;
 
             orderType = adjustOrderType(orderType, amount);
-
-            if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
-                theBestPrice = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getLimitPrice();
-            } else { // if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
-                theBestPrice = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getLimitPrice();
-            }
 
             final MarketOrder marketOrder = new MarketOrder(orderType,
                     amount,
@@ -471,9 +464,16 @@ public class OkCoinService extends MarketService {
             String orderId = tradeService.placeMarketOrder(marketOrder);
             tradeResponse.setOrderId(orderId);
 
-            writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType, theBestPrice, orderId);
+            // 2. check status of the order
+            Thread.sleep(200);
+            final Collection<Order> order = tradeService.getOrder(orderId);
+            Order orderInfo = order.iterator().next();
+
+            writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType,
+                    orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
 
         } catch (Exception e) {
+            tradeLogger.error("Place market order error " + e.toString());
             logger.error("Place market order error", e);
             tradeResponse.setErrorMessage(e.getMessage());
         } finally {
@@ -605,7 +605,7 @@ public class OkCoinService extends MarketService {
 
                 writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
                         isMoving ? "Moving3:Moved" : "maker",
-                        signalType, thePrice, orderId);
+                        signalType, thePrice, orderId, null);
 
 //                final Disposable orderListener = startOrderListener(orderId);
 //                orderSubscriptions.put(orderId, orderListener);
@@ -639,7 +639,7 @@ public class OkCoinService extends MarketService {
     }
 
     private void writeLogPlaceOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-                                    String placingType, SignalType signalType, BigDecimal thePrice, String orderId) {
+                                    String placingType, SignalType signalType, BigDecimal thePrice, String orderId, String status) {
         String diffWithSignal = "";
         if (bestQuotes != null) {
             final BigDecimal diff1 = bestQuotes.getAsk1_o().subtract(thePrice);
@@ -654,14 +654,15 @@ public class OkCoinService extends MarketService {
 
         // sell, buy, close sell, close buy
 
-        tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}",
+        tradeLogger.info("#{} {} {} amount={}, quote={}, orderId={}, ({}), status={}",
                 signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                 placingType, //isMoving ? "Moving3:Moved" : "maker",
                 Utils.convertOrderTypeName(orderType),
                 tradeableAmount.toPlainString(),
                 thePrice,
                 orderId,
-                diffWithSignal);
+                diffWithSignal,
+                status);
     }
 
     private Order.OrderType adjustOrderType(Order.OrderType orderType, BigDecimal tradeableAmount) {
