@@ -16,14 +16,11 @@ import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
-import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.account.Position;
-import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -162,7 +159,7 @@ public class BitmexService extends MarketService {
     @Override
     protected void iterateOpenOrdersMove() {
         boolean haveToClear = false;
-        synchronized (openOrders) {
+        synchronized (openOrdersLock) {
             for (LimitOrder openOrder : openOrders) {
                 if (openOrder.getType() != null) {
                     final SignalType signalType = arbitrageService.getSignalType();
@@ -314,32 +311,34 @@ public class BitmexService extends MarketService {
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.computation())
                 .subscribe(updateOfOpenOrders -> {
-                    logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
-                    this.openOrders = updateOfOpenOrders.getOpenOrders().stream()
-                            .map(update -> {
-                                // merge the orders
-                                LimitOrder mergedOrder = update;
-                                final Optional<LimitOrder> optionalExisting = this.openOrders.stream()
-                                        .filter(existing -> update.getId().equals(existing.getId()))
-                                        .findFirst();
-                                if (optionalExisting.isPresent()) {
-                                    final LimitOrder existing = optionalExisting.get();
-                                    mergedOrder = new LimitOrder(
-                                            existing.getType(),
-                                            update.getTradableAmount() != null ? update.getTradableAmount() : existing.getTradableAmount(),
-                                            existing.getCurrencyPair(),
-                                            existing.getId(),
-                                            update.getTimestamp(),
-                                            update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice()
-                                    );
-                                }
-                                return mergedOrder;
-                            }).collect(Collectors.toList());
-                    if (this.openOrders == null) {
-                        this.openOrders = new ArrayList<>();
-                    }
-                    if (openOrders.size() == 0) {
-                        eventBus.send(BtsEvent.MARKET_FREE);
+                    synchronized (openOrdersLock) {
+                        logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
+                        this.openOrders = updateOfOpenOrders.getOpenOrders().stream()
+                                .map(update -> {
+                                    // merge the orders
+                                    LimitOrder mergedOrder = update;
+                                    final Optional<LimitOrder> optionalExisting = this.openOrders.stream()
+                                            .filter(existing -> update.getId().equals(existing.getId()))
+                                            .findFirst();
+                                    if (optionalExisting.isPresent()) {
+                                        final LimitOrder existing = optionalExisting.get();
+                                        mergedOrder = new LimitOrder(
+                                                existing.getType(),
+                                                update.getTradableAmount() != null ? update.getTradableAmount() : existing.getTradableAmount(),
+                                                existing.getCurrencyPair(),
+                                                existing.getId(),
+                                                update.getTimestamp(),
+                                                update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice()
+                                        );
+                                    }
+                                    return mergedOrder;
+                                }).collect(Collectors.toList());
+                        if (this.openOrders == null) {
+                            this.openOrders = new ArrayList<>();
+                        }
+                        if (openOrders.size() == 0) {
+                            eventBus.send(BtsEvent.MARKET_FREE);
+                        }
                     }
 
                 }, throwable -> {

@@ -47,8 +47,8 @@ public abstract class MarketService {
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
-    protected Object openOrdersLock = new Object();
-    protected List<LimitOrder> openOrders = new CopyOnWriteArrayList<>();
+    protected final Object openOrdersLock = new Object();
+    protected List<LimitOrder> openOrders = new ArrayList<>();
     protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected AccountInfo accountInfo = null;
     protected AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
@@ -128,8 +128,17 @@ public abstract class MarketService {
                 .retry()
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_FREE) {
-                        isBusy = false;
-                        getTradeLogger().info("{}: {}", getName(), isBusy ? "busy" : "ready");
+                        if (isBusy) {
+                            isBusy = false;
+                            getTradeLogger().info("{}: ready", getName());
+                        } else {
+                            getTradeLogger().info("{}: already ready", getName());
+                        }
+                        if (openOrders.size() > 0) {
+                            iterateOpenOrdersMove();
+                            getTradeLogger().info("{}: try to move openOrders, lock={}", getName(), Thread.holdsLock(openOrdersLock));
+                        }
+
                     } else if (btsEvent == BtsEvent.MARKET_BUSY) {
                         isBusy = true;
                         getTradeLogger().info("{}: {}", getName(), isBusy ? "busy" : "ready");
