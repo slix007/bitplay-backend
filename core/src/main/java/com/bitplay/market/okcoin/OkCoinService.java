@@ -459,10 +459,10 @@ public class OkCoinService extends MarketService {
 
             orderType = adjustOrderType(orderType, amount);
 
-            if (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK)) {
-                theBestPrice = bestAsk;
-            } else { // orderType.equals(Order.OrderType.ASK)|| orderType.equals(Order.OrderType.EXIT_BID)
-                theBestPrice = bestBid;
+            if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
+                theBestPrice = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getLimitPrice();
+            } else { // if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
+                theBestPrice = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getLimitPrice();
             }
 
             final MarketOrder marketOrder = new MarketOrder(orderType,
