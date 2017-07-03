@@ -30,7 +30,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -131,6 +130,7 @@ public abstract class MarketService {
                         if (isBusy) {
                             isBusy = false;
                             getTradeLogger().info("{}: ready", getName());
+                            eventBus.send(BtsEvent.MARKET_GOT_FREE);
                         } else {
                             getTradeLogger().info("{}: already ready", getName());
                         }
@@ -252,8 +252,8 @@ public abstract class MarketService {
                     throw new IllegalStateException("GetOpenOrdersError", e);
                 }
 
-                if (orderIdToSignalInfo.size() > 100000) {
-                    logger.warn("orderIdToSignalInfo over 100000");
+                if (orderIdToSignalInfo.size() > 100) {
+                    logger.warn("orderIdToSignalInfo over 100");
                     final Map<String, BestQuotes> newMap = new HashMap<>();
                     openOrders.stream()
                             .map(LimitOrder::getId)
@@ -378,10 +378,11 @@ public abstract class MarketService {
                 }
             } catch (Exception e) {
                 logger.error("On moving", e);
-                final List<LimitOrder> orderList = fetchOpenOrders();
-                if (orderList.size() == 0) {
-                    eventBus.send(BtsEvent.MARKET_FREE);
-                }
+                haveToFetch = true;
+//                final List<LimitOrder> orderList = fetchOpenOrders();
+//                if (orderList.size() == 0) {
+//                    eventBus.send(BtsEvent.MARKET_FREE);
+//                }
             }
         }
 
