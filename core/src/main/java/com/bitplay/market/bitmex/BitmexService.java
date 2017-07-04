@@ -149,8 +149,9 @@ public class BitmexService extends MarketService {
     @Scheduled(fixedRate = 10 * 1000)
     public void checkForHangOrders() {
         if (!isBusy && openOrders.size() > 0) {
+            tradeLogger.info("{}: try to move openOrders, lock={}", getName());
+            //, Thread.holdsLock(openOrdersLock));
             iterateOpenOrdersMove();
-            tradeLogger.info("{}: try to move openOrders, lock={}", getName(), Thread.holdsLock(openOrdersLock));
         }
     }
 
@@ -167,7 +168,7 @@ public class BitmexService extends MarketService {
     @Override
     protected void iterateOpenOrdersMove() {
         boolean haveToClear = false;
-        synchronized (openOrdersLock) {
+//        synchronized (openOrdersLock) {
             for (LimitOrder openOrder : openOrders) {
                 if (openOrder.getType() != null) {
                     final SignalType signalType = arbitrageService.getSignalType();
@@ -176,7 +177,7 @@ public class BitmexService extends MarketService {
                         haveToClear = true;
                     }
                 }
-            }
+//            }
         }
 
         if (haveToClear) {
@@ -319,7 +320,7 @@ public class BitmexService extends MarketService {
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.computation())
                 .subscribe(updateOfOpenOrders -> {
-                    synchronized (openOrdersLock) {
+//                    synchronized (openOrdersLock) {
                         logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
                         this.openOrders = updateOfOpenOrders.getOpenOrders().stream()
                                 .map(update -> {
@@ -347,7 +348,7 @@ public class BitmexService extends MarketService {
                         if (openOrders.size() == 0) {
                             eventBus.send(BtsEvent.MARKET_FREE);
                         }
-                    }
+//                    }
 
                 }, throwable -> {
                     logger.error("OO.Exception: ", throwable);

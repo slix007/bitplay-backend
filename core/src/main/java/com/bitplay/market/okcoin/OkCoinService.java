@@ -405,7 +405,7 @@ public class OkCoinService extends MarketService {
     }
 
     private void updateOpenOrders(List<LimitOrder> trades) {
-        synchronized (openOrdersLock) {
+//        synchronized (openOrdersLock) {
             // Replace all existing with new info
             this.openOrders = this.openOrders.stream()
                     .map(existingInMemory -> {
@@ -443,7 +443,7 @@ public class OkCoinService extends MarketService {
 
             debugLog.info("NewOrders: " + Arrays.toString(newOrders.toArray()));
             this.openOrders.addAll(newOrders);
-        }
+//        }
     }
 
     @Override
@@ -466,7 +466,7 @@ public class OkCoinService extends MarketService {
 
             String status = "none";
             BigDecimal averagePrice = BigDecimal.ZERO;
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 20; i++) {
                 // 2. check status of the order
                 Thread.sleep(200);
                 final Collection<Order> order = tradeService.getOrder(orderId);
@@ -742,6 +742,10 @@ public class OkCoinService extends MarketService {
 
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
+        if (arbitrageService.getParams().getOkCoinOrderType().equals("taker")) {
+            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
+        }
+
         arbitrageService.setSignalType(signalType);
 
         // IT doesn't support moving
