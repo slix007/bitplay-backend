@@ -464,13 +464,30 @@ public class OkCoinService extends MarketService {
             String orderId = tradeService.placeMarketOrder(marketOrder);
             tradeResponse.setOrderId(orderId);
 
-            // 2. check status of the order
-            Thread.sleep(200);
-            final Collection<Order> order = tradeService.getOrder(orderId);
-            Order orderInfo = order.iterator().next();
+            String status = "none";
+            BigDecimal averagePrice = BigDecimal.ZERO;
+            for (int i = 0; i < 5; i++) {
+                // 2. check status of the order
+                Thread.sleep(200);
+                final Collection<Order> order = tradeService.getOrder(orderId);
+                Order orderInfo = order.iterator().next();
+                status = orderInfo.getStatus().toString();
+                averagePrice = orderInfo.getAveragePrice();
+
+                if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
+                    break;
+                } else {
+                    tradeLogger.error("#{} taker {} status={}, avgPrice={}, orderId={}",
+                            signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                            Utils.convertOrderTypeName(orderType),
+                            orderInfo.getStatus().toString(),
+                            orderInfo.getAveragePrice().toPlainString(),
+                            orderInfo.getId());
+                }
+            }
 
             writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType,
-                    orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
+                    averagePrice, orderId, status);
 
         } catch (Exception e) {
             tradeLogger.error("Place market order error " + e.toString());
