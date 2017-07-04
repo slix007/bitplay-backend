@@ -645,8 +645,8 @@ public class OkCoinService extends MarketService {
             final BigDecimal diff1 = bestQuotes.getAsk1_o().subtract(thePrice);
             final BigDecimal diff2 = thePrice.subtract(bestQuotes.getBid1_o());
             diffWithSignal = (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK))
-                    ? String.format("diff1_buy_o = ask_o[1] - order_price_buy_o = %s", diff1.toPlainString()) //"BUY"/"EXIT_SELL"
-                    : String.format("diff2_sell_o = order_price_sell_o - bid_o[1] = %s", diff2.toPlainString()); //"SELL"/"EXIT_BUY"
+                    ? String.format("diff1_buy_o = ask_o[1](%s) - order_price_buy_o(%s) = %s", bestQuotes.getAsk1_o().toPlainString(), thePrice.toPlainString(), diff1.toPlainString()) //"BUY"/"EXIT_SELL"
+                    : String.format("diff2_sell_o = order_price_sell_o(%s) - bid_o[1](%s) = %s", thePrice.toPlainString(), bestQuotes.getBid1_o().toPlainString(), diff2.toPlainString()); //"SELL"/"EXIT_BUY"
             arbitrageService.getOpenDiffs().setSecondOpenPrice(
                     (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK))
                     ? diff1 : diff2);
