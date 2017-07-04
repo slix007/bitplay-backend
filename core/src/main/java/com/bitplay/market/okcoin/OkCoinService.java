@@ -486,6 +486,10 @@ public class OkCoinService extends MarketService {
                 }
             }
 
+            if (signalType == SignalType.AUTOMATIC) {
+                arbitrageService.getOpenPrices().setSecondOpenPrice(averagePrice);
+            }
+
             writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType,
                     averagePrice, orderId, status);
 

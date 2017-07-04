@@ -146,6 +146,14 @@ public class BitmexService extends MarketService {
         }
     }
 
+    @Scheduled(fixedRate = 10 * 1000)
+    public void checkForHangOrders() {
+        if (!isBusy && openOrders.size() > 0) {
+            iterateOpenOrdersMove();
+            tradeLogger.info("{}: try to move openOrders, lock={}", getName(), Thread.holdsLock(openOrdersLock));
+        }
+    }
+
     private void startOpenOrderMovingListener() {
         orderBookObservable
                 .subscribeOn(Schedulers.io())
