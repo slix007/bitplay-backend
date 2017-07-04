@@ -149,9 +149,11 @@ public class BitmexService extends MarketService {
     @Scheduled(fixedRate = 10 * 1000)
     public void checkForHangOrders() {
         if (!isBusy && openOrders.size() > 0) {
-            tradeLogger.info("{}: try to move openOrders, lock={}", getName());
+
+            openOrders.clear();
+//            tradeLogger.info("{}: try to move openOrders, lock={}", getName());
             //, Thread.holdsLock(openOrdersLock));
-            iterateOpenOrdersMove();
+//            iterateOpenOrdersMove();
         }
     }
 
@@ -181,7 +183,7 @@ public class BitmexService extends MarketService {
         }
 
         if (haveToClear) {
-            openOrders = new ArrayList<>();
+            openOrders.clear();
             eventBus.send(BtsEvent.MARKET_FREE);
         }
     }
