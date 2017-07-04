@@ -451,8 +451,9 @@ public class ArbitrageService {
         Integer counter2 = params.getCounter2();
         BigDecimal border1 = params.getBorder1();
 
-        params.setCounter1(counter1 + 1);
-        counter1 = params.getCounter1();
+        counter1 += 1;
+        params.setCounter1(counter1);
+
         String iterationMarker = "";
         if (counter1.equals(counter2)) {
             iterationMarker = "whole iteration";
@@ -717,7 +718,9 @@ public class ArbitrageService {
         Integer counter2 = params.getCounter2();
         BigDecimal border2 = params.getBorder2();
 
-        params.setCounter2(counter2 + 1);
+        counter2 += 1;
+        params.setCounter2(counter2);
+
         String iterationMarker = "";
         if (counter1.equals(counter2)) {
             iterationMarker = "whole iteration";

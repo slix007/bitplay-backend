@@ -141,8 +141,10 @@ public abstract class MarketService {
                         }
 
                     } else if (btsEvent == BtsEvent.MARKET_BUSY) {
+                        if (!isBusy) {
+                            getTradeLogger().info("{}: busy", getName());
+                        }
                         isBusy = true;
-                        getTradeLogger().info("{}: {}", getName(), isBusy ? "busy" : "ready");
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }

@@ -461,6 +461,7 @@ public class BitmexService extends MarketService {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
             arbitrageService.setSignalType(signalType);
+            eventBus.send(BtsEvent.MARKET_BUSY);
 
             final TradeService tradeService = exchange.getTradeService();
             BigDecimal thePrice = BigDecimal.ZERO;

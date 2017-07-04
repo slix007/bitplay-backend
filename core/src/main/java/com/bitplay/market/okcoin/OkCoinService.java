@@ -466,9 +466,14 @@ public class OkCoinService extends MarketService {
 
             String status = "none";
             BigDecimal averagePrice = BigDecimal.ZERO;
-            for (int i = 0; i < 20; i++) {
+            for (int i = 0; i < 40; i++) {
                 // 2. check status of the order
-                Thread.sleep(200);
+                long sleepTime = 200;
+                if (i > 10) {
+                    sleepTime = 2000;
+                    tradeLogger.error("Warning: taker order is not ready");
+                }
+                Thread.sleep(sleepTime);
                 final Collection<Order> order = tradeService.getOrder(orderId);
                 Order orderInfo = order.iterator().next();
                 status = orderInfo.getStatus().toString();
@@ -585,6 +590,7 @@ public class OkCoinService extends MarketService {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
             arbitrageService.setSignalType(signalType);
+            eventBus.send(BtsEvent.MARKET_BUSY);
 
             BigDecimal thePrice;
 
@@ -747,6 +753,7 @@ public class OkCoinService extends MarketService {
         }
 
         arbitrageService.setSignalType(signalType);
+        eventBus.send(BtsEvent.MARKET_BUSY);
 
         // IT doesn't support moving
         // Do cancel ant place
