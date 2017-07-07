@@ -8,6 +8,7 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.TradeResponse;
 
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,11 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 .map(this::toVisualTrade)
                 .collect(Collectors.toList());
         return askTrades;
+    }
+
+    @Override
+    protected String getPositionString(Position position) {
+        return position.getPositionLong().toPlainString();
     }
 
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {

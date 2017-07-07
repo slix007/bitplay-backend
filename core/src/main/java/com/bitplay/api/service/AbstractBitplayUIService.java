@@ -107,7 +107,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     public AccountInfoJson getContractsAccountInfo() {
         final AccountInfoContracts accountInfoContracts = getBusinessService().getAccountInfoContracts();
         if (accountInfoContracts == null) {
-            return new AccountInfoJson("error", "error", "error", "error", "error", "error");
+            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error");
         }
 
         final BigDecimal available = accountInfoContracts.getAvailable();
@@ -117,12 +117,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final BigDecimal upl = accountInfoContracts.getUpl();
 
         final Position position = getBusinessService().getPosition();
-        String positionString = "upl=" + upl.toPlainString();
-
-        positionString += String.format("; %s + %s = %s; leverage=%s",
-                position.getPositionLong().toPlainString(),
-                position.getPositionShort().negate().toPlainString(),
-                position.getPositionLong().subtract(position.getPositionShort()).toPlainString(),
+        String positionString = String.format("%s; leverage=%s",
+                getPositionString(position),
                 position.getLeverage());
 
         positionString += String.format("; AvailableForLong:%s, AvailableForShort:%s",
@@ -136,7 +132,15 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 equity.toPlainString(),
                 margin.toPlainString(),
                 positionString,
+                upl.toPlainString(),
                 accountInfoContracts.toString());
+    }
+
+    protected String getPositionString(final Position position) {
+        return String.format("%s + %s = %s",
+                position.getPositionLong().toPlainString(),
+                position.getPositionShort().negate().toPlainString(),
+                position.getPositionLong().subtract(position.getPositionShort()).toPlainString());
     }
 
     protected TickerJson convertTicker(Ticker ticker) {

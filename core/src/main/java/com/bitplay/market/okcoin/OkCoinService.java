@@ -482,12 +482,14 @@ public class OkCoinService extends MarketService {
                 if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
                     break;
                 } else {
-                    tradeLogger.error("#{} taker {} status={}, avgPrice={}, orderId={}",
+                    tradeLogger.error("#{} taker {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
                             signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                             Utils.convertOrderTypeName(orderType),
                             orderInfo.getStatus().toString(),
                             orderInfo.getAveragePrice().toPlainString(),
-                            orderInfo.getId());
+                            orderInfo.getId(),
+                            orderInfo.getType(),
+                            orderInfo.getCumulativeAmount().toPlainString());
                 }
             }
 
