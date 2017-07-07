@@ -37,6 +37,7 @@ public class ArbitrageService {
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final String DELTA1 = "delta1";
     private static final String DELTA2 = "delta2";
+    private static final Object calcLock = new Object();
 
     @Autowired
     PersistenceService persistenceService;
@@ -342,7 +343,7 @@ public class ArbitrageService {
         BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
 
         if (isReadyForTheArbitrage) {
-            synchronized (this) {
+            synchronized (calcLock) {
                 final OrderBook firstOrderBook = firstMarketService.getOrderBook();
                 final OrderBook secondOrderBook = secondMarketService.getOrderBook();
 
@@ -390,8 +391,10 @@ public class ArbitrageService {
 
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setSignalType(SignalType.AUTOMATIC);
-                    firstMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
-                    secondMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
+                    firstMarketService.setBusy();
+                    secondMarketService.setBusy();
+//                    firstMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
+//                    secondMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
                     params.setLastDelta(DELTA1);
                     // Market specific params
                     params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
