@@ -582,44 +582,55 @@ public class OkCoinService extends MarketService {
     @Override
     public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                          SignalType signalType) {
-        if (arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
-            return placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
-        } else {
-            return placeTakerOrder(orderType, amountInContracts, bestQuotes, signalType);
+        TradeResponse tradeResponse = new TradeResponse();
+        try {
+            if (arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
+                tradeResponse = placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
+            } else {
+                tradeResponse = placeTakerOrder(orderType, amountInContracts, bestQuotes, signalType);
+            }
+        } catch (Exception e) {
+            String details = String.format("type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
+                    orderType, amountInContracts, bestQuotes, false, signalType);
+            logger.error("Place market order error. Details: " + details, e);
+            tradeLogger.info("maker error {}", e.toString() + ". Details: " + details);
+            tradeResponse.setOrderId(null);
+            tradeResponse.setErrorMessage(e.getMessage());
         }
+
+        return tradeResponse;
     }
 
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-                                          boolean isMoving, SignalType signalType) {
+                                          boolean isMoving, SignalType signalType) throws Exception {
         final TradeResponse tradeResponse = new TradeResponse();
-        try {
-            arbitrageService.setSignalType(signalType);
-            eventBus.send(BtsEvent.MARKET_BUSY);
+        arbitrageService.setSignalType(signalType);
+        eventBus.send(BtsEvent.MARKET_BUSY);
 
-            BigDecimal thePrice;
+        BigDecimal thePrice;
 
-            thePrice = createBestMakerPrice(orderType, false)
-                    .setScale(2, BigDecimal.ROUND_HALF_UP);
+        thePrice = createBestMakerPrice(orderType, false)
+                .setScale(2, BigDecimal.ROUND_HALF_UP);
 
-            if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
-                tradeResponse.setErrorMessage("The new price is 0 ");
-            } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
+        if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
+            tradeResponse.setErrorMessage("The new price is 0 ");
+        } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
 
-                tradeResponse.setErrorMessage("Not enough amount left. amount=" + tradeableAmount.toPlainString());
+            tradeResponse.setErrorMessage("Not enough amount left. amount=" + tradeableAmount.toPlainString());
 
-            } else {
-                // USING REST API
-                orderType = adjustOrderType(orderType, tradeableAmount);
+        } else {
+            // USING REST API
+            orderType = adjustOrderType(orderType, tradeableAmount);
 
-                final LimitOrder limitOrder = new LimitOrder(orderType,
-                        tradeableAmount,
-                        CURRENCY_PAIR_BTC_USD, "123", new Date(),
-                        thePrice);
+            final LimitOrder limitOrder = new LimitOrder(orderType,
+                    tradeableAmount,
+                    CURRENCY_PAIR_BTC_USD, "123", new Date(),
+                    thePrice);
 
-                String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
-                tradeResponse.setOrderId(orderId);
+            String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
+            tradeResponse.setOrderId(orderId);
 
-                // USING WEBSOCKET API
+            // USING WEBSOCKET API
 //                ContractOrderType contractOrderType;
 //                if (orderType == Order.OrderType.BID) {
 //                    contractOrderType = ContractOrderType.OPEN_LONG_POSITION_BUY;
@@ -634,35 +645,26 @@ public class OkCoinService extends MarketService {
 //                        contractOrderType);
 //                tradeResponse.setOrderId(orderId);
 
-                writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
-                        isMoving ? "Moving3:Moved" : "maker",
-                        signalType, thePrice, orderId, null);
+            writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
+                    isMoving ? "Moving3:Moved" : "maker",
+                    signalType, thePrice, orderId, null);
 
 //                final Disposable orderListener = startOrderListener(orderId);
 //                orderSubscriptions.put(orderId, orderListener);
-                final LimitOrder limitOrderWithId = new LimitOrder(orderType,
-                        tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(),
-                        thePrice);
-                tradeResponse.setLimitOrder(limitOrderWithId);
-                if (!isMoving) {
-                    // Warning java.util.ConcurrentModificationException with checkOpenOrdersForMoving()
-                    // (do not use from iterate over Open orders checkOpenOrdersForMoving())
-                    openOrders.add(limitOrderWithId);
-                }
-
-                if (signalType == SignalType.AUTOMATIC) {
-                    arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
-                }
-                orderIdToSignalInfo.put(orderId, bestQuotes);
+            final LimitOrder limitOrderWithId = new LimitOrder(orderType,
+                    tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(),
+                    thePrice);
+            tradeResponse.setLimitOrder(limitOrderWithId);
+            if (!isMoving) {
+                // Warning java.util.ConcurrentModificationException with checkOpenOrdersForMoving()
+                // (do not use from iterate over Open orders checkOpenOrdersForMoving())
+                openOrders.add(limitOrderWithId);
             }
 
-        } catch (Exception e) {
-            String details = String.format("type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
-                    orderType, tradeableAmount, bestQuotes, isMoving, signalType);
-            logger.error("Place market order error. Details: " + details, e);
-            tradeLogger.info("maker error {}", e.toString() + ". Details: " + details);
-            tradeResponse.setOrderId(null);
-            tradeResponse.setErrorMessage(e.getMessage());
+            if (signalType == SignalType.AUTOMATIC) {
+                arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
+            }
+            orderIdToSignalInfo.put(orderId, bestQuotes);
         }
 
         fetchOpenOrdersWithDelay();
@@ -820,25 +822,37 @@ public class OkCoinService extends MarketService {
         } else if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
             // Place order
             TradeResponse tradeResponse = new TradeResponse();
-            while (attemptCount < 4) {
-                attemptCount++;
-                final BigDecimal newAmount = limitOrder.getTradableAmount()
-                        .subtract(limitOrder.getCumulativeAmount());
-                tradeResponse = placeMakerOrder(limitOrder.getType(),
-                        newAmount, bestQuotes, true, signalType);
-                if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
-                    tradeLogger.info("#{} Moving3:Failed {} amount={},quote={},id={},attempt={}. Error: {}",
-                            counterName,
-                            limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-                            limitOrder.getTradableAmount(),
-                            limitOrder.getLimitPrice().toPlainString(),
-                            limitOrder.getId(),
-                            attemptCount,
-                            tradeResponse.getErrorCode());
-                }
-                if (tradeResponse.getErrorCode() == null) {
-                    // tradeResponse.getErrorCode().startsWith("Insufficient")) { // when amount less then affordable.
-                    break;
+            attemptCount = 0;
+            while (attemptCount < 5) {
+                try {
+                    attemptCount++;
+                    if (attemptCount > 1) {
+                        Thread.sleep(200 * attemptCount);
+                    }
+
+                    final BigDecimal newAmount = limitOrder.getTradableAmount()
+                            .subtract(limitOrder.getCumulativeAmount());
+                    tradeResponse = placeMakerOrder(limitOrder.getType(),
+                            newAmount, bestQuotes, true, signalType);
+                    if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
+                        tradeLogger.info("#{} Moving3:Failed {} amount={},quote={},id={},attempt={}. Error: {}",
+                                counterName,
+                                limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                                limitOrder.getTradableAmount(),
+                                limitOrder.getLimitPrice().toPlainString(),
+                                limitOrder.getId(),
+                                attemptCount,
+                                tradeResponse.getErrorCode());
+                    }
+                    if (tradeResponse.getErrorCode() == null) {
+                        // tradeResponse.getErrorCode().startsWith("Insufficient")) { // when amount less then affordable.
+                        break;
+                    }
+                } catch (Exception e) {
+                    logger.error("#{}/{} Moving3:placingError", counterName, attemptCount, e);
+                    tradeLogger.error("#{}/{} Moving3:placingError {}", counterName, attemptCount, e.toString());
+                    tradeResponse.setOrderId(null);
+                    tradeResponse.setErrorMessage(e.getMessage());
                 }
             }
             if (tradeResponse.getOrderId() != null) {
