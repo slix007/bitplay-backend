@@ -406,7 +406,7 @@ public class OkCoinService extends MarketService {
     }
 
     private void updateOpenOrders(List<LimitOrder> trades) {
-//        synchronized (openOrdersLock) {
+        synchronized (openOrdersLock) {
             // Replace all existing with new info
             this.openOrders = this.openOrders.stream()
                     .flatMap(existingInMemory -> {
@@ -458,7 +458,7 @@ public class OkCoinService extends MarketService {
 
             debugLog.info("NewOrders: " + Arrays.toString(newOrders.toArray()));
             this.openOrders.addAll(newOrders);
-//        }
+        }
     }
 
     @Override

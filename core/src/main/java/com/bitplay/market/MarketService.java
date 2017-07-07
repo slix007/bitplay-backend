@@ -46,7 +46,7 @@ public abstract class MarketService {
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
-//    protected final Object openOrdersLock = new Object();
+    protected final Object openOrdersLock = new Object();
     protected List<LimitOrder> openOrders = new ArrayList<>();
     protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected AccountInfo accountInfo = null;
@@ -135,9 +135,9 @@ public abstract class MarketService {
                             getTradeLogger().info("{}: already ready", getName());
                         }
                         if (openOrders.size() > 0) {
+                            getTradeLogger().info("{}: try to move openOrders, lock={}", getName(),
+                                    Thread.holdsLock(openOrdersLock));
                             iterateOpenOrdersMove();
-                            getTradeLogger().info("{}: try to move openOrders, lock={}", getName());
-//                                    Thread.holdsLock(openOrdersLock));
                         }
 
                     } else if (btsEvent == BtsEvent.MARKET_BUSY) {
@@ -232,7 +232,7 @@ public abstract class MarketService {
      * @return list of open orders.
      */
     protected List<LimitOrder> fetchOpenOrders() {
-//        synchronized (openOrdersLock) {
+        synchronized (openOrdersLock) {
 
             if (getExchange() != null && getTradeService() != null) {
                 try {
@@ -270,7 +270,7 @@ public abstract class MarketService {
                 }
 
             }
-//        }
+        }
         return openOrders;
     }
 
@@ -344,7 +344,7 @@ public abstract class MarketService {
     protected void iterateOpenOrdersMove() {
         boolean haveToFetch = false;
 
-//        synchronized (openOrdersLock) {
+        synchronized (openOrdersLock) {
             boolean freeTheMarket = false;
             List<String> toRemove = new ArrayList<>();
             List<LimitOrder> toAdd = new ArrayList<>();
@@ -391,7 +391,7 @@ public abstract class MarketService {
 //                    eventBus.send(BtsEvent.MARKET_FREE);
 //                }
             }
-//        }
+        }
 
         if (haveToFetch) {
             fetchOpenOrders();
