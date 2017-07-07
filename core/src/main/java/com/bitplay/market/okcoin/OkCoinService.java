@@ -39,6 +39,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -408,7 +409,7 @@ public class OkCoinService extends MarketService {
 //        synchronized (openOrdersLock) {
             // Replace all existing with new info
             this.openOrders = this.openOrders.stream()
-                    .map(existingInMemory -> {
+                    .flatMap(existingInMemory -> {
                         // merge if the update of an existingInMemory
                         LimitOrder order = existingInMemory;
                         final Optional<LimitOrder> optionalMatch = trades.stream()
@@ -420,8 +421,22 @@ public class OkCoinService extends MarketService {
                                     order.getId(), order.getStatus(), order.getTradableAmount(),
                                     order.getCumulativeAmount());
                         }
+                        // Remove old. 'CANCELED is skiped because it can be MovingInTheMiddle case'
+                        Collection<LimitOrder> optionalOrder = new ArrayList<>();
+                        if (order.getStatus() == Order.OrderStatus.CANCELED
+                                || order.getStatus() == Order.OrderStatus.PENDING_CANCEL
+                                || order.getStatus() == Order.OrderStatus.NEW
+                                || order.getStatus() == Order.OrderStatus.PENDING_NEW
+                                || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
+                                ) {
+                            optionalOrder.add(order);
+                        } else {
+                            tradeLogger.info("Order removing:id={},status={},amount={},filled={}",
+                                    order.getId(), order.getStatus(), order.getTradableAmount(),
+                                    order.getCumulativeAmount());
+                        }
 
-                        return order;
+                        return optionalOrder.stream();
                     }).collect(Collectors.toList());
 
             // Add new orders
@@ -754,9 +769,9 @@ public class OkCoinService extends MarketService {
 
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
-        if (arbitrageService.getParams().getOkCoinOrderType().equals("taker")) {
-            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
-        }
+//        if (arbitrageService.getParams().getOkCoinOrderType().equals("taker")) {
+//            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
+//        }
 
         arbitrageService.setSignalType(signalType);
         eventBus.send(BtsEvent.MARKET_BUSY);
