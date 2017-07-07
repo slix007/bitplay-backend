@@ -454,6 +454,8 @@ public class OkCoinService extends MarketService {
     public TradeResponse placeTakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType) {
         TradeResponse tradeResponse = new TradeResponse();
         try {
+            eventBus.send(BtsEvent.MARKET_BUSY);
+
             final TradeService tradeService = exchange.getTradeService();
 
             orderType = adjustOrderType(orderType, amount);

@@ -54,29 +54,25 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {
         final BigDecimal amount = new BigDecimal(tradeRequestJson.getAmount());
         Order.OrderType orderType;
+        SignalType signalType;
         switch (tradeRequestJson.getType()) {
             case BUY:
                 orderType = Order.OrderType.BID;
+                signalType = SignalType.MANUAL_BUY;
                 break;
             case SELL:
                 orderType = Order.OrderType.ASK;
+                signalType = SignalType.MANUAL_SELL;
                 break;
             default:
-                throw new IllegalArgumentException("No such order type " + tradeRequestJson.getType());
+                return new TradeResponseJson("Wrong orderType", "Wrong orderType");
+//                throw new IllegalArgumentException("No such order type " + tradeRequestJson.getType());
         }
 
         String orderId = null;
         if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
             orderId = "Not implemented"; //service.placeTakerOrder(orderType, amount);
         } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
-            SignalType signalType;
-            if (orderType.equals(Order.OrderType.ASK)) {
-                signalType = SignalType.MANUAL_SELL;
-            } else if (orderType.equals(Order.OrderType.BID)) {
-                signalType = SignalType.MANUAL_BUY;
-            } else {
-                return new TradeResponseJson("Wrong orderType", "Wrong orderType");
-            }
 
             final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount, null, signalType);
             orderId = tradeResponse.getOrderId();
