@@ -48,7 +48,9 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
     @Override
     protected String getPositionString(Position position) {
-        return position.getPositionLong().toPlainString();
+        return position.getPositionLong().signum() > 0
+                ? "+" + position.getPositionLong().toPlainString()
+                : position.getPositionLong().toPlainString();
     }
 
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {

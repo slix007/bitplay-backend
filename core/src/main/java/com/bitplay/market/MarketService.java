@@ -132,7 +132,7 @@ public abstract class MarketService {
                             getTradeLogger().info("{}: ready", getName());
                             eventBus.send(BtsEvent.MARKET_GOT_FREE);
                         } else {
-                            getTradeLogger().info("{}: already ready", getName());
+                            logger.info("{}: already ready", getName());
                         }
                         if (openOrders.size() > 0) {
                             getTradeLogger().info("{}: try to move openOrders, lock={}", getName(),

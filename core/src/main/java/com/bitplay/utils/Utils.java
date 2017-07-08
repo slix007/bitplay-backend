@@ -13,6 +13,14 @@ import java.util.stream.Collectors;
  */
 public class Utils {
 
+    public static LimitOrder getBestBid(OrderBook orderBook) {
+        return getBestBids(orderBook, 1).get(0);
+    }
+
+    public static LimitOrder getBestAsk(OrderBook orderBook) {
+        return getBestAsks(orderBook, 1).get(0);
+    }
+
     public static List<LimitOrder> getBestBids(List<LimitOrder> bids, int amount) {
         return bids.stream()
                 .sorted((o1, o2) -> o2.getLimitPrice().compareTo(o1.getLimitPrice()))

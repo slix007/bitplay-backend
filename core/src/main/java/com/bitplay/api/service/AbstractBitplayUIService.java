@@ -107,7 +107,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     public AccountInfoJson getContractsAccountInfo() {
         final AccountInfoContracts accountInfoContracts = getBusinessService().getAccountInfoContracts();
         if (accountInfoContracts == null) {
-            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error");
+            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
+                    "error", "error", "error", "error");
         }
 
         final BigDecimal available = accountInfoContracts.getAvailable();
@@ -115,32 +116,36 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final BigDecimal wallet = accountInfoContracts.getWallet();
         final BigDecimal margin = accountInfoContracts.getMargin();
         final BigDecimal upl = accountInfoContracts.getUpl();
+        final BigDecimal quAvg = getBusinessService().getArbitrageService().calcQuAvg();
 
         final Position position = getBusinessService().getPosition();
-        String positionString = String.format("%s; leverage=%s",
-                getPositionString(position),
-                position.getLeverage());
-
-        positionString += String.format("; AvailableForLong:%s, AvailableForShort:%s",
-                getBusinessService().getAffordableContractsForLong(),
-                getBusinessService().getAffordableContractsForShort()
-        );
+//        String positionString = String.format("%s; leverage=%s",
+//                getPositionString(position),
+//                position.getLeverage());
+//
+//        positionString += String.format("; AvailableForLong:%s, AvailableForShort:%s",
+//                getBusinessService().getAffordableContractsForLong(),
+//                getBusinessService().getAffordableContractsForShort()
+//        );
 
         return new AccountInfoJson(
                 wallet.toPlainString(),
                 available.toPlainString(),
                 equity.toPlainString(),
                 margin.toPlainString(),
-                positionString,
+                getPositionString(position),
                 upl.toPlainString(),
+                position.getLeverage().toPlainString(),
+                getBusinessService().getAffordableContractsForLong().toPlainString(),
+                getBusinessService().getAffordableContractsForShort().toPlainString(),
+                quAvg.toPlainString(),
                 accountInfoContracts.toString());
     }
 
     protected String getPositionString(final Position position) {
-        return String.format("%s + %s = %s",
-                position.getPositionLong().toPlainString(),
-                position.getPositionShort().negate().toPlainString(),
-                position.getPositionLong().subtract(position.getPositionShort()).toPlainString());
+        return String.format("%s%s",
+                "+" + position.getPositionLong().toPlainString(),
+                "-" + position.getPositionShort().toPlainString());
     }
 
     protected TickerJson convertTicker(Ticker ticker) {

@@ -594,12 +594,15 @@ public class ArbitrageService {
             final BigDecimal sumMUsd2 = sumM.multiply(buValue).setScale(2, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumAUsd2 = sumA.multiply(buValue).setScale(2, BigDecimal.ROUND_HALF_UP);
 
+            final BigDecimal quAvg = calcQuAvg();
+
             // sb=sum_w/sum_e/sum_UPL/sum_m/sum_a=sum_w_usd1/sum_e_usd1/sum_UPL_usd1/sum_m_usd1/sum_a_usd1=sum_w_usd2/sum_e_usd2/sum_UPL_usd2/sum_m_usd2/sum_a_usd2
-            sumBalString = String.format("sb=%s__%s__%s__%s__%s= %s__%s__%s__%s__%s= %s__%s__%s__%s__%s",
-                    sumW.toPlainString(), sumE.toPlainString(), sumUpl.toPlainString(), sumM.toPlainString(), sumA.toPlainString(),
-                    sumWUsd1.toPlainString(), sumEUsd1.toPlainString(), sumUplUsd1.toPlainString(), sumMUsd1.toPlainString(), sumAUsd1.toPlainString(),
-                    sumWUsd2.toPlainString(), sumEUsd2.toPlainString(), sumUplUsd2.toPlainString(), sumMUsd2.toPlainString(), sumAUsd2.toPlainString()
-            );
+            sumBalString = String.format("s_bal=w%s_%s, e%s_%s, u%s_%s, m%s_%s, a%s_%s",
+                    sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    sumM.toPlainString(), sumM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
         }
     }
 
@@ -825,7 +828,15 @@ public class ArbitrageService {
             }
             saveParamsToDb();
         }
+    }
 
+    public BigDecimal calcQuAvg() {
+//        qu_avg = (b_bid[1] + b_ask[1] + o_bid[1] + o_ask[1]) / 4;
+        final BigDecimal bB = Utils.getBestBid(firstMarketService.getOrderBook()).getLimitPrice();
+        final BigDecimal bA = Utils.getBestAsk(firstMarketService.getOrderBook()).getLimitPrice();
+        final BigDecimal oB = Utils.getBestBid(secondMarketService.getOrderBook()).getLimitPrice();
+        final BigDecimal oA = Utils.getBestAsk(secondMarketService.getOrderBook()).getLimitPrice();
+        return (bB.add(bA).add(oB).add(oA)).divide(BigDecimal.valueOf(4), 2, BigDecimal.ROUND_HALF_UP);
     }
 
     public BigDecimal getDelta1() {
