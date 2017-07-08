@@ -126,44 +126,47 @@ public class BitmexAdapters {
             for (JsonNode node : jsonNode) {
                 io.swagger.client.model.Order order = mapper.treeToValue(node, io.swagger.client.model.Order.class);
 
-                final String side = order.getSide(); // may be null
-                org.knowm.xchange.dto.Order.OrderType orderType = null;
-                BigDecimal tradableAmount = null;
-                CurrencyPair currencyPair = null;
-                BigDecimal price = null;
-
-                if (side != null) {
-                    orderType = side.equals("Buy")
-                            ? org.knowm.xchange.dto.Order.OrderType.BID
-                            : org.knowm.xchange.dto.Order.OrderType.ASK;
-
-                }
-                if (order.getOrderQty() != null) {
-                    tradableAmount = order.getOrderQty();
-                }
-                if (order.getSymbol() != null) {
-                    final String first = order.getSymbol().substring(0, 3);
-                    final String second = order.getSymbol().substring(3);
-                    currencyPair = new CurrencyPair(new Currency(first), new Currency(second));
-                }
-                if (order.getPrice() != null) {
-                    price = priceToBigDecimal(order.getPrice());
-                }
-
-                final Date timestamp = Date.from(order.getTimestamp().toInstant());
-
-                openOrders.add(
-                        new LimitOrder(orderType,
-                                tradableAmount,
-                                currencyPair,
-                                order.getOrderID(),
-                                timestamp,
-                                price)
-                );
+                final LimitOrder limitOrder = adaptLimitOrder(order);
+                openOrders.add(limitOrder);
             }
         }
 
         return new OpenOrders(openOrders);
+    }
+
+    public static LimitOrder adaptLimitOrder(io.swagger.client.model.Order order) {
+        final String side = order.getSide(); // may be null
+        Order.OrderType orderType = null;
+        BigDecimal tradableAmount = null;
+        CurrencyPair currencyPair = null;
+        BigDecimal price = null;
+
+        if (side != null) {
+            orderType = side.equals("Buy")
+                    ? Order.OrderType.BID
+                    : Order.OrderType.ASK;
+
+        }
+        if (order.getOrderQty() != null) {
+            tradableAmount = order.getOrderQty();
+        }
+        if (order.getSymbol() != null) {
+            final String first = order.getSymbol().substring(0, 3);
+            final String second = order.getSymbol().substring(3);
+            currencyPair = new CurrencyPair(new Currency(first), new Currency(second));
+        }
+        if (order.getPrice() != null) {
+            price = priceToBigDecimal(order.getPrice());
+        }
+
+        final Date timestamp = Date.from(order.getTimestamp().toInstant());
+
+        return new LimitOrder(orderType,
+                tradableAmount,
+                currencyPair,
+                order.getOrderID(),
+                timestamp,
+                price);
     }
 
 }

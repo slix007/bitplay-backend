@@ -268,9 +268,7 @@ public class OkCoinService extends MarketService {
 //                        eventBus.send(BtsEvent.MARKET_FREE);
 //                    }
                 })
-                .retry(3)
                 .subscribe();
-//        this.fetchOpenOrders();
     }
 
     /*

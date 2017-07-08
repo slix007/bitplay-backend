@@ -253,7 +253,7 @@ public class PoloniexService extends MarketService {
 //        checkOpenOrdersForMoving(orderBook);
 //    }
 
-    @Scheduled(fixedRate = 2000)
+//    @Scheduled(fixedRate = 2000)
     public void fetchOpenOrdersSchedule() {
         this.fetchOpenOrders();
     }

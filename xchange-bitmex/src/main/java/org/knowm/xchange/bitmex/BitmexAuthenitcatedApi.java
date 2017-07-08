@@ -1,6 +1,7 @@
 package org.knowm.xchange.bitmex;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
@@ -50,6 +51,16 @@ public interface BitmexAuthenitcatedApi {
                   @HeaderParam("api-signature") ParamsDigest signer,
                   @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
                   @QueryParam("currency") String currency
+    ) throws IOException;
+
+    @GET
+    @Path("/order")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    List<Order> openOrders(@HeaderParam("api-key") String apiKey,
+                           @HeaderParam("api-signature") ParamsDigest signer,
+                           @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+                           @QueryParam("filter") String filter,
+                           @QueryParam("count") String count
     ) throws IOException;
 
     @POST

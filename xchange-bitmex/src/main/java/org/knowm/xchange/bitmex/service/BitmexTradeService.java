@@ -1,6 +1,7 @@
 package org.knowm.xchange.bitmex.service;
 
 import org.knowm.xchange.Exchange;
+import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
@@ -16,6 +17,8 @@ import org.knowm.xchange.service.trade.params.orders.OpenOrdersParams;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by Sergey Shurmin on 5/18/17.
@@ -33,7 +36,19 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
 
     @Override
     public OpenOrders getOpenOrders(OpenOrdersParams params) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        throw new NotYetImplementedForExchangeException();
+        String filter = "{\"open\":true}"; //{"open": true}
+        String count = "10";
+        final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.openOrders(
+                exchange.getExchangeSpecification().getApiKey(),
+                signatureCreator,
+                exchange.getNonceFactory(),
+                filter,
+                count
+        );
+        final List<LimitOrder> limitOrders = orders.stream()
+                .map(BitmexAdapters::adaptLimitOrder)
+                .collect(Collectors.toList());
+        return new OpenOrders(limitOrders);
     }
 
     @Override
