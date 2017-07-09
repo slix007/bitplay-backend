@@ -59,8 +59,10 @@ import si.mazi.rescu.HttpStatusIOException;
 public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
+    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private final static String NAME = "bitmex";
+    private static final int MAX_ATTEMPTS = 10;
 
     private final static CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
@@ -141,6 +143,7 @@ public class BitmexService extends MarketService {
     public void dobleCheckAvailableBalance() {
         if (accountInfoContracts == null) {
             tradeLogger.warn("WARNING: Bitmex Balance is null");
+            warningLogger.warn("WARNING: Bitmex Balance is null");
             accountInfoSubscription.dispose();
             startAccountInfoListener();
         }
@@ -476,7 +479,7 @@ public class BitmexService extends MarketService {
 
             String orderId = null;
             int attemptCount = 0;
-            while (attemptCount < 5) {
+            while (attemptCount < MAX_ATTEMPTS) {
                 attemptCount++;
                 try {
                     thePrice = createBestMakerPrice(orderType, false)
@@ -489,11 +492,22 @@ public class BitmexService extends MarketService {
                     orderId = tradeService.placeLimitOrder(limitOrder);
                     break;
                 } catch (Exception e) {
-                    final String errorMessage = e.getMessage();
                     logger.error("Error on placeLimitOrder", e);
-                    tradeLogger.info("maker error {}", errorMessage);
+                    final String logString = String.format("#%s maker error attempt=%s: %s",
+                            signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                            attemptCount,
+                            e.getMessage());
+                    if (attemptCount == MAX_ATTEMPTS) {
+                        logger.error(logString, e);
+                        tradeLogger.error("Warning placing: " + logString);
+                        warningLogger.error("bitmex placing. Warning: " + logString);
+                    } else {
+                        logger.error(logString, e);
+                        tradeLogger.error(logString);
+                    }
+
                     tradeResponse.setOrderId(e.getMessage());
-                    tradeResponse.setErrorMessage(errorMessage);
+                    tradeResponse.setErrorMessage(e.getMessage());
                 }
             }
             if (orderId != null) {
@@ -552,7 +566,7 @@ public class BitmexService extends MarketService {
         BigDecimal bestMakerPrice = BigDecimal.ZERO;
         BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
 
-        while (attemptCount < 3) {
+        while (attemptCount < MAX_ATTEMPTS) {
             attemptCount++;
             try {
                 bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true)
@@ -572,6 +586,10 @@ public class BitmexService extends MarketService {
 
                 try {
                     final Error error = objectMapper.readValue(httpBody, Error.class);
+
+                    logger.error("MoveError", e);
+                    tradeLogger.error("MoveError: " + error.getError().getMessage());
+
                     if (error.getError().getMessage().startsWith("Invalid ordStatus")) {
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
                         // add flag
@@ -584,7 +602,19 @@ public class BitmexService extends MarketService {
 
             } catch (Exception e) {
                 lastExceptionMsg = e.getMessage();
-                logger.error("{} attempt on move maker order {}", attemptCount, e);
+                final String logString = String.format("#%s MovingError id=%s, attempt=%s: %s",
+                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                        limitOrder.getId(),
+                        attemptCount,
+                        e.getMessage());
+                if (attemptCount == MAX_ATTEMPTS) {
+                    logger.error(logString, e);
+                    tradeLogger.error("Warning: " + logString);
+                    warningLogger.error("bitmex. Warning: " + logString);
+                } else {
+                    logger.error(logString, e);
+                    tradeLogger.error(logString);
+                }
             }
         }
 

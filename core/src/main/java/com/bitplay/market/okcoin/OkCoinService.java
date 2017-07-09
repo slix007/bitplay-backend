@@ -64,6 +64,7 @@ public class OkCoinService extends MarketService {
 
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
+    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
 
@@ -77,6 +78,7 @@ public class OkCoinService extends MarketService {
     private Disposable accountInfoSubscription;
     private Disposable futureIndexSubscription;
     private Observable<OrderBook> orderBookObservable;
+    private static final int MAX_ATTEMPTS = 10;
 
     @Override
     public ArbitrageService getArbitrageService() {
@@ -493,6 +495,7 @@ public class OkCoinService extends MarketService {
                     if (i > 10) {
                         sleepTime = 2000;
                         tradeLogger.error("Warning: taker order is not ready");
+                        warningLogger.error("okcoin: Warning: taker order is not ready");
                     }
                     Thread.sleep(sleepTime);
                     final Collection<Order> order = tradeService.getOrder(orderId);
@@ -603,19 +606,39 @@ public class OkCoinService extends MarketService {
     public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                          SignalType signalType) {
         TradeResponse tradeResponse = new TradeResponse();
-        try {
-            if (arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
-                tradeResponse = placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
-            } else {
-                tradeResponse = placeTakerOrder(orderType, amountInContracts, bestQuotes, signalType);
+
+        int attemptCount = 0;
+        while (attemptCount < MAX_ATTEMPTS) {
+            try {
+                attemptCount++;
+                if (attemptCount > 1) {
+                    Thread.sleep(200 * attemptCount);
+                }
+
+                if (arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
+                    tradeResponse = placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
+                } else {
+                    tradeResponse = placeTakerOrder(orderType, amountInContracts, bestQuotes, signalType);
+                }
+                break;
+            } catch (Exception e) {
+                String details = String.format("#%s maker error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
+                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                        orderType, amountInContracts, bestQuotes, false, signalType);
+
+                logger.error(details, e);
+                if (attemptCount == MAX_ATTEMPTS) {
+                    logger.error(details, e);
+                    tradeLogger.error("Warning placing: " + details);
+                    warningLogger.error("okcoin: Warning: " + details);
+                } else {
+                    logger.error(details, e);
+                    tradeLogger.error(details);
+                }
+
+                tradeResponse.setOrderId(null);
+                tradeResponse.setErrorMessage(e.getMessage());
             }
-        } catch (Exception e) {
-            String details = String.format("type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
-                    orderType, amountInContracts, bestQuotes, false, signalType);
-            logger.error("Place market order error. Details: " + details, e);
-            tradeLogger.info("maker error {}", e.toString() + ". Details: " + details);
-            tradeResponse.setOrderId(null);
-            tradeResponse.setErrorMessage(e.getMessage());
         }
 
         return tradeResponse;
@@ -776,6 +799,7 @@ public class OkCoinService extends MarketService {
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
         if (arbitrageService.getParams().getOkCoinOrderType().equals("taker")) {
             tradeLogger.error("Warning: moving taker order");
+            warningLogger.error("okcoing: Warning: moving taker order");
 //            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
         }
 
@@ -793,7 +817,7 @@ public class OkCoinService extends MarketService {
         Exception lastException = null;
         OkCoinTradeResult okCoinTradeResult = null;
         final String counterName = signalType == SignalType.AUTOMATIC ? String.valueOf(arbitrageService.getCounter()) : signalType.getCounterName();
-        while (attemptCount < 2) {
+        while (attemptCount < MAX_ATTEMPTS) {
             attemptCount++;
             try {
                 okCoinTradeResult = tradeService.cancelOrderWithResult(limitOrder.getId(), CurrencyPair.BTC_USD, FuturesContract.ThisWeek);
@@ -813,6 +837,7 @@ public class OkCoinService extends MarketService {
             } catch (Exception e) {
                 lastException = e;
                 logger.error("{} attempt on cancel maker order", attemptCount, e);
+                tradeLogger.error("{} attempt on cancel maker order: {}", attemptCount, e.toString());
             }
         }
 
@@ -828,24 +853,27 @@ public class OkCoinService extends MarketService {
                     cancelledOrder.getCumulativeAmount());
         } catch (IOException e) {
             logger.error("On get order status", e);
+            tradeLogger.error("On get order status", e);
         }
 
         // 3. Place new or keep closed
         if (okCoinTradeResult == null) {
             final String msg = "Moving3:WARNING: Cancel result is null";
             tradeLogger.info(msg);
+            warningLogger.info("okcoing: " + msg);
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
         }
 
         if (cancelledOrder == null) {
             final String msg = "Moving3:WARNING: cancelledOrder is null";
             tradeLogger.info(msg);
+            warningLogger.info("okcoin" + msg);
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
         } else if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
             // Place order
             TradeResponse tradeResponse = new TradeResponse();
             attemptCount = 0;
-            while (attemptCount < 5) {
+            while (attemptCount < MAX_ATTEMPTS) {
                 try {
                     attemptCount++;
                     if (attemptCount > 1) {
@@ -871,8 +899,14 @@ public class OkCoinService extends MarketService {
                         break;
                     }
                 } catch (Exception e) {
-                    logger.error("#{}/{} Moving3:placingError", counterName, attemptCount, e);
-                    tradeLogger.error("#{}/{} Moving3:placingError {}", counterName, attemptCount, e.toString());
+                    if (attemptCount == MAX_ATTEMPTS) {
+                        logger.error("#{}/{} Moving3:placingError", counterName, attemptCount, e);
+                        tradeLogger.error("Warning: #{}/{} Moving3:placingError {}", counterName, attemptCount, e.toString());
+                        warningLogger.error("Warning: #{}/{} Moving3:placingError {}", counterName, attemptCount, e.toString());
+                    } else {
+                        logger.error("#{}/{} Moving3:placingError", counterName, attemptCount, e);
+                        tradeLogger.error("#{}/{} Moving3:placingError {}", counterName, attemptCount, e.toString());
+                    }
                     tradeResponse.setOrderId(null);
                     tradeResponse.setErrorMessage(e.getMessage());
                 }
