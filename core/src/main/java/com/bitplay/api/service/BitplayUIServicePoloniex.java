@@ -94,7 +94,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
                 return new TradeResponseJson("Wrong orderType", "Wrong orderType");
             }
 
-            tradeResponse = poloniexService.placeMakerOrder(orderType, amount, null, signalType);
+            tradeResponse = poloniexService.placeOrderOnSignal(orderType, amount, null, signalType);
         }
 
         final PoloniexTradeResponse poloniexTradeResponse = tradeResponse.getSpecificResponse() != null

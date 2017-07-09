@@ -462,8 +462,8 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
-                                         SignalType signalType) {
+    public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
+                                            SignalType signalType) {
         return placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
     }
 

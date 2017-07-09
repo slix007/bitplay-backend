@@ -157,7 +157,7 @@ public abstract class MarketService {
         return eventBus;
     }
 
-    public boolean isArbitrageInProgress() {
+    public boolean isBusy() {
         return isBusy;
     }
 
@@ -193,7 +193,7 @@ public abstract class MarketService {
         return contractIndex;
     }
 
-    public abstract TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);
+    public abstract TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);
 
     public BigDecimal getTotalPriceOfAmountToBuy(BigDecimal requiredAmountToBuy) {
         BigDecimal totalPrice = BigDecimal.ZERO;

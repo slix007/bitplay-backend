@@ -83,7 +83,7 @@ public class ArbitrageService {
         firstMarketService.getEventBus().toObserverable()
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
-                        if (!secondMarketService.isArbitrageInProgress()) {
+                        if (!secondMarketService.isBusy()) {
                             writeLogArbitrageIsDone();
                         }
                     }
@@ -91,7 +91,7 @@ public class ArbitrageService {
         secondMarketService.getEventBus().toObserverable()
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
-                        if (!firstMarketService.isArbitrageInProgress()) {
+                        if (!firstMarketService.isBusy()) {
                             writeLogArbitrageIsDone();
                         }
                     }
@@ -296,10 +296,10 @@ public class ArbitrageService {
 
         theCheckBusyTimer = Completable.timer(5, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
-                    if (firstMarketService.isArbitrageInProgress() || secondMarketService.isArbitrageInProgress()) {
-                        final String logString = String.format("#%s Warning: busy by isArbitrageInProgress for 5 min. first:%s, second:%s",
+                    if (firstMarketService.isBusy() || secondMarketService.isBusy()) {
+                        final String logString = String.format("#%s Warning: busy by isBusy for 5 min. first:%s, second:%s",
                                 getCounter(),
-                                firstMarketService.isArbitrageInProgress(), secondMarketService.isArbitrageInProgress());
+                                firstMarketService.isBusy(), secondMarketService.isBusy());
                         deltasLogger.warn(logString);
                         warningLogger.warn(logString);
                     } else if (!firstMarketService.isReadyForArbitrage() || !secondMarketService.isReadyForArbitrage()) {
@@ -412,8 +412,8 @@ public class ArbitrageService {
 
                     writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
 
-                    firstMarketService.placeMakerOrder(Order.OrderType.ASK, params.getBlock1(), bestQuotes, SignalType.AUTOMATIC);
-                    secondMarketService.placeMakerOrder(Order.OrderType.BID, params.getBlock2(), bestQuotes, SignalType.AUTOMATIC);
+                    firstMarketService.placeOrderOnSignal(Order.OrderType.ASK, params.getBlock1(), bestQuotes, SignalType.AUTOMATIC);
+                    secondMarketService.placeOrderOnSignal(Order.OrderType.BID, params.getBlock2(), bestQuotes, SignalType.AUTOMATIC);
                     setTimeoutAfterStartTrading();
 
                     saveParamsToDb();
@@ -440,8 +440,8 @@ public class ArbitrageService {
 
                     writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP);
 
-                    firstMarketService.placeMakerOrder(Order.OrderType.BID, params.getBlock1(), bestQuotes, SignalType.AUTOMATIC);
-                    secondMarketService.placeMakerOrder(Order.OrderType.ASK, params.getBlock2(), bestQuotes, SignalType.AUTOMATIC);
+                    firstMarketService.placeOrderOnSignal(Order.OrderType.BID, params.getBlock1(), bestQuotes, SignalType.AUTOMATIC);
+                    secondMarketService.placeOrderOnSignal(Order.OrderType.ASK, params.getBlock2(), bestQuotes, SignalType.AUTOMATIC);
                     setTimeoutAfterStartTrading();
 
                     saveParamsToDb();

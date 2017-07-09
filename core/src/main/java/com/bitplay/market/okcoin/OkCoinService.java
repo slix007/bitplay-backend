@@ -470,10 +470,9 @@ public class OkCoinService extends MarketService {
         return orderBook;
     }
 
-    public TradeResponse placeTakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType) {
+    public TradeResponse placeTakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType)
+            throws IOException, InterruptedException {
         TradeResponse tradeResponse = new TradeResponse();
-        try {
-            eventBus.send(BtsEvent.MARKET_BUSY);
 
             final TradeService tradeService = exchange.getTradeService();
 
@@ -489,31 +488,33 @@ public class OkCoinService extends MarketService {
 
                 String status = "none";
                 BigDecimal averagePrice = BigDecimal.ZERO;
-                for (int i = 0; i < 15; i++) { // 22 sec in general
-                    // 2. check status of the order
-                    long sleepTime = 200;
-                    if (i > 10) {
-                        sleepTime = 2000;
-                        tradeLogger.error("Warning: taker order is not ready");
-                        warningLogger.error("okcoin: Warning: taker order is not ready");
-                    }
-                    Thread.sleep(sleepTime);
-                    final Collection<Order> order = tradeService.getOrder(orderId);
-                    Order orderInfo = order.iterator().next();
-                    status = orderInfo.getStatus().toString();
-                    averagePrice = orderInfo.getAveragePrice();
+                if (orderId != null) {
+                    for (int i = 0; i < MAX_ATTEMPTS; i++) { // about 11 sec
+                        // 2. check status of the order
+                        long sleepTime = 200;
+                        if (i > 5) {
+                            sleepTime = 2000;
+                            tradeLogger.error("Warning: taker order is not ready");
+                            warningLogger.error("okcoin: Warning: taker order is not ready");
+                        }
+                        Thread.sleep(sleepTime);
+                        final Collection<Order> order = tradeService.getOrder(orderId);
+                        Order orderInfo = order.iterator().next();
+                        status = orderInfo.getStatus().toString();
+                        averagePrice = orderInfo.getAveragePrice();
 
-                    if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                        break;
-                    } else {
-                        tradeLogger.error("#{} taker {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
-                                signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
-                                Utils.convertOrderTypeName(orderType),
-                                orderInfo.getStatus().toString(),
-                                orderInfo.getAveragePrice().toPlainString(),
-                                orderInfo.getId(),
-                                orderInfo.getType(),
-                                orderInfo.getCumulativeAmount().toPlainString());
+                        if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
+                            break;
+                        } else {
+                            tradeLogger.error("#{} taker {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
+                                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                                    Utils.convertOrderTypeName(orderType),
+                                    orderInfo.getStatus().toString(),
+                                    orderInfo.getAveragePrice().toPlainString(),
+                                    orderInfo.getId(),
+                                    orderInfo.getType(),
+                                    orderInfo.getCumulativeAmount().toPlainString());
+                        }
                     }
                 }
 
@@ -525,15 +526,7 @@ public class OkCoinService extends MarketService {
                         averagePrice, orderId, status);
             }
 
-        } catch (Exception e) {
-            tradeLogger.error("Place market order error " + e.toString());
-            logger.error("Place market order error", e);
-            tradeResponse.setErrorMessage(e.getMessage());
-        } finally {
-            if (isBusy) {
-                getEventBus().send(BtsEvent.MARKET_FREE);
-            }
-        }
+
         return tradeResponse;
     }
 
@@ -603,8 +596,8 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
-                                         SignalType signalType) {
+    public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
+                                            SignalType signalType) {
         TradeResponse tradeResponse = new TradeResponse();
 
         int attemptCount = 0;

@@ -4,6 +4,7 @@ import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 
@@ -64,15 +65,28 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         }
 
         String orderId = null;
-        if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
-            final TradeResponse tradeResponse = service.placeTakerOrder(orderType, amount, null, signalType);
-            orderId = tradeResponse.getOrderId();
-        } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
-            final TradeResponse tradeResponse = service.placeMakerOrder(orderType, amount, null, signalType);
-            orderId = tradeResponse.getOrderId();
+        String details = null;
+        try {
+            getBusinessService().getEventBus().send(BtsEvent.MARKET_BUSY);
+
+            if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
+                final TradeResponse tradeResponse = service.placeTakerOrder(orderType, amount, null, signalType);
+                orderId = tradeResponse.getOrderId();
+            } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
+                final TradeResponse tradeResponse = service.placeOrderOnSignal(orderType, amount, null, signalType);
+                orderId = tradeResponse.getOrderId();
+            }
+        } catch (Exception e) {
+            getBusinessService().getTradeLogger().error("Place taker order error " + e.toString());
+            logger.error("Place taker order error", e);
+            details = e.getMessage();
+        } finally {
+            if (getBusinessService().isBusy()) {
+                getBusinessService().getEventBus().send(BtsEvent.MARKET_FREE);
+            }
         }
 
-        return new TradeResponseJson(orderId, null);
+        return new TradeResponseJson(orderId, details);
     }
 
 }
