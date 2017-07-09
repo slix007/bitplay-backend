@@ -600,7 +600,10 @@ public class ArbitrageService {
             final BigDecimal bAL = firstMarketService.getAffordableContractsForLong();
             final BigDecimal bAS = firstMarketService.getAffordableContractsForShort();
             final BigDecimal quAvg = calcQuAvg();
-            deltasLogger.info(String.format("#%s b_bal=w%s_%s, e%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s, lv%s, lg%s, st%s",
+            final OrderBook bOrderBook = firstMarketService.getOrderBook();
+            final BigDecimal bBestAsk = Utils.getBestAsks(bOrderBook, 1).get(0).getLimitPrice();
+            final BigDecimal bBestBid = Utils.getBestBids(bOrderBook, 1).get(0).getLimitPrice();
+            deltasLogger.info(String.format("#%s b_bal=w%s_%s, e%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s",
                     counterName,
                     bW.toPlainString(), bW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     bE.toPlainString(), bE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -610,7 +613,9 @@ public class ArbitrageService {
                     Utils.withSign(bP),
                     bLv.toPlainString(),
                     Utils.withSign(bAL),
-                    Utils.withSign(bAS)
+                    Utils.withSign(bAS),
+                    bBestAsk,
+                    bBestBid
             ));
 
             final BigDecimal oW = secondAccount.getWallet();
@@ -623,7 +628,10 @@ public class ArbitrageService {
             final BigDecimal oLv = secondMarketService.getPosition().getLeverage();
             final BigDecimal oAL = secondMarketService.getAffordableContractsForLong();
             final BigDecimal oAS = secondMarketService.getAffordableContractsForShort();
-            deltasLogger.info(String.format("#%s o_bal=w%s_%s, e%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s%s, lv%s, lg%s, st%s",
+            final OrderBook oOrderBook = secondMarketService.getOrderBook();
+            final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
+            final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
+            deltasLogger.info(String.format("#%s o_bal=w%s_%s, e%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s",
                     counterName,
                     oW.toPlainString(), oW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     oE.toPlainString(), oE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -633,7 +641,9 @@ public class ArbitrageService {
                     Utils.withSign(oPL), Utils.withSign(oPS),
                     oLv.toPlainString(),
                     Utils.withSign(oAL),
-                    Utils.withSign(oAS)
+                    Utils.withSign(oAS),
+                    oBestAsk,
+                    oBestBid
             ));
 
             final BigDecimal sumW = bW.add(oW).setScale(8, BigDecimal.ROUND_HALF_UP);
