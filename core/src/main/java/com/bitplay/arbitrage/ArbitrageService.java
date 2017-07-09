@@ -397,8 +397,8 @@ public class ArbitrageService {
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
                 if (checkBalance(DELTA1, params.getBlock1(), params.getBlock2()) //) {
-                        && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
-
+                        && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
+                        && isPositionsEqual()) {
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setSignalType(SignalType.AUTOMATIC);
                     firstMarketService.setBusy();
@@ -427,7 +427,8 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
                 if (checkBalance(DELTA2, params.getBlock1(), params.getBlock2()) //) {
-                        && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
+                        && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
+                        && isPositionsEqual()) {
 
                     bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
                     setSignalType(SignalType.AUTOMATIC);
@@ -452,6 +453,35 @@ public class ArbitrageService {
             }
         }
         return bestQuotes;
+    }
+
+    private boolean isPositionsEqual() {
+        final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
+
+        final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
+        final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
+
+        final boolean positionsEquals = ((oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100))).add(bP).signum() == 0;
+        if (!positionsEquals) {
+            final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
+            warningLogger.error("Error: {}", posString);
+            deltasLogger.error("Error: {}", posString);
+        }
+
+        if (oPL.signum() != 0 && oPS.signum() != 0) {
+            final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
+            warningLogger.error("Warning: {}", posString);
+            deltasLogger.error("Warning: {}", posString);
+        }
+        return positionsEquals;
+    }
+
+    public String getPositionsString() {
+        final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
+
+        final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
+        final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
+        return String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
     }
 
     private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_o, BigDecimal bid1_p, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {

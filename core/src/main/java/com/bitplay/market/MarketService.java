@@ -129,7 +129,7 @@ public abstract class MarketService {
                     if (btsEvent == BtsEvent.MARKET_FREE) {
                         if (isBusy) {
                             isBusy = false;
-                            getTradeLogger().info("{}: ready", getName());
+                            getTradeLogger().info("{}: ready, {}", getName(), getArbitrageService().getPositionsString());
                             eventBus.send(BtsEvent.MARKET_GOT_FREE);
                         } else {
                             logger.info("{}: already ready", getName());
@@ -148,7 +148,7 @@ public abstract class MarketService {
 
     public void setBusy() {
         if (!isBusy) {
-            getTradeLogger().info("{}: busy", getName());
+            getTradeLogger().info("{}: busy, {}", getName(), getArbitrageService().getPositionsString());
         }
         isBusy = true;
     }

@@ -331,7 +331,8 @@ public class BitmexService extends MarketService {
                 .getOpenOrdersObservable()
                 .doOnError(throwable -> logger.error("onOpenOrdersListening", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
-                .subscribeOn(Schedulers.computation())
+                .subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.computation())
                 .subscribe(updateOfOpenOrders -> {
 //                    synchronized (openOrdersLock) {
                         logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
@@ -365,6 +366,7 @@ public class BitmexService extends MarketService {
 
                 }, throwable -> {
                     logger.error("OO.Exception: ", throwable);
+                    startOpenOrderListener();
                 });
     }
 
