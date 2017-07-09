@@ -504,6 +504,7 @@ public class OkCoinService extends MarketService {
                         averagePrice = orderInfo.getAveragePrice();
 
                         if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
+                            eventBus.send(BtsEvent.MARKET_FREE);
                             break;
                         } else {
                             tradeLogger.error("#{} taker {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
