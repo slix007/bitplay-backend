@@ -144,6 +144,20 @@
         </encoder>
     </appender>
 
+    <appender name="WARNING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/warning.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/warning.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
     <appender name="SIGNAL_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/signal.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -188,6 +202,9 @@
     </logger>
     <logger name="DELTAS_LOG" level="debug" additivity="false">
         <appender-ref ref="DELTAS_APPENDER"/>
+    </logger>
+    <logger name="WARNING_LOG" level="debug" additivity="false">
+        <appender-ref ref="WARNING_APPENDER"/>
     </logger>
     <logger name="SIGNAL_LOG" level="debug" additivity="false">
         <appender-ref ref="SIGNAL_APPENDER"/>

@@ -86,6 +86,13 @@ public class CommonEndpoint {
     }
 
     @GET
+    @Path("/market/warning-log")
+    @Produces(MediaType.APPLICATION_JSON)
+    public TradeLogJson getWarningLog(@QueryParam("date") String date) {
+        return commonUIService.getWarningLog(date);
+    }
+
+    @GET
     @Path("/market/deltas")
     @Produces(MediaType.APPLICATION_JSON)
     public DeltasJson deltas() {

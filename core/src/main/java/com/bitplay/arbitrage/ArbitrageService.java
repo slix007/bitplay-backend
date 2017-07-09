@@ -35,6 +35,8 @@ public class ArbitrageService {
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
+    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+
     private static final String DELTA1 = "delta1";
     private static final String DELTA2 = "delta2";
     private static final Object calcLock = new Object();
@@ -250,11 +252,15 @@ public class ArbitrageService {
         final BigDecimal volDiff = volPlan.subtract(volFact);
 
         final String warningString = volDiff.compareTo(BigDecimal.ZERO) == 1 ? "WARNING vol_diff > 0" : "";
-        deltasLogger.info(String.format("#%s %s vol_fact=%s-%s=%s; vol_diff=%s-%s=%s",
+        final String logString = String.format("#%s %s vol_fact=%s-%s=%s; vol_diff=%s-%s=%s",
                 getCounter(),
                 warningString,
                 posAfter, posBefore, volFact,
-                volPlan, volFact, volDiff));
+                volPlan, volFact, volDiff);
+        if (volDiff.compareTo(BigDecimal.ZERO) == 1) {
+            warningLogger.error("deltas: " + logString);
+        }
+        deltasLogger.info(logString);
     }
 
     public MarketService getFirstMarketService() {
@@ -291,14 +297,18 @@ public class ArbitrageService {
         theCheckBusyTimer = Completable.timer(5, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
                     if (firstMarketService.isArbitrageInProgress() || secondMarketService.isArbitrageInProgress()) {
-                        deltasLogger.warn(String.format("#%s Warning: busy by isArbitrageInProgress for 5 min. first:%s, second:%s",
+                        final String logString = String.format("#%s Warning: busy by isArbitrageInProgress for 5 min. first:%s, second:%s",
                                 getCounter(),
-                                firstMarketService.isArbitrageInProgress(), secondMarketService.isArbitrageInProgress()));
+                                firstMarketService.isArbitrageInProgress(), secondMarketService.isArbitrageInProgress());
+                        deltasLogger.warn(logString);
+                        warningLogger.warn(logString);
                     } else if (!firstMarketService.isReadyForArbitrage() || !secondMarketService.isReadyForArbitrage()) {
-                        deltasLogger.warn(String.format("#%s Warning: busy for 5 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
+                        final String logString = String.format("#%s Warning: busy for 5 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
                                 getCounter(),
                                 firstMarketService.isReadyForArbitrage(), firstMarketService.getOpenOrders().size(),
-                                secondMarketService.isReadyForArbitrage(), secondMarketService.getOpenOrders().size()));
+                                secondMarketService.isReadyForArbitrage(), secondMarketService.getOpenOrders().size());
+                        deltasLogger.warn(logString);
+                        warningLogger.warn(logString);
                     }
                 })
                 .repeat()

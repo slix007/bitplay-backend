@@ -54,6 +54,16 @@ public class CommonUIService {
         return getTradeLogJson(logName);
     }
 
+    public TradeLogJson getWarningLog(String date) {
+        String logName;
+        if (date == null || date.trim().length() == 0) {
+            logName = "./logs/warning.log";
+        } else {
+            logName = String.format("./logs/warning.%s.log", date);
+        }
+        return getTradeLogJson(logName);
+    }
+
     private TradeLogJson getTradeLogJson(String fileName) {
         TradeLogJson tradeLogJson = null;
         try {
