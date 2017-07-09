@@ -4,6 +4,7 @@ import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,6 +13,10 @@ import java.util.stream.Collectors;
  * Created by Sergey Shurmin on 4/4/17.
  */
 public class Utils {
+
+    public static String withSign(BigDecimal value) {
+        return value.signum() < 0 ? value.toPlainString() : ("+" + value.toPlainString());
+    }
 
     public static LimitOrder getBestBid(OrderBook orderBook) {
         return getBestBids(orderBook, 1).get(0);
