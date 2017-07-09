@@ -600,10 +600,11 @@ public class BitmexService extends MarketService {
                         ? diff1 : diff2);
             }
 
-            final String logString = String.format("#%s Moved %s amount=%s,quote=%s,id=%s,attempt=%s. %s. position=%s",
+            final String logString = String.format("#%s Moved %s amount=%s, filled=%s,quote=%s,id=%s,attempt=%s. %s. position=%s",
                     signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
+                    limitOrder.getCumulativeAmount(),
                     bestMakerPrice.toPlainString(),
                     limitOrder.getId(),
                     attemptCount,
