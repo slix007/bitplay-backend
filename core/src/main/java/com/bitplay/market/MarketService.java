@@ -57,7 +57,7 @@ public abstract class MarketService {
     protected ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected int usdInContract = 0;
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
-    protected MarketState marketState = MarketState.IDLE;
+    protected SpecialFlags specialFlags = SpecialFlags.NONE;
 //    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
     protected boolean isBusy = false;
     protected EventBus eventBus = new EventBus();
@@ -336,7 +336,7 @@ public abstract class MarketService {
 
     protected synchronized void checkOpenOrdersForMoving() {
 //        debugLog.info(getName() + ":checkOpenOrdersForMoving");
-        if (isReadyForMoving && marketState != MarketState.STOP_MOVING) {
+        if (isReadyForMoving && specialFlags != SpecialFlags.STOP_MOVING) {
             iterateOpenOrdersMove();
         }
     }
@@ -453,7 +453,7 @@ public abstract class MarketService {
         MoveResponse response;
         BigDecimal bestPrice;
 
-        if (!isReadyForMoving || marketState == MarketState.STOP_MOVING) {
+        if (!isReadyForMoving || specialFlags == SpecialFlags.STOP_MOVING) {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.WAITING_TIMEOUT, "");
         } else if ((limitOrder.getType() == Order.OrderType.ASK && limitOrder.getLimitPrice().compareTo(bestAsk) == 0)
                 || (limitOrder.getType() == Order.OrderType.BID && limitOrder.getLimitPrice().compareTo(bestBid) == 0)) {
@@ -521,14 +521,14 @@ public abstract class MarketService {
     }
 
     public boolean isMovingStop() {
-        return marketState == MarketState.STOP_MOVING;
+        return specialFlags == SpecialFlags.STOP_MOVING;
     }
 
     public void setMovingStop(boolean shouldStopMoving) {
         if (shouldStopMoving) {
-            marketState = MarketState.STOP_MOVING;
+            specialFlags = SpecialFlags.STOP_MOVING;
         } else {
-            marketState = MarketState.IDLE;
+            specialFlags = SpecialFlags.NONE;
         }
     }
 
