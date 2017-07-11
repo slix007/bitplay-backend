@@ -526,6 +526,10 @@ public class OkCoinService extends MarketService {
             final Collection<Order> order = tradeService.getOrder(orderId);
             orderInfo = order.iterator().next();
 
+            if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
+                break;
+            }
+
             tradeLogger.error("#{}/{} taker {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
                     counterName, i,
                     Utils.convertOrderTypeName(orderType),
@@ -535,9 +539,6 @@ public class OkCoinService extends MarketService {
                     orderInfo.getType(),
                     orderInfo.getCumulativeAmount().toPlainString());
 
-            if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                break;
-            }
         }
         return Optional.ofNullable(orderInfo);
     }
@@ -605,6 +606,11 @@ public class OkCoinService extends MarketService {
         isAffordable = affordableVol.compareTo(tradableAmount) != -1;
 
         return isAffordable;
+    }
+
+    @Override
+    public boolean isReadyForNewOrder() {
+        return state == State.READY;
     }
 
     @Override
@@ -779,12 +785,13 @@ public class OkCoinService extends MarketService {
         if (arbitrageService.getParams().getOkCoinOrderType().equals("taker")
                 && state != State.IN_PROGRESS) {
             logger.error("taker not in progress. State={}", state);
+            tradeLogger.error("taker not in progress. State={}", state);
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "moving taker order");
         }
-        if (state != State.WAITING) {
-            tradeLogger.error("Moving declined. Try moving in wrong State={}", state);
-            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "moving declined");
-        }
+//        if (state != State.WAITING) {
+//            tradeLogger.error("Moving declined. Try moving in wrong State={}", state);
+//            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "moving declined");
+//        }
         state = State.IN_PROGRESS;
 
         arbitrageService.setSignalType(signalType);

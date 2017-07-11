@@ -109,6 +109,10 @@ public abstract class MarketService {
         return BigDecimal.ZERO;
     }
 
+    public boolean isReadyForNewOrder() {
+        return true;
+    }
+
     public boolean isReadyForArbitrage() {
         final long openOrdersCount = openOrders.stream()
                 .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0) // filter as for gui

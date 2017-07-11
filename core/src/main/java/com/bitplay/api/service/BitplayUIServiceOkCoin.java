@@ -67,6 +67,10 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         String orderId = null;
         String details = null;
         try {
+            if (!getBusinessService().isReadyForNewOrder()) {
+                getBusinessService().getTradeLogger().info("Market is not ready for new order");
+            }
+
             getBusinessService().getEventBus().send(BtsEvent.MARKET_BUSY);
 
             if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
