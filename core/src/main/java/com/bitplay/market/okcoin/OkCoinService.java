@@ -634,11 +634,11 @@ public class OkCoinService extends MarketService {
                 }
                 break;
             } catch (Exception e) {
-                String details = String.format("#%s maker error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
+                String details = String.format("#%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
                         signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
                         orderType, amountInContracts, bestQuotes, false, signalType);
                 logger.error(details, e);
-                tradeLogger.error(details, e);
+                tradeLogger.error(details + e.toString());
 //                warningLogger.error("Warning placing: " + details);
             }
         }
@@ -776,11 +776,10 @@ public class OkCoinService extends MarketService {
 
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
-//        if (arbitrageService.getParams().getOkCoinOrderType().equals("taker")) {
-//            tradeLogger.error("Warning: moving taker order");
-//            warningLogger.error("okcoing: Warning: moving taker order");
-//            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "moving taker order");
-//        }
+        if (limitOrder.getStatus() == Order.OrderStatus.CANCELED) {
+            tradeLogger.error("do not move ALREADY_CLOSED order");
+            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
+        }
 
         if (arbitrageService.getParams().getOkCoinOrderType().equals("taker")
                 && state != State.IN_PROGRESS) {
