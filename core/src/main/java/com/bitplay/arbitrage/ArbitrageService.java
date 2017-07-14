@@ -460,8 +460,9 @@ public class ArbitrageService {
 
         final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
+        final BigDecimal hedgeAmount = params.getHedgeAmount() != null ? params.getHedgeAmount() : BigDecimal.ZERO;
 
-        final boolean positionsEquals = ((oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100))).add(bP).signum() == 0;
+        final boolean positionsEquals = (((oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100))).add(bP)).subtract(hedgeAmount).signum() == 0;
         if (!positionsEquals) {
             final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
             warningLogger.error("Error: {}", posString);

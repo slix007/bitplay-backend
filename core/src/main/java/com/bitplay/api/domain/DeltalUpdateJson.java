@@ -24,6 +24,7 @@ public class DeltalUpdateJson {
     private String cumBitmexMCom;
     private String reserveBtc1;
     private String reserveBtc2;
+    private String hedgeAmount;
 
     public String getMakerDelta() {
         return makerDelta;
@@ -151,5 +152,13 @@ public class DeltalUpdateJson {
 
     public void setReserveBtc2(String reserveBtc2) {
         this.reserveBtc2 = reserveBtc2;
+    }
+
+    public String getHedgeAmount() {
+        return hedgeAmount;
+    }
+
+    public void setHedgeAmount(String hedgeAmount) {
+        this.hedgeAmount = hedgeAmount;
     }
 }

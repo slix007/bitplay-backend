@@ -101,7 +101,8 @@ public class CommonUIService {
                 String.valueOf(arbitrageService.getParams().getCounter2()),
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
-                arbitrageService.getParams().getReserveBtc2().toPlainString()
+                arbitrageService.getParams().getReserveBtc2().toPlainString(),
+                arbitrageService.getParams().getHedgeAmount().toPlainString()
         );
     }
 
@@ -134,10 +135,12 @@ public class CommonUIService {
                 String.valueOf(arbitrageService.getParams().getCounter2()),
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
-                arbitrageService.getParams().getReserveBtc2().toPlainString()
+                arbitrageService.getParams().getReserveBtc2().toPlainString(),
+                arbitrageService.getParams().getHedgeAmount().toPlainString()
         );
     }
 
+    //TODO move some params from Deltas to separate Data Object
     public DeltasJson updateMakerDelta(DeltalUpdateJson deltalUpdateJson) {
         if (deltalUpdateJson.getMakerDelta() != null) {
             arbitrageService.getParams().setMakerDelta(new BigDecimal(deltalUpdateJson.getMakerDelta()));
@@ -187,6 +190,9 @@ public class CommonUIService {
         if (deltalUpdateJson.getReserveBtc2() != null) {
             arbitrageService.getParams().setReserveBtc2(new BigDecimal(deltalUpdateJson.getReserveBtc2()));
         }
+        if (deltalUpdateJson.getHedgeAmount() != null) {
+            arbitrageService.getParams().setHedgeAmount(new BigDecimal(deltalUpdateJson.getHedgeAmount()));
+        }
         arbitrageService.saveParamsToDb();
 
         return new DeltasJson(
@@ -209,7 +215,8 @@ public class CommonUIService {
                 String.valueOf(arbitrageService.getParams().getCounter2()),
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
-                arbitrageService.getParams().getReserveBtc2().toPlainString()
+                arbitrageService.getParams().getReserveBtc2().toPlainString(),
+                arbitrageService.getParams().getHedgeAmount().toPlainString()
         );
     }
 
