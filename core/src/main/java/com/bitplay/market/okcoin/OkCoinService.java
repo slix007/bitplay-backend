@@ -252,6 +252,7 @@ public class OkCoinService extends MarketService {
                         BigDecimal.ZERO,
                         BigDecimal.ZERO,
                         BigDecimal.valueOf(20),
+                        BigDecimal.ZERO,
                         ""
                 );
             } else {
@@ -260,6 +261,7 @@ public class OkCoinService extends MarketService {
                         okCoinPosition.getBuyAmount(),
                         okCoinPosition.getSellAmount(),
                         okCoinPosition.getRate(),
+                        BigDecimal.ZERO,
                         okCoinPosition.toString()
                 );
             }
@@ -392,6 +394,7 @@ public class OkCoinService extends MarketService {
                         position = new Position(positionInfo.getPositionLong(),
                                 positionInfo.getPositionShort(),
                                 this.position.getLeverage(),
+                                BigDecimal.ZERO,
                                 positionInfo.getRaw());
                     }
                     if (privateData.getTrades() != null) {

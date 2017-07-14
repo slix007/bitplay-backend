@@ -105,6 +105,7 @@ public class BitmexAdapters {
                 position.getCurrentQty(),
                 BigDecimal.ZERO,
                 BigDecimal.valueOf(position.getLeverage()),
+                BigDecimal.valueOf(position.getLiquidationPrice()),
                 position.toString()
         );
     }

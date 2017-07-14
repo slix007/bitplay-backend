@@ -108,7 +108,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final AccountInfoContracts accountInfoContracts = getBusinessService().getAccountInfoContracts();
         if (accountInfoContracts == null) {
             return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
-                    "error", "error", "error", "error");
+                    "error", "error", "error", "error", "error");
         }
 
         final BigDecimal available = accountInfoContracts.getAvailable();
@@ -117,6 +117,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final BigDecimal margin = accountInfoContracts.getMargin();
         final BigDecimal upl = accountInfoContracts.getUpl();
         final BigDecimal quAvg = getBusinessService().getArbitrageService().calcQuAvg();
+        final BigDecimal liqPrice = getBusinessService().getPosition().getLiquidationPrice();
 
         final Position position = getBusinessService().getPosition();
 //        String positionString = String.format("%s; leverage=%s",
@@ -139,6 +140,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getBusinessService().getAffordableContractsForLong().toPlainString(),
                 getBusinessService().getAffordableContractsForShort().toPlainString(),
                 quAvg.toPlainString(),
+                liqPrice.toPlainString(),
                 accountInfoContracts.toString());
     }
 

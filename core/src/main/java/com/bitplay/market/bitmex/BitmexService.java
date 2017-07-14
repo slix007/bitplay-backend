@@ -420,46 +420,6 @@ public class BitmexService extends MarketService {
         final BigDecimal affordableVol = (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK)
                 ? this.affordableContractsForLong : this.affordableContractsForShort;
         isAffordable = affordableVol.compareTo(tradableAmount) != -1;
-/*
-        if (accountInfo != null && accountInfo.getWallet() != null) {
-
-            final Wallet wallet = accountInfo.getWallet();
-            final Balance walletBalance = wallet.getBalance(BitmexAdapters.WALLET_CURRENCY);
-            final Balance marginBalance = wallet.getBalance(BitmexAdapters.MARGIN_CURRENCY);
-            BigDecimal availableBtc = walletBalance.getAvailable();
-            BigDecimal equityBtc = marginBalance.getTotal();
-            final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
-            final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
-            final BigDecimal positionContracts = position.getPositionLong();
-            final BigDecimal leverage = position.getLeverage();
-
-            BigDecimal volAvailable = BigDecimal.ZERO;
-
-            if (availableBtc.signum() > 0) {
-                if (orderType.equals(Order.OrderType.BID)) {
-                    if (positionContracts.signum() < 0) {
-                        volAvailable = positionContracts.negate().add(
-                                (equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)
-                        ).setScale(0, BigDecimal.ROUND_DOWN);
-                    } else {
-                        volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk.multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
-                    }
-                }
-                if (orderType.equals(Order.OrderType.ASK)) {
-                    if (positionContracts.signum() > 0) {
-                        volAvailable = positionContracts.add(
-                                (equityBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)
-                        ).setScale(0, BigDecimal.ROUND_DOWN);
-                    } else {
-                        volAvailable = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
-                    }
-                }
-            }
-            affordableContracts = volAvailable;
-
-            isAffordable = volAvailable.compareTo(tradableAmount) != -1;
-        }*/
-
         return isAffordable;
     }
 
@@ -719,17 +679,17 @@ public class BitmexService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Position fetch error", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
-                .subscribe(position -> {
-                    if (position.getLeverage().signum() == 0) {
-                        this.position = new Position(
-                                position.getPositionLong(),
-                                position.getPositionShort(),
-                                this.position.getLeverage(),
-                                position.getRaw()
-                        );
-                    } else {
-                        this.position = position;
-                    }
+                .subscribe(pUpdate -> {
+                    BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? this.position.getLeverage() : pUpdate.getLeverage();
+                    BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
+                    this.position = new Position(
+                            pUpdate.getPositionLong(),
+                            pUpdate.getPositionShort(),
+                            leverage,
+                            liqPrice,
+                            pUpdate.getRaw()
+                    );
+
                     recalcAffordableContracts();
                 }, throwable -> {
                     logger.error("Can not fetch Position", throwable);

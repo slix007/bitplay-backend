@@ -17,6 +17,7 @@ public class AccountInfoJson {
     private String availableForLong;
     private String availableForShort;
     private String quAvg;
+    private String liqPrice;
     private String raw;
 
     public AccountInfoJson() {
@@ -28,7 +29,7 @@ public class AccountInfoJson {
         this.raw = raw;
     }
 
-    public AccountInfoJson(String wallet, String available, String equity, String margin, String position, String upl, String leverage, String availableForLong, String availableForShort, String quAvg, String raw) {
+    public AccountInfoJson(String wallet, String available, String equity, String margin, String position, String upl, String leverage, String availableForLong, String availableForShort, String quAvg, String liqPrice, String raw) {
         this.wallet = wallet;
         this.available = available;
         this.equity = equity;
@@ -39,6 +40,7 @@ public class AccountInfoJson {
         this.availableForLong = availableForLong;
         this.availableForShort = availableForShort;
         this.quAvg = quAvg;
+        this.liqPrice = liqPrice;
         this.raw = raw;
     }
 
@@ -88,6 +90,10 @@ public class AccountInfoJson {
 
     public String getQuAvg() {
         return quAvg;
+    }
+
+    public String getLiqPrice() {
+        return liqPrice;
     }
 
     public String getRaw() {

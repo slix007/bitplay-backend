@@ -51,7 +51,7 @@ public abstract class MarketService {
     protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected AccountInfo accountInfo = null;
     protected AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
-    protected Position position = new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "");
+    protected Position position = new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "");
     protected BigDecimal affordableContractsForShort = BigDecimal.ZERO;
     protected BigDecimal affordableContractsForLong = BigDecimal.ZERO;
     protected ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
