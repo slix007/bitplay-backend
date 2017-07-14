@@ -247,13 +247,22 @@ public class OkCoinService extends MarketService {
                 logger.warn("More than one positions found");
                 tradeLogger.warn("More than one positions found");
             }
-            final OkCoinPosition okCoinPosition = positionResult.getPositions()[0];
-            position = new Position(
-                    okCoinPosition.getBuyAmount(),
-                    okCoinPosition.getSellAmount(),
-                    okCoinPosition.getRate(),
-                    okCoinPosition.toString()
-            );
+            if (positionResult.getPositions().length == 0) {
+                position = new Position(
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO,
+                        BigDecimal.valueOf(20),
+                        ""
+                );
+            } else {
+                final OkCoinPosition okCoinPosition = positionResult.getPositions()[0];
+                position = new Position(
+                        okCoinPosition.getBuyAmount(),
+                        okCoinPosition.getSellAmount(),
+                        okCoinPosition.getRate(),
+                        okCoinPosition.toString()
+                );
+            }
 
             CompletableFuture.runAsync(this::recalcAffordableContracts);
 
