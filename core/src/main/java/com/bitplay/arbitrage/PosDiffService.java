@@ -68,7 +68,7 @@ public class PosDiffService {
                     marketService = arbitrageService.getFirstMarketService();
                 } else {
                     // okcoin buy
-                    correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_HALF_UP);
+                    correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
                     marketService = arbitrageService.getSecondMarketService();
                 }
             } else {
