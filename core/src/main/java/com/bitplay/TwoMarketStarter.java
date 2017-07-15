@@ -1,6 +1,7 @@
 package com.bitplay;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.MarketService;
 
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ public class TwoMarketStarter {
 
     private MarketService firstMarketService;
     private MarketService secondMarketService;
+    private PosDiffService posDiffService;
 
     private ArbitrageService arbitrageService;
     public TwoMarketStarter(ApplicationContext context,
@@ -43,12 +45,16 @@ public class TwoMarketStarter {
             final String firstMarketName = config.getFirstMarketName();
             firstMarketService = (MarketService) context.getBean(firstMarketName);
             firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret());
-            System.out.println("MARKET1: " + firstMarketService);
+            logger.info("MARKET1: " + firstMarketService);
 
             final String secondMarketName = config.getSecondMarketName();
             secondMarketService = (MarketService) context.getBean(secondMarketName);
             secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret());
-            System.out.println("MARKET2: " + secondMarketService);
+            logger.info("MARKET2: " + secondMarketService);
+
+            final String correctPosition = "pos-diff";
+            posDiffService = (PosDiffService) context.getBean(correctPosition);
+            logger.info("PosDiffService: " + posDiffService);
 
             arbitrageService.init(this);
         } catch (Exception e) {
@@ -62,5 +68,9 @@ public class TwoMarketStarter {
 
     public MarketService getSecondMarketService() {
         return secondMarketService;
+    }
+
+    public PosDiffService getPosDiffService() {
+        return posDiffService;
     }
 }

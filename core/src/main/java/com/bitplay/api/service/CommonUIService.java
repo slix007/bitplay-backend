@@ -9,7 +9,9 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.utils.Utils;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,9 @@ public class CommonUIService {
 
     @Autowired
     private ArbitrageService arbitrageService;
+
+    @Autowired
+    private PosDiffService posDiffService;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -278,6 +283,22 @@ public class CommonUIService {
     public ResultJson getSumBal() {
         final String sumBalString = arbitrageService.getSumBalString();
         return new ResultJson(sumBalString, "");
+    }
+
+    public ResultJson getPosDiff() {
+        final BigDecimal posDiff = posDiffService.getPositionsDiff();
+        final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
+        final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
+        final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+
+        return new ResultJson(
+                posDiffService.getIsPositionsEqual() ? "0" : "-1",
+                String.format("o(%s-%s) b(%s) = %s",
+                        Utils.withSign(oPL),
+                        oPS,
+                        Utils.withSign(bP),
+                        posDiff.toPlainString()
+                ));
     }
 
     public PlacingTypeJson getPlacingType() {

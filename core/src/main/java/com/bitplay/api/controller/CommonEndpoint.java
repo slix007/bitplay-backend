@@ -176,6 +176,13 @@ public class CommonEndpoint {
     }
 
     @GET
+    @Path("/market/pos-diff")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ResultJson getPositionEquality() {
+        return commonUIService.getPosDiff();
+    }
+
+    @GET
     @Path("/market/placing-type")
     @Produces(MediaType.APPLICATION_JSON)
     public PlacingTypeJson getPlacingType() {
