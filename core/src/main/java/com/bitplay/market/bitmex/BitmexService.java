@@ -680,7 +680,7 @@ public class BitmexService extends MarketService {
                 .doOnError(throwable -> logger.error("Position fetch error", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribe(pUpdate -> {
-                    BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? this.position.getLeverage() : pUpdate.getLeverage();
+                    BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
                     BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
                     this.position = new Position(
                             pUpdate.getPositionLong(),

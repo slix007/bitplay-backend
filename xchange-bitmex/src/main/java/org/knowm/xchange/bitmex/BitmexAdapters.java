@@ -104,8 +104,8 @@ public class BitmexAdapters {
         return new org.knowm.xchange.dto.account.Position(
                 position.getCurrentQty(),
                 BigDecimal.ZERO,
-                BigDecimal.valueOf(position.getLeverage()),
-                BigDecimal.valueOf(position.getLiquidationPrice()),
+                position.getLeverage() != null ? BigDecimal.valueOf(position.getLeverage()) : BigDecimal.ZERO,
+                position.getLiquidationPrice() != null ? BigDecimal.valueOf(position.getLiquidationPrice()) : BigDecimal.ZERO,
                 position.toString()
         );
     }
