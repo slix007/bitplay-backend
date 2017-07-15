@@ -62,6 +62,7 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal reserveBtc2 = BigDecimal.valueOf(0.00001);
     private String okCoinOrderType = "maker";
     private BigDecimal hedgeAmount = BigDecimal.ZERO;
+    private String posCorr = "enabled"; //stopped
 
     public GuiParams() {
     }
@@ -464,5 +465,13 @@ public class GuiParams extends AbstractDocument {
 
     public void setHedgeAmount(BigDecimal hedgeAmount) {
         this.hedgeAmount = hedgeAmount;
+    }
+
+    public String getPosCorr() {
+        return posCorr;
+    }
+
+    public void setPosCorr(String posCorr) {
+        this.posCorr = posCorr;
     }
 }

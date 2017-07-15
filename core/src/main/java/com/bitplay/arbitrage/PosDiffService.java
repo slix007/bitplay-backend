@@ -45,7 +45,8 @@ public class PosDiffService {
 
         writeWarnings(bP, oPL, oPS);
 
-        if (positionsDiffWithHedge.signum() != 0) {
+        if (arbitrageService.getParams().getPosCorr().equals("enabled")
+                && positionsDiffWithHedge.signum() != 0) {
             doCorrection(bP, oPL, oPS, hedgeAmount);
         }
     }
@@ -111,11 +112,11 @@ public class PosDiffService {
     }
 
     private void writeWarnings(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS) {
-        if (positionsDiffWithHedge.signum() != 0) {
-            final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
-            warningLogger.error("Error: {}", posString);
-            deltasLogger.error("Error: {}", posString);
-        }
+//        if (positionsDiffWithHedge.signum() != 0) {
+//            final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
+//            warningLogger.error("Error: {}", posString);
+//            deltasLogger.error("Error: {}", posString);
+//        }
 
         if (oPL.signum() != 0 && oPS.signum() != 0) {
             final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());

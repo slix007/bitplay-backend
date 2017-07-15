@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.api.domain.BorderUpdateJson;
+import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.MarketFlagsJson;
@@ -195,5 +196,20 @@ public class CommonEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     public PlacingTypeJson updatePlacingType(PlacingTypeJson placingTypeJson) {
         return commonUIService.updatePlacingType(placingTypeJson);
+    }
+
+    @POST
+    @Path("/market/pos-corr")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public ResultJson updatePosCorr(ChangeRequestJson changeRequestJson) {
+        return commonUIService.updatePosCorr(changeRequestJson);
+    }
+
+    @GET
+    @Path("/market/pos-corr")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ResultJson getPosCorr() {
+        return commonUIService.getPosCorr();
     }
 }

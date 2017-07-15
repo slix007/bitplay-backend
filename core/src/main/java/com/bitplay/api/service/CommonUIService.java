@@ -1,6 +1,7 @@
 package com.bitplay.api.service;
 
 import com.bitplay.api.domain.BorderUpdateJson;
+import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.MarketFlagsJson;
@@ -316,5 +317,15 @@ public class CommonUIService {
                 "maker",
                 arbitrageService.getParams().getOkCoinOrderType()
         );
+    }
+
+    public ResultJson getPosCorr() {
+        return new ResultJson(arbitrageService.getParams().getPosCorr(), "");
+    }
+
+    public ResultJson updatePosCorr(ChangeRequestJson changeRequestJson) {
+        arbitrageService.getParams().setPosCorr(changeRequestJson.getCommand());
+        arbitrageService.saveParamsToDb();
+        return new ResultJson(arbitrageService.getParams().getPosCorr(), "");
     }
 }
