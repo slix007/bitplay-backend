@@ -2,12 +2,12 @@ package com.bitplay.api.controller;
 
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.api.domain.BorderUpdateJson;
-import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketList;
 import com.bitplay.api.domain.PlacingTypeJson;
+import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
@@ -202,14 +202,15 @@ public class CommonEndpoint {
     @Path("/market/pos-corr")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ResultJson updatePosCorr(ChangeRequestJson changeRequestJson) {
-        return commonUIService.updatePosCorr(changeRequestJson);
+    public PosCorrJson updatePosCorr(PosCorrJson posCorrJson) {
+        return commonUIService.updatePosCorr(posCorrJson);
     }
 
     @GET
     @Path("/market/pos-corr")
     @Produces(MediaType.APPLICATION_JSON)
-    public ResultJson getPosCorr() {
+    public PosCorrJson getPosCorr() {
         return commonUIService.getPosCorr();
     }
+
 }

@@ -62,7 +62,9 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal reserveBtc2 = BigDecimal.valueOf(0.00001);
     private String okCoinOrderType = "maker";
     private BigDecimal hedgeAmount = BigDecimal.ZERO;
-    private String posCorr = "enabled"; //stopped
+    private String posCorr = "stopped"; //enabled
+    private BigDecimal maxDiffCorr = BigDecimal.valueOf(1000);
+    private Long periodToCorrection = 30L;
 
     public GuiParams() {
     }
@@ -473,5 +475,21 @@ public class GuiParams extends AbstractDocument {
 
     public void setPosCorr(String posCorr) {
         this.posCorr = posCorr;
+    }
+
+    public BigDecimal getMaxDiffCorr() {
+        return maxDiffCorr;
+    }
+
+    public void setMaxDiffCorr(BigDecimal maxDiffCorr) {
+        this.maxDiffCorr = maxDiffCorr;
+    }
+
+    public Long getPeriodToCorrection() {
+        return periodToCorrection;
+    }
+
+    public void setPeriodToCorrection(Long periodToCorrection) {
+        this.periodToCorrection = periodToCorrection;
     }
 }

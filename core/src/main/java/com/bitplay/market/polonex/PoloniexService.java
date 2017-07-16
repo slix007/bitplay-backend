@@ -2,6 +2,7 @@ package com.bitplay.market.polonex;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
@@ -80,6 +81,11 @@ public class PoloniexService extends MarketService {
     //    @Autowired
 //    WebSocketEndpoint webSocketEndpoint;
     private List<Long> latencyList = new ArrayList<>();
+
+    @Override
+    public PosDiffService getPosDiffService() {
+        return null;
+    }
 
     @Override
     public ArbitrageService getArbitrageService() {

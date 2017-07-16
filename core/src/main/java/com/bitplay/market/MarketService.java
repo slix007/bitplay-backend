@@ -2,6 +2,7 @@ package com.bitplay.market;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
@@ -115,13 +116,13 @@ public abstract class MarketService {
     }
 
     public boolean isReadyForArbitrage() {
+        if (openOrders.stream().anyMatch(Objects::isNull)) {
+            final String warnMsg = "WARNING: OO has null element";
+            getTradeLogger().error(warnMsg);
+            logger.error(warnMsg);
+        }
         openOrders.stream()
                 .filter(Objects::nonNull)
-                .peek(limitOrder -> {
-                    final String warnMsg = "WARNING: OO has null element";
-                    getTradeLogger().error(warnMsg);
-                    logger.error(warnMsg);
-                })
                 .filter(limitOrder -> limitOrder.getTradableAmount() == null)
                 .forEach(limitOrder -> {
                     final String warnMsg = "WARNING: OO amount is null. " + limitOrder.toString();
@@ -157,15 +158,34 @@ public abstract class MarketService {
 
     public void setBusy() {
         if (!isBusy) {
-            getTradeLogger().info("{}: busy, {}", getName(), getArbitrageService().getPositionsString());
+            getTradeLogger().info("{}: busy, {}", getName(),
+                    getPosDiffString());
         }
         isBusy = true;
+    }
+
+    private String getPosDiffString() {
+        final BigDecimal posDiff = getPosDiffService().getPositionsDiff();
+        final BigDecimal bP = getArbitrageService().getFirstMarketService().getPosition().getPositionLong();
+        final BigDecimal oPL = getArbitrageService().getSecondMarketService().getPosition().getPositionLong();
+        final BigDecimal oPS = getArbitrageService().getSecondMarketService().getPosition().getPositionShort();
+        final BigDecimal ha = getArbitrageService().getParams().getHedgeAmount();
+        final BigDecimal dc = getPosDiffService().getPositionsDiffWithHedge();
+        final BigDecimal mdc = getArbitrageService().getParams().getMaxDiffCorr();
+        return String.format("o(%s-%s) b(%s) = %s, ha=%s, dc=%s, mdc=%s",
+                Utils.withSign(oPL),
+                oPS,
+                Utils.withSign(bP),
+                posDiff.toPlainString(),
+                ha, dc, mdc
+        );
     }
 
     private void setFree() {
         if (isBusy) {
             isBusy = false;
-            getTradeLogger().info("{}: ready, {}", getName(), getArbitrageService().getPositionsString());
+            getTradeLogger().info("{}: ready, {}", getName(),
+                    getPosDiffString());
             eventBus.send(BtsEvent.MARKET_GOT_FREE);
         } else {
             logger.info("{}: already ready", getName());
@@ -196,6 +216,8 @@ public abstract class MarketService {
     public abstract String getName();
 
     public abstract ArbitrageService getArbitrageService();
+
+    public abstract PosDiffService getPosDiffService();
 
     public AccountInfo getAccountInfo() {
         return accountInfo;

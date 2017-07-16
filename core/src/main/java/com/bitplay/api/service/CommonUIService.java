@@ -1,11 +1,11 @@
 package com.bitplay.api.service;
 
 import com.bitplay.api.domain.BorderUpdateJson;
-import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.PlacingTypeJson;
+import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
@@ -291,14 +291,18 @@ public class CommonUIService {
         final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+        final BigDecimal ha = arbitrageService.getParams().getHedgeAmount();
+        final BigDecimal dc = posDiffService.getPositionsDiffWithHedge();
+        final BigDecimal mdc = arbitrageService.getParams().getMaxDiffCorr();
 
         return new ResultJson(
                 posDiffService.getIsPositionsEqual() ? "0" : "-1",
-                String.format("o(%s-%s) b(%s) = %s",
+                String.format("o(%s-%s) b(%s) = %s, ha=%s, dc=%s, mdc=%s",
                         Utils.withSign(oPL),
                         oPS,
                         Utils.withSign(bP),
-                        posDiff.toPlainString()
+                        posDiff.toPlainString(),
+                        ha, dc, mdc
                 ));
     }
 
@@ -319,13 +323,25 @@ public class CommonUIService {
         );
     }
 
-    public ResultJson getPosCorr() {
-        return new ResultJson(arbitrageService.getParams().getPosCorr(), "");
+    public PosCorrJson getPosCorr() {
+        return new PosCorrJson(arbitrageService.getParams().getPosCorr(),
+                arbitrageService.getParams().getPeriodToCorrection(),
+                arbitrageService.getParams().getMaxDiffCorr().toPlainString());
     }
 
-    public ResultJson updatePosCorr(ChangeRequestJson changeRequestJson) {
-        arbitrageService.getParams().setPosCorr(changeRequestJson.getCommand());
+    public PosCorrJson updatePosCorr(PosCorrJson posCorrJson) {
+        if (posCorrJson.getStatus() != null) {
+            arbitrageService.getParams().setPosCorr(posCorrJson.getStatus());
+        }
+        if (posCorrJson.getMaxDiffCorr() != null) {
+            arbitrageService.getParams().setMaxDiffCorr(new BigDecimal(posCorrJson.getMaxDiffCorr()));
+        }
+        if (posCorrJson.getPeriodToCorrection() != null) {
+            posDiffService.setPeriodToCorrection(posCorrJson.getPeriodToCorrection());
+        }
         arbitrageService.saveParamsToDb();
-        return new ResultJson(arbitrageService.getParams().getPosCorr(), "");
+        return new PosCorrJson(arbitrageService.getParams().getPosCorr(),
+                arbitrageService.getParams().getPeriodToCorrection(),
+                arbitrageService.getParams().getMaxDiffCorr().toPlainString());
     }
 }

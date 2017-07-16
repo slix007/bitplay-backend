@@ -54,7 +54,7 @@ public class ArbitrageService {
     private Instant previousEmitTime = Instant.now();
     private String sumBalString = "";
 
-    private Boolean isReadyForTheArbitrage = true;
+    private volatile Boolean isReadyForTheArbitrage = true;
     private Disposable theTimer;
     private Disposable theCheckBusyTimer;
 

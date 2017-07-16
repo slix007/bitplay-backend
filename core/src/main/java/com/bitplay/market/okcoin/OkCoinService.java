@@ -2,6 +2,7 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.State;
@@ -73,6 +74,8 @@ public class OkCoinService extends MarketService {
     private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
     private final static String NAME = "okcoin";
 
+    @Autowired
+    private PosDiffService posDiffService;
     ArbitrageService arbitrageService;
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
@@ -82,6 +85,11 @@ public class OkCoinService extends MarketService {
     private Observable<OrderBook> orderBookObservable;
     private static final int MAX_ATTEMPTS = 10;
     protected State state = State.READY;
+
+    @Override
+    public PosDiffService getPosDiffService() {
+        return posDiffService;
+    }
 
     @Override
     public ArbitrageService getArbitrageService() {

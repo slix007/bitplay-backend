@@ -2,6 +2,7 @@ package com.bitplay.market.bitmex;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.events.BtsEvent;
@@ -79,9 +80,17 @@ public class BitmexService extends MarketService {
 
     private ArbitrageService arbitrageService;
 
+    @Autowired
+    private PosDiffService posDiffService;
+
     @Override
     public ArbitrageService getArbitrageService() {
         return arbitrageService;
+    }
+
+    @Override
+    public PosDiffService getPosDiffService() {
+        return posDiffService;
     }
 
     @Autowired
