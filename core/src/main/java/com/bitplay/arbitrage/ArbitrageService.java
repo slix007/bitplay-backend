@@ -299,11 +299,24 @@ public class ArbitrageService {
         theCheckBusyTimer = Completable.timer(5, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
                     if (firstMarketService.isBusy() || secondMarketService.isBusy()) {
-                        final String logString = String.format("#%s Warning: busy by isBusy for 5 min. first:%s, second:%s",
+                        final String logString = String.format("#%s Warning: busy by isBusy for 5 min. first:%s(%s), second:%s(%s)",
                                 getCounter(),
-                                firstMarketService.isBusy(), secondMarketService.isBusy());
+                                firstMarketService.isBusy(),
+                                firstMarketService.getOpenOrders().size(),
+                                secondMarketService.isBusy(),
+                                secondMarketService.getOpenOrders().size());
                         deltasLogger.warn(logString);
                         warningLogger.warn(logString);
+
+
+                        if (firstMarketService.isBusy() && firstMarketService.getOpenOrders().size() == 0) {
+                            firstMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
+                        }
+
+                        if (secondMarketService.isBusy() && secondMarketService.getOpenOrders().size() == 0) {
+                            secondMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
+                        }
+
                     } else if (!firstMarketService.isReadyForArbitrage() || !secondMarketService.isReadyForArbitrage()) {
                         final String logString = String.format("#%s Warning: busy for 5 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
                                 getCounter(),

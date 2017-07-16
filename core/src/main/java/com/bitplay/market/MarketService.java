@@ -59,9 +59,9 @@ public abstract class MarketService {
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
     protected SpecialFlags specialFlags = SpecialFlags.NONE;
 //    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
-    protected boolean isBusy = false;
+    protected volatile Boolean isBusy = false;
     protected EventBus eventBus = new EventBus();
-    private Boolean isReadyForMoving = true;
+    private volatile Boolean isReadyForMoving = true;
     private Disposable theTimer;
 
     public void init(String key, String secret) {
@@ -131,19 +131,7 @@ public abstract class MarketService {
                 .retry()
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_FREE) {
-                        if (isBusy) {
-                            isBusy = false;
-                            getTradeLogger().info("{}: ready, {}", getName(), getArbitrageService().getPositionsString());
-                            eventBus.send(BtsEvent.MARKET_GOT_FREE);
-                        } else {
-                            logger.info("{}: already ready", getName());
-                        }
-                        if (openOrders.size() > 0) {
-                            getTradeLogger().info("{}: try to move openOrders, lock={}", getName(),
-                                    Thread.holdsLock(openOrdersLock));
-                            iterateOpenOrdersMove();
-                        }
-
+                        setFree();
                     } else if (btsEvent == BtsEvent.MARKET_BUSY) {
                         setBusy();
                     }
@@ -155,6 +143,21 @@ public abstract class MarketService {
             getTradeLogger().info("{}: busy, {}", getName(), getArbitrageService().getPositionsString());
         }
         isBusy = true;
+    }
+
+    private void setFree() {
+        if (isBusy) {
+            isBusy = false;
+            getTradeLogger().info("{}: ready, {}", getName(), getArbitrageService().getPositionsString());
+            eventBus.send(BtsEvent.MARKET_GOT_FREE);
+        } else {
+            logger.info("{}: already ready", getName());
+        }
+        if (openOrders.size() > 0) {
+            getTradeLogger().info("{}: try to move openOrders, lock={}", getName(),
+                    Thread.holdsLock(openOrdersLock));
+            iterateOpenOrdersMove();
+        }
     }
 
     public EventBus getEventBus() {
