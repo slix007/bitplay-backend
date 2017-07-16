@@ -310,10 +310,14 @@ public class ArbitrageService {
 
 
                         if (firstMarketService.isBusy() && firstMarketService.getOpenOrders().size() == 0) {
+                            deltasLogger.warn("Warning: Free Okcoin");
+                            warningLogger.warn("Warning: Free Okcoin");
                             firstMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
 
                         if (secondMarketService.isBusy() && secondMarketService.getOpenOrders().size() == 0) {
+                            deltasLogger.warn("Warning: Free Bitmex");
+                            warningLogger.warn("Warning: Free Bitmex");
                             secondMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
 

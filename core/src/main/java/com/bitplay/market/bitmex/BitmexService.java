@@ -159,14 +159,14 @@ public class BitmexService extends MarketService {
 //            iterateOpenOrdersMove();
         }
     }
-
+/*
     @Scheduled(fixedRate = 1000 * 20)
     public void fetchOpenOrdersWithDelay() {
         fetchOpenOrders(); // Synchronous
         if (openOrders.size() == 0) {
             eventBus.send(BtsEvent.MARKET_FREE);
         }
-    }
+    }*/
 
     private void startOpenOrderMovingListener() {
         orderBookObservable

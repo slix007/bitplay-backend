@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -114,6 +115,22 @@ public abstract class MarketService {
     }
 
     public boolean isReadyForArbitrage() {
+        openOrders.stream()
+                .filter(Objects::nonNull)
+                .peek(limitOrder -> {
+                    final String warnMsg = "WARNING: OO has null element";
+                    getTradeLogger().error(warnMsg);
+                    logger.error(warnMsg);
+                })
+                .filter(limitOrder -> limitOrder.getTradableAmount() == null)
+                .forEach(limitOrder -> {
+                    final String warnMsg = "WARNING: OO amount is null. " + limitOrder.toString();
+                    getTradeLogger().error(warnMsg);
+                    logger.error(warnMsg);
+                });
+        openOrders.removeIf(Objects::isNull);
+        openOrders.removeIf(limitOrder -> limitOrder.getTradableAmount() == null);
+
         final long openOrdersCount = openOrders.stream()
                 .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0) // filter as for gui
                 .count();
@@ -453,6 +470,11 @@ public abstract class MarketService {
         }
         theTimer = Completable.timer(1, TimeUnit.SECONDS)
                 .doOnComplete(() -> isReadyForMoving = true)
+                .doOnError(e -> {
+                    logger.error("Error for isReadyForMoving");
+                    getTradeLogger().error("Error for isReadyForMoving");
+                })
+                .retry()
                 .subscribe();
     }
 
