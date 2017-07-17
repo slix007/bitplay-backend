@@ -766,7 +766,7 @@ public class BitmexService extends MarketService {
 
         final BigDecimal equity = accountInfoContracts.getEquity();
         final BigDecimal margin = accountInfoContracts.getMargin();
-        final BigDecimal bMr = equity.divide(margin, 2, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
+        final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
         final BigDecimal bMrliq = arbitrageService.getParams().getbMrLiq();
         String dmrl = String.format("b_DMRL = %s - %s = %s%%",
                 bMr, bMrliq, bMr.subtract(bMrliq));

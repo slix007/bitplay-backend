@@ -42,7 +42,7 @@ public class Utils {
 
     public static List<LimitOrder> getBestBids(OrderBook orderBook, int amount) {
         return orderBook.getBids().stream()
-                .sorted(Comparator.comparing(LimitOrder::getLimitPrice))
+                .sorted((o1, o2) -> o2.getLimitPrice().compareTo(o1.getLimitPrice()))
                 .limit(amount)
                 .collect(Collectors.toList());
     }

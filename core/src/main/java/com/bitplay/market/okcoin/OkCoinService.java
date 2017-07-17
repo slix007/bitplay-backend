@@ -1019,7 +1019,7 @@ public class OkCoinService extends MarketService {
             dql = "b_DQL = na";
         }
 
-        final BigDecimal oMr = equity.divide(margin, 2, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
+        final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
         String dmrl = String.format("o_DMRL = %s - %s = %s%%", oMr, oMrLiq, oMr.subtract(oMrLiq));
 
         return new LiqInfo(dql, dmrl);
