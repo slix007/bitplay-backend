@@ -32,13 +32,15 @@ public class PosDiffService {
     private BigDecimal positionsDiffWithHedge = BigDecimal.ZERO;
     private Disposable theTimer;
 
+    private int correctionSignalCountTimer = 0;
+
     @Autowired
     private ArbitrageService arbitrageService;
 
     private void startTimerToCorrection() {
         final Long periodToCorrection = arbitrageService.getParams().getPeriodToCorrection();
         theTimer = Completable.timer(periodToCorrection, TimeUnit.MINUTES)
-                .doOnComplete(this::doCorrection)
+                .doOnComplete(this::doCorrectionImmediate)
                 .doOnError(throwable -> logger.error("timer period to correction", throwable))
                 .retry()
                 .subscribe();
@@ -55,7 +57,7 @@ public class PosDiffService {
         final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
         if (positionsDiffWithHedge.signum() != 0
                 && positionsDiffWithHedge.abs().compareTo(maxDiffCorr) != -1) {
-            doCorrection();
+            doCorrectionImmediate();
         }
     }
 
@@ -87,12 +89,18 @@ public class PosDiffService {
                 && positionsDiffWithHedge.signum() != 0) {
             // 0. check if ready
             if (arbitrageService.getFirstMarketService().isReadyForArbitrage() && arbitrageService.getSecondMarketService().isReadyForArbitrage()) {
-                doCorrection(bP, oPL, oPS, hedgeAmount);
+                correctionSignalCountTimer++;
+                if (correctionSignalCountTimer > 5) {
+                    doCorrection(bP, oPL, oPS, hedgeAmount);
+                    correctionSignalCountTimer = 0;
+                }
+            } else {
+                correctionSignalCountTimer = 0;
             }
         }
     }
 
-    private void doCorrection() {
+    private void doCorrectionImmediate() {
         final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
