@@ -128,7 +128,9 @@ public class PosDiffService {
             } else {
                 // okcoin buy
                 correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
-                //TODO
+                if (oPS.subtract(correctAmount).signum() < 0) { // orderType==CLOSE_ASK
+                    correctAmount = oPS;
+                }
                 marketService = arbitrageService.getSecondMarketService();
             }
         } else {
@@ -136,6 +138,9 @@ public class PosDiffService {
             if (bEquiv.compareTo(okEquiv) < 0) {
                 // okcoin sell
                 correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
+                if (oPL.subtract(correctAmount).signum() < 0) { // orderType==CLOSE_BID
+                    correctAmount = oPL;
+                }
                 marketService = arbitrageService.getSecondMarketService();
             } else {
                 // bitmex sell
