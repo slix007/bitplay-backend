@@ -3,6 +3,7 @@ package com.bitplay.api.service;
 import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
+import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.PlacingTypeJson;
 import com.bitplay.api.domain.PosCorrJson;
@@ -343,5 +344,23 @@ public class CommonUIService {
         return new PosCorrJson(arbitrageService.getParams().getPosCorr(),
                 arbitrageService.getParams().getPeriodToCorrection(),
                 arbitrageService.getParams().getMaxDiffCorr().toPlainString());
+    }
+
+    public LiqParamsJson getLiqParams() {
+        return new LiqParamsJson(arbitrageService.getParams().getbMrLiq().toPlainString(),
+                arbitrageService.getParams().getoMrLiq().toPlainString());
+    }
+
+    public LiqParamsJson updateLiqParams(LiqParamsJson input) {
+        if (input.getbMrLiq() != null) {
+            arbitrageService.getParams().setbMrLiq(new BigDecimal(input.getbMrLiq()));
+        }
+        if (input.getoMrLiq() != null) {
+            arbitrageService.getParams().setoMrLiq(new BigDecimal(input.getoMrLiq()));
+        }
+
+        arbitrageService.saveParamsToDb();
+        return new LiqParamsJson(arbitrageService.getParams().getbMrLiq().toPlainString(),
+                arbitrageService.getParams().getoMrLiq().toPlainString());
     }
 }

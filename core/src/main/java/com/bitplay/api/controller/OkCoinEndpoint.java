@@ -2,10 +2,11 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.FutureIndexJson;
+import com.bitplay.api.domain.LiquidationInfoJson;
+import com.bitplay.api.domain.OrderBookJson;
 import com.bitplay.api.domain.OrderJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
-import com.bitplay.api.domain.OrderBookJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.service.BitplayUIServiceOkCoin;
@@ -83,5 +84,11 @@ public class OkCoinEndpoint {
         return this.okCoin.getFutureIndex();
     }
 
+    @GET
+    @Path("/liq-info")
+    @Produces("application/json")
+    public LiquidationInfoJson getLiquidationInfo() {
+        return this.okCoin.getLiquidationInfoJson();
+    }
 }
 

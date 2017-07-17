@@ -4,6 +4,7 @@ import com.bitplay.TwoMarketStarter;
 import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
+import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketList;
 import com.bitplay.api.domain.PlacingTypeJson;
@@ -211,6 +212,21 @@ public class CommonEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     public PosCorrJson getPosCorr() {
         return commonUIService.getPosCorr();
+    }
+
+    @GET
+    @Path("/market/liq-params")
+    @Produces(MediaType.APPLICATION_JSON)
+    public LiqParamsJson getLiqParams() {
+        return commonUIService.getLiqParams();
+    }
+
+    @POST
+    @Path("/market/liq-params")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public LiqParamsJson updateLiqParams(LiqParamsJson liqParamsJson) {
+        return commonUIService.updateLiqParams(liqParamsJson);
     }
 
 }

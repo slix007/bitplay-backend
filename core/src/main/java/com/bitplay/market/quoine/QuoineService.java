@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 
@@ -110,4 +111,8 @@ public class QuoineService extends MarketService {
         return null;
     }
 
+    @Override
+    public LiqInfo getLiqInfo() {
+        return null;
+    }
 }

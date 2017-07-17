@@ -2,6 +2,7 @@ package com.bitplay.api.service;
 
 import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.FutureIndexJson;
+import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.OrderBookJson;
 import com.bitplay.api.domain.OrderJson;
 import com.bitplay.api.domain.ResultJson;
@@ -9,6 +10,7 @@ import com.bitplay.api.domain.TickerJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.utils.Utils;
 
@@ -210,5 +212,11 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final Date timestamp = contractIndex.getTimestamp();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return new FutureIndexJson(index, sdf.format(timestamp));
+    }
+
+    public LiquidationInfoJson getLiquidationInfoJson() {
+        final LiqInfo liqInfo = getBusinessService().getLiqInfo();
+        return new LiquidationInfoJson(liqInfo.getDql(),
+                liqInfo.getDmrl());
     }
 }

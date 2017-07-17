@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.FutureIndexJson;
+import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.OrderBookJson;
 import com.bitplay.api.domain.OrderJson;
 import com.bitplay.api.domain.ResultJson;
@@ -83,5 +84,11 @@ public class BitmexEndpoint {
         return this.bitmex.getFutureIndex();
     }
 
+    @GET
+    @Path("/liq-info")
+    @Produces("application/json")
+    public LiquidationInfoJson getLiquidationInfo() {
+        return this.bitmex.getLiquidationInfoJson();
+    }
 }
 

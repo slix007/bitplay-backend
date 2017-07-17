@@ -65,6 +65,8 @@ public class GuiParams extends AbstractDocument {
     private String posCorr = "stopped"; //enabled
     private BigDecimal maxDiffCorr = BigDecimal.valueOf(1000);
     private Long periodToCorrection = 30L;
+    private BigDecimal bMrLiq = BigDecimal.valueOf(2000);
+    private BigDecimal oMrLiq = BigDecimal.valueOf(2000);
 
     public GuiParams() {
     }
@@ -491,5 +493,21 @@ public class GuiParams extends AbstractDocument {
 
     public void setPeriodToCorrection(Long periodToCorrection) {
         this.periodToCorrection = periodToCorrection;
+    }
+
+    public BigDecimal getbMrLiq() {
+        return bMrLiq;
+    }
+
+    public void setbMrLiq(BigDecimal bMrLiq) {
+        this.bMrLiq = bMrLiq;
+    }
+
+    public BigDecimal getoMrLiq() {
+        return oMrLiq;
+    }
+
+    public void setoMrLiq(BigDecimal oMrLiq) {
+        this.oMrLiq = oMrLiq;
     }
 }

@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.State;
+import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
@@ -19,6 +20,7 @@ import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -270,6 +272,8 @@ public class OkCoinService extends MarketService {
                         okCoinPosition.getSellAmount(),
                         okCoinPosition.getRate(),
                         BigDecimal.ZERO,
+                        okCoinPosition.getBuyPriceAvg(),
+                        okCoinPosition.getSellPriceAvg(),
                         okCoinPosition.toString()
                 );
             }
@@ -981,4 +985,43 @@ public class OkCoinService extends MarketService {
         return null;
     }
 
+    @Override
+    public LiqInfo getLiqInfo() {
+        final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
+        final BigDecimal oMrLiq = arbitrageService.getParams().getoMrLiq();
+
+        final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
+        final BigDecimal equity = accountInfoContracts.getEquity();
+        final BigDecimal margin = accountInfoContracts.getMargin();
+
+        String dql;
+        if (pos.signum() > 0) {
+            final BigDecimal n = pos.multiply(BigDecimal.valueOf(100));
+            final BigDecimal quEnt = position.getPriceAvgLong();
+            final BigDecimal d = n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP).subtract(
+                    (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
+            );
+            final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal m = Utils.getBestBid(orderBook).getLimitPrice();
+
+            dql = String.format("o_DQL = m%s - L%s = %s;", m, L, m.subtract(L));
+        } else if (pos.signum() < 0) {
+            final BigDecimal n = pos.multiply(BigDecimal.valueOf(100));
+            final BigDecimal quEnt = position.getPriceAvgShort();
+            final BigDecimal d = n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP).add(
+                    (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
+            );
+            final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal m = Utils.getBestAsk(orderBook).getLimitPrice();
+
+            dql = String.format("o_DQL = L%s - m%s = %s;", L, m, L.subtract(m));
+        } else {
+            dql = "b_DQL = na";
+        }
+
+        final BigDecimal oMr = equity.divide(margin, 2, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
+        String dmrl = String.format("o_DMRL = %s - %s = %s%%", oMr, oMrLiq, oMr.subtract(oMrLiq));
+
+        return new LiqInfo(dql, dmrl);
+    }
 }

@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
@@ -740,5 +741,36 @@ public class BitmexService extends MarketService {
     @Override
     public String getPositionAsString() {
         return position != null ? position.getPositionLong().toPlainString() : "0";
+    }
+
+    @Override
+    public LiqInfo getLiqInfo() {
+        String dql;
+        if (position.getPositionLong().signum() > 0) {
+            dql = String.format("b_DQL = m%s - L%s = %s;",
+                    contractIndex.getIndexPrice(),
+                    position.getLiquidationPrice(),
+                    contractIndex.getIndexPrice().subtract(position.getLiquidationPrice())
+            );
+        } else if (position.getPositionLong().signum() < 0) {
+            dql = String.format("b_DQL = L%s - m%s = %s;",
+                    position.getLiquidationPrice(),
+                    contractIndex.getIndexPrice(),
+                    position.getLiquidationPrice().subtract(contractIndex.getIndexPrice())
+            );
+        } else {
+            dql = "b_DQL = na";
+        }
+
+        final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
+
+        final BigDecimal equity = accountInfoContracts.getEquity();
+        final BigDecimal margin = accountInfoContracts.getMargin();
+        final BigDecimal bMr = equity.divide(margin, 2, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
+        final BigDecimal bMrliq = arbitrageService.getParams().getbMrLiq();
+        String dmrl = String.format("b_DMRL = %s - %s = %s%%",
+                bMr, bMrliq, bMr.subtract(bMrliq));
+
+        return new LiqInfo(dql, dmrl);
     }
 }

@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.MoveResponse;
@@ -238,6 +239,8 @@ public abstract class MarketService {
     public ContractIndex getContractIndex() {
         return contractIndex;
     }
+
+    public abstract LiqInfo getLiqInfo();
 
     public abstract TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);
 
