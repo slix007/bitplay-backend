@@ -87,6 +87,7 @@ public class OkCoinService extends MarketService {
     private Observable<OrderBook> orderBookObservable;
     private static final int MAX_ATTEMPTS = 10;
     protected State state = State.READY;
+    public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
 
     @Override
     public PosDiffService getPosDiffService() {
@@ -534,7 +535,7 @@ public class OkCoinService extends MarketService {
             }
 
             if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
-                throw new Exception("Taker wasn't filled. Cancelled");
+                throw new Exception(TAKER_WAS_CANCELLED_MESSAGE);
             } else { //FILLED by any (orderInfo or cancelledOrder)
                 if (signalType == SignalType.AUTOMATIC) {
                     arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
@@ -674,12 +675,14 @@ public class OkCoinService extends MarketService {
                 }
                 break;
             } catch (Exception e) {
-                String details = String.format("#%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
-                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
-                        orderType, amountInContracts, bestQuotes, false, signalType);
-                logger.error(details, e);
-                tradeLogger.error(details + e.toString());
+                if (!TAKER_WAS_CANCELLED_MESSAGE.equals(e.getMessage())) {
+                    String details = String.format("#%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
+                            signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                            orderType, amountInContracts, bestQuotes, false, signalType);
+                    logger.error(details, e);
+                    tradeLogger.error(details + e.toString());
 //                warningLogger.error("Warning placing: " + details);
+                }
             }
         }
 
