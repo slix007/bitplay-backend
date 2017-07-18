@@ -241,13 +241,6 @@ public class OkCoinService extends MarketService {
         return arbitrageService.getParams().getMakerDelta();
     }
 
-    public String fetchCurrencies() {
-        final List<CurrencyPair> exchangeSymbols = exchange.getExchangeSymbols();
-        final String toString = Arrays.toString(exchangeSymbols.toArray());
-        logger.info(toString);
-        return toString;
-    }
-
     @Scheduled(fixedRate = 1000)
     public void requestAccountInfo() {
         try {
@@ -542,7 +535,8 @@ public class OkCoinService extends MarketService {
             }
 
             if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
-                throw new Exception(TAKER_WAS_CANCELLED_MESSAGE);
+                tradeResponse.setErrorMessage(TAKER_WAS_CANCELLED_MESSAGE);
+                tradeResponse.setCancelledOrder(orderInfo);
             } else { //FILLED by any (orderInfo or cancelledOrder)
                 if (signalType == SignalType.AUTOMATIC) {
                     arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
@@ -666,7 +660,7 @@ public class OkCoinService extends MarketService {
                                             SignalType signalType) {
         TradeResponse tradeResponse;
         state = State.IN_PROGRESS;
-
+        BigDecimal amountToFill = amountInContracts;
         int attemptCount = 0;
         while (true) {
             try {
@@ -676,20 +670,23 @@ public class OkCoinService extends MarketService {
                 }
 
                 if (arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
-                    tradeResponse = placeSimpleMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
+                    tradeResponse = placeSimpleMakerOrder(orderType, amountToFill, bestQuotes, false, signalType);
                 } else {
-                    tradeResponse = takerOrder(orderType, amountInContracts, bestQuotes, signalType);
+                    tradeResponse = takerOrder(orderType, amountToFill, bestQuotes, signalType);
+                    if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
+                        final BigDecimal filled = tradeResponse.getCancelledOrder().getCumulativeAmount();
+                        amountToFill = amountToFill.subtract(filled);
+                        continue;
+                    }
                 }
                 break;
             } catch (Exception e) {
-                if (!TAKER_WAS_CANCELLED_MESSAGE.equals(e.getMessage())) {
-                    String details = String.format("#%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
-                            signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
-                            orderType, amountInContracts, bestQuotes, false, signalType);
-                    logger.error(details, e);
-                    tradeLogger.error(details + e.toString());
+                String details = String.format("#%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
+                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                        orderType, amountToFill, bestQuotes, false, signalType);
+                logger.error(details, e);
+                tradeLogger.error(details + e.toString());
 //                warningLogger.error("Warning placing: " + details);
-                }
             }
         }
 
