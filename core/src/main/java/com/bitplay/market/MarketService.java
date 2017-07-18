@@ -51,14 +51,14 @@ public abstract class MarketService {
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected final Object openOrdersLock = new Object();
     protected List<LimitOrder> openOrders = new ArrayList<>();
-    protected OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-    protected AccountInfo accountInfo = null;
-    protected AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
-    protected Position position = new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "");
-    protected BigDecimal affordableContractsForShort = BigDecimal.ZERO;
-    protected BigDecimal affordableContractsForLong = BigDecimal.ZERO;
-    protected ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
-    protected int usdInContract = 0;
+    protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+    protected volatile AccountInfo accountInfo = null;
+    protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
+    protected volatile Position position = new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "");
+    protected volatile BigDecimal affordableContractsForShort = BigDecimal.ZERO;
+    protected volatile BigDecimal affordableContractsForLong = BigDecimal.ZERO;
+    protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
+    protected volatile int usdInContract = 0;
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
     protected SpecialFlags specialFlags = SpecialFlags.NONE;
 //    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
@@ -79,6 +79,8 @@ public abstract class MarketService {
     public abstract OrderBook getOrderBook();
 
     public abstract Logger getTradeLogger();
+
+    public abstract void fetchPosition();
 
     public abstract String getPositionAsString();
 

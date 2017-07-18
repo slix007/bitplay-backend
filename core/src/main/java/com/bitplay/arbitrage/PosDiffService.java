@@ -30,8 +30,6 @@ public class PosDiffService {
 
     private Disposable theTimer;
 
-    private int correctionSignalCountTimer = 0;
-
     @Autowired
     private ArbitrageService arbitrageService;
 
@@ -61,7 +59,11 @@ public class PosDiffService {
     }
 
     @Scheduled(fixedDelay = 1000)
-    public void calcPositionsEquality() {
+    public void calcPosDiffJob() {
+        calcPosDiff(false);
+    }
+
+    public void calcPosDiff(boolean isSecondCheck) {
         final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
@@ -81,31 +83,38 @@ public class PosDiffService {
                 && positionsDiffWithHedge.signum() != 0) {
             // 0. check if ready
             if (arbitrageService.getFirstMarketService().isReadyForArbitrage() && arbitrageService.getSecondMarketService().isReadyForArbitrage()) {
-                correctionSignalCountTimer++;
-                if (correctionSignalCountTimer > 5) {
-                    final BigDecimal hedgeAmount = arbitrageService.getParams().getHedgeAmount();
-                    if (hedgeAmount == null) {
-                        warningLogger.error("Hedge amount is null on calcPositionsEquality");
-                        throw new RuntimeException("Hedge amount is null on calcPositionsEquality");
+                if (!isSecondCheck) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        logger.error("Sleep was interrupted");
                     }
+                    arbitrageService.getFirstMarketService().fetchPosition();
+                    arbitrageService.getSecondMarketService().fetchPosition();
+
+                    calcPosDiff(true);
+                } else {
+                    final BigDecimal hedgeAmount = getHedgeAmount();
                     doCorrection(bP, oPL, oPS, hedgeAmount);
-                    correctionSignalCountTimer = 0;
                 }
-            } else {
-                correctionSignalCountTimer = 0;
             }
         }
+    }
+
+    private BigDecimal getHedgeAmount() {
+        final BigDecimal hedgeAmount = arbitrageService.getParams().getHedgeAmount();
+        if (hedgeAmount == null) {
+            warningLogger.error("Hedge amount is null on calcPosDiff");
+            throw new RuntimeException("Hedge amount is null on calcPosDiff");
+        }
+        return hedgeAmount;
     }
 
     private void doCorrectionImmediate() {
         final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
-        final BigDecimal hedgeAmount = arbitrageService.getParams().getHedgeAmount();
-        if (hedgeAmount == null) {
-            warningLogger.error("Hedge amount is null on calcPositionsEquality");
-            throw new RuntimeException("Hedge amount is null on calcPositionsEquality");
-        }
+        final BigDecimal hedgeAmount = getHedgeAmount();
         if (arbitrageService.getParams().getPosCorr().equals("enabled")) {
             doCorrection(bP, oPL, oPS, hedgeAmount);
         }
@@ -162,7 +171,7 @@ public class PosDiffService {
 
     boolean isPositionsEqual() {
 
-        calcPositionsEquality();
+        calcPosDiff(false);
 
         return getPositionsDiffWithHedge().signum() == 0;
     }
@@ -182,11 +191,7 @@ public class PosDiffService {
     }
 
     public BigDecimal getPositionsDiffWithHedge() {
-        final BigDecimal hedgeAmount = arbitrageService.getParams().getHedgeAmount();
-        if (hedgeAmount == null) {
-            warningLogger.error("Hedge amount is null on calcPositionsEquality");
-            throw new RuntimeException("Hedge amount is null on calcPositionsEquality");
-        }
+        final BigDecimal hedgeAmount = getHedgeAmount();
         BigDecimal positionsDiff = getPositionsDiff();
         BigDecimal positionsDiffWithHedge = positionsDiff.subtract(hedgeAmount);
         return positionsDiffWithHedge;

@@ -250,14 +250,26 @@ public class OkCoinService extends MarketService {
     }
 
     @Scheduled(fixedRate = 1000)
+    @Override
     public void fetchPosition() {
         try {
             final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
-            if (positionResult.getPositions().length > 1) {
+            mergePosition(positionResult, null);
+
+            recalcAffordableContracts();
+
+        } catch (Exception e) {
+            logger.error("FetchPositionError", e);
+        }
+    }
+
+    private synchronized void mergePosition(OkCoinPositionResult restUpdate, Position websocketUpdate) {
+        if (restUpdate != null) {
+            if (restUpdate.getPositions().length > 1) {
                 logger.warn("More than one positions found");
                 tradeLogger.warn("More than one positions found");
             }
-            if (positionResult.getPositions().length == 0) {
+            if (restUpdate.getPositions().length == 0) {
                 position = new Position(
                         BigDecimal.ZERO,
                         BigDecimal.ZERO,
@@ -266,7 +278,7 @@ public class OkCoinService extends MarketService {
                         ""
                 );
             } else {
-                final OkCoinPosition okCoinPosition = positionResult.getPositions()[0];
+                final OkCoinPosition okCoinPosition = restUpdate.getPositions()[0];
                 position = new Position(
                         okCoinPosition.getBuyAmount(),
                         okCoinPosition.getSellAmount(),
@@ -277,11 +289,12 @@ public class OkCoinService extends MarketService {
                         okCoinPosition.toString()
                 );
             }
-
-            CompletableFuture.runAsync(this::recalcAffordableContracts);
-
-        } catch (Exception e) {
-            logger.error("FetchPositionError", e);
+        } else if (websocketUpdate != null) { // TODO does it worth it
+            position = new Position(websocketUpdate.getPositionLong(),
+                    websocketUpdate.getPositionShort(),
+                    this.position.getLeverage(),
+                    BigDecimal.ZERO,
+                    websocketUpdate.getRaw());
         }
     }
 
@@ -403,11 +416,8 @@ public class OkCoinService extends MarketService {
                     }
                     final Position positionInfo = privateData.getPositionInfo();
                     if (positionInfo != null) {
-                        position = new Position(positionInfo.getPositionLong(),
-                                positionInfo.getPositionShort(),
-                                this.position.getLeverage(),
-                                BigDecimal.ZERO,
-                                positionInfo.getRaw());
+                        mergePosition(null, positionInfo);
+                        recalcAffordableContracts();
                     }
                     if (privateData.getTrades() != null) {
                         updateOpenOrders(privateData.getTrades());
@@ -572,7 +582,7 @@ public class OkCoinService extends MarketService {
         return Optional.ofNullable(orderInfo);
     }
 
-    private void recalcAffordableContracts() {
+    private synchronized void recalcAffordableContracts() {
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc2();
         final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 

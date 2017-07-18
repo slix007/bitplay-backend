@@ -18,6 +18,7 @@ import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.bitmex.service.BitmexAccountService;
 import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
@@ -148,6 +149,32 @@ public class BitmexService extends MarketService {
                 .subscribe();
 
     }
+
+    @Override
+    public void fetchPosition() {
+        try {
+            final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
+            final Position pUpdate = accountService.fetchPositionInfo();
+            mergePosition(pUpdate);
+
+            recalcAffordableContracts();
+        } catch (Exception e) {
+            logger.error("On fetch position", e);
+        }
+    }
+
+    private synchronized void mergePosition(Position pUpdate) {
+        BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
+        BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
+        this.position = new Position(
+                pUpdate.getPositionLong(),
+                pUpdate.getPositionShort(),
+                leverage,
+                liqPrice,
+                pUpdate.getRaw()
+        );
+    }
+
 
     @Scheduled(fixedRate = 30000)
     public void dobleCheckAvailableBalance() {
@@ -390,7 +417,7 @@ public class BitmexService extends MarketService {
         return orderBook;
     }
 
-    private void recalcAffordableContracts() {
+    private synchronized void recalcAffordableContracts() {
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
 
         if (accountInfoContracts != null) {
@@ -497,6 +524,7 @@ public class BitmexService extends MarketService {
                             : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
                     arbitrageService.getOpenDiffs().setFirstOpenPrice(orderType.equals(Order.OrderType.BID)
                             ? diff1 : diff2);
+                    orderIdToSignalInfo.put(orderId, bestQuotes);
                 }
 
                 tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
@@ -512,7 +540,6 @@ public class BitmexService extends MarketService {
                 if (signalType == SignalType.AUTOMATIC) {
                     arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
                 }
-                orderIdToSignalInfo.put(orderId, bestQuotes);
 
             }
 
@@ -613,7 +640,6 @@ public class BitmexService extends MarketService {
                     diffWithSignal,
                     getPositionAsString());
 
-            orderIdToSignalInfo.put(limitOrder.getId(), bestQuotes);
             if (signalType == SignalType.AUTOMATIC) {
                 arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
             }
@@ -690,15 +716,7 @@ public class BitmexService extends MarketService {
                 .doOnError(throwable -> logger.error("Position fetch error", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribe(pUpdate -> {
-                    BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
-                    BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
-                    this.position = new Position(
-                            pUpdate.getPositionLong(),
-                            pUpdate.getPositionShort(),
-                            leverage,
-                            liqPrice,
-                            pUpdate.getRaw()
-                    );
+                    mergePosition(pUpdate);
 
                     recalcAffordableContracts();
                 }, throwable -> {

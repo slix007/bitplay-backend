@@ -16,6 +16,7 @@ import javax.ws.rs.core.MediaType;
 
 import io.swagger.client.model.Margin;
 import io.swagger.client.model.Order;
+import io.swagger.client.model.Position;
 import io.swagger.client.model.User;
 import io.swagger.client.model.Wallet;
 import si.mazi.rescu.ParamsDigest;
@@ -90,5 +91,12 @@ public interface BitmexAuthenitcatedApi {
                       @FormParam("ordType") String ordType,
                       @FormParam("execInsts") String execInsts
     ) throws IOException;
+
+    @GET
+    @Path("/position")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    List<Position> position(@HeaderParam("api-key") String apiKey,
+                      @HeaderParam("api-signature") ParamsDigest signer,
+                      @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce) throws IOException;
 
 }

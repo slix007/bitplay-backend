@@ -115,4 +115,9 @@ public class QuoineService extends MarketService {
     public LiqInfo getLiqInfo() {
         return null;
     }
+
+    @Override
+    public void fetchPosition() {
+
+    }
 }
