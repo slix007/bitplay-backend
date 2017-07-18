@@ -61,7 +61,7 @@ public class ArbitrageService {
     private FlagOpenOrder flagOpenOrder = new FlagOpenOrder();
     private OpenPrices openPrices = new OpenPrices();
     private OpenPrices openDiffs = new OpenPrices();
-    private SignalType signalType = SignalType.AUTOMATIC;
+    private volatile SignalType signalType = SignalType.AUTOMATIC;
 
     public FlagOpenOrder getFlagOpenOrder() {
         return flagOpenOrder;
