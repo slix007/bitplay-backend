@@ -998,7 +998,7 @@ public class OkCoinService extends MarketService {
         if (pos.signum() > 0) {
             final BigDecimal n = pos.multiply(BigDecimal.valueOf(100));
             final BigDecimal quEnt = position.getPriceAvgLong();
-            final BigDecimal d = n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP).subtract(
+            final BigDecimal d = (n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP)).subtract(
                     (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
             );
             final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
@@ -1006,9 +1006,9 @@ public class OkCoinService extends MarketService {
 
             dql = String.format("o_DQL = m%s - L%s = %s;", m, L, m.subtract(L));
         } else if (pos.signum() < 0) {
-            final BigDecimal n = pos.multiply(BigDecimal.valueOf(100));
+            final BigDecimal n = pos.multiply(BigDecimal.valueOf(100)).negate();
             final BigDecimal quEnt = position.getPriceAvgShort();
-            final BigDecimal d = n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP).add(
+            final BigDecimal d = (n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP)).add(
                     (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
             );
             final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
@@ -1019,7 +1019,8 @@ public class OkCoinService extends MarketService {
             dql = "b_DQL = na";
         }
 
-        final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
+        final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
+                .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
         String dmrl = String.format("o_DMRL = %s - %s = %s%%", oMr, oMrLiq, oMr.subtract(oMrLiq));
 
         return new LiqInfo(dql, dmrl);
