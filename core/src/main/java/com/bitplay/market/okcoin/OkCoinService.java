@@ -186,10 +186,17 @@ public class OkCoinService extends MarketService {
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
                     final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
                     final LimitOrder bestBid = bestBids.size() > 0 ? bestBids.get(0) : null;
+
+                    this.orderBook = orderBook;
+
+                    if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
+                            && this.bestAsk.compareTo(bestAsk.getLimitPrice()) != 0
+                            && this.bestBid.compareTo(bestBid.getLimitPrice()) != 0) {
+                        recalcAffordableContracts();
+                    }
                     this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
                     this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                     logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
-                    this.orderBook = orderBook;
 
                     CompletableFuture.runAsync(this::checkOpenOrdersForMoving)
                             .exceptionally(throwable -> {
