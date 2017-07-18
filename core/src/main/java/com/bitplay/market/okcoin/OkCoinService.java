@@ -543,7 +543,8 @@ public class OkCoinService extends MarketService {
                 writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType,
                         orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
 
-                eventBus.send(BtsEvent.MARKET_FREE);
+                setFree();
+
                 state = State.READY;
             }
         }

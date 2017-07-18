@@ -184,7 +184,7 @@ public abstract class MarketService {
         );
     }
 
-    private void setFree() {
+    protected void setFree() {
         if (isBusy) {
             isBusy = false;
             getTradeLogger().info("{}: ready, {}", getName(),

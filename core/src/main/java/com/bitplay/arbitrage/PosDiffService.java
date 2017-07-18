@@ -85,7 +85,7 @@ public class PosDiffService {
             if (arbitrageService.getFirstMarketService().isReadyForArbitrage() && arbitrageService.getSecondMarketService().isReadyForArbitrage()) {
                 if (!isSecondCheck) {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         logger.error("Sleep was interrupted");
                     }
