@@ -1,6 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
+import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.OrderBookJson;
@@ -89,6 +90,13 @@ public class BitmexEndpoint {
     @Produces("application/json")
     public LiquidationInfoJson getLiquidationInfo() {
         return this.bitmex.getLiquidationInfoJson();
+    }
+
+    @POST
+    @Path("/liq-info")
+    @Produces("application/json")
+    public LiquidationInfoJson resetLiquidationInfo(ChangeRequestJson json) {
+        return this.bitmex.resetLiquidationInfoJson();
     }
 }
 

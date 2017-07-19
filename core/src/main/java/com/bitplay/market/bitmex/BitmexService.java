@@ -5,10 +5,10 @@ import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.PersistenceService;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -84,6 +84,8 @@ public class BitmexService extends MarketService {
 
     @Autowired
     private PosDiffService posDiffService;
+    @Autowired
+    private PersistenceService persistenceService;
 
     @Override
     public ArbitrageService getArbitrageService() {
@@ -93,6 +95,11 @@ public class BitmexService extends MarketService {
     @Override
     public PosDiffService getPosDiffService() {
         return posDiffService;
+    }
+
+    @Override
+    public PersistenceService getPersistenceService() {
+        return persistenceService;
     }
 
     @Autowired
@@ -123,6 +130,7 @@ public class BitmexService extends MarketService {
         initWebSocketConnection();
 
         startAllListeners();
+        loadLiqParams();
     }
 
     private void startAllListeners() {
@@ -158,6 +166,7 @@ public class BitmexService extends MarketService {
             mergePosition(pUpdate);
 
             recalcAffordableContracts();
+            recalcLiqInfo();
         } catch (Exception e) {
             logger.error("On fetch position", e);
         }
@@ -719,6 +728,7 @@ public class BitmexService extends MarketService {
                     mergePosition(pUpdate);
 
                     recalcAffordableContracts();
+                    recalcLiqInfo();
                 }, throwable -> {
                     logger.error("Can not fetch Position", throwable);
                     // schedule it again
@@ -761,35 +771,69 @@ public class BitmexService extends MarketService {
         return position != null ? position.getPositionLong().toPlainString() : "0";
     }
 
-    @Override
-    public LiqInfo getLiqInfo() {
-        String dql;
-        if (position.getPositionLong().signum() > 0) {
-            dql = String.format("b_DQL = m%s - L%s = %s;",
-                    contractIndex.getIndexPrice(),
-                    position.getLiquidationPrice(),
-                    contractIndex.getIndexPrice().subtract(position.getLiquidationPrice())
-            );
-        } else if (position.getPositionLong().signum() < 0) {
-            dql = String.format("b_DQL = L%s - m%s = %s;",
-                    position.getLiquidationPrice(),
-                    contractIndex.getIndexPrice(),
-                    position.getLiquidationPrice().subtract(contractIndex.getIndexPrice())
-            );
-        } else {
-            dql = "b_DQL = na";
-        }
 
+    private synchronized void recalcLiqInfo() {
         final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
 
         final BigDecimal equity = accountInfoContracts.getEquity();
         final BigDecimal margin = accountInfoContracts.getMargin();
-        final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
-                .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
-        final BigDecimal bMrliq = arbitrageService.getParams().getbMrLiq();
-        String dmrl = String.format("b_DMRL = %s - %s = %s%%",
-                bMr, bMrliq, bMr.subtract(bMrliq));
 
-        return new LiqInfo(dql, dmrl);
+        final BigDecimal bMrliq = arbitrageService.getParams().getbMrLiq();
+
+        if (equity != null && margin != null
+                && contractIndex.getIndexPrice() != null
+                && position.getLiquidationPrice() != null
+                && position.getPositionLong() != null
+                && position.getPositionShort() != null) {
+
+            BigDecimal dql = null;
+
+            String dqlString;
+            if (position.getPositionLong().signum() > 0) {
+                dql = contractIndex.getIndexPrice().subtract(position.getLiquidationPrice());
+                dqlString = String.format("b_DQL = m%s - L%s = %s;",
+                        contractIndex.getIndexPrice(),
+                        position.getLiquidationPrice(),
+                        dql
+                );
+            } else if (position.getPositionLong().signum() < 0) {
+                dql = position.getLiquidationPrice().subtract(contractIndex.getIndexPrice());
+                dqlString = String.format("b_DQL = L%s - m%s = %s;",
+                        position.getLiquidationPrice(),
+                        contractIndex.getIndexPrice(),
+                        dql
+                );
+            } else {
+                dqlString = "b_DQL = na";
+            }
+
+
+            final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
+                    .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal dmrl = bMr.subtract(bMrliq);
+            String dmrlString = String.format("b_DMRL = %s - %s = %s%%",
+                    bMr, bMrliq, dmrl);
+            if (dql != null) {
+                liqInfo.setDqlCurr(dql);
+                if (liqInfo.getDqlMax().compareTo(dql) == -1) {
+                    liqInfo.setDqlMax(dql);
+                }
+                if (liqInfo.getDqlMin().compareTo(dql) == 1) {
+                    liqInfo.setDqlMin(dql);
+                }
+            }
+            liqInfo.setDmrlCurr(dmrl);
+            if (liqInfo.getDmrlMax().compareTo(dmrl) == -1) {
+                liqInfo.setDmrlMax(dmrl);
+            }
+            if (liqInfo.getDmrlMin().compareTo(dmrl) == 1) {
+                liqInfo.setDmrlMin(dmrl);
+            }
+
+            liqInfo.setDqlString(dqlString);
+            liqInfo.setDmrlString(dmrlString);
+
+            storeLiqParams();
+        }
     }
 }

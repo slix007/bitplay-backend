@@ -8,6 +8,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.PersistenceService;
 import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.core.StreamingExchange;
@@ -605,7 +606,8 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    public LiqInfo getLiqInfo() {
+    public PersistenceService getPersistenceService() {
         return null;
     }
+
 }

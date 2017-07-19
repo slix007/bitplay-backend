@@ -6,10 +6,10 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.State;
-import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.PersistenceService;
 import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
@@ -78,6 +78,9 @@ public class OkCoinService extends MarketService {
 
     @Autowired
     private PosDiffService posDiffService;
+    @Autowired
+    private PersistenceService persistenceService;
+
     ArbitrageService arbitrageService;
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
@@ -97,6 +100,11 @@ public class OkCoinService extends MarketService {
     @Override
     public ArbitrageService getArbitrageService() {
         return arbitrageService;
+    }
+
+    @Override
+    public PersistenceService getPersistenceService() {
+        return persistenceService;
     }
 
     @Autowired
@@ -121,6 +129,7 @@ public class OkCoinService extends MarketService {
         exchange = initExchange(key, secret);
 
         initWebSocketAndAllSubscribers();
+        loadLiqParams();
     }
 
     private void initWebSocketAndAllSubscribers() {
@@ -258,6 +267,7 @@ public class OkCoinService extends MarketService {
             mergePosition(positionResult, null);
 
             recalcAffordableContracts();
+            recalcLiqInfo();
 
         } catch (Exception e) {
             logger.error("FetchPositionError", e);
@@ -419,6 +429,7 @@ public class OkCoinService extends MarketService {
                     if (positionInfo != null) {
                         mergePosition(null, positionInfo);
                         recalcAffordableContracts();
+                        recalcLiqInfo();
                     }
                     if (privateData.getTrades() != null) {
                         updateOpenOrders(privateData.getTrades());
@@ -1003,8 +1014,7 @@ public class OkCoinService extends MarketService {
         return null;
     }
 
-    @Override
-    public LiqInfo getLiqInfo() {
+    private synchronized void recalcLiqInfo() {
         final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
         final BigDecimal oMrLiq = arbitrageService.getParams().getoMrLiq();
 
@@ -1012,35 +1022,65 @@ public class OkCoinService extends MarketService {
         final BigDecimal equity = accountInfoContracts.getEquity();
         final BigDecimal margin = accountInfoContracts.getMargin();
 
-        String dql;
-        if (pos.signum() > 0) {
-            final BigDecimal n = pos.multiply(BigDecimal.valueOf(100));
-            final BigDecimal quEnt = position.getPriceAvgLong();
-            final BigDecimal d = (n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP)).subtract(
-                    (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
-            );
-            final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal m = Utils.getBestBid(orderBook).getLimitPrice();
+        if (equity != null && margin != null && oMrLiq != null
+                && position.getPriceAvgShort() != null
+                && position.getPriceAvgLong() != null) {
+            BigDecimal dql = null;
+            String dqlString;
+            if (pos.signum() > 0) {
+                final BigDecimal n = pos.multiply(BigDecimal.valueOf(100));
+                final BigDecimal quEnt = position.getPriceAvgLong();
+                final BigDecimal d = (n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP)).subtract(
+                        (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
+                );
+                final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal m = Utils.getBestBid(orderBook).getLimitPrice();
 
-            dql = String.format("o_DQL = m%s - L%s = %s;", m, L, m.subtract(L));
-        } else if (pos.signum() < 0) {
-            final BigDecimal n = pos.multiply(BigDecimal.valueOf(100)).negate();
-            final BigDecimal quEnt = position.getPriceAvgShort();
-            final BigDecimal d = (n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP)).add(
-                    (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
-            );
-            final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal m = Utils.getBestAsk(orderBook).getLimitPrice();
+                dql = m.subtract(L);
+                dqlString = String.format("o_DQL = m%s - L%s = %s;", m, L, dql);
+            } else if (pos.signum() < 0) {
+                final BigDecimal n = pos.multiply(BigDecimal.valueOf(100)).negate();
+                final BigDecimal quEnt = position.getPriceAvgShort();
+                final BigDecimal d = (n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP)).add(
+                        (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
+                );
+                final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal m = Utils.getBestAsk(orderBook).getLimitPrice();
 
-            dql = String.format("o_DQL = L%s - m%s = %s;", L, m, L.subtract(m));
-        } else {
-            dql = "b_DQL = na";
+                dql = L.subtract(m);
+                dqlString = String.format("o_DQL = L%s - m%s = %s;", L, m, dql);
+            } else {
+                dqlString = "b_DQL = na";
+            }
+
+            final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
+                    .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal dmrl = oMr.subtract(oMrLiq);
+            String dmrlString = String.format("o_DMRL = %s - %s = %s%%", oMr, oMrLiq, dmrl);
+
+            if (dql != null) {
+                if (liqInfo.getDqlMax().compareTo(dql) == -1) {
+                    liqInfo.setDqlMax(dql);
+                }
+                if (liqInfo.getDqlMin().compareTo(dql) == 1) {
+                    liqInfo.setDqlMin(dql);
+                }
+                liqInfo.setDqlCurr(dql);
+            }
+            liqInfo.setDmrlCurr(dmrl);
+
+            if (liqInfo.getDmrlMax().compareTo(dmrl) == -1) {
+                liqInfo.setDmrlMax(dmrl);
+            }
+            if (liqInfo.getDmrlMin().compareTo(dmrl) == 1) {
+                liqInfo.setDmrlMin(dmrl);
+            }
+
+            liqInfo.setDqlString(dqlString);
+            liqInfo.setDmrlString(dmrlString);
+
+            storeLiqParams();
         }
-
-        final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
-                .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
-        String dmrl = String.format("o_DMRL = %s - %s = %s%%", oMr, oMrLiq, oMr.subtract(oMrLiq));
-
-        return new LiqInfo(dql, dmrl);
     }
+
 }

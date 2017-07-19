@@ -183,6 +183,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public List<OrderJson> getOpenOrders() {
         return getBusinessService().getOpenOrders().stream()
+                .filter(limitOrder -> limitOrder.getTradableAmount() != null)
                 .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
                 .map(toOrderJson)
                 .collect(Collectors.toList());
@@ -216,7 +217,16 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public LiquidationInfoJson getLiquidationInfoJson() {
         final LiqInfo liqInfo = getBusinessService().getLiqInfo();
-        return new LiquidationInfoJson(liqInfo.getDql(),
-                liqInfo.getDmrl());
+        return new LiquidationInfoJson(liqInfo.getDqlString(),
+                liqInfo.getDmrlString(),
+                String.format("DQL: %s ... %s", liqInfo.getDqlMin(), liqInfo.getDqlMax()),
+                String.format("DMRL: %s ... %s", liqInfo.getDmrlMin(), liqInfo.getDmrlMax())
+        );
     }
+
+    public LiquidationInfoJson resetLiquidationInfoJson() {
+        getBusinessService().resetLiqInfo();
+        return getLiquidationInfoJson();
+    }
+
 }

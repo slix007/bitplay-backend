@@ -5,13 +5,12 @@ import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.PersistenceService;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -112,12 +111,13 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public LiqInfo getLiqInfo() {
-        return null;
-    }
-
-    @Override
     public void fetchPosition() {
 
     }
+
+    @Override
+    public PersistenceService getPersistenceService() {
+        return null;
+    }
+
 }

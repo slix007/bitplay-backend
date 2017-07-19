@@ -9,6 +9,8 @@ import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.Exchange;
@@ -66,6 +68,7 @@ public abstract class MarketService {
     protected EventBus eventBus = new EventBus();
     private volatile Boolean isReadyForMoving = true;
     private Disposable theTimer;
+    protected volatile LiqInfo liqInfo = new LiqInfo("", "");
 
     public void init(String key, String secret) {
         initEventBus();
@@ -222,6 +225,8 @@ public abstract class MarketService {
 
     public abstract PosDiffService getPosDiffService();
 
+    public abstract PersistenceService getPersistenceService();
+
     public AccountInfo getAccountInfo() {
         return accountInfo;
     }
@@ -242,7 +247,36 @@ public abstract class MarketService {
         return contractIndex;
     }
 
-    public abstract LiqInfo getLiqInfo();
+    public LiqInfo getLiqInfo() {
+        return liqInfo;
+    }
+
+    protected void loadLiqParams() {
+        final LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
+        if (liqParams != null) {
+            liqInfo.setDqlMin(liqParams.getDqlMin());
+            liqInfo.setDqlMax(liqParams.getDqlMax());
+            liqInfo.setDmrlMin(liqParams.getDmrlMin());
+            liqInfo.setDmrlMax(liqParams.getDmrlMax());
+        }
+    }
+
+    protected void storeLiqParams() {
+        getPersistenceService().saveLiqParams(new LiqParams(liqInfo.getDqlMin(),
+                liqInfo.getDqlMax(),
+                liqInfo.getDmrlMin(),
+                liqInfo.getDmrlMax()), getName());
+    }
+
+    public LiqInfo resetLiqInfo() {
+        liqInfo.setDqlMin(liqInfo.getDqlCurr());
+        liqInfo.setDqlMax(liqInfo.getDqlCurr());
+        liqInfo.setDmrlMin(liqInfo.getDmrlCurr());
+        liqInfo.setDmrlMax(liqInfo.getDmrlCurr());
+
+        storeLiqParams();
+        return liqInfo;
+    }
 
     public abstract TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);
 

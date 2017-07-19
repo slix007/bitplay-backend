@@ -2,7 +2,9 @@ package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.repository.DeltasRepository;
+import com.bitplay.persistance.repository.LiqParamsRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,15 +20,34 @@ public class PersistenceService {
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
 
     @Autowired
-    private DeltasRepository repository;
+    private DeltasRepository deltasRepository;
+
+    @Autowired
+    private LiqParamsRepository liqParamsRepository;
 
     public void saveDeltas(GuiParams deltas) {
         deltas.setId(1L);
-        repository.save(deltas);
+        deltasRepository.save(deltas);
     }
 
     public GuiParams fetchDeltas() {
-        return repository.findFirstByDocumentId(1L);
+        return deltasRepository.findFirstByDocumentId(1L);
     }
 
+    public void saveLiqParams(LiqParams liqParams, String marketName) {
+        long id = 1L;
+        if (marketName.equals("bitmex")) {
+            id = 2L;
+        }
+        if (marketName.equals("okcoin")) {
+            id = 3L;
+        }
+        liqParams.setId(id);
+        liqParams.setMarketName(marketName);
+        liqParamsRepository.save(liqParams);
+    }
+
+    public LiqParams fetchLiqParams(String marketName) {
+        return liqParamsRepository.findFirstByMarketName(marketName);
+    }
 }
