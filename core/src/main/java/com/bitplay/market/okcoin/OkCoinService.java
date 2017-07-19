@@ -1053,10 +1053,16 @@ public class OkCoinService extends MarketService {
                 dqlString = "b_DQL = na";
             }
 
-            final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
-                    .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal dmrl = oMr.subtract(oMrLiq);
-            String dmrlString = String.format("o_DMRL = %s - %s = %s%%", oMr, oMrLiq, dmrl);
+            BigDecimal dmrl = null;
+            String dmrlString = null;
+            if (pos.signum() != 0) {
+                final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                dmrl = oMr.subtract(oMrLiq);
+                dmrlString = String.format("o_DMRL = %s - %s = %s%%", oMr, oMrLiq, dmrl);
+            } else {
+                dmrlString = "o_DMRL = na";
+            }
 
             if (dql != null) {
                 if (liqInfo.getDqlMax().compareTo(dql) == -1) {
@@ -1067,13 +1073,14 @@ public class OkCoinService extends MarketService {
                 }
                 liqInfo.setDqlCurr(dql);
             }
-            liqInfo.setDmrlCurr(dmrl);
-
-            if (liqInfo.getDmrlMax().compareTo(dmrl) == -1) {
-                liqInfo.setDmrlMax(dmrl);
-            }
-            if (liqInfo.getDmrlMin().compareTo(dmrl) == 1) {
-                liqInfo.setDmrlMin(dmrl);
+            if (dmrl != null) {
+                if (liqInfo.getDmrlMax().compareTo(dmrl) == -1) {
+                    liqInfo.setDmrlMax(dmrl);
+                }
+                if (liqInfo.getDmrlMin().compareTo(dmrl) == 1) {
+                    liqInfo.setDmrlMin(dmrl);
+                }
+                liqInfo.setDmrlCurr(dmrl);
             }
 
             liqInfo.setDqlString(dqlString);

@@ -807,12 +807,17 @@ public class BitmexService extends MarketService {
                 dqlString = "b_DQL = na";
             }
 
+            BigDecimal dmrl = null;
+            String dmrlString = null;
+            if ((position.getPositionLong().subtract(position.getPositionShort())).signum() != 0) {
+                final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                dmrl = bMr.subtract(bMrliq);
+                dmrlString = String.format("b_DMRL = %s - %s = %s%%", bMr, bMrliq, dmrl);
+            } else {
+                dmrlString = "o_DMRL = na";
+            }
 
-            final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
-                    .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal dmrl = bMr.subtract(bMrliq);
-            String dmrlString = String.format("b_DMRL = %s - %s = %s%%",
-                    bMr, bMrliq, dmrl);
             if (dql != null) {
                 liqInfo.setDqlCurr(dql);
                 if (liqInfo.getDqlMax().compareTo(dql) == -1) {
@@ -822,12 +827,14 @@ public class BitmexService extends MarketService {
                     liqInfo.setDqlMin(dql);
                 }
             }
-            liqInfo.setDmrlCurr(dmrl);
-            if (liqInfo.getDmrlMax().compareTo(dmrl) == -1) {
-                liqInfo.setDmrlMax(dmrl);
-            }
-            if (liqInfo.getDmrlMin().compareTo(dmrl) == 1) {
-                liqInfo.setDmrlMin(dmrl);
+            if (dmrl != null) {
+                liqInfo.setDmrlCurr(dmrl);
+                if (liqInfo.getDmrlMax().compareTo(dmrl) == -1) {
+                    liqInfo.setDmrlMax(dmrl);
+                }
+                if (liqInfo.getDmrlMin().compareTo(dmrl) == 1) {
+                    liqInfo.setDmrlMin(dmrl);
+                }
             }
 
             liqInfo.setDqlString(dqlString);

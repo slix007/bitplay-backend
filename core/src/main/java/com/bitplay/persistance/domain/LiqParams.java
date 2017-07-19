@@ -11,10 +11,10 @@ import java.math.BigDecimal;
 @Document(collection="liqParamsCollection")
 @TypeAlias("liqParams")
 public class LiqParams extends MarketDocument {
-    private BigDecimal dqlMin = BigDecimal.valueOf(10000);
-    private BigDecimal dqlMax = BigDecimal.valueOf(0);
-    private BigDecimal dmrlMin = BigDecimal.valueOf(10000);
-    private BigDecimal dmrlMax = BigDecimal.valueOf(0);
+    private BigDecimal dqlMin;
+    private BigDecimal dqlMax;
+    private BigDecimal dmrlMin;
+    private BigDecimal dmrlMax;
 
     public LiqParams(BigDecimal dqlMin, BigDecimal dqlMax, BigDecimal dmrlMin, BigDecimal dmrlMax) {
         this.dqlMin = dqlMin;
