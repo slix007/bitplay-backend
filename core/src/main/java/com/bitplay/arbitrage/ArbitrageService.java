@@ -337,13 +337,21 @@ public class ArbitrageService {
 
     private void startArbitrageMonitoring() {
 
-        observableOrderBooks()
+        final Observable<OrderBook> firstOrderBook = firstMarketService.getOrderBookObservable();
+        final Observable<OrderBook> secondOrderBook = secondMarketService.getOrderBookObservable();
+
+        // Observable.combineLatest - doesn't work while observable isn't completed
+        Observable
+                .concat(firstOrderBook, secondOrderBook)
                 .subscribeOn(Schedulers.computation())
                 .observeOn(Schedulers.computation())
                 .doOnError(throwable -> logger.error("doOnError On combine orderBooks", throwable))
                 .retryWhen(throwables -> throwables.delay(1, TimeUnit.SECONDS))
+
+                .map(orderBook -> doComparison())
+
                 .subscribe(bestQuotes -> {
-                    // Log not often then 5 sec
+                    // Logging not often then 5 sec
                     if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
                             && bestQuotes != null
                             && bestQuotes.getArbitrageEvent() != BestQuotes.ArbitrageEvent.NONE) {
@@ -355,17 +363,6 @@ public class ArbitrageService {
                     logger.error("On combine orderBooks", throwable);
                     startArbitrageMonitoring();
                 });
-
-    }
-
-    private Observable<BestQuotes> observableOrderBooks() {
-        final Observable<OrderBook> firstOrderBook = firstMarketService.getOrderBookObservable();
-        final Observable<OrderBook> secondOrderBook = secondMarketService.getOrderBookObservable();
-
-        // Observable.combineLatest - doesn't work while observable isn't completed
-        return Observable
-                .concat(firstOrderBook, secondOrderBook)
-                .map(orderBook -> doComparison());
     }
 
     private BestQuotes doComparison() {
