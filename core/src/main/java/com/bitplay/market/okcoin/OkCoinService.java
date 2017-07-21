@@ -1122,7 +1122,7 @@ public class OkCoinService extends MarketService {
             throw new IllegalArgumentException("Wrong orderType " + orderType);
         }
 
-        tradeLogger.info(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
+        logger.debug(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
                 position.getPositionLong().subtract(position.getPositionShort()),
                 liqInfo.getDqlCurr(),
                 oDQLOpenMin));

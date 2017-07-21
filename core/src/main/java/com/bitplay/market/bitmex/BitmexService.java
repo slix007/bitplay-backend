@@ -873,7 +873,7 @@ public class BitmexService extends MarketService {
             throw new IllegalArgumentException("Wrong order type");
         }
 
-        tradeLogger.info(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
+        logger.debug(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
                 position.getPositionLong().subtract(position.getPositionShort()),
                 liqInfo.getDqlCurr(),
                 bDQLOpenMin));
