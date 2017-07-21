@@ -87,6 +87,8 @@ public abstract class MarketService {
 
     public abstract String getPositionAsString();
 
+    public abstract boolean checkLiquidationEdge(Order.OrderType orderType);
+
     /*
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable = false;

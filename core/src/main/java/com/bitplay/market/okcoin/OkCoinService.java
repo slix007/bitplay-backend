@@ -1090,4 +1090,43 @@ public class OkCoinService extends MarketService {
         }
     }
 
+    /**
+     * @param orderType - only ASK, BID. There are no CLOSE_* types.
+     */
+    @Override
+    public boolean checkLiquidationEdge(Order.OrderType orderType) {
+        final BigDecimal oDQLOpenMin = arbitrageService.getParams().getoDQLOpenMin();
+
+        boolean isOk;
+        if (orderType.equals(Order.OrderType.ASK)) { // LONG
+            if ((position.getPositionLong().subtract(position.getPositionShort())).signum() > 0) {
+                if (liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1) {
+                    isOk = true;
+                } else {
+                    isOk = false;
+                }
+            } else {
+                isOk = true;
+            }
+        } else if (orderType.equals(Order.OrderType.BID)) {
+            if ((position.getPositionLong().subtract(position.getPositionShort()).signum() < 0)) {
+                if (liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1) {
+                    isOk = true;
+                } else {
+                    isOk = false;
+                }
+            } else {
+                isOk = true;
+            }
+        } else {
+            throw new IllegalArgumentException("Wrong orderType " + orderType);
+        }
+
+        tradeLogger.info(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
+                position.getPositionLong().subtract(position.getPositionShort()),
+                liqInfo.getDqlCurr(),
+                oDQLOpenMin));
+
+        return isOk;
+    }
 }

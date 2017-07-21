@@ -843,4 +843,42 @@ public class BitmexService extends MarketService {
             storeLiqParams();
         }
     }
+
+    @Override
+    public boolean checkLiquidationEdge(Order.OrderType orderType) {
+        final BigDecimal bDQLOpenMin = arbitrageService.getParams().getbDQLOpenMin();
+
+        boolean isOk;
+        if (orderType.equals(Order.OrderType.ASK)) { //LONG
+            if (position.getPositionLong().signum() > 0) {
+                if (liqInfo.getDqlCurr().compareTo(bDQLOpenMin) != -1) {
+                    isOk = true;
+                } else {
+                    isOk = false;
+                }
+            } else {
+                isOk = true;
+            }
+        } else if ((orderType.equals(Order.OrderType.BID))) {
+            if (position.getPositionLong().signum() < 0) {
+                if (liqInfo.getDqlCurr().compareTo(bDQLOpenMin) != -1) {
+                    isOk = true;
+                } else {
+                    isOk = false;
+                }
+            } else {
+                isOk = true;
+            }
+        } else {
+            throw new IllegalArgumentException("Wrong order type");
+        }
+
+        tradeLogger.info(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
+                position.getPositionLong().subtract(position.getPositionShort()),
+                liqInfo.getDqlCurr(),
+                bDQLOpenMin));
+
+        return isOk;
+    }
+
 }

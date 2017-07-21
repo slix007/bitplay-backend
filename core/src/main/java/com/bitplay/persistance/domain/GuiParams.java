@@ -67,6 +67,8 @@ public class GuiParams extends AbstractDocument {
     private Long periodToCorrection = 30L;
     private BigDecimal bMrLiq = BigDecimal.valueOf(2000);
     private BigDecimal oMrLiq = BigDecimal.valueOf(2000);
+    private BigDecimal bDQLOpenMin = BigDecimal.valueOf(2000);
+    private BigDecimal oDQLOpenMin = BigDecimal.valueOf(2000);
 
     public GuiParams() {
     }
@@ -509,5 +511,21 @@ public class GuiParams extends AbstractDocument {
 
     public void setoMrLiq(BigDecimal oMrLiq) {
         this.oMrLiq = oMrLiq;
+    }
+
+    public BigDecimal getbDQLOpenMin() {
+        return bDQLOpenMin;
+    }
+
+    public void setbDQLOpenMin(BigDecimal bDQLOpenMin) {
+        this.bDQLOpenMin = bDQLOpenMin;
+    }
+
+    public BigDecimal getoDQLOpenMin() {
+        return oDQLOpenMin;
+    }
+
+    public void setoDQLOpenMin(BigDecimal oDQLOpenMin) {
+        this.oDQLOpenMin = oDQLOpenMin;
     }
 }

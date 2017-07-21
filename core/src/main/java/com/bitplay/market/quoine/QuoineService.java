@@ -120,4 +120,8 @@ public class QuoineService extends MarketService {
         return null;
     }
 
+    @Override
+    public boolean checkLiquidationEdge(Order.OrderType orderType) {
+        return false;
+    }
 }

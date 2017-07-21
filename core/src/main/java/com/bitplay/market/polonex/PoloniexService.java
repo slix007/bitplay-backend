@@ -5,7 +5,6 @@ import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
@@ -610,4 +609,8 @@ public class PoloniexService extends MarketService {
         return null;
     }
 
+    @Override
+    public boolean checkLiquidationEdge(Order.OrderType orderType) {
+        return false;
+    }
 }

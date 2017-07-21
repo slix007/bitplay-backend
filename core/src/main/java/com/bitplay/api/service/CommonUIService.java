@@ -14,6 +14,7 @@ import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.utils.Utils;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -348,8 +349,11 @@ public class CommonUIService {
     }
 
     public LiqParamsJson getLiqParams() {
-        return new LiqParamsJson(arbitrageService.getParams().getbMrLiq().toPlainString(),
-                arbitrageService.getParams().getoMrLiq().toPlainString());
+        final GuiParams params = arbitrageService.getParams();
+        return new LiqParamsJson(params.getbMrLiq().toPlainString(),
+                params.getoMrLiq().toPlainString(),
+                params.getbDQLOpenMin().toPlainString(),
+                params.getoDQLOpenMin().toPlainString());
     }
 
     public LiqParamsJson updateLiqParams(LiqParamsJson input) {
@@ -359,10 +363,19 @@ public class CommonUIService {
         if (input.getoMrLiq() != null) {
             arbitrageService.getParams().setoMrLiq(new BigDecimal(input.getoMrLiq()));
         }
+        if (input.getbDQLOpenMin() != null) {
+            arbitrageService.getParams().setbDQLOpenMin(new BigDecimal(input.getbDQLOpenMin()));
+        }
+        if (input.getoDQLOpenMin() != null) {
+            arbitrageService.getParams().setoDQLOpenMin(new BigDecimal(input.getoDQLOpenMin()));
+        }
 
         arbitrageService.saveParamsToDb();
-        return new LiqParamsJson(arbitrageService.getParams().getbMrLiq().toPlainString(),
-                arbitrageService.getParams().getoMrLiq().toPlainString());
+        final GuiParams params = arbitrageService.getParams();
+        return new LiqParamsJson(params.getbMrLiq().toPlainString(),
+                params.getoMrLiq().toPlainString(),
+                params.getbDQLOpenMin().toPlainString(),
+                params.getoDQLOpenMin().toPlainString());
     }
 
     public ResultJson getImmediateCorrection() {
