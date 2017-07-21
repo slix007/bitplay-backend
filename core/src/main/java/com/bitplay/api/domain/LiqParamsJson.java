@@ -12,15 +12,18 @@ public class LiqParamsJson {
     private String oMrLiq;
     private String bDQLOpenMin;
     private String oDQLOpenMin;
-
+    private String bDQLCloseMin;
+    private String oDQLCloseMin;
     public LiqParamsJson() {
     }
 
-    public LiqParamsJson(String bMrLiq, String oMrLiq, String bDQLOpenMin, String oDQLOpenMin) {
+    public LiqParamsJson(String bMrLiq, String oMrLiq, String bDQLOpenMin, String oDQLOpenMin, String bDQLCloseMin, String oDQLCloseMin) {
         this.bMrLiq = bMrLiq;
         this.oMrLiq = oMrLiq;
         this.bDQLOpenMin = bDQLOpenMin;
         this.oDQLOpenMin = oDQLOpenMin;
+        this.bDQLCloseMin = bDQLCloseMin;
+        this.oDQLCloseMin = oDQLCloseMin;
     }
 
     public String getbMrLiq() {
@@ -37,5 +40,13 @@ public class LiqParamsJson {
 
     public String getoDQLOpenMin() {
         return oDQLOpenMin;
+    }
+
+    public String getbDQLCloseMin() {
+        return bDQLCloseMin;
+    }
+
+    public String getoDQLCloseMin() {
+        return oDQLCloseMin;
     }
 }

@@ -69,6 +69,8 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal oMrLiq = BigDecimal.valueOf(2000);
     private BigDecimal bDQLOpenMin = BigDecimal.valueOf(2000);
     private BigDecimal oDQLOpenMin = BigDecimal.valueOf(2000);
+    private BigDecimal bDQLCloseMin = BigDecimal.valueOf(2000);
+    private BigDecimal oDQLCloseMin = BigDecimal.valueOf(2000);
 
     public GuiParams() {
     }
@@ -527,5 +529,21 @@ public class GuiParams extends AbstractDocument {
 
     public void setoDQLOpenMin(BigDecimal oDQLOpenMin) {
         this.oDQLOpenMin = oDQLOpenMin;
+    }
+
+    public BigDecimal getbDQLCloseMin() {
+        return bDQLCloseMin;
+    }
+
+    public void setbDQLCloseMin(BigDecimal bDQLCloseMin) {
+        this.bDQLCloseMin = bDQLCloseMin;
+    }
+
+    public BigDecimal getoDQLCloseMin() {
+        return oDQLCloseMin;
+    }
+
+    public void setoDQLCloseMin(BigDecimal oDQLCloseMin) {
+        this.oDQLCloseMin = oDQLCloseMin;
     }
 }

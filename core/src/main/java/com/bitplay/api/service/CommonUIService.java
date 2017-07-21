@@ -353,7 +353,9 @@ public class CommonUIService {
         return new LiqParamsJson(params.getbMrLiq().toPlainString(),
                 params.getoMrLiq().toPlainString(),
                 params.getbDQLOpenMin().toPlainString(),
-                params.getoDQLOpenMin().toPlainString());
+                params.getoDQLOpenMin().toPlainString(),
+                params.getbDQLCloseMin().toPlainString(),
+                params.getoDQLCloseMin().toPlainString());
     }
 
     public LiqParamsJson updateLiqParams(LiqParamsJson input) {
@@ -369,13 +371,21 @@ public class CommonUIService {
         if (input.getoDQLOpenMin() != null) {
             arbitrageService.getParams().setoDQLOpenMin(new BigDecimal(input.getoDQLOpenMin()));
         }
+        if (input.getbDQLCloseMin() != null) {
+            arbitrageService.getParams().setbDQLCloseMin(new BigDecimal(input.getbDQLCloseMin()));
+        }
+        if (input.getoDQLCloseMin() != null) {
+            arbitrageService.getParams().setoDQLCloseMin(new BigDecimal(input.getoDQLCloseMin()));
+        }
 
         arbitrageService.saveParamsToDb();
         final GuiParams params = arbitrageService.getParams();
         return new LiqParamsJson(params.getbMrLiq().toPlainString(),
                 params.getoMrLiq().toPlainString(),
                 params.getbDQLOpenMin().toPlainString(),
-                params.getoDQLOpenMin().toPlainString());
+                params.getoDQLOpenMin().toPlainString(),
+                params.getbDQLCloseMin().toPlainString(),
+                params.getoDQLCloseMin().toPlainString());
     }
 
     public ResultJson getImmediateCorrection() {
