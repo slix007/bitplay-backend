@@ -1098,7 +1098,7 @@ public class OkCoinService extends MarketService {
         final BigDecimal oDQLOpenMin = arbitrageService.getParams().getoDQLOpenMin();
 
         boolean isOk;
-        if (orderType.equals(Order.OrderType.ASK)) { // LONG
+        if (orderType.equals(Order.OrderType.BID)) { // LONG
             if ((position.getPositionLong().subtract(position.getPositionShort())).signum() > 0) {
                 if (liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1) {
                     isOk = true;
@@ -1108,7 +1108,7 @@ public class OkCoinService extends MarketService {
             } else {
                 isOk = true;
             }
-        } else if (orderType.equals(Order.OrderType.BID)) {
+        } else if (orderType.equals(Order.OrderType.ASK)) {
             if ((position.getPositionLong().subtract(position.getPositionShort()).signum() < 0)) {
                 if (liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1) {
                     isOk = true;

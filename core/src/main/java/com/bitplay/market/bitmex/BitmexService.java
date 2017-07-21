@@ -849,7 +849,7 @@ public class BitmexService extends MarketService {
         final BigDecimal bDQLOpenMin = arbitrageService.getParams().getbDQLOpenMin();
 
         boolean isOk;
-        if (orderType.equals(Order.OrderType.ASK)) { //LONG
+        if (orderType.equals(Order.OrderType.BID)) { //LONG
             if (position.getPositionLong().signum() > 0) {
                 if (liqInfo.getDqlCurr().compareTo(bDQLOpenMin) != -1) {
                     isOk = true;
@@ -859,7 +859,7 @@ public class BitmexService extends MarketService {
             } else {
                 isOk = true;
             }
-        } else if ((orderType.equals(Order.OrderType.BID))) {
+        } else if ((orderType.equals(Order.OrderType.ASK))) {
             if (position.getPositionLong().signum() < 0) {
                 if (liqInfo.getDqlCurr().compareTo(bDQLOpenMin) != -1) {
                     isOk = true;
