@@ -773,15 +773,13 @@ public class ArbitrageService {
             schdeduleUpdateBorders.dispose();
         }
 
-        schdeduleUpdateBorders = Completable.timer(params.getPeriodSec(), TimeUnit.SECONDS, Schedulers.computation())
-                .doOnComplete(() -> {
-                    recalculateBorders();
-                    scheduleRecalculateBorders();
-                })
-                .subscribe();
+        schdeduleUpdateBorders = Observable.interval(params.getPeriodSec(), TimeUnit.SECONDS, Schedulers.computation())
+                .doOnError((e) -> logger.error("OnRecalculateBorders", e))
+                .retry()
+                .subscribe(this::recalculateBorders);
     }
 
-    public void recalculateBorders() {
+    public void recalculateBorders(Long intervalInt) {
         final BigDecimal two = new BigDecimal(2);
         final BigDecimal sumDelta = params.getSumDelta();
         if (sumDelta.compareTo(BigDecimal.ZERO) != 0) {
