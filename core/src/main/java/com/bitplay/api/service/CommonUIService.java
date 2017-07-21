@@ -1,6 +1,7 @@
 package com.bitplay.api.service;
 
 import com.bitplay.api.domain.BorderUpdateJson;
+import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.LiqParamsJson;
@@ -363,4 +364,16 @@ public class CommonUIService {
         return new LiqParamsJson(arbitrageService.getParams().getbMrLiq().toPlainString(),
                 arbitrageService.getParams().getoMrLiq().toPlainString());
     }
+
+    public ResultJson getImmediateCorrection() {
+        return new ResultJson(String.valueOf(posDiffService.isImmediateCorrectionEnabled()), "");
+    }
+
+    public ResultJson updateImmediateCorrection(ChangeRequestJson command) {
+        if (command.getCommand().equals("true")) {
+            posDiffService.setImmediateCorrectionEnabled(true);
+        }
+        return new ResultJson(String.valueOf(posDiffService.isImmediateCorrectionEnabled()), "");
+    }
+
 }

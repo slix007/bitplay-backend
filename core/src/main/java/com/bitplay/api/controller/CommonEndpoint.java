@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.api.domain.BorderUpdateJson;
+import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.LiqParamsJson;
@@ -227,6 +228,21 @@ public class CommonEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     public LiqParamsJson updateLiqParams(LiqParamsJson liqParamsJson) {
         return commonUIService.updateLiqParams(liqParamsJson);
+    }
+
+    @GET
+    @Path("/market/pos-corr-imm")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ResultJson getImmediateCorrection() {
+        return commonUIService.getImmediateCorrection();
+    }
+
+    @POST
+    @Path("/market/pos-corr-imm")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public ResultJson updateImmediateCorrection(ChangeRequestJson command) {
+        return commonUIService.updateImmediateCorrection(command);
     }
 
 }

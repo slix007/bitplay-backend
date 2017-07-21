@@ -30,6 +30,8 @@ public class PosDiffService {
 
     private Disposable theTimer;
 
+    private boolean immediateCorrectionEnabled = true;
+
     @Autowired
     private ArbitrageService arbitrageService;
 
@@ -111,12 +113,15 @@ public class PosDiffService {
     }
 
     private void doCorrectionImmediate() {
-        final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
-        final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
-        final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
-        final BigDecimal hedgeAmount = getHedgeAmount();
-        if (arbitrageService.getParams().getPosCorr().equals("enabled")) {
-            doCorrection(bP, oPL, oPS, hedgeAmount);
+        if (immediateCorrectionEnabled) {
+            final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
+            final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
+            final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+            final BigDecimal hedgeAmount = getHedgeAmount();
+            if (arbitrageService.getParams().getPosCorr().equals("enabled")) {
+                doCorrection(bP, oPL, oPS, hedgeAmount);
+                immediateCorrectionEnabled = false;
+            }
         }
     }
 
@@ -217,5 +222,13 @@ public class PosDiffService {
         if (getPositionsDiffWithHedge().signum() != 0) {
             startTimerToCorrection();
         }
+    }
+
+    public boolean isImmediateCorrectionEnabled() {
+        return immediateCorrectionEnabled;
+    }
+
+    public void setImmediateCorrectionEnabled(boolean immediateCorrectionEnabled) {
+        this.immediateCorrectionEnabled = immediateCorrectionEnabled;
     }
 }
