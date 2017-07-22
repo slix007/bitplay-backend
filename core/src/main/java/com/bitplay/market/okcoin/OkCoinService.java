@@ -14,6 +14,7 @@ import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
+import info.bitrich.xchangestream.service.exception.NotConnectedException;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
@@ -59,7 +60,7 @@ import javax.validation.constraints.NotNull;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
-import rx.Completable;
+import io.reactivex.Completable;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
@@ -150,6 +151,17 @@ public class OkCoinService extends MarketService {
         fetchPosition();
     }
 
+    private Completable closeAllSubscibers() {
+        // Unsubscribe from data order book.
+        orderBookSubscription.dispose();
+//        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
+        privateDataSubscription.dispose();
+        accountInfoSubscription.dispose();
+        futureIndexSubscription.dispose();
+        final Completable com = exchange.disconnect(); // not invoked here
+        return com;
+    }
+
     private void createOrderBookObservable() {
         orderBookObservable = ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getOrderBook(CurrencyPair.BTC_USD,
@@ -229,15 +241,8 @@ public class OkCoinService extends MarketService {
 
     @PreDestroy
     public void preDestroy() {
-        // Unsubscribe from data order book.
-        orderBookSubscription.dispose();
-//        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
-        privateDataSubscription.dispose();
-        accountInfoSubscription.dispose();
-        futureIndexSubscription.dispose();
-
         // Disconnect from exchange (non-blocking)
-        exchange.disconnect().subscribe(() -> logger.info("Disconnected from the Exchange"));
+        closeAllSubscibers().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
     @Override
@@ -254,6 +259,13 @@ public class OkCoinService extends MarketService {
     public void requestAccountInfo() {
         try {
             exchange.getStreamingAccountInfoService().requestAccountInfo();
+        } catch (NotConnectedException e) {
+
+            closeAllSubscibers()
+                    .doOnComplete(this::initWebSocketAndAllSubscribers)
+                    .subscribe(() -> logger.warn("Closing okcoin subscribers was done"),
+                            throwable -> logger.error("ERROR on Closing okcoin subscribers"));
+
         } catch (IOException e) {
             logger.error("AccountInfo request error", e);
         }
@@ -314,7 +326,7 @@ public class OkCoinService extends MarketService {
     public void fetchOpenOrdersWithDelay() {
         Completable.timer(2000, TimeUnit.MILLISECONDS)
                 .doOnError(throwable -> logger.error("onError fetchOOWithDelay", throwable))
-                .doOnCompleted(() -> {
+                .doOnComplete(() -> {
                     fetchOpenOrders(); // Synchronous
 //                    if (openOrders.size() == 0) {
 //                        eventBus.send(BtsEvent.MARKET_FREE);
