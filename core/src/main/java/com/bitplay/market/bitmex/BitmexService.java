@@ -195,24 +195,24 @@ public class BitmexService extends MarketService {
         }
     }
 
-    @Scheduled(fixedRate = 10 * 1000)
-    public void checkForHangOrders() {
+/*
+    @Scheduled(fixedRate = 60 * 1000)
+    public void checkForWrongFlag() {
         if (!isBusy && openOrders.size() > 0) {
-
             openOrders.clear();
-//            tradeLogger.info("{}: try to move openOrders, lock={}", getName());
+            tradeLogger.info("{}: clear openOrders, lock={}", getName());
             //, Thread.holdsLock(openOrdersLock));
 //            iterateOpenOrdersMove();
         }
-    }
-/*
-    @Scheduled(fixedRate = 1000 * 20)
-    public void fetchOpenOrdersWithDelay() {
+    }*/
+
+    @Scheduled(fixedRate = 1000 * 60)
+    public void checkForHangOrders() {
         fetchOpenOrders(); // Synchronous
         if (openOrders.size() == 0) {
-            eventBus.send(BtsEvent.MARKET_FREE);
+            setFree();
         }
-    }*/
+    }
 
     private void startOpenOrderMovingListener() {
         orderBookObservable
@@ -380,7 +380,7 @@ public class BitmexService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.computation())
                 .subscribe(updateOfOpenOrders -> {
-//                    synchronized (openOrdersLock) {
+                    synchronized (openOrdersLock) {
                         logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
                         this.openOrders = updateOfOpenOrders.getOpenOrders().stream()
                                 .map(update -> {
@@ -406,9 +406,9 @@ public class BitmexService extends MarketService {
                             this.openOrders = new ArrayList<>();
                         }
                         if (openOrders.size() == 0) {
-                            eventBus.send(BtsEvent.MARKET_FREE);
+                            setFree();
                         }
-//                    }
+                    }
 
                 }, throwable -> {
                     logger.error("OO.Exception: ", throwable);
@@ -881,11 +881,12 @@ public class BitmexService extends MarketService {
         return isOk;
     }
 
-    @Scheduled(fixedDelay = 30 * 1000) // 30 sec
+    @Scheduled(fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
         final BigDecimal bDQLCloseMin = arbitrageService.getParams().getbDQLCloseMin();
 
-        if (liqInfo.getDqlCurr().compareTo(bDQLCloseMin) != 1 && position.getPositionLong().signum() != 0) {
+        if (liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) == 1 && // workaround when DQL is less zero
+                liqInfo.getDqlCurr().compareTo(bDQLCloseMin) != 1 && position.getPositionLong().signum() != 0) {
             final BestQuotes bestQuotes = Utils.createBestQuotes(getOrderBook(), arbitrageService.getSecondMarketService().getOrderBook());
             final BigDecimal btcP = getAccountInfoContracts().getAvailable();
 

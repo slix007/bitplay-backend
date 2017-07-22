@@ -1142,12 +1142,13 @@ public class OkCoinService extends MarketService {
         return isOk;
     }
 
-    @Scheduled(fixedDelay = 30 * 1000) // 30 sec
+    @Scheduled(fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
         final BigDecimal oDQLCloseMin = arbitrageService.getParams().getoDQLCloseMin();
         final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
-        if (liqInfo.getDqlCurr().compareTo(oDQLCloseMin) != 1 && pos.signum() != 0) {
+        if (liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) == 1 && // workaround when DQL is less zero
+                liqInfo.getDqlCurr().compareTo(oDQLCloseMin) != 1 && pos.signum() != 0) {
             final BestQuotes bestQuotes = Utils.createBestQuotes(getOrderBook(), arbitrageService.getSecondMarketService().getOrderBook());
             final BigDecimal btcP = getAccountInfoContracts().getAvailable();
 
