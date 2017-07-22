@@ -1,5 +1,7 @@
 package com.bitplay.utils;
 
+import com.bitplay.arbitrage.BestQuotes;
+
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -71,6 +73,23 @@ public class Utils {
                 break;
         }
         return theName;
+    }
+
+    public static BestQuotes createBestQuotes(OrderBook okCoinOrderBook, OrderBook poloniexOrderBook) {
+        BigDecimal ask1_o = BigDecimal.ZERO;
+        BigDecimal ask1_p = BigDecimal.ZERO;
+        BigDecimal bid1_o = BigDecimal.ZERO;
+        BigDecimal bid1_p = BigDecimal.ZERO;
+        if (okCoinOrderBook != null && poloniexOrderBook != null
+                && okCoinOrderBook.getAsks().size() > 1
+                && poloniexOrderBook.getAsks().size() > 1) {
+            ask1_o = Utils.getBestAsks(okCoinOrderBook.getAsks(), 1).get(0).getLimitPrice();
+            ask1_p = Utils.getBestAsks(poloniexOrderBook.getAsks(), 1).get(0).getLimitPrice();
+
+            bid1_o = Utils.getBestBids(okCoinOrderBook.getBids(), 1).get(0).getLimitPrice();
+            bid1_p = Utils.getBestBids(poloniexOrderBook.getBids(), 1).get(0).getLimitPrice();
+        }
+        return new BestQuotes(ask1_o, ask1_p, bid1_o, bid1_p);
     }
 
 }

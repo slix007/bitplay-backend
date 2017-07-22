@@ -881,4 +881,30 @@ public class BitmexService extends MarketService {
         return isOk;
     }
 
+    @Scheduled(fixedDelay = 30 * 1000) // 30 sec
+    public void checkForDecreasePosition() {
+        final BigDecimal bDQLCloseMin = arbitrageService.getParams().getbDQLCloseMin();
+
+        if (liqInfo.getDqlCurr().compareTo(bDQLCloseMin) != 1 && position.getPositionLong().signum() != 0) {
+            final BestQuotes bestQuotes = Utils.createBestQuotes(getOrderBook(), arbitrageService.getSecondMarketService().getOrderBook());
+            final BigDecimal btcP = getAccountInfoContracts().getAvailable();
+
+            if (position.getPositionLong().signum() > 0) {
+                tradeLogger.info(String.format("B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+                        position.getPositionLong().toPlainString(),
+                        liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
+
+                arbitrageService.startTradingOnDelta1(SignalType.B_PRE_LIQ, bestQuotes.getAsk1_o(), bestQuotes.getBid1_p(), bestQuotes, btcP);
+
+            } else if (position.getPositionLong().signum() < 0) {
+                tradeLogger.info(String.format("B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+                        position.getPositionLong().toPlainString(),
+                        liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
+
+                arbitrageService.startTradingOnDelta2(SignalType.B_PRE_LIQ, bestQuotes.getAsk1_p(), bestQuotes.getBid1_o(), bestQuotes, btcP);
+
+            }
+        }
+    }
+
 }

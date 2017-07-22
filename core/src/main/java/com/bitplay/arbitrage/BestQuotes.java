@@ -50,6 +50,13 @@ public class BestQuotes {
         this.arbitrageEvent = arbitrageEvent;
     }
 
+    public boolean isEmpty() {
+        return ask1_o == null || ask1_o.signum() == 0
+                && ask1_p == null || ask1_p.signum() == 0
+                && bid1_o == null || bid1_o.signum() == 0
+                && bid1_p == null || bid1_p.signum() == 0;
+    }
+
     @Override
     public String toString() {
         return "BestQuotes{" +

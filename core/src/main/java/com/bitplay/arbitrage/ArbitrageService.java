@@ -386,23 +386,11 @@ public class ArbitrageService {
 
     private BestQuotes calcAndDoArbitrage(OrderBook okCoinOrderBook, OrderBook poloniexOrderBook) {
         // 1. Calc deltas
-        BigDecimal ask1_o = BigDecimal.ZERO;
-        BigDecimal ask1_p = BigDecimal.ZERO;
-        BigDecimal bid1_o = BigDecimal.ZERO;
-        BigDecimal bid1_p = BigDecimal.ZERO;
-        if (okCoinOrderBook != null && poloniexOrderBook != null
-                && okCoinOrderBook.getAsks().size() > 1
-                && poloniexOrderBook.getAsks().size() > 1) {
-            ask1_o = Utils.getBestAsks(okCoinOrderBook.getAsks(), 1).get(0).getLimitPrice();
-            ask1_p = Utils.getBestAsks(poloniexOrderBook.getAsks(), 1).get(0).getLimitPrice();
-
-            bid1_o = Utils.getBestBids(okCoinOrderBook.getBids(), 1).get(0).getLimitPrice();
-            bid1_p = Utils.getBestBids(poloniexOrderBook.getBids(), 1).get(0).getLimitPrice();
-
-            delta1 = bid1_p.subtract(ask1_o);
-            delta2 = bid1_o.subtract(ask1_p);
+        final BestQuotes bestQuotes = Utils.createBestQuotes(okCoinOrderBook, poloniexOrderBook);
+        if (!bestQuotes.isEmpty()) {
+            delta1 = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
+            delta2 = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
         }
-        final BestQuotes bestQuotes = new BestQuotes(ask1_o, ask1_p, bid1_o, bid1_p);
 
         final BigDecimal btcP = firstMarketService.getAccountInfoContracts().getAvailable();
 
@@ -412,67 +400,77 @@ public class ArbitrageService {
 //            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
-                if (checkBalance(DELTA1, params.getBlock1(), params.getBlock2()) //) {
-                        && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
-                        && posDiffService.isPositionsEqual()
-                        && firstMarketService.checkLiquidationEdge(Order.OrderType.ASK)
-                        && secondMarketService.checkLiquidationEdge(Order.OrderType.BID)) {
-                    bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
-                    setSignalType(SignalType.AUTOMATIC);
-                    firstMarketService.setBusy();
-                    secondMarketService.setBusy();
-//                    firstMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
-//                    secondMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
-                    params.setLastDelta(DELTA1);
-                    // Market specific params
-                    params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
-                    params.setVolPlan(params.getBlock1()); // buy
 
-                    writeLogDelta1(ask1_o, bid1_o, bid1_p, btcP, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes.getAsk1_o(), bestQuotes.getBid1_p(), bestQuotes, btcP);
 
-                    firstMarketService.placeOrderOnSignal(Order.OrderType.ASK, params.getBlock1(), bestQuotes, SignalType.AUTOMATIC);
-                    secondMarketService.placeOrderOnSignal(Order.OrderType.BID, params.getBlock2(), bestQuotes, SignalType.AUTOMATIC);
-                    setTimeoutAfterStartTrading();
-
-                    saveParamsToDb();
-
-                } else {
-                    bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
-                }
             }
         }
 //            2) если delta2 >= border2, то происходит buy у poloniex и sell у okcoin
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
-                if (checkBalance(DELTA2, params.getBlock1(), params.getBlock2()) //) {
-                        && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
-                        && posDiffService.isPositionsEqual()
-                        && firstMarketService.checkLiquidationEdge(Order.OrderType.BID)
-                        && secondMarketService.checkLiquidationEdge(Order.OrderType.ASK)) {
 
-                    bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
-                    setSignalType(SignalType.AUTOMATIC);
-                    firstMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
-                    secondMarketService.getEventBus().send(BtsEvent.MARKET_BUSY);
-                    params.setLastDelta(DELTA2);
-                    // Market specific params
-                    params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
-                    params.setVolPlan(params.getBlock1().negate());//sell
+                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes.getAsk1_p(), bestQuotes.getBid1_o(), bestQuotes, btcP);
 
-                    writeLogDelta2(ask1_o, ask1_p, bid1_o, btcP);
-
-                    firstMarketService.placeOrderOnSignal(Order.OrderType.BID, params.getBlock1(), bestQuotes, SignalType.AUTOMATIC);
-                    secondMarketService.placeOrderOnSignal(Order.OrderType.ASK, params.getBlock2(), bestQuotes, SignalType.AUTOMATIC);
-                    setTimeoutAfterStartTrading();
-
-                    saveParamsToDb();
-
-                } else {
-                    bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
-                }
             }
         }
         return bestQuotes;
+    }
+
+    public void startTradingOnDelta1(SignalType signalType, BigDecimal ask1_o, BigDecimal bid1_p, BestQuotes bestQuotes, BigDecimal btcP) {
+        if (checkBalance(DELTA1, params.getBlock1(), params.getBlock2()) //) {
+                && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
+                && posDiffService.isPositionsEqual()
+                && firstMarketService.checkLiquidationEdge(Order.OrderType.ASK)
+                && secondMarketService.checkLiquidationEdge(Order.OrderType.BID)) {
+
+            bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
+            setSignalType(signalType);
+            firstMarketService.setBusy();
+            secondMarketService.setBusy();
+            params.setLastDelta(DELTA1);
+            // Market specific params
+            params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
+            params.setVolPlan(params.getBlock1()); // buy
+
+            writeLogDelta1(ask1_o, bid1_p, btcP);
+
+            firstMarketService.placeOrderOnSignal(Order.OrderType.ASK, params.getBlock1(), bestQuotes, signalType);
+            secondMarketService.placeOrderOnSignal(Order.OrderType.BID, params.getBlock2(), bestQuotes, signalType);
+            setTimeoutAfterStartTrading();
+
+            saveParamsToDb();
+        } else {
+            bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
+        }
+    }
+
+    public void startTradingOnDelta2(SignalType signalType, BigDecimal ask1_p, BigDecimal bid1_o, BestQuotes bestQuotes, BigDecimal btcP) {
+        if (checkBalance(DELTA2, params.getBlock1(), params.getBlock2()) //) {
+                && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
+                && posDiffService.isPositionsEqual()
+                && firstMarketService.checkLiquidationEdge(Order.OrderType.BID)
+                && secondMarketService.checkLiquidationEdge(Order.OrderType.ASK)) {
+
+            bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
+            setSignalType(signalType);
+            firstMarketService.setBusy();
+            secondMarketService.setBusy();
+            params.setLastDelta(DELTA2);
+            // Market specific params
+            params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
+            params.setVolPlan(params.getBlock1().negate());//sell
+
+            writeLogDelta2(ask1_p, bid1_o, btcP);
+
+            firstMarketService.placeOrderOnSignal(Order.OrderType.BID, params.getBlock1(), bestQuotes, signalType);
+            secondMarketService.placeOrderOnSignal(Order.OrderType.ASK, params.getBlock2(), bestQuotes, signalType);
+            setTimeoutAfterStartTrading();
+
+            saveParamsToDb();
+
+        } else {
+            bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
+        }
     }
 
     public String getPositionsString() {
@@ -483,7 +481,7 @@ public class ArbitrageService {
         return String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
     }
 
-    private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_o, BigDecimal bid1_p, BigDecimal btcP, BigDecimal usdP, BigDecimal btcO, BigDecimal usdO) {
+    private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_p, BigDecimal btcP) {
         deltasLogger.info("------------------------------------------");
 
         BigDecimal cumDelta = params.getCumDelta();
@@ -523,6 +521,52 @@ public class ArbitrageService {
         params.setCom1(bid1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
         params.setCom2(ask1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
 
+
+        if (signalType == SignalType.AUTOMATIC) {
+            printCom();
+        }
+
+        printSumBal(false);
+    }
+
+    private void writeLogDelta2(BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal btcP) {
+        deltasLogger.info("------------------------------------------");
+
+        BigDecimal cumDelta = params.getCumDelta();
+        BigDecimal cumDeltaMin = params.getCumDeltaMin();
+        BigDecimal cumDeltaMax = params.getCumDeltaMax();
+        Integer counter1 = params.getCounter1();
+        Integer counter2 = params.getCounter2();
+        BigDecimal border2 = params.getBorder2();
+
+        counter2 += 1;
+        params.setCounter2(counter2);
+
+        String iterationMarker = "";
+        if (counter1.equals(counter2)) {
+            iterationMarker = "whole iteration";
+        }
+        deltasLogger.info(String.format("#%s count=%s+%s=%s %s", getCounter(), counter1, counter2, counter1 + counter2, iterationMarker));
+
+        params.setCumDelta(cumDelta.add(delta2));
+        if (cumDelta.compareTo(cumDeltaMin) == -1) params.setCumDeltaMin(cumDelta);
+        if (cumDelta.compareTo(cumDeltaMax) == 1) params.setCumDeltaMax(cumDelta);
+        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; b2=%s; btcP=%s;",// usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
+                getCounter(),
+                bid1_o.toPlainString(), ask1_p.toPlainString(),
+                delta2.toPlainString(),
+                border2.toPlainString(),
+                btcP
+//                , usdP, btcO, usdO,
+//                firstWalletBalance,
+//                cumDelta.toPlainString(),
+//                cumDeltaMin,
+//                cumDeltaMax
+        ));
+
+        // Count com
+        params.setCom1(ask1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
+        params.setCom2(bid1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
 
         if (signalType == SignalType.AUTOMATIC) {
             printCom();
@@ -698,52 +742,6 @@ public class ArbitrageService {
                     sumM.toPlainString(), sumM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
         }
-    }
-
-    private void writeLogDelta2(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal btcP) {
-        deltasLogger.info("------------------------------------------");
-
-        BigDecimal cumDelta = params.getCumDelta();
-        BigDecimal cumDeltaMin = params.getCumDeltaMin();
-        BigDecimal cumDeltaMax = params.getCumDeltaMax();
-        Integer counter1 = params.getCounter1();
-        Integer counter2 = params.getCounter2();
-        BigDecimal border2 = params.getBorder2();
-
-        counter2 += 1;
-        params.setCounter2(counter2);
-
-        String iterationMarker = "";
-        if (counter1.equals(counter2)) {
-            iterationMarker = "whole iteration";
-        }
-        deltasLogger.info(String.format("#%s count=%s+%s=%s %s", getCounter(), counter1, counter2, counter1 + counter2, iterationMarker));
-
-        params.setCumDelta(cumDelta.add(delta2));
-        if (cumDelta.compareTo(cumDeltaMin) == -1) params.setCumDeltaMin(cumDelta);
-        if (cumDelta.compareTo(cumDeltaMax) == 1) params.setCumDeltaMax(cumDelta);
-        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; b2=%s; btcP=%s;",// usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
-                getCounter(),
-                bid1_o.toPlainString(), ask1_p.toPlainString(),
-                delta2.toPlainString(),
-                border2.toPlainString(),
-                btcP
-//                , usdP, btcO, usdO,
-//                firstWalletBalance,
-//                cumDelta.toPlainString(),
-//                cumDeltaMin,
-//                cumDeltaMax
-        ));
-
-        // Count com
-        params.setCom1(ask1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
-        params.setCom2(bid1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
-
-        if (signalType == SignalType.AUTOMATIC) {
-            printCom();
-        }
-
-        printSumBal(false);
     }
 
     private boolean checkBalance(String deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {

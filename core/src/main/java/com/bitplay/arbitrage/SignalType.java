@@ -6,6 +6,8 @@ package com.bitplay.arbitrage;
 public enum SignalType {
     AUTOMATIC(""),
     CORRECTION("correction"),
+    B_PRE_LIQ("b_preliq"),
+    O_PRE_LIQ("o_preliq"),
     MANUAL_BUY("button_buy"),
     MANUAL_SELL("button_sell");
 

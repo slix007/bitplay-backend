@@ -1129,4 +1129,31 @@ public class OkCoinService extends MarketService {
 
         return isOk;
     }
+
+    @Scheduled(fixedDelay = 30 * 1000) // 30 sec
+    public void checkForDecreasePosition() {
+        final BigDecimal oDQLCloseMin = arbitrageService.getParams().getoDQLCloseMin();
+        final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
+
+        if (liqInfo.getDqlCurr().compareTo(oDQLCloseMin) != 1 && pos.signum() != 0) {
+            final BestQuotes bestQuotes = Utils.createBestQuotes(getOrderBook(), arbitrageService.getSecondMarketService().getOrderBook());
+            final BigDecimal btcP = getAccountInfoContracts().getAvailable();
+
+            if (pos.signum() > 0) {
+                tradeLogger.info(String.format("O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
+                        position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
+                        liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
+
+                arbitrageService.startTradingOnDelta2(SignalType.O_PRE_LIQ, bestQuotes.getAsk1_p(), bestQuotes.getBid1_o(), bestQuotes, btcP);
+
+            } else if (pos.signum() < 0) {
+                tradeLogger.info(String.format("O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
+                        position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
+                        liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
+
+                arbitrageService.startTradingOnDelta1(SignalType.O_PRE_LIQ, bestQuotes.getAsk1_o(), bestQuotes.getBid1_p(), bestQuotes, btcP);
+
+            }
+        }
+    }
 }
