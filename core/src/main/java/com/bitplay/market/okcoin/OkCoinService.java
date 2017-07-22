@@ -517,7 +517,7 @@ public class OkCoinService extends MarketService {
                     })
                     .collect(Collectors.toList());
 
-            debugLog.info("NewOrders: " + Arrays.toString(newOrders.toArray()));
+//            debugLog.info("NewOrders: " + Arrays.toString(newOrders.toArray()));
             this.openOrders.addAll(newOrders);
 
             if (this.openOrders.size() == 0) {

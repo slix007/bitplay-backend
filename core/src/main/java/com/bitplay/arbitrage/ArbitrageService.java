@@ -36,6 +36,7 @@ public class ArbitrageService {
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
     private static final String DELTA1 = "delta1";
     private static final String DELTA2 = "delta2";
@@ -345,11 +346,8 @@ public class ArbitrageService {
                 .concat(firstOrderBook, secondOrderBook)
                 .subscribeOn(Schedulers.computation())
                 .observeOn(Schedulers.computation())
-                .doOnError(throwable -> logger.error("doOnError On combine orderBooks", throwable))
-                .retryWhen(throwables -> throwables.delay(1, TimeUnit.SECONDS))
-
+                //Do not use .retry(), because observableOrderBooks can be changed
                 .map(orderBook -> doComparison())
-
                 .subscribe(bestQuotes -> {
                     // Logging not often then 5 sec
                     if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
@@ -380,6 +378,8 @@ public class ArbitrageService {
                     bestQuotes = calcAndDoArbitrage(secondOrderBook, firstOrderBook);
                 }
             }
+        } else {
+            debugLog.info("isReadyForTheArbitrage=false");
         }
         return bestQuotes;
     }
