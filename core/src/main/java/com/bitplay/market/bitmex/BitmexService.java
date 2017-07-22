@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.PreDestroy;
 
@@ -383,29 +384,43 @@ public class BitmexService extends MarketService {
                     synchronized (openOrdersLock) {
                         logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
                         this.openOrders = updateOfOpenOrders.getOpenOrders().stream()
-                                .map(update -> {
+                                .flatMap(update -> {
+
                                     // merge the orders
-                                    LimitOrder mergedOrder = update;
+                                    Optional<LimitOrder> mergedOrder = Optional.of(update);
                                     final Optional<LimitOrder> optionalExisting = this.openOrders.stream()
                                             .filter(existing -> update.getId().equals(existing.getId()))
                                             .findFirst();
                                     if (optionalExisting.isPresent()) {
                                         final LimitOrder existing = optionalExisting.get();
-                                        mergedOrder = new LimitOrder(
+                                        mergedOrder = Optional.of(new LimitOrder(
                                                 existing.getType(),
                                                 update.getTradableAmount() != null ? update.getTradableAmount() : existing.getTradableAmount(),
                                                 existing.getCurrencyPair(),
                                                 existing.getId(),
                                                 update.getTimestamp(),
-                                                update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice()
-                                        );
+                                                update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice(),
+                                                update.getAveragePrice() != null ? update.getAveragePrice() : existing.getAveragePrice(),
+                                                update.getCumulativeAmount() != null ? update.getCumulativeAmount() : existing.getCumulativeAmount(),
+                                                update.getStatus() != null ? update.getStatus() : existing.getStatus()
+                                        ));
                                     }
-                                    return mergedOrder;
+//                                    tradeLogger.info("Order id={} status={}", mergedOrder.get().getId(), mergedOrder.get().getStatus());
+                                    if (mergedOrder.get().getStatus().equals(Order.OrderStatus.FILLED)) { // End orders right away step1
+                                        // THere are no updates of FILLED orders
+                                        tradeLogger.info("Order {} FILLED", mergedOrder.get().getId());
+                                        mergedOrder = Optional.empty();
+                                    }
+
+                                    return mergedOrder
+                                            .map(Stream::of)
+                                            .orElseGet(Stream::empty);
+
                                 }).collect(Collectors.toList());
                         if (this.openOrders == null) {
                             this.openOrders = new ArrayList<>();
                         }
-                        if (openOrders.size() == 0) {
+                        if (openOrders.size() == 0) { // End orders right away step2
                             setFree();
                         }
                     }
