@@ -795,9 +795,12 @@ public class BitmexService extends MarketService {
 
         final BigDecimal bMrliq = arbitrageService.getParams().getbMrLiq();
 
+        final BigDecimal m = contractIndex.getIndexPrice();
+        final BigDecimal L = position.getLiquidationPrice();
+
         if (equity != null && margin != null
-                && contractIndex.getIndexPrice() != null
-                && position.getLiquidationPrice() != null
+                && m != null
+                && L != null
                 && position.getPositionLong() != null
                 && position.getPositionShort() != null) {
 
@@ -805,26 +808,34 @@ public class BitmexService extends MarketService {
 
             String dqlString;
             if (position.getPositionLong().signum() > 0) {
-                dql = contractIndex.getIndexPrice().subtract(position.getLiquidationPrice());
-                dqlString = String.format("b_DQL = m%s - L%s = %s;",
-                        contractIndex.getIndexPrice(),
-                        position.getLiquidationPrice(),
-                        dql
-                );
+                if (m.signum() > 0 && L.signum() > 0) {
+                    dql = m.subtract(L);
+                    dqlString = String.format("b_DQL = m%s - L%s = %s;", m, L, dql);
+                } else {
+                    dqlString = "b_DQL = na";
+                    warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
+                            m.toPlainString(), L.toPlainString()));
+                }
             } else if (position.getPositionLong().signum() < 0) {
-                dql = position.getLiquidationPrice().subtract(contractIndex.getIndexPrice());
-                dqlString = String.format("b_DQL = L%s - m%s = %s;",
-                        position.getLiquidationPrice(),
-                        contractIndex.getIndexPrice(),
-                        dql
-                );
+                if (m.signum() > 0 && L.signum() > 0) {
+                    if (L.subtract(BigDecimal.valueOf(1000000000)).signum() < 0) {
+                        dql = L.subtract(m);
+                        dqlString = String.format("b_DQL = L%s - m%s = %s;", L, m, dql);
+                    } else {
+                        dqlString = "b_DQL = na";
+                    }
+                } else {
+                    dqlString = "b_DQL = na";
+                    warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
+                            m.toPlainString(), L.toPlainString()));
+                }
             } else {
                 dqlString = "b_DQL = na";
             }
 
             BigDecimal dmrl = null;
             String dmrlString = null;
-            if ((position.getPositionLong().subtract(position.getPositionShort())).signum() != 0) {
+            if (margin.signum() > 0) {
                 final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
                         .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
                 dmrl = bMr.subtract(bMrliq);
