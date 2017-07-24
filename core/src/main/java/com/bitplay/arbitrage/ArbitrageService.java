@@ -4,6 +4,7 @@ import com.bitplay.TwoMarketStarter;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.utils.Utils;
 
@@ -52,6 +53,8 @@ public class ArbitrageService {
     private BigDecimal delta1 = BigDecimal.ZERO;
     private BigDecimal delta2 = BigDecimal.ZERO;
     private GuiParams params = new GuiParams();
+    protected volatile DeltaParams deltaParams = new DeltaParams();
+
     private Instant previousEmitTime = Instant.now();
     private String sumBalString = "";
 
@@ -390,6 +393,19 @@ public class ArbitrageService {
         if (!bestQuotes.isEmpty()) {
             delta1 = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
             delta2 = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
+            if (delta1.compareTo(deltaParams.getbDeltaMin()) == -1) {
+                deltaParams.setbDeltaMin(delta1);
+            }
+            if (delta1.compareTo(deltaParams.getbDeltaMax()) == 1) {
+                deltaParams.setbDeltaMax(delta1);
+            }
+            if (delta2.compareTo(deltaParams.getoDeltaMin()) == -1) {
+                deltaParams.setoDeltaMin(delta2);
+            }
+            if (delta2.compareTo(deltaParams.getoDeltaMax()) == 1) {
+                deltaParams.setoDeltaMax(delta2);
+            }
+            storeDeltaParams();
         }
 
         final BigDecimal btcP = firstMarketService.getAccountInfoContracts().getAvailable();
@@ -815,20 +831,42 @@ public class ArbitrageService {
     }
 
     public void loadParamsFromDb() {
-        final GuiParams deltas = persistenceService.fetchDeltas();
+        final GuiParams deltas = persistenceService.fetchGuiParams();
         if (deltas != null) {
             params = deltas;
         } else {
             params = new GuiParams();
         }
+
+        final DeltaParams deltaParams = persistenceService.fetchDeltaParams();
+        if (deltaParams != null) {
+            this.deltaParams = deltaParams;
+        } else {
+            this.deltaParams = new DeltaParams();
+        }
     }
 
     public void saveParamsToDb() {
-        persistenceService.saveDeltas(params);
+        persistenceService.saveGuiParams(params);
+    }
+
+    public void resetDeltaParams() {
+        deltaParams.setbDeltaMin(delta1);
+        deltaParams.setbDeltaMax(delta1);
+        deltaParams.setoDeltaMin(delta2);
+        deltaParams.setoDeltaMax(delta2);
+    }
+
+    private void storeDeltaParams() {
+        persistenceService.storeDeltaParams(deltaParams);
     }
 
     public GuiParams getParams() {
         return params;
+    }
+
+    public DeltaParams getDeltaParams() {
+        return deltaParams;
     }
 
     public void setParams(GuiParams params) {

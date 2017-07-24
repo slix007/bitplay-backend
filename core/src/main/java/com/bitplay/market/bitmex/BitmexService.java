@@ -127,11 +127,11 @@ public class BitmexService extends MarketService {
     public void initializeMarket(String key, String secret) {
         this.usdInContract = 1;
         this.exchange = initExchange(key, secret);
+        loadLiqParams();
 
         initWebSocketConnection();
 
         startAllListeners();
-        loadLiqParams();
     }
 
     private void startAllListeners() {
@@ -835,20 +835,20 @@ public class BitmexService extends MarketService {
 
             if (dql != null) {
                 liqInfo.setDqlCurr(dql);
-                if (liqInfo.getDqlMax().compareTo(dql) == -1) {
-                    liqInfo.setDqlMax(dql);
+                if (liqInfo.getLiqParams().getDqlMax().compareTo(dql) == -1) {
+                    liqInfo.getLiqParams().setDqlMax(dql);
                 }
-                if (liqInfo.getDqlMin().compareTo(dql) == 1) {
-                    liqInfo.setDqlMin(dql);
+                if (liqInfo.getLiqParams().getDqlMin().compareTo(dql) == 1) {
+                    liqInfo.getLiqParams().setDqlMin(dql);
                 }
             }
             if (dmrl != null) {
                 liqInfo.setDmrlCurr(dmrl);
-                if (liqInfo.getDmrlMax().compareTo(dmrl) == -1) {
-                    liqInfo.setDmrlMax(dmrl);
+                if (liqInfo.getLiqParams().getDmrlMax().compareTo(dmrl) == -1) {
+                    liqInfo.getLiqParams().setDmrlMax(dmrl);
                 }
-                if (liqInfo.getDmrlMin().compareTo(dmrl) == 1) {
-                    liqInfo.setDmrlMin(dmrl);
+                if (liqInfo.getLiqParams().getDmrlMin().compareTo(dmrl) == 1) {
+                    liqInfo.getLiqParams().setDmrlMin(dmrl);
                 }
             }
 
@@ -900,8 +900,10 @@ public class BitmexService extends MarketService {
     public void checkForDecreasePosition() {
         final BigDecimal bDQLCloseMin = arbitrageService.getParams().getbDQLCloseMin();
 
-        if (liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) == 1 && // workaround when DQL is less zero
-                liqInfo.getDqlCurr().compareTo(bDQLCloseMin) != 1 && position.getPositionLong().signum() != 0) {
+        if (liqInfo.getDqlCurr() != null
+                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) == 1 // workaround when DQL is less zero
+                && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) != 1
+                && position.getPositionLong().signum() != 0) {
             final BestQuotes bestQuotes = Utils.createBestQuotes(getOrderBook(), arbitrageService.getSecondMarketService().getOrderBook());
             final BigDecimal btcP = getAccountInfoContracts().getAvailable();
 

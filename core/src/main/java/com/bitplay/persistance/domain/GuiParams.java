@@ -65,12 +65,12 @@ public class GuiParams extends AbstractDocument {
     private String posCorr = "stopped"; //enabled
     private BigDecimal maxDiffCorr = BigDecimal.valueOf(1000);
     private Long periodToCorrection = 30L;
-    private BigDecimal bMrLiq = BigDecimal.valueOf(2000);
-    private BigDecimal oMrLiq = BigDecimal.valueOf(2000);
-    private BigDecimal bDQLOpenMin = BigDecimal.valueOf(2000);
-    private BigDecimal oDQLOpenMin = BigDecimal.valueOf(2000);
-    private BigDecimal bDQLCloseMin = BigDecimal.valueOf(2000);
-    private BigDecimal oDQLCloseMin = BigDecimal.valueOf(2000);
+    private BigDecimal bMrLiq = BigDecimal.valueOf(75);
+    private BigDecimal oMrLiq = BigDecimal.valueOf(20);
+    private BigDecimal bDQLOpenMin = BigDecimal.valueOf(300);
+    private BigDecimal oDQLOpenMin = BigDecimal.valueOf(350);
+    private BigDecimal bDQLCloseMin = BigDecimal.valueOf(100);
+    private BigDecimal oDQLCloseMin = BigDecimal.valueOf(150);
 
     public GuiParams() {
     }

@@ -68,7 +68,7 @@ public abstract class MarketService {
     protected EventBus eventBus = new EventBus();
     private volatile Boolean isReadyForMoving = true;
     private Disposable theTimer;
-    protected volatile LiqInfo liqInfo = new LiqInfo("", "");
+    protected volatile LiqInfo liqInfo = new LiqInfo();
 
     public void init(String key, String secret) {
         initEventBus();
@@ -254,30 +254,24 @@ public abstract class MarketService {
     }
 
     protected void loadLiqParams() {
-        final LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
-        if (liqParams != null) {
-            liqInfo.setDqlMin(liqParams.getDqlMin());
-            liqInfo.setDqlMax(liqParams.getDqlMax());
-            liqInfo.setDmrlMin(liqParams.getDmrlMin());
-            liqInfo.setDmrlMax(liqParams.getDmrlMax());
+        LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
+        if (liqParams == null) {
+            liqParams = new LiqParams();
         }
+        liqInfo.setLiqParams(liqParams);
     }
 
     protected void storeLiqParams() {
-        getPersistenceService().saveLiqParams(new LiqParams(liqInfo.getDqlMin(),
-                liqInfo.getDqlMax(),
-                liqInfo.getDmrlMin(),
-                liqInfo.getDmrlMax()), getName());
+        getPersistenceService().saveLiqParams(liqInfo.getLiqParams(), getName());
     }
 
-    public LiqInfo resetLiqInfo() {
-        liqInfo.setDqlMin(liqInfo.getDqlCurr());
-        liqInfo.setDqlMax(liqInfo.getDqlCurr());
-        liqInfo.setDmrlMin(liqInfo.getDmrlCurr());
-        liqInfo.setDmrlMax(liqInfo.getDmrlCurr());
+    public void resetLiqInfo() {
+        liqInfo.getLiqParams().setDqlMin(liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr() : BigDecimal.valueOf(-10000));
+        liqInfo.getLiqParams().setDqlMax(liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr() : BigDecimal.valueOf(10000));
+        liqInfo.getLiqParams().setDmrlMin(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(-10000));
+        liqInfo.getLiqParams().setDmrlMax(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(10000));
 
         storeLiqParams();
-        return liqInfo;
     }
 
     public abstract TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);

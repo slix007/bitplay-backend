@@ -4,6 +4,7 @@ import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
+import com.bitplay.api.domain.DeltasMinMaxJson;
 import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.PlacingTypeJson;
@@ -14,6 +15,7 @@ import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.utils.Utils;
 
@@ -399,4 +401,17 @@ public class CommonUIService {
         return new ResultJson(String.valueOf(posDiffService.isImmediateCorrectionEnabled()), "");
     }
 
+    public DeltasMinMaxJson getDeltaParamsJson() {
+        final DeltaParams deltaParams = arbitrageService.getDeltaParams();
+        return new DeltasMinMaxJson(
+                deltaParams.getbDeltaMin().toPlainString(),
+                deltaParams.getoDeltaMin().toPlainString(),
+                deltaParams.getbDeltaMax().toPlainString(),
+                deltaParams.getoDeltaMax().toPlainString());
+    }
+
+    public DeltasMinMaxJson resetDeltaParamsJson() {
+        arbitrageService.resetDeltaParams();
+        return getDeltaParamsJson();
+    }
 }

@@ -45,7 +45,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -57,10 +56,10 @@ import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.validation.constraints.NotNull;
 
+import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
-import io.reactivex.Completable;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
@@ -128,9 +127,9 @@ public class OkCoinService extends MarketService {
     public void initializeMarket(String key, String secret) {
         this.usdInContract = 100;
         exchange = initExchange(key, secret);
+        loadLiqParams();
 
         initWebSocketAndAllSubscribers();
-        loadLiqParams();
     }
 
     private void initWebSocketAndAllSubscribers() {
@@ -1066,7 +1065,7 @@ public class OkCoinService extends MarketService {
             }
 
             BigDecimal dmrl = null;
-            String dmrlString = null;
+            String dmrlString;
             if (pos.signum() != 0) {
                 final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
                         .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -1077,20 +1076,20 @@ public class OkCoinService extends MarketService {
             }
 
             if (dql != null) {
-                if (liqInfo.getDqlMax().compareTo(dql) == -1) {
-                    liqInfo.setDqlMax(dql);
+                if (liqInfo.getLiqParams().getDqlMax().compareTo(dql) == -1) {
+                    liqInfo.getLiqParams().setDqlMax(dql);
                 }
-                if (liqInfo.getDqlMin().compareTo(dql) == 1) {
-                    liqInfo.setDqlMin(dql);
+                if (liqInfo.getLiqParams().getDqlMin().compareTo(dql) == 1) {
+                    liqInfo.getLiqParams().setDqlMin(dql);
                 }
                 liqInfo.setDqlCurr(dql);
             }
             if (dmrl != null) {
-                if (liqInfo.getDmrlMax().compareTo(dmrl) == -1) {
-                    liqInfo.setDmrlMax(dmrl);
+                if (liqInfo.getLiqParams().getDmrlMax().compareTo(dmrl) == -1) {
+                    liqInfo.getLiqParams().setDmrlMax(dmrl);
                 }
-                if (liqInfo.getDmrlMin().compareTo(dmrl) == 1) {
-                    liqInfo.setDmrlMin(dmrl);
+                if (liqInfo.getLiqParams().getDmrlMin().compareTo(dmrl) == 1) {
+                    liqInfo.getLiqParams().setDmrlMin(dmrl);
                 }
                 liqInfo.setDmrlCurr(dmrl);
             }
@@ -1147,8 +1146,10 @@ public class OkCoinService extends MarketService {
         final BigDecimal oDQLCloseMin = arbitrageService.getParams().getoDQLCloseMin();
         final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
-        if (liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) == 1 && // workaround when DQL is less zero
-                liqInfo.getDqlCurr().compareTo(oDQLCloseMin) != 1 && pos.signum() != 0) {
+        if (liqInfo.getDqlCurr() != null
+                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) == 1 // workaround when DQL is less zero
+                && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) != 1
+                && pos.signum() != 0) {
             final BestQuotes bestQuotes = Utils.createBestQuotes(getOrderBook(), arbitrageService.getSecondMarketService().getOrderBook());
             final BigDecimal btcP = getAccountInfoContracts().getAvailable();
 

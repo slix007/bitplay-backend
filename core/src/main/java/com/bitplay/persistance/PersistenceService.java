@@ -1,9 +1,11 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LiqParams;
-import com.bitplay.persistance.repository.DeltasRepository;
+import com.bitplay.persistance.repository.DeltaParamsRepository;
+import com.bitplay.persistance.repository.GuiParamsRepository;
 import com.bitplay.persistance.repository.LiqParamsRepository;
 
 import org.slf4j.Logger;
@@ -20,18 +22,21 @@ public class PersistenceService {
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
 
     @Autowired
-    private DeltasRepository deltasRepository;
+    private GuiParamsRepository guiParamsRepository;
 
     @Autowired
     private LiqParamsRepository liqParamsRepository;
 
-    public void saveDeltas(GuiParams deltas) {
+    @Autowired
+    private DeltaParamsRepository deltaParamsRepository;
+
+    public void saveGuiParams(GuiParams deltas) {
         deltas.setId(1L);
-        deltasRepository.save(deltas);
+        guiParamsRepository.save(deltas);
     }
 
-    public GuiParams fetchDeltas() {
-        return deltasRepository.findFirstByDocumentId(1L);
+    public GuiParams fetchGuiParams() {
+        return guiParamsRepository.findFirstByDocumentId(1L);
     }
 
     public void saveLiqParams(LiqParams liqParams, String marketName) {
@@ -49,5 +54,14 @@ public class PersistenceService {
 
     public LiqParams fetchLiqParams(String marketName) {
         return liqParamsRepository.findFirstByMarketName(marketName);
+    }
+
+    public void storeDeltaParams(DeltaParams deltaParams) {
+        deltaParams.setId(1L);
+        deltaParamsRepository.save(deltaParams);
+    }
+
+    public DeltaParams fetchDeltaParams() {
+        return deltaParamsRepository.findFirstByDocumentId(1L);
     }
 }

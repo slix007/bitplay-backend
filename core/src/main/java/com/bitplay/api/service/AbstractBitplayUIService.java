@@ -12,6 +12,7 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.currency.Currency;
@@ -217,10 +218,11 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public LiquidationInfoJson getLiquidationInfoJson() {
         final LiqInfo liqInfo = getBusinessService().getLiqInfo();
+        final LiqParams liqParams = liqInfo.getLiqParams();
         return new LiquidationInfoJson(liqInfo.getDqlString(),
                 liqInfo.getDmrlString(),
-                String.format("DQL: %s ... %s", liqInfo.getDqlMin(), liqInfo.getDqlMax()),
-                String.format("DMRL: %s ... %s", liqInfo.getDmrlMin(), liqInfo.getDmrlMax())
+                String.format("DQL: %s ... %s", liqParams.getDqlMin(), liqParams.getDqlMax()),
+                String.format("DMRL: %s ... %s", liqParams.getDmrlMin(), liqParams.getDmrlMax())
         );
     }
 
@@ -228,5 +230,4 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         getBusinessService().resetLiqInfo();
         return getLiquidationInfoJson();
     }
-
 }

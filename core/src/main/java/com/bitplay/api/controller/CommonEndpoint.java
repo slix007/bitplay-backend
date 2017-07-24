@@ -5,6 +5,7 @@ import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
+import com.bitplay.api.domain.DeltasMinMaxJson;
 import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketList;
@@ -245,4 +246,17 @@ public class CommonEndpoint {
         return commonUIService.updateImmediateCorrection(command);
     }
 
+    @GET
+    @Path("/delta-params")
+    @Produces("application/json")
+    public DeltasMinMaxJson getDeltaParams() {
+        return commonUIService.getDeltaParamsJson();
+    }
+
+    @POST
+    @Path("/delta-params")
+    @Produces("application/json")
+    public DeltasMinMaxJson resetDeltaParams(ChangeRequestJson json) {
+        return commonUIService.resetDeltaParamsJson();
+    }
 }
