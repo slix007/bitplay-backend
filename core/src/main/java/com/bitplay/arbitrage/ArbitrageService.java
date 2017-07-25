@@ -79,13 +79,13 @@ public class ArbitrageService {
     }
 
     public void init(TwoMarketStarter twoMarketStarter) {
+        loadParamsFromDb();
         this.firstMarketService = twoMarketStarter.getFirstMarketService();
         this.secondMarketService = twoMarketStarter.getSecondMarketService();
         this.posDiffService = twoMarketStarter.getPosDiffService();
         startArbitrageMonitoring();
         scheduleRecalculateBorders();
         initArbitrageStateListener();
-        loadParamsFromDb();
     }
 
     private void initArbitrageStateListener() {

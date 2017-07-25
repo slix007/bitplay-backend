@@ -17,7 +17,7 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal makerDelta = BigDecimal.ZERO;
     private BigDecimal sumDelta = new BigDecimal(5);
     private BigDecimal buValue = BigDecimal.ZERO;
-    private Integer periodSec = 300;
+    private Integer periodSec = 60;
     private BigDecimal cumDelta = BigDecimal.ZERO;
     private BigDecimal cumDeltaMin = BigDecimal.valueOf(10000);
     private BigDecimal cumDeltaMax = BigDecimal.ZERO;
