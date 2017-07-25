@@ -1122,9 +1122,6 @@ public class OkCoinService extends MarketService {
 
             } else {
                 dqlString = "b_DQL = na";
-                warningLogger.info(String.format("Warning: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s",
-                        pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
-                        position.getPriceAvgLong(), position.getPriceAvgShort()));
             }
 
             BigDecimal dmrl = null;
