@@ -37,7 +37,7 @@ public class PosDiffService {
 
     private void startTimerToCorrection() {
         final Long periodToCorrection = arbitrageService.getParams().getPeriodToCorrection();
-        theTimer = Completable.timer(periodToCorrection, TimeUnit.MINUTES)
+        theTimer = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
                 .doOnComplete(this::doCorrectionImmediate)
                 .doOnError(throwable -> logger.error("timer period to correction", throwable))
                 .retry()
