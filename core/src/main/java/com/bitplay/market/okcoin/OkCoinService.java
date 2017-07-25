@@ -581,28 +581,36 @@ public class OkCoinService extends MarketService {
         final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
         Order orderInfo = null;
         for (int i = 0; i < MAX_ATTEMPTS; i++) { // about 11 sec
-            // 2. check status of the order
-            long sleepTime = 200;
-            if (i > 5) {
-                sleepTime = 2000;
+            try {
+                // 2. check status of the order
+                long sleepTime = 200;
+                if (i > 5) {
+                    sleepTime = 2000;
+                }
+                Thread.sleep(sleepTime);
+                final Collection<Order> order = tradeService.getOrder(orderId);
+                orderInfo = order.iterator().next();
+
+                if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
+                    break;
+                }
+
+                tradeLogger.error("#{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
+                        counterName, i,
+                        logInfoId,
+                        Utils.convertOrderTypeName(orderType),
+                        orderInfo.getStatus().toString(),
+                        orderInfo.getAveragePrice().toPlainString(),
+                        orderInfo.getId(),
+                        orderInfo.getType(),
+                        orderInfo.getCumulativeAmount().toPlainString());
+            } catch (Exception e) {
+                tradeLogger.error("#{}/{} {} orderId={}, type={}",
+                        counterName, i,
+                        logInfoId,
+                        orderId,
+                        orderType);
             }
-            Thread.sleep(sleepTime);
-            final Collection<Order> order = tradeService.getOrder(orderId);
-            orderInfo = order.iterator().next();
-
-            if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                break;
-            }
-
-            tradeLogger.error("#{}/{} taker {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
-                    counterName, i,
-                    Utils.convertOrderTypeName(orderType),
-                    orderInfo.getStatus().toString(),
-                    orderInfo.getAveragePrice().toPlainString(),
-                    orderInfo.getId(),
-                    orderInfo.getType(),
-                    orderInfo.getCumulativeAmount().toPlainString());
-
         }
         return Optional.ofNullable(orderInfo);
     }
