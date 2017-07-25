@@ -414,4 +414,9 @@ public class CommonUIService {
         arbitrageService.resetDeltaParams();
         return getDeltaParamsJson();
     }
+
+    public ResultJson getUpdateBordersTimerString() {
+        final String updateBordersTimerString = arbitrageService.getUpdateBordersTimerString();
+        return new ResultJson(updateBordersTimerString, "");
+    }
 }

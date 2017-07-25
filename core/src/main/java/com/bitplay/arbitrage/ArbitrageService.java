@@ -44,8 +44,11 @@ public class ArbitrageService {
     private static final Object calcLock = new Object();
 
     @Autowired
-    PersistenceService persistenceService;
-    Disposable schdeduleUpdateBorders;
+    private PersistenceService persistenceService;
+    private Disposable schdeduleUpdateBorders;
+    private Instant startTimeToUpdateBorders;
+    private volatile int updateBordersCounter;
+
     //TODO rename them to first and second
     private MarketService firstMarketService;
     private MarketService secondMarketService;
@@ -784,13 +787,25 @@ public class ArbitrageService {
             schdeduleUpdateBorders.dispose();
         }
 
+        startTimeToUpdateBorders = Instant.now();
         schdeduleUpdateBorders = Observable.interval(params.getPeriodSec(), TimeUnit.SECONDS, Schedulers.computation())
+                .doOnEach(longNotification -> startTimeToUpdateBorders = Instant.now())
                 .doOnError((e) -> logger.error("OnRecalculateBorders", e))
                 .retry()
                 .subscribe(this::recalculateBorders);
     }
 
+    public String getUpdateBordersTimerString() {
+        final Duration duration = Duration.between(startTimeToUpdateBorders, Instant.now());
+        return String.format("Borders updated %s sec ago. Next (%s) in %s sec",
+                duration.getSeconds(),
+                updateBordersCounter + 1,
+                String.valueOf(params.getPeriodSec() - duration.getSeconds()));
+    }
+
     public void recalculateBorders(Long intervalInt) {
+        updateBordersCounter = updateBordersCounter + 1;
+
         final BigDecimal two = new BigDecimal(2);
         final BigDecimal sumDelta = params.getSumDelta();
         if (sumDelta.compareTo(BigDecimal.ZERO) != 0) {

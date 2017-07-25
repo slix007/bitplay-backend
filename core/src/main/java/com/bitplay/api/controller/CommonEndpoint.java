@@ -259,4 +259,12 @@ public class CommonEndpoint {
     public DeltasMinMaxJson resetDeltaParams(ChangeRequestJson json) {
         return commonUIService.resetDeltaParamsJson();
     }
+
+    @GET
+    @Path("/market/borders-timer")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ResultJson bordersTimer() {
+        return commonUIService.getUpdateBordersTimerString();
+    }
+
 }
