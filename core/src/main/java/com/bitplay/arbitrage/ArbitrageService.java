@@ -538,7 +538,7 @@ public class ArbitrageService {
 
         // Count com
         params.setCom1(bid1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
-        params.setCom2(ask1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
+        params.setCom2(ask1_o.multiply(new BigDecimal("0.03")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
 
 
         if (signalType == SignalType.AUTOMATIC) {
