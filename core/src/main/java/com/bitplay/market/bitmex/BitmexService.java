@@ -818,7 +818,7 @@ public class BitmexService extends MarketService {
                 }
             } else if (position.getPositionLong().signum() < 0) {
                 if (m.signum() > 0 && L.signum() > 0) {
-                    if (L.subtract(BigDecimal.valueOf(1000000000)).signum() < 0) {
+                    if (L.subtract(BigDecimal.valueOf(100000)).signum() < 0) {
                         dql = L.subtract(m);
                         dqlString = String.format("b_DQL = L%s - m%s = %s;", L, m, dql);
                     } else {
