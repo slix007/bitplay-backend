@@ -191,6 +191,7 @@ public abstract class MarketService {
 
     protected void setFree() {
         if (isBusy) {
+            fetchPosition();
             isBusy = false;
             getTradeLogger().info("{}: ready, {}", getName(),
                     getPosDiffString());
