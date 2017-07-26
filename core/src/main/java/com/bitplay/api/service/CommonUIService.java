@@ -292,23 +292,9 @@ public class CommonUIService {
     }
 
     public ResultJson getPosDiff() {
-        final BigDecimal posDiff = posDiffService.getPositionsDiff();
-        final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
-        final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
-        final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
-        final BigDecimal ha = arbitrageService.getParams().getHedgeAmount();
-        final BigDecimal dc = posDiffService.getPositionsDiffWithHedge();
-        final BigDecimal mdc = arbitrageService.getParams().getMaxDiffCorr();
-
         return new ResultJson(
                 posDiffService.getIsPositionsEqual() ? "0" : "-1",
-                String.format("o(%s-%s) b(%s) = %s, ha=%s, dc=%s, mdc=%s",
-                        Utils.withSign(oPL),
-                        oPS,
-                        Utils.withSign(bP),
-                        posDiff.toPlainString(),
-                        ha, dc, mdc
-                ));
+                arbitrageService.getPosDiffString());
     }
 
     public PlacingTypeJson getPlacingType() {

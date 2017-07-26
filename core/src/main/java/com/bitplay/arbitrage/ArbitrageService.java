@@ -2,6 +2,7 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.DeltaParams;
@@ -702,14 +703,14 @@ public class ArbitrageService {
             final OrderBook oOrderBook = secondMarketService.getOrderBook();
             final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
             final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
-            deltasLogger.info(String.format("#%s o_bal=w%s_%s, e%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s",
+            deltasLogger.info(String.format("#%s o_bal=w%s_%s, e%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s",
                     counterName,
                     oW.toPlainString(), oW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     oE.toPlainString(), oE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     oU.toPlainString(), oU.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     oM.toPlainString(), oM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     oA.toPlainString(), oA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    Utils.withSign(oPL), Utils.withSign(oPS),
+                    oPL, oPS,
                     oLv.toPlainString(),
                     Utils.withSign(oAL),
                     Utils.withSign(oAS),
@@ -729,7 +730,32 @@ public class ArbitrageService {
                     sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumM.toPlainString(), sumM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
+            deltasLogger.info(sumBalString);
+
+            deltasLogger.info("Pos diff: " + getPosDiffString());
+            final LiqInfo bLiqInfo = getFirstMarketService().getLiqInfo();
+            deltasLogger.info(bLiqInfo.getDqlString() + ";" + bLiqInfo.getDmrlString());
+            final LiqInfo oLiqInfo = getSecondMarketService().getLiqInfo();
+            deltasLogger.info(oLiqInfo.getDqlString() + ";" + oLiqInfo.getDmrlString());
         }
+    }
+
+    public String getPosDiffString() {
+        final BigDecimal posDiff = posDiffService.getPositionsDiff();
+        final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
+        final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
+        final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
+        final BigDecimal ha = getParams().getHedgeAmount();
+        final BigDecimal dc = posDiffService.getPositionsDiffWithHedge();
+        final BigDecimal mdc = getParams().getMaxDiffCorr();
+
+        return String.format("o(+%s-%s) b(%s) = %s, ha=%s, dc=%s, mdc=%s",
+                oPL.toPlainString(),
+                oPS.toPlainString(),
+                Utils.withSign(bP),
+                posDiff.toPlainString(),
+                ha, dc, mdc
+        );
     }
 
     private boolean checkBalance(String deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {
