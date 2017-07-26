@@ -166,7 +166,7 @@ public abstract class MarketService {
 
     public void setBusy() {
         if (!isBusy) {
-            getTradeLogger().info("{} {}: busy, {}", getCounterName(), getName(), getPosDiffString());
+            getTradeLogger().info("{} {}: busy, {}", getCounterNameNext(), getName(), getPosDiffString());
         }
         isBusy = true;
     }
@@ -191,6 +191,12 @@ public abstract class MarketService {
     protected String getCounterName() {
         final SignalType signalType = getArbitrageService().getSignalType();
         final int counter = getArbitrageService().getCounter();
+        final String value = signalType == SignalType.AUTOMATIC ? String.valueOf(counter) : signalType.getCounterName();
+        return "#" + value;
+    }
+    protected String getCounterNameNext() {
+        final SignalType signalType = getArbitrageService().getSignalType();
+        final int counter = getArbitrageService().getCounter() + 1;
         final String value = signalType == SignalType.AUTOMATIC ? String.valueOf(counter) : signalType.getCounterName();
         return "#" + value;
     }
