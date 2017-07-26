@@ -408,7 +408,7 @@ public class BitmexService extends MarketService {
 //                                    tradeLogger.info("Order id={} status={}", mergedOrder.get().getId(), mergedOrder.get().getStatus());
                                     if (mergedOrder.get().getStatus().equals(Order.OrderStatus.FILLED)) { // End orders right away step1
                                         // THere are no updates of FILLED orders
-                                        tradeLogger.info("Order {} FILLED", mergedOrder.get().getId());
+                                        tradeLogger.info("{} Order {} FILLED", getCounterName(), mergedOrder.get().getId());
                                         mergedOrder = Optional.empty();
                                     }
 
@@ -516,8 +516,8 @@ public class BitmexService extends MarketService {
                     break;
                 } catch (Exception e) {
                     logger.error("Error on placeLimitOrder", e);
-                    final String logString = String.format("#%s maker error attempt=%s: %s",
-                            signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                    final String logString = String.format("%s maker error attempt=%s: %s",
+                            getCounterName(),
                             attemptCount,
                             e.getMessage());
                     if (attemptCount == MAX_ATTEMPTS) {
@@ -551,8 +551,8 @@ public class BitmexService extends MarketService {
                     orderIdToSignalInfo.put(orderId, bestQuotes);
                 }
 
-                tradeLogger.info("#{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
-                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                tradeLogger.info("{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
+                        getCounterName(),
                         isMoving ? "Moved" : "maker",
                         orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                         amount.toPlainString(),
@@ -610,8 +610,8 @@ public class BitmexService extends MarketService {
                 try {
                     final Error error = objectMapper.readValue(httpBody, Error.class);
 
-                    logger.error("MoveError", e);
-                    tradeLogger.error("MoveError: " + error.getError().getMessage());
+                    logger.error("MoveException", e);
+                    tradeLogger.error("{} MoveException: {}", getCounterName(), error.getError().getMessage());
 
                     if (error.getError().getMessage().startsWith("Invalid ordStatus")) {
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
@@ -625,8 +625,8 @@ public class BitmexService extends MarketService {
 
             } catch (Exception e) {
                 lastExceptionMsg = e.getMessage();
-                final String logString = String.format("#%s MovingError id=%s, attempt=%s: %s",
-                        signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+                final String logString = String.format("%s MovingError id=%s, attempt=%s: %s",
+                        getCounterName(),
                         limitOrder.getId(),
                         attemptCount,
                         e.getMessage());
@@ -653,8 +653,8 @@ public class BitmexService extends MarketService {
                         ? diff1 : diff2);
             }
 
-            final String logString = String.format("#%s Moved %s amount=%s, filled=%s,quote=%s,id=%s,attempt=%s. %s. position=%s",
-                    signalType == SignalType.AUTOMATIC ? arbitrageService.getCounter() : signalType.getCounterName(),
+            final String logString = String.format("%s Moved %s amount=%s, filled=%s,quote=%s,id=%s,attempt=%s. %s. position=%s",
+                    getCounterName(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount(),
                     limitOrder.getCumulativeAmount(),
@@ -671,7 +671,8 @@ public class BitmexService extends MarketService {
             tradeLogger.info(logString);
             moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
         } else if (moveResponse == null) {
-            final String logString = String.format("Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
+            final String logString = String.format("%s Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
+                    getCounterName(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                     limitOrder.getTradableAmount().setScale(1, BigDecimal.ROUND_HALF_UP),
                     limitOrder.getLimitPrice().toPlainString(),
@@ -919,14 +920,16 @@ public class BitmexService extends MarketService {
             final BigDecimal btcP = getAccountInfoContracts().getAvailable();
 
             if (position.getPositionLong().signum() > 0) {
-                tradeLogger.info(String.format("B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+                tradeLogger.info(String.format("%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+                        getCounterName(),
                         position.getPositionLong().toPlainString(),
                         liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
 
                 arbitrageService.startTradingOnDelta1(SignalType.B_PRE_LIQ, bestQuotes.getAsk1_o(), bestQuotes.getBid1_p(), bestQuotes, btcP);
 
             } else if (position.getPositionLong().signum() < 0) {
-                tradeLogger.info(String.format("B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+                tradeLogger.info(String.format("%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+                        getCounterName(),
                         position.getPositionLong().toPlainString(),
                         liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
 

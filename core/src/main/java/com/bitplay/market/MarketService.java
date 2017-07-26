@@ -166,8 +166,7 @@ public abstract class MarketService {
 
     public void setBusy() {
         if (!isBusy) {
-            getTradeLogger().info("{}: busy, {}", getName(),
-                    getPosDiffString());
+            getTradeLogger().info("{} {}: busy, {}", getCounterName(), getName(), getPosDiffString());
         }
         isBusy = true;
     }
@@ -189,12 +188,18 @@ public abstract class MarketService {
         );
     }
 
+    protected String getCounterName() {
+        final SignalType signalType = getArbitrageService().getSignalType();
+        final int counter = getArbitrageService().getCounter();
+        final String value = signalType == SignalType.AUTOMATIC ? String.valueOf(counter) : signalType.getCounterName();
+        return "#" + value;
+    }
+
     protected void setFree() {
         if (isBusy) {
 //            fetchPosition(); -- deadlock
             isBusy = false;
-            getTradeLogger().info("{}: ready, {}", getName(),
-                    getPosDiffString());
+            getTradeLogger().info("{} {}: ready, {}", getCounterName(), getName(), getPosDiffString());
             eventBus.send(BtsEvent.MARKET_GOT_FREE);
         } else {
             logger.info("{}: already ready", getName());
