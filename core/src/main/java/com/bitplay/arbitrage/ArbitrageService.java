@@ -246,30 +246,7 @@ public class ArbitrageService {
 
         printSumBal(false);
 
-        printVolFact();
-
         saveParamsToDb();
-    }
-
-    private void printVolFact() {
-        //vol_fact = pos_after - pos_befor
-        final BigDecimal posAfter = new BigDecimal(firstMarketService.getPositionAsString());
-        final BigDecimal posBefore = params.getPosBefore();
-        final BigDecimal volFact = posAfter.subtract(posBefore);
-        // vol_diff = vol_plan - vol_fact
-        final BigDecimal volPlan = params.getVolPlan();
-        final BigDecimal volDiff = volPlan.subtract(volFact);
-
-        final String warningString = volDiff.compareTo(BigDecimal.ZERO) == 1 ? "WARNING vol_diff > 0" : "";
-        final String logString = String.format("#%s %s vol_fact=%s-%s=%s; vol_diff=%s-%s=%s",
-                getCounter(),
-                warningString,
-                posAfter, posBefore, volFact,
-                volPlan, volFact, volDiff);
-        if (volDiff.compareTo(BigDecimal.ZERO) == 1) {
-            warningLogger.error("deltas: " + logString);
-        }
-        deltasLogger.info(logString);
     }
 
     public MarketService getFirstMarketService() {
@@ -411,8 +388,6 @@ public class ArbitrageService {
             storeDeltaParams();
         }
 
-        final BigDecimal btcP = firstMarketService.getAccountInfoContracts().getAvailable();
-
         BigDecimal border1 = params.getBorder1();
         BigDecimal border2 = params.getBorder2();
 
@@ -420,7 +395,7 @@ public class ArbitrageService {
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
 
-                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes.getAsk1_o(), bestQuotes.getBid1_p(), bestQuotes, btcP);
+                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes.getAsk1_o(), bestQuotes.getBid1_p(), bestQuotes);
 
             }
         }
@@ -428,14 +403,14 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
 
-                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes.getAsk1_p(), bestQuotes.getBid1_o(), bestQuotes, btcP);
+                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes.getAsk1_p(), bestQuotes.getBid1_o(), bestQuotes);
 
             }
         }
         return bestQuotes;
     }
 
-    public void startTradingOnDelta1(SignalType signalType, BigDecimal ask1_o, BigDecimal bid1_p, BestQuotes bestQuotes, BigDecimal btcP) {
+    public void startTradingOnDelta1(SignalType signalType, BigDecimal ask1_o, BigDecimal bid1_p, BestQuotes bestQuotes) {
         if (checkBalance(DELTA1, params.getBlock1(), params.getBlock2()) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
@@ -451,7 +426,7 @@ public class ArbitrageService {
             params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
             params.setVolPlan(params.getBlock1()); // buy
 
-            writeLogDelta1(ask1_o, bid1_p, btcP);
+            writeLogDelta1(ask1_o, bid1_p);
 
             firstMarketService.placeOrderOnSignal(Order.OrderType.ASK, params.getBlock1(), bestQuotes, signalType);
             secondMarketService.placeOrderOnSignal(Order.OrderType.BID, params.getBlock2(), bestQuotes, signalType);
@@ -463,7 +438,7 @@ public class ArbitrageService {
         }
     }
 
-    public void startTradingOnDelta2(SignalType signalType, BigDecimal ask1_p, BigDecimal bid1_o, BestQuotes bestQuotes, BigDecimal btcP) {
+    public void startTradingOnDelta2(SignalType signalType, BigDecimal ask1_p, BigDecimal bid1_o, BestQuotes bestQuotes) {
         if (checkBalance(DELTA2, params.getBlock1(), params.getBlock2()) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
@@ -479,7 +454,7 @@ public class ArbitrageService {
             params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
             params.setVolPlan(params.getBlock1().negate());//sell
 
-            writeLogDelta2(ask1_p, bid1_o, btcP);
+            writeLogDelta2(ask1_p, bid1_o);
 
             firstMarketService.placeOrderOnSignal(Order.OrderType.BID, params.getBlock1(), bestQuotes, signalType);
             secondMarketService.placeOrderOnSignal(Order.OrderType.ASK, params.getBlock2(), bestQuotes, signalType);
@@ -500,7 +475,7 @@ public class ArbitrageService {
         return String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
     }
 
-    private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_p, BigDecimal btcP) {
+    private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_p) {
         deltasLogger.info("------------------------------------------");
 
         BigDecimal cumDelta = params.getCumDelta();
@@ -522,18 +497,12 @@ public class ArbitrageService {
         params.setCumDelta(cumDelta.add(delta1));
         if (cumDelta.compareTo(cumDeltaMin) == -1) params.setCumDeltaMin(cumDelta);
         if (cumDelta.compareTo(cumDeltaMax) == 1) params.setCumDeltaMax(cumDelta);
-        deltasLogger.info(String.format("#%s delta1=%s-%s=%s; b1=%s; btcP=%s;",
+        deltasLogger.info(String.format("#%s delta1=%s-%s=%s; b1=%s;",
                 //usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
                 getCounter(),
                 bid1_p.toPlainString(), ask1_o.toPlainString(),
                 delta1.toPlainString(),
-                border1.toPlainString(),
-                btcP
-//                usdP, btcO, usdO,
-//                firstWalletBalance.toPlainString(),
-//                cumDelta.toPlainString(),
-//                cumDeltaMin,
-//                cumDeltaMax
+                border1.toPlainString()
         ));
 
         // Count com
@@ -548,7 +517,7 @@ public class ArbitrageService {
         printSumBal(false);
     }
 
-    private void writeLogDelta2(BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal btcP) {
+    private void writeLogDelta2(BigDecimal ask1_p, BigDecimal bid1_o) {
         deltasLogger.info("------------------------------------------");
 
         BigDecimal cumDelta = params.getCumDelta();
@@ -570,17 +539,11 @@ public class ArbitrageService {
         params.setCumDelta(cumDelta.add(delta2));
         if (cumDelta.compareTo(cumDeltaMin) == -1) params.setCumDeltaMin(cumDelta);
         if (cumDelta.compareTo(cumDeltaMax) == 1) params.setCumDeltaMax(cumDelta);
-        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; b2=%s; btcP=%s;",// usdP=%s; btcO=%s; usdO=%s; w=%s; cum_delta=%s/%s/%s",
+        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; b2=%s;",
                 getCounter(),
                 bid1_o.toPlainString(), ask1_p.toPlainString(),
                 delta2.toPlainString(),
-                border2.toPlainString(),
-                btcP
-//                , usdP, btcO, usdO,
-//                firstWalletBalance,
-//                cumDelta.toPlainString(),
-//                cumDeltaMin,
-//                cumDeltaMax
+                border2.toPlainString()
         ));
 
         // Count com
