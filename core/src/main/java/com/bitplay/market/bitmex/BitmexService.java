@@ -93,6 +93,11 @@ public class BitmexService extends MarketService {
         return arbitrageService;
     }
 
+    @Autowired
+    public void setArbitrageService(ArbitrageService arbitrageService) {
+        this.arbitrageService = arbitrageService;
+    }
+
     @Override
     public PosDiffService getPosDiffService() {
         return posDiffService;
@@ -101,11 +106,6 @@ public class BitmexService extends MarketService {
     @Override
     public PersistenceService getPersistenceService() {
         return persistenceService;
-    }
-
-    @Autowired
-    public void setArbitrageService(ArbitrageService arbitrageService) {
-        this.arbitrageService = arbitrageService;
     }
 
     @Override
@@ -811,7 +811,7 @@ public class BitmexService extends MarketService {
             if (position.getPositionLong().signum() > 0) {
                 if (m.signum() > 0 && L.signum() > 0) {
                     dql = m.subtract(L);
-                    dqlString = String.format("b_DQL = m%s - L%s = %s;", m, L, dql);
+                    dqlString = String.format("b_DQL = m%s - L%s = %s", m, L, dql);
                 } else {
                     dqlString = "b_DQL = na";
                     warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
@@ -821,7 +821,7 @@ public class BitmexService extends MarketService {
                 if (m.signum() > 0 && L.signum() > 0) {
                     if (L.subtract(BigDecimal.valueOf(100000)).signum() < 0) {
                         dql = L.subtract(m);
-                        dqlString = String.format("b_DQL = L%s - m%s = %s;", L, m, dql);
+                        dqlString = String.format("b_DQL = L%s - m%s = %s", L, m, dql);
                     } else {
                         dqlString = "b_DQL = na";
                     }

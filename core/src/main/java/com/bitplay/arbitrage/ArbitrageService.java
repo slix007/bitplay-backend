@@ -43,13 +43,12 @@ public class ArbitrageService {
     private static final String DELTA1 = "delta1";
     private static final String DELTA2 = "delta2";
     private static final Object calcLock = new Object();
-
+    protected volatile DeltaParams deltaParams = new DeltaParams();
     @Autowired
     private PersistenceService persistenceService;
     private Disposable schdeduleUpdateBorders;
     private Instant startTimeToUpdateBorders;
     private volatile int updateBordersCounter;
-
     //TODO rename them to first and second
     private MarketService firstMarketService;
     private MarketService secondMarketService;
@@ -57,8 +56,6 @@ public class ArbitrageService {
     private BigDecimal delta1 = BigDecimal.ZERO;
     private BigDecimal delta2 = BigDecimal.ZERO;
     private GuiParams params = new GuiParams();
-    protected volatile DeltaParams deltaParams = new DeltaParams();
-
     private Instant previousEmitTime = Instant.now();
     private String sumBalString = "";
 
@@ -724,7 +721,8 @@ public class ArbitrageService {
             final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
 
-            sumBalString = String.format("s_bal=w%s_%s, e%s_%s, u%s_%s, m%s_%s, a%s_%s",
+            sumBalString = String.format("#%s s_bal=w%s_%s, e%s_%s, u%s_%s, m%s_%s, a%s_%s",
+                    counterName,
                     sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -732,11 +730,11 @@ public class ArbitrageService {
                     sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
             deltasLogger.info(sumBalString);
 
-            deltasLogger.info("Pos diff: " + getPosDiffString());
+            deltasLogger.info(String.format("#%s Pos diff: %s", counterName, getPosDiffString()));
             final LiqInfo bLiqInfo = getFirstMarketService().getLiqInfo();
-            deltasLogger.info(bLiqInfo.getDqlString() + ";" + bLiqInfo.getDmrlString());
+            deltasLogger.info(String.format("#%s %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString()));
             final LiqInfo oLiqInfo = getSecondMarketService().getLiqInfo();
-            deltasLogger.info(oLiqInfo.getDqlString() + ";" + oLiqInfo.getDmrlString());
+            deltasLogger.info(String.format("#%s %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString()));
         }
     }
 
@@ -875,12 +873,12 @@ public class ArbitrageService {
         return params;
     }
 
-    public DeltaParams getDeltaParams() {
-        return deltaParams;
-    }
-
     public void setParams(GuiParams params) {
         this.params = params;
+    }
+
+    public DeltaParams getDeltaParams() {
+        return deltaParams;
     }
 
     public OpenPrices getOpenDiffs() {

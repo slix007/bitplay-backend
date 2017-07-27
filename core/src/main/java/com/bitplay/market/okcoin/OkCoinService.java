@@ -67,30 +67,26 @@ import io.reactivex.schedulers.Schedulers;
 @Service("okcoin")
 public class OkCoinService extends MarketService {
 
+    public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
-
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
-
     private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
     private final static String NAME = "okcoin";
-
+    private static final int MAX_ATTEMPTS = 10;
+    protected State state = State.READY;
+    ArbitrageService arbitrageService;
     @Autowired
     private PosDiffService posDiffService;
     @Autowired
     private PersistenceService persistenceService;
-
-    ArbitrageService arbitrageService;
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
     private Disposable privateDataSubscription;
     private Disposable accountInfoSubscription;
     private Disposable futureIndexSubscription;
     private Observable<OrderBook> orderBookObservable;
-    private static final int MAX_ATTEMPTS = 10;
-    protected State state = State.READY;
-    public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
 
     @Override
     public PosDiffService getPosDiffService() {
@@ -102,14 +98,14 @@ public class OkCoinService extends MarketService {
         return arbitrageService;
     }
 
-    @Override
-    public PersistenceService getPersistenceService() {
-        return persistenceService;
-    }
-
     @Autowired
     public void setArbitrageService(ArbitrageService arbitrageService) {
         this.arbitrageService = arbitrageService;
+    }
+
+    @Override
+    public PersistenceService getPersistenceService() {
+        return persistenceService;
     }
 //    private Map<String, Disposable> orderSubscriptions = new HashMap<>();
 
@@ -1066,7 +1062,7 @@ public class OkCoinService extends MarketService {
                             && mrl.subtract(oMrLiq).add(BigDecimal.ONE).signum() > 0) {
                         final BigDecimal m = Utils.getBestBid(orderBook).getLimitPrice();
                         dql = m.subtract(L);
-                        dqlString = String.format("o_DQL = m%s - L%s = %s;", m, L, dql);
+                        dqlString = String.format("o_DQL = m%s - L%s = %s", m, L, dql);
                     } else {
                         dqlString = "b_DQL = na";
                         warningLogger.info(String.format("Warning. mrl is wrong: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, eqLiq=%s, mrl=%s, oMrLiq=%s",
@@ -1101,7 +1097,7 @@ public class OkCoinService extends MarketService {
                                 && mrl.subtract(oMrLiq).add(BigDecimal.ONE).signum() > 0) {
                             final BigDecimal m = Utils.getBestAsk(orderBook).getLimitPrice();
                             dql = L.subtract(m);
-                            dqlString = String.format("o_DQL = L%s - m%s = %s;", L, m, dql);
+                            dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
                         } else {
                             dqlString = "b_DQL = na";
                             warningLogger.info(String.format("Warning. mrl is wrong: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, eqLiq=%s, mrl=%s, oMrLiq=%s",
