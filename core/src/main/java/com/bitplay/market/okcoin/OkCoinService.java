@@ -1140,8 +1140,9 @@ public class OkCoinService extends MarketService {
                 if (liqInfo.getLiqParams().getDqlMin().compareTo(dql) == 1) {
                     liqInfo.getLiqParams().setDqlMin(dql);
                 }
-                liqInfo.setDqlCurr(dql);
             }
+            liqInfo.setDqlCurr(dql);
+
             if (dmrl != null) {
                 if (liqInfo.getLiqParams().getDmrlMax().compareTo(dmrl) == -1) {
                     liqInfo.getLiqParams().setDmrlMax(dmrl);
@@ -1149,8 +1150,8 @@ public class OkCoinService extends MarketService {
                 if (liqInfo.getLiqParams().getDmrlMin().compareTo(dmrl) == 1) {
                     liqInfo.getLiqParams().setDmrlMin(dmrl);
                 }
-                liqInfo.setDmrlCurr(dmrl);
             }
+            liqInfo.setDmrlCurr(dmrl);
 
             liqInfo.setDqlString(dqlString);
             liqInfo.setDmrlString(dmrlString);
@@ -1167,31 +1168,36 @@ public class OkCoinService extends MarketService {
         final BigDecimal oDQLOpenMin = arbitrageService.getParams().getoDQLOpenMin();
 
         boolean isOk;
-        if (orderType.equals(Order.OrderType.BID)) { // LONG
-            if ((position.getPositionLong().subtract(position.getPositionShort())).signum() > 0) {
-                if (liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1) {
-                    isOk = true;
-                } else {
-                    isOk = false;
-                }
-            } else {
-                isOk = true;
-            }
-        } else if (orderType.equals(Order.OrderType.ASK)) {
-            if ((position.getPositionLong().subtract(position.getPositionShort()).signum() < 0)) {
-                if (liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1) {
-                    isOk = true;
-                } else {
-                    isOk = false;
-                }
-            } else {
-                isOk = true;
-            }
+
+        if (liqInfo.getDqlCurr() == null) {
+            isOk = true;
         } else {
-            throw new IllegalArgumentException("Wrong orderType " + orderType);
+            if (orderType.equals(Order.OrderType.BID)) { // LONG
+                if ((position.getPositionLong().subtract(position.getPositionShort())).signum() > 0) {
+                    if (liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1) {
+                        isOk = true;
+                    } else {
+                        isOk = false;
+                    }
+                } else {
+                    isOk = true;
+                }
+            } else if (orderType.equals(Order.OrderType.ASK)) {
+                if ((position.getPositionLong().subtract(position.getPositionShort()).signum() < 0)) {
+                    if (liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1) {
+                        isOk = true;
+                    } else {
+                        isOk = false;
+                    }
+                } else {
+                    isOk = true;
+                }
+            } else {
+                throw new IllegalArgumentException("Wrong orderType " + orderType);
+            }
         }
 
-        logger.debug(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
+        debugLog.info(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
                 position.getPositionLong().subtract(position.getPositionShort()),
                 liqInfo.getDqlCurr(),
                 oDQLOpenMin));
