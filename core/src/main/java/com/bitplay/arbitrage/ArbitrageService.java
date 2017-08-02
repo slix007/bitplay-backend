@@ -324,12 +324,14 @@ public class ArbitrageService {
 
         // Observable.combineLatest - doesn't work while observable isn't completed
         Observable
-                .concat(firstOrderBook, secondOrderBook)
+                .merge(firstOrderBook, secondOrderBook)
                 .subscribeOn(Schedulers.computation())
                 .observeOn(Schedulers.computation())
                 //Do not use .retry(), because observableOrderBooks can be changed
-                .map(orderBook -> doComparison())
-                .subscribe(bestQuotes -> {
+                .subscribe(orderBook -> {
+
+                    final BestQuotes bestQuotes = doComparison();
+
                     // Logging not often then 5 sec
                     if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
                             && bestQuotes != null
@@ -339,7 +341,10 @@ public class ArbitrageService {
                         signalLogger.info(bestQuotes.toString());
                     }
                 }, throwable -> {
-                    logger.error("On combine orderBooks", throwable);
+                    logger.error("OnCombine orderBooks", throwable);
+                    startArbitrageMonitoring();
+                }, () -> {
+                    logger.error("OnComplete orderBooks");
                     startArbitrageMonitoring();
                 });
     }
@@ -348,6 +353,9 @@ public class ArbitrageService {
         BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
 
         if (isReadyForTheArbitrage) {
+            if (Thread.holdsLock(calcLock)) {
+                logger.warn("calcLock is in progress");
+            }
             synchronized (calcLock) {
                 final OrderBook firstOrderBook = firstMarketService.getOrderBook();
                 final OrderBook secondOrderBook = secondMarketService.getOrderBook();
