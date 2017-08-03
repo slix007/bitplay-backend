@@ -1211,8 +1211,8 @@ public class OkCoinService extends MarketService {
         final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
         if (liqInfo.getDqlCurr() != null
-                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) == 1 // workaround when DQL is less zero
-                && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) != 1
+                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
+                && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) < 0
                 && pos.signum() != 0) {
             final BestQuotes bestQuotes = Utils.createBestQuotes(getOrderBook(), arbitrageService.getSecondMarketService().getOrderBook());
 

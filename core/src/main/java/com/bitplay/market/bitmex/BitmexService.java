@@ -918,8 +918,8 @@ public class BitmexService extends MarketService {
         final BigDecimal bDQLCloseMin = arbitrageService.getParams().getbDQLCloseMin();
 
         if (liqInfo.getDqlCurr() != null
-                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) == 1 // workaround when DQL is less zero
-                && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) != 1
+                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
+                && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) < 0
                 && position.getPositionLong().signum() != 0) {
             final BestQuotes bestQuotes = Utils.createBestQuotes(getOrderBook(), arbitrageService.getSecondMarketService().getOrderBook());
 
