@@ -7,6 +7,7 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.State;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
@@ -220,6 +221,8 @@ public class OkCoinService extends MarketService {
                                 return null;
                             });
 
+
+                    getArbitrageService().getSignalEventBus().send(SignalEvent.O_ORDERBOOK_CHANGED);
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }

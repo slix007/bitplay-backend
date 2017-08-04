@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
@@ -353,6 +354,9 @@ public class BitmexService extends MarketService {
                     this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
                     this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                     logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
+
+
+                    getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }

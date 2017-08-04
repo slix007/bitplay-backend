@@ -4,6 +4,8 @@ import com.bitplay.TwoMarketStarter;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.events.SignalEvent;
+import com.bitplay.market.events.SignalEventBus;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
@@ -67,6 +69,7 @@ public class ArbitrageService {
     private OpenPrices openPrices = new OpenPrices();
     private OpenPrices openDiffs = new OpenPrices();
     private volatile SignalType signalType = SignalType.AUTOMATIC;
+    private SignalEventBus signalEventBus = new SignalEventBus();
 
     public FlagOpenOrder getFlagOpenOrder() {
         return flagOpenOrder;
@@ -81,9 +84,37 @@ public class ArbitrageService {
         this.firstMarketService = twoMarketStarter.getFirstMarketService();
         this.secondMarketService = twoMarketStarter.getSecondMarketService();
         this.posDiffService = twoMarketStarter.getPosDiffService();
-        startArbitrageMonitoring();
+//        startArbitrageMonitoring();
         scheduleRecalculateBorders();
         initArbitrageStateListener();
+        initSignalEventBus();
+    }
+
+    private void initSignalEventBus() {
+        signalEventBus.toObserverable()
+                .debounce(100, TimeUnit.MILLISECONDS)
+                .doOnError(throwable -> logger.error("signalEventBus doOnError", throwable))
+                .retry()
+                .subscribe(signalEvent -> {
+                    if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
+                            || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
+
+                        final BestQuotes bestQuotes = doComparison();
+
+                        // Logging not often then 5 sec
+                        if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
+                                && bestQuotes != null
+                                && bestQuotes.getArbitrageEvent() != BestQuotes.ArbitrageEvent.NONE) {
+
+                            previousEmitTime = Instant.now();
+                            signalLogger.info(bestQuotes.toString());
+                        }
+                    }
+                }, throwable -> logger.error("signalEventBus errorOnEvent", throwable));
+    }
+
+    public SignalEventBus getSignalEventBus() {
+        return signalEventBus;
     }
 
     private void initArbitrageStateListener() {
@@ -317,38 +348,39 @@ public class ArbitrageService {
                 .subscribe();
     }
 
-    private void startArbitrageMonitoring() {
+    /*
+        private void startArbitrageMonitoring() {
 
-        final Observable<OrderBook> firstOrderBook = firstMarketService.getOrderBookObservable();
-        final Observable<OrderBook> secondOrderBook = secondMarketService.getOrderBookObservable();
+            final Observable<OrderBook> firstOrderBook = firstMarketService.getOrderBookObservable();
+            final Observable<OrderBook> secondOrderBook = secondMarketService.getOrderBookObservable();
 
-        // Observable.combineLatest - doesn't work while observable isn't completed
-        Observable
-                .merge(firstOrderBook, secondOrderBook)
-                .subscribeOn(Schedulers.computation())
-                .observeOn(Schedulers.computation())
-                //Do not use .retry(), because observableOrderBooks can be changed
-                .subscribe(orderBook -> {
+            // Observable.combineLatest - doesn't work while observable isn't completed
+            Observable
+                    .merge(firstOrderBook, secondOrderBook)
+                    .subscribeOn(Schedulers.computation())
+                    .observeOn(Schedulers.computation())
+                    //Do not use .retry(), because observableOrderBooks can be changed
+                    .subscribe(orderBook -> {
 
-                    final BestQuotes bestQuotes = doComparison();
+                        final BestQuotes bestQuotes = doComparison();
 
-                    // Logging not often then 5 sec
-                    if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
-                            && bestQuotes != null
-                            && bestQuotes.getArbitrageEvent() != BestQuotes.ArbitrageEvent.NONE) {
+                        // Logging not often then 5 sec
+                        if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
+                                && bestQuotes != null
+                                && bestQuotes.getArbitrageEvent() != BestQuotes.ArbitrageEvent.NONE) {
 
-                        previousEmitTime = Instant.now();
-                        signalLogger.info(bestQuotes.toString());
-                    }
-                }, throwable -> {
-                    logger.error("OnCombine orderBooks", throwable);
-                    startArbitrageMonitoring();
-                }, () -> {
-                    logger.error("OnComplete orderBooks");
-                    startArbitrageMonitoring();
-                });
-    }
-
+                            previousEmitTime = Instant.now();
+                            signalLogger.info(bestQuotes.toString());
+                        }
+                    }, throwable -> {
+                        logger.error("OnCombine orderBooks", throwable);
+                        startArbitrageMonitoring();
+                    }, () -> {
+                        logger.error("OnComplete orderBooks");
+                        startArbitrageMonitoring();
+                    });
+        }
+    */
     private BestQuotes doComparison() {
         BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
 
