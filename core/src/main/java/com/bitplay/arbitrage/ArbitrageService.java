@@ -94,7 +94,7 @@ public class ArbitrageService {
         signalEventBus.toObserverable()
                 .debounce(100, TimeUnit.MILLISECONDS)
                 .doOnError(throwable -> logger.error("signalEventBus doOnError", throwable))
-                .retry()
+                .retry() // handle errors before(in observable), but not after (in subscriber)
                 .subscribe(signalEvent -> {
                     if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
                             || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
@@ -110,7 +110,10 @@ public class ArbitrageService {
                             signalLogger.info(bestQuotes.toString());
                         }
                     }
-                }, throwable -> logger.error("signalEventBus errorOnEvent", throwable));
+                }, throwable -> {
+                    logger.error("signalEventBus errorOnEvent", throwable);
+                    initSignalEventBus();
+                });
     }
 
     public SignalEventBus getSignalEventBus() {
