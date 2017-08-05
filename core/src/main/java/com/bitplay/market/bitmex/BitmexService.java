@@ -28,6 +28,7 @@ import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
@@ -491,11 +492,15 @@ public class BitmexService extends MarketService {
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
-        return placeMakerOrder(orderType, amountInContracts, bestQuotes, false, signalType);
+        return placeOrder(orderType, amountInContracts, bestQuotes, BitmexOrderType.MAKER, signalType);
     }
 
-    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
-                                          boolean isMoving, SignalType signalType) {
+    public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
+        return placeOrder(orderType, amountInContracts, bestQuotes, BitmexOrderType.TAKER, signalType);
+    }
+
+    private TradeResponse placeOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+                                     BitmexOrderType bitmexOrderType, SignalType signalType) {
         final TradeResponse tradeResponse = new TradeResponse();
         try {
             arbitrageService.setSignalType(signalType);
@@ -512,18 +517,27 @@ public class BitmexService extends MarketService {
                     thePrice = createBestMakerPrice(orderType, false)
                             .setScale(1, BigDecimal.ROUND_HALF_UP);
 
-                    final LimitOrder limitOrder = new LimitOrder(orderType,
-                            amount, CURRENCY_PAIR_XBTUSD, "0", new Date(),
-                            thePrice);
+                    if (bitmexOrderType == BitmexOrderType.MAKER) {
+                        final LimitOrder limitOrder = new LimitOrder(orderType,
+                                amount, CURRENCY_PAIR_XBTUSD, "0", new Date(),
+                                thePrice);
+                        orderId = tradeService.placeLimitOrder(limitOrder);
+                    } else {
+                        final MarketOrder marketOrder = new MarketOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, new Date());
+                        orderId = getTradeService().placeMarketOrder(marketOrder);
+                    }
 
-                    orderId = tradeService.placeLimitOrder(limitOrder);
                     break;
                 } catch (Exception e) {
                     logger.error("Error on placeLimitOrder", e);
+                    final String message = (e instanceof HttpStatusIOException)
+                            ? e.getMessage() + ((HttpStatusIOException) e).getHttpBody()
+                            : e.getMessage();
+
                     final String logString = String.format("%s maker error attempt=%s: %s",
                             getCounterName(),
                             attemptCount,
-                            e.getMessage());
+                            message);
                     if (attemptCount == MAX_ATTEMPTS) {
                         logger.error(logString, e);
                         tradeLogger.error("Warning placing: " + logString);
@@ -533,8 +547,8 @@ public class BitmexService extends MarketService {
                         tradeLogger.error(logString);
                     }
 
-                    tradeResponse.setOrderId(e.getMessage());
-                    tradeResponse.setErrorMessage(e.getMessage());
+                    tradeResponse.setOrderId(message);
+                    tradeResponse.setErrorMessage(message);
                 }
             }
             if (orderId != null) {
@@ -557,7 +571,7 @@ public class BitmexService extends MarketService {
 
                 tradeLogger.info("{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
                         getCounterName(),
-                        isMoving ? "Moved" : "maker",
+                        bitmexOrderType.toString(),
                         orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                         amount.toPlainString(),
                         thePrice,
@@ -578,11 +592,6 @@ public class BitmexService extends MarketService {
             tradeResponse.setErrorMessage(e.getMessage());
         }
         return tradeResponse;
-    }
-
-    @Override
-    public TradeService getTradeService() {
-        return exchange.getTradeService();
     }
 
     @Override
@@ -613,8 +622,11 @@ public class BitmexService extends MarketService {
 
                 try {
                     final Error error = objectMapper.readValue(httpBody, Error.class);
-
-                    logger.error("MoveException", e);
+                    if (error.getError().getMessage().startsWith("Invalid ordStatus")) {
+                        logger.error("MoveException " + httpBody);
+                    } else {
+                        logger.error("MoveException " + httpBody, e);
+                    }
                     tradeLogger.error("{} MoveException: {}", getCounterName(), error.getError().getMessage());
 
                     if (error.getError().getMessage().startsWith("Invalid ordStatus")) {
@@ -688,6 +700,16 @@ public class BitmexService extends MarketService {
             moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }
         return moveResponse;
+    }
+
+    @Override
+    public TradeService getTradeService() {
+        return exchange.getTradeService();
+    }
+
+    enum BitmexOrderType {
+        MAKER,
+        TAKER
     }
 
     @Override
