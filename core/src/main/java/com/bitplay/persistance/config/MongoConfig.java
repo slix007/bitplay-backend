@@ -2,6 +2,7 @@ package com.bitplay.persistance.config;
 
 import com.bitplay.persistance.repository.RepositoryPackage;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
 
 import org.springframework.context.annotation.Bean;
@@ -28,8 +29,13 @@ public class MongoConfig extends AbstractMongoConfiguration {
     @Override
     @Bean
     public MongoClient mongo() throws Exception {
-        MongoClient client = new MongoClient("localhost");
+        MongoClientOptions.Builder clientOptions = new MongoClientOptions.Builder();
+        clientOptions.minConnectionsPerHost(100);//min
+        clientOptions.connectionsPerHost(100);//max
+
+        MongoClient client = new MongoClient("localhost", clientOptions.build());
         client.setWriteConcern(WriteConcern.ACKNOWLEDGED);
+
         return client;
     }
 
