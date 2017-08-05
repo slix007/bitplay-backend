@@ -426,7 +426,12 @@ public class ArbitrageService {
             if (delta2.compareTo(deltaParams.getoDeltaMax()) == 1) {
                 deltaParams.setoDeltaMax(delta2);
             }
-            storeDeltaParams();
+
+            if (!Thread.interrupted()) {
+                storeDeltaParams();
+            } else {
+                return bestQuotes;
+            }
         }
 
         BigDecimal border1 = params.getBorder1();
