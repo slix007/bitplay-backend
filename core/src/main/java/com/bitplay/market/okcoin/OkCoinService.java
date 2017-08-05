@@ -630,14 +630,13 @@ public class OkCoinService extends MarketService {
 
             if (availableBtc != null && equityBtc != null && leverage != null && position.getPositionLong() != null && position.getPositionShort() != null) {
 
-                if (availableBtc.signum() > 0) {
+//                if (availableBtc.signum() > 0) {
 //                if (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK)) {
                     if (position.getPositionShort().signum() != 0) { // there are sells
                         if (volPlan.compareTo(position.getPositionShort()) != 1) {
                             affordableContractsForLong = (position.getPositionShort().subtract(position.getPositionLong()).add(
                                     (equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN)
                             )).setScale(0, BigDecimal.ROUND_DOWN);
-                            ;
                         } else {
                             affordableContractsForLong = (availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
                         }
@@ -666,7 +665,7 @@ public class OkCoinService extends MarketService {
                         affordableContractsForShort = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
                     }
 //                }
-                }
+//                }
             }
         }
     }
