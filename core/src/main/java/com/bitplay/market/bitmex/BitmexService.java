@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
+import info.bitrich.xchangestream.bitmex.dto.BitmexInstrument;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
@@ -25,7 +26,6 @@ import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
-import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
@@ -67,17 +67,15 @@ public class BitmexService extends MarketService {
     private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    private final static String NAME = "bitmex";
+    private static final String NAME = "bitmex";
     private static final int MAX_ATTEMPTS = 10;
-
-    private final static CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
+    private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
     private BitmexStreamingExchange exchange;
 
     private Disposable accountInfoSubscription;
     private Disposable positionSubscription;
     private Disposable futureIndexSubscription;
-
 
     private Observable<OrderBook> orderBookObservable;
     private Disposable orderBookSubscription;
@@ -216,6 +214,17 @@ public class BitmexService extends MarketService {
             setFree();
         }
     }
+
+    // Use Websocket API instead
+    /*public void getFunding() {
+        try {
+            final BitmexTradeService tradeService = (BitmexTradeService) exchange.getTradeService();
+            final List<Instrument> instrumentList = tradeService.getFunding();
+            instrument = instrumentList.get(0);
+        } catch (IOException e) {
+            logger.error("Can not get funding", e);
+        }
+    }*/
 
     private void startOpenOrderMovingListener() {
         orderBookObservable
@@ -780,7 +789,7 @@ public class BitmexService extends MarketService {
     }
 
     private void startFutureIndexListener() {
-        Observable<ContractIndex> indexObservable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
+        Observable<BitmexInstrument> indexObservable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getContractIndexObservable()
                 .doOnError(throwable -> logger.error("Index fetch error", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
@@ -789,9 +798,26 @@ public class BitmexService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Index fetch error", throwable))
                 .subscribe(contractIndex1 -> {
-                    if (contractIndex1.getIndexPrice() != null) {
-                        this.contractIndex = new ContractIndex(contractIndex1.getIndexPrice(), contractIndex1.getTimestamp());
+                    final BigDecimal indexPrice = contractIndex1.getIndexPrice() != null
+                            ? contractIndex1.getIndexPrice()
+                            : contractIndex.getIndexPrice();
+                    final BigDecimal fundingRate;
+                    final Date fundingTimestamp;
+                    if (contractIndex instanceof BitmexInstrument) {
+                        fundingRate = contractIndex1.getFundingRate() != null
+                                ? contractIndex1.getFundingRate()
+                                : ((BitmexInstrument) contractIndex).getFundingRate();
+                        fundingTimestamp = contractIndex1.getFundingTimestamp() != null
+                                ? contractIndex1.getFundingTimestamp()
+                                : ((BitmexInstrument) contractIndex).getFundingTimestamp();
+                    } else {
+                        fundingRate = contractIndex1.getFundingRate();
+                        fundingTimestamp = contractIndex1.getFundingTimestamp();
                     }
+                    final Date timestamp = contractIndex1.getTimestamp();
+
+                    this.contractIndex = new BitmexInstrument(indexPrice, timestamp, fundingRate, fundingTimestamp);
+
                 }, throwable -> {
                     logger.error("Can not fetch Position", throwable);
                     // schedule it again

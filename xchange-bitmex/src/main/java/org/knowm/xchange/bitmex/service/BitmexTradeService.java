@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.swagger.client.model.Instrument;
+
 /**
  * Created by Sergey Shurmin on 5/18/17.
  */
@@ -121,5 +123,20 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
     @Override
     public Collection<Order> getOrder(String... orderIds) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         throw new NotYetImplementedForExchangeException();
+    }
+
+    public List<Instrument> getFunding() throws IOException {
+        final String symbol = "XBTUSD";
+        String columns = "[\"fundingRate\",\"fundingTimestamp\"]";
+
+        return bitmexAuthenitcatedApi.instrument(
+                exchange.getExchangeSpecification().getApiKey(),
+                signatureCreator,
+                exchange.getNonceFactory(),
+                symbol,
+                columns
+        );
+
+
     }
 }

@@ -14,6 +14,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import io.swagger.client.model.Instrument;
 import io.swagger.client.model.Margin;
 import io.swagger.client.model.Order;
 import io.swagger.client.model.Position;
@@ -52,6 +53,16 @@ public interface BitmexAuthenitcatedApi {
                   @HeaderParam("api-signature") ParamsDigest signer,
                   @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
                   @QueryParam("currency") String currency
+    ) throws IOException;
+
+    @GET
+    @Path("/instrument")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    List<Instrument> instrument(@HeaderParam("api-key") String apiKey,
+                                @HeaderParam("api-signature") ParamsDigest signer,
+                                @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+                                @QueryParam("symbol") String symbol,
+                                @QueryParam("columns") String columns
     ) throws IOException;
 
     @GET

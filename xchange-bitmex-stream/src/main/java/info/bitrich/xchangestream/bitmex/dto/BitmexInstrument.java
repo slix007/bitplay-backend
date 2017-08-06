@@ -1,31 +1,33 @@
 package info.bitrich.xchangestream.bitmex.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
 
 import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * Created by Sergey Shurmin on 6/26/17.
+ * Created by Sergey Shurmin on 8/6/17.
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class BitmexInstrument {
+public class BitmexInstrument extends ContractIndex {
 
-    private final BigDecimal markPrice;
-    private final Date timestamp;
+    private BigDecimal fundingRate;
+    private Date fundingTimestamp;
 
-    public BitmexInstrument(@JsonProperty("markPrice") BigDecimal markPrice,
-                            @JsonProperty("timestamp") Date timestamp) {
-        this.markPrice = markPrice;
-        this.timestamp = timestamp;
+    public BitmexInstrument(BigDecimal indexPrice, Date timestamp) {
+        super(indexPrice, timestamp);
     }
 
-    public BigDecimal getMarkPrice() {
-        return markPrice;
+    public BitmexInstrument(BigDecimal indexPrice, Date timestamp, BigDecimal fundingRate, Date fundingTimestamp) {
+        super(indexPrice, timestamp);
+        this.fundingRate = fundingRate;
+        this.fundingTimestamp = fundingTimestamp;
     }
 
-    public Date getTimestamp() {
-        return timestamp;
+    public BigDecimal getFundingRate() {
+        return fundingRate;
+    }
+
+    public Date getFundingTimestamp() {
+        return fundingTimestamp;
     }
 }
