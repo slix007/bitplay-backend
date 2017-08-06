@@ -529,6 +529,10 @@ public abstract class MarketService {
                 || orderType == Order.OrderType.EXIT_BID) {
             thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getLimitPrice();
         }
+        if (thePrice.signum() == 0) {
+            getTradeLogger().info("WARNING: PRICE IS 0");
+        }
+
         return thePrice;
     }
 
