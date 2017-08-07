@@ -5,14 +5,12 @@ import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.TradeResponse;
 
-import info.bitrich.xchangestream.bitmex.dto.BitmexInstrument;
-
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Position;
-import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -94,22 +93,29 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     public FutureIndexJson getFutureIndex() {
         final FutureIndexJson futureIndexParent = super.getFutureIndex();
 
-        String fundingRate = "";
-        String timeToFunding = "";
+        final BitmexFunding bitmexFunding = service.getBitmexFunding();
+        String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
 
-        final ContractIndex contractIndex1 = getBusinessService().getContractIndex();
-        if (contractIndex1 instanceof BitmexInstrument) {
-            final BitmexInstrument contractIndex = (BitmexInstrument) contractIndex1;
-            fundingRate = contractIndex.getFundingRate().toPlainString();
+        String swapTime = "";
+        String timeToSwap = "";
+        if (bitmexFunding.getSwapTime() != null && bitmexFunding.getUpdatingTime() != null) {
+            swapTime = bitmexFunding.getSwapTime().format(DateTimeFormatter.ISO_TIME);
 
-            if (contractIndex.getFundingTimestamp() != null) {
-                final Instant timestamp = contractIndex.getTimestamp().toInstant();
-                final Instant funding = contractIndex.getFundingTimestamp().toInstant();
-                final long s = Duration.between(timestamp, funding).getSeconds();
-                timeToFunding = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
-            }
+            final Instant updateInstant = bitmexFunding.getUpdatingTime().toInstant();
+            final Instant swapInstant = bitmexFunding.getSwapTime().toInstant();
+            final long s = Duration.between(updateInstant, swapInstant).getSeconds();
+            timeToSwap = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
         }
 
-        return new FutureIndexJson(futureIndexParent.getIndex(), futureIndexParent.getTimestamp(), fundingRate, timeToFunding);
+        String signalType = "noSwap";
+        if (bitmexFunding.getSignalType() != null) {
+            signalType = bitmexFunding.getSignalType().name();
+        }
+
+        return new FutureIndexJson(futureIndexParent.getIndex(), futureIndexParent.getTimestamp(),
+                fundingRate,
+                swapTime,
+                timeToSwap,
+                signalType);
     }
 }

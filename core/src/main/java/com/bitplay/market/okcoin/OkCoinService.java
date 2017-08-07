@@ -526,11 +526,6 @@ public class OkCoinService extends MarketService {
         }
     }
 
-    @Override
-    public OrderBook getOrderBook() {
-        return orderBook;
-    }
-
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType)
             throws Exception {
         state = State.IN_PROGRESS;

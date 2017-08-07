@@ -9,7 +9,9 @@ public enum SignalType {
     B_PRE_LIQ("b_preliq"),
     O_PRE_LIQ("o_preliq"),
     MANUAL_BUY("button_buy"),
-    MANUAL_SELL("button_sell");
+    MANUAL_SELL("button_sell"),
+    SWAP_CLOSE_LONG("swap_close_long"),
+    SWAP_CLOSE_SHORT("swap_open_short");
 
     private String counterName;
 

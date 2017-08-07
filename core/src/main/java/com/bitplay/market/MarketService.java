@@ -79,7 +79,9 @@ public abstract class MarketService {
 
     public abstract UserTrades fetchMyTradeHistory();
 
-    public abstract OrderBook getOrderBook();
+    public OrderBook getOrderBook() {
+        return this.orderBook;
+    }
 
     public abstract Logger getTradeLogger();
 

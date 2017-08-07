@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
-import info.bitrich.xchangestream.bitmex.dto.BitmexInstrument;
+import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
@@ -17,6 +17,7 @@ import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.Date;
 
 import io.reactivex.Observable;
@@ -52,7 +53,7 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
         throw new NotYetImplementedForExchangeException();
     }
 
-    public Observable<BitmexInstrument> getContractIndexObservable() {
+    public Observable<BitmexContractIndex> getContractIndexObservable() {
         return service.subscribeChannel("instrument", "instrument:XBTUSD")
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
@@ -69,11 +70,9 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                             ? new BigDecimal(instrument.getFundingRate()).multiply(BigDecimal.valueOf(100)).setScale(4, BigDecimal.ROUND_HALF_UP)
                             : null;
 
-                    final Date fundingTimestamp = instrument.getFundingTimestamp() != null
-                            ? Date.from(instrument.getFundingTimestamp().toInstant())
-                            : null;
+                    final OffsetDateTime fundingTimestamp = instrument.getFundingTimestamp();
 
-                    return new BitmexInstrument(
+                    return new BitmexContractIndex(
                             indexPrice,
                             Date.from(instrument.getTimestamp().toInstant()),
                             fundingRate,

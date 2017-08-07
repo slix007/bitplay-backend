@@ -71,11 +71,6 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public OrderBook getOrderBook() {
-        return null;
-    }
-
-    @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
         return null;
     }

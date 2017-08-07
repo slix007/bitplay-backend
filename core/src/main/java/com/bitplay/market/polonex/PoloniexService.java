@@ -340,11 +340,6 @@ public class PoloniexService extends MarketService {
         return orderBook;
     }
 
-    @Override
-    public OrderBook getOrderBook() {
-        return this.orderBook;
-    }
-
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable = false;
 
