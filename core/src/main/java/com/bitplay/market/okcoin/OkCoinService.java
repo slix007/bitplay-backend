@@ -553,7 +553,7 @@ public class OkCoinService extends MarketService {
             }
 
             if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
-                tradeResponse.setErrorMessage(TAKER_WAS_CANCELLED_MESSAGE);
+                tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
                 tradeResponse.setCancelledOrder(orderInfo);
             } else { //FILLED by any (orderInfo or cancelledOrder)
                 if (signalType == SignalType.AUTOMATIC) {
@@ -730,10 +730,10 @@ public class OkCoinService extends MarketService {
         thePrice = createBestMakerPrice(orderType, false).setScale(2, BigDecimal.ROUND_HALF_UP);
 
         if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
-            tradeResponse.setErrorMessage("The new price is 0 ");
+            tradeResponse.setErrorCode("The new price is 0 ");
         } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
 
-            tradeResponse.setErrorMessage("Not enough amount left. amount=" + tradeableAmount.toPlainString());
+            tradeResponse.setErrorCode("Not enough amount left. amount=" + tradeableAmount.toPlainString());
 
         } else {
             // USING REST API
@@ -937,7 +937,7 @@ public class OkCoinService extends MarketService {
                 tradeLogger.error("Warning: {}/{} Moving3:placingError {}", counterName, attemptCount, e.toString());
 //                    warningLogger.error("Warning: {}/{} Moving3:placingError {}", counterName, attemptCount, e.toString());
                 tradeResponse.setOrderId(null);
-                tradeResponse.setErrorMessage(e.getMessage());
+                tradeResponse.setErrorCode(e.getMessage());
             }
         }
         return tradeResponse;

@@ -64,9 +64,10 @@ public abstract class MarketService {
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
     protected SpecialFlags specialFlags = SpecialFlags.NONE;
 //    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
-    protected volatile Boolean isBusy = false;
+//    protected volatile Boolean isBusy = false;
+    protected volatile MarketState marketState = MarketState.IDLE;
     protected EventBus eventBus = new EventBus();
-    private volatile Boolean isReadyForMoving = true;
+    private volatile Boolean isReadyForMoving = true; // 1 second delay for moving
     private Disposable theTimer;
     protected volatile LiqInfo liqInfo = new LiqInfo();
 
@@ -150,7 +151,7 @@ public abstract class MarketService {
                     .map(LimitOrder::toString)
                     .reduce((s, s2) -> s + "; " + s2));
         }
-        return (openOrdersCount == 0 && !isBusy);
+        return (openOrdersCount == 0 && !isBusy());
     }
 
     private void initEventBus() {
@@ -167,10 +168,26 @@ public abstract class MarketService {
     }
 
     public void setBusy() {
-        if (!isBusy) {
-            getTradeLogger().info("{} {}: busy, {}", getCounterNameNext(), getName(), getPosDiffString());
+        setBusy(MarketState.ARBITRAGE_IN_PROGRESS);
+    }
+
+    protected void setFree() {
+        if (this.marketState == MarketState.SWAP) {
+            return;
         }
-        isBusy = true;
+        if (isBusy()) {
+//            fetchPosition(); -- deadlock
+            marketState = MarketState.IDLE;
+            getTradeLogger().info("{} {}: ready, {}", getCounterName(), getName(), getPosDiffString());
+            eventBus.send(BtsEvent.MARKET_GOT_FREE);
+        } else {
+            logger.info("{}: already ready", getName());
+        }
+        if (openOrders.size() > 0) {
+            getTradeLogger().info("{}: try to move openOrders, lock={}", getName(),
+                    Thread.holdsLock(openOrdersLock));
+            iterateOpenOrdersMove();
+        }
     }
 
     private String getPosDiffString() {
@@ -203,28 +220,21 @@ public abstract class MarketService {
         return "#" + value;
     }
 
-    protected void setFree() {
-        if (isBusy) {
-//            fetchPosition(); -- deadlock
-            isBusy = false;
-            getTradeLogger().info("{} {}: ready, {}", getCounterName(), getName(), getPosDiffString());
-            eventBus.send(BtsEvent.MARKET_GOT_FREE);
-        } else {
-            logger.info("{}: already ready", getName());
-        }
-        if (openOrders.size() > 0) {
-            getTradeLogger().info("{}: try to move openOrders, lock={}", getName(),
-                    Thread.holdsLock(openOrdersLock));
-            iterateOpenOrdersMove();
-        }
+    public boolean isBusy() {
+        return marketState != MarketState.IDLE;
     }
 
     public EventBus getEventBus() {
         return eventBus;
     }
 
-    public boolean isBusy() {
-        return isBusy;
+    protected void setBusy(MarketState newState) {
+        if (!isBusy()) {
+            getTradeLogger().info("{} {}: busy, {}", getCounterNameNext(), getName(), getPosDiffString());
+        }
+        if (this.marketState != MarketState.SWAP) {
+            this.marketState = newState;
+        }
     }
 
     /**

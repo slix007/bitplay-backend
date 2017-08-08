@@ -407,7 +407,7 @@ public class PoloniexService extends MarketService {
         } catch (Exception e) {
             logger.error("Place market order error", e);
             tradeResponse.setOrderId(e.getMessage());
-            tradeResponse.setErrorMessage(e.getMessage());
+            tradeResponse.setErrorCode(e.getMessage());
         }
         return tradeResponse;
     }
@@ -476,7 +476,7 @@ public class PoloniexService extends MarketService {
             logger.error("Place market order error", lastException);
             tradeLogger.info("maker error {}", lastException.toString());
             tradeResponse.setOrderId(lastException.getMessage());
-            tradeResponse.setErrorMessage(lastException.getMessage());
+            tradeResponse.setErrorCode(lastException.getMessage());
         }
         return tradeResponse;
     }

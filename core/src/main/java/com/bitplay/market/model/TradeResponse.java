@@ -43,7 +43,7 @@ public class TradeResponse {
         return errorCode;
     }
 
-    public void setErrorMessage(String errorCode) {
+    public void setErrorCode(String errorCode) {
         this.errorCode = errorCode;
     }
 
