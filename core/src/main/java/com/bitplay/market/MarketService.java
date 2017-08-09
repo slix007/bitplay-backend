@@ -553,7 +553,7 @@ public abstract class MarketService {
         if (theTimer != null) {
             theTimer.dispose();
         }
-        theTimer = Completable.timer(1, TimeUnit.SECONDS)
+        theTimer = Completable.timer(100, TimeUnit.MILLISECONDS)
                 .doOnComplete(() -> isReadyForMoving = true)
                 .doOnError(e -> {
                     logger.error("Error for isReadyForMoving");

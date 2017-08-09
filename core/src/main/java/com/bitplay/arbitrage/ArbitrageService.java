@@ -297,7 +297,7 @@ public class ArbitrageService {
         if (theTimer != null) {
             theTimer.dispose();
         }
-        theTimer = Completable.timer(5, TimeUnit.SECONDS)
+        theTimer = Completable.timer(100, TimeUnit.MILLISECONDS)
                 .doOnComplete(() -> isReadyForTheArbitrage = true)
                 .doOnError(throwable -> logger.error("onError timer", throwable))
                 .repeat()
