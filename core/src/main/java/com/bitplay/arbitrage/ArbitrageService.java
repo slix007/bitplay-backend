@@ -795,10 +795,10 @@ public class ArbitrageService {
         final BigDecimal dc = posDiffService.getPositionsDiffWithHedge();
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
-        return String.format("o(+%s-%s) b(%s) = %s, ha=%s, dc=%s, mdc=%s",
+        return String.format("b(%s) o(+%s-%s) = %s, ha=%s, dc=%s, mdc=%s",
+                Utils.withSign(bP),
                 oPL.toPlainString(),
                 oPS.toPlainString(),
-                Utils.withSign(bP),
                 posDiff.toPlainString(),
                 ha, dc, mdc
         );
