@@ -75,11 +75,11 @@ public class BitmexService extends MarketService {
     private static final int MAX_ATTEMPTS = 10;
     private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
+    private Disposable fundingSchedule;
     private static final int TICK_SEC = 1;
     private static final int MAX_TICKS_TO_SWAP_REVERT = 100;
     private volatile Long startingTick = 0L;
-
-    private Disposable fundingSchedule;
+    private volatile BigDecimal maxDiffCorrStored;
     private volatile BitmexFunding bitmexFunding = new BitmexFunding();
 
     private BitmexStreamingExchange exchange;
@@ -1074,8 +1074,10 @@ public class BitmexService extends MarketService {
         final long secToStartSwap = Duration.between(Instant.now(),
                 bitmexFunding.getSwapTime().minusSeconds(SWAP_INTERVAL)).getSeconds();
         if (Math.abs(secToStartSwap) < 2) {
-            startingTick = tickerCouner;
             if (marketState == MarketState.SWAP_AWAIT) {
+                startingTick = tickerCouner;
+                maxDiffCorrStored = arbitrageService.getParams().getMaxDiffCorr();
+                arbitrageService.getParams().setMaxDiffCorr(BigDecimal.valueOf(10000000));
                 startFunding();
             }
         }
@@ -1113,6 +1115,7 @@ public class BitmexService extends MarketService {
             setMarketState(MarketState.IDLE);
             bitmexFunding.setStartedSwapTime(null);
             bitmexFunding.setStartPosition(null);
+            arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored);
         }
     }
 
