@@ -168,25 +168,29 @@ public abstract class MarketService {
     }
 
     public void setBusy() {
-        setBusy(MarketState.ARBITRAGE_IN_PROGRESS);
+        if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
+            if (!isBusy()) {
+                getTradeLogger().info("{} {}: busy, {}", getCounterNameNext(), getName(), getPosDiffString());
+            }
+            this.marketState = MarketState.ARBITRAGE_IN_PROGRESS;
+        }
     }
 
     protected void setFree() {
-        if (this.marketState == MarketState.SWAP) {
-            return;
-        }
-        if (isBusy()) {
+        if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
+            if (isBusy()) {
 //            fetchPosition(); -- deadlock
-            marketState = MarketState.IDLE;
-            getTradeLogger().info("{} {}: ready, {}", getCounterName(), getName(), getPosDiffString());
-            eventBus.send(BtsEvent.MARKET_GOT_FREE);
-        } else {
-            logger.info("{}: already ready", getName());
-        }
-        if (openOrders.size() > 0) {
-            getTradeLogger().info("{}: try to move openOrders, lock={}", getName(),
-                    Thread.holdsLock(openOrdersLock));
-            iterateOpenOrdersMove();
+                marketState = MarketState.IDLE;
+                getTradeLogger().info("{} {}: ready, {}", getCounterName(), getName(), getPosDiffString());
+                eventBus.send(BtsEvent.MARKET_GOT_FREE);
+            } else {
+                logger.info("{}: already ready", getName());
+            }
+            if (openOrders.size() > 0) {
+                getTradeLogger().info("{}: try to move openOrders, lock={}", getName(),
+                        Thread.holdsLock(openOrdersLock));
+                iterateOpenOrdersMove();
+            }
         }
     }
 
@@ -228,13 +232,9 @@ public abstract class MarketService {
         return eventBus;
     }
 
-    protected void setBusy(MarketState newState) {
-        if (!isBusy()) {
-            getTradeLogger().info("{} {}: busy, {}", getCounterNameNext(), getName(), getPosDiffString());
-        }
-        if (this.marketState != MarketState.SWAP) {
-            this.marketState = newState;
-        }
+    protected void setMarketState(MarketState newState) {
+        getTradeLogger().info("{} {} marketState: {} {}", getCounterNameNext(), getName(), newState, getPosDiffString());
+        this.marketState = newState;
     }
 
     /**

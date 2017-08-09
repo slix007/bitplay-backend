@@ -1045,48 +1045,82 @@ public class BitmexService extends MarketService {
             bitmexFunding.setSignalType(null);
         }
 
-        if (marketState != MarketState.SWAP) {
-            final long seconds = Duration.between(Instant.now(), bitmexFunding.getSwapTime().minusSeconds(7)).getSeconds();
-            if (Math.abs(seconds) < 2) {
-                startingTick = tickerCouner;
+        final int SWAP_AWAIT_INTERVAL_SEC = 300;
+        final int SWAP_INTERVAL_SEC = 2;
+        switch (marketState) {
+            default:
+                checkStartSwapAwait(SWAP_AWAIT_INTERVAL_SEC);
+                break;
+
+            case SWAP_AWAIT:
+                checkStartFunding(tickerCouner, SWAP_INTERVAL_SEC);
+                break;
+
+            case SWAP:
+                checkEndFunding(tickerCouner);
+                break;
+        }
+    }
+
+    private void checkStartSwapAwait(int SWAP_AWAIT_INTERVAL) {
+        final long secToSwapAwait = Duration.between(Instant.now(),
+                bitmexFunding.getSwapTime().minusSeconds(SWAP_AWAIT_INTERVAL)).getSeconds();
+        if (Math.abs(secToSwapAwait) < 2) {
+            setMarketState(MarketState.SWAP_AWAIT);
+        }
+    }
+
+    private void checkStartFunding(Long tickerCouner, int SWAP_INTERVAL) {
+        final long secToStartSwap = Duration.between(Instant.now(),
+                bitmexFunding.getSwapTime().minusSeconds(SWAP_INTERVAL)).getSeconds();
+        if (Math.abs(secToStartSwap) < 2) {
+            startingTick = tickerCouner;
+            if (marketState == MarketState.SWAP_AWAIT) {
                 startFunding();
             }
-        } else { //marketState == MarketState.SWAP
-            if ((tickerCouner - startingTick > MAX_TICKS_TO_SWAP_REVERT)
-                    && (bitmexFunding.getStartedSwapTime() == null || bitmexFunding.getStartPosition() == null)) {
-                logger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
-                warningLogger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
-                marketState = MarketState.IDLE;
-                bitmexFunding.setStartPosition(null);
-                bitmexFunding.setStartedSwapTime(null);
-            } else if (bitmexFunding.getStartedSwapTime() != null && bitmexFunding.getStartPosition() != null) {
-                final long seconds = Duration.between(bitmexFunding.getStartedSwapTime(), Instant.now()).getSeconds();
-                if (seconds > 1) {
-                    endFunding(bitmexFunding.getStartPosition());
+        }
+    }
+
+    private void checkEndFunding(Long tickerCouner) {
+        if ((tickerCouner - startingTick > MAX_TICKS_TO_SWAP_REVERT)
+                && (bitmexFunding.getStartedSwapTime() == null || bitmexFunding.getStartPosition() == null)) {
+            logger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
+            warningLogger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
+            marketState = MarketState.IDLE;
+            bitmexFunding.setStartPosition(null);
+            bitmexFunding.setStartedSwapTime(null);
+        } else if (bitmexFunding.getStartedSwapTime() != null && bitmexFunding.getStartPosition() != null) {
+            final long seconds = Duration.between(bitmexFunding.getStartedSwapTime(), Instant.now()).getSeconds();
+            if (seconds > 1) {
+                if (marketState == MarketState.SWAP) {
+                    endFunding();
                 }
             }
         }
     }
 
-    private void endFunding(BigDecimal pos) {
+    private synchronized void endFunding() {
+        BigDecimal pos = bitmexFunding.getStartPosition();
         logger.info("swap_end to p{}", pos.toPlainString());
         tradeLogger.info("swap_end to p{}", pos.toPlainString());
 
         final Order.OrderType orderType = pos.signum() > 0 ? Order.OrderType.BID : Order.OrderType.ASK;
         SignalType signalType = pos.signum() > 0 ? SignalType.SWAP_REVERT_LONG : SignalType.SWAP_REVERT_SHORT;
+        arbitrageService.setSignalType(signalType);
+
         final TradeResponse tradeResponse = takerOrder(orderType, pos.abs(), null, signalType);
         if (tradeResponse.getErrorCode() == null) {
+            setMarketState(MarketState.IDLE);
             bitmexFunding.setStartedSwapTime(null);
             bitmexFunding.setStartPosition(null);
-            marketState = MarketState.IDLE;
         }
-
     }
-    private void startFunding() {
+
+    private synchronized void startFunding() {
         final BitmexContractIndex contractIndex = (BitmexContractIndex) this.contractIndex;
         final OffsetDateTime fundingTimestamp = contractIndex.getFundingTimestamp();
         final BigDecimal fRate = contractIndex.getFundingRate();
-        final long seconds = Duration.between(Instant.now(), fundingTimestamp.minusSeconds(7)).getSeconds();
+        final long seconds = Duration.between(Instant.now(), fundingTimestamp.minusSeconds(3)).getSeconds();
         if (Math.abs(seconds) > 2) {
             logger.warn("startFunding at wrong time");
             warningLogger.warn("startFunding at wrong time");
@@ -1101,30 +1135,26 @@ public class BitmexService extends MarketService {
                 logger.info("swap_close_long p{} f{}%", pos.toPlainString(), fRate.toPlainString());
                 tradeLogger.info("swap_close_long p{} f{}%", pos.toPlainString(), fRate.toPlainString());
 
-                if (marketState != MarketState.SWAP) {
-                    arbitrageService.setSignalType(SignalType.SWAP_CLOSE_LONG);
-                    setBusy(MarketState.SWAP);
+                arbitrageService.setSignalType(SignalType.SWAP_CLOSE_LONG);
 
-                    final TradeResponse tradeResponse = takerOrder(Order.OrderType.ASK, pos, null, SignalType.SWAP_CLOSE_LONG);
-                    if (tradeResponse.getErrorCode() == null) {
-                        bitmexFunding.setStartedSwapTime(bitmexFunding.getSwapTime());
-                        bitmexFunding.setStartPosition(pos);
-                    }
+                final TradeResponse tradeResponse = takerOrder(Order.OrderType.ASK, pos, null, SignalType.SWAP_CLOSE_LONG);
+                if (tradeResponse.getErrorCode() == null) {
+                    setMarketState(MarketState.SWAP);
+                    bitmexFunding.setStartedSwapTime(bitmexFunding.getSwapTime());
+                    bitmexFunding.setStartPosition(pos);
                 }
 
             } else if (signalType == SignalType.SWAP_CLOSE_SHORT) {
                 logger.info("swap_close_short p{} f{}%", pos.toPlainString(), fRate.toPlainString());
                 tradeLogger.info("swap_close_short p{} f{}%", pos.toPlainString(), fRate.toPlainString());
 
-                if (marketState != MarketState.SWAP) {
-                    arbitrageService.setSignalType(SignalType.SWAP_CLOSE_SHORT);
-                    setBusy(MarketState.SWAP);
+                arbitrageService.setSignalType(SignalType.SWAP_CLOSE_SHORT);
 
-                    final TradeResponse tradeResponse = takerOrder(Order.OrderType.BID, pos.abs(), null, SignalType.SWAP_CLOSE_SHORT);
-                    if (tradeResponse.getErrorCode() == null) {
-                        bitmexFunding.setStartedSwapTime(bitmexFunding.getSwapTime());
-                        bitmexFunding.setStartPosition(pos);
-                    }
+                final TradeResponse tradeResponse = takerOrder(Order.OrderType.BID, pos.abs(), null, SignalType.SWAP_CLOSE_SHORT);
+                if (tradeResponse.getErrorCode() == null) {
+                    setMarketState(MarketState.SWAP);
+                    bitmexFunding.setStartedSwapTime(bitmexFunding.getSwapTime());
+                    bitmexFunding.setStartPosition(pos);
                 }
 
             } else {

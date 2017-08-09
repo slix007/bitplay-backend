@@ -6,5 +6,6 @@ package com.bitplay.market;
 public enum MarketState {
     IDLE,
     ARBITRAGE_IN_PROGRESS,
-    SWAP
+    SWAP,
+    SWAP_AWAIT
 }

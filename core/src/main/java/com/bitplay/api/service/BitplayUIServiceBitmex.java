@@ -112,8 +112,11 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
             signalType = bitmexFunding.getSignalType().name();
         }
 
+        final String position = service.getPosition().getPositionLong().toPlainString();
+
         return new FutureIndexJson(futureIndexParent.getIndex(), futureIndexParent.getTimestamp(),
                 fundingRate,
+                position,
                 swapTime,
                 timeToSwap,
                 signalType);
