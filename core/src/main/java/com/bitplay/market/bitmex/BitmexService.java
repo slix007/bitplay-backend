@@ -77,8 +77,8 @@ public class BitmexService extends MarketService {
 
     private Disposable fundingSchedule;
     private static final int TICK_SEC = 1;
-    private static final int MAX_TICKS_TO_SWAP_REVERT = 100;
-    private volatile Long startingTick = 0L;
+    private static final int MAX_TICKS_TO_SWAP_REVERT = 120; // 2 min
+    private volatile long swapTicker = 0L;
     private volatile BigDecimal maxDiffCorrStored;
     private volatile BitmexFunding bitmexFunding = new BitmexFunding();
 
@@ -813,7 +813,7 @@ public class BitmexService extends MarketService {
                             ? contractIndex1.getIndexPrice()
                             : contractIndex.getIndexPrice();
                     final BigDecimal fundingRate;
-                    final OffsetDateTime fundingTimestamp;
+                    OffsetDateTime fundingTimestamp;
                     if (contractIndex instanceof BitmexContractIndex) {
                         fundingRate = contractIndex1.getFundingRate() != null
                                 ? contractIndex1.getFundingRate()
@@ -826,6 +826,10 @@ public class BitmexService extends MarketService {
                         fundingTimestamp = contractIndex1.getFundingTimestamp();
                     }
                     final Date timestamp = contractIndex1.getTimestamp();
+
+                    // For swap testing
+//                    fundingTimestamp = OffsetDateTime.parse("2017-08-10T13:45:00Z",
+//                                    DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
                     this.contractIndex = new BitmexContractIndex(indexPrice, timestamp, fundingRate, fundingTimestamp);
                     this.bitmexFunding.setFundingRate(fundingRate);
@@ -1029,6 +1033,8 @@ public class BitmexService extends MarketService {
     }
 
     private void fundingRateTicker(Long tickerCouner) {
+        swapTicker = swapTicker + 1;
+
         final BigDecimal fRate = this.bitmexFunding.getFundingRate();
         final BigDecimal pos = position.getPositionLong();
         final BigDecimal maxFRate = BitmexFunding.MAX_F_RATE;
@@ -1051,54 +1057,70 @@ public class BitmexService extends MarketService {
         }
 
         final int SWAP_AWAIT_INTERVAL_SEC = 300;
-        final int SWAP_INTERVAL_SEC = 2;
+        final int SWAP_INTERVAL_SEC = 4;
         switch (marketState) {
             default:
                 checkStartSwapAwait(SWAP_AWAIT_INTERVAL_SEC);
                 break;
 
             case SWAP_AWAIT:
-                checkStartFunding(tickerCouner, SWAP_INTERVAL_SEC);
+                checkStartFunding(SWAP_INTERVAL_SEC);
                 break;
 
             case SWAP:
-                checkEndFunding(tickerCouner);
+                checkEndFunding();
                 break;
         }
     }
 
     private void checkStartSwapAwait(int SWAP_AWAIT_INTERVAL) {
-        final long secToSwapAwait = Duration.between(Instant.now(),
-                bitmexFunding.getSwapTime().minusSeconds(SWAP_AWAIT_INTERVAL)).getSeconds();
-        if (Math.abs(secToSwapAwait) < 2) {
+        final long nowSec = Instant.now().getEpochSecond();
+        final long startAwaitSec = bitmexFunding.getSwapTime().minusSeconds(SWAP_AWAIT_INTERVAL).toEpochSecond();
+        final long swapTimeSec = bitmexFunding.getSwapTime().toEpochSecond();
+
+        // ---------AW--(now)-----------SW---RV----->
+        if (startAwaitSec < nowSec && nowSec < swapTimeSec) {
             setMarketState(MarketState.SWAP_AWAIT);
         }
     }
 
-    private void checkStartFunding(Long tickerCouner, int SWAP_INTERVAL) {
-        final long secToStartSwap = Duration.between(Instant.now(),
-                bitmexFunding.getSwapTime().minusSeconds(SWAP_INTERVAL)).getSeconds();
-        if (Math.abs(secToStartSwap) < 2) {
+    private void checkStartFunding(int SWAP_INTERVAL) {
+        final long nowSec = Instant.now().getEpochSecond();
+        final long startSwapSec = bitmexFunding.getSwapTime().minusSeconds(SWAP_INTERVAL).toEpochSecond();
+        final long swapTimeSec = bitmexFunding.getSwapTime().toEpochSecond();
+
+        // ---------AW----------SW--(now)--RV----->
+        if (startSwapSec < nowSec && nowSec < swapTimeSec) {
             if (marketState == MarketState.SWAP_AWAIT) {
-                startingTick = tickerCouner;
+                swapTicker = 0L;
                 maxDiffCorrStored = arbitrageService.getParams().getMaxDiffCorr();
                 arbitrageService.getParams().setMaxDiffCorr(BigDecimal.valueOf(10000000));
                 startFunding();
             }
+        } else if (nowSec > swapTimeSec) {
+            // we lost the moment
+            logger.warn("Warning: lost swap moment");
+            tradeLogger.warn("Warning: lost swap moment");
+            warningLogger.warn("Warning: lost swap moment");
+            resetSwapState();
         }
     }
 
-    private void checkEndFunding(Long tickerCouner) {
-        if ((tickerCouner - startingTick > MAX_TICKS_TO_SWAP_REVERT)
-                && (bitmexFunding.getStartedSwapTime() == null || bitmexFunding.getStartPosition() == null)) {
+    private void checkEndFunding() {
+        if (swapTicker > MAX_TICKS_TO_SWAP_REVERT
+                && (bitmexFunding.getFixedSwapTime() == null || bitmexFunding.getStartPosition() == null)) {
             logger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
             warningLogger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
             marketState = MarketState.IDLE;
             bitmexFunding.setStartPosition(null);
-            bitmexFunding.setStartedSwapTime(null);
-        } else if (bitmexFunding.getStartedSwapTime() != null && bitmexFunding.getStartPosition() != null) {
-            final long seconds = Duration.between(bitmexFunding.getStartedSwapTime(), Instant.now()).getSeconds();
-            if (seconds > 1) {
+            bitmexFunding.setFixedSwapTime(null);
+        } else if (bitmexFunding.getFixedSwapTime() != null && bitmexFunding.getStartPosition() != null) {
+            final int secAfterFixTime = 1;
+            final long revertTime = bitmexFunding.getFixedSwapTime().toEpochSecond() + secAfterFixTime;
+            final long nowSeconds = Instant.now().getEpochSecond();
+
+            // ---------AW---------SW---RV--(now)---->
+            if (revertTime < nowSeconds) {
                 if (marketState == MarketState.SWAP) {
                     endFunding();
                 }
@@ -1148,7 +1170,7 @@ public class BitmexService extends MarketService {
                 final TradeResponse tradeResponse = takerOrder(Order.OrderType.ASK, pos, null, SignalType.SWAP_CLOSE_LONG);
                 if (tradeResponse.getErrorCode() == null) {
                     setMarketState(MarketState.SWAP);
-                    bitmexFunding.setStartedSwapTime(bitmexFunding.getSwapTime());
+                    bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
                     bitmexFunding.setStartPosition(pos);
                 }
 
@@ -1161,7 +1183,7 @@ public class BitmexService extends MarketService {
                 final TradeResponse tradeResponse = takerOrder(Order.OrderType.BID, pos.abs(), null, SignalType.SWAP_CLOSE_SHORT);
                 if (tradeResponse.getErrorCode() == null) {
                     setMarketState(MarketState.SWAP);
-                    bitmexFunding.setStartedSwapTime(bitmexFunding.getSwapTime());
+                    bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
                     bitmexFunding.setStartPosition(pos);
                 }
 
@@ -1176,7 +1198,7 @@ public class BitmexService extends MarketService {
 
     private void resetSwapState() {
         setMarketState(MarketState.IDLE);
-        bitmexFunding.setStartedSwapTime(null);
+        bitmexFunding.setFixedSwapTime(null);
         bitmexFunding.setStartPosition(null);
         arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored);
     }

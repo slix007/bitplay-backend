@@ -17,7 +17,7 @@ public class BitmexFunding {
     private OffsetDateTime swapTime;
     private SignalType signalType;// SignalType.SWAP_CLOSE_SHORT or SignalType.SWAP_CLOSE_LONG or null
     private BigDecimal startPosition; // null when swap is not in progress.
-    private OffsetDateTime startedSwapTime; // null when swap is not in progress
+    private OffsetDateTime fixedSwapTime; // null when swap is not in progress
 
     public BigDecimal getFundingRate() {
         return fundingRate;
@@ -59,12 +59,12 @@ public class BitmexFunding {
         this.startPosition = startPosition;
     }
 
-    public OffsetDateTime getStartedSwapTime() {
-        return startedSwapTime;
+    public OffsetDateTime getFixedSwapTime() {
+        return fixedSwapTime;
     }
 
-    public void setStartedSwapTime(OffsetDateTime startedSwapTime) {
-        this.startedSwapTime = startedSwapTime;
+    public void setFixedSwapTime(OffsetDateTime fixedSwapTime) {
+        this.fixedSwapTime = fixedSwapTime;
     }
 
     @Override
@@ -75,7 +75,7 @@ public class BitmexFunding {
                 ", swapTime=" + swapTime +
                 ", signalType=" + signalType +
                 ", startPosition=" + startPosition +
-                ", startedSwapTime=" + startedSwapTime +
+                ", fixedSwapTime=" + fixedSwapTime +
                 '}';
     }
 }
