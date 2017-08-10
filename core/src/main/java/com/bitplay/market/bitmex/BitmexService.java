@@ -1016,7 +1016,12 @@ public class BitmexService extends MarketService {
         fundingSchedule = Observable.interval(TICK_SEC, TimeUnit.SECONDS, Schedulers.computation())
                 .doOnError((e) -> logger.error("OnFundingScheduler", e))
                 .retry()
-                .subscribe(this::fundingRateTicker);
+                .subscribe(this::fundingRateTicker,
+                        throwable -> {
+                            logger.error("OnFundingRateTicker", throwable);
+                            restartScheduleFunding();
+                        },
+                        this::restartScheduleFunding);
     }
 
     public BitmexFunding getBitmexFunding() {
@@ -1112,10 +1117,7 @@ public class BitmexService extends MarketService {
 
         final TradeResponse tradeResponse = takerOrder(orderType, pos.abs(), null, signalType);
         if (tradeResponse.getErrorCode() == null) {
-            setMarketState(MarketState.IDLE);
-            bitmexFunding.setStartedSwapTime(null);
-            bitmexFunding.setStartPosition(null);
-            arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored);
+            resetSwapState();
         }
     }
 
@@ -1127,6 +1129,7 @@ public class BitmexService extends MarketService {
         if (Math.abs(seconds) > 2) {
             logger.warn("startFunding at wrong time");
             warningLogger.warn("startFunding at wrong time");
+            resetSwapState();
         } else {
 
             final BigDecimal pos = position.getPositionLong();
@@ -1134,6 +1137,8 @@ public class BitmexService extends MarketService {
             if (signalType == null) {
                 logger.info("swap_none p{} f{}%", pos.toPlainString(), fRate.toPlainString());
                 tradeLogger.info("swap_none p{} f{}%", pos.toPlainString(), fRate.toPlainString());
+                resetSwapState();
+
             } else if (signalType == SignalType.SWAP_CLOSE_LONG) {
                 logger.info("swap_close_long p{} f{}%", pos.toPlainString(), fRate.toPlainString());
                 tradeLogger.info("swap_close_long p{} f{}%", pos.toPlainString(), fRate.toPlainString());
@@ -1163,9 +1168,17 @@ public class BitmexService extends MarketService {
             } else {
                 logger.warn("Warning: wrong signalType on startSwop p{} f{}% s{}", pos.toPlainString(), fRate.toPlainString(), signalType);
                 tradeLogger.warn("Warning: wrong signalType on startSwop p{} f{}% s{}", pos.toPlainString(), fRate.toPlainString(), signalType);
+                resetSwapState();
             }
 
         }
+    }
+
+    private void resetSwapState() {
+        setMarketState(MarketState.IDLE);
+        bitmexFunding.setStartedSwapTime(null);
+        bitmexFunding.setStartPosition(null);
+        arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored);
     }
 
 }
