@@ -1115,12 +1115,11 @@ public class BitmexService extends MarketService {
             bitmexFunding.setStartPosition(null);
             bitmexFunding.setFixedSwapTime(null);
         } else if (bitmexFunding.getFixedSwapTime() != null && bitmexFunding.getStartPosition() != null) {
-            final int secAfterFixTime = 1;
-            final long revertTime = bitmexFunding.getFixedSwapTime().toEpochSecond() + secAfterFixTime;
+            final long fixedSwapTime = bitmexFunding.getFixedSwapTime().toEpochSecond();
             final long nowSeconds = Instant.now().getEpochSecond();
 
-            // ---------AW---------SW---RV--(now)---->
-            if (revertTime < nowSeconds) {
+            // ---------AW---------SW----(now)---->
+            if (fixedSwapTime < nowSeconds) {
                 if (marketState == MarketState.SWAP) {
                     endFunding();
                 }
