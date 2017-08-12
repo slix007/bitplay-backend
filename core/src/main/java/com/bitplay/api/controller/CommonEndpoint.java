@@ -9,6 +9,7 @@ import com.bitplay.api.domain.DeltasMinMaxJson;
 import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketList;
+import com.bitplay.api.domain.MarketStatesJson;
 import com.bitplay.api.domain.PlacingTypeJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
@@ -137,7 +138,7 @@ public class CommonEndpoint {
     @GET
     @Path("/market/states")
     @Produces(MediaType.APPLICATION_JSON)
-    public MarketFlagsJson getMarketsState() {
+    public MarketStatesJson getMarketsState() {
         return commonUIService.getMarketsStates();
     }
 

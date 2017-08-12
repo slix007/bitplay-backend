@@ -1111,7 +1111,7 @@ public class BitmexService extends MarketService {
                 && (bitmexFunding.getFixedSwapTime() == null || bitmexFunding.getStartPosition() == null)) {
             logger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
             warningLogger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
-            marketState = MarketState.IDLE;
+            marketState = MarketState.READY;
             bitmexFunding.setStartPosition(null);
             bitmexFunding.setFixedSwapTime(null);
         } else if (bitmexFunding.getFixedSwapTime() != null && bitmexFunding.getStartPosition() != null) {
@@ -1196,7 +1196,7 @@ public class BitmexService extends MarketService {
     }
 
     private void resetSwapState() {
-        setMarketState(MarketState.IDLE);
+        setMarketState(MarketState.READY);
         bitmexFunding.setFixedSwapTime(null);
         bitmexFunding.setStartPosition(null);
         arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored);

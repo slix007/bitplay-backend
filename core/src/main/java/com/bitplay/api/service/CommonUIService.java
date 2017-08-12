@@ -7,6 +7,7 @@ import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltasMinMaxJson;
 import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
+import com.bitplay.api.domain.MarketStatesJson;
 import com.bitplay.api.domain.PlacingTypeJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
@@ -17,7 +18,6 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
-import com.bitplay.utils.Utils;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -247,10 +247,10 @@ public class CommonUIService {
         );
     }
 
-    public MarketFlagsJson getMarketsStates() {
-        return new MarketFlagsJson(
-                arbitrageService.getFirstMarketService().isReadyForArbitrage(),
-                arbitrageService.getSecondMarketService().isReadyForArbitrage()
+    public MarketStatesJson getMarketsStates() {
+        return new MarketStatesJson(
+                arbitrageService.getFirstMarketService().getMarketState().name(),
+                arbitrageService.getSecondMarketService().getMarketState().name()
         );
     }
 

@@ -65,7 +65,7 @@ public abstract class MarketService {
     protected SpecialFlags specialFlags = SpecialFlags.NONE;
 //    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
 //    protected volatile Boolean isBusy = false;
-    protected volatile MarketState marketState = MarketState.IDLE;
+    protected volatile MarketState marketState = MarketState.READY;
     protected EventBus eventBus = new EventBus();
     private volatile Boolean isReadyForMoving = true; // 1 second delay for moving
     private Disposable theTimer;
@@ -172,7 +172,7 @@ public abstract class MarketService {
             if (!isBusy()) {
                 getTradeLogger().info("{} {}: busy, {}", getCounterNameNext(), getName(), getPosDiffString());
             }
-            this.marketState = MarketState.ARBITRAGE_IN_PROGRESS;
+            this.marketState = MarketState.ARBITRAGE;
         }
     }
 
@@ -180,7 +180,7 @@ public abstract class MarketService {
         if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (isBusy()) {
 //            fetchPosition(); -- deadlock
-                marketState = MarketState.IDLE;
+                marketState = MarketState.READY;
                 getTradeLogger().info("{} {}: ready, {}", getCounterName(), getName(), getPosDiffString());
                 eventBus.send(BtsEvent.MARKET_GOT_FREE);
             } else {
@@ -225,7 +225,7 @@ public abstract class MarketService {
     }
 
     public boolean isBusy() {
-        return marketState != MarketState.IDLE;
+        return marketState != MarketState.READY;
     }
 
     public EventBus getEventBus() {
@@ -235,6 +235,10 @@ public abstract class MarketService {
     protected void setMarketState(MarketState newState) {
         getTradeLogger().info("{} {} marketState: {} {}", getCounterNameNext(), getName(), newState, getPosDiffString());
         this.marketState = newState;
+    }
+
+    public MarketState getMarketState() {
+        return marketState;
     }
 
     /**
