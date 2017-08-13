@@ -462,8 +462,11 @@ public class ArbitrageService {
         if (checkBalance(DELTA1, params.getBlock1(), params.getBlock2()) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
-                && firstMarketService.checkLiquidationEdge(Order.OrderType.ASK)
-                && secondMarketService.checkLiquidationEdge(Order.OrderType.BID)) {
+                &&
+                (signalType != SignalType.AUTOMATIC ||
+                        (firstMarketService.checkLiquidationEdge(Order.OrderType.ASK)
+                                && secondMarketService.checkLiquidationEdge(Order.OrderType.BID))
+                )) {
 
             bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
             setSignalType(signalType);
@@ -490,8 +493,11 @@ public class ArbitrageService {
         if (checkBalance(DELTA2, params.getBlock1(), params.getBlock2()) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
-                && firstMarketService.checkLiquidationEdge(Order.OrderType.BID)
-                && secondMarketService.checkLiquidationEdge(Order.OrderType.ASK)) {
+                &&
+                (signalType != SignalType.AUTOMATIC ||
+                        (firstMarketService.checkLiquidationEdge(Order.OrderType.BID)
+                                && secondMarketService.checkLiquidationEdge(Order.OrderType.ASK))
+                )) {
 
             bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
             setSignalType(signalType);

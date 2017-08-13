@@ -1161,8 +1161,8 @@ public class BitmexService extends MarketService {
                 resetSwapState();
 
             } else if (signalType == SignalType.SWAP_CLOSE_LONG) {
-                logger.info("swap_close_long p{} f{}%", pos.toPlainString(), fRate.toPlainString());
-                tradeLogger.info("swap_close_long p{} f{}%", pos.toPlainString(), fRate.toPlainString());
+                logger.info("#swap_close_long p{} f{}%", pos.toPlainString(), fRate.toPlainString());
+                tradeLogger.info("#swap_close_long p{} f{}%", pos.toPlainString(), fRate.toPlainString());
 
                 arbitrageService.setSignalType(SignalType.SWAP_CLOSE_LONG);
 
@@ -1174,8 +1174,8 @@ public class BitmexService extends MarketService {
                 }
 
             } else if (signalType == SignalType.SWAP_CLOSE_SHORT) {
-                logger.info("swap_close_short p{} f{}%", pos.toPlainString(), fRate.toPlainString());
-                tradeLogger.info("swap_close_short p{} f{}%", pos.toPlainString(), fRate.toPlainString());
+                logger.info("#swap_close_short p{} f{}%", pos.toPlainString(), fRate.toPlainString());
+                tradeLogger.info("#swap_close_short p{} f{}%", pos.toPlainString(), fRate.toPlainString());
 
                 arbitrageService.setSignalType(SignalType.SWAP_CLOSE_SHORT);
 
