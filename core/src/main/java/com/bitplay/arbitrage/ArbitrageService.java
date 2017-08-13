@@ -70,6 +70,8 @@ public class ArbitrageService {
     private OpenPrices openDiffs = new OpenPrices();
     private volatile SignalType signalType = SignalType.AUTOMATIC;
     private SignalEventBus signalEventBus = new SignalEventBus();
+    private final BigDecimal FEE_FIRST_MAKER = new BigDecimal("0.075");
+    private final BigDecimal FEE_SECOND_TAKER = new BigDecimal("0.03");
 
     public FlagOpenOrder getFlagOpenOrder() {
         return flagOpenOrder;
@@ -555,8 +557,8 @@ public class ArbitrageService {
         ));
 
         // Count com
-        params.setCom1(bid1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
-        params.setCom2(ask1_o.multiply(new BigDecimal("0.03")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
+        params.setCom1(bid1_p.multiply(FEE_FIRST_MAKER).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
+        params.setCom2(ask1_o.multiply(FEE_SECOND_TAKER).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
 
 
         if (signalType == SignalType.AUTOMATIC) {
@@ -599,8 +601,8 @@ public class ArbitrageService {
         ));
 
         // Count com
-        params.setCom1(ask1_p.multiply(new BigDecimal("0.075")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
-        params.setCom2(bid1_o.multiply(new BigDecimal("0.2")).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
+        params.setCom1(ask1_p.multiply(FEE_FIRST_MAKER).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
+        params.setCom2(bid1_o.multiply(FEE_SECOND_TAKER).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
 
         if (signalType == SignalType.AUTOMATIC) {
             printCom();
