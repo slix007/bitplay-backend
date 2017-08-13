@@ -1119,7 +1119,7 @@ public class BitmexService extends MarketService {
             final long nowSeconds = Instant.now().getEpochSecond();
 
             // ---------AW---------SW----(now)---->
-            if (fixedSwapTime < nowSeconds) {
+            if (fixedSwapTime <= nowSeconds) {
                 if (marketState == MarketState.SWAP) {
                     endFunding();
                 }
