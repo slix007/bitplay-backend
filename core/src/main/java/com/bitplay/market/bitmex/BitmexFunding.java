@@ -10,7 +10,7 @@ import java.time.OffsetDateTime;
  */
 public class BitmexFunding {
 
-    public static final BigDecimal MAX_F_RATE = BigDecimal.valueOf(0.15);
+    public static final BigDecimal MAX_F_RATE = BigDecimal.valueOf(0.0); //0.15
 
     private BigDecimal fundingRate;
     private OffsetDateTime updatingTime;

@@ -71,6 +71,7 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal oDQLOpenMin = BigDecimal.valueOf(350);
     private BigDecimal bDQLCloseMin = BigDecimal.valueOf(100);
     private BigDecimal oDQLCloseMin = BigDecimal.valueOf(150);
+    private BigDecimal fundingRateFee = BigDecimal.ZERO;
 
     public GuiParams() {
     }
@@ -545,5 +546,13 @@ public class GuiParams extends AbstractDocument {
 
     public void setoDQLCloseMin(BigDecimal oDQLCloseMin) {
         this.oDQLCloseMin = oDQLCloseMin;
+    }
+
+    public BigDecimal getFundingRateFee() {
+        return fundingRateFee;
+    }
+
+    public void setFundingRateFee(BigDecimal fundingRateFee) {
+        this.fundingRateFee = fundingRateFee;
     }
 }

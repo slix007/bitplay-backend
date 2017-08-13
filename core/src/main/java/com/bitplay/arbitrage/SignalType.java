@@ -11,7 +11,7 @@ public enum SignalType {
     MANUAL_BUY("button_buy"),
     MANUAL_SELL("button_sell"),
     SWAP_CLOSE_LONG("swap_close_long"),
-    SWAP_CLOSE_SHORT("swap_open_short"),
+    SWAP_CLOSE_SHORT("swap_close_short"),
     SWAP_REVERT_LONG("swap_revert_long"),
     SWAP_REVERT_SHORT("swap_revert_short");
 

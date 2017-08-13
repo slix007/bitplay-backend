@@ -74,7 +74,7 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     }
 
     private void handleJsonMessage(JsonNode jsonMessage) {
-        if (!authCompleteEmitter.isDisposed()) {
+        if (authCompleteEmitter != null && !authCompleteEmitter.isDisposed()) {
             checkIfAuthenticationResponse(jsonMessage);
         }
 

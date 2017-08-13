@@ -113,7 +113,8 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
                 arbitrageService.getParams().getReserveBtc2().toPlainString(),
-                arbitrageService.getParams().getHedgeAmount().toPlainString()
+                arbitrageService.getParams().getHedgeAmount().toPlainString(),
+                arbitrageService.getParams().getFundingRateFee().toPlainString()
         );
     }
 
@@ -147,7 +148,8 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
                 arbitrageService.getParams().getReserveBtc2().toPlainString(),
-                arbitrageService.getParams().getHedgeAmount().toPlainString()
+                arbitrageService.getParams().getHedgeAmount().toPlainString(),
+                arbitrageService.getParams().getFundingRateFee().toPlainString()
         );
     }
 
@@ -204,6 +206,9 @@ public class CommonUIService {
         if (deltalUpdateJson.getHedgeAmount() != null) {
             arbitrageService.getParams().setHedgeAmount(new BigDecimal(deltalUpdateJson.getHedgeAmount()));
         }
+        if (deltalUpdateJson.getFundingRateFee() != null) {
+            arbitrageService.getParams().setFundingRateFee(new BigDecimal(deltalUpdateJson.getFundingRateFee()));
+        }
         arbitrageService.saveParamsToDb();
 
         return new DeltasJson(
@@ -227,7 +232,8 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
                 arbitrageService.getParams().getReserveBtc2().toPlainString(),
-                arbitrageService.getParams().getHedgeAmount().toPlainString()
+                arbitrageService.getParams().getHedgeAmount().toPlainString(),
+                arbitrageService.getParams().getFundingRateFee().toPlainString()
         );
     }
 

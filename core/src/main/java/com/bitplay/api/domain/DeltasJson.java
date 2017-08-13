@@ -26,8 +26,9 @@ public class DeltasJson {
     private String reserveBtc1;
     private String reserveBtc2;
     private String hedgeAmount;
+    private String fundingRateFee;
 
-    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String lastDelta, String cumDeltaFact, String cumDiffFact1, String cumDiffFact2, String cumCom1, String cumCom2, String count1, String count2, String cumBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount) {
+    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String lastDelta, String cumDeltaFact, String cumDiffFact1, String cumDiffFact2, String cumCom1, String cumCom2, String count1, String count2, String cumBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee) {
         this.delta1 = delta1;
         this.delta2 = delta2;
         this.border1 = border1;
@@ -49,6 +50,7 @@ public class DeltasJson {
         this.reserveBtc1 = reserveBtc1;
         this.reserveBtc2 = reserveBtc2;
         this.hedgeAmount = hedgeAmount;
+        this.fundingRateFee = fundingRateFee;
     }
 
     public String getDelta1() {
@@ -133,5 +135,9 @@ public class DeltasJson {
 
     public String getHedgeAmount() {
         return hedgeAmount;
+    }
+
+    public String getFundingRateFee() {
+        return fundingRateFee;
     }
 }

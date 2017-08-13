@@ -1037,7 +1037,7 @@ public class BitmexService extends MarketService {
 
         final BigDecimal fRate = this.bitmexFunding.getFundingRate();
         final BigDecimal pos = position.getPositionLong();
-        final BigDecimal maxFRate = BitmexFunding.MAX_F_RATE;
+        final BigDecimal maxFRate = arbitrageService.getParams().getFundingRateFee(); //BitmexFunding.MAX_F_RATE;
         bitmexFunding.setUpdatingTime(OffsetDateTime.now());
 
         if (pos.signum() > 0) {
