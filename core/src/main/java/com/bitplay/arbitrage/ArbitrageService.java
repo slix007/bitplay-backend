@@ -45,7 +45,7 @@ public class ArbitrageService {
     private static final String DELTA1 = "delta1";
     private static final String DELTA2 = "delta2";
     private static final Object calcLock = new Object();
-    protected volatile DeltaParams deltaParams = new DeltaParams();
+    private final BigDecimal FEE_SECOND_TAKER = new BigDecimal("0.015");
     @Autowired
     private PersistenceService persistenceService;
     private Disposable schdeduleUpdateBorders;
@@ -71,7 +71,7 @@ public class ArbitrageService {
     private volatile SignalType signalType = SignalType.AUTOMATIC;
     private SignalEventBus signalEventBus = new SignalEventBus();
     private final BigDecimal FEE_FIRST_MAKER = new BigDecimal("0.075");
-    private final BigDecimal FEE_SECOND_TAKER = new BigDecimal("0.03");
+    private volatile DeltaParams deltaParams = new DeltaParams();
 
     public FlagOpenOrder getFlagOpenOrder() {
         return flagOpenOrder;
