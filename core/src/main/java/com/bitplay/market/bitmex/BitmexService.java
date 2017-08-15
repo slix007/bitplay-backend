@@ -1117,6 +1117,8 @@ public class BitmexService extends MarketService {
 
         // ---------AW--(now)-----------SW---RV----->
         if (startAwaitSec < nowSec && nowSec < swapTimeSec) {
+            final SignalType signalType = bitmexFunding.getSignalType();
+            arbitrageService.setSignalType(signalType);
             setMarketState(MarketState.SWAP_AWAIT);
         }
     }
