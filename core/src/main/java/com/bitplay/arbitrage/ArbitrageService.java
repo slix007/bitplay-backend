@@ -148,65 +148,46 @@ public class ArbitrageService {
 
                 BigDecimal deltaFact = openPrices.getDelta1Fact();
                 params.setCumDeltaFact(params.getCumDeltaFact().add(deltaFact));
-                BigDecimal cumDeltaFact = params.getCumDeltaFact();
-                BigDecimal cumDeltaFactMin = params.getCumDeltaFactMin();
-                BigDecimal cumDeltaFactMax = params.getCumDeltaFactMax();
-                if (cumDeltaFact.compareTo(cumDeltaFactMin) == -1) params.setCumDeltaFactMin(cumDeltaFact);
-                if (cumDeltaFact.compareTo(cumDeltaFactMax) == 1) params.setCumDeltaFactMax(cumDeltaFact);
-
-                BigDecimal diffFact1Min = params.getDiffFact1Min();
-                BigDecimal diffFact1Max = params.getDiffFact1Max();
-                BigDecimal diffFact2Min = params.getDiffFact2Min();
-                BigDecimal diffFact2Max = params.getDiffFact2Max();
+                if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMin()) == -1) params.setCumDeltaFactMin(params.getCumDeltaFact());
+                if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMax()) == 1) params.setCumDeltaFactMax(params.getCumDeltaFact());
 
                 BigDecimal diffFact = openDiffs.getFirstOpenPrice().add(openDiffs.getSecondOpenPrice());
-                if (openDiffs.getFirstOpenPrice().compareTo(diffFact1Min) == -1) params.setDiffFact1Min(openDiffs.getFirstOpenPrice());
-                if (openDiffs.getFirstOpenPrice().compareTo(diffFact1Max) == 1) params.setDiffFact1Max(openDiffs.getFirstOpenPrice());
-                if (openDiffs.getSecondOpenPrice().compareTo(diffFact2Min) == -1) params.setDiffFact2Min(openDiffs.getSecondOpenPrice());
-                if (openDiffs.getSecondOpenPrice().compareTo(diffFact2Max) == 1) params.setDiffFact2Max(openDiffs.getSecondOpenPrice());
-                BigDecimal diffFactMin = params.getDiffFactMin();
-                BigDecimal diffFactMax = params.getDiffFactMax();
-                if (diffFact.compareTo(diffFactMin) == -1) params.setDiffFactMin(diffFact);
-                if (diffFact.compareTo(diffFactMax) == 1) params.setDiffFactMax(diffFact);
+                if (openDiffs.getFirstOpenPrice().compareTo(params.getDiffFact1Min()) == -1) params.setDiffFact1Min(openDiffs.getFirstOpenPrice());
+                if (openDiffs.getFirstOpenPrice().compareTo(params.getDiffFact1Max()) == 1) params.setDiffFact1Max(openDiffs.getFirstOpenPrice());
+                if (openDiffs.getSecondOpenPrice().compareTo(params.getDiffFact2Min()) == -1) params.setDiffFact2Min(openDiffs.getSecondOpenPrice());
+                if (openDiffs.getSecondOpenPrice().compareTo(params.getDiffFact2Max()) == 1) params.setDiffFact2Max(openDiffs.getSecondOpenPrice());
+                if (diffFact.compareTo(params.getDiffFactMin()) == -1) params.setDiffFactMin(diffFact);
+                if (diffFact.compareTo(params.getDiffFactMax()) == 1) params.setDiffFactMax(diffFact);
 
                 params.setCumDiffFact1(params.getCumDiffFact1().add(openDiffs.getFirstOpenPrice()));
                 params.setCumDiffFact2(params.getCumDiffFact2().add(openDiffs.getSecondOpenPrice()));
-                BigDecimal cumDiffFact1 = params.getCumDiffFact1();
-                BigDecimal cumDiffFact1Min = params.getCumDiffFact1Min();
-                BigDecimal cumDiffFact1Max = params.getCumDiffFact1Max();
-                BigDecimal cumDiffFact2 = params.getCumDiffFact2();
-                BigDecimal cumDiffFact2Min = params.getCumDiffFact2Min();
-                BigDecimal cumDiffFact2Max = params.getCumDiffFact2Max();
-                BigDecimal cumDiffsFactMin = params.getCumDiffsFactMin();
-                BigDecimal cumDiffsFactMax = params.getCumDiffsFactMax();
 
-                if (cumDiffFact1.compareTo(cumDiffFact1Min) == -1) params.setCumDiffFact1Min(cumDiffFact1);
-                if (cumDiffFact1.compareTo(cumDiffFact1Max) == 1) params.setCumDiffFact1Max(cumDiffFact1);
+                if (params.getCumDiffFact1().compareTo(params.getCumDiffFact1Min()) == -1) params.setCumDiffFact1Min(params.getCumDiffFact1());
+                if (params.getCumDiffFact1().compareTo(params.getCumDiffFact1Max()) == 1) params.setCumDiffFact1Max(params.getCumDiffFact1());
 
-                if (cumDiffFact2.compareTo(cumDiffFact2Min) == -1) params.setCumDiffFact2Min(cumDiffFact2);
-                if (cumDiffFact2.compareTo(cumDiffFact2Max) == 1) params.setCumDiffFact2Max(cumDiffFact2);
-                BigDecimal cumDiffsFact = cumDiffFact1.add(cumDiffFact2);
-                if (cumDiffsFact.compareTo(cumDiffsFactMin) == -1) params.setCumDiffsFactMin(cumDiffsFact);
-                if (cumDiffsFact.compareTo(cumDiffsFactMax) == 1) params.setCumDiffsFactMax(cumDiffsFact);
+                if (params.getCumDiffFact2().compareTo(params.getCumDiffFact2Min()) == -1) params.setCumDiffFact2Min(params.getCumDiffFact2());
+                if (params.getCumDiffFact2().compareTo(params.getCumDiffFact2Max()) == 1) params.setCumDiffFact2Max(params.getCumDiffFact2());
+                BigDecimal cumDiffsFact = params.getCumDiffFact1().add(params.getCumDiffFact2());
+                if (cumDiffsFact.compareTo(params.getCumDiffsFactMin()) == -1) params.setCumDiffsFactMin(cumDiffsFact);
+                if (cumDiffsFact.compareTo(params.getCumDiffsFactMax()) == 1) params.setCumDiffsFactMax(cumDiffsFact);
 
                 deltasLogger.info(String.format("#%s delta1_fact=%s-%s=%s; " +
                                 "cum_delta_fact=%s/%s/%s; " +
                                 "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
-                                "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s;",// position=%s",
+                                "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s;",
                         getCounter(),
                         openPrices.getFirstOpenPrice().toPlainString(),
                         openPrices.getSecondOpenPrice().toPlainString(),
                         deltaFact.toPlainString(),
-                        cumDeltaFact.toPlainString(),
-                        cumDeltaFactMin.toPlainString(),
-                        cumDeltaFactMax.toPlainString(),
-                        openDiffs.getFirstOpenPrice(), diffFact1Min, diffFact1Max,
-                        openDiffs.getSecondOpenPrice(), diffFact2Min, diffFact2Max,
-                        diffFact, diffFactMin, diffFactMax,
-                        cumDiffFact1, cumDiffFact1Min, cumDiffFact1Max,
-                        cumDiffFact2, cumDiffFact2Min, cumDiffFact2Max,
-                        cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax
-//                        firstMarketService.getPositionAsString()
+                        params.getCumDeltaFact().toPlainString(),
+                        params.getCumDeltaFactMin().toPlainString(),
+                        params.getCumDeltaFactMax().toPlainString(),
+                        openDiffs.getFirstOpenPrice(), params.getDiffFact1Min(), params.getDiffFact1Max(),
+                        openDiffs.getSecondOpenPrice(), params.getDiffFact2Min(), params.getDiffFact2Max(),
+                        diffFact, params.getDiffFactMin(), params.getDiffFactMax(),
+                        params.getCumDiffFact1(), params.getCumDiffFact1Min(), params.getCumDiffFact1Max(),
+                        params.getCumDiffFact2(), params.getCumDiffFact2Min(), params.getCumDiffFact2Max(),
+                        cumDiffsFact, params.getCumDiffsFactMin(), params.getCumDiffsFactMax()
                 ));
 
                 printCumBitmexMCom();
@@ -215,66 +196,47 @@ public class ArbitrageService {
 
                 BigDecimal deltaFact = openPrices.getDelta2Fact();
                 params.setCumDeltaFact(params.getCumDeltaFact().add(deltaFact));
-                BigDecimal cumDeltaFact = params.getCumDeltaFact();
-                BigDecimal cumDeltaFactMin = params.getCumDeltaFactMin();
-                BigDecimal cumDeltaFactMax = params.getCumDeltaFactMax();
 
-                if (cumDeltaFact.compareTo(cumDeltaFactMin) == -1) params.setCumDeltaFactMin(cumDeltaFact);
-                if (cumDeltaFact.compareTo(cumDeltaFactMax) == 1) params.setCumDeltaFactMax(cumDeltaFact);
+                if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMin()) == -1) params.setCumDeltaFactMin(params.getCumDeltaFact());
+                if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMax()) == 1) params.setCumDeltaFactMax(params.getCumDeltaFact());
 
-                BigDecimal diffFact1Min = params.getDiffFact1Min();
-                BigDecimal diffFact1Max = params.getDiffFact1Max();
-                BigDecimal diffFact2Min = params.getDiffFact2Min();
-                BigDecimal diffFact2Max = params.getDiffFact2Max();
                 BigDecimal diffFact = openDiffs.getFirstOpenPrice().add(openDiffs.getSecondOpenPrice());
-                if (openDiffs.getFirstOpenPrice().compareTo(diffFact1Min) == -1) params.setDiffFact1Min(openDiffs.getFirstOpenPrice());
-                if (openDiffs.getFirstOpenPrice().compareTo(diffFact1Max) == 1) params.setDiffFact1Max(openDiffs.getFirstOpenPrice());
-                if (openDiffs.getSecondOpenPrice().compareTo(diffFact2Min) == -1) params.setDiffFact2Min(openDiffs.getSecondOpenPrice());
-                if (openDiffs.getSecondOpenPrice().compareTo(diffFact2Max) == 1) params.setDiffFact2Max(openDiffs.getSecondOpenPrice());
-                BigDecimal diffFactMin = params.getDiffFactMin();
-                BigDecimal diffFactMax = params.getDiffFactMax();
-                if (diffFact.compareTo(diffFactMin) == -1) params.setDiffFactMin(diffFact);
-                if (diffFact.compareTo(diffFactMax) == 1) params.setDiffFactMax(diffFact);
+                if (openDiffs.getFirstOpenPrice().compareTo(params.getDiffFact1Min()) == -1) params.setDiffFact1Min(openDiffs.getFirstOpenPrice());
+                if (openDiffs.getFirstOpenPrice().compareTo(params.getDiffFact1Max()) == 1) params.setDiffFact1Max(openDiffs.getFirstOpenPrice());
+                if (openDiffs.getSecondOpenPrice().compareTo(params.getDiffFact2Min()) == -1) params.setDiffFact2Min(openDiffs.getSecondOpenPrice());
+                if (openDiffs.getSecondOpenPrice().compareTo(params.getDiffFact2Max()) == 1) params.setDiffFact2Max(openDiffs.getSecondOpenPrice());
+                if (diffFact.compareTo(params.getDiffFactMin()) == -1) params.setDiffFactMin(diffFact);
+                if (diffFact.compareTo(params.getDiffFactMax()) == 1) params.setDiffFactMax(diffFact);
 
                 params.setCumDiffFact1(params.getCumDiffFact1().add(openDiffs.getFirstOpenPrice()));
                 params.setCumDiffFact2(params.getCumDiffFact2().add(openDiffs.getSecondOpenPrice()));
 
-                BigDecimal cumDiffFact1 = params.getCumDiffFact1();
-                BigDecimal cumDiffFact1Min = params.getCumDiffFact1Min();
-                BigDecimal cumDiffFact1Max = params.getCumDiffFact1Max();
-                BigDecimal cumDiffFact2 = params.getCumDiffFact2();
-                BigDecimal cumDiffFact2Min = params.getCumDiffFact2Min();
-                BigDecimal cumDiffFact2Max = params.getCumDiffFact2Max();
-                BigDecimal cumDiffsFactMin = params.getCumDiffsFactMin();
-                BigDecimal cumDiffsFactMax = params.getCumDiffsFactMax();
+                if (params.getCumDiffFact1().compareTo(params.getCumDiffFact1Min()) == -1) params.setCumDiffFact1Min(params.getCumDiffFact1());
+                if (params.getCumDiffFact1().compareTo(params.getCumDiffFact1Max()) == 1) params.setCumDiffFact1Max(params.getCumDiffFact1());
 
-                if (cumDiffFact1.compareTo(cumDiffFact1Min) == -1) params.setCumDiffFact1Min(cumDiffFact1);
-                if (cumDiffFact1.compareTo(cumDiffFact1Max) == 1) params.setCumDiffFact1Max(cumDiffFact1);
-
-                if (cumDiffFact2.compareTo(cumDiffFact2Min) == -1) params.setCumDiffFact2Min(cumDiffFact2);
-                if (cumDiffFact2.compareTo(cumDiffFact2Max) == 1) params.setCumDiffFact2Max(cumDiffFact2);
-                BigDecimal cumDiffsFact = cumDiffFact1.add(cumDiffFact2);
-                if (cumDiffsFact.compareTo(cumDiffsFactMin) == -1) params.setCumDiffsFactMin(cumDiffsFact);
-                if (cumDiffsFact.compareTo(cumDiffsFactMax) == 1) params.setCumDiffsFactMax(cumDiffsFact);
+                if (params.getCumDiffFact2().compareTo(params.getCumDiffFact2Min()) == -1) params.setCumDiffFact2Min(params.getCumDiffFact2());
+                if (params.getCumDiffFact2().compareTo(params.getCumDiffFact2Max()) == 1) params.setCumDiffFact2Max(params.getCumDiffFact2());
+                BigDecimal cumDiffsFact = params.getCumDiffFact1().add(params.getCumDiffFact2());
+                if (cumDiffsFact.compareTo(params.getCumDiffsFactMin()) == -1) params.setCumDiffsFactMin(cumDiffsFact);
+                if (cumDiffsFact.compareTo(params.getCumDiffsFactMax()) == 1) params.setCumDiffsFactMax(cumDiffsFact);
 
                 deltasLogger.info(String.format("#%s delta2_fact=%s-%s=%s; " +
                                 "cum_delta_fact=%s/%s/%s; " +
                                 "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
-                                "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s;",// position=%s",
+                                "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s;",
                         getCounter(),
                         openPrices.getSecondOpenPrice().toPlainString(),
                         openPrices.getFirstOpenPrice().toPlainString(),
                         deltaFact.toPlainString(),
-                        cumDeltaFact.toPlainString(),
-                        cumDeltaFactMin.toPlainString(),
-                        cumDeltaFactMax.toPlainString(),
-                        openDiffs.getFirstOpenPrice(), diffFact1Min, diffFact1Max,
-                        openDiffs.getSecondOpenPrice(), diffFact2Min, diffFact2Max,
-                        diffFact, diffFactMin, diffFactMax,
-                        cumDiffFact1, cumDiffFact1Min, cumDiffFact1Max,
-                        cumDiffFact2, cumDiffFact2Min, cumDiffFact2Max,
-                        cumDiffsFact, cumDiffsFactMin, cumDiffsFactMax
-//                        firstMarketService.getPositionAsString()
+                        params.getCumDeltaFact().toPlainString(),
+                        params.getCumDeltaFactMin().toPlainString(),
+                        params.getCumDeltaFactMax().toPlainString(),
+                        openDiffs.getFirstOpenPrice(), params.getDiffFact1Min(), params.getDiffFact1Max(),
+                        openDiffs.getSecondOpenPrice(), params.getDiffFact2Min(), params.getDiffFact2Max(),
+                        diffFact, params.getDiffFactMin(), params.getDiffFactMax(),
+                        params.getCumDiffFact1(), params.getCumDiffFact1Min(), params.getCumDiffFact1Max(),
+                        params.getCumDiffFact2(), params.getCumDiffFact2Min(), params.getCumDiffFact2Max(),
+                        cumDiffsFact, params.getCumDiffsFactMin(), params.getCumDiffsFactMax()
                 ));
 
                 printCumBitmexMCom();
@@ -536,9 +498,6 @@ public class ArbitrageService {
     private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_p) {
         deltasLogger.info("------------------------------------------");
 
-        BigDecimal cumDelta = params.getCumDelta();
-        BigDecimal cumDeltaMin = params.getCumDeltaMin();
-        BigDecimal cumDeltaMax = params.getCumDeltaMax();
         Integer counter1 = params.getCounter1();
         Integer counter2 = params.getCounter2();
         BigDecimal border1 = params.getBorder1();
@@ -552,18 +511,18 @@ public class ArbitrageService {
         }
         deltasLogger.info(String.format("#%s count=%s+%s=%s %s", counter1 + counter2, counter1, counter2, counter1 + counter2, iterationMarker));
 
-        params.setCumDelta(cumDelta.add(delta1));
-        if (cumDelta.compareTo(cumDeltaMin) == -1) params.setCumDeltaMin(cumDelta);
-        if (cumDelta.compareTo(cumDeltaMax) == 1) params.setCumDeltaMax(cumDelta);
+        params.setCumDelta(params.getCumDelta().add(delta1));
+        if (params.getCumDelta().compareTo(params.getCumDeltaMin()) == -1) params.setCumDeltaMin(params.getCumDelta());
+        if (params.getCumDelta().compareTo(params.getCumDeltaMax()) == 1) params.setCumDeltaMax(params.getCumDelta());
         deltasLogger.info(String.format("#%s delta1=%s-%s=%s; b1=%s; cum_delta=%s/%s/%s;",
                 //usdP=%s; btcO=%s; usdO=%s; w=%s; ",
                 getCounter(),
                 bid1_p.toPlainString(), ask1_o.toPlainString(),
                 delta1.toPlainString(),
                 border1.toPlainString(),
-                cumDelta.toPlainString(),
-                cumDeltaMin,
-                cumDeltaMax
+                params.getCumDelta().toPlainString(),
+                params.getCumDeltaMin().toPlainString(),
+                params.getCumDeltaMax().toPlainString()
         ));
 
         // Count com
@@ -581,9 +540,6 @@ public class ArbitrageService {
     private void writeLogDelta2(BigDecimal ask1_p, BigDecimal bid1_o) {
         deltasLogger.info("------------------------------------------");
 
-        BigDecimal cumDelta = params.getCumDelta();
-        BigDecimal cumDeltaMin = params.getCumDeltaMin();
-        BigDecimal cumDeltaMax = params.getCumDeltaMax();
         Integer counter1 = params.getCounter1();
         Integer counter2 = params.getCounter2();
         BigDecimal border2 = params.getBorder2();
@@ -597,17 +553,17 @@ public class ArbitrageService {
         }
         deltasLogger.info(String.format("#%s count=%s+%s=%s %s", getCounter(), counter1, counter2, counter1 + counter2, iterationMarker));
 
-        params.setCumDelta(cumDelta.add(delta2));
-        if (cumDelta.compareTo(cumDeltaMin) == -1) params.setCumDeltaMin(cumDelta);
-        if (cumDelta.compareTo(cumDeltaMax) == 1) params.setCumDeltaMax(cumDelta);
+        params.setCumDelta(params.getCumDelta().add(delta2));
+        if (params.getCumDelta().compareTo(params.getCumDeltaMin()) == -1) params.setCumDeltaMin(params.getCumDelta());
+        if (params.getCumDelta().compareTo(params.getCumDeltaMax()) == 1) params.setCumDeltaMax(params.getCumDelta());
         deltasLogger.info(String.format("#%s delta2=%s-%s=%s; b2=%s; cum_delta=%s/%s/%s;",
                 getCounter(),
                 bid1_o.toPlainString(), ask1_p.toPlainString(),
                 delta2.toPlainString(),
                 border2.toPlainString(),
-                cumDelta.toPlainString(),
-                cumDeltaMin,
-                cumDeltaMax
+                params.getCumDelta().toPlainString(),
+                params.getCumDeltaMin().toPlainString(),
+                params.getCumDeltaMax().toPlainString()
         ));
 
         // Count com
@@ -622,36 +578,28 @@ public class ArbitrageService {
     }
 
     private void printCom() {
-        BigDecimal comMin = params.getComMin();
-        BigDecimal comMax = params.getComMax();
-
         BigDecimal com1 = params.getCom1();
-        BigDecimal com1Min = params.getCom1Min();
-        BigDecimal com1Max = params.getCom1Max();
         BigDecimal com2 = params.getCom2();
-        BigDecimal com2Min = params.getCom2Min();
-        BigDecimal com2Max = params.getCom2Max();
-        BigDecimal cumCom1 = params.getCumCom1();
-        BigDecimal cumCom2 = params.getCumCom2();
-
-        if (com1.compareTo(com1Min) == -1) params.setCom1Min(com1);
-        if (com1.compareTo(com1Max) == 1) params.setCom1Max(com1);
-        if (com2.compareTo(com2Min) == -1) params.setCom2Min(com2);
-        if (com2.compareTo(com2Max) == 1) params.setCom2Max(com2);
         BigDecimal com = com1.add(com2);
-        if (com.compareTo(comMin) == -1) params.setComMin(com);
-        if (com.compareTo(comMax) == 1) params.setComMax(com);
-        params.setCumCom1(cumCom1.add(com1));
-        params.setCumCom2(cumCom2.add(com2));
-        BigDecimal cumCom = cumCom1.add(cumCom2);
+
+        if (com1.compareTo(params.getCom1Min()) == -1) params.setCom1Min(com1);
+        if (com1.compareTo(params.getCom1Max()) == 1) params.setCom1Max(com1);
+        if (com2.compareTo(params.getCom2Min()) == -1) params.setCom2Min(com2);
+        if (com2.compareTo(params.getCom2Max()) == 1) params.setCom2Max(com2);
+        if (com.compareTo(params.getComMin()) == -1) params.setComMin(com);
+        if (com.compareTo(params.getComMax()) == 1) params.setComMax(com);
+
+        params.setCumCom1(params.getCumCom1().add(com1));
+        params.setCumCom2(params.getCumCom2().add(com2));
+        BigDecimal cumCom = params.getCumCom1().add(params.getCumCom2());
 
         deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
                 getCounter(),
-                com1, com1Min, com1Max,
-                com2, com2Min, com2Max,
-                com, comMin, comMax,
-                cumCom1,
-                cumCom2,
+                com1, params.getCom1Min(), params.getCom1Max(),
+                com2, params.getCom2Min(), params.getCom2Max(),
+                com, params.getComMin(), params.getComMax(),
+                params.getCumCom1(),
+                params.getCumCom2(),
                 cumCom
         ));
     }

@@ -209,10 +209,10 @@ public class PosDiffService {
 //            deltasLogger.error("Error: {}", posString);
 //        }
 
-        if (oPL.signum() != 0 && oPS.signum() != 0) {
-            final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
-            warningLogger.error("Warning: {}", posString);
-        }
+//        if (oPL.signum() != 0 && oPS.signum() != 0) {
+//            final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
+//            warningLogger.error("Warning: {}", posString);
+//        }
     }
 
     public void setPeriodToCorrection(Long periodToCorrection) {
