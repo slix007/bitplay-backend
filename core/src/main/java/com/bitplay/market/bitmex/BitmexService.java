@@ -75,7 +75,6 @@ public class BitmexService extends MarketService {
     private static final int MAX_ATTEMPTS = 10;
     private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
-    private Disposable fundingSchedule;
     private static final int TICK_SEC = 1;
     private static final int MAX_TICKS_TO_SWAP_REVERT = 120; // 2 min
     private volatile long swapTicker = 0L;
@@ -84,6 +83,10 @@ public class BitmexService extends MarketService {
 
     private BitmexStreamingExchange exchange;
 
+    private static final int MIN_SEC_TO_RESTART = 60 * 10; // 10 min
+    private long listenersStartTimeEpochSecond = Instant.now().getEpochSecond();
+    private volatile boolean isDestroyed = false;
+
     private Disposable accountInfoSubscription;
     private Disposable positionSubscription;
     private Disposable futureIndexSubscription;
@@ -91,6 +94,8 @@ public class BitmexService extends MarketService {
     private Observable<OrderBook> orderBookObservable;
     private Disposable orderBookSubscription;
     private Disposable openOrdersSubscription;
+    private Disposable openOrderMovingSubscription;
+    private Disposable fundingSchedule;
 
     private ArbitrageService arbitrageService;
 
@@ -171,6 +176,24 @@ public class BitmexService extends MarketService {
         Completable.timer(6000, TimeUnit.MILLISECONDS)
                 .doOnComplete(this::restartScheduleFunding)
                 .subscribe();
+
+        listenersStartTimeEpochSecond = Instant.now().getEpochSecond();
+    }
+
+    private synchronized void checkForRestart() {
+        if (!isDestroyed) {
+            if (orderBookSubscription.isDisposed()
+                    || accountInfoSubscription.isDisposed()
+                    || openOrdersSubscription.isDisposed()
+                    || openOrderMovingSubscription.isDisposed()
+                    || positionSubscription.isDisposed()
+                    || futureIndexSubscription.isDisposed()) {
+                final long nowEpochSecond = Instant.now().getEpochSecond();
+                if (nowEpochSecond - listenersStartTimeEpochSecond > MIN_SEC_TO_RESTART) {
+                    doRestart();
+                }
+            }
+        }
     }
 
     @Override
@@ -241,12 +264,15 @@ public class BitmexService extends MarketService {
     }*/
 
     private void startOpenOrderMovingListener() {
-        orderBookObservable
+        openOrderMovingSubscription = orderBookObservable
                 .subscribeOn(Schedulers.io())
+                .doOnDispose(() -> logger.error("doOnDispose startOpenOrderMovingListener"))
                 .subscribe(orderBook1 -> {
                     checkOpenOrdersForMoving();
                 }, throwable -> {
                     logger.error("On Moving OpenOrders.", throwable); // restart
+                    sleep(5000);
+                    checkForRestart();
                 });
     }
 
@@ -331,21 +357,32 @@ public class BitmexService extends MarketService {
         // Retry on disconnect.
         exchange.onDisconnect().subscribe(() -> {
                     logger.warn("onClientDisconnect BitmexService");
-                    doDestoy();
-                    initWebSocketConnection();
-                    startAllListeners();
+                    doRestart();
                 },
                 throwable -> logger.error("onClientDisconnect BitmexService error", throwable));
     }
 
+    private void doRestart() {
+        destroyAction();
+        initWebSocketConnection();
+        startAllListeners();
+    }
+
     @PreDestroy
-    private void doDestoy() {
-        exchange.disconnect();
+    private void preDestroy() {
+        isDestroyed = true;
+        destroyAction();
+    }
+
+    private void destroyAction() {
         orderBookSubscription.dispose();
         accountInfoSubscription.dispose();
         openOrdersSubscription.dispose();
+        openOrderMovingSubscription.dispose();
         positionSubscription.dispose();
         futureIndexSubscription.dispose();
+        fundingSchedule.dispose();
+        exchange.disconnect().blockingAwait();
     }
 
     private void startOrderBookListener() {
@@ -382,7 +419,10 @@ public class BitmexService extends MarketService {
 
                     getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
 
-                }, throwable -> logger.error("ERROR in getting order book: ", throwable));
+                }, throwable -> {
+                    logger.error("ERROR in getting order book: ", throwable);
+                    checkForRestart();
+                });
     }
 
     private Observable<OrderBook> createOrderBookObservable() {
@@ -455,7 +495,9 @@ public class BitmexService extends MarketService {
 
                 }, throwable -> {
                     logger.error("OO.Exception: ", throwable);
-                    startOpenOrderListener();
+//                    startOpenOrderListener();
+                    sleep(5000);
+                    checkForRestart();
                 });
     }
 
@@ -773,7 +815,8 @@ public class BitmexService extends MarketService {
                     logger.error("Can not fetchAccountInfo", throwable);
                     // schedule it again
                     sleep(5000);
-                    startAccountInfoListener();
+//                    startAccountInfoListener();
+                    checkForRestart();
                 });
     }
 
@@ -795,7 +838,8 @@ public class BitmexService extends MarketService {
                     logger.error("Can not fetch Position", throwable);
                     // schedule it again
                     sleep(5000);
-                    startPositionListener();
+//                    startPositionListener();
+                    checkForRestart();
                 });
     }
 
@@ -839,16 +883,9 @@ public class BitmexService extends MarketService {
                     logger.error("Can not fetch Position", throwable);
                     // schedule it again
                     sleep(5000);
-                    startFutureIndexListener();
+                    //startFutureIndexListener();
+                    checkForRestart();
                 });
-    }
-
-    @PreDestroy
-    public void preDestroy() {
-        // Unsubscribe from data order book.
-        accountInfoSubscription.dispose();
-
-        orderBookSubscription.dispose();
     }
 
     @Override
