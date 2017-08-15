@@ -145,13 +145,12 @@ public class ArbitrageService {
         if (signalType == SignalType.AUTOMATIC
                 && openPrices != null && openDiffs != null && params.getLastDelta() != null) {
             if (params.getLastDelta().equals(DELTA1)) {
-                BigDecimal deltaFact = openPrices.getDelta1Fact();
 
+                BigDecimal deltaFact = openPrices.getDelta1Fact();
+                params.setCumDeltaFact(params.getCumDeltaFact().add(deltaFact));
                 BigDecimal cumDeltaFact = params.getCumDeltaFact();
                 BigDecimal cumDeltaFactMin = params.getCumDeltaFactMin();
                 BigDecimal cumDeltaFactMax = params.getCumDeltaFactMax();
-
-                params.setCumDeltaFact(cumDeltaFact.add(deltaFact));
                 if (cumDeltaFact.compareTo(cumDeltaFactMin) == -1) params.setCumDeltaFactMin(cumDeltaFact);
                 if (cumDeltaFact.compareTo(cumDeltaFactMax) == 1) params.setCumDeltaFactMax(cumDeltaFact);
 
@@ -159,7 +158,6 @@ public class ArbitrageService {
                 BigDecimal diffFact1Max = params.getDiffFact1Max();
                 BigDecimal diffFact2Min = params.getDiffFact2Min();
                 BigDecimal diffFact2Max = params.getDiffFact2Max();
-
 
                 BigDecimal diffFact = openDiffs.getFirstOpenPrice().add(openDiffs.getSecondOpenPrice());
                 if (openDiffs.getFirstOpenPrice().compareTo(diffFact1Min) == -1) params.setDiffFact1Min(openDiffs.getFirstOpenPrice());
@@ -171,6 +169,8 @@ public class ArbitrageService {
                 if (diffFact.compareTo(diffFactMin) == -1) params.setDiffFactMin(diffFact);
                 if (diffFact.compareTo(diffFactMax) == 1) params.setDiffFactMax(diffFact);
 
+                params.setCumDiffFact1(params.getCumDiffFact1().add(openDiffs.getFirstOpenPrice()));
+                params.setCumDiffFact2(params.getCumDiffFact2().add(openDiffs.getSecondOpenPrice()));
                 BigDecimal cumDiffFact1 = params.getCumDiffFact1();
                 BigDecimal cumDiffFact1Min = params.getCumDiffFact1Min();
                 BigDecimal cumDiffFact1Max = params.getCumDiffFact1Max();
@@ -180,10 +180,9 @@ public class ArbitrageService {
                 BigDecimal cumDiffsFactMin = params.getCumDiffsFactMin();
                 BigDecimal cumDiffsFactMax = params.getCumDiffsFactMax();
 
-                params.setCumDiffFact1(cumDiffFact1.add(openDiffs.getFirstOpenPrice()));
                 if (cumDiffFact1.compareTo(cumDiffFact1Min) == -1) params.setCumDiffFact1Min(cumDiffFact1);
                 if (cumDiffFact1.compareTo(cumDiffFact1Max) == 1) params.setCumDiffFact1Max(cumDiffFact1);
-                params.setCumDiffFact2(cumDiffFact2.add(openDiffs.getSecondOpenPrice()));
+
                 if (cumDiffFact2.compareTo(cumDiffFact2Min) == -1) params.setCumDiffFact2Min(cumDiffFact2);
                 if (cumDiffFact2.compareTo(cumDiffFact2Max) == 1) params.setCumDiffFact2Max(cumDiffFact2);
                 BigDecimal cumDiffsFact = cumDiffFact1.add(cumDiffFact2);
@@ -213,11 +212,13 @@ public class ArbitrageService {
                 printCumBitmexMCom();
 
             } else if (params.getLastDelta().equals(DELTA2)) {
+
                 BigDecimal deltaFact = openPrices.getDelta2Fact();
+                params.setCumDeltaFact(params.getCumDeltaFact().add(deltaFact));
                 BigDecimal cumDeltaFact = params.getCumDeltaFact();
                 BigDecimal cumDeltaFactMin = params.getCumDeltaFactMin();
                 BigDecimal cumDeltaFactMax = params.getCumDeltaFactMax();
-                params.setCumDeltaFact(cumDeltaFact.add(deltaFact));
+
                 if (cumDeltaFact.compareTo(cumDeltaFactMin) == -1) params.setCumDeltaFactMin(cumDeltaFact);
                 if (cumDeltaFact.compareTo(cumDeltaFactMax) == 1) params.setCumDeltaFactMax(cumDeltaFact);
 
@@ -235,6 +236,9 @@ public class ArbitrageService {
                 if (diffFact.compareTo(diffFactMin) == -1) params.setDiffFactMin(diffFact);
                 if (diffFact.compareTo(diffFactMax) == 1) params.setDiffFactMax(diffFact);
 
+                params.setCumDiffFact1(params.getCumDiffFact1().add(openDiffs.getFirstOpenPrice()));
+                params.setCumDiffFact2(params.getCumDiffFact2().add(openDiffs.getSecondOpenPrice()));
+
                 BigDecimal cumDiffFact1 = params.getCumDiffFact1();
                 BigDecimal cumDiffFact1Min = params.getCumDiffFact1Min();
                 BigDecimal cumDiffFact1Max = params.getCumDiffFact1Max();
@@ -243,10 +247,10 @@ public class ArbitrageService {
                 BigDecimal cumDiffFact2Max = params.getCumDiffFact2Max();
                 BigDecimal cumDiffsFactMin = params.getCumDiffsFactMin();
                 BigDecimal cumDiffsFactMax = params.getCumDiffsFactMax();
-                params.setCumDiffFact1(cumDiffFact1.add(openDiffs.getFirstOpenPrice()));
+
                 if (cumDiffFact1.compareTo(cumDiffFact1Min) == -1) params.setCumDiffFact1Min(cumDiffFact1);
                 if (cumDiffFact1.compareTo(cumDiffFact1Max) == 1) params.setCumDiffFact1Max(cumDiffFact1);
-                params.setCumDiffFact2(cumDiffFact2.add(openDiffs.getSecondOpenPrice()));
+
                 if (cumDiffFact2.compareTo(cumDiffFact2Min) == -1) params.setCumDiffFact2Min(cumDiffFact2);
                 if (cumDiffFact2.compareTo(cumDiffFact2Max) == 1) params.setCumDiffFact2Max(cumDiffFact2);
                 BigDecimal cumDiffsFact = cumDiffFact1.add(cumDiffFact2);
