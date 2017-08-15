@@ -61,6 +61,7 @@ import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import si.mazi.rescu.HttpStatusIOException;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
@@ -706,11 +707,15 @@ public class OkCoinService extends MarketService {
                 }
                 break;
             } catch (Exception e) {
-                String details = String.format("%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s",
+                final String message = (e instanceof HttpStatusIOException)
+                        ? e.getMessage() + ((HttpStatusIOException) e).getHttpBody()
+                        : e.getMessage();
+
+                String details = String.format("%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s. %s",
                         getCounterName(),
-                        orderType, amountToFill, bestQuotes, false, signalType);
+                        orderType, amountToFill, bestQuotes, false, signalType, message);
                 logger.error(details, e);
-                tradeLogger.error(details + e.toString());
+                tradeLogger.error(details);
 //                warningLogger.error("Warning placing: " + details);
             }
         }
