@@ -45,7 +45,8 @@ public class ArbitrageService {
     private static final String DELTA1 = "delta1";
     private static final String DELTA2 = "delta2";
     private static final Object calcLock = new Object();
-    private final BigDecimal FEE_SECOND_TAKER = new BigDecimal("0.015");
+    private final BigDecimal FEE_FIRST_MAKER = new BigDecimal("0.075");//Bitmex
+    private final BigDecimal FEE_SECOND_TAKER = new BigDecimal("0.015");//OkCoin
     @Autowired
     private PersistenceService persistenceService;
     private Disposable schdeduleUpdateBorders;
@@ -70,7 +71,6 @@ public class ArbitrageService {
     private OpenPrices openDiffs = new OpenPrices();
     private volatile SignalType signalType = SignalType.AUTOMATIC;
     private SignalEventBus signalEventBus = new SignalEventBus();
-    private final BigDecimal FEE_FIRST_MAKER = new BigDecimal("0.075");
     private volatile DeltaParams deltaParams = new DeltaParams();
 
     public FlagOpenOrder getFlagOpenOrder() {
@@ -605,20 +605,18 @@ public class ArbitrageService {
     }
 
     private void printCumBitmexMCom() {
-        BigDecimal bitmexMComMin = params.getBitmexMComMin();
-        BigDecimal bitmexMComMax = params.getBitmexMComMax();
-        BigDecimal cumBitmexMCom = params.getCumBitmexMCom();
         // bitmex_m_com = round(open_price_fact * 0.025 / 100; 4),
-        BigDecimal bitmexMCom = openPrices.getFirstOpenPrice().multiply(new BigDecimal(0.025)).divide(new BigDecimal(100), 4, BigDecimal.ROUND_HALF_UP);
-        if (bitmexMCom.compareTo(BigDecimal.ZERO) != 0 && bitmexMCom.compareTo(bitmexMComMin) == -1) params.setBitmexMComMin(bitmexMCom);
-        if (bitmexMCom.compareTo(bitmexMComMax) == 1) params.setBitmexMComMax(bitmexMCom);
+        BigDecimal bitmexMCom = openPrices.getFirstOpenPrice().multiply(new BigDecimal(0.025))
+                .divide(new BigDecimal(100), 4, BigDecimal.ROUND_HALF_UP);
+        if (bitmexMCom.compareTo(BigDecimal.ZERO) != 0 && bitmexMCom.compareTo(params.getBitmexMComMin()) == -1) params.setBitmexMComMin(bitmexMCom);
+        if (bitmexMCom.compareTo(params.getBitmexMComMax()) == 1) params.setBitmexMComMax(bitmexMCom);
 
-        params.setCumBitmexMCom(cumBitmexMCom.add(bitmexMCom));
+        params.setCumBitmexMCom(params.getCumBitmexMCom().add(bitmexMCom));
 
         deltasLogger.info(String.format("#%s bitmex_m_com=%s/%s/%s; cum_bitmex_m_com=%s",
                 getCounter(),
-                bitmexMCom, bitmexMComMin, bitmexMComMax,
-                cumBitmexMCom
+                bitmexMCom, params.getBitmexMComMin(), params.getBitmexMComMax(),
+                params.getCumBitmexMCom()
         ));
     }
 
