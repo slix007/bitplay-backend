@@ -270,7 +270,7 @@ public class OkCoinService extends MarketService {
         }
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 2000)
     @Override
     public void fetchPosition() {
         try {
