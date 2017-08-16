@@ -70,6 +70,7 @@ public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     private static final String NAME = "bitmex";
     private static final int MAX_ATTEMPTS = 10;
@@ -1168,11 +1169,19 @@ public class BitmexService extends MarketService {
 
     private synchronized void endFunding() {
         BigDecimal pos = bitmexFunding.getStartPosition();
-        logger.info("swap_end to p{}", pos.toPlainString());
-        tradeLogger.info("swap_end to p{}", pos.toPlainString());
 
         final Order.OrderType orderType = pos.signum() > 0 ? Order.OrderType.BID : Order.OrderType.ASK;
         SignalType signalType = pos.signum() > 0 ? SignalType.SWAP_REVERT_LONG : SignalType.SWAP_REVERT_SHORT;
+
+        BigDecimal bestPrice = signalType == SignalType.SWAP_REVERT_LONG
+                ? Utils.getBestAsk(orderBook).getLimitPrice()
+                : Utils.getBestBid(orderBook).getLimitPrice();
+        final String message = String.format("#%s signal to p%s, %s1=%s", signalType.getCounterName(), pos.toPlainString(),
+                orderType, bestPrice.toPlainString());
+        logger.info(message);
+        tradeLogger.info(message);
+        deltasLogger.info(message);
+
         arbitrageService.setSignalType(signalType);
 
         final TradeResponse tradeResponse = takerOrder(orderType, pos.abs(), null, signalType);
@@ -1195,13 +1204,20 @@ public class BitmexService extends MarketService {
             final BigDecimal pos = position.getPositionLong();
             final SignalType signalType = bitmexFunding.getSignalType();
             if (signalType == null) {
-                logger.info("swap_none p{} f{}%", pos.toPlainString(), fRate.toPlainString());
-                tradeLogger.info("swap_none p{} f{}%", pos.toPlainString(), fRate.toPlainString());
+                final String message = String.format("#swap_none p%s f%s%%", pos.toPlainString(), fRate.toPlainString());
+                logger.info(message);
+                tradeLogger.info(message);
+                deltasLogger.info(message);
+
                 resetSwapState();
 
             } else if (signalType == SignalType.SWAP_CLOSE_LONG) {
-                logger.info("#swap_close_long p{} f{}%", pos.toPlainString(), fRate.toPlainString());
-                tradeLogger.info("#swap_close_long p{} f{}%", pos.toPlainString(), fRate.toPlainString());
+                final BigDecimal bestBidPrice = Utils.getBestBid(orderBook).getLimitPrice();
+                final String message = String.format("#swap_close_long signal p%s f%s%%, bid[1]=%s", pos.toPlainString(), fRate.toPlainString(),
+                        bestBidPrice.toPlainString());
+                logger.info(message);
+                tradeLogger.info(message);
+                deltasLogger.info(message);
 
                 arbitrageService.setSignalType(SignalType.SWAP_CLOSE_LONG);
 
@@ -1213,8 +1229,12 @@ public class BitmexService extends MarketService {
                 }
 
             } else if (signalType == SignalType.SWAP_CLOSE_SHORT) {
-                logger.info("#swap_close_short p{} f{}%", pos.toPlainString(), fRate.toPlainString());
-                tradeLogger.info("#swap_close_short p{} f{}%", pos.toPlainString(), fRate.toPlainString());
+                final BigDecimal bestAskPrice = Utils.getBestAsk(orderBook).getLimitPrice();
+                final String message = String.format("#swap_close_short signal p%s f%s%%, ask[1]=%s", pos.toPlainString(), fRate.toPlainString(),
+                        bestAskPrice.toPlainString());
+                logger.info(message);
+                tradeLogger.info(message);
+                deltasLogger.info(message);
 
                 arbitrageService.setSignalType(SignalType.SWAP_CLOSE_SHORT);
 
