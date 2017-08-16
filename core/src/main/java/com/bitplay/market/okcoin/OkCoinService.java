@@ -707,14 +707,14 @@ public class OkCoinService extends MarketService {
                 }
                 break;
             } catch (Exception e) {
-                final String message = (e instanceof HttpStatusIOException)
+                String message = (e instanceof HttpStatusIOException)
                         ? e.getMessage() + ((HttpStatusIOException) e).getHttpBody()
                         : e.getMessage();
 
                 String details = String.format("%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s. %s",
                         getCounterName(),
                         orderType, amountToFill, bestQuotes, false, signalType, message);
-                logger.error(details, e);
+                logger.error(details.length() < 200 ? details : details.substring(0, 190), e);
                 tradeLogger.error(details);
 //                warningLogger.error("Warning placing: " + details);
             }
