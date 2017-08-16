@@ -1095,7 +1095,7 @@ public class BitmexService extends MarketService {
         }
 
         final int SWAP_AWAIT_INTERVAL_SEC = 300;
-        final int SWAP_INTERVAL_SEC = 4;
+        final int SWAP_INTERVAL_SEC = 2;
         switch (marketState) {
             default:
                 checkStartSwapAwait(SWAP_AWAIT_INTERVAL_SEC);
