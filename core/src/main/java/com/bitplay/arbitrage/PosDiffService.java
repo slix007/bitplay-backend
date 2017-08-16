@@ -1,7 +1,6 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.market.MarketService;
-import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
@@ -26,11 +25,15 @@ public class PosDiffService {
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+    private final static Logger debugLogger = LoggerFactory.getLogger("DEBUG_LOG");
+
     private final BigDecimal DIFF_FACTOR = BigDecimal.valueOf(100);
 
     private Disposable theTimer;
 
     private boolean immediateCorrectionEnabled = true;
+
+    private volatile boolean calcInProgress = false;
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -65,40 +68,50 @@ public class PosDiffService {
         calcPosDiff(false);
     }
 
-    public void calcPosDiff(boolean isSecondCheck) {
-        final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
-        final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
-        final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+    private void calcPosDiff(boolean isSecondCheck) {
+        if (!calcInProgress || isSecondCheck) {
+            calcInProgress = true;
 
-        final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
-        if (positionsDiffWithHedge.signum() != 0) {
-            if (theTimer == null || theTimer.isDisposed()) {
-                startTimerToCorrection();
-            }
-        } else {
-            stopTimerToCorrection();
-        }
+            try {
+                final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
+                final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
+                final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
 
-        writeWarnings(bP, oPL, oPS);
-
-        if (arbitrageService.getParams().getPosCorr().equals("enabled")
-                && positionsDiffWithHedge.signum() != 0) {
-            // 0. check if ready
-            if (arbitrageService.getFirstMarketService().isReadyForArbitrage() && arbitrageService.getSecondMarketService().isReadyForArbitrage()) {
-                if (!isSecondCheck) {
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        logger.error("Sleep was interrupted");
+                final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
+                if (positionsDiffWithHedge.signum() != 0) {
+                    if (theTimer == null || theTimer.isDisposed()) {
+                        startTimerToCorrection();
                     }
-                    arbitrageService.getFirstMarketService().fetchPosition();
-                    arbitrageService.getSecondMarketService().fetchPosition();
-
-                    calcPosDiff(true);
                 } else {
-                    final BigDecimal hedgeAmount = getHedgeAmount();
-                    doCorrection(bP, oPL, oPS, hedgeAmount);
+                    stopTimerToCorrection();
                 }
+
+                writeWarnings(bP, oPL, oPS);
+
+                if (arbitrageService.getParams().getPosCorr().equals("enabled")
+                        && positionsDiffWithHedge.signum() != 0) {
+                    // 0. check if ready
+                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage() && arbitrageService.getSecondMarketService().isReadyForArbitrage()) {
+                        if (!isSecondCheck) {
+                            try {
+                                Thread.sleep(2000);
+                            } catch (InterruptedException e) {
+                                logger.error("Sleep was interrupted");
+                            }
+                            arbitrageService.getFirstMarketService().fetchPosition();
+                            arbitrageService.getSecondMarketService().fetchPosition();
+                            debugLogger.info("calcPosDiff - fetchPositions");
+
+                            calcPosDiff(true);
+                        } else {
+                            final BigDecimal hedgeAmount = getHedgeAmount();
+                            doCorrection(bP, oPL, oPS, hedgeAmount);
+                        }
+                    }
+                }
+
+            } finally {
+                calcInProgress = false;
             }
         }
     }
@@ -191,15 +204,13 @@ public class PosDiffService {
         final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
 
         final BigDecimal okExPosEquivalent = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
-        BigDecimal positionsDiff = okExPosEquivalent.add(bP);
-        return positionsDiff;
+        return okExPosEquivalent.add(bP);
     }
 
     public BigDecimal getPositionsDiffWithHedge() {
         final BigDecimal hedgeAmount = getHedgeAmount();
         BigDecimal positionsDiff = getPositionsDiff();
-        BigDecimal positionsDiffWithHedge = positionsDiff.subtract(hedgeAmount);
-        return positionsDiffWithHedge;
+        return positionsDiff.subtract(hedgeAmount);
     }
 
     private void writeWarnings(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS) {
