@@ -84,7 +84,7 @@ public class BitmexService extends MarketService {
 
     private BitmexStreamingExchange exchange;
 
-    private static final int MIN_SEC_TO_RESTART = 60 * 10; // 10 min
+    private static final int MIN_SEC_TO_RESTART = 60 * 5; // 5 min
     private long listenersStartTimeEpochSecond = Instant.now().getEpochSecond();
     private volatile boolean isDestroyed = false;
 
@@ -104,6 +104,8 @@ public class BitmexService extends MarketService {
     private PosDiffService posDiffService;
     @Autowired
     private PersistenceService persistenceService;
+    private String key;
+    private String secret;
 
     @Override
     public ArbitrageService getArbitrageService() {
@@ -143,11 +145,12 @@ public class BitmexService extends MarketService {
     @Override
     public void initializeMarket(String key, String secret) {
         this.usdInContract = 1;
-        this.exchange = initExchange(key, secret);
+        this.key = key;
+        this.secret = secret;
+
         loadLiqParams();
 
         initWebSocketConnection();
-
         startAllListeners();
     }
 
@@ -191,6 +194,17 @@ public class BitmexService extends MarketService {
                     || futureIndexSubscription.isDisposed()) {
                 final long nowEpochSecond = Instant.now().getEpochSecond();
                 if (nowEpochSecond - listenersStartTimeEpochSecond > MIN_SEC_TO_RESTART) {
+                    warningLogger.info("Warning: Bitmex hanged orderBookSub={}, accountInfoSub={}," +
+                                    "openOrdersSub={}," +
+                                    "openOrdersMovingSub={}," +
+                                    "posSub={}," +
+                                    "futureIndexSub={}",
+                            orderBookSubscription.isDisposed(),
+                            accountInfoSubscription.isDisposed(),
+                            openOrdersSubscription.isDisposed(),
+                            openOrderMovingSubscription.isDisposed(),
+                            positionSubscription.isDisposed(),
+                            futureIndexSubscription.isDisposed());
                     doRestart();
                 }
             }
@@ -344,26 +358,32 @@ public class BitmexService extends MarketService {
 
     private void initWebSocketConnection() {
         // Connect to the Exchange WebSocket API. Blocking wait for the connection.
-        exchange.connect()
-                .retryWhen(throwableFlowable -> throwableFlowable.delay(10, TimeUnit.SECONDS))
-                .doOnError(throwable -> logger.error("connection error", throwable))
-                .blockingAwait();
-
         try {
-            exchange.authenticate().blockingAwait();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            exchange = initExchange(this.key, this.secret);
 
-        // Retry on disconnect.
-        exchange.onDisconnect().subscribe(() -> {
-                    logger.warn("onClientDisconnect BitmexService");
-                    doRestart();
-                },
-                throwable -> logger.error("onClientDisconnect BitmexService error", throwable));
+            exchange.connect()
+                    .doOnError(throwable -> logger.error("doOnError", throwable))
+                    .doOnDispose(() -> logger.info("bitmex connect doOnDispose"))
+                    .doOnTerminate(() -> logger.info("bitmex connect doOnTerminate"))
+                    .retryWhen(e -> e.delay(10, TimeUnit.SECONDS))
+                    .blockingAwait();
+
+            exchange.authenticate().blockingAwait();
+
+            // Retry on disconnect.
+            exchange.onDisconnect().subscribe(() -> {
+                        logger.warn("onClientDisconnect BitmexService");
+                        doRestart();
+                    },
+                    throwable -> logger.error("onClientDisconnect BitmexService error", throwable));
+        } catch (Exception e) {
+            logger.error("Connection failed");
+            doRestart();
+        }
     }
 
     private void doRestart() {
+        warningLogger.info("Warning: Bitmex restart");
         destroyAction();
         initWebSocketConnection();
         startAllListeners();
@@ -445,10 +465,12 @@ public class BitmexService extends MarketService {
     private void startOpenOrderListener() {
         openOrdersSubscription = exchange.getStreamingTradingService()
                 .getOpenOrdersObservable()
+                .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
+                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                 .doOnError(throwable -> logger.error("onOpenOrdersListening", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
-                .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.computation())
+                .subscribeOn(Schedulers.io())
                 .subscribe(updateOfOpenOrders -> {
                     synchronized (openOrdersLock) {
                         logger.debug("OpenOrders: " + updateOfOpenOrders.toString());

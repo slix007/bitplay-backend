@@ -45,7 +45,7 @@ public class StreamingServiceBitmex {
                 msgHandler = new WSMessageHandler();
                 clientEndPoint.addMessageHandler(msgHandler);
 
-            } catch (URISyntaxException e1) {
+            } catch (Exception e1) {
                 completable.onError(e1);
             }
 
@@ -124,6 +124,8 @@ public class StreamingServiceBitmex {
             try {
                 clientEndPoint.doClose();
                 completableEmitter.onComplete();
+                msgHandler.getChannels().clear();
+
             } catch (Exception e) {
                 completableEmitter.onError(e);
             }

@@ -41,17 +41,17 @@ public class WSClientEndpoint {
     public void onOpen(final Session userSession) {
         this.userSession = userSession;
         this.open = true;
-        log.debug("onOpen:" + userSession);
+        log.info("onOpen:" + userSession);
     }
 
     @OnClose
     public void onClose(final Session userSession, final CloseReason reason) {
         this.userSession = null;
         this.open = false;
-        log.debug("onClose:" + userSession);
+        log.info("onClose {} : {}", userSession, reason);
     }
     public void doClose() throws IOException {
-        log.debug("doClose:" + userSession);
+        log.info("doClose:" + userSession);
         this.userSession.close();
         this.userSession = null;
         this.open = false;
