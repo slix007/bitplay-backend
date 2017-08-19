@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
@@ -39,6 +40,7 @@ public class BitmexSwapService {
     private Disposable fundingSchedule;
     private volatile long swapTicker = 0L;
     private volatile BigDecimal maxDiffCorrStored;
+    private SwapParams swapParams;
 
     private BitmexService bitmexService;
     private ArbitrageService arbitrageService;

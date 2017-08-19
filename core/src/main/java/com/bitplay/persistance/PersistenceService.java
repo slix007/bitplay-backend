@@ -4,9 +4,12 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LiqParams;
+import com.bitplay.persistance.domain.MarketDocument;
+import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.persistance.repository.DeltaParamsRepository;
 import com.bitplay.persistance.repository.GuiParamsRepository;
 import com.bitplay.persistance.repository.LiqParamsRepository;
+import com.bitplay.persistance.repository.SwapParamsRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +33,9 @@ public class PersistenceService {
     @Autowired
     private DeltaParamsRepository deltaParamsRepository;
 
+    @Autowired
+    private SwapParamsRepository swapParamsRepository;
+
     public void saveGuiParams(GuiParams deltas) {
         deltas.setId(1L);
         guiParamsRepository.save(deltas);
@@ -40,15 +46,7 @@ public class PersistenceService {
     }
 
     public void saveLiqParams(LiqParams liqParams, String marketName) {
-        long id = 1L;
-        if (marketName.equals("bitmex")) {
-            id = 2L;
-        }
-        if (marketName.equals("okcoin")) {
-            id = 3L;
-        }
-        liqParams.setId(id);
-        liqParams.setMarketName(marketName);
+        setMarketDocumentName(liqParams, marketName);
         liqParamsRepository.save(liqParams);
     }
 
@@ -64,4 +62,27 @@ public class PersistenceService {
     public DeltaParams fetchDeltaParams() {
         return deltaParamsRepository.findFirstByDocumentId(1L);
     }
+
+    public void saveSwapParams(SwapParams swapParams, String marketName) {
+        setMarketDocumentName(swapParams, marketName);
+        swapParamsRepository.save(swapParams);
+    }
+
+    private void setMarketDocumentName(MarketDocument swapParams, String marketName) {
+        long id = 1L;
+        if (marketName.equals("bitmex")) {
+            id = 2L;
+        }
+        if (marketName.equals("okcoin")) {
+            id = 3L;
+        }
+        swapParams.setId(id);
+        swapParams.setMarketName(marketName);
+    }
+
+    public SwapParams fetchSwapParams(String marketName) {
+        final SwapParams first = swapParamsRepository.findFirstByMarketName(marketName);
+        return first == null ? new SwapParams() : first;
+    }
+
 }

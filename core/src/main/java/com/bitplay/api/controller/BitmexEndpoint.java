@@ -85,6 +85,14 @@ public class BitmexEndpoint {
         return this.bitmex.getFutureIndex();
     }
 
+    @POST
+    @Path("/custom-swap-time")
+    @Produces("application/json")
+    @Consumes("application/json")
+    public ResultJson futureIndex(ChangeRequestJson changeRequestJson) {
+        return this.bitmex.setCustomSwapTime(changeRequestJson);
+    }
+
     @GET
     @Path("/liq-info")
     @Produces("application/json")

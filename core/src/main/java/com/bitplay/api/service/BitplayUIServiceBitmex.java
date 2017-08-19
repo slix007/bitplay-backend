@@ -1,6 +1,8 @@
 package com.bitplay.api.service;
 
+import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.FutureIndexJson;
+import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
@@ -8,6 +10,7 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.domain.SwapParams;
 
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Position;
@@ -122,5 +125,14 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 swapTime,
                 timeToSwap,
                 signalType);
+    }
+
+    public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {
+        final String swapTime = customSwapTime.getCommand();
+        final String serviceName = service.getName();
+        SwapParams swapParams = service.getPersistenceService().fetchSwapParams(serviceName);
+        swapParams.setCustomSwapTime(swapTime);
+        service.getPersistenceService().saveSwapParams(swapParams, serviceName);
+        return new ResultJson("true", "");
     }
 }

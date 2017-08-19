@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -90,6 +91,7 @@ public class BitmexService extends MarketService {
     private Disposable orderBookSubscription;
     private Disposable openOrdersSubscription;
 //    private Disposable openOrderMovingSubscription;
+    @SuppressWarnings({"UnusedDeclaration"})
     private BitmexSwapService bitmexSwapService;
 
     private ArbitrageService arbitrageService;
@@ -889,12 +891,21 @@ public class BitmexService extends MarketService {
                     }
                     final Date timestamp = contractIndex1.getTimestamp();
 
-                    // For swap testing
-//                    fundingTimestamp = OffsetDateTime.parse("2017-08-10T13:45:00Z",
-//                                    DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
                     this.contractIndex = new BitmexContractIndex(indexPrice, timestamp, fundingRate, fundingTimestamp);
                     this.bitmexFunding.setFundingRate(fundingRate);
+
+                    // For swap testing
+                    if (getPersistenceService().fetchSwapParams(NAME) != null
+                            && getPersistenceService().fetchSwapParams(NAME).getCustomSwapTime() != null
+                            && getPersistenceService().fetchSwapParams(NAME).getCustomSwapTime().length() > 0
+                            ) {
+                        fundingTimestamp = OffsetDateTime.parse(
+                                getPersistenceService().fetchSwapParams(NAME).getCustomSwapTime(),
+                                //"2017-08-10T13:45:00Z",
+                                DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+                    }
+
                     this.bitmexFunding.setSwapTime(fundingTimestamp);
 
                 }, throwable -> {
