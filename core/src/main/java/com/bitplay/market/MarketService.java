@@ -203,10 +203,10 @@ public abstract class MarketService {
         final BigDecimal ha = getArbitrageService().getParams().getHedgeAmount();
         final BigDecimal dc = getPosDiffService().getPositionsDiffWithHedge();
         final BigDecimal mdc = getArbitrageService().getParams().getMaxDiffCorr();
-        return String.format("o(%s-%s) b(%s) = %s, ha=%s, dc=%s, mdc=%s",
+        return String.format("b(%s) o(%s-%s) = %s, ha=%s, dc=%s, mdc=%s",
+                Utils.withSign(bP),
                 Utils.withSign(oPL),
                 oPS,
-                Utils.withSign(bP),
                 posDiff.toPlainString(),
                 ha, dc, mdc
         );
@@ -233,7 +233,7 @@ public abstract class MarketService {
         return eventBus;
     }
 
-    protected void setMarketState(MarketState newState) {
+    public void setMarketState(MarketState newState) {
         getTradeLogger().info("{} {} marketState: {} {}", getCounterNameNext(), getName(), newState, getPosDiffString());
         this.marketState = newState;
     }

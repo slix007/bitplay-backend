@@ -106,6 +106,7 @@ public class BitmexAdapters {
                 BigDecimal.ZERO,
                 position.getLeverage() != null ? BigDecimal.valueOf(position.getLeverage()) : BigDecimal.ZERO,
                 position.getLiquidationPrice() != null ? BigDecimal.valueOf(position.getLiquidationPrice()) : BigDecimal.ZERO,
+                position.getMarkValue(),
                 position.toString()
         );
     }

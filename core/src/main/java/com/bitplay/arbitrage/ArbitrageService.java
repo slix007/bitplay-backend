@@ -278,10 +278,10 @@ public class ArbitrageService {
             theCheckBusyTimer.dispose();
         }
 
-        theCheckBusyTimer = Completable.timer(5, TimeUnit.MINUTES, Schedulers.computation())
+        theCheckBusyTimer = Completable.timer(6, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
                     if (firstMarketService.isBusy() || secondMarketService.isBusy()) {
-                        final String logString = String.format("#%s Warning: busy by isBusy for 5 min. first:%s(%s), second:%s(%s)",
+                        final String logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s)",
                                 getCounter(),
                                 firstMarketService.isBusy(),
                                 firstMarketService.getOpenOrders().size(),
@@ -292,14 +292,14 @@ public class ArbitrageService {
 
 
                         if (firstMarketService.isBusy() && firstMarketService.getOpenOrders().size() == 0) {
-                            deltasLogger.warn("Warning: Free Okcoin");
-                            warningLogger.warn("Warning: Free Okcoin");
+                            deltasLogger.warn("Warning: Free Bitmex");
+                            warningLogger.warn("Warning: Free Bitmex");
                             firstMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
 
                         if (secondMarketService.isBusy() && secondMarketService.getOpenOrders().size() == 0) {
-                            deltasLogger.warn("Warning: Free Bitmex");
-                            warningLogger.warn("Warning: Free Bitmex");
+                            deltasLogger.warn("Warning: Free Okcoin");
+                            warningLogger.warn("Warning: Free Okcoin");
                             secondMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
 

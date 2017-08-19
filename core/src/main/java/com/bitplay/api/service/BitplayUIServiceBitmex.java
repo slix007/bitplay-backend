@@ -95,6 +95,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         final BitmexFunding bitmexFunding = service.getBitmexFunding();
         String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
+        String fundingCost = service.getFundingCost() != null ? service.getFundingCost().toPlainString() : "";
 
         String swapTime = "";
         String timeToSwap = "";
@@ -116,6 +117,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         return new FutureIndexJson(futureIndexParent.getIndex(), futureIndexParent.getTimestamp(),
                 fundingRate,
+                fundingCost,
                 position,
                 swapTime,
                 timeToSwap,
