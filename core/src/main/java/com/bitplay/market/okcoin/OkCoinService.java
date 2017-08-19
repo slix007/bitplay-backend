@@ -216,11 +216,11 @@ public class OkCoinService extends MarketService {
                     this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                     logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
 
-                    CompletableFuture.runAsync(this::checkOpenOrdersForMoving)
-                            .exceptionally(throwable -> {
-                                logger.error("OnCheckOpenOrders", throwable);
-                                return null;
-                            });
+//                    CompletableFuture.runAsync(this::checkOpenOrdersForMoving)
+//                            .exceptionally(throwable -> {
+//                                logger.error("OnCheckOpenOrders", throwable);
+//                                return null;
+//                            });
 
 
                     getArbitrageService().getSignalEventBus().send(SignalEvent.O_ORDERBOOK_CHANGED);

@@ -95,7 +95,7 @@ public class BitmexService extends MarketService {
     private Observable<OrderBook> orderBookObservable;
     private Disposable orderBookSubscription;
     private Disposable openOrdersSubscription;
-    private Disposable openOrderMovingSubscription;
+//    private Disposable openOrderMovingSubscription;
     private Disposable fundingSchedule;
 
     private ArbitrageService arbitrageService;
@@ -156,6 +156,8 @@ public class BitmexService extends MarketService {
 
     private void startAllListeners() {
 
+        orderBookObservable = createOrderBookObservable();
+
         startOrderBookListener();
 
         Completable.timer(1000, TimeUnit.MILLISECONDS)
@@ -169,9 +171,9 @@ public class BitmexService extends MarketService {
                 .doOnComplete(this::startPositionListener)
                 .subscribe();
 
-        Completable.timer(4000, TimeUnit.MILLISECONDS)
-                .doOnComplete(this::startOpenOrderMovingListener)
-                .subscribe();
+//        Completable.timer(4000, TimeUnit.MILLISECONDS)
+//                .doOnComplete(this::startOpenOrderMovingListener)
+//                .subscribe();
 
         Completable.timer(5000, TimeUnit.MILLISECONDS)
                 .doOnComplete(this::startFutureIndexListener)
@@ -189,22 +191,24 @@ public class BitmexService extends MarketService {
             if (orderBookSubscription.isDisposed()
                     || accountInfoSubscription.isDisposed()
                     || openOrdersSubscription.isDisposed()
-                    || openOrderMovingSubscription.isDisposed()
+//                    || openOrderMovingSubscription.isDisposed()
                     || positionSubscription.isDisposed()
                     || futureIndexSubscription.isDisposed()) {
                 final long nowEpochSecond = Instant.now().getEpochSecond();
                 if (nowEpochSecond - listenersStartTimeEpochSecond > MIN_SEC_TO_RESTART) {
                     warningLogger.info("Warning: Bitmex hanged orderBookSub={}, accountInfoSub={}," +
                                     "openOrdersSub={}," +
-                                    "openOrdersMovingSub={}," +
+//                                    "openOrdersMovingSub={}," +
                                     "posSub={}," +
-                                    "futureIndexSub={}",
+                                    "futureIndexSub={}," +
+                                    "openOrdersLock={}",
                             orderBookSubscription.isDisposed(),
                             accountInfoSubscription.isDisposed(),
                             openOrdersSubscription.isDisposed(),
-                            openOrderMovingSubscription.isDisposed(),
+//                            openOrderMovingSubscription.isDisposed(),
                             positionSubscription.isDisposed(),
-                            futureIndexSubscription.isDisposed());
+                            futureIndexSubscription.isDisposed(),
+                            Thread.holdsLock(openOrdersLock));
                     doRestart();
                 }
             }
@@ -278,18 +282,19 @@ public class BitmexService extends MarketService {
         }
     }*/
 
-    private void startOpenOrderMovingListener() {
-        openOrderMovingSubscription = orderBookObservable
-                .subscribeOn(Schedulers.io())
-                .doOnDispose(() -> logger.error("doOnDispose startOpenOrderMovingListener"))
-                .subscribe(orderBook1 -> {
-                    checkOpenOrdersForMoving();
-                }, throwable -> {
-                    logger.error("On Moving OpenOrders.", throwable); // restart
-                    sleep(5000);
-                    checkForRestart();
-                });
-    }
+//    private void startOpenOrderMovingListener() {
+//        openOrderMovingSubscription = orderBookObservable
+//                .subscribeOn(Schedulers.computation())
+//                .doOnDispose(() -> logger.error("doOnDispose startOpenOrderMovingListener"))
+//                .sample(1, TimeUnit.SECONDS)
+//                .subscribe(orderBook1 -> {
+//                    checkOpenOrdersForMoving();
+//                }, throwable -> {
+//                    logger.error("On Moving OpenOrders.", throwable); // restart
+//                    sleep(5000);
+//                    checkForRestart();
+//                });
+//    }
 
     @Override
     protected void iterateOpenOrdersMove() {
@@ -399,7 +404,7 @@ public class BitmexService extends MarketService {
         orderBookSubscription.dispose();
         accountInfoSubscription.dispose();
         openOrdersSubscription.dispose();
-        openOrderMovingSubscription.dispose();
+//        openOrderMovingSubscription.dispose();
         positionSubscription.dispose();
         futureIndexSubscription.dispose();
         fundingSchedule.dispose();
@@ -407,8 +412,6 @@ public class BitmexService extends MarketService {
     }
 
     private void startOrderBookListener() {
-        orderBookObservable = createOrderBookObservable();
-
         orderBookSubscription = orderBookObservable
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.computation())

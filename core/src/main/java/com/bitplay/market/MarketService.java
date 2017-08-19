@@ -7,6 +7,7 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
+import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
@@ -38,7 +39,6 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 
@@ -62,17 +62,18 @@ public abstract class MarketService {
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected volatile int usdInContract = 0;
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
-    protected SpecialFlags specialFlags = SpecialFlags.NONE;
+    protected volatile SpecialFlags specialFlags = SpecialFlags.NONE;
 //    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
 //    protected volatile Boolean isBusy = false;
     protected volatile MarketState marketState = MarketState.READY;
     protected EventBus eventBus = new EventBus();
-    private volatile Boolean isReadyForMoving = true; // 1 second delay for moving
-    private Disposable theTimer;
     protected volatile LiqInfo liqInfo = new LiqInfo();
+
+    Disposable openOrdersMovingSubscription;
 
     public void init(String key, String secret) {
         initEventBus();
+        initOpenOrdersMovingSubscription();
         initializeMarket(key, secret);
     }
 
@@ -443,9 +444,20 @@ public abstract class MarketService {
         });
     }*/
 
-    protected synchronized void checkOpenOrdersForMoving() {
+    private void initOpenOrdersMovingSubscription() {
+        openOrdersMovingSubscription = getArbitrageService().getSignalEventBus().toObserverable()
+                .sample(100, TimeUnit.MILLISECONDS)
+                .subscribe(signalEvent -> {
+                    if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
+                            || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
+                        checkOpenOrdersForMoving();
+                    }
+                }, throwable -> logger.error("{} openOrdersMovingSubscription error", getName(), throwable));
+    }
+
+    protected void checkOpenOrdersForMoving() {
 //        debugLog.info(getName() + ":checkOpenOrdersForMoving");
-        if (isReadyForMoving && specialFlags != SpecialFlags.STOP_MOVING) {
+        if (specialFlags != SpecialFlags.STOP_MOVING) {
             iterateOpenOrdersMove();
         }
     }
@@ -552,26 +564,11 @@ public abstract class MarketService {
         return thePrice;
     }
 
-    private void setTimeoutAfterStartMoving() {
-        isReadyForMoving = false;
-        if (theTimer != null) {
-            theTimer.dispose();
-        }
-        theTimer = Completable.timer(100, TimeUnit.MILLISECONDS)
-                .doOnComplete(() -> isReadyForMoving = true)
-                .doOnError(e -> {
-                    logger.error("Error for isReadyForMoving");
-                    getTradeLogger().error("Error for isReadyForMoving");
-                })
-                .retry()
-                .subscribe();
-    }
-
     protected MoveResponse moveMakerOrderIfNotFirst(LimitOrder limitOrder, SignalType signalType) {
         MoveResponse response;
         BigDecimal bestPrice;
 
-        if (!isReadyForMoving || specialFlags == SpecialFlags.STOP_MOVING) {
+        if (specialFlags == SpecialFlags.STOP_MOVING) {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.WAITING_TIMEOUT, "");
         } else if ((limitOrder.getType() == Order.OrderType.ASK && limitOrder.getLimitPrice().compareTo(bestAsk) == 0)
                 || (limitOrder.getType() == Order.OrderType.BID && limitOrder.getLimitPrice().compareTo(bestBid) == 0)) {
@@ -594,7 +591,6 @@ public abstract class MarketService {
                         getName(), limitOrder.getId(), limitOrder.getType(),
                         limitOrder.getLimitPrice(), bestPrice);
                 response = moveMakerOrder(limitOrder, signalType);
-                setTimeoutAfterStartMoving();
             } else {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
             }

@@ -23,6 +23,7 @@ public class SignalEventBus {
     public Observable<SignalEvent> toObserverable() {
         return _bus
                 .doOnError(throwable -> logger.error("SignalEventBus.", throwable))
-                .retry();
+                .retry()
+                .share();
     }
 }
