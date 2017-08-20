@@ -5,12 +5,9 @@ package com.bitplay.arbitrage;
  */
 public enum SignalType {
     AUTOMATIC(""),
-    B_CORR("b_corr"),
-    O_CORR("o_corr"),
-    B_CORR_MDC("b_corr_mdc"),
-    O_CORR_MDC("o_corr_mdc"),
-    B_CORR_PERIOD("b_corr_period"),
-    O_CORR_PERIOD("o_corr_period"),
+    CORR("corr"),
+    CORR_MDC("corr_mdc"),
+    CORR_PERIOD("corr_period"),
     B_PRE_LIQ("b_preliq"),
     O_PRE_LIQ("o_preliq"),
     MANUAL_BUY("button_buy"),
