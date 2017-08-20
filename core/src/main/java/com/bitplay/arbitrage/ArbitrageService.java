@@ -734,11 +734,21 @@ public class ArbitrageService {
                     sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
             deltasLogger.info(sumBalString);
 
+            final String bDQLMin;
+            final String oDQLMin;
+            if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
+                bDQLMin = String.format("b_DQL_close_min=%s", getParams().getbDQLCloseMin());
+                oDQLMin = String.format("o_DQL_close_min=%s", getParams().getoDQLCloseMin());
+            } else {
+                bDQLMin = String.format("b_DQL_open_min=%s", getParams().getbDQLOpenMin());
+                oDQLMin = String.format("o_DQL_open_min=%s", getParams().getoDQLOpenMin());
+            }
+
             deltasLogger.info(String.format("#%s Pos diff: %s", counterName, getPosDiffString()));
             final LiqInfo bLiqInfo = getFirstMarketService().getLiqInfo();
-            deltasLogger.info(String.format("#%s %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString()));
+            deltasLogger.info(String.format("#%s %s; %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString(), bDQLMin));
             final LiqInfo oLiqInfo = getSecondMarketService().getLiqInfo();
-            deltasLogger.info(String.format("#%s %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString()));
+            deltasLogger.info(String.format("#%s %s; %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString(), oDQLMin));
         }
     }
 
