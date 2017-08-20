@@ -894,7 +894,7 @@ public class ArbitrageService {
     }
 
     public synchronized void setSignalType(SignalType signalType) {
-        this.signalType = signalType;
+        this.signalType = signalType != null ? signalType : SignalType.AUTOMATIC;
     }
 
     public void setPeriodSec(Integer integer) {

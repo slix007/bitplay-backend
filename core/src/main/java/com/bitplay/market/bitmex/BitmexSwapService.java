@@ -168,7 +168,7 @@ public class BitmexSwapService {
             final Position position = bitmexService.getPosition();
             final BigDecimal pos = position.getPositionLong();
             final SignalType signalType = bitmexFunding.getSignalType();
-            if (signalType == null) {
+            if (signalType == SignalType.SWAP_NONE) {
                 BigDecimal fCost = bitmexService.getFundingCost();
                 final String message = String.format("#swap_none p%s fR%s%% fC%sXBT", pos.toPlainString(), fRate.toPlainString(), fCost.toPlainString());
                 logger.info(message);
@@ -281,16 +281,16 @@ public class BitmexSwapService {
             if (fRate.signum() > 0 && fRate.compareTo(maxFRate) > 0) {
                 bitmexFunding.setSignalType(SignalType.SWAP_CLOSE_LONG);
             } else {
-                bitmexFunding.setSignalType(null);
+                bitmexFunding.setSignalType(SignalType.SWAP_NONE);
             }
         } else if (pos.signum() < 0) {
             if (fRate.signum() < 0 && fRate.negate().compareTo(maxFRate) > 0) {
                 bitmexFunding.setSignalType(SignalType.SWAP_CLOSE_SHORT);
             } else {
-                bitmexFunding.setSignalType(null);
+                bitmexFunding.setSignalType(SignalType.SWAP_NONE);
             }
         } else {// pos = 0
-            bitmexFunding.setSignalType(null);
+            bitmexFunding.setSignalType(SignalType.SWAP_NONE);
         }
     }
 

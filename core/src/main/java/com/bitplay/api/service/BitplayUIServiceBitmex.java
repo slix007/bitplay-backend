@@ -112,7 +112,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         }
 
         String signalType = "noSwap";
-        if (bitmexFunding.getSignalType() != null) {
+        if (bitmexFunding.getSignalType() != SignalType.SWAP_NONE) {
             signalType = bitmexFunding.getSignalType().name();
         }
 

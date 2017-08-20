@@ -146,12 +146,14 @@ public class PosDiffService {
         MarketService marketService;
         final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
         final BigDecimal bEquiv = bP.subtract(hedgeAmount);
+        final SignalType signalType;
         if (positionsDiffWithHedge.signum() < 0) {
             orderType = Order.OrderType.BID;
             if (bEquiv.compareTo(okEquiv) < 0) {
                 // bitmex buy
                 correctAmount = positionsDiffWithHedge.abs();
                 marketService = arbitrageService.getFirstMarketService();
+                signalType = SignalType.B_CORR;
             } else {
                 // okcoin buy
                 correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
@@ -159,6 +161,7 @@ public class PosDiffService {
                     correctAmount = oPS;
                 }
                 marketService = arbitrageService.getSecondMarketService();
+                signalType = SignalType.O_CORR;
             }
         } else {
             orderType = Order.OrderType.ASK;
@@ -169,10 +172,12 @@ public class PosDiffService {
                     correctAmount = oPL;
                 }
                 marketService = arbitrageService.getSecondMarketService();
+                signalType = SignalType.O_CORR;
             } else {
                 // bitmex sell
                 correctAmount = positionsDiffWithHedge.abs();
                 marketService = arbitrageService.getFirstMarketService();
+                signalType = SignalType.B_CORR;
             }
         }
 
@@ -180,10 +185,10 @@ public class PosDiffService {
         if (correctAmount.signum() != 0
                 && marketService.isAffordable(orderType, correctAmount)) {
 //                bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
-            arbitrageService.setSignalType(SignalType.CORRECTION);
+            arbitrageService.setSignalType(signalType);
             marketService.setBusy();
             // Market specific params
-            marketService.placeOrderOnSignal(orderType, correctAmount, null, SignalType.CORRECTION);
+            marketService.placeOrderOnSignal(orderType, correctAmount, null, signalType);
         }
     }
 
