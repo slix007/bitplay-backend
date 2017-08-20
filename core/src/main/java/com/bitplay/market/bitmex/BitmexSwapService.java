@@ -7,8 +7,6 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.utils.Utils;
 
-import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
-
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -16,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +31,6 @@ public class BitmexSwapService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexSwapService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
-    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final int TICK_SEC = 1;
     private static final int MAX_TICKS_TO_SWAP_REVERT = 120; // 2 min
     private Disposable fundingSchedule;
@@ -140,7 +136,7 @@ public class BitmexSwapService {
                 swapTicker = 0L;
                 maxDiffCorrStored = arbitrageService.getParams().getMaxDiffCorr();
                 arbitrageService.getParams().setMaxDiffCorr(BigDecimal.valueOf(10000000));
-                startFunding();
+                startFunding(SWAP_INTERVAL);
             }
         } else if (nowSec > swapTimeSec) {
             // we lost the moment
@@ -189,7 +185,6 @@ public class BitmexSwapService {
                 orderType, bestPrice.toPlainString());
         logger.info(message);
         tradeLogger.info(message);
-        deltasLogger.info(message);
 
         arbitrageService.setSignalType(signalType);
 
@@ -199,11 +194,11 @@ public class BitmexSwapService {
         }
     }
 
-    private synchronized void startFunding() {
-        final BitmexContractIndex contractIndex = (BitmexContractIndex) bitmexService.getContractIndex();
-        final OffsetDateTime fundingTimestamp = contractIndex.getFundingTimestamp();
-        final BigDecimal fRate = contractIndex.getFundingRate();
-        final long seconds = Duration.between(Instant.now(), fundingTimestamp.minusSeconds(3)).getSeconds();
+    private synchronized void startFunding(int SWAP_INTERVAL) {
+        final BitmexFunding bitmexFunding = bitmexService.getBitmexFunding();
+        final long startSwapSec = bitmexFunding.getSwapTime().minusSeconds(SWAP_INTERVAL).toEpochSecond();
+        final BigDecimal fRate = bitmexFunding.getFundingRate();
+        final long seconds = Instant.now().getEpochSecond() - startSwapSec;
         if (Math.abs(seconds) > 2) {
             logger.warn("startFunding at wrong time");
             warningLogger.warn("startFunding at wrong time");
@@ -211,14 +206,12 @@ public class BitmexSwapService {
         } else {
             final Position position = bitmexService.getPosition();
             final BigDecimal pos = position.getPositionLong();
-            final BitmexFunding bitmexFunding = bitmexService.getBitmexFunding();
             final SignalType signalType = bitmexFunding.getSignalType();
             if (signalType == null) {
                 BigDecimal fCost = bitmexService.getFundingCost();
                 final String message = String.format("#swap_none p%s fR%s%% fC%sXBT", pos.toPlainString(), fRate.toPlainString(), fCost.toPlainString());
                 logger.info(message);
                 tradeLogger.info(message);
-                deltasLogger.info(message);
 
                 resetSwapState();
 
@@ -230,7 +223,6 @@ public class BitmexSwapService {
                             bestBidPrice.toPlainString());
                     logger.info(message);
                     tradeLogger.info(message);
-                    deltasLogger.info(message);
 
                     arbitrageService.setSignalType(SignalType.SWAP_CLOSE_LONG);
 
@@ -247,7 +239,6 @@ public class BitmexSwapService {
                             bestAskPrice.toPlainString());
                     logger.info(message);
                     tradeLogger.info(message);
-                    deltasLogger.info(message);
 
                     arbitrageService.setSignalType(SignalType.SWAP_CLOSE_SHORT);
 
@@ -259,8 +250,9 @@ public class BitmexSwapService {
                     }
 
                 } else {
-                    logger.warn("Warning: wrong signalType on startSwop p{} f{}% s{}", pos.toPlainString(), fRate.toPlainString(), signalType);
-                    tradeLogger.warn("Warning: wrong signalType on startSwop p{} f{}% s{}", pos.toPlainString(), fRate.toPlainString(), signalType);
+                    final String message = String.format("Warning: wrong signalType on startSwop p%s f%s%% s%s", pos.toPlainString(), fRate.toPlainString(), signalType);
+                    logger.warn(message);
+                    tradeLogger.warn(message);
                     resetSwapState();
                 }
             }
