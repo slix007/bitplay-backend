@@ -43,7 +43,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -69,13 +68,10 @@ public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
-    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     private static final String NAME = "bitmex";
     private static final int MAX_ATTEMPTS = 10;
     private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
-
-    private volatile BitmexFunding bitmexFunding = new BitmexFunding();
 
     private BitmexStreamingExchange exchange;
 
@@ -873,40 +869,26 @@ public class BitmexService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .doOnError(throwable -> logger.error("Index fetch error", throwable))
                 .subscribe(contractIndex1 -> {
+                    // merge contractIndex
                     final BigDecimal indexPrice = contractIndex1.getIndexPrice() != null
                             ? contractIndex1.getIndexPrice()
                             : contractIndex.getIndexPrice();
                     final BigDecimal fundingRate;
-                    OffsetDateTime fundingTimestamp;
+                    final OffsetDateTime fundingTimestamp;
                     if (contractIndex instanceof BitmexContractIndex) {
                         fundingRate = contractIndex1.getFundingRate() != null
                                 ? contractIndex1.getFundingRate()
                                 : ((BitmexContractIndex) contractIndex).getFundingRate();
-                        fundingTimestamp = contractIndex1.getFundingTimestamp() != null
-                                ? contractIndex1.getFundingTimestamp()
-                                : ((BitmexContractIndex) contractIndex).getFundingTimestamp();
+                        fundingTimestamp = contractIndex1.getSwapTime() != null
+                                ? contractIndex1.getSwapTime()
+                                : ((BitmexContractIndex) contractIndex).getSwapTime();
                     } else {
                         fundingRate = contractIndex1.getFundingRate();
-                        fundingTimestamp = contractIndex1.getFundingTimestamp();
+                        fundingTimestamp = contractIndex1.getSwapTime();
                     }
                     final Date timestamp = contractIndex1.getTimestamp();
 
-
                     this.contractIndex = new BitmexContractIndex(indexPrice, timestamp, fundingRate, fundingTimestamp);
-                    this.bitmexFunding.setFundingRate(fundingRate);
-
-                    // For swap testing
-                    if (getPersistenceService().fetchSwapParams(NAME) != null
-                            && getPersistenceService().fetchSwapParams(NAME).getCustomSwapTime() != null
-                            && getPersistenceService().fetchSwapParams(NAME).getCustomSwapTime().length() > 0
-                            ) {
-                        fundingTimestamp = OffsetDateTime.parse(
-                                getPersistenceService().fetchSwapParams(NAME).getCustomSwapTime(),
-                                //"2017-08-10T13:45:00Z",
-                                DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-                    }
-
-                    this.bitmexFunding.setSwapTime(fundingTimestamp);
 
                 }, throwable -> {
                     logger.error("Can not fetch Position", throwable);
@@ -1079,19 +1061,12 @@ public class BitmexService extends MarketService {
     }
 
     public BitmexFunding getBitmexFunding() {
-        return bitmexFunding;
+        return bitmexSwapService.getBitmexFunding();
     }
 
     public BigDecimal getFundingCost() {
-        final Position position = this.getPosition();
-        if (position.getMarkValue() == null || position.getPositionLong() == null) {
-            return BigDecimal.ZERO;
-        }
-
-        // (fundingCost = abs(markValue) * signum(currentQty) * fundingRate)
-        final BitmexContractIndex contractIndex = (BitmexContractIndex) this.getContractIndex();
-        final BigDecimal fRate = contractIndex.getFundingRate();
-        return position.getMarkValue().abs().multiply(BigDecimal.valueOf(position.getPositionLong().signum())).multiply(fRate)
-                .divide(BigDecimal.valueOf(10000000000L), 4, BigDecimal.ROUND_HALF_UP); //to XBT
+        return bitmexSwapService.calcFundingCost(this.getPosition(),
+                ((BitmexContractIndex) this.getContractIndex()).getFundingRate());
     }
+
 }

@@ -6,18 +6,30 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 /**
- * Created by Sergey Shurmin on 8/7/17.
+ * <p>
+ * It is updated by swapTickerTimer.
+ * </p>
+ *
+ * The latest info from market is in {@link info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex},
+ *
+ * <p>Created by Sergey Shurmin on 8/7/17.</p>
  */
 public class BitmexFunding {
 
     public static final BigDecimal MAX_F_RATE = BigDecimal.valueOf(0.0); //0.15
 
-    private BigDecimal fundingRate;
-    private OffsetDateTime updatingTime;
-    private OffsetDateTime swapTime;
-    private SignalType signalType;// SignalType.SWAP_CLOSE_SHORT or SignalType.SWAP_CLOSE_LONG or null
-    private BigDecimal startPosition; // null when swap is not in progress.
-    private OffsetDateTime fixedSwapTime; // null when swap is not in progress
+    // Fluid params on UI
+    private BigDecimal fundingRate;     // from market
+    private OffsetDateTime swapTime;    // from market
+    private OffsetDateTime updatingTime;// ticker time
+
+    // When swap in progress:
+    private SignalType signalType;          // SignalType.SWAP_CLOSE_SHORT or SignalType.SWAP_CLOSE_LONG or null
+    private BigDecimal startPosition;       // null when swap is not in progress. How much contracts we've closed to open it after.
+    private OffsetDateTime fixedSwapTime;   // null when swap is not in progress. Keep old swapTime until we finish swap iteration.
+    // for logs
+    private BigDecimal swapClosePrice;
+    private BigDecimal swapOpenPrice;
 
     public BigDecimal getFundingRate() {
         return fundingRate;
@@ -67,6 +79,22 @@ public class BitmexFunding {
         this.fixedSwapTime = fixedSwapTime;
     }
 
+    public BigDecimal getSwapClosePrice() {
+        return swapClosePrice;
+    }
+
+    public void setSwapClosePrice(BigDecimal swapClosePrice) {
+        this.swapClosePrice = swapClosePrice;
+    }
+
+    public BigDecimal getSwapOpenPrice() {
+        return swapOpenPrice;
+    }
+
+    public void setSwapOpenPrice(BigDecimal swapOpenPrice) {
+        this.swapOpenPrice = swapOpenPrice;
+    }
+
     @Override
     public String toString() {
         return "BitmexFunding{" +
@@ -76,6 +104,8 @@ public class BitmexFunding {
                 ", signalType=" + signalType +
                 ", startPosition=" + startPosition +
                 ", fixedSwapTime=" + fixedSwapTime +
+                ", swapClosePrice=" + swapClosePrice +
+                ", swapOpenPrice=" + swapOpenPrice +
                 '}';
     }
 }

@@ -12,23 +12,23 @@ import java.util.Date;
 public class BitmexContractIndex extends ContractIndex {
 
     private BigDecimal fundingRate;
-    private OffsetDateTime fundingTimestamp;
+    private OffsetDateTime swapTime;
 
     public BitmexContractIndex(BigDecimal indexPrice, Date timestamp) {
         super(indexPrice, timestamp);
     }
 
-    public BitmexContractIndex(BigDecimal indexPrice, Date timestamp, BigDecimal fundingRate, OffsetDateTime fundingTimestamp) {
+    public BitmexContractIndex(BigDecimal indexPrice, Date timestamp, BigDecimal fundingRate, OffsetDateTime swapTime) {
         super(indexPrice, timestamp);
         this.fundingRate = fundingRate;
-        this.fundingTimestamp = fundingTimestamp;
+        this.swapTime = swapTime;
     }
 
     public BigDecimal getFundingRate() {
         return fundingRate;
     }
 
-    public OffsetDateTime getFundingTimestamp() {
-        return fundingTimestamp;
+    public OffsetDateTime getSwapTime() {
+        return swapTime;
     }
 }
