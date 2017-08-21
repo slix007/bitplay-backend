@@ -59,6 +59,7 @@ public class PosDiffService {
         final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
         if (positionsDiffWithHedge.signum() != 0
                 && positionsDiffWithHedge.abs().compareTo(maxDiffCorr) != -1) {
+                warningLogger.info("MDC posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
             doCorrectionImmediate(SignalType.CORR_MDC);
         }
     }

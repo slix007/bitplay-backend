@@ -150,7 +150,6 @@ public class BitmexSwapService {
             if (fixedSwapTime <= nowSeconds) {
                 if (bitmexService.getMarketState() == MarketState.SWAP) {
                     endFunding();
-                    printSwapParams();
                 }
             }
         }
@@ -233,8 +232,11 @@ public class BitmexSwapService {
         BigDecimal bestPrice = signalType == SignalType.SWAP_REVERT_LONG
                 ? Utils.getBestAsk(orderBook).getLimitPrice()
                 : Utils.getBestBid(orderBook).getLimitPrice();
-        final String message = String.format("#%s signal to p%s, swap_price=%s1=%s", signalType.getCounterName(), pos.toPlainString(),
-                orderType, bestPrice.toPlainString());
+        final String message = String.format("#%s signal to p%s, swap_price=%s=%s",
+                signalType.getCounterName(),
+                pos.toPlainString(),
+                orderType == Order.OrderType.BID ? "ask[1]" : "bid[1]",
+                bestPrice.toPlainString());
         bitmexFunding.setSwapOpenPrice(bestPrice);
         logger.info(message);
         tradeLogger.info(message);
@@ -242,6 +244,9 @@ public class BitmexSwapService {
         arbitrageService.setSignalType(signalType);
 
         final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, pos.abs(), null, signalType);
+
+        printSwapParams();
+
         if (tradeResponse.getErrorCode() == null) {
             resetSwapState();
         }
@@ -251,7 +256,9 @@ public class BitmexSwapService {
         bitmexService.setMarketState(MarketState.READY);
         bitmexFunding.setFixedSwapTime(null);
         bitmexFunding.setStartPosition(null);
-        arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored);
+        // delay  for mdc
+        Completable.timer(2, TimeUnit.SECONDS)
+                .subscribe(() -> arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored));
     }
 
     private void recalcBitmexFunding() {
@@ -301,7 +308,7 @@ public class BitmexSwapService {
 
         // (fundingCost = abs(markValue) * signum(currentQty) * fundingRate)
         return position.getMarkValue().abs().multiply(BigDecimal.valueOf(position.getPositionLong().signum())).multiply(fRate)
-                .divide(BigDecimal.valueOf(10000000000L), 4, BigDecimal.ROUND_HALF_UP); //to XBT
+                .divide(BigDecimal.valueOf(10000000000L), 8, BigDecimal.ROUND_HALF_UP); //to XBT
     }
 
     private void printSwapParams() {
