@@ -188,6 +188,9 @@ public class ArbitrageService {
                         cumDiffsFact, params.getCumDiffsFactMin(), params.getCumDiffsFactMax()
                 ));
 
+                deltasLogger.info(String.format("o_avg_entry_price=%s (for last order only)",
+                        openPrices.getSecondOpenPrice()));
+
                 printCumBitmexMCom();
 
             } else if (params.getLastDelta().equals(DELTA2)) {
@@ -236,6 +239,9 @@ public class ArbitrageService {
                         params.getCumDiffFact2(), params.getCumDiffFact2Min(), params.getCumDiffFact2Max(),
                         cumDiffsFact, params.getCumDiffsFactMin(), params.getCumDiffsFactMax()
                 ));
+
+                deltasLogger.info(String.format("o_avg_entry_price=%s (for last order only)",
+                        openPrices.getSecondOpenPrice()));
 
                 printCumBitmexMCom();
 
