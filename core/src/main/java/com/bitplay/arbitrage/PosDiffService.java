@@ -153,6 +153,7 @@ public class PosDiffService {
                 // bitmex buy
                 correctAmount = positionsDiffWithHedge.abs();
                 marketService = arbitrageService.getFirstMarketService();
+                if (signalType == SignalType.CORR) signalType = SignalType.B_CORR;
             } else {
                 // okcoin buy
                 correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
@@ -160,6 +161,7 @@ public class PosDiffService {
                     correctAmount = oPS;
                 }
                 marketService = arbitrageService.getSecondMarketService();
+                if (signalType == SignalType.CORR) signalType = SignalType.O_CORR;
             }
         } else {
             orderType = Order.OrderType.ASK;
@@ -170,10 +172,12 @@ public class PosDiffService {
                     correctAmount = oPL;
                 }
                 marketService = arbitrageService.getSecondMarketService();
+                if (signalType == SignalType.CORR) signalType = SignalType.O_CORR;
             } else {
                 // bitmex sell
                 correctAmount = positionsDiffWithHedge.abs();
                 marketService = arbitrageService.getFirstMarketService();
+                if (signalType == SignalType.CORR) signalType = SignalType.B_CORR;
             }
         }
 

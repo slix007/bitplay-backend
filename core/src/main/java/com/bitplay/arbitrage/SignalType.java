@@ -6,6 +6,8 @@ package com.bitplay.arbitrage;
 public enum SignalType {
     AUTOMATIC(""),
     CORR("corr"),
+    B_CORR("b_corr"),
+    O_CORR("o_corr"),
     CORR_MDC("corr_mdc"),
     CORR_PERIOD("corr_period"),
     B_PRE_LIQ("b_preliq"),
