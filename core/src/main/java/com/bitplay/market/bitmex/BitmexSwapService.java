@@ -332,11 +332,11 @@ public class BitmexSwapService {
         if (pos.signum() == 0) {
             spl = BigDecimal.ZERO;
         } else if (pos.signum() < 0) {
-            spl = (BigDecimal.ONE.divide(swapClosePrice, 8, BigDecimal.ROUND_HALF_UP))
-                    .subtract(BigDecimal.ONE.divide(swapOpenPrice, 8, BigDecimal.ROUND_HALF_UP).multiply(pos.abs()));
+            spl = ((BigDecimal.ONE.divide(swapClosePrice, 8, BigDecimal.ROUND_HALF_UP))
+                    .subtract(BigDecimal.ONE.divide(swapOpenPrice, 8, BigDecimal.ROUND_HALF_UP))).multiply(pos.abs());
         } else {
-            spl = (BigDecimal.ONE.divide(swapOpenPrice, 8, BigDecimal.ROUND_HALF_UP))
-                    .subtract(BigDecimal.ONE.divide(swapClosePrice, 8, BigDecimal.ROUND_HALF_UP).multiply(pos.abs()));
+            spl = ((BigDecimal.ONE.divide(swapOpenPrice, 8, BigDecimal.ROUND_HALF_UP))
+                    .subtract(BigDecimal.ONE.divide(swapClosePrice, 8, BigDecimal.ROUND_HALF_UP))).multiply(pos.abs());
         }
 
         BigDecimal swapProfit = spl.subtract(fee);
