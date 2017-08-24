@@ -188,8 +188,9 @@ public class ArbitrageService {
                         cumDiffsFact, params.getCumDiffsFactMin(), params.getCumDiffsFactMax()
                 ));
 
-                deltasLogger.info(String.format("o_avg_entry_price=%s (for last order only)",
-                        openPrices.getSecondOpenPrice()));
+                deltasLogger.info(String.format("o_avg_price_long=%s, o_avg_price_short=%s ",
+                        getSecondMarketService().getPosition().getPriceAvgLong(),
+                        getSecondMarketService().getPosition().getPriceAvgShort()));
 
                 printCumBitmexMCom();
 
@@ -240,8 +241,9 @@ public class ArbitrageService {
                         cumDiffsFact, params.getCumDiffsFactMin(), params.getCumDiffsFactMax()
                 ));
 
-                deltasLogger.info(String.format("o_avg_entry_price=%s (for last order only)",
-                        openPrices.getSecondOpenPrice()));
+                deltasLogger.info(String.format("o_avg_price_long=%s, o_avg_price_short=%s ",
+                        getSecondMarketService().getPosition().getPriceAvgLong(),
+                        getSecondMarketService().getPosition().getPriceAvgShort()));
 
                 printCumBitmexMCom();
 
@@ -489,14 +491,6 @@ public class ArbitrageService {
         } else {
             bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
         }
-    }
-
-    public String getPositionsString() {
-        final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
-
-        final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
-        final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
-        return String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
     }
 
     private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_p) {
