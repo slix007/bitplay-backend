@@ -29,13 +29,16 @@ import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -382,6 +385,43 @@ public abstract class MarketService {
             }
         }
         return openOrders;
+    }
+
+    public Optional<Order> getOrderInfoAttempts(String orderId, String counterName, String logInfoId) throws InterruptedException, IOException {
+        final TradeService tradeService = getExchange().getTradeService();
+        Order orderInfo = null;
+        for (int i = 0; i < 10; i++) { // about 11 sec
+            try {
+                // 2. check status of the order
+                long sleepTime = 200;
+                if (i > 5) {
+                    sleepTime = 2000;
+                }
+                Thread.sleep(sleepTime);
+                final Collection<Order> order = tradeService.getOrder(orderId);
+                orderInfo = order.iterator().next();
+
+                if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
+                    break;
+                }
+
+                getTradeLogger().error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
+                        counterName, i,
+                        logInfoId,
+                        Utils.convertOrderTypeName(orderInfo.getType()),
+                        orderInfo.getStatus().toString(),
+                        orderInfo.getAveragePrice().toPlainString(),
+                        orderInfo.getId(),
+                        orderInfo.getType(),
+                        orderInfo.getCumulativeAmount().toPlainString());
+            } catch (Exception e) {
+                getTradeLogger().error("{}/{} {} orderId={}",
+                        counterName, i,
+                        logInfoId,
+                        orderId);
+            }
+        }
+        return Optional.ofNullable(orderInfo);
     }
 
 /*

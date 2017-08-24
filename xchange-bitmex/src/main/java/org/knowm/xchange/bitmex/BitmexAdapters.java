@@ -14,6 +14,7 @@ import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
 
 import java.math.BigDecimal;
@@ -128,7 +129,7 @@ public class BitmexAdapters {
             for (JsonNode node : jsonNode) {
                 io.swagger.client.model.Order order = mapper.treeToValue(node, io.swagger.client.model.Order.class);
 
-                final LimitOrder limitOrder = adaptLimitOrder(order);
+                final LimitOrder limitOrder = (LimitOrder) adaptOrder(order);
                 openOrders.add(limitOrder);
             }
         }
@@ -136,12 +137,13 @@ public class BitmexAdapters {
         return new OpenOrders(openOrders);
     }
 
-    public static LimitOrder adaptLimitOrder(io.swagger.client.model.Order order) {
+    public static Order adaptOrder(io.swagger.client.model.Order order) {
         final String side = order.getSide(); // may be null
         Order.OrderType orderType = null;
         BigDecimal tradableAmount = null;
         CurrencyPair currencyPair = null;
         BigDecimal price = null;
+        BigDecimal avgPrice = null;
 
         if (side != null) {
             orderType = side.equals("Buy")
@@ -160,15 +162,53 @@ public class BitmexAdapters {
         if (order.getPrice() != null) {
             price = priceToBigDecimal(order.getPrice());
         }
+        if (order.getAvgPx() != null) {
+            avgPrice = priceToBigDecimal(order.getAvgPx());
+        }
 
         final Date timestamp = Date.from(order.getTimestamp().toInstant());
 
-        return new LimitOrder(orderType,
-                tradableAmount,
-                currencyPair,
-                order.getOrderID(),
-                timestamp,
-                price);
+        final Order.OrderStatus orderStatus = convertOrderStatus(order.getOrdStatus());
+
+        Order resultOrder;
+        if (order.getOrdType() == null || order.getOrdType().equals("Limit")) {
+            resultOrder = new LimitOrder(orderType,
+                    tradableAmount,
+                    currencyPair,
+                    order.getOrderID(),
+                    timestamp,
+                    price,
+                    avgPrice,
+                    order.getCumQty(),
+                    orderStatus);
+
+        } else if (order.getOrdType().equals("Market")) {
+            resultOrder = new MarketOrder(orderType,
+                    tradableAmount,
+                    currencyPair,
+                    order.getOrderID(),
+                    timestamp,
+                    avgPrice,
+                    order.getCumQty(),
+                    orderStatus);
+        } else {
+            throw new IllegalStateException("unknown order type " + order.getOrdType());
+        }
+        return resultOrder;
     }
 
+    private static Order.OrderStatus convertOrderStatus(String ordStatus) {
+        if (ordStatus == null) {
+            return null;
+        }
+        Order.OrderStatus orderStatus = null;
+        if (ordStatus.toUpperCase().equals("PARTIALLYFILLED")) {
+            orderStatus = Order.OrderStatus.PARTIALLY_FILLED;
+        } else { //if (ordStatus.toUpperCase().equals("FILLED")) {
+            //TODO check logs for "IllegalArgumentException: No enum constant org.knowm.xchange.dto.Order.OrderStatus."
+            orderStatus = Order.OrderStatus.valueOf(ordStatus.toUpperCase());
+        }
+
+        return orderStatus;
+    }
 }

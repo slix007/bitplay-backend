@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
@@ -44,6 +45,7 @@ public class BitmexSwapService {
     private ArbitrageService arbitrageService;
 
     private volatile BitmexFunding bitmexFunding = new BitmexFunding();
+    private volatile BitmexSwapOrders bitmexSwapOrders = new BitmexSwapOrders();
 
     public BitmexFunding getBitmexFunding() {
         return bitmexFunding;
@@ -99,6 +101,10 @@ public class BitmexSwapService {
     }
 
     private void checkStartSwapAwait(int SWAP_AWAIT_INTERVAL) {
+        if (bitmexFunding == null || bitmexFunding.getSwapTime() == null) {
+            return;
+        }
+
         final long nowSec = Instant.now().getEpochSecond();
         final long startAwaitSec = bitmexFunding.getSwapTime().minusSeconds(SWAP_AWAIT_INTERVAL).toEpochSecond();
         final long swapTimeSec = bitmexFunding.getSwapTime().toEpochSecond();
@@ -136,9 +142,9 @@ public class BitmexSwapService {
     private void checkEndFunding() {
         if (swapTicker > MAX_TICKS_TO_SWAP_REVERT
                 && (bitmexFunding.getFixedSwapTime() == null || bitmexFunding.getStartPosition() == null)) {
-            logger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
-            tradeLogger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
-            warningLogger.warn("Warning: SWAP REVERT " + bitmexFunding.toString());
+            logger.warn("Warning: SWAP NO_REVERT " + bitmexFunding.toString());
+            tradeLogger.warn("Warning: SWAP NO_REVERT " + bitmexFunding.toString());
+            warningLogger.warn("Warning: SWAP NO_REVERT " + bitmexFunding.toString());
             bitmexService.setMarketState(MarketState.READY);
             bitmexFunding.setStartPosition(null);
             bitmexFunding.setFixedSwapTime(null);
@@ -150,6 +156,8 @@ public class BitmexSwapService {
             if (fixedSwapTime <= nowSeconds) {
                 if (bitmexService.getMarketState() == MarketState.SWAP) {
                     endFunding();
+
+                    printSwapParams();
                 }
             }
         }
@@ -188,6 +196,7 @@ public class BitmexSwapService {
                     arbitrageService.setSignalType(SignalType.SWAP_CLOSE_LONG);
 
                     final TradeResponse tradeResponse = bitmexService.takerOrder(Order.OrderType.ASK, pos, null, SignalType.SWAP_CLOSE_LONG);
+                    bitmexSwapOrders.setSwapOpenOrderId(tradeResponse.getOrderId());
                     if (tradeResponse.getErrorCode() == null) {
                         bitmexService.setMarketState(MarketState.SWAP);
                         bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
@@ -205,6 +214,7 @@ public class BitmexSwapService {
                     arbitrageService.setSignalType(SignalType.SWAP_CLOSE_SHORT);
 
                     final TradeResponse tradeResponse = bitmexService.takerOrder(Order.OrderType.BID, pos.abs(), null, SignalType.SWAP_CLOSE_SHORT);
+                    bitmexSwapOrders.setSwapOpenOrderId(tradeResponse.getOrderId());
                     if (tradeResponse.getErrorCode() == null) {
                         bitmexService.setMarketState(MarketState.SWAP);
                         bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
@@ -244,8 +254,7 @@ public class BitmexSwapService {
         arbitrageService.setSignalType(signalType);
 
         final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, pos.abs(), null, signalType);
-
-        printSwapParams();
+        bitmexSwapOrders.setSwapCloseOrderId(tradeResponse.getOrderId());
 
         if (tradeResponse.getErrorCode() == null) {
             resetSwapState();
@@ -255,18 +264,25 @@ public class BitmexSwapService {
     private void resetSwapState() {
         bitmexService.setMarketState(MarketState.READY);
         bitmexFunding.setFixedSwapTime(null);
-        bitmexFunding.setStartPosition(null);
         // delay  for mdc
         Completable.timer(2, TimeUnit.SECONDS)
                 .subscribe(() -> arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored));
     }
 
     private void recalcBitmexFunding() {
+        if (!(bitmexService.getContractIndex() instanceof BitmexContractIndex)) {
+            return;
+        }
+
         // 1. use latest data from market
         final BitmexContractIndex contractIndex = (BitmexContractIndex) bitmexService.getContractIndex();
         final BigDecimal fundingRate = contractIndex.getFundingRate();
-        OffsetDateTime swapTime = contractIndex.getSwapTime();
+        this.bitmexFunding.setFundingRate(fundingRate);
 
+        final BigDecimal fundingCost = calcFundingCost(bitmexService.getPosition(), fundingRate);
+        this.bitmexFunding.setFundingCost(fundingCost);
+
+        OffsetDateTime swapTime = contractIndex.getSwapTime();
         // For swap testing
         SwapParams swapParams = bitmexService.getPersistenceService().fetchSwapParams(bitmexService.getName());
         if (swapParams.getCustomSwapTime() != null && swapParams.getCustomSwapTime().length() > 0) {
@@ -275,7 +291,6 @@ public class BitmexSwapService {
                     //"2017-08-10T13:45:00Z",
                     DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         }
-        this.bitmexFunding.setFundingRate(fundingRate);
         this.bitmexFunding.setSwapTime(swapTime);
 
         // 2. recalc all temporary fileds
@@ -314,10 +329,9 @@ public class BitmexSwapService {
     private void printSwapParams() {
         // 1. calc current
         final BigDecimal pos = bitmexFunding.getStartPosition();
-        final BigDecimal swapClosePrice = bitmexFunding.getSwapClosePrice();
-        final BigDecimal swapOpenPrice = bitmexFunding.getSwapOpenPrice();
-        final BigDecimal fundingCost = calcFundingCost(bitmexService.getPosition(),
-                ((BitmexContractIndex) bitmexService.getContractIndex()).getFundingRate());
+        final BigDecimal fundingCost = bitmexFunding.getFundingCost();
+        final BigDecimal swapClosePrice = getSwapAvgPrice(bitmexSwapOrders.getSwapCloseOrderId());
+        final BigDecimal swapOpenPrice = getSwapAvgPrice(bitmexSwapOrders.getSwapOpenOrderId());
 
 //        fee = abs(pos) / swap_close_price * 0,075 / 100 + abs(pos) / swap_open_price * 0,075 / 100)
         BigDecimal fee = (pos.abs()
@@ -373,5 +387,25 @@ public class BitmexSwapService {
         );
         logger.info(message);
         tradeLogger.info(message);
+    }
+
+    private BigDecimal getSwapAvgPrice(String orderId) {
+        BigDecimal avgPrice = BigDecimal.ZERO;
+
+        final Optional<Order> orderInfoAttempts;
+        try {
+            final String counterName = arbitrageService.getSignalType().getCounterName();
+
+            orderInfoAttempts = bitmexService.getOrderInfoAttempts(orderId,
+                    counterName, "SwapService:Status:");
+            Order orderInfo = orderInfoAttempts.get();
+            avgPrice = orderInfo.getAveragePrice();
+
+            logger.info("OrderInfo:" + orderInfo.toString());
+        } catch (Exception e) {
+            logger.error("Error on getting order details after swap", e);
+        }
+
+        return avgPrice;
     }
 }

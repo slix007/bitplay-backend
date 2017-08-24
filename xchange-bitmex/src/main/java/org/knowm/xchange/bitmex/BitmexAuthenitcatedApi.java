@@ -68,7 +68,7 @@ public interface BitmexAuthenitcatedApi {
     @GET
     @Path("/order")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    List<Order> openOrders(@HeaderParam("api-key") String apiKey,
+    List<Order> getOrders(@HeaderParam("api-key") String apiKey,
                            @HeaderParam("api-signature") ParamsDigest signer,
                            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
                            @QueryParam("filter") String filter,

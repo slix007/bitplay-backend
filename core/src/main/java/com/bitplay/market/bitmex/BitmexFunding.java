@@ -20,6 +20,7 @@ public class BitmexFunding {
 
     // Fluid params on UI
     private BigDecimal fundingRate;     // from market
+    private BigDecimal fundingCost;     // recalc each time from market
     private OffsetDateTime swapTime;    // from market
     private OffsetDateTime updatingTime;// ticker time
 
@@ -27,6 +28,7 @@ public class BitmexFunding {
     private SignalType signalType;          // SignalType.SWAP_CLOSE_SHORT or SignalType.SWAP_CLOSE_LONG or null
     private BigDecimal startPosition;       // null when swap is not in progress. How much contracts we've closed to open it after.
     private OffsetDateTime fixedSwapTime;   // null when swap is not in progress. Keep old swapTime until we finish swap iteration.
+
     // for logs
     private BigDecimal swapClosePrice;
     private BigDecimal swapOpenPrice;
@@ -37,6 +39,14 @@ public class BitmexFunding {
 
     public void setFundingRate(BigDecimal fundingRate) {
         this.fundingRate = fundingRate;
+    }
+
+    public BigDecimal getFundingCost() {
+        return fundingCost;
+    }
+
+    public void setFundingCost(BigDecimal fundingCost) {
+        this.fundingCost = fundingCost;
     }
 
     public OffsetDateTime getUpdatingTime() {

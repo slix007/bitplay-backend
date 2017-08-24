@@ -17,6 +17,7 @@ import org.knowm.xchange.service.trade.params.orders.OpenOrdersParams;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,7 +41,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
     public OpenOrders getOpenOrders(OpenOrdersParams params) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         String filter = "{\"open\":true}"; //{"open": true}
         String count = "10";
-        final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.openOrders(
+        final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.getOrders(
                 exchange.getExchangeSpecification().getApiKey(),
                 signatureCreator,
                 exchange.getNonceFactory(),
@@ -48,7 +49,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 count
         );
         final List<LimitOrder> limitOrders = orders.stream()
-                .map(BitmexAdapters::adaptLimitOrder)
+                .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order))
                 .collect(Collectors.toList());
         return new OpenOrders(limitOrders);
     }
@@ -122,7 +123,18 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
 
     @Override
     public Collection<Order> getOrder(String... orderIds) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        throw new NotYetImplementedForExchangeException();
+        String filter = "{\"orderID\":\"" + orderIds[0] + "\"}"; //{"orderID": "0c8f1e6f-5a06-a8a8-6abf-96ebdecea95f"};
+        String count = "1";
+        final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.getOrders(
+                exchange.getExchangeSpecification().getApiKey(),
+                signatureCreator,
+                exchange.getNonceFactory(),
+                filter,
+                count
+        );
+        return orders.stream()
+                .map(BitmexAdapters::adaptOrder)
+                .collect(Collectors.toList());
     }
 
     public List<Instrument> getFunding() throws IOException {

@@ -544,7 +544,7 @@ public class OkCoinService extends MarketService {
             tradeResponse.setOrderId(orderId);
             final String counterName = getCounterName();
 
-            final Optional<Order> orderInfoAttempts = getOrderInfoAttempts(orderId, counterName, orderType, "Taker:Status:");
+            final Optional<Order> orderInfoAttempts = getOrderInfoAttempts(orderId, counterName, "Taker:Status:");
 
             Order orderInfo = orderInfoAttempts.get();
 
@@ -573,44 +573,6 @@ public class OkCoinService extends MarketService {
         return tradeResponse;
     }
 
-    private Optional<Order> getOrderInfoAttempts(String orderId, String counterName, Order.OrderType orderType,
-                                             String logInfoId) throws InterruptedException, IOException {
-        final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
-        Order orderInfo = null;
-        for (int i = 0; i < MAX_ATTEMPTS; i++) { // about 11 sec
-            try {
-                // 2. check status of the order
-                long sleepTime = 200;
-                if (i > 5) {
-                    sleepTime = 2000;
-                }
-                Thread.sleep(sleepTime);
-                final Collection<Order> order = tradeService.getOrder(orderId);
-                orderInfo = order.iterator().next();
-
-                if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                    break;
-                }
-
-                tradeLogger.error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
-                        counterName, i,
-                        logInfoId,
-                        Utils.convertOrderTypeName(orderType),
-                        orderInfo.getStatus().toString(),
-                        orderInfo.getAveragePrice().toPlainString(),
-                        orderInfo.getId(),
-                        orderInfo.getType(),
-                        orderInfo.getCumulativeAmount().toPlainString());
-            } catch (Exception e) {
-                tradeLogger.error("{}/{} {} orderId={}, type={}",
-                        counterName, i,
-                        logInfoId,
-                        orderId,
-                        orderType);
-            }
-        }
-        return Optional.ofNullable(orderInfo);
-    }
 
     private synchronized void recalcAffordableContracts() {
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc2();
