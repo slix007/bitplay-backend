@@ -196,7 +196,7 @@ public class BitmexSwapService {
                     arbitrageService.setSignalType(SignalType.SWAP_CLOSE_LONG);
 
                     final TradeResponse tradeResponse = bitmexService.takerOrder(Order.OrderType.ASK, pos, null, SignalType.SWAP_CLOSE_LONG);
-                    bitmexSwapOrders.setSwapOpenOrderId(tradeResponse.getOrderId());
+                    bitmexSwapOrders.setSwapCloseOrderId(tradeResponse.getOrderId());
                     if (tradeResponse.getErrorCode() == null) {
                         bitmexService.setMarketState(MarketState.SWAP);
                         bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
@@ -214,7 +214,7 @@ public class BitmexSwapService {
                     arbitrageService.setSignalType(SignalType.SWAP_CLOSE_SHORT);
 
                     final TradeResponse tradeResponse = bitmexService.takerOrder(Order.OrderType.BID, pos.abs(), null, SignalType.SWAP_CLOSE_SHORT);
-                    bitmexSwapOrders.setSwapOpenOrderId(tradeResponse.getOrderId());
+                    bitmexSwapOrders.setSwapCloseOrderId(tradeResponse.getOrderId());
                     if (tradeResponse.getErrorCode() == null) {
                         bitmexService.setMarketState(MarketState.SWAP);
                         bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
@@ -254,7 +254,7 @@ public class BitmexSwapService {
         arbitrageService.setSignalType(signalType);
 
         final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, pos.abs(), null, signalType);
-        bitmexSwapOrders.setSwapCloseOrderId(tradeResponse.getOrderId());
+        bitmexSwapOrders.setSwapOpenOrderId(tradeResponse.getOrderId());
 
         if (tradeResponse.getErrorCode() == null) {
             resetSwapState();
@@ -364,6 +364,7 @@ public class BitmexSwapService {
         swapParams.setCumFee(swapParams.getCumFee().add(fee));
         swapParams.setCumSpl(swapParams.getCumSpl().add(spl));
         swapParams.setCumSwapDiff(swapParams.getCumSwapDiff().add(swapDiff));
+        bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
 
         final String message = String.format(
                 "#%s p%s, swap_close_price=%s, swap_open_price=%s, fR%s%%, fC%sXBT, swap_profit=%s," +
