@@ -334,13 +334,13 @@ public class BitmexSwapService {
         final BigDecimal swapOpenPrice = getSwapAvgPrice(bitmexSwapOrders.getSwapOpenOrderId());
 
 //        fee = abs(pos) / swap_close_price * 0,075 / 100 + abs(pos) / swap_open_price * 0,075 / 100)
-        BigDecimal fee = (pos.abs()
-                .divide(swapClosePrice, 8, BigDecimal.ROUND_HALF_UP)
+        BigDecimal fee = ((pos.abs()
+                .divide(swapClosePrice, 16, BigDecimal.ROUND_HALF_UP)
                 .multiply(BigDecimal.valueOf(0.00075))) // it's 0,075 / 100
                 .add(pos.abs()
-                        .divide(swapOpenPrice, 8, BigDecimal.ROUND_HALF_UP)
+                        .divide(swapOpenPrice, 16, BigDecimal.ROUND_HALF_UP)
                         .multiply(BigDecimal.valueOf(0.00075)) // it's 0,075 / 100
-                );
+                )).setScale(8, BigDecimal.ROUND_HALF_UP);
 
         BigDecimal spl; // (swap_profit_losses)
         if (pos.signum() == 0) {
