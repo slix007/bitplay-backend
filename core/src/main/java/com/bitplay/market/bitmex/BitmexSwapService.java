@@ -198,9 +198,7 @@ public class BitmexSwapService {
                     final TradeResponse tradeResponse = bitmexService.takerOrder(Order.OrderType.ASK, pos, null, SignalType.SWAP_CLOSE_LONG);
                     bitmexSwapOrders.setSwapCloseOrderId(tradeResponse.getOrderId());
                     if (tradeResponse.getErrorCode() == null) {
-                        bitmexService.setMarketState(MarketState.SWAP);
-                        bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
-                        bitmexFunding.setStartPosition(pos);
+                        setStateSwapStarted(position);
                     }
 
                 } else if (signalType == SignalType.SWAP_CLOSE_SHORT) {
@@ -216,9 +214,7 @@ public class BitmexSwapService {
                     final TradeResponse tradeResponse = bitmexService.takerOrder(Order.OrderType.BID, pos.abs(), null, SignalType.SWAP_CLOSE_SHORT);
                     bitmexSwapOrders.setSwapCloseOrderId(tradeResponse.getOrderId());
                     if (tradeResponse.getErrorCode() == null) {
-                        bitmexService.setMarketState(MarketState.SWAP);
-                        bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
-                        bitmexFunding.setStartPosition(pos);
+                        setStateSwapStarted(position);
                     }
 
                 } else {
@@ -230,6 +226,15 @@ public class BitmexSwapService {
             }
 
         }
+    }
+
+    private void setStateSwapStarted(Position position) {
+        final BigDecimal pos = position.getPositionLong();
+        bitmexService.setMarketState(MarketState.SWAP);
+        bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
+        bitmexFunding.setStartPosition(pos);
+        final BigDecimal fundingCost = calcFundingCost(position, bitmexFunding.getFundingRate());
+        bitmexFunding.setFundingCost(fundingCost);
     }
 
     private synchronized void endFunding() {
@@ -278,9 +283,6 @@ public class BitmexSwapService {
         final BitmexContractIndex contractIndex = (BitmexContractIndex) bitmexService.getContractIndex();
         final BigDecimal fundingRate = contractIndex.getFundingRate();
         this.bitmexFunding.setFundingRate(fundingRate);
-
-        final BigDecimal fundingCost = calcFundingCost(bitmexService.getPosition(), fundingRate);
-        this.bitmexFunding.setFundingCost(fundingCost);
 
         OffsetDateTime swapTime = contractIndex.getSwapTime();
         // For swap testing
@@ -346,11 +348,13 @@ public class BitmexSwapService {
         if (pos.signum() == 0) {
             spl = BigDecimal.ZERO;
         } else if (pos.signum() < 0) {
-            spl = ((BigDecimal.ONE.divide(swapClosePrice, 8, BigDecimal.ROUND_HALF_UP))
-                    .subtract(BigDecimal.ONE.divide(swapOpenPrice, 8, BigDecimal.ROUND_HALF_UP))).multiply(pos.abs());
+            spl = ((BigDecimal.ONE.divide(swapClosePrice, 16, BigDecimal.ROUND_HALF_UP))
+                    .subtract(BigDecimal.ONE.divide(swapOpenPrice, 16, BigDecimal.ROUND_HALF_UP))).multiply(pos.abs())
+                    .setScale(8, BigDecimal.ROUND_HALF_UP);
         } else {
-            spl = ((BigDecimal.ONE.divide(swapOpenPrice, 8, BigDecimal.ROUND_HALF_UP))
-                    .subtract(BigDecimal.ONE.divide(swapClosePrice, 8, BigDecimal.ROUND_HALF_UP))).multiply(pos.abs());
+            spl = ((BigDecimal.ONE.divide(swapOpenPrice, 16, BigDecimal.ROUND_HALF_UP))
+                    .subtract(BigDecimal.ONE.divide(swapClosePrice, 16, BigDecimal.ROUND_HALF_UP))).multiply(pos.abs())
+                    .setScale(8, BigDecimal.ROUND_HALF_UP);
         }
 
         BigDecimal swapProfit = spl.subtract(fee);
@@ -371,20 +375,20 @@ public class BitmexSwapService {
                         "fee=%s, spl=%s, swapDiff=%s, cumFR%s, cumFC%s, cum_swap_profit=%s, cum_fee=%s, cum_spl=%s, cum_swap_diff=%s",
                 arbitrageService.getSignalType().getCounterName(),
                 pos.toPlainString(),
-                swapClosePrice,
-                swapOpenPrice,
-                bitmexFunding.getFundingRate(),
-                fundingCost,
-                swapProfit,
-                fee,
-                spl,
-                swapDiff,
-                swapParams.getCumFundingRate(),
-                swapParams.getCumFundingCost(),
-                swapParams.getCumSwapProfit(),
-                swapParams.getCumFee(),
-                swapParams.getCumSpl(),
-                swapParams.getCumSwapDiff()
+                swapClosePrice.toPlainString(),
+                swapOpenPrice.toPlainString(),
+                bitmexFunding.getFundingRate().toPlainString(),
+                fundingCost.toPlainString(),
+                swapProfit.toPlainString(),
+                fee.toPlainString(),
+                spl.toPlainString(),
+                swapDiff.toPlainString(),
+                swapParams.getCumFundingRate().toPlainString(),
+                swapParams.getCumFundingCost().toPlainString(),
+                swapParams.getCumSwapProfit().toPlainString(),
+                swapParams.getCumFee().toPlainString(),
+                swapParams.getCumSpl().toPlainString(),
+                swapParams.getCumSwapDiff().toPlainString()
         );
         logger.info(message);
         tradeLogger.info(message);
