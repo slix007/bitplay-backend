@@ -86,7 +86,6 @@ public class BitmexService extends MarketService {
     private Observable<OrderBook> orderBookObservable;
     private Disposable orderBookSubscription;
     private Disposable openOrdersSubscription;
-//    private Disposable openOrderMovingSubscription;
     @SuppressWarnings({"UnusedDeclaration"})
     private BitmexSwapService bitmexSwapService;
 
@@ -98,6 +97,7 @@ public class BitmexService extends MarketService {
     private PersistenceService persistenceService;
     private String key;
     private String secret;
+    private Disposable restartTimer;
 
     @Override
     public ArbitrageService getArbitrageService() {
@@ -145,6 +145,12 @@ public class BitmexService extends MarketService {
 
         initWebSocketConnection();
         startAllListeners();
+
+//        Observable.interval(60, TimeUnit.SECONDS)
+//                .doOnEach(throwable -> logger.warn("RESTART BITMEX FOR TESTING"))
+//                .doOnEach(throwable -> warningLogger.warn("RESTART BITMEX FOR TESTING"))
+//                .subscribe(aLong -> checkForRestart());
+
     }
 
     private void startAllListeners() {
@@ -176,32 +182,48 @@ public class BitmexService extends MarketService {
     }
 
     private synchronized void checkForRestart() {
+        logger.info("checkForRestart " + getSubscribersStatuses());
         if (!isDestroyed) {
             if (orderBookSubscription.isDisposed()
                     || accountInfoSubscription.isDisposed()
                     || openOrdersSubscription.isDisposed()
-//                    || openOrderMovingSubscription.isDisposed()
                     || positionSubscription.isDisposed()
                     || futureIndexSubscription.isDisposed()) {
                 final long nowEpochSecond = Instant.now().getEpochSecond();
                 if (nowEpochSecond - listenersStartTimeEpochSecond > MIN_SEC_TO_RESTART) {
-                    warningLogger.info("Warning: Bitmex hanged orderBookSub={}, accountInfoSub={}," +
-                                    "openOrdersSub={}," +
-//                                    "openOrdersMovingSub={}," +
-                                    "posSub={}," +
-                                    "futureIndexSub={}," +
-                                    "openOrdersLock={}",
-                            orderBookSubscription.isDisposed(),
-                            accountInfoSubscription.isDisposed(),
-                            openOrdersSubscription.isDisposed(),
-//                            openOrderMovingSubscription.isDisposed(),
-                            positionSubscription.isDisposed(),
-                            futureIndexSubscription.isDisposed(),
-                            Thread.holdsLock(openOrdersLock));
+                    warningLogger.info("Warning: Bitmex hanged. " + getSubscribersStatuses());
+                    logger.info("Warning: Bitmex hanged " + getSubscribersStatuses());
                     doRestart();
+                } else {
+                    final long secToRestart = MIN_SEC_TO_RESTART - (nowEpochSecond - listenersStartTimeEpochSecond);
+                    warningLogger.info("Warning: Bitmex hanged. {}. No Restart. Restart will be in {} sec.",
+                            getSubscribersStatuses(),
+                            secToRestart);
+                    if (restartTimer != null && !restartTimer.isDisposed()) {
+                        restartTimer.dispose();
+                    }
+                    restartTimer = Completable.timer(secToRestart, TimeUnit.SECONDS)
+                            .onErrorComplete()
+                            .subscribe(this::doRestart);
                 }
+            } else {
+                logger.info("no Restart: everything looks ok " + getSubscribersStatuses());
             }
         }
+    }
+
+    private String getSubscribersStatuses() {
+        return String.format("isDisposed: orderBookSub=%s, accountInfoSub=%s," +
+                        "openOrdersSub=%s," +
+                        "posSub=%s," +
+                        "futureIndexSub=%s." +
+                        " isLocked: openOrdersLock=%s",
+                orderBookSubscription.isDisposed(),
+                accountInfoSubscription.isDisposed(),
+                openOrdersSubscription.isDisposed(),
+                positionSubscription.isDisposed(),
+                futureIndexSubscription.isDisposed(),
+                Thread.holdsLock(openOrdersLock));
     }
 
     @Override
@@ -272,20 +294,6 @@ public class BitmexService extends MarketService {
             logger.error("Can not get funding", e);
         }
     }*/
-
-//    private void startOpenOrderMovingListener() {
-//        openOrderMovingSubscription = orderBookObservable
-//                .subscribeOn(Schedulers.computation())
-//                .doOnDispose(() -> logger.error("doOnDispose startOpenOrderMovingListener"))
-//                .sample(1, TimeUnit.SECONDS)
-//                .subscribe(orderBook1 -> {
-//                    checkOpenOrdersForMoving();
-//                }, throwable -> {
-//                    logger.error("On Moving OpenOrders.", throwable); // restart
-//                    sleep(5000);
-//                    checkForRestart();
-//                });
-//    }
 
     @Override
     protected void iterateOpenOrdersMove() {
@@ -369,12 +377,15 @@ public class BitmexService extends MarketService {
             // Retry on disconnect.
             exchange.onDisconnect().subscribe(() -> {
                         logger.warn("onClientDisconnect BitmexService");
-                        doRestart();
+                        checkForRestart();
                     },
-                    throwable -> logger.error("onClientDisconnect BitmexService error", throwable));
+                    throwable -> {
+                        logger.error("onClientDisconnect BitmexService error", throwable);
+                        checkForRestart();
+                    });
         } catch (Exception e) {
             logger.error("Connection failed");
-            doRestart();
+            checkForRestart();
         }
     }
 
@@ -395,10 +406,26 @@ public class BitmexService extends MarketService {
         orderBookSubscription.dispose();
         accountInfoSubscription.dispose();
         openOrdersSubscription.dispose();
-//        openOrderMovingSubscription.dispose();
         positionSubscription.dispose();
         futureIndexSubscription.dispose();
         exchange.disconnect().blockingAwait();
+
+        Completable.timer(5000, TimeUnit.MILLISECONDS)
+                .onErrorComplete()
+                .blockingAwait();
+
+        if (!orderBookSubscription.isDisposed()
+                || !accountInfoSubscription.isDisposed()
+                || !openOrdersSubscription.isDisposed()
+                || !positionSubscription.isDisposed()
+                || !futureIndexSubscription.isDisposed()
+                ) {
+            warningLogger.info("Warning: destroy loop " + getSubscribersStatuses());
+            logger.warn("Warning: destroy loop " + getSubscribersStatuses());
+            destroyAction();
+        } else {
+            logger.info("Destroy finished. " + getSubscribersStatuses());
+        }
     }
 
     private void startOrderBookListener() {
@@ -490,9 +517,11 @@ public class BitmexService extends MarketService {
                                         ));
                                     }
 //                                    tradeLogger.info("Order id={} status={}", mergedOrder.get().getId(), mergedOrder.get().getStatus());
-                                    if (mergedOrder.get().getStatus().equals(Order.OrderStatus.FILLED)) { // End orders right away step1
+                                    final LimitOrder mergedOrderObj = mergedOrder.get();
+                                    if (mergedOrderObj.getStatus() != null
+                                            && mergedOrderObj.getStatus().equals(Order.OrderStatus.FILLED)) { // End orders right away step1
                                         // THere are no updates of FILLED orders
-                                        tradeLogger.info("{} Order {} FILLED", getCounterName(), mergedOrder.get().getId());
+                                        tradeLogger.info("{} Order {} FILLED", getCounterName(), mergedOrderObj.getId());
                                         mergedOrder = Optional.empty();
                                     }
 
@@ -1066,8 +1095,12 @@ public class BitmexService extends MarketService {
     }
 
     public BigDecimal getFundingCost() {
-        return bitmexSwapService.calcFundingCost(this.getPosition(),
-                ((BitmexContractIndex) this.getContractIndex()).getFundingRate());
+        BigDecimal fundingCost = BigDecimal.ZERO;
+        if (this.getContractIndex() instanceof BitmexContractIndex) {
+            fundingCost = bitmexSwapService.calcFundingCost(this.getPosition(),
+                    ((BitmexContractIndex) this.getContractIndex()).getFundingRate());
+        }
+        return fundingCost;
     }
 
 }

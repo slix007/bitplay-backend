@@ -23,14 +23,16 @@ import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
 import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
 
 public class StreamingServiceBitmex {
 
     private static final Logger log = LoggerFactory.getLogger(StreamingServiceBitmex.class);
 
     private String apiUrl;
-    WSClientEndpoint clientEndPoint;
-    WSMessageHandler msgHandler;
+    private WSClientEndpoint clientEndPoint;
+    private WSMessageHandler msgHandler;
+    private Disposable pingDisposable;
 
     public StreamingServiceBitmex(String apiUrl) throws URISyntaxException {
         this.apiUrl = apiUrl;
@@ -92,36 +94,39 @@ public class StreamingServiceBitmex {
     }
 
     public Completable onDisconnect() {
-        return Completable.create(completable ->
-                Observable.interval(1, 1, TimeUnit.MINUTES)
-                        .subscribe(aLong -> {
+        return Completable.create(completable -> {
+            pingDisposable = Observable.interval(1, 1, TimeUnit.MINUTES)
+                    .subscribe(aLong -> {
 
-                            final boolean pongSuccessfully = Completable.create(e -> {
-                                msgHandler.setPingCompleteEmitter(e);
+                        final boolean pongSuccessfully = Completable.create(e -> {
+                            msgHandler.setPingCompleteEmitter(e);
 
-                                if (!clientEndPoint.isOpen()) {
-                                    completable.onComplete();
-                                } else {
-                                    log.debug("Send: ping");
-                                    clientEndPoint.sendMessage("ping");
-                                }
-
-                            }).blockingAwait(1000, TimeUnit.MILLISECONDS);
-
-                            if (!pongSuccessfully) {
+                            if (!clientEndPoint.isOpen()) {
                                 completable.onComplete();
-                                log.error("ping failed");
+                            } else {
+                                log.debug("Send: ping");
+                                clientEndPoint.sendMessage("ping");
                             }
 
-                        }, throwable -> {
-                            log.error("ping failed", throwable);
-                            completable.onComplete();
-                        }));
+                        }).blockingAwait(1000, TimeUnit.MILLISECONDS);
+
+                        if (!pongSuccessfully) {
+                            completable.onError(new Exception("ping failed"));
+                            log.error("ping failed");
+                        }
+
+                    }, throwable -> {
+                        log.error("ping failed", throwable);
+                        completable.onComplete();
+                    });
+        });
     }
 
     public Completable disconnect() {
         return Completable.create((completableEmitter) -> {
             try {
+                log.info("disconnect");
+                pingDisposable.dispose();
                 clientEndPoint.doClose();
                 completableEmitter.onComplete();
                 msgHandler.getChannels().clear();
