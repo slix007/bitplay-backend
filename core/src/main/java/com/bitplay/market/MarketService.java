@@ -216,15 +216,21 @@ public abstract class MarketService {
     }
 
     protected String getCounterName() {
-        final SignalType signalType = getArbitrageService().getSignalType();
-        final int counter = getArbitrageService().getCounter();
-        final String value = signalType == SignalType.AUTOMATIC ? String.valueOf(counter) : signalType.getCounterName();
-        return "#" + value;
+        return getCounterName(getArbitrageService().getCounter());
     }
     protected String getCounterNameNext() {
+        return getCounterName(getArbitrageService().getCounter() + 1);
+    }
+    private String getCounterName(final int counter) {
         final SignalType signalType = getArbitrageService().getSignalType();
-        final int counter = getArbitrageService().getCounter() + 1;
-        final String value = signalType == SignalType.AUTOMATIC ? String.valueOf(counter) : signalType.getCounterName();
+        String value;
+        if (signalType == SignalType.AUTOMATIC) {
+            value = String.valueOf(counter);
+        } else if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
+            value = String.format("%s:%s", String.valueOf(counter), signalType.getCounterName());
+        } else {
+            value = signalType.getCounterName();
+        }
         return "#" + value;
     }
 
