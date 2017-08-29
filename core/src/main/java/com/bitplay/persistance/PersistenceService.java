@@ -1,11 +1,13 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.persistance.domain.Counters;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.MarketDocument;
 import com.bitplay.persistance.domain.SwapParams;
+import com.bitplay.persistance.repository.CountersRepository;
 import com.bitplay.persistance.repository.DeltaParamsRepository;
 import com.bitplay.persistance.repository.GuiParamsRepository;
 import com.bitplay.persistance.repository.LiqParamsRepository;
@@ -35,6 +37,9 @@ public class PersistenceService {
 
     @Autowired
     private SwapParamsRepository swapParamsRepository;
+
+    @Autowired
+    private CountersRepository countersRepository;
 
     public void saveGuiParams(GuiParams deltas) {
         deltas.setId(1L);
@@ -83,6 +88,16 @@ public class PersistenceService {
     public SwapParams fetchSwapParams(String marketName) {
         final SwapParams first = swapParamsRepository.findFirstByMarketName(marketName);
         return first == null ? new SwapParams() : first;
+    }
+
+    public void saveCounters(Counters counters) {
+        counters.setId(1L);
+        countersRepository.save(counters);
+    }
+
+    public Counters fetchCounters() {
+        final Counters firstByDocumentId = countersRepository.findFirstByDocumentId(1L);
+        return firstByDocumentId == null ? new Counters() : firstByDocumentId;
     }
 
 }

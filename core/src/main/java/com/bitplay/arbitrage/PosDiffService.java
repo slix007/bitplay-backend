@@ -1,6 +1,8 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.market.MarketService;
+import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.Counters;
 
 import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
@@ -37,6 +39,9 @@ public class PosDiffService {
 
     @Autowired
     private ArbitrageService arbitrageService;
+
+    @Autowired
+    private PersistenceService persistenceService;
 
     private void startTimerToCorrection() {
         final Long periodToCorrection = arbitrageService.getParams().getPeriodToCorrection();
@@ -147,13 +152,19 @@ public class PosDiffService {
         MarketService marketService;
         final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
         final BigDecimal bEquiv = bP.subtract(hedgeAmount);
+
+        final Counters counters = persistenceService.fetchCounters();
+
         if (positionsDiffWithHedge.signum() < 0) {
             orderType = Order.OrderType.BID;
             if (bEquiv.compareTo(okEquiv) < 0) {
                 // bitmex buy
                 correctAmount = positionsDiffWithHedge.abs();
                 marketService = arbitrageService.getFirstMarketService();
-                if (signalType == SignalType.CORR) signalType = SignalType.B_CORR;
+                if (signalType == SignalType.CORR) {
+                    signalType = SignalType.B_CORR;
+                    counters.incCorrCounter1();
+                }
             } else {
                 // okcoin buy
                 correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
@@ -161,7 +172,10 @@ public class PosDiffService {
                     correctAmount = oPS;
                 }
                 marketService = arbitrageService.getSecondMarketService();
-                if (signalType == SignalType.CORR) signalType = SignalType.O_CORR;
+                if (signalType == SignalType.CORR) {
+                    signalType = SignalType.O_CORR;
+                    counters.incCorrCounter2();
+                }
             }
         } else {
             orderType = Order.OrderType.ASK;
@@ -172,14 +186,22 @@ public class PosDiffService {
                     correctAmount = oPL;
                 }
                 marketService = arbitrageService.getSecondMarketService();
-                if (signalType == SignalType.CORR) signalType = SignalType.O_CORR;
+                if (signalType == SignalType.CORR) {
+                    signalType = SignalType.O_CORR;
+                    counters.incCorrCounter2();
+                }
             } else {
                 // bitmex sell
                 correctAmount = positionsDiffWithHedge.abs();
                 marketService = arbitrageService.getFirstMarketService();
-                if (signalType == SignalType.CORR) signalType = SignalType.B_CORR;
+                if (signalType == SignalType.CORR) {
+                    signalType = SignalType.B_CORR;
+                    counters.incCorrCounter1();
+                }
             }
         }
+
+        persistenceService.saveCounters(counters);
 
         // 2. check isAffordable
         if (correctAmount.signum() != 0

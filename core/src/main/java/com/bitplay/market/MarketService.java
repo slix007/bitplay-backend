@@ -11,6 +11,7 @@ import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.Counters;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.utils.Utils;
 
@@ -228,6 +229,12 @@ public abstract class MarketService {
             value = String.valueOf(counter);
         } else if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
             value = String.format("%s:%s", String.valueOf(counter), signalType.getCounterName());
+        } else if (signalType == SignalType.B_CORR) {
+            final Counters counters = getPersistenceService().fetchCounters();
+            value = String.format("%s:%s", String.valueOf(counters.getCorrCounter1()), signalType.getCounterName());
+        } else if (signalType == SignalType.O_CORR) {
+            final Counters counters = getPersistenceService().fetchCounters();
+            value = String.format("%s:%s", String.valueOf(counters.getCorrCounter2()), signalType.getCounterName());
         } else {
             value = signalType.getCounterName();
         }
