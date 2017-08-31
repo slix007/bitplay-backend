@@ -1,6 +1,7 @@
 package info.bitrich.xchangestream.bitmex;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
@@ -51,7 +52,11 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
                     mapper.registerModule(new JavaTimeModule());
 
 //                    Wallet bitmexWallet = mapper.treeToValue(s.get("data").get(0), Wallet.class);
-                    Position position = mapper.treeToValue(s.get("data").get(0), Position.class);
+                    Position position = null;
+                    final JsonNode dataNode = s.get("data");
+                    if (dataNode != null && dataNode.size() > 0) {
+                        position = mapper.treeToValue(dataNode.get(0), Position.class);
+                    }
 
                     return BitmexAdapters.adaptBitmexPosition(position);
                 });

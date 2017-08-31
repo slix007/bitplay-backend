@@ -102,6 +102,17 @@ public class BitmexAdapters {
     }
 
     public static org.knowm.xchange.dto.account.Position adaptBitmexPosition(Position position) {
+        if (position == null) {
+            return new org.knowm.xchange.dto.account.Position(
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    "position is null"
+            );
+        }
+
         return new org.knowm.xchange.dto.account.Position(
                 position.getCurrentQty(),
                 BigDecimal.ZERO,
