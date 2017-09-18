@@ -1011,7 +1011,8 @@ public class OkCoinService extends MarketService {
             if (pos.signum() > 0) {
                 final BigDecimal n = pos.multiply(BigDecimal.valueOf(100));
                 final BigDecimal quEnt = position.getPriceAvgLong();
-                final BigDecimal d = (n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP)).subtract(
+                final BigDecimal m = Utils.getBestBid(orderBook).getLimitPrice();
+                final BigDecimal d = (n.divide(m, 8, BigDecimal.ROUND_HALF_UP)).subtract(
                         (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
                 );
 
@@ -1024,7 +1025,6 @@ public class OkCoinService extends MarketService {
                     final BigDecimal mrl = eqLiq.divide(margin, 8, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
                     if (mrl.subtract(oMrLiq).subtract(BigDecimal.ONE).signum() < 0
                             && mrl.subtract(oMrLiq).add(BigDecimal.ONE).signum() > 0) {
-                        final BigDecimal m = Utils.getBestBid(orderBook).getLimitPrice();
                         dql = m.subtract(L);
                         dqlString = String.format("o_DQL = m%s - L%s = %s", m, L, dql);
                     } else {
@@ -1045,7 +1045,8 @@ public class OkCoinService extends MarketService {
             } else if (pos.signum() < 0) {
                 final BigDecimal n = pos.multiply(BigDecimal.valueOf(100)).negate();
                 final BigDecimal quEnt = position.getPriceAvgShort();
-                final BigDecimal d = (n.divide(quEnt, 8, BigDecimal.ROUND_HALF_UP)).add(
+                final BigDecimal m = Utils.getBestAsk(orderBook).getLimitPrice();
+                final BigDecimal d = (n.divide(m, 8, BigDecimal.ROUND_HALF_UP)).add(
                         (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
                 );
 
@@ -1059,7 +1060,6 @@ public class OkCoinService extends MarketService {
                         final BigDecimal mrl = eqLiq.divide(margin, 8, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
                         if (mrl.subtract(oMrLiq).subtract(BigDecimal.ONE).signum() < 0
                                 && mrl.subtract(oMrLiq).add(BigDecimal.ONE).signum() > 0) {
-                            final BigDecimal m = Utils.getBestAsk(orderBook).getLimitPrice();
                             dql = L.subtract(m);
                             dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
                         } else {
