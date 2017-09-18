@@ -1010,32 +1010,31 @@ public class OkCoinService extends MarketService {
             String dqlString;
             if (pos.signum() > 0) {
                 final BigDecimal n = pos.multiply(BigDecimal.valueOf(100));
-                final BigDecimal quEnt = position.getPriceAvgLong();
                 final BigDecimal m = Utils.getBestBid(orderBook).getLimitPrice();
-                final BigDecimal d = (n.divide(m, 8, BigDecimal.ROUND_HALF_UP)).subtract(
-                        (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
-                );
+                final BigDecimal d = (n.divide(m, 16, BigDecimal.ROUND_HALF_UP)).subtract(
+                        (oMrLiq.divide(BigDecimal.valueOf(100), 16, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
+                ).setScale(8, BigDecimal.ROUND_HALF_UP);
 
-                if (margin.signum() > 0 && equity.signum() > 0 && quEnt.signum() > 0
-                        && d.signum() > 0 && n.signum() > 0) {
+                if (margin.signum() > 0 && equity.signum() > 0 && d.signum() > 0 && n.signum() > 0) {
                     final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
-                    final BigDecimal subtract = (BigDecimal.ONE.divide(quEnt, 15, BigDecimal.ROUND_HALF_UP))
+                    final BigDecimal subtract = (BigDecimal.ONE.divide(m, 15, BigDecimal.ROUND_HALF_UP))
                             .subtract(BigDecimal.ONE.divide(L, 15, BigDecimal.ROUND_HALF_UP));
                     final BigDecimal eqLiq = equity.add(subtract.multiply(n));
-                    final BigDecimal mrl = eqLiq.divide(margin, 8, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
+                    final BigDecimal mrl = eqLiq.divide(margin, 16, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100))
+                            .setScale(8, BigDecimal.ROUND_HALF_UP);
                     if (mrl.subtract(oMrLiq).subtract(BigDecimal.ONE).signum() < 0
                             && mrl.subtract(oMrLiq).add(BigDecimal.ONE).signum() > 0) {
                         dql = m.subtract(L);
                         dqlString = String.format("o_DQL = m%s - L%s = %s", m, L, dql);
                     } else {
-                        dqlString = "b_DQL = na";
+                        dqlString = "o_DQL = na";
                         warningLogger.info(String.format("Warning. mrl is wrong: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, eqLiq=%s, mrl=%s, oMrLiq=%s",
                                 pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
                                 position.getPriceAvgLong(), position.getPriceAvgShort(),
                                 eqLiq.toPlainString(), mrl.toPlainString(), oMrLiq.toPlainString()));
                     }
                 } else {
-                    dqlString = "b_DQL = na";
+                    dqlString = "o_DQL = na";
                     warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, n=%s, d=%s",
                             pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
                             position.getPriceAvgLong(), position.getPriceAvgShort(),
@@ -1044,20 +1043,19 @@ public class OkCoinService extends MarketService {
 
             } else if (pos.signum() < 0) {
                 final BigDecimal n = pos.multiply(BigDecimal.valueOf(100)).negate();
-                final BigDecimal quEnt = position.getPriceAvgShort();
                 final BigDecimal m = Utils.getBestAsk(orderBook).getLimitPrice();
-                final BigDecimal d = (n.divide(m, 8, BigDecimal.ROUND_HALF_UP)).add(
-                        (oMrLiq.divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
-                );
+                final BigDecimal d = (n.divide(m, 16, BigDecimal.ROUND_HALF_UP)).add(
+                        (oMrLiq.divide(BigDecimal.valueOf(100), 16, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
+                ).setScale(8, BigDecimal.ROUND_HALF_UP);
 
                 if (d.signum() > 0) {
-                    if (margin.signum() > 0 && equity.signum() > 0 && quEnt.signum() > 0
-                            && n.signum() > 0) {
+                    if (margin.signum() > 0 && equity.signum() > 0 && n.signum() > 0) {
                         final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
                         final BigDecimal substract = (BigDecimal.ONE.divide(L, 15, BigDecimal.ROUND_HALF_UP))
-                                .subtract(BigDecimal.ONE.divide(quEnt, 15, BigDecimal.ROUND_HALF_UP));
+                                .subtract(BigDecimal.ONE.divide(m, 15, BigDecimal.ROUND_HALF_UP));
                         final BigDecimal eqLiq = equity.add(substract.multiply(n));
-                        final BigDecimal mrl = eqLiq.divide(margin, 8, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
+                        final BigDecimal mrl = eqLiq.divide(margin, 16, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100))
+                                .setScale(8, BigDecimal.ROUND_HALF_UP);
                         if (mrl.subtract(oMrLiq).subtract(BigDecimal.ONE).signum() < 0
                                 && mrl.subtract(oMrLiq).add(BigDecimal.ONE).signum() > 0) {
                             dql = L.subtract(m);
