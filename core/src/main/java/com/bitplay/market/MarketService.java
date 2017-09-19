@@ -56,7 +56,7 @@ public abstract class MarketService {
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected final Object openOrdersLock = new Object();
-    protected List<LimitOrder> openOrders = new ArrayList<>();
+    protected volatile List<LimitOrder> openOrders = new ArrayList<>();
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected volatile AccountInfo accountInfo = null;
     protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();

@@ -377,11 +377,11 @@ public class BitmexService extends MarketService {
             // Retry on disconnect.
             exchange.onDisconnect().subscribe(() -> {
                         logger.warn("onClientDisconnect BitmexService");
-                        checkForRestart();
+                        doRestart();
                     },
                     throwable -> {
                         logger.error("onClientDisconnect BitmexService error", throwable);
-                        checkForRestart();
+                        doRestart();
                     });
         } catch (Exception e) {
             logger.error("Connection failed");
