@@ -1003,14 +1003,17 @@ public class OkCoinService extends MarketService {
         final BigDecimal equity = accountInfoContracts.getEquity();
         final BigDecimal margin = accountInfoContracts.getMargin();
 
+        final BigDecimal indexPrice = contractIndex == null ? null : contractIndex.getIndexPrice();
+        final BigDecimal m = indexPrice;
+
         if (equity != null && margin != null && oMrLiq != null
                 && position.getPriceAvgShort() != null
-                && position.getPriceAvgLong() != null) {
+                && position.getPriceAvgLong() != null
+                && m != null) {
             BigDecimal dql = null;
             String dqlString;
             if (pos.signum() > 0) {
                 final BigDecimal n = pos.multiply(BigDecimal.valueOf(100));
-                final BigDecimal m = Utils.getBestBid(orderBook).getLimitPrice();
                 final BigDecimal d = (n.divide(m, 16, BigDecimal.ROUND_HALF_UP)).subtract(
                         (oMrLiq.divide(BigDecimal.valueOf(100), 16, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
                 ).setScale(8, BigDecimal.ROUND_HALF_UP);
@@ -1043,7 +1046,6 @@ public class OkCoinService extends MarketService {
 
             } else if (pos.signum() < 0) {
                 final BigDecimal n = pos.multiply(BigDecimal.valueOf(100)).negate();
-                final BigDecimal m = Utils.getBestAsk(orderBook).getLimitPrice();
                 final BigDecimal d = (n.divide(m, 16, BigDecimal.ROUND_HALF_UP)).add(
                         (oMrLiq.divide(BigDecimal.valueOf(100), 16, BigDecimal.ROUND_HALF_UP).multiply(margin)).subtract(equity)
                 ).setScale(8, BigDecimal.ROUND_HALF_UP);
