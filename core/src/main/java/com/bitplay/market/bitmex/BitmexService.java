@@ -41,6 +41,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.SocketTimeoutException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -278,7 +279,13 @@ public class BitmexService extends MarketService {
 
     @Scheduled(fixedRate = 1000 * 60)
     public void checkForHangOrders() {
-        fetchOpenOrders(); // Synchronous
+        try {
+            fetchOpenOrders(); // Synchronous
+        } catch (IllegalStateException e) {
+            if (e.getCause() instanceof SocketTimeoutException) {
+                checkForRestart();
+            }
+        }
         if (openOrders.size() == 0) {
             setFree();
         }
