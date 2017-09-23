@@ -15,6 +15,7 @@ import com.bitplay.api.service.BitplayUIServiceBitmex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,7 +47,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradeResponseJson placeMarketOrder(TradeRequestJson tradeRequestJson) {
+    public TradeResponseJson placeMarketOrder(@RequestBody TradeRequestJson tradeRequestJson) {
         return this.bitmex.doTrade(tradeRequestJson);
     }
 
@@ -64,7 +65,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson openOrders(OrderJson orderJson) {
+    public ResultJson openOrders(@RequestBody OrderJson orderJson) {
         return this.bitmex.moveOpenOrder(orderJson);
     }
 
@@ -77,7 +78,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson futureIndex(ChangeRequestJson changeRequestJson) {
+    public ResultJson futureIndex(@RequestBody ChangeRequestJson changeRequestJson) {
         return this.bitmex.setCustomSwapTime(changeRequestJson);
     }
 
@@ -90,7 +91,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public LiquidationInfoJson resetLiquidationInfo(ChangeRequestJson json) {
+    public LiquidationInfoJson resetLiquidationInfo(@RequestBody ChangeRequestJson json) {
         return this.bitmex.resetLiquidationInfoJson();
     }
 }

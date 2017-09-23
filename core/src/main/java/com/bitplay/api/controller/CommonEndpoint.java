@@ -19,6 +19,7 @@ import com.bitplay.api.service.CommonUIService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -87,7 +88,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public DeltasJson updateBorders(BorderUpdateJson borderUpdateJson) {
+    public DeltasJson updateBorders(@RequestBody BorderUpdateJson borderUpdateJson) {
         return commonUIService.updateBorders(borderUpdateJson);
     }
 
@@ -95,7 +96,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public DeltasJson updateMakerDelta(DeltalUpdateJson deltalUpdateJson) {
+    public DeltasJson updateMakerDelta(@RequestBody DeltalUpdateJson deltalUpdateJson) {
         return commonUIService.updateMakerDelta(deltalUpdateJson);
     }
 
@@ -134,7 +135,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradableAmountJson setTradableAmount(TradableAmountJson tradableAmountJson) {
+    public TradableAmountJson setTradableAmount(@RequestBody TradableAmountJson tradableAmountJson) {
         return commonUIService.updateTradableAmount(tradableAmountJson);
     }
 
@@ -165,7 +166,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public PlacingTypeJson updatePlacingType(PlacingTypeJson placingTypeJson) {
+    public PlacingTypeJson updatePlacingType(@RequestBody PlacingTypeJson placingTypeJson) {
         return commonUIService.updatePlacingType(placingTypeJson);
     }
 
@@ -173,7 +174,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public PosCorrJson updatePosCorr(PosCorrJson posCorrJson) {
+    public PosCorrJson updatePosCorr(@RequestBody PosCorrJson posCorrJson) {
         return commonUIService.updatePosCorr(posCorrJson);
     }
 
@@ -195,7 +196,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public LiqParamsJson updateLiqParams(LiqParamsJson liqParamsJson) {
+    public LiqParamsJson updateLiqParams(@RequestBody LiqParamsJson liqParamsJson) {
         return commonUIService.updateLiqParams(liqParamsJson);
     }
 
@@ -210,7 +211,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson updateImmediateCorrection(ChangeRequestJson command) {
+    public ResultJson updateImmediateCorrection(@RequestBody ChangeRequestJson command) {
         return commonUIService.updateImmediateCorrection(command);
     }
 
@@ -225,7 +226,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public DeltasMinMaxJson resetDeltaParams(ChangeRequestJson json) {
+    public DeltasMinMaxJson resetDeltaParams(@RequestBody ChangeRequestJson json) {
         return commonUIService.resetDeltaParamsJson();
     }
 
