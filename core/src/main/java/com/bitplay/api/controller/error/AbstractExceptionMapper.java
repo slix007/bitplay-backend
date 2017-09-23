@@ -18,7 +18,7 @@ public abstract class AbstractExceptionMapper {
     }
 
     protected Response errorResponse(int status, ResponseEntity responseEntity, Throwable t) {
-        logger.error("errorResponse", t); // logging stack trace.
+//        logger.error("errorResponse", t); // logging stack trace.
 
         return customizeResponse(status, responseEntity);
     }

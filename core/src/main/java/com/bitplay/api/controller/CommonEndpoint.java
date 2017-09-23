@@ -18,21 +18,16 @@ import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Created by Sergey Shurmin on 4/15/17.
  */
-@Component
-@Path("/")
+@RestController
 public class CommonEndpoint {
 
     @Autowired
@@ -41,229 +36,202 @@ public class CommonEndpoint {
     @Autowired
     private TwoMarketStarter twoMarketStarter;
 
-    @GET
-    @Path("/")
+    @RequestMapping(value = "/", method = RequestMethod.GET)
     public String help() {
         return "Use /market/{marketName}";
     }
 
-    @GET
-    @Path("/market")
+    @RequestMapping(value = "/market", method = RequestMethod.GET)
     public String message() {
         return "Hello. Use /market/{marketName}/{operationName}";
     }
 
-    @GET
-    @Path("/market/list")
-    @Produces("application/json")
+    @RequestMapping(value = "/market/list", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public MarketList getMarkets() {
         final String first = twoMarketStarter.getFirstMarketService().getName();
         final String second = twoMarketStarter.getSecondMarketService().getName();
         return new MarketList(first, second);
     }
 
-    @GET
-    @Path("/market/trade-log/poloniex")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/trade-log/poloniex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public TradeLogJson getPoloniexTradeLog() {
         return commonUIService.getPoloniexTradeLog();
     }
 
-    @GET
-    @Path("/market/trade-log/bitmex")
-    @Produces(MediaType.APPLICATION_JSON)
-    public TradeLogJson getBitmexTradeLog(@QueryParam("date") String date) {
+    @RequestMapping(value = "/market/trade-log/bitmex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public TradeLogJson getBitmexTradeLog(@RequestParam(value = "date", required = false) String date) {
         return commonUIService.getTradeLog("bitmex", date);
     }
 
-    @GET
-    @Path("/market/trade-log/okcoin")
-    @Produces(MediaType.APPLICATION_JSON)
-    public TradeLogJson getOkcoinTradeLog(@QueryParam("date") String date) {
+    @RequestMapping(value = "/market/trade-log/okcoin", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public TradeLogJson getOkcoinTradeLog(@RequestParam(value = "date",required = false) String date) {
         return commonUIService.getTradeLog("okcoin", date);
     }
 
-    @GET
-    @Path("/market/deltas-log")
-    @Produces(MediaType.APPLICATION_JSON)
-    public TradeLogJson getDeltasLog(@QueryParam("date") String date) {
+    @RequestMapping(value = "/market/deltas-log", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public TradeLogJson getDeltasLog(@RequestParam(value = "date", required = false) String date) {
         return commonUIService.getDeltasLog(date);
     }
 
-    @GET
-    @Path("/market/warning-log")
-    @Produces(MediaType.APPLICATION_JSON)
-    public TradeLogJson getWarningLog(@QueryParam("date") String date) {
+    @RequestMapping(value = "/market/warning-log", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public TradeLogJson getWarningLog(@RequestParam(value = "date", required = false) String date) {
         return commonUIService.getWarningLog(date);
     }
 
-    @GET
-    @Path("/market/deltas")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/deltas", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltasJson deltas() {
         return commonUIService.getDeltas();
     }
 
-    @POST
-    @Path("/market/update-borders")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/update-borders",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltasJson updateBorders(BorderUpdateJson borderUpdateJson) {
         return commonUIService.updateBorders(borderUpdateJson);
     }
 
-    @POST
-    @Path("/market/update-maker-delta")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/update-maker-delta",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltasJson updateMakerDelta(DeltalUpdateJson deltalUpdateJson) {
         return commonUIService.updateMakerDelta(deltalUpdateJson);
     }
 
-    @GET
-    @Path("/market/stop-moving")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/stop-moving", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public MarketFlagsJson getMovingStop() {
         return commonUIService.getStopMoving();
     }
 
-    @POST
-    @Path("/market/toggle-stop-moving")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/toggle-stop-moving",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public MarketFlagsJson updateMovingStop() {
         return commonUIService.toggleStopMoving();
     }
 
-    @GET
-    @Path("/market/states")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/states", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public MarketStatesJson getMarketsState() {
         return commonUIService.getMarketsStates();
     }
 
-    @POST
-    @Path("/market/free-states")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/free-states",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public MarketFlagsJson freeStates() {
         return commonUIService.freeMarketsStates();
     }
 
-    @GET
-    @Path("/market/tradable-amount")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/tradable-amount", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public TradableAmountJson getTradableAmount() {
         return commonUIService.getTradableAmount();
     }
 
-    @POST
-    @Path("/market/tradable-amount")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/tradable-amount",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public TradableAmountJson setTradableAmount(TradableAmountJson tradableAmountJson) {
         return commonUIService.updateTradableAmount(tradableAmountJson);
     }
 
-    @POST
-    @Path("/market/print-sum-bal")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/print-sum-bal",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson printSumBal() {
         return commonUIService.printSumBal();
     }
 
-    @GET
-    @Path("/market/sum-bal")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/sum-bal", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson getSumBal() {
         return commonUIService.getSumBal();
     }
 
-    @GET
-    @Path("/market/pos-diff")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/pos-diff", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson getPositionEquality() {
         return commonUIService.getPosDiff();
     }
 
-    @GET
-    @Path("/market/placing-type")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/placing-type", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public PlacingTypeJson getPlacingType() {
         return commonUIService.getPlacingType();
     }
 
-    @POST
-    @Path("/market/placing-type")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/placing-type",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public PlacingTypeJson updatePlacingType(PlacingTypeJson placingTypeJson) {
         return commonUIService.updatePlacingType(placingTypeJson);
     }
 
-    @POST
-    @Path("/market/pos-corr")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/pos-corr",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public PosCorrJson updatePosCorr(PosCorrJson posCorrJson) {
         return commonUIService.updatePosCorr(posCorrJson);
     }
 
-    @GET
-    @Path("/market/pos-corr")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/pos-corr",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public PosCorrJson getPosCorr() {
         return commonUIService.getPosCorr();
     }
 
-    @GET
-    @Path("/market/liq-params")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/liq-params",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public LiqParamsJson getLiqParams() {
         return commonUIService.getLiqParams();
     }
 
-    @POST
-    @Path("/market/liq-params")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/liq-params",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public LiqParamsJson updateLiqParams(LiqParamsJson liqParamsJson) {
         return commonUIService.updateLiqParams(liqParamsJson);
     }
 
-    @GET
-    @Path("/market/pos-corr-imm")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/pos-corr-imm",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson getImmediateCorrection() {
         return commonUIService.getImmediateCorrection();
     }
 
-    @POST
-    @Path("/market/pos-corr-imm")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/pos-corr-imm",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson updateImmediateCorrection(ChangeRequestJson command) {
         return commonUIService.updateImmediateCorrection(command);
     }
 
-    @GET
-    @Path("/delta-params")
-    @Produces("application/json")
+    @RequestMapping(value = "/delta-params",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltasMinMaxJson getDeltaParams() {
         return commonUIService.getDeltaParamsJson();
     }
 
-    @POST
-    @Path("/delta-params")
-    @Produces("application/json")
+    @RequestMapping(value = "/delta-params",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltasMinMaxJson resetDeltaParams(ChangeRequestJson json) {
         return commonUIService.resetDeltaParamsJson();
     }
 
-    @GET
-    @Path("/market/borders-timer")
-    @Produces(MediaType.APPLICATION_JSON)
+    @RequestMapping(value = "/market/borders-timer",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson bordersTimer() {
         return commonUIService.getUpdateBordersTimerString();
     }

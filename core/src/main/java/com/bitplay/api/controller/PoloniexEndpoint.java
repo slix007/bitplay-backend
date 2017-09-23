@@ -11,38 +11,31 @@ import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.service.BitplayUIServicePoloniex;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-
 /**
  * Created by Sergey Shurmin on 4/14/17.
  */
-@Component
-@Path("/market/poloniex")
+@RestController
+@RequestMapping("/market/poloniex")
 public class PoloniexEndpoint {
 
     @Autowired
     private BitplayUIServicePoloniex poloniex;
 
-    @GET
-    @Path("/order-book")
-    @Produces("application/json")
+    @RequestMapping(value = "/order-book", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderBookJson poloniexOrderBook() {
         return this.poloniex.getOrderBook();
     }
 
-    @GET
-    @Path("/order-book-clean")
-    @Produces("application/json")
+    @RequestMapping(value = "/order-book-clean", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderBookJson cleanOrderBook() {
         return this.poloniex.cleanOrderBook();
     }
@@ -97,45 +90,38 @@ public class PoloniexEndpoint {
         }
     }
 
-    @GET
-    @Path("/ticker")
-    @Produces("application/json")
+    @RequestMapping(value = "/ticker", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public TickerJson getTicker() {
         return this.poloniex.getTicker();
     }
 
-    @GET
-    @Path("/account")
-    @Produces("application/json")
+    @RequestMapping(value = "/account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public AccountInfoJson getAccountInfo() {
         return this.poloniex.getAccountInfo();
     }
 
-    @POST
-    @Path("/place-market-order")
-    @Consumes("application/json")
-    @Produces("application/json")
+    @RequestMapping(value = "/place-market-order",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public TradeResponseJson placeMarketOrder(TradeRequestJson tradeRequestJson) {
         return this.poloniex.doTrade(tradeRequestJson);
     }
 
-    @GET
-    @Path("/trade-history")
-    @Produces("application/json")
+    @RequestMapping(value = "/trade-history", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<VisualTrade> tradeHistory() {
         return this.poloniex.fetchTrades();
     }
 
-    @GET
-    @Path("/open-orders")
-    @Produces("application/json")
+    @RequestMapping(value = "/open-orders", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<OrderJson> openOrders() {
         return this.poloniex.getOpenOrders();
     }
 
-    @POST
-    @Path("/open-orders/move")
-    @Produces("application/json")
+    @RequestMapping(value = "/open-orders/move",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson openOrders(OrderJson orderJson) {
         return this.poloniex.moveOpenOrder(orderJson);
     }
