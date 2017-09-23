@@ -1,6 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ResultJson;
+import com.bitplay.market.bitmex.BitmexService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +11,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.util.Map;
 
 /**
  * Created by Sergey Shurmin on 9/23/17.
@@ -18,6 +21,7 @@ import java.lang.management.ThreadMXBean;
 @RestController
 public class DebugEndpoints {
 
+    private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     @RequestMapping(value = "/deadlock/check", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -27,15 +31,41 @@ public class DebugEndpoints {
 
     private ResultJson detectDeadlock() {
         ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
-        long[] monThreadIds = threadBean.findMonitorDeadlockedThreads();
         long[] threadIds = threadBean.findDeadlockedThreads();
-        int deadlockedThreads = monThreadIds != null ? monThreadIds.length : 0;
-        deadlockedThreads += (threadIds != null ? threadIds.length : 0);
+        int deadlockedThreads = (threadIds != null ? threadIds.length : 0);
         final String deadlocksMsg = "Number of deadlocked threads: " + deadlockedThreads;
+
         if (deadlockedThreads > 0) {
-            System.out.println(deadlocksMsg);
+            logger.info(deadlocksMsg);
             warningLogger.info(deadlocksMsg);
+
+            ThreadInfo[] threadInfos = threadBean.getThreadInfo(threadIds);
+            handleDeadlock(threadInfos);
         }
         return new ResultJson(String.valueOf(deadlockedThreads), deadlocksMsg);
+    }
+
+    public void handleDeadlock(final ThreadInfo[] deadlockedThreads) {
+        if (deadlockedThreads != null) {
+            logger.error("Deadlock detected!");
+
+            Map<Thread, StackTraceElement[]> stackTraceMap = Thread.getAllStackTraces();
+            for (ThreadInfo threadInfo : deadlockedThreads) {
+
+                if (threadInfo != null) {
+
+                    for (Thread thread : Thread.getAllStackTraces().keySet()) {
+
+                        if (thread.getId() == threadInfo.getThreadId()) {
+                            logger.error(threadInfo.toString().trim());
+
+                            for (StackTraceElement ste : thread.getStackTrace()) {
+                                logger.error("\t" + ste.toString().trim());
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
