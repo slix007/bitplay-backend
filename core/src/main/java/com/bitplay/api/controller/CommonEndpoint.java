@@ -226,7 +226,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public DeltasMinMaxJson resetDeltaParams(@RequestBody ChangeRequestJson json) {
+    public DeltasMinMaxJson resetDeltaParams() {
         return commonUIService.resetDeltaParamsJson();
     }
 

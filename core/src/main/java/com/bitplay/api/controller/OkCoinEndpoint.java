@@ -83,7 +83,7 @@ public class OkCoinEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public LiquidationInfoJson resetLiquidationInfo(@RequestBody ChangeRequestJson json) {
+    public LiquidationInfoJson resetLiquidationInfo() {
         return this.okCoin.resetLiquidationInfoJson();
     }
 
