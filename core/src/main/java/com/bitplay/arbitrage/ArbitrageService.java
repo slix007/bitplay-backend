@@ -415,7 +415,7 @@ public class ArbitrageService {
         if (border1.compareTo(BigDecimal.ZERO) != 0) {
             if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
 
-                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes.getAsk1_o(), bestQuotes.getBid1_p(), bestQuotes);
+                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes);
 
             }
         }
@@ -423,14 +423,16 @@ public class ArbitrageService {
         if (border2.compareTo(BigDecimal.ZERO) != 0) {
             if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
 
-                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes.getAsk1_p(), bestQuotes.getBid1_o(), bestQuotes);
+                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes);
 
             }
         }
         return bestQuotes;
     }
 
-    public void startTradingOnDelta1(SignalType signalType, BigDecimal ask1_o, BigDecimal bid1_p, BestQuotes bestQuotes) {
+    public void startTradingOnDelta1(SignalType signalType, BestQuotes bestQuotes) {
+        final BigDecimal ask1_o = bestQuotes.getAsk1_o();
+        final BigDecimal bid1_p = bestQuotes.getBid1_p();
         if (checkBalance(DELTA1, params.getBlock1(), params.getBlock2()) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
@@ -461,7 +463,10 @@ public class ArbitrageService {
         }
     }
 
-    public void startTradingOnDelta2(SignalType signalType, BigDecimal ask1_p, BigDecimal bid1_o, BestQuotes bestQuotes) {
+    public void startTradingOnDelta2(SignalType signalType, BestQuotes bestQuotes) {
+        final BigDecimal ask1_p = bestQuotes.getAsk1_p();
+        final BigDecimal bid1_o = bestQuotes.getBid1_o();
+
         if (checkBalance(DELTA2, params.getBlock1(), params.getBlock2()) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()

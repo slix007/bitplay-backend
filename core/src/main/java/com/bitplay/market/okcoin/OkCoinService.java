@@ -50,7 +50,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -1176,7 +1175,9 @@ public class OkCoinService extends MarketService {
                 && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
                 && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) < 0
                 && pos.signum() != 0) {
-            final BestQuotes bestQuotes = Utils.createBestQuotes(getOrderBook(), arbitrageService.getSecondMarketService().getOrderBook());
+            final BestQuotes bestQuotes = Utils.createBestQuotes(
+                    arbitrageService.getSecondMarketService().getOrderBook(),
+                    arbitrageService.getFirstMarketService().getOrderBook());
 
             if (pos.signum() > 0) {
                 tradeLogger.info(String.format("%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
@@ -1184,7 +1185,7 @@ public class OkCoinService extends MarketService {
                         position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
                         liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
 
-                arbitrageService.startTradingOnDelta2(SignalType.O_PRE_LIQ, bestQuotes.getAsk1_p(), bestQuotes.getBid1_o(), bestQuotes);
+                arbitrageService.startTradingOnDelta2(SignalType.O_PRE_LIQ, bestQuotes);
 
             } else if (pos.signum() < 0) {
                 tradeLogger.info(String.format("%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
@@ -1192,7 +1193,7 @@ public class OkCoinService extends MarketService {
                         position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
                         liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
 
-                arbitrageService.startTradingOnDelta1(SignalType.O_PRE_LIQ, bestQuotes.getAsk1_o(), bestQuotes.getBid1_p(), bestQuotes);
+                arbitrageService.startTradingOnDelta1(SignalType.O_PRE_LIQ, bestQuotes);
 
             }
         }
