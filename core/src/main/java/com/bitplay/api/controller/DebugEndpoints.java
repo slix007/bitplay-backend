@@ -1,15 +1,18 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ResultJson;
+import com.bitplay.api.service.RestartService;
 import com.bitplay.market.bitmex.BitmexService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
@@ -23,6 +26,17 @@ public class DebugEndpoints {
 
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+
+    @Autowired
+    private RestartService restartService;
+
+    @RequestMapping(value = "/full-restart", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson fullRestart() throws IOException {
+
+        restartService.doFullRestart("API request");
+
+        return new ResultJson("Restart has been sent", "");
+    }
 
     @RequestMapping(value = "/deadlock/check", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson checkDeadlocks() {
@@ -45,7 +59,7 @@ public class DebugEndpoints {
         return new ResultJson(String.valueOf(deadlockedThreads), deadlocksMsg);
     }
 
-    public void handleDeadlock(final ThreadInfo[] deadlockedThreads) {
+    private void handleDeadlock(final ThreadInfo[] deadlockedThreads) {
         if (deadlockedThreads != null) {
             logger.error("Deadlock detected!");
 

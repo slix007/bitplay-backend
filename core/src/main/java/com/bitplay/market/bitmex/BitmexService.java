@@ -1,5 +1,6 @@
 package com.bitplay.market.bitmex;
 
+import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
@@ -91,6 +92,9 @@ public class BitmexService extends MarketService {
     private BitmexSwapService bitmexSwapService;
 
     private ArbitrageService arbitrageService;
+
+    @Autowired
+    private RestartService restartService;
 
     @Autowired
     private PosDiffService posDiffService;
@@ -397,10 +401,16 @@ public class BitmexService extends MarketService {
     }
 
     private void doRestart() {
-        warningLogger.info("Warning: Bitmex restart");
-        destroyAction();
-        initWebSocketConnection();
-        startAllListeners();
+        try {
+            restartService.doFullRestart("BitmexService#doRestart()");
+        } catch (IOException e) {
+            logger.error("Error on full restart", e);
+        }
+//        warningLogger.info("Warning: Bitmex restart");
+//        logger.info("Warning: Bitmex restart");
+//        destroyAction();
+//        initWebSocketConnection();
+//        startAllListeners();
     }
 
     @PreDestroy
@@ -410,6 +420,7 @@ public class BitmexService extends MarketService {
     }
 
     private void destroyAction() {
+        logger.info("Bitmex destroyAction");
         orderBookSubscription.dispose();
         accountInfoSubscription.dispose();
         openOrdersSubscription.dispose();
@@ -476,7 +487,10 @@ public class BitmexService extends MarketService {
     private Observable<OrderBook> createOrderBookObservable() {
         return exchange.getStreamingMarketDataService()
                 .getOrderBook(CurrencyPair.BTC_USD, 20)
-                .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
+                .doOnDispose(() -> {
+                    logger.info("bitmex subscription doOnDispose");
+                    checkForRestart();
+                })
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                 .doOnError((throwable) -> logger.error("bitmex subscription doOnErro", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
@@ -492,7 +506,10 @@ public class BitmexService extends MarketService {
     private void startOpenOrderListener() {
         openOrdersSubscription = exchange.getStreamingTradingService()
                 .getOpenOrdersObservable()
-                .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
+                .doOnDispose(() -> {
+                    logger.info("bitmex subscription doOnDispose");
+                    checkForRestart();
+                })
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                 .doOnError(throwable -> logger.error("onOpenOrdersListening", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
