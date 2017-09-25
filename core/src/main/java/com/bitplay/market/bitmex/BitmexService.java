@@ -95,6 +95,7 @@ public class BitmexService extends MarketService {
 
     @Autowired
     private RestartService restartService;
+    private volatile String orderBookLastTimestamp = "";
 
     @Autowired
     private PosDiffService posDiffService;
@@ -402,7 +403,7 @@ public class BitmexService extends MarketService {
 
     private void doRestart() {
         try {
-            restartService.doFullRestart("BitmexService#doRestart()");
+            restartService.doFullRestart("BitmexService#doRestart(). orderBookLastTimestamp=" + orderBookLastTimestamp);
         } catch (IOException e) {
             logger.error("Error on full restart", e);
         }
@@ -463,6 +464,10 @@ public class BitmexService extends MarketService {
                     final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
                     final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
                     final LimitOrder bestBid = bestBids.size() > 0 ? bestBids.get(0) : null;
+
+                    if (bestAsk != null) {
+                        orderBookLastTimestamp = bestAsk.getTimestamp().toString();
+                    }
 
                     this.orderBook = orderBook;
 
