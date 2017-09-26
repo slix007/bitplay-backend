@@ -58,7 +58,7 @@ public class PosDiffService {
         }
     }
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(initialDelay = 60*1000, fixedDelay = 5000)
     public void checkMaxDiffCorrection() {
         final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
         final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
@@ -69,7 +69,7 @@ public class PosDiffService {
         }
     }
 
-    @Scheduled(fixedDelay = 1000)
+    @Scheduled(initialDelay = 60*1000, fixedDelay = 1000)
     public void calcPosDiffJob() {
         calcPosDiff(false);
     }
