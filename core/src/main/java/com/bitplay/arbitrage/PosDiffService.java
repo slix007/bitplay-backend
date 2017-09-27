@@ -59,7 +59,10 @@ public class PosDiffService {
     }
 
     @Scheduled(initialDelay = 60*1000, fixedDelay = 5000)
-    public void checkMaxDiffCorrection() {
+    public void checkMaxDiffCorrection() throws Exception {
+        arbitrageService.getFirstMarketService().fetchPosition();
+        arbitrageService.getSecondMarketService().fetchPosition();
+
         final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
         final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
         if (positionsDiffWithHedge.signum() != 0
@@ -70,11 +73,11 @@ public class PosDiffService {
     }
 
     @Scheduled(initialDelay = 60*1000, fixedDelay = 1000)
-    public void calcPosDiffJob() {
+    public void calcPosDiffJob()  throws Exception {
         calcPosDiff(false);
     }
 
-    private void calcPosDiff(boolean isSecondCheck) {
+    private void calcPosDiff(boolean isSecondCheck) throws Exception {
         if (!calcInProgress || isSecondCheck) {
             calcInProgress = true;
 
@@ -216,7 +219,11 @@ public class PosDiffService {
 
     boolean isPositionsEqual() {
 
-        calcPosDiff(false);
+        try {
+            calcPosDiff(false);
+        } catch (Exception e) {
+            return false;
+        }
 
         return getPositionsDiffWithHedge().signum() == 0;
     }

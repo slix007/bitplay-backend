@@ -144,7 +144,11 @@ public class OkCoinService extends MarketService {
         fetchOpenOrdersWithDelay();
 
 //        fetchAccountInfo();
-        fetchPosition();
+        try {
+            fetchPosition();
+        } catch (Exception e) {
+            logger.error("FetchPositionError", e);
+        }
     }
 
     private Completable closeAllSubscibers() {
@@ -271,17 +275,13 @@ public class OkCoinService extends MarketService {
 
     @Scheduled(fixedRate = 2000)
     @Override
-    public void fetchPosition() {
-        try {
-            final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
-            mergePosition(positionResult, null);
+    public void fetchPosition() throws Exception {
+        final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
+        mergePosition(positionResult, null);
 
-            recalcAffordableContracts();
-            recalcLiqInfo();
+        recalcAffordableContracts();
+        recalcLiqInfo();
 
-        } catch (Exception e) {
-            logger.error("FetchPositionError", e);
-        }
     }
 
     private synchronized void mergePosition(OkCoinPositionResult restUpdate, Position websocketUpdate) {

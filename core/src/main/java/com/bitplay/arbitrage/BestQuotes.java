@@ -50,7 +50,7 @@ public class BestQuotes {
         this.arbitrageEvent = arbitrageEvent;
     }
 
-    public boolean isEmpty() {
+    public boolean hasEmpty() {
         return ask1_o == null || ask1_o.signum() == 0
                 && ask1_p == null || ask1_p.signum() == 0
                 && bid1_o == null || bid1_o.signum() == 0

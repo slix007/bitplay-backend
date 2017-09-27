@@ -47,6 +47,7 @@ public class ArbitrageService {
     private static final Object calcLock = new Object();
     private final BigDecimal FEE_FIRST_MAKER = new BigDecimal("0.075");//Bitmex
     private final BigDecimal FEE_SECOND_TAKER = new BigDecimal("0.015");//OkCoin
+    private boolean firstDeltasAfterStart = true;
     @Autowired
     private PersistenceService persistenceService;
     private Disposable schdeduleUpdateBorders;
@@ -385,7 +386,12 @@ public class ArbitrageService {
     private BestQuotes calcAndDoArbitrage(OrderBook okCoinOrderBook, OrderBook poloniexOrderBook) {
         // 1. Calc deltas
         final BestQuotes bestQuotes = Utils.createBestQuotes(okCoinOrderBook, poloniexOrderBook);
-        if (!bestQuotes.isEmpty()) {
+        if (!bestQuotes.hasEmpty()) {
+            if (firstDeltasAfterStart) {
+                firstDeltasAfterStart = false;
+                warningLogger.info("Started: First delats calculated");
+            }
+
             delta1 = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
             delta2 = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
             if (delta1.compareTo(deltaParams.getbDeltaMin()) == -1) {

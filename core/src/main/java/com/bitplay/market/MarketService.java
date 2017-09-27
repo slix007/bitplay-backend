@@ -60,7 +60,7 @@ public abstract class MarketService {
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected volatile AccountInfo accountInfo = null;
     protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
-    protected volatile Position position = new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "");
+    protected volatile Position position = new Position(null, null, null, null, "");
     protected volatile BigDecimal affordableContractsForShort = BigDecimal.ZERO;
     protected volatile BigDecimal affordableContractsForLong = BigDecimal.ZERO;
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
@@ -91,7 +91,7 @@ public abstract class MarketService {
 
     public abstract Logger getTradeLogger();
 
-    public abstract void fetchPosition();
+    public abstract void fetchPosition() throws Exception;
 
     public abstract String getPositionAsString();
 
