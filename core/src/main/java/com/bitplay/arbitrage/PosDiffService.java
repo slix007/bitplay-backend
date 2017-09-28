@@ -46,7 +46,12 @@ public class PosDiffService {
     private void startTimerToCorrection() {
         final Long periodToCorrection = arbitrageService.getParams().getPeriodToCorrection();
         theTimer = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
-                .doOnComplete(() -> doCorrectionImmediate(SignalType.CORR_PERIOD))
+                .doOnComplete(() -> {
+                    arbitrageService.getFirstMarketService().fetchPosition();
+                    arbitrageService.getSecondMarketService().fetchPosition();
+
+                    doCorrectionImmediate(SignalType.CORR_PERIOD);
+                })
                 .doOnError(throwable -> logger.error("timer period to correction", throwable))
                 .retry()
                 .subscribe();
