@@ -58,7 +58,7 @@ public class PosDiffService {
         }
     }
 
-    @Scheduled(initialDelay = 60*1000, fixedDelay = 5000)
+    @Scheduled(initialDelay = 10*60*1000, fixedDelay = 5000)
     public void checkMaxDiffCorrection() throws Exception {
         arbitrageService.getFirstMarketService().fetchPosition();
         arbitrageService.getSecondMarketService().fetchPosition();
@@ -72,7 +72,7 @@ public class PosDiffService {
         }
     }
 
-    @Scheduled(initialDelay = 60*1000, fixedDelay = 1000)
+    @Scheduled(initialDelay = 10*60*1000, fixedDelay = 1000)
     public void calcPosDiffJob()  throws Exception {
         calcPosDiff(false);
     }
