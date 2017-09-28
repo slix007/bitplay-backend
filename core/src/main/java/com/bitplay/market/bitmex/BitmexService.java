@@ -18,6 +18,8 @@ import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
+import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
+import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
@@ -47,7 +49,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -85,7 +86,6 @@ public class BitmexService extends MarketService {
     private Disposable positionSubscription;
     private Disposable futureIndexSubscription;
 
-    private Observable<OrderBook> orderBookObservable;
     private Disposable orderBookSubscription;
     private Disposable openOrdersSubscription;
     @SuppressWarnings({"UnusedDeclaration"})
@@ -161,8 +161,6 @@ public class BitmexService extends MarketService {
 
     private void startAllListeners() {
 
-        orderBookObservable = createOrderBookObservable();
-
         startOrderBookListener();
 
         Completable.timer(1000, TimeUnit.MILLISECONDS)
@@ -224,11 +222,11 @@ public class BitmexService extends MarketService {
                         "posSub=%s," +
                         "futureIndexSub=%s." +
                         " isLocked: openOrdersLock=%s",
-                orderBookSubscription.isDisposed(),
-                accountInfoSubscription.isDisposed(),
-                openOrdersSubscription.isDisposed(),
-                positionSubscription.isDisposed(),
-                futureIndexSubscription.isDisposed(),
+                orderBookSubscription == null ? null : orderBookSubscription.isDisposed(),
+                accountInfoSubscription == null ? null : accountInfoSubscription.isDisposed(),
+                openOrdersSubscription == null ? null : openOrdersSubscription.isDisposed(),
+                positionSubscription == null ? null : positionSubscription.isDisposed(),
+                futureIndexSubscription == null ? null : futureIndexSubscription.isDisposed(),
                 Thread.holdsLock(openOrdersLock));
     }
 
@@ -443,66 +441,74 @@ public class BitmexService extends MarketService {
         }
     }
 
+    private OrderBook mergeOrderBook(BitmexOrderBook bitmexOrderBook) {
+
+        OrderBook orderBook = getOrderBook();
+            if (bitmexOrderBook.getAction().equals("partial")) {
+                orderBook = BitmexStreamAdapters.adaptBitmexOrderBook(bitmexOrderBook, CURRENCY_PAIR_XBTUSD);
+            } else if (bitmexOrderBook.getAction().equals("delete")) {
+                orderBook = BitmexStreamAdapters.delete(orderBook, bitmexOrderBook);
+            } else if (bitmexOrderBook.getAction().equals("update")) {
+                orderBook = BitmexStreamAdapters.update(orderBook, bitmexOrderBook, new Date(), CURRENCY_PAIR_XBTUSD);
+            } else if (bitmexOrderBook.getAction().equals("insert")) {
+                orderBook = BitmexStreamAdapters.insert(orderBook, bitmexOrderBook, new Date(), CURRENCY_PAIR_XBTUSD);
+            }
+            this.orderBook = orderBook;
+
+        return this.orderBook;
+    }
+
     private void startOrderBookListener() {
+        Observable<OrderBook> orderBookObservable = ((BitmexStreamingMarketDataService)exchange.getStreamingMarketDataService())
+                .getOrderBookL2(CurrencyPair.BTC_USD, 20)
+                .doOnError(throwable -> logger.error("can not get orderBook", throwable))
+                .map(this::mergeOrderBook)
+                .doOnError(throwable -> logger.error("can not merge orderBook", throwable))
+                .doOnDispose(() -> {
+                    logger.info("bitmex subscription doOnDispose");
+                    checkForRestart();
+                })
+                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
+                .doOnError((throwable) -> logger.error("bitmex subscription doOnError", throwable))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
+
         orderBookSubscription = orderBookObservable
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.computation())
                 .subscribe(orderBook -> {
-                    //workaround
-                    if (openOrders == null) {
-                        openOrders = new ArrayList<>();
-                        if (isBusy()) {
-                            eventBus.send(BtsEvent.MARKET_FREE);
+                    if (orderBook != null) {
+                        //workaround
+                        if (openOrders == null) {
+                            openOrders = new ArrayList<>();
+                            if (isBusy()) {
+                                eventBus.send(BtsEvent.MARKET_FREE);
+                            }
                         }
+
+                        final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
+                        final LimitOrder bestBid = Utils.getBestBid(orderBook);
+
+                        if (bestAsk != null) {
+                            orderBookLastTimestamp = bestAsk.getTimestamp().toString();
+                        }
+
+                        if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
+                                && this.bestAsk.compareTo(bestAsk.getLimitPrice()) != 0
+                                && this.bestBid.compareTo(bestBid.getLimitPrice()) != 0) {
+                            recalcAffordableContracts();
+                        }
+                        this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
+                        this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
+                        logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
+
+                        getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
                     }
-
-                    final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
-                    final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
-                    final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
-                    final LimitOrder bestBid = bestBids.size() > 0 ? bestBids.get(0) : null;
-
-                    if (bestAsk != null) {
-                        orderBookLastTimestamp = bestAsk.getTimestamp().toString();
-                    }
-
-                    this.orderBook = orderBook;
-
-                    if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
-                            && this.bestAsk.compareTo(bestAsk.getLimitPrice()) != 0
-                            && this.bestBid.compareTo(bestBid.getLimitPrice()) != 0) {
-                        recalcAffordableContracts();
-                    }
-                    this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
-                    this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
-                    logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
-
-
-                    getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
 
                 }, throwable -> {
                     logger.error("ERROR in getting order book: ", throwable);
                     checkForRestart();
                 });
     }
-
-    private Observable<OrderBook> createOrderBookObservable() {
-        return exchange.getStreamingMarketDataService()
-                .getOrderBook(CurrencyPair.BTC_USD, 20)
-                .doOnDispose(() -> {
-                    logger.info("bitmex subscription doOnDispose");
-                    checkForRestart();
-                })
-                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
-                .doOnError((throwable) -> logger.error("bitmex subscription doOnErro", throwable))
-                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
-                .share();
-    }
-
-    @Override
-    public Observable<OrderBook> getOrderBookObservable() {
-        return orderBookObservable;
-    }
-
 
     private void startOpenOrderListener() {
         openOrdersSubscription = exchange.getStreamingTradingService()
@@ -582,8 +588,9 @@ public class BitmexService extends MarketService {
         if (accountInfoContracts != null) {
             final BigDecimal availableBtc = accountInfoContracts.getAvailable();
             final BigDecimal equityBtc = accountInfoContracts.getEquity();
-            final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
-            final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
+            final OrderBook orderBook = getOrderBook();
+            final BigDecimal bestAsk = Utils.getBestAsk(orderBook).getLimitPrice();
+            final BigDecimal bestBid = Utils.getBestBid(orderBook).getLimitPrice();
             final BigDecimal positionContracts = position.getPositionLong();
             final BigDecimal leverage = position.getLeverage();
 

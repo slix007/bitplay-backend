@@ -4,8 +4,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
+import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
+import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
@@ -30,6 +31,10 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
         this.service = service;
     }
 
+    /**
+     * Wanring: this method will response once in 5 sec after 8 Oct 2017.
+     * Use {@link #getOrderBookL2(CurrencyPair, Object...)} instead
+     */
     @Override
     public Observable<OrderBook> getOrderBook(CurrencyPair currencyPair, Object... args) {
         return service.subscribeChannel("orderBook10", "orderBook10:XBTUSD")
@@ -42,6 +47,20 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                     return BitmexStreamAdapters.adaptBitmexOrderBook(bitmexDepth, currencyPair);
                 });
     }
+
+    public Observable<BitmexOrderBook> getOrderBookL2(CurrencyPair currencyPair, Object... args) {
+        return service.subscribeChannel("orderBookL2", "orderBookL2:XBTUSD")
+                .map(s -> {
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+                    @SuppressWarnings("unused")
+                    BitmexOrderBook bitmexOrderBook = mapper.treeToValue(s, BitmexOrderBook.class);
+
+                    return bitmexOrderBook;
+                });
+    }
+
 
     @Override
     public Observable<Ticker> getTicker(CurrencyPair currencyPair, Object... objects) {

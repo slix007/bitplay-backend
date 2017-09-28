@@ -258,14 +258,6 @@ public abstract class MarketService {
         return marketState;
     }
 
-    /**
-     * Create only one observable on initialization.<br>
-     * Use also .share() to make it multisubscribers compatible.
-     *
-     * @return observable that was created before this method.
-     */
-    public abstract Observable<OrderBook> getOrderBookObservable();
-
     public abstract String getName();
 
     public abstract ArbitrageService getArbitrageService();
@@ -324,7 +316,7 @@ public abstract class MarketService {
     public BigDecimal getTotalPriceOfAmountToBuy(BigDecimal requiredAmountToBuy) {
         BigDecimal totalPrice = BigDecimal.ZERO;
         int index = 1;
-        final LimitOrder limitOrder1 = Utils.getBestAsks(getOrderBook().getAsks(), index).get(index-1);
+        final LimitOrder limitOrder1 = Utils.getBestAsks(getOrderBook(), index).get(index-1);
         BigDecimal totalAmountToBuy = limitOrder1.getTradableAmount().compareTo(requiredAmountToBuy) == -1
                 ? limitOrder1.getTradableAmount()
                 : requiredAmountToBuy;
@@ -333,7 +325,7 @@ public abstract class MarketService {
 
         while (totalAmountToBuy.compareTo(requiredAmountToBuy) == -1) {
             index++;
-            final LimitOrder lo = Utils.getBestAsks(getOrderBook().getAsks(), index).get(index-1);
+            final LimitOrder lo = Utils.getBestAsks(getOrderBook(), index).get(index-1);
             final BigDecimal toBuyLeft = requiredAmountToBuy.subtract(totalAmountToBuy);
             BigDecimal amountToBuyForItem = lo.getTradableAmount().compareTo(toBuyLeft) == -1
                     ? lo.getTradableAmount()
@@ -605,10 +597,10 @@ public abstract class MarketService {
         BigDecimal thePrice = BigDecimal.ZERO;
         if (orderType == Order.OrderType.BID
                 || orderType == Order.OrderType.EXIT_ASK) {
-            thePrice = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getLimitPrice();
+            thePrice = Utils.getBestBid(getOrderBook()).getLimitPrice();
         } else if (orderType == Order.OrderType.ASK
                 || orderType == Order.OrderType.EXIT_BID) {
-            thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getLimitPrice();
+            thePrice = Utils.getBestAsk(getOrderBook()).getLimitPrice();
         }
         if (thePrice.signum() == 0) {
             getTradeLogger().info("WARNING: PRICE IS 0");

@@ -96,11 +96,6 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public Observable<OrderBook> getOrderBookObservable() {
-        return null;
-    }
-
-    @Override
     public String getPositionAsString() {
         return null;
     }

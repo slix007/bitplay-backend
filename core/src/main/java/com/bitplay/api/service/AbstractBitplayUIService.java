@@ -94,14 +94,32 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook) {
         final OrderBookJson orderJson = new OrderBookJson();
-        final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 100);
+        final List<LimitOrder> bestBids = Utils.getBestBids(orderBook, 5);
         orderJson.setBid(bestBids.stream()
-                .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
+//                .filter(limitOrder -> {
+//                    boolean match = true;
+//                    if (limitOrder == null
+//                            || limitOrder.getTradableAmount() == null
+//                            || limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) == 0) {
+//                        match = false;
+//                    }
+//
+//                    return match;
+//                })
                 .map(toOrderJson)
                 .collect(Collectors.toList()));
-        final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 100);
+        final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook, 5);
         orderJson.setAsk(bestAsks.stream()
-                .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
+//                .filter(limitOrder -> {
+//                    boolean match = true;
+//                    if (limitOrder == null
+//                            || limitOrder.getTradableAmount() == null
+//                            || limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) == 0) {
+//                        match = false;
+//                    }
+//
+//                    return match;
+//                })
                 .map(toOrderJson)
                 .collect(Collectors.toList()));
         return orderJson;

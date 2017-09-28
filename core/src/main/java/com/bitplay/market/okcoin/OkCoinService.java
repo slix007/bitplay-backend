@@ -200,13 +200,11 @@ public class OkCoinService extends MarketService {
 
     private void subscribeOnOrderBook() {
         //TODO subscribe on updates only to increase the speed
-        orderBookSubscription = getOrderBookObservable()
-                .subscribeOn(Schedulers.computation())
+        orderBookSubscription = orderBookObservable
+                .subscribeOn(Schedulers.io())
                 .subscribe(orderBook -> {
-                    final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook.getAsks(), 1);
-                    final LimitOrder bestAsk = bestAsks.size() > 0 ? bestAsks.get(0) : null;
-                    final List<LimitOrder> bestBids = Utils.getBestBids(orderBook.getBids(), 1);
-                    final LimitOrder bestBid = bestBids.size() > 0 ? bestBids.get(0) : null;
+                    final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
+                    final LimitOrder bestBid = Utils.getBestBid(orderBook);
 
                     this.orderBook = orderBook;
 
@@ -234,11 +232,6 @@ public class OkCoinService extends MarketService {
     @Override
     public Logger getTradeLogger() {
         return tradeLogger;
-    }
-
-    @Override
-    public Observable<OrderBook> getOrderBookObservable() {
-        return orderBookObservable;
     }
 
     @PreDestroy

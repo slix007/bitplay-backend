@@ -295,11 +295,6 @@ public class PoloniexService extends MarketService {
         this.orderBookObservable = orderBookObservable.share();
     }
 
-    @Override
-    public Observable<OrderBook> getOrderBookObservable() {
-        return orderBookObservable;
-    }
-
     public OrderBook fetchOrderBook() {
         try {
 //                orderBook = exchange.getMarketDataService().getOrderBook(CURRENCY_PAIR_USDT_BTC, -1);
@@ -350,7 +345,7 @@ public class PoloniexService extends MarketService {
             if (orderType.equals(Order.OrderType.BID)) {
 
                 // Only poloniex need to check the first item.
-                final BigDecimal bestAskAmount = Utils.getBestAsks(getOrderBook().getAsks(), 1).get(0).getTradableAmount();
+                final BigDecimal bestAskAmount = Utils.getBestAsk(getOrderBook()).getTradableAmount();
 
                 if (usdBalance.compareTo(getTotalPriceOfAmountToBuy(tradableAmount)) != -1
                         && bestAskAmount.compareTo(tradableAmount) != -1) {
@@ -360,7 +355,7 @@ public class PoloniexService extends MarketService {
             if (orderType.equals(Order.OrderType.ASK)) {
 
                 // Only poloniex need to check the first item.
-                final BigDecimal bestBidAmount = Utils.getBestBids(getOrderBook().getBids(), 1).get(0).getTradableAmount();
+                final BigDecimal bestBidAmount = Utils.getBestBid(getOrderBook()).getTradableAmount();
 
                 if (btcBalance.compareTo(tradableAmount) != -1
                         && bestBidAmount.compareTo(tradableAmount) != -1) {
@@ -415,13 +410,9 @@ public class PoloniexService extends MarketService {
     private BigDecimal getBestPrice(Order.OrderType orderType) {
         BigDecimal thePrice = null;
         if (orderType == Order.OrderType.BID) {
-            thePrice = Utils.getBestAsks(getOrderBook().getAsks(), 1)
-                    .get(0)
-                    .getLimitPrice();
+            thePrice = Utils.getBestAsk(getOrderBook()).getLimitPrice();
         } else if (orderType == Order.OrderType.ASK) {
-            thePrice = Utils.getBestBids(getOrderBook().getBids(), 1)
-                    .get(0)
-                    .getLimitPrice();
+            thePrice = Utils.getBestBid(getOrderBook()).getLimitPrice();
         }
         return thePrice;
     }

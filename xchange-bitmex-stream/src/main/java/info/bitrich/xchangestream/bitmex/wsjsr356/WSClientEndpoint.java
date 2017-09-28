@@ -58,7 +58,7 @@ public class WSClientEndpoint {
     }
 
 
-    @OnMessage
+    @OnMessage(maxMessageSize = 8192 * 1000)
     public void onMessage(final String message) {
         if (messageHandler != null) {
             messageHandler.handleMessage(message);
