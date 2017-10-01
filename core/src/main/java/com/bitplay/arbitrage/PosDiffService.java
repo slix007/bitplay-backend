@@ -37,6 +37,10 @@ public class PosDiffService {
 
     private volatile boolean calcInProgress = false;
 
+    private boolean hasMDCStarted = false;
+    private volatile boolean hasTimerStarted = false;
+    private volatile boolean hasGeneralCorrStarted = false;
+
     @Autowired
     private ArbitrageService arbitrageService;
 
@@ -44,6 +48,11 @@ public class PosDiffService {
     private PersistenceService persistenceService;
 
     private void startTimerToCorrection() {
+        if (!hasTimerStarted) {
+            warningLogger.info("Timer for timer-correction has started");
+            hasTimerStarted = true;
+        }
+
         final Long periodToCorrection = arbitrageService.getParams().getPeriodToCorrection();
         theTimer = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
                 .doOnComplete(() -> {
@@ -52,7 +61,10 @@ public class PosDiffService {
 
                     doCorrectionImmediate(SignalType.CORR_PERIOD);
                 })
-                .doOnError(throwable -> logger.error("timer period to correction", throwable))
+                .doOnError(e -> {
+                    warningLogger.error("Correction on timer failed. " + e.getMessage());
+                    logger.error("Correction on timer failed.", e);
+                })
                 .retry()
                 .subscribe();
     }
@@ -64,25 +76,49 @@ public class PosDiffService {
     }
 
     @Scheduled(initialDelay = 10*60*1000, fixedDelay = 5000)
-    public void checkMaxDiffCorrection() throws Exception {
-        arbitrageService.getFirstMarketService().fetchPosition();
-        arbitrageService.getSecondMarketService().fetchPosition();
+    public void checkMaxDiffCorrection() {
+        if (!hasMDCStarted) {
+            warningLogger.info("MDC has started");
+            hasMDCStarted = true;
+        }
 
-        final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
-        final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
-        if (positionsDiffWithHedge.signum() != 0
-                && positionsDiffWithHedge.abs().compareTo(maxDiffCorr) != -1) {
-                warningLogger.info("MDC posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
-            doCorrectionImmediate(SignalType.CORR_MDC);
+        try {
+            arbitrageService.getFirstMarketService().fetchPosition();
+            arbitrageService.getSecondMarketService().fetchPosition();
+
+            final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
+            final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
+            if (positionsDiffWithHedge.signum() != 0
+                    && positionsDiffWithHedge.abs().compareTo(maxDiffCorr) != -1) {
+                    warningLogger.info("MDC posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
+                doCorrectionImmediate(SignalType.CORR_MDC);
+            }
+        } catch (Exception e) {
+            warningLogger.error("Correction MDC failed. " + e.getMessage());
+            logger.error("Correction MDC failed.", e);
         }
     }
 
     @Scheduled(initialDelay = 10*60*1000, fixedDelay = 1000)
-    public void calcPosDiffJob()  throws Exception {
-        calcPosDiff(false);
+    public void calcPosDiffJob() {
+        if (!hasGeneralCorrStarted) {
+            warningLogger.info("General correction has started");
+            hasGeneralCorrStarted = true;
+        }
+
+        try {
+            calcPosDiff(false);
+        } catch (Exception e) {
+            warningLogger.error("Correction failed. " + e.getMessage());
+            logger.error("Correction failed.", e);
+        }
     }
 
     private void calcPosDiff(boolean isSecondCheck) throws Exception {
+        if (!hasGeneralCorrStarted) {
+            return;
+        }
+
         if (!calcInProgress || isSecondCheck) {
             calcInProgress = true;
 
@@ -100,7 +136,7 @@ public class PosDiffService {
                     stopTimerToCorrection();
                 }
 
-                writeWarnings(bP, oPL, oPS);
+//                writeWarnings(bP, oPL, oPS);
 
                 if (arbitrageService.getParams().getPosCorr().equals("enabled")
                         && positionsDiffWithHedge.signum() != 0) {
@@ -227,6 +263,8 @@ public class PosDiffService {
         try {
             calcPosDiff(false);
         } catch (Exception e) {
+            warningLogger.error("Correction failed(check before signal). " + e.getMessage());
+            logger.error("Correction failed(check before signal).", e);
             return false;
         }
 
