@@ -417,22 +417,14 @@ public class ArbitrageService {
         BigDecimal border1 = params.getBorder1();
         BigDecimal border2 = params.getBorder2();
 
-//            1) если delta1 >= border1, то происходит sell у poloniex и buy у okcoin
-        if (border1.compareTo(BigDecimal.ZERO) != 0) {
-            if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
-
-                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes);
-
-            }
+        if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
+            startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes);
         }
-//            2) если delta2 >= border2, то происходит buy у poloniex и sell у okcoin
-        if (border2.compareTo(BigDecimal.ZERO) != 0) {
-            if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
 
-                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes);
-
-            }
+        if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
+            startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes);
         }
+
         return bestQuotes;
     }
 
