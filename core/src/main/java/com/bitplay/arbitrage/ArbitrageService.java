@@ -389,7 +389,7 @@ public class ArbitrageService {
         if (!bestQuotes.hasEmpty()) {
             if (firstDeltasAfterStart) {
                 firstDeltasAfterStart = false;
-                warningLogger.info("Started: First delats calculated");
+                warningLogger.info("Started: First delta calculated");
             }
 
             delta1 = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
