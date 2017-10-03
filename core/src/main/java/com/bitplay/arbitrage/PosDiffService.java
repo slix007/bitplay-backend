@@ -83,20 +83,29 @@ public class PosDiffService {
         }
 
         try {
-            arbitrageService.getFirstMarketService().fetchPosition();
-            arbitrageService.getSecondMarketService().fetchPosition();
+            if (isMdcNeeded()) {
+                arbitrageService.getFirstMarketService().fetchPosition();
+                arbitrageService.getSecondMarketService().fetchPosition();
 
-            final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
-            final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
-            if (positionsDiffWithHedge.signum() != 0
-                    && positionsDiffWithHedge.abs().compareTo(maxDiffCorr) != -1) {
+                if (isMdcNeeded()) {
+                    final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
+                    final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
                     warningLogger.info("MDC posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
-                doCorrectionImmediate(SignalType.CORR_MDC);
+
+                    doCorrectionImmediate(SignalType.CORR_MDC);
+                }
             }
         } catch (Exception e) {
             warningLogger.error("Correction MDC failed. " + e.getMessage());
             logger.error("Correction MDC failed.", e);
         }
+    }
+
+    private boolean isMdcNeeded() {
+        final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
+        final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
+        return positionsDiffWithHedge.signum() != 0
+                && positionsDiffWithHedge.abs().compareTo(maxDiffCorr) != -1;
     }
 
     @Scheduled(initialDelay = 10*60*1000, fixedDelay = 1000)
