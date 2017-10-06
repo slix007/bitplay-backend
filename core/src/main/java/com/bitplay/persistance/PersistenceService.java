@@ -1,12 +1,14 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.Counters;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.MarketDocument;
 import com.bitplay.persistance.domain.SwapParams;
+import com.bitplay.persistance.repository.BorderParamsRepository;
 import com.bitplay.persistance.repository.CountersRepository;
 import com.bitplay.persistance.repository.DeltaParamsRepository;
 import com.bitplay.persistance.repository.GuiParamsRepository;
@@ -17,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 6/16/17.
@@ -40,6 +44,9 @@ public class PersistenceService {
 
     @Autowired
     private CountersRepository countersRepository;
+
+    @Autowired
+    private BorderParamsRepository borderParamsRepository;
 
     public void saveGuiParams(GuiParams deltas) {
         deltas.setId(1L);
@@ -100,4 +107,11 @@ public class PersistenceService {
         return firstByDocumentId == null ? new Counters() : firstByDocumentId;
     }
 
+    public List<BorderParams> fetchBorders() {
+        return borderParamsRepository.findAll();
+    }
+
+    public void saveBorders(List<BorderParams> borderParamsList) {
+        borderParamsRepository.save(borderParamsList);
+    }
 }
