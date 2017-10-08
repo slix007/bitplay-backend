@@ -1,7 +1,5 @@
 package com.bitplay.persistance.domain;
 
-import java.math.BigDecimal;
-
 /**
  * Created by Sergey Shurmin on 10/5/17.
  */

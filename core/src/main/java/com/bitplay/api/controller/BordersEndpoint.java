@@ -39,12 +39,23 @@ public class BordersEndpoint {
         borderBtmClose.add(new BorderItem(2, -15, 300, 350));
         borderBtmClose.add(new BorderItem(3, -10, 200, 250));
         borderBtmClose.add(new BorderItem(4, -5, 100, 100));
-        borders.add(new BorderParams("btm_br_close", borderBtmClose));
+        borders.add(new BorderParams("b_br_close", borderBtmClose));
         final List<BorderItem> borderBtmOpen = new ArrayList<>();
         borderBtmOpen.add(new BorderItem(1, 20, 100, 100));
         borderBtmOpen.add(new BorderItem(2, 30, 250, 250));
         borderBtmOpen.add(new BorderItem(3, 35, 350, 350));
-        borders.add(new BorderParams("btm_br_open", borderBtmOpen));
+        borders.add(new BorderParams("b_br_open", borderBtmOpen));
+        final List<BorderItem> borderOkexClose = new ArrayList<>();
+        borderOkexClose.add(new BorderItem(1, -21, 500, 500));
+        borderOkexClose.add(new BorderItem(2, -15, 300, 350));
+        borderOkexClose.add(new BorderItem(3, -10, 200, 250));
+        borderOkexClose.add(new BorderItem(4, -5, 100, 100));
+        borders.add(new BorderParams("o_br_close", borderOkexClose));
+        final List<BorderItem> borderOkexOpen = new ArrayList<>();
+        borderOkexOpen.add(new BorderItem(1, 20, 100, 100));
+        borderOkexOpen.add(new BorderItem(2, 30, 250, 250));
+        borderOkexOpen.add(new BorderItem(3, 35, 350, 350));
+        borders.add(new BorderParams("o_br_open", borderOkexOpen));
 
         persistenceService.saveBorders(borders);
 
