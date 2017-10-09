@@ -1,43 +1,47 @@
 package com.bitplay.persistance.domain;
 
-import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 7/18/17.
  */
 @Document(collection = "bordersCollection")
 @TypeAlias("borders")
-public class BorderParams {
+public class BorderParams extends AbstractDocument {
 
-    @Id
-    private String borderName;
-    private List<BorderItem> borderItemList;
-
-    public BorderParams() {
+    private Ver activeVersion = Ver.V1;
+    private BordersV1 bordersV1;
+    private BordersV2 bordersV2;
+    public BorderParams(BordersV1 bordersV1, BordersV2 bordersV2) {
+        this.setId(1L);
+        this.bordersV1 = bordersV1;
+        this.bordersV2 = bordersV2;
     }
 
-    public BorderParams(String borderName, List<BorderItem> borderItemList) {
-        this.borderName = borderName;
-        this.borderItemList = borderItemList;
+    public Ver getActiveVersion() {
+        return activeVersion;
     }
 
-    public String getBorderName() {
-        return borderName;
+    public void setActiveVersion(Ver activeVersion) {
+        this.activeVersion = activeVersion;
     }
 
-    public void setBorderName(String borderName) {
-        this.borderName = borderName;
+    public BordersV1 getBordersV1() {
+        return bordersV1;
     }
 
-    public List<BorderItem> getBorderItemList() {
-        return borderItemList;
+    public void setBordersV1(BordersV1 bordersV1) {
+        this.bordersV1 = bordersV1;
     }
 
-    public void setBorderItemList(List<BorderItem> borderItemList) {
-        this.borderItemList = borderItemList;
+    public BordersV2 getBordersV2() {
+        return bordersV2;
     }
+
+    public void setBordersV2(BordersV2 bordersV2) {
+        this.bordersV2 = bordersV2;
+    }
+
+    public enum Ver {V1, V2,}
 }

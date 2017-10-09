@@ -1,0 +1,36 @@
+package com.bitplay.persistance.domain;
+
+import java.util.List;
+
+/**
+ * Created by Sergey Shurmin on 10/9/17.
+ */
+public class BorderTable {
+
+    private String borderName;
+    private List<BorderItem> borderItemList;
+
+    public BorderTable() {
+    }
+
+    public BorderTable(String borderName, List<BorderItem> borderItemList) {
+        this.borderName = borderName;
+        this.borderItemList = borderItemList;
+    }
+
+    public String getBorderName() {
+        return borderName;
+    }
+
+    public void setBorderName(String borderName) {
+        this.borderName = borderName;
+    }
+
+    public List<BorderItem> getBorderItemList() {
+        return borderItemList;
+    }
+
+    public void setBorderItemList(List<BorderItem> borderItemList) {
+        this.borderItemList = borderItemList;
+    }
+}

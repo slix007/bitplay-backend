@@ -107,11 +107,11 @@ public class PersistenceService {
         return firstByDocumentId == null ? new Counters() : firstByDocumentId;
     }
 
-    public List<BorderParams> fetchBorders() {
-        return borderParamsRepository.findAll();
+    public BorderParams fetchBorders() {
+        return borderParamsRepository.findOne(1L);
     }
 
-    public void saveBorders(List<BorderParams> borderParamsList) {
-        borderParamsRepository.save(borderParamsList);
+    public void saveBorderParams(BorderParams borderParams) {
+        borderParamsRepository.save(borderParams);
     }
 }
