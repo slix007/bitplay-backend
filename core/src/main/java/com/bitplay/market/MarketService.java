@@ -420,10 +420,12 @@ public abstract class MarketService {
                         orderInfo.getType(),
                         orderInfo.getCumulativeAmount().toPlainString());
             } catch (Exception e) {
-                getTradeLogger().error("{}/{} {} orderId={}",
+                final String message = String.format("%s/%s %s orderId=%s, error: %s",
                         counterName, i,
                         logInfoId,
-                        orderId);
+                        orderId, e.toString());
+                getTradeLogger().error(message);
+                logger.error(message, e);
             }
         }
         return Optional.ofNullable(orderInfo);
