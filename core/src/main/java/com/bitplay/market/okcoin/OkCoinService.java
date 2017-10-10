@@ -5,7 +5,6 @@ import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.State;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
@@ -76,7 +75,7 @@ public class OkCoinService extends MarketService {
     private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
     private final static String NAME = "okcoin";
     private static final int MAX_ATTEMPTS = 10;
-    protected State state = State.READY;
+//    protected State state = State.READY;
     ArbitrageService arbitrageService;
     @Autowired
     private PosDiffService posDiffService;
@@ -521,7 +520,6 @@ public class OkCoinService extends MarketService {
 
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType)
             throws Exception {
-        state = State.IN_PROGRESS;
 
         TradeResponse tradeResponse = new TradeResponse();
 
@@ -557,8 +555,6 @@ public class OkCoinService extends MarketService {
                         orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
 
                 setFree();
-
-                state = State.READY;
             }
         }
 
@@ -632,17 +628,16 @@ public class OkCoinService extends MarketService {
 
     @Override
     public boolean isReadyForNewOrder() {
-        return state == State.READY;
+        return true;
     }
 
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
-        TradeResponse tradeResponse;
-        state = State.IN_PROGRESS;
+        TradeResponse tradeResponse = null;
         BigDecimal amountToFill = amountInContracts;
         int attemptCount = 0;
-        while (true) {
+        for (int i = 0; i < 2; i++) {
             try {
                 attemptCount++;
                 if (attemptCount > 1) {
@@ -671,8 +666,12 @@ public class OkCoinService extends MarketService {
                 logger.error(details.length() < 200 ? details : details.substring(0, 190), e);
                 tradeLogger.error(details);
 //                warningLogger.error("Warning placing: " + details);
+                break;
             }
         }
+
+        //
+        setFree();
 
         return tradeResponse;
     }
@@ -682,7 +681,6 @@ public class OkCoinService extends MarketService {
         final TradeResponse tradeResponse = new TradeResponse();
         arbitrageService.setSignalType(signalType);
         eventBus.send(BtsEvent.MARKET_BUSY);
-        state = State.IN_PROGRESS;
 
         BigDecimal thePrice;
 
@@ -719,7 +717,6 @@ public class OkCoinService extends MarketService {
         }
 
 //        fetchOpenOrdersWithDelay();
-        state = State.WAITING;
         return tradeResponse;
     }
 
@@ -812,17 +809,10 @@ public class OkCoinService extends MarketService {
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
         }
 
-        if (arbitrageService.getParams().getOkCoinOrderType().equals("taker")
-                && state != State.IN_PROGRESS) {
-            logger.error("taker not in progress. State={}", state);
-            tradeLogger.error("{} taker not in progress. State={}", getCounterName(), state);
-            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "moving taker order");
-        }
 //        if (state != State.WAITING) {
 //            tradeLogger.error("Moving declined. Try moving in wrong State={}", state);
 //            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "moving declined");
 //        }
-        state = State.IN_PROGRESS;
 
         arbitrageService.setSignalType(signalType);
         eventBus.send(BtsEvent.MARKET_BUSY);
@@ -853,14 +843,12 @@ public class OkCoinService extends MarketService {
                     limitOrder.getId(),
                     null);
             tradeLogger.info(logString);
-            state = State.READY;
 
             // 3. Place order
         } else { //if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
             TradeResponse tradeResponse = new TradeResponse();
             tradeResponse = finishMovingSync(limitOrder, signalType, bestQuotes, counterName, cancelledOrder, tradeResponse);
             response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
-            state = State.WAITING;
         }
         return response;
     }
