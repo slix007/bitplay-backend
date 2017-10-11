@@ -10,11 +10,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @TypeAlias("borders")
 public class BorderParams extends AbstractDocument {
 
-    private Ver activeVersion = Ver.V1;
+    private Ver activeVersion;
     private BordersV1 bordersV1;
     private BordersV2 bordersV2;
-    public BorderParams(BordersV1 bordersV1, BordersV2 bordersV2) {
+    public BorderParams(Ver activeVersion, BordersV1 bordersV1, BordersV2 bordersV2) {
         this.setId(1L);
+        this.activeVersion = activeVersion;
         this.bordersV1 = bordersV1;
         this.bordersV2 = bordersV2;
     }

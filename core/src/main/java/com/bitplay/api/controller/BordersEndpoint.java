@@ -66,7 +66,7 @@ public class BordersEndpoint {
         borderOkexOpen.add(new BorderItem(3, 35, 350, 350));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        final BorderParams borderParams = new BorderParams(new BordersV1(), new BordersV2(borders));
+        final BorderParams borderParams = new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
 
         persistenceService.saveBorderParams(borderParams);
 

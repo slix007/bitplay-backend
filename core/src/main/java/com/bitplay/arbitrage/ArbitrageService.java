@@ -7,6 +7,7 @@ import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.events.SignalEventBus;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.utils.Utils;
@@ -48,6 +49,8 @@ public class ArbitrageService {
     private final BigDecimal FEE_FIRST_MAKER = new BigDecimal("0.075");//Bitmex
     private final BigDecimal FEE_SECOND_TAKER = new BigDecimal("0.015");//OkCoin
     private boolean firstDeltasAfterStart = true;
+    @Autowired
+    private BordersService bordersService;
     @Autowired
     private PersistenceService persistenceService;
     private Disposable schdeduleUpdateBorders;
@@ -313,7 +316,7 @@ public class ArbitrageService {
                         }
 
                     } else if (!firstMarketService.isReadyForArbitrage() || !secondMarketService.isReadyForArbitrage()) {
-                        final String logString = String.format("#%s Warning: busy for 5 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
+                        final String logString = String.format("#%s Warning: busy for 6 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
                                 getCounter(),
                                 firstMarketService.isReadyForArbitrage(), firstMarketService.getOpenOrders().size(),
                                 secondMarketService.isReadyForArbitrage(), secondMarketService.getOpenOrders().size());
@@ -417,12 +420,28 @@ public class ArbitrageService {
         BigDecimal border1 = params.getBorder1();
         BigDecimal border2 = params.getBorder2();
 
-        if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
-            startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes);
-        }
+        final BorderParams borderParams = persistenceService.fetchBorders();
+        if (borderParams == null || borderParams.getActiveVersion() == BorderParams.Ver.V1) {
+            if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
+                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes);
+            }
 
-        if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
-            startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes);
+            if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
+                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes);
+            }
+        } else {
+            final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
+            final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
+            final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
+
+            final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(delta1, delta2, bP, oPL, oPS);
+            if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
+                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes);
+            }
+
+            if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
+                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes);
+            }
         }
 
         return bestQuotes;
@@ -792,7 +811,7 @@ public class ArbitrageService {
         return affordable;
     }
 
-    public void scheduleRecalculateBorders() {
+    private void scheduleRecalculateBorders() {
         if (schdeduleUpdateBorders != null && !schdeduleUpdateBorders.isDisposed()) {
             schdeduleUpdateBorders.dispose();
         }
@@ -802,7 +821,7 @@ public class ArbitrageService {
                 .doOnEach(longNotification -> startTimeToUpdateBorders = Instant.now())
                 .doOnError((e) -> logger.error("OnRecalculateBorders", e))
                 .retry()
-                .subscribe(this::recalculateBorders);
+                .subscribe(this::recalculateBordersV1);
     }
 
     public String getUpdateBordersTimerString() {
@@ -813,7 +832,7 @@ public class ArbitrageService {
                 String.valueOf(params.getPeriodSec() - duration.getSeconds()));
     }
 
-    public void recalculateBorders(Long intervalInt) {
+    private void recalculateBordersV1(Long intervalInt) {
         updateBordersCounter = updateBordersCounter + 1;
 
         final BigDecimal two = new BigDecimal(2);
