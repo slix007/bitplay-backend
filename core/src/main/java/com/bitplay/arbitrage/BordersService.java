@@ -37,21 +37,26 @@ public class BordersService {
         final BorderParams borderParams = persistenceService.fetchBorders();
         final BordersV2 bordersV2 = borderParams.getBordersV2();
 
+        final int block;
+        final int pos;
         if (theMode == PosMode.BTM_MODE) {
-            final int block = guiParams.getBlock2().intValueExact();
-            final int pos = bP.intValueExact();
-            TradingSignal bbCloseSignal = bitmexBorderClose(b_delta, block, pos, bordersV2);
-            if (bbCloseSignal != null) return bbCloseSignal;
-            TradingSignal bbOpenSignal = bitmexBorderOpen(b_delta, block, pos, bordersV2);
-            if (bbOpenSignal != null) return bbOpenSignal;
+            block = guiParams.getBlock2().intValueExact();
+            pos = bP.intValueExact();
         } else {
-            final int block = guiParams.getBlock1().intValueExact();
-            final int pos = oPL.intValueExact() - oPS.intValueExact();
-            TradingSignal obCloseSignal = okexBorderClose(o_delta, block, pos, bordersV2);
-            if (obCloseSignal != null) return obCloseSignal;
-            TradingSignal obOpenSignal = okexBorderOpen(o_delta, block, pos, bordersV2);
-            if (obOpenSignal != null) return obOpenSignal;
+            block = guiParams.getBlock1().intValueExact();
+            pos = oPL.intValueExact() - oPS.intValueExact();
         }
+
+        TradingSignal bbCloseSignal = bitmexBorderClose(b_delta, block, pos, bordersV2);
+        if (bbCloseSignal != null) return bbCloseSignal;
+        TradingSignal obCloseSignal = okexBorderClose(o_delta, block, pos, bordersV2);
+        if (obCloseSignal != null) return obCloseSignal;
+
+        TradingSignal bbOpenSignal = bitmexBorderOpen(b_delta, block, pos, bordersV2);
+        if (bbOpenSignal != null) return bbOpenSignal;
+        TradingSignal obOpenSignal = okexBorderOpen(o_delta, block, pos, bordersV2);
+        if (obOpenSignal != null) return obOpenSignal;
+
 
         return new TradingSignal(TradeType.NONE, 0);
     }
