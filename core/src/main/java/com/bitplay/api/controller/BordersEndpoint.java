@@ -95,4 +95,26 @@ public class BordersEndpoint {
 
         return new ResultJson("OK", "");
     }
+
+    @RequestMapping(value = "/version", method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson updateBordersVersion(@RequestBody Version ver) {
+        if (ver == null || ver.version == null) return new ResultJson("Wrong request", "");
+
+        final BorderParams bP = persistenceService.fetchBorders();
+
+        try {
+            bP.setActiveVersion(BorderParams.Ver.valueOf(ver.version));
+        } catch (Exception e) {
+            return new ResultJson("Wrong version", e.getMessage());
+        }
+
+        persistenceService.saveBorderParams(bP);
+
+        return new ResultJson("OK", ver.version);
+    }
+
+    private static class Version {
+        public String version;
+    }
 }

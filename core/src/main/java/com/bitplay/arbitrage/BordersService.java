@@ -132,7 +132,7 @@ public class BordersService {
 
         // Bitmex border open
         for (int i = 0; i < btm_br_open_cnt; i++) {
-            if (b_delta.intValueExact() >= btm_br_open.get(i).getValue()) {
+            if (b_delta.intValue() >= btm_br_open.get(i).getValue()) {
 
                 if (pos >= 0 && pos < btm_br_open.get(i).getPosLongLimit()) {
                     if (pos + block > btm_br_open.get(i).getPosLongLimit()) {
@@ -188,7 +188,7 @@ public class BordersService {
         // Okex border close
         if (pos != 0) {
             for (int i = 0; i < ok_br_close_cnt; i++) {
-                if (o_delta.intValueExact() >= ok_br_close.get(i).getValue()) {
+                if (o_delta.intValue() >= ok_br_close.get(i).getValue()) {
                     if (pos > 0 && pos > ok_br_close.get(i).getPosLongLimit()) {
                         if (pos - block < ok_br_close.get(i).getPosLongLimit()) {
                             int block_once = pos - ok_br_close.get(i).getPosLongLimit();
@@ -242,7 +242,7 @@ public class BordersService {
 
         // Okex border open
         for (int i = 0; i < ok_br_open_cnt; i++) {
-            if (o_delta.intValueExact() >= ok_br_open.get(i).getValue()) {
+            if (o_delta.intValue() >= ok_br_open.get(i).getValue()) {
                 if (pos >= 0 && pos < ok_br_open.get(i).getPosLongLimit()) {
                     if (pos + block > ok_br_open.get(i).getPosLongLimit()) {
                         int block_once = ok_br_open.get(i).getPosLongLimit() - pos;

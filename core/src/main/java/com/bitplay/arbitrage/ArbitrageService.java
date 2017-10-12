@@ -387,6 +387,11 @@ public class ArbitrageService {
     }
 
     private BestQuotes calcAndDoArbitrage(OrderBook okCoinOrderBook, OrderBook poloniexOrderBook) {
+        if (okCoinOrderBook.getAsks().size() == 0 || okCoinOrderBook.getBids().size() == 0
+                || poloniexOrderBook.getAsks().size() == 0 || poloniexOrderBook.getBids().size() == 0) {
+            return BestQuotes.empty();
+        }
+
         // 1. Calc deltas
         final BestQuotes bestQuotes = Utils.createBestQuotes(okCoinOrderBook, poloniexOrderBook);
         if (!bestQuotes.hasEmpty()) {

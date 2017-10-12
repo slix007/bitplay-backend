@@ -19,6 +19,10 @@ public class BestQuotes {
     private BigDecimal bid1_p = BigDecimal.ZERO;
     private ArbitrageEvent arbitrageEvent = ArbitrageEvent.NONE;
 
+    public static BestQuotes empty() {
+        return new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+    }
+
     public BestQuotes(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal bid1_p) {
         this.ask1_o = ask1_o;
         this.ask1_p = ask1_p;
