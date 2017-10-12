@@ -29,7 +29,8 @@ public class BordersService {
 
     @Autowired
     PersistenceService persistenceService;
-    private PosMode theMode = PosMode.OK_MODE;
+
+    private static final PosMode theMode = PosMode.OK_MODE;
 
     public TradingSignal checkBorders(BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
         final GuiParams guiParams = persistenceService.fetchGuiParams();
@@ -287,11 +288,22 @@ public class BordersService {
 
     public static class TradingSignal {
         final public TradeType tradeType;
-        final public int block;
+        public int bitmexBlock;
+        public int okexBlock;
 
         public TradingSignal(TradeType tradeType, int block) {
             this.tradeType = tradeType;
-            this.block = block;
+            convertToBitmex(block);
+        }
+
+        private void convertToBitmex(int block) {
+            if (theMode == PosMode.BTM_MODE) { // usdInContract = 1; => min block is 100
+                bitmexBlock = block;
+                okexBlock = block / 100;
+            } else { // usdInContract = 100; => min block is 1
+                bitmexBlock = block * 100;
+                okexBlock = block;
+            }
         }
     }
 

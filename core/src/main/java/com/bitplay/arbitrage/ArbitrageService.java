@@ -436,11 +436,11 @@ public class ArbitrageService {
 
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(delta1, delta2, bP, oPL, oPS);
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
-                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes);
+                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock), BigDecimal.valueOf(tradingSignal.okexBlock));
             }
 
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
-                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes);
+                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock), BigDecimal.valueOf(tradingSignal.okexBlock));
             }
         }
 
@@ -448,9 +448,15 @@ public class ArbitrageService {
     }
 
     public void startTradingOnDelta1(SignalType signalType, BestQuotes bestQuotes) {
+        final BigDecimal b_block = params.getBlock1();
+        final BigDecimal o_block = params.getBlock2();
+        startTradingOnDelta1(signalType, bestQuotes, b_block, o_block);
+    }
+
+    private void startTradingOnDelta1(SignalType signalType, BestQuotes bestQuotes, final BigDecimal b_block, final BigDecimal o_block) {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
-        if (checkBalance(DELTA1, params.getBlock1(), params.getBlock2()) //) {
+        if (checkBalance(DELTA1, b_block, o_block) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
                 &&
@@ -466,12 +472,12 @@ public class ArbitrageService {
             params.setLastDelta(DELTA1);
             // Market specific params
             params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
-            params.setVolPlan(params.getBlock1()); // buy
+            params.setVolPlan(b_block); // buy
 
             writeLogDelta1(ask1_o, bid1_p);
 
-            firstMarketService.placeOrderOnSignal(Order.OrderType.ASK, params.getBlock1(), bestQuotes, signalType);
-            secondMarketService.placeOrderOnSignal(Order.OrderType.BID, params.getBlock2(), bestQuotes, signalType);
+            firstMarketService.placeOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, signalType);
+            secondMarketService.placeOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, signalType);
             setTimeoutAfterStartTrading();
 
             saveParamsToDb();
@@ -481,10 +487,16 @@ public class ArbitrageService {
     }
 
     public void startTradingOnDelta2(SignalType signalType, BestQuotes bestQuotes) {
+        final BigDecimal b_block = params.getBlock1();
+        final BigDecimal o_block = params.getBlock2();
+        startTradingOnDelta2(signalType, bestQuotes, b_block, o_block);
+    }
+
+    private void startTradingOnDelta2(SignalType signalType, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block) {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
-        if (checkBalance(DELTA2, params.getBlock1(), params.getBlock2()) //) {
+        if (checkBalance(DELTA2, b_block, o_block) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
                 &&
@@ -500,12 +512,12 @@ public class ArbitrageService {
             params.setLastDelta(DELTA2);
             // Market specific params
             params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
-            params.setVolPlan(params.getBlock1().negate());//sell
+            params.setVolPlan(b_block.negate());//sell
 
             writeLogDelta2(ask1_p, bid1_o);
 
-            firstMarketService.placeOrderOnSignal(Order.OrderType.BID, params.getBlock1(), bestQuotes, signalType);
-            secondMarketService.placeOrderOnSignal(Order.OrderType.ASK, params.getBlock2(), bestQuotes, signalType);
+            firstMarketService.placeOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, signalType);
+            secondMarketService.placeOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, signalType);
             setTimeoutAfterStartTrading();
 
             saveParamsToDb();
