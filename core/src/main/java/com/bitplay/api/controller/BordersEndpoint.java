@@ -76,9 +76,20 @@ public class BordersEndpoint {
     @RequestMapping(value = "/tables", method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson saveBorders(@RequestBody List<BorderTable> borderTableList) {
+        if (borderTableList == null || borderTableList.size() != 1) {
+            return new ResultJson("Wrong request", "Request body should have one borderTable. " + borderTableList);
+        }
+        final BorderTable updatedTable = borderTableList.get(0);
+
         final BorderParams borderParams = persistenceService.fetchBorders();
 
-        borderParams.getBordersV2().setBorderTableList(borderTableList);
+        final List<BorderTable> currentList = borderParams.getBordersV2().getBorderTableList();
+        currentList.replaceAll(borderTable -> {
+
+            if (updatedTable.getBorderName().equals(borderTable.getBorderName())) return updatedTable;
+
+            return borderTable;
+        });
 
         persistenceService.saveBorderParams(borderParams);
 
