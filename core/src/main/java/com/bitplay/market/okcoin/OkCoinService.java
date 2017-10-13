@@ -1041,14 +1041,14 @@ public class OkCoinService extends MarketService {
                             dql = L.subtract(m);
                             dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
                         } else {
-                            dqlString = "b_DQL = na";
+                            dqlString = "o_DQL = na";
                             warningLogger.info(String.format("Warning. mrl is wrong: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, eqLiq=%s, mrl=%s, oMrLiq=%s",
                                     pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
                                     position.getPriceAvgLong(), position.getPriceAvgShort(),
                                     eqLiq.toPlainString(), mrl.toPlainString(), oMrLiq.toPlainString()));
                         }
                     } else {
-                        dqlString = "b_DQL = na";
+                        dqlString = "o_DQL = na";
                         warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, n=%s",
                                 pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
                                 position.getPriceAvgLong(), position.getPriceAvgShort(),
@@ -1056,12 +1056,12 @@ public class OkCoinService extends MarketService {
                     }
 
                 } else {
-                    dqlString = "b_DQL = na";
+                    dqlString = "o_DQL = na";
                     // ordinary situation
                 }
 
             } else {
-                dqlString = "b_DQL = na";
+                dqlString = "o_DQL = na";
             }
 
             BigDecimal dmrl = null;

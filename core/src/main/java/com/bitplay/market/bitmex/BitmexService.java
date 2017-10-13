@@ -1021,7 +1021,7 @@ public class BitmexService extends MarketService {
                 dmrl = bMr.subtract(bMrliq);
                 dmrlString = String.format("b_DMRL = %s - %s = %s%%", bMr, bMrliq, dmrl);
             } else {
-                dmrlString = "o_DMRL = na";
+                dmrlString = "b_DMRL = na";
             }
 
             if (dql != null) {
