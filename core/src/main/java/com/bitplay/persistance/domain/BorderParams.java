@@ -11,11 +11,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class BorderParams extends AbstractDocument {
 
     private Ver activeVersion;
+    private PosMode posMode;
     private BordersV1 bordersV1;
     private BordersV2 bordersV2;
     public BorderParams(Ver activeVersion, BordersV1 bordersV1, BordersV2 bordersV2) {
         this.setId(1L);
         this.activeVersion = activeVersion;
+        this.posMode = PosMode.OK_MODE;
         this.bordersV1 = bordersV1;
         this.bordersV2 = bordersV2;
     }
@@ -26,6 +28,14 @@ public class BorderParams extends AbstractDocument {
 
     public void setActiveVersion(Ver activeVersion) {
         this.activeVersion = activeVersion;
+    }
+
+    public PosMode getPosMode() {
+        return posMode;
+    }
+
+    public void setPosMode(PosMode posMode) {
+        this.posMode = posMode;
     }
 
     public BordersV1 getBordersV1() {
@@ -45,4 +55,6 @@ public class BorderParams extends AbstractDocument {
     }
 
     public enum Ver {V1, V2,}
+
+    public enum PosMode {BTM_MODE, OK_MODE}
 }

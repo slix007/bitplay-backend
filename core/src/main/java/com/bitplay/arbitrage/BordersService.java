@@ -30,7 +30,7 @@ public class BordersService {
     @Autowired
     PersistenceService persistenceService;
 
-    private static final PosMode theMode = PosMode.OK_MODE;
+    private volatile static BorderParams.PosMode theMode = BorderParams.PosMode.OK_MODE;
 
     public TradingSignal checkBorders(BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
         final GuiParams guiParams = persistenceService.fetchGuiParams();
@@ -38,9 +38,13 @@ public class BordersService {
         final BorderParams borderParams = persistenceService.fetchBorders();
         final BordersV2 bordersV2 = borderParams.getBordersV2();
 
+        if (borderParams.getPosMode() != null) {
+            theMode = borderParams.getPosMode();
+        }
+
         final int block;
         final int pos;
-        if (theMode == PosMode.BTM_MODE) {
+        if (theMode == BorderParams.PosMode.BTM_MODE) {
             block = guiParams.getBlock2().intValueExact();
             pos = bP.intValueExact();
         } else {
@@ -282,8 +286,6 @@ public class BordersService {
         return null;
     }
 
-    enum PosMode {BTM_MODE, OK_MODE}
-
     enum TradeType {NONE, DELTA1_B_SELL_O_BUY, DELTA2_B_BUY_O_SELL}
 
     public static class TradingSignal {
@@ -291,13 +293,13 @@ public class BordersService {
         public int bitmexBlock;
         public int okexBlock;
 
-        public TradingSignal(TradeType tradeType, int block) {
+        TradingSignal(TradeType tradeType, int block) {
             this.tradeType = tradeType;
             convertToBitmex(block);
         }
 
         private void convertToBitmex(int block) {
-            if (theMode == PosMode.BTM_MODE) { // usdInContract = 1; => min block is 100
+            if (theMode == BorderParams.PosMode.BTM_MODE) { // usdInContract = 1; => min block is 100
                 bitmexBlock = block;
                 okexBlock = block / 100;
             } else { // usdInContract = 100; => min block is 1
