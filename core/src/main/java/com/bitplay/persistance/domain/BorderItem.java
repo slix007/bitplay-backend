@@ -51,4 +51,14 @@ public class BorderItem {
     public void setPosShortLimit(int posShortLimit) {
         this.posShortLimit = posShortLimit;
     }
+
+    @Override
+    public String toString() {
+        return "{" +
+                "id=" + id +
+                ",val=" + value +
+                ",pLL=" + posLongLimit +
+                ",pSL=" + posShortLimit +
+                '}';
+    }
 }
