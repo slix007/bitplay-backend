@@ -441,11 +441,13 @@ public class ArbitrageService {
 
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(delta1, delta2, bP, oPL, oPS);
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
-                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock), BigDecimal.valueOf(tradingSignal.okexBlock));
+                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock),
+                        BigDecimal.valueOf(tradingSignal.okexBlock), tradingSignal);
             }
 
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
-                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock), BigDecimal.valueOf(tradingSignal.okexBlock));
+                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock),
+                        BigDecimal.valueOf(tradingSignal.okexBlock), tradingSignal);
             }
         }
 
@@ -455,10 +457,11 @@ public class ArbitrageService {
     public void startTradingOnDelta1(SignalType signalType, BestQuotes bestQuotes) {
         final BigDecimal b_block = params.getBlock1();
         final BigDecimal o_block = params.getBlock2();
-        startTradingOnDelta1(signalType, bestQuotes, b_block, o_block);
+        startTradingOnDelta1(signalType, bestQuotes, b_block, o_block, null);
     }
 
-    private void startTradingOnDelta1(SignalType signalType, BestQuotes bestQuotes, final BigDecimal b_block, final BigDecimal o_block) {
+    private void startTradingOnDelta1(SignalType signalType, final BestQuotes bestQuotes, final BigDecimal b_block, final BigDecimal o_block,
+                                      final BordersService.TradingSignal tradingSignal) {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
         if (checkBalance(DELTA1, b_block, o_block) //) {
@@ -479,7 +482,7 @@ public class ArbitrageService {
             params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
             params.setVolPlan(b_block); // buy
 
-            writeLogDelta1(ask1_o, bid1_p);
+            writeLogDelta1(ask1_o, bid1_p, tradingSignal);
 
             firstMarketService.placeOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, signalType);
             secondMarketService.placeOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, signalType);
@@ -494,10 +497,11 @@ public class ArbitrageService {
     public void startTradingOnDelta2(SignalType signalType, BestQuotes bestQuotes) {
         final BigDecimal b_block = params.getBlock1();
         final BigDecimal o_block = params.getBlock2();
-        startTradingOnDelta2(signalType, bestQuotes, b_block, o_block);
+        startTradingOnDelta2(signalType, bestQuotes, b_block, o_block, null);
     }
 
-    private void startTradingOnDelta2(SignalType signalType, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block) {
+    private void startTradingOnDelta2(final SignalType signalType, final BestQuotes bestQuotes, final BigDecimal b_block, final BigDecimal o_block,
+                                      final BordersService.TradingSignal tradingSignal) {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
@@ -519,7 +523,7 @@ public class ArbitrageService {
             params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
             params.setVolPlan(b_block.negate());//sell
 
-            writeLogDelta2(ask1_p, bid1_o);
+            writeLogDelta2(ask1_p, bid1_o, tradingSignal);
 
             firstMarketService.placeOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, signalType);
             secondMarketService.placeOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, signalType);
@@ -532,7 +536,7 @@ public class ArbitrageService {
         }
     }
 
-    private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_p) {
+    private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_p, final BordersService.TradingSignal tradingSignal) {
         deltasLogger.info("------------------------------------------");
 
         Integer counter1 = params.getCounter1();
@@ -551,12 +555,12 @@ public class ArbitrageService {
         params.setCumDelta(params.getCumDelta().add(delta1));
         if (params.getCumDelta().compareTo(params.getCumDeltaMin()) == -1) params.setCumDeltaMin(params.getCumDelta());
         if (params.getCumDelta().compareTo(params.getCumDeltaMax()) == 1) params.setCumDeltaMax(params.getCumDelta());
-        deltasLogger.info(String.format("#%s delta1=%s-%s=%s; b1=%s; cum_delta=%s/%s/%s;",
+        deltasLogger.info(String.format("#%s delta1=%s-%s=%s; %s; cum_delta=%s/%s/%s;",
                 //usdP=%s; btcO=%s; usdO=%s; w=%s; ",
                 getCounter(),
                 bid1_p.toPlainString(), ask1_o.toPlainString(),
                 delta1.toPlainString(),
-                border1.toPlainString(),
+                tradingSignal == null ? ("b1=" + border1.toPlainString()) : ("borderV2:" + tradingSignal.toString()),
                 params.getCumDelta().toPlainString(),
                 params.getCumDeltaMin().toPlainString(),
                 params.getCumDeltaMax().toPlainString()
@@ -574,7 +578,7 @@ public class ArbitrageService {
         printSumBal(false);
     }
 
-    private void writeLogDelta2(BigDecimal ask1_p, BigDecimal bid1_o) {
+    private void writeLogDelta2(BigDecimal ask1_p, BigDecimal bid1_o, final BordersService.TradingSignal tradingSignal) {
         deltasLogger.info("------------------------------------------");
 
         Integer counter1 = params.getCounter1();
@@ -593,11 +597,11 @@ public class ArbitrageService {
         params.setCumDelta(params.getCumDelta().add(delta2));
         if (params.getCumDelta().compareTo(params.getCumDeltaMin()) == -1) params.setCumDeltaMin(params.getCumDelta());
         if (params.getCumDelta().compareTo(params.getCumDeltaMax()) == 1) params.setCumDeltaMax(params.getCumDelta());
-        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; b2=%s; cum_delta=%s/%s/%s;",
+        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; %s; cum_delta=%s/%s/%s;",
                 getCounter(),
                 bid1_o.toPlainString(), ask1_p.toPlainString(),
                 delta2.toPlainString(),
-                border2.toPlainString(),
+                tradingSignal == null ? ("b2=" + border2.toPlainString()) : ("borderV2:" + tradingSignal.toString()),
                 params.getCumDelta().toPlainString(),
                 params.getCumDeltaMin().toPlainString(),
                 params.getCumDeltaMax().toPlainString()
