@@ -1,19 +1,21 @@
 package com.bitplay.persistance.domain;
 
+import java.math.BigDecimal;
+
 /**
  * Created by Sergey Shurmin on 10/5/17.
  */
 public class BorderItem {
 
     private int id;
-    private int value;
+    private BigDecimal value;
     private int posLongLimit;
     private int posShortLimit;
 
     public BorderItem() {
     }
 
-    public BorderItem(int id, int value, int posLongLimit, int posShortLimit) {
+    public BorderItem(int id, BigDecimal value, int posLongLimit, int posShortLimit) {
         this.id = id;
         this.value = value;
         this.posLongLimit = posLongLimit;
@@ -28,11 +30,11 @@ public class BorderItem {
         this.id = id;
     }
 
-    public int getValue() {
+    public BigDecimal getValue() {
         return value;
     }
 
-    public void setValue(int value) {
+    public void setValue(BigDecimal value) {
         this.value = value;
     }
 

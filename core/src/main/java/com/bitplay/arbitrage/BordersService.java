@@ -82,7 +82,7 @@ public class BordersService {
         if (pos != 0) {
             for (int i = 0; i < btm_br_close_cnt; i++) {
                 if (btm_br_close.get(i).getId() != 0) {
-                    if (b_delta.intValue() >= btm_br_close.get(i).getValue()) {
+                    if (b_delta.compareTo(btm_br_close.get(i).getValue()) >= 0) { // >=
                         if (pos > 0 && pos > btm_br_close.get(i).getPosLongLimit()) {
                             if (pos - block < btm_br_close.get(i).getPosLongLimit()) {
                                 int block_once = pos - btm_br_close.get(i).getPosLongLimit();
@@ -150,7 +150,7 @@ public class BordersService {
         for (int i = 0; i < btm_br_open_cnt; i++) {
             if (btm_br_open.get(i).getId() != 0) {
 
-                if (b_delta.intValue() >= btm_br_open.get(i).getValue()) {
+                if (b_delta.compareTo(btm_br_open.get(i).getValue()) >= 0) { // >=
 
                     if (pos >= 0 && pos < btm_br_open.get(i).getPosLongLimit()) {
                         if (pos + block > btm_br_open.get(i).getPosLongLimit()) {
@@ -217,7 +217,7 @@ public class BordersService {
         if (pos != 0) {
             for (int i = 0; i < ok_br_close_cnt; i++) {
                 if (ok_br_close.get(i).getId() != 0) {
-                    if (o_delta.intValue() >= ok_br_close.get(i).getValue()) {
+                    if (o_delta.compareTo(ok_br_close.get(i).getValue()) >= 0) {
                         if (pos > 0 && pos > ok_br_close.get(i).getPosLongLimit()) {
                             if (pos - block < ok_br_close.get(i).getPosLongLimit()) {
                                 int block_once = pos - ok_br_close.get(i).getPosLongLimit();
@@ -282,7 +282,7 @@ public class BordersService {
         // Okex border open
         for (int i = 0; i < ok_br_open_cnt; i++) {
             if (ok_br_open.get(i).getId() != 0) {
-                if (o_delta.intValue() >= ok_br_open.get(i).getValue()) {
+                if (o_delta.compareTo(ok_br_open.get(i).getValue()) >= 0) {
                     if (pos >= 0 && pos < ok_br_open.get(i).getPosLongLimit()) {
                         if (pos + block > ok_br_open.get(i).getPosLongLimit()) {
                             int block_once = ok_br_open.get(i).getPosLongLimit() - pos;
