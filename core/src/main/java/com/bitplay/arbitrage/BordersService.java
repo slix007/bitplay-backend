@@ -22,7 +22,7 @@ import java.util.Optional;
 @Service
 public class BordersService {
     private static final Logger logger = LoggerFactory.getLogger(BordersService.class);
-    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
+//    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
     private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
@@ -63,7 +63,7 @@ public class BordersService {
         if (obOpenSignal != null) return obOpenSignal;
 
 
-        return new TradingSignal(TradeType.NONE, 0, "", "");
+        return new TradingSignal(TradeType.NONE, 0, "", "", "");
     }
 
     private TradingSignal bDeltaBorderClose(BigDecimal b_delta, int block, int pos, BordersV2 bordersV2) {
@@ -73,7 +73,7 @@ public class BordersService {
         if (!b_br_close.isPresent()) {
             logger.warn(String.format("No %s is present", borderName));
             warningLogger.warn(String.format("No %s is present", borderName));
-            return new TradingSignal(TradeType.NONE, 0, borderName, "");
+            return new TradingSignal(TradeType.NONE, 0, borderName, "", "");
         }
         final List<BorderItem> btm_br_close = b_br_close.get().getBorderItemList();
         final int btm_br_close_cnt = btm_br_close.size();
@@ -88,20 +88,20 @@ public class BordersService {
                                 int block_once = pos - btm_br_close.get(i).getPosLongLimit();
                                 final String warnString = String.format("block=%d; block_once = %d - %s(long);", block, pos, btm_br_close.get(i).getPosLongLimit());
                                 if (block_once < 0) {
-                                    deltasLogger.warn(String.format("b_close: block_once(%d) < 0; %s", block_once, warnString));
+                                    warningLogger.warn(String.format("b_close: block_once(%d) < 0; %s", block_once, warnString));
                                     //TODO ?? зачем
                                     block_once = Math.abs(block_once); // делается запись в логи warning, блок берется по модулю
                                 } else {
-                                    deltasLogger.warn(String.format("b_close: block_once(%d) >= 0; %s", block_once, warnString));
+                                    warningLogger.warn(String.format("b_close: block_once(%d) >= 0; %s", block_once, warnString));
                                     // close_pos_mode(bitmex, okex, block_once); // делаем close с шагом block_once;
                                     if (theMode == BorderParams.PosMode.BTM_MODE) { // pos > 0
-                                        return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_close.get(i).toString());
+                                        return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_close.get(i).toString(), b_delta.toPlainString());
                                     }
                                 }
                             } else {
                                 // close_pos_mode (bitmex, okex, block); // делаем close b_delta(delta1) с шагом block;
                                 if (theMode == BorderParams.PosMode.BTM_MODE) { // pos > 0
-                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_close.get(i).toString());
+                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_close.get(i).toString(), b_delta.toPlainString());
                                 }
                             }
                         }
@@ -111,19 +111,19 @@ public class BordersService {
                                 int block_once = -pos - btm_br_close.get(i).getPosShortLimit();
                                 final String warnString = String.format("block=%d; block_once = %d - %d(short);", block, pos, btm_br_close.get(i).getPosLongLimit());
                                 if (block_once < 0) {
-                                    deltasLogger.warn(String.format("b_close: block_once(%d) < 0; %s", block_once, warnString));
+                                    warningLogger.warn(String.format("b_close: block_once(%d) < 0; %s", block_once, warnString));
                                     block_once = Math.abs(block_once);
                                 } else {
-                                    deltasLogger.warn(String.format("b_close: block_once(%d) >= 0; %s", block_once, warnString));
+                                    warningLogger.warn(String.format("b_close: block_once(%d) >= 0; %s", block_once, warnString));
                                     // close_pos_mode(bitmex, okex, block_once);
                                     if (theMode == BorderParams.PosMode.OK_MODE) { // pos < 0
-                                        return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_close.get(i).toString());
+                                        return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_close.get(i).toString(), b_delta.toPlainString());
                                     }
                                 }
                             } else {
                                 // close_pos_mode (bitmex, okex, block); // делаем close с шагом block;
                                 if (theMode == BorderParams.PosMode.OK_MODE) { // pos < 0
-                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_close.get(i).toString());
+                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_close.get(i).toString(), b_delta.toPlainString());
                                 }
                             }
                         }
@@ -141,7 +141,7 @@ public class BordersService {
         if (!b_br_open.isPresent()) {
             logger.warn(String.format("No %s is present", borderName));
             warningLogger.warn(String.format("No %s is present", borderName));
-            return new TradingSignal(TradeType.NONE, 0, borderName, "");
+            return new TradingSignal(TradeType.NONE, 0, borderName, "", "");
         }
         final List<BorderItem> btm_br_open = b_br_open.get().getBorderItemList();
         final int btm_br_open_cnt = btm_br_open.size();
@@ -157,19 +157,19 @@ public class BordersService {
                             int block_once = btm_br_open.get(i).getPosLongLimit() - pos;
                             final String warnString = String.format("block=%d; block_once = %d(open,long) - %d;", block, btm_br_open.get(i).getPosLongLimit(), pos);
                             if (block_once < 0) {
-                                deltasLogger.warn(String.format("b_open: block_once(%d) < 0; %s", block_once, warnString));
+                                warningLogger.warn(String.format("b_open: block_once(%d) < 0; %s", block_once, warnString));
                                 block_once = Math.abs(block_once); // делается запись в логи warning, блок берется по модулю
                             } else {
-                                deltasLogger.warn(String.format("b_open: block_once(%d) >= 0; %s", block_once, warnString));
+                                warningLogger.warn(String.format("b_open: block_once(%d) >= 0; %s", block_once, warnString));
                                 // open_pos_mode(bitmex, okex, block_once); // делаем open с шагом block_once;
                                 if (theMode == BorderParams.PosMode.OK_MODE) { // pos > 0
-                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_open.get(i).toString());
+                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_open.get(i).toString(), b_delta.toPlainString());
                                 }
                             }
                         } else {
                             //open_pos_mode(bitmex, okex, block); // делаем open с шагом block;
                             if (theMode == BorderParams.PosMode.OK_MODE) { // pos > 0
-                                return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_open.get(i).toString());
+                                return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_open.get(i).toString(), b_delta.toPlainString());
                             }
                         }
                     }
@@ -179,19 +179,19 @@ public class BordersService {
                             int block_once = btm_br_open.get(i).getPosShortLimit() - (-pos);
                             final String warnString = String.format("block=%d; block_once = %d(open,short) - %d;", block, btm_br_open.get(i).getPosShortLimit(), pos);
                             if (block_once < 0) {
-                                deltasLogger.warn(String.format("b_open: block_once(%d) < 0; %s", block_once, warnString));
+                                warningLogger.warn(String.format("b_open: block_once(%d) < 0; %s", block_once, warnString));
                                 block_once = Math.abs(block_once);
                             } else {
-                                deltasLogger.warn(String.format("b_open: block_once(%d) >= 0; %s", block_once, warnString));
+                                warningLogger.warn(String.format("b_open: block_once(%d) >= 0; %s", block_once, warnString));
                                 //open_pos_mode (bitmex, okex, block_once);
                                 if (theMode == BorderParams.PosMode.BTM_MODE) { // pos < 0
-                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_open.get(i).toString());
+                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_open.get(i).toString(), b_delta.toPlainString());
                                 }
                             }
                         } else {
                             // open_pos_mode (bitmex, okex, block) // делаем open с шагом block;
                             if (theMode == BorderParams.PosMode.BTM_MODE) { // pos < 0
-                                return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_open.get(i).toString());
+                                return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_open.get(i).toString(), b_delta.toPlainString());
                             }
                         }
                     }
@@ -208,7 +208,7 @@ public class BordersService {
         if (!o_br_close.isPresent()) {
             logger.warn(String.format("No %s is present", borderName));
             warningLogger.warn(String.format("No %s is present", borderName));
-            return new TradingSignal(TradeType.NONE, 0, borderName, "");
+            return new TradingSignal(TradeType.NONE, 0, borderName, "", "");
         }
         final List<BorderItem> ok_br_close = o_br_close.get().getBorderItemList();
         final int ok_br_close_cnt = ok_br_close.size();
@@ -223,19 +223,19 @@ public class BordersService {
                                 int block_once = pos - ok_br_close.get(i).getPosLongLimit();
                                 final String warnString = String.format("block=%d; block_once = %d(close,long) - %d;", block, pos, ok_br_close.get(i).getPosLongLimit());
                                 if (block_once < 0) {
-                                    deltasLogger.warn(String.format("o_close: block_once(%d) < 0; %s", block_once, warnString));
+                                    warningLogger.warn(String.format("o_close: block_once(%d) < 0; %s", block_once, warnString));
                                     block_once = Math.abs(block_once); // делается запись в логи warning, блок берется по модулю
                                 } else {
-                                    deltasLogger.warn(String.format("o_close: block_once(%d) >= 0; %s", block_once, warnString));
+                                    warningLogger.warn(String.format("o_close: block_once(%d) >= 0; %s", block_once, warnString));
                                     //close_pos_mode (bitmex, okex, block_once); // делаем close с шагом block_once;
                                     if (theMode == BorderParams.PosMode.OK_MODE) { // pos > 0
-                                        return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_close.get(i).toString());
+                                        return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_close.get(i).toString(), o_delta.toPlainString());
                                     }
                                 }
                             } else {
                                 //close_pos_mode(bitmex, okex, block); // делаем close с шагом block;
                                 if (theMode == BorderParams.PosMode.OK_MODE) { // pos > 0
-                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_close.get(i).toString());
+                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_close.get(i).toString(), o_delta.toPlainString());
                                 }
                             }
                         }
@@ -244,19 +244,19 @@ public class BordersService {
                                 int block_once = -pos - ok_br_close.get(i).getPosShortLimit();
                                 final String warnString = String.format("block=%d; block_once = %d - %d(close,short);", block, pos, ok_br_close.get(i).getPosShortLimit());
                                 if (block_once < 0) {
-                                    deltasLogger.warn(String.format("o_close: block_once(%d) < 0; %s", block_once, warnString));
+                                    warningLogger.warn(String.format("o_close: block_once(%d) < 0; %s", block_once, warnString));
                                     block_once = Math.abs(block_once);
                                 } else {
-                                    deltasLogger.warn(String.format("o_close: block_once(%d) >= 0; %s", block_once, warnString));
+                                    warningLogger.warn(String.format("o_close: block_once(%d) >= 0; %s", block_once, warnString));
                                     // close_pos_mode(bitmex, okex, block_once);
                                     if (theMode == BorderParams.PosMode.BTM_MODE) { // pos < 0
-                                        return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_close.get(i).toString());
+                                        return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_close.get(i).toString(), o_delta.toPlainString());
                                     }
                                 }
                             } else {
                                 // close_pos_mode(bitmex, okex, block)
                                 if (theMode == BorderParams.PosMode.BTM_MODE) { // pos < 0
-                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_close.get(i).toString());
+                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_close.get(i).toString(), o_delta.toPlainString());
                                 }
                             }
                         }
@@ -274,7 +274,7 @@ public class BordersService {
         if (!o_br_open.isPresent()) {
             logger.warn(String.format("No %s is present", borderName));
             warningLogger.warn(String.format("No %s is present", borderName));
-            return new TradingSignal(TradeType.NONE, 0, borderName, "");
+            return new TradingSignal(TradeType.NONE, 0, borderName, "", "");
         }
         final List<BorderItem> ok_br_open = o_br_open.get().getBorderItemList();
         final int ok_br_open_cnt = ok_br_open.size();
@@ -288,19 +288,19 @@ public class BordersService {
                             int block_once = ok_br_open.get(i).getPosLongLimit() - pos;
                             final String warnString = String.format("block=%d; block_once = %d(open,long) - %d;", block, ok_br_open.get(i).getPosLongLimit(), pos);
                             if (block_once < 0) {
-                                deltasLogger.warn(String.format("o_open: block_once(%d) < 0; %s", block_once, warnString));
+                                warningLogger.warn(String.format("o_open: block_once(%d) < 0; %s", block_once, warnString));
                                 block_once = Math.abs(block_once); // делается запись в логи warning, блок берется по модулю
                             } else {
-                                deltasLogger.warn(String.format("o_open: block_once(%d) >= 0; %s", block_once, warnString));
+                                warningLogger.warn(String.format("o_open: block_once(%d) >= 0; %s", block_once, warnString));
                                 //open_pos_mode(okex, bitmex, block_once); // делаем open с шагом block_once;
                                 if (theMode == BorderParams.PosMode.BTM_MODE) { // pos > 0
-                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_open.get(i).toString());
+                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_open.get(i).toString(), o_delta.toPlainString());
                                 }
                             }
                         } else {
                             //open_pos_mode(okex, bitmex, block); // делаем open с шагом block;
                             if (theMode == BorderParams.PosMode.BTM_MODE) { // pos > 0
-                                return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_open.get(i).toString());
+                                return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_open.get(i).toString(), o_delta.toPlainString());
                             }
                         }
                     }
@@ -309,19 +309,19 @@ public class BordersService {
                             int block_once = ok_br_open.get(i).getPosShortLimit() - (-pos);
                             final String warnString = String.format("block=%d; block_once = %d(open,short) - %d;", block, ok_br_open.get(i).getPosShortLimit(), pos);
                             if (block_once < 0) {
-                                deltasLogger.warn(String.format("o_open: block_once(%d) < 0; %s", block_once, warnString));
+                                warningLogger.warn(String.format("o_open: block_once(%d) < 0; %s", block_once, warnString));
                                 block_once = Math.abs(block_once);
                             } else {
-                                deltasLogger.warn(String.format("o_open: block_once(%d) >= 0; %s", block_once, warnString));
+                                warningLogger.warn(String.format("o_open: block_once(%d) >= 0; %s", block_once, warnString));
                                 // open_pos_mode(okex, bitmex, block_once);
                                 if (theMode == BorderParams.PosMode.OK_MODE) { // pos < 0
-                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_open.get(i).toString());
+                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_open.get(i).toString(), o_delta.toPlainString());
                                 }
                             }
                         } else {
                             // open_pos_mode(okex, bitmex, block)
                             if (theMode == BorderParams.PosMode.OK_MODE) { // pos < 0
-                                return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_open.get(i).toString());
+                                return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_open.get(i).toString(), o_delta.toPlainString());
                             }
                         }
                     }
@@ -343,8 +343,9 @@ public class BordersService {
         final public BorderParams.PosMode posMode;
         final public String borderName;
         final public String borderValue;
+        final public String deltaVal;
 
-        TradingSignal(TradeType tradeType, int block, String borderName, String borderValue) {
+        TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, String deltaVal) {
             this.tradeType = tradeType;
             if (theMode == BorderParams.PosMode.BTM_MODE) { // usdInContract = 1; => min block is 100
                 bitmexBlock = block;
@@ -356,6 +357,7 @@ public class BordersService {
             this.posMode = theMode;
             this.borderName = borderName;
             this.borderValue = borderValue;
+            this.deltaVal = deltaVal;
         }
 
         @Override
@@ -367,6 +369,7 @@ public class BordersService {
                     ", posMode=" + posMode +
                     ", borderName='" + borderName + '\'' +
                     ", borderVal='" + borderValue + '\'' +
+                    ", deltaCalcVal='" + deltaVal + '\'' +
                     '}';
         }
     }
