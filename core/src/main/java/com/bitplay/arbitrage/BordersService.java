@@ -174,7 +174,7 @@ public class BordersService {
                         }
                     }
 
-                    if (pos < 0 && -pos < btm_br_open.get(i).getPosShortLimit()) {
+                    if (pos <= 0 && -pos < btm_br_open.get(i).getPosShortLimit()) {
                         if (-pos + block > btm_br_open.get(i).getPosShortLimit()) {
                             int block_once = btm_br_open.get(i).getPosShortLimit() - (-pos);
                             final String warnString = String.format("block=%d; block_once = %d(open,short) - %d;", block, btm_br_open.get(i).getPosShortLimit(), pos);
@@ -304,7 +304,7 @@ public class BordersService {
                             }
                         }
                     }
-                    if (pos < 0 && -pos < ok_br_open.get(i).getPosShortLimit()) {
+                    if (pos <= 0 && -pos < ok_br_open.get(i).getPosShortLimit()) {
                         if (-pos + block > ok_br_open.get(i).getPosShortLimit()) {
                             int block_once = ok_br_open.get(i).getPosShortLimit() - (-pos);
                             final String warnString = String.format("block=%d; block_once = %d(open,short) - %d;", block, ok_br_open.get(i).getPosShortLimit(), pos);
