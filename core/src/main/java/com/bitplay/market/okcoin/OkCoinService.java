@@ -464,6 +464,8 @@ public class OkCoinService extends MarketService {
 
     private void updateOpenOrders(List<LimitOrder> trades) {
         synchronized (openOrdersLock) {
+            StringBuilder updateAction = new StringBuilder();
+
             // Replace all existing with new info
             this.openOrders = this.openOrders.stream()
                     .flatMap(existingInMemory -> {
@@ -478,6 +480,7 @@ public class OkCoinService extends MarketService {
                                     getCounterName(),
                                     order.getId(), order.getStatus(), order.getTradableAmount(),
                                     order.getCumulativeAmount());
+                            updateAction.append("update,");
                         }
                         // Remove old. 'CANCELED is skiped because it can be MovingInTheMiddle case'
                         Collection<LimitOrder> optionalOrder = new ArrayList<>();
@@ -519,7 +522,12 @@ public class OkCoinService extends MarketService {
             this.openOrders.addAll(newOrders);
 
             if (this.openOrders.size() == 0) {
-                warningLogger.info("Okcoin-ready: no openOrders");
+                tradeLogger.info("Okcoin-ready: " + trades.stream()
+                        .map(LimitOrder::toString)
+                        .collect(Collectors.joining("; ")));
+                logger.info("Okcoin-ready: " + trades.stream()
+                        .map(LimitOrder::toString)
+                        .collect(Collectors.joining("; ")));
                 eventBus.send(BtsEvent.MARKET_FREE);
             }
         }
