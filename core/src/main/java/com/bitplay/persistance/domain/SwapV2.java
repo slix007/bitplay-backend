@@ -23,4 +23,12 @@ public class SwapV2 {
     public void setSwapOpenAmount(String swapOpenAmount) {
         this.swapOpenAmount = swapOpenAmount;
     }
+
+    @Override
+    public String toString() {
+        return "SwapV2{" +
+                "swapOpenType='" + swapOpenType + '\'' +
+                ", swapOpenAmount='" + swapOpenAmount + '\'' +
+                '}';
+    }
 }

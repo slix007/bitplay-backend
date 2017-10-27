@@ -32,7 +32,7 @@ public class BitmexTimeService {
         final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
 
         final Date marketTime = bitmexInfoDto.getTimestamp();
-        timeCompareString = String.format("bitmex:%s, local:%s",
+        timeCompareString = String.format("bitmex:%s, ourServer:%s",
                 sdf.format(marketTime),
                 sdf.format(new Date()));
     }
