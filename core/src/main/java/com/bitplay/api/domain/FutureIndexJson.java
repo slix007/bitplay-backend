@@ -12,6 +12,7 @@ public class FutureIndexJson {
     private String swapTime;
     private String timeToSwap;
     private String swapType;
+    private String timeCompareString;
 
     public FutureIndexJson(String index, String timestamp) {
         this.index = index;
@@ -20,7 +21,8 @@ public class FutureIndexJson {
 
     public FutureIndexJson(String index, String timestamp, String fundingRate,
                            String fundingCost,
-                           String position, String swapTime, String timeToSwap, String swapType) {
+                           String position, String swapTime, String timeToSwap, String swapType,
+                           String timeCompareString) {
         this.index = index;
         this.timestamp = timestamp;
         this.fundingRate = fundingRate;
@@ -29,6 +31,7 @@ public class FutureIndexJson {
         this.swapTime = swapTime;
         this.timeToSwap = timeToSwap;
         this.swapType = swapType;
+        this.timeCompareString = timeCompareString;
     }
 
     public String getIndex() {
@@ -93,5 +96,9 @@ public class FutureIndexJson {
 
     public void setSwapType(String swapType) {
         this.swapType = swapType;
+    }
+
+    public String getTimeCompareString() {
+        return timeCompareString;
     }
 }

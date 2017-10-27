@@ -9,6 +9,7 @@ import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.domain.SwapParams;
 
@@ -36,7 +37,10 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     private static final Logger logger = LoggerFactory.getLogger(BitplayUIServiceBitmex.class);
 
     @Autowired
-    BitmexService service;
+    private BitmexService service;
+
+    @Autowired
+    private BitmexTimeService bitmexTimeService;
 
     @Override
     public BitmexService getBusinessService() {
@@ -120,13 +124,16 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         final String position = service.getPosition().getPositionLong().toPlainString();
 
+        final String timeCompareString = bitmexTimeService.getTimeCompareString();
+
         return new FutureIndexJson(futureIndexParent.getIndex(), futureIndexParent.getTimestamp(),
                 fundingRate,
                 fundingCost,
                 position,
                 swapTime,
                 timeToSwap,
-                signalType);
+                signalType,
+                timeCompareString);
     }
 
     public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {

@@ -11,6 +11,13 @@ import java.math.BigDecimal;
 @Document(collection="swapParamsCollection")
 @TypeAlias("swapParams")
 public class SwapParams extends MarketDocument {
+    private Ver activeVersion;
+    private SwapV2 swapV2;
+
+    public Ver getActiveVersion() {
+        return activeVersion;
+    }
+
     private String customSwapTime = "";
     private BigDecimal cumFundingRate = BigDecimal.ZERO;
     private BigDecimal cumFundingCost = BigDecimal.ZERO;
@@ -18,6 +25,20 @@ public class SwapParams extends MarketDocument {
     private BigDecimal cumFee = BigDecimal.ZERO;
     private BigDecimal cumSpl = BigDecimal.ZERO;
     private BigDecimal cumSwapDiff = BigDecimal.ZERO;
+
+    public void setActiveVersion(Ver activeVersion) {
+        this.activeVersion = activeVersion;
+    }
+
+    public SwapV2 getSwapV2() {
+        return swapV2;
+    }
+
+    public void setSwapV2(SwapV2 swapV2) {
+        this.swapV2 = swapV2;
+    }
+
+    public enum Ver {V1, V2,}
 
     public String getCustomSwapTime() {
         return customSwapTime;

@@ -1,6 +1,7 @@
 package org.knowm.xchange.bitmex.service;
 
 import org.knowm.xchange.Exchange;
+import org.knowm.xchange.bitmex.dto.BitmexInfoDto;
 
 import java.io.IOException;
 import java.util.List;
@@ -32,6 +33,10 @@ public class BitmexMarketDataServiceRaw extends BitmexBaseService {
                 symbol,
                 depth
         );
+    }
+
+    public BitmexInfoDto getBitmexInfoDto() throws IOException {
+        return bitmexPublicApi.getGenralInfo();
     }
 
 //    public PaymiumTrade[] getPaymiumTrades() throws IOException {

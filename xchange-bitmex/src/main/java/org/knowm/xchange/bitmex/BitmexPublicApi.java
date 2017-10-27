@@ -1,5 +1,7 @@
 package org.knowm.xchange.bitmex;
 
+import org.knowm.xchange.bitmex.dto.BitmexInfoDto;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -26,5 +28,9 @@ public interface BitmexPublicApi {
             @QueryParam("symbol") String symbol,
             @QueryParam("depth") Integer depth) throws IOException;
 
+    @GET
+    @Path("/")
+    @Produces(MediaType.APPLICATION_JSON)
+    BitmexInfoDto getGenralInfo() throws IOException;
 
 }
