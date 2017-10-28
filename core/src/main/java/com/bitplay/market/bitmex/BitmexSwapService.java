@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.domain.SwapParams;
+import com.bitplay.persistance.domain.SwapV2;
 import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
@@ -16,10 +17,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
@@ -47,6 +55,11 @@ public class BitmexSwapService {
     private volatile BitmexFunding bitmexFunding = new BitmexFunding();
     private volatile BitmexSwapOrders bitmexSwapOrders = new BitmexSwapOrders();
 
+    // v2
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private volatile ScheduledFuture<?> scheduledSwapV2Opening;
+
+
     public BitmexFunding getBitmexFunding() {
         return bitmexFunding;
     }
@@ -58,6 +71,9 @@ public class BitmexSwapService {
         Completable.timer(100, TimeUnit.MILLISECONDS)
                 .doOnComplete(this::restartScheduleFunding)
                 .subscribe();
+
+        // v2
+        ((ScheduledThreadPoolExecutor) scheduler).setRemoveOnCancelPolicy(true);
     }
 
     private void restartScheduleFunding() {
@@ -76,22 +92,27 @@ public class BitmexSwapService {
                         this::restartScheduleFunding);
     }
 
-
     void fundingRateTicker(Long tickerCouner) {
         swapTicker = swapTicker + 1;
 
-        recalcBitmexFunding();
+        SwapParams swapParams = bitmexService.getPersistenceService().fetchSwapParams(bitmexService.getName());
+
+        recalcBitmexFunding(swapParams);
 
         final int SWAP_AWAIT_INTERVAL_SEC = 300;
         final int SWAP_INTERVAL_SEC = 2;
         final MarketState marketState = bitmexService.getMarketState();
         switch (marketState) {
             default:
-                checkStartSwapAwait(SWAP_AWAIT_INTERVAL_SEC);
+                checkStartSwapAwait(SWAP_AWAIT_INTERVAL_SEC, swapParams);
                 break;
 
             case SWAP_AWAIT:
-                checkStartFunding(SWAP_INTERVAL_SEC);
+                if (swapParams.getActiveVersion() == SwapParams.Ver.V2) {
+                    checkSwapV2();
+                } else {
+                    checkStartFunding(SWAP_INTERVAL_SEC);
+                }
                 break;
 
             case SWAP:
@@ -100,7 +121,74 @@ public class BitmexSwapService {
         }
     }
 
-    private void checkStartSwapAwait(int SWAP_AWAIT_INTERVAL) {
+    private void checkSwapV2() {
+        SwapParams swapParams = bitmexService.getPersistenceService().fetchSwapParams(bitmexService.getName());
+
+        if (scheduledSwapV2Opening == null
+                || scheduledSwapV2Opening.isCancelled()
+                || scheduledSwapV2Opening.isDone()) {
+            resetTimerToSwapV2Opening(swapParams);
+        }
+
+        final long msLeft = scheduledSwapV2Opening.getDelay(TimeUnit.MILLISECONDS);
+        final BigDecimal secLeft = BigDecimal.valueOf(msLeft).divide(BigDecimal.valueOf(1000), 3, BigDecimal.ROUND_HALF_UP);
+        final LocalTime now = LocalTime.now();
+        swapParams.getSwapV2().setMsToSwapString(String.format("left:%s sec(updated:%s)", secLeft, now.toString()));
+
+        bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
+    }
+
+    private synchronized void resetTimerToSwapV2Opening(SwapParams swapParams) {
+        // cancel
+        if (scheduledSwapV2Opening != null && !scheduledSwapV2Opening.isDone()) {
+            scheduledSwapV2Opening.cancel(true);
+        }
+
+        // ---------AW--(now)-----------SW---RV----->
+        final long msAfterSwap = swapParams.getSwapV2().getSwapTimeCorrMs() != null ? swapParams.getSwapV2().getSwapTimeCorrMs().longValue() : 0;
+        final long nowMs = Instant.now().toEpochMilli();
+        final long swapTimeMs = bitmexFunding.getSwapTime().toInstant().toEpochMilli();
+        final long openTimeMs = swapTimeMs + msAfterSwap;
+        final long timeToOpen = openTimeMs - nowMs;
+
+        if (timeToOpen > 0) {
+            scheduledSwapV2Opening = scheduler.schedule(this::doSwapV2Opening,
+                    timeToOpen, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    public void setCustomSwapTime(String swapTime) {
+        SwapParams swapParams = bitmexService.getPersistenceService().fetchSwapParams(bitmexService.getName());
+        swapParams.setCustomSwapTime(swapTime);
+        bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
+
+        // reset scheduledSwapV2Opening
+        if (swapParams.getActiveVersion() == SwapParams.Ver.V2) {
+            resetTimerToSwapV2Opening(swapParams);
+        }
+    }
+
+    private void doSwapV2Opening() {
+        tradeLogger.info("doSwapV2Opening, thread: " + Thread.currentThread().getName());
+
+        SwapParams swapParams = bitmexService.getPersistenceService().fetchSwapParams(bitmexService.getName());
+        final SwapV2 swapV2 = swapParams.getSwapV2();
+        Order.OrderType orderType = swapV2.getSwapOpenType().equals("Buy") ? Order.OrderType.BID : Order.OrderType.ASK; // Sell, Buy
+        final BigDecimal amountInContracts = new BigDecimal(swapV2.getSwapOpenAmount());
+
+        final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, amountInContracts, null, SignalType.SWAP_OPEN);
+        if (tradeResponse.getErrorCode() == null) {
+            swapParams.getSwapV2().setMsToSwapString("");
+            bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
+
+            printSwapTimeAndAvgPrice(tradeResponse.getOrderId());
+
+            resetSwapState(true);
+        }
+
+    }
+
+    private void checkStartSwapAwait(int SWAP_AWAIT_INTERVAL, SwapParams swapParams) {
         if (bitmexFunding == null || bitmexFunding.getSwapTime() == null) {
             return;
         }
@@ -111,7 +199,9 @@ public class BitmexSwapService {
 
         // ---------AW--(now)-----------SW---RV----->
         if (startAwaitSec < nowSec && nowSec < swapTimeSec) {
-            final SignalType signalType = bitmexFunding.getSignalType();
+            final SignalType signalType = (swapParams.getActiveVersion() != null && swapParams.getActiveVersion() == SwapParams.Ver.V2)
+                    ? SignalType.SWAP_OPEN
+                    : bitmexFunding.getSignalType();
             bitmexService.getArbitrageService().setSignalType(signalType);
             bitmexService.setMarketState(MarketState.SWAP_AWAIT);
         }
@@ -138,6 +228,7 @@ public class BitmexSwapService {
             resetSwapState();
         }
     }
+
 
     private void checkEndFunding() {
         if (swapTicker > MAX_TICKS_TO_SWAP_REVERT
@@ -267,14 +358,20 @@ public class BitmexSwapService {
     }
 
     private void resetSwapState() {
-        bitmexService.setMarketState(MarketState.READY);
-        bitmexFunding.setFixedSwapTime(null);
-        // delay  for mdc
-        Completable.timer(2, TimeUnit.SECONDS)
-                .subscribe(() -> arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored));
+        resetSwapState(false);
     }
 
-    private void recalcBitmexFunding() {
+    private void resetSwapState(boolean isVer2) {
+        bitmexService.setMarketState(MarketState.READY);
+        bitmexFunding.setFixedSwapTime(null);
+        if (!isVer2 && maxDiffCorrStored != null) {
+            // delay  for mdc
+            Completable.timer(2, TimeUnit.SECONDS)
+                    .subscribe(() -> arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored));
+        }
+    }
+
+    private void recalcBitmexFunding(SwapParams swapParams) {
         if (!(bitmexService.getContractIndex() instanceof BitmexContractIndex)) {
             return;
         }
@@ -286,7 +383,6 @@ public class BitmexSwapService {
 
         OffsetDateTime swapTime = contractIndex.getSwapTime();
         // For swap testing
-        SwapParams swapParams = bitmexService.getPersistenceService().fetchSwapParams(bitmexService.getName());
         if (swapParams.getCustomSwapTime() != null && swapParams.getCustomSwapTime().length() > 0) {
             swapTime = OffsetDateTime.parse(
                     swapParams.getCustomSwapTime(),
@@ -407,6 +503,31 @@ public class BitmexSwapService {
             avgPrice = orderInfo.getAveragePrice();
 
             logger.info("OrderInfo:" + orderInfo.toString());
+        } catch (Exception e) {
+            logger.error("Error on getting order details after swap", e);
+        }
+
+        return avgPrice;
+    }
+
+    private BigDecimal printSwapTimeAndAvgPrice(String orderId) {
+        BigDecimal avgPrice = BigDecimal.ZERO;
+
+        final Optional<Order> orderInfoAttempts;
+        try {
+            final String counterName = arbitrageService.getSignalType().getCounterName();
+
+            orderInfoAttempts = bitmexService.getOrderInfoAttempts(orderId,
+                    counterName, "SwapService:Status:");
+            Order orderInfo = orderInfoAttempts.get();
+            avgPrice = orderInfo.getAveragePrice();
+            final Date timestamp = orderInfo.getTimestamp();
+            final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
+
+
+            tradeLogger.info(String.format("#%s SwapOrderInfo: time=%s, avgPrice=%s", counterName, sdf.format(timestamp), avgPrice.toPlainString()));
+            tradeLogger.info(String.format("#%s SwapOrderInfo: %s", counterName, orderInfo.toString()));
+            logger.info("SwapOrderInfo:" + orderInfo.toString());
         } catch (Exception e) {
             logger.error("Error on getting order details after swap", e);
         }

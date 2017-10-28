@@ -150,7 +150,10 @@ public class BitmexService extends MarketService {
         loadLiqParams();
 
         initWebSocketConnection();
-        startAllListeners();
+
+        Completable.timer(1000, TimeUnit.MILLISECONDS)
+                .doOnComplete(this::startAllListeners)
+                .subscribe();
 
 //        Observable.interval(60, TimeUnit.SECONDS)
 //                .doOnEach(throwable -> logger.warn("RESTART BITMEX FOR TESTING"))
@@ -1124,8 +1127,8 @@ public class BitmexService extends MarketService {
         }
     }
 
-    public BitmexFunding getBitmexFunding() {
-        return bitmexSwapService.getBitmexFunding();
+    public BitmexSwapService getBitmexSwapService() {
+        return bitmexSwapService;
     }
 
     public BigDecimal getFundingCost() {

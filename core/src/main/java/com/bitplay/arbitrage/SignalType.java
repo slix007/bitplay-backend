@@ -18,7 +18,8 @@ public enum SignalType {
     SWAP_CLOSE_LONG("swap_close_long"),
     SWAP_CLOSE_SHORT("swap_close_short"),
     SWAP_REVERT_LONG("swap_revert_long"),
-    SWAP_REVERT_SHORT("swap_revert_short");
+    SWAP_REVERT_SHORT("swap_revert_short"),
+    SWAP_OPEN("swap_open");
 
     private String counterName;
 

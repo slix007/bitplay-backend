@@ -140,6 +140,7 @@ public class BitmexAdapters {
             for (JsonNode node : jsonNode) {
                 io.swagger.client.model.Order order = mapper.treeToValue(node, io.swagger.client.model.Order.class);
 
+                //TODO MarketOrder can not be cast to LimitOrder
                 final LimitOrder limitOrder = (LimitOrder) adaptOrder(order);
                 openOrders.add(limitOrder);
             }

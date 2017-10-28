@@ -75,7 +75,7 @@ public class PersistenceService {
         return deltaParamsRepository.findFirstByDocumentId(1L);
     }
 
-    public void saveSwapParams(SwapParams swapParams, String marketName) {
+    public synchronized void saveSwapParams(SwapParams swapParams, String marketName) {
         setMarketDocumentName(swapParams, marketName);
         swapParamsRepository.save(swapParams);
     }
@@ -92,7 +92,7 @@ public class PersistenceService {
         swapParams.setMarketName(marketName);
     }
 
-    public SwapParams fetchSwapParams(String marketName) {
+    public synchronized SwapParams fetchSwapParams(String marketName) {
         final SwapParams first = swapParamsRepository.findFirstByMarketName(marketName);
         return first == null ? new SwapParams() : first;
     }

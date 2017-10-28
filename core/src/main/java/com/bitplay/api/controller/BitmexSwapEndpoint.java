@@ -46,6 +46,9 @@ public class BitmexSwapEndpoint {
                 if (settings.swapV2.getSwapOpenAmount() != null) {
                     swapParams.getSwapV2().setSwapOpenAmount(settings.swapV2.getSwapOpenAmount());
                 }
+                if (settings.swapV2.getSwapTimeCorrMs() != null) {
+                    swapParams.getSwapV2().setSwapTimeCorrMs(settings.swapV2.getSwapTimeCorrMs());
+                }
 
                 respDetails = "swapV2: " + settings.swapV2;
             }

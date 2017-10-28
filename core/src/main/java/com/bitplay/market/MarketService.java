@@ -404,13 +404,17 @@ public abstract class MarketService {
                 }
                 Thread.sleep(sleepTime);
                 final Collection<Order> order = tradeService.getOrder(orderId);
+                if (order.isEmpty()) {
+                    final String message = String.format("%s/%s %s orderId=%s, error: %s",
+                            counterName, i,
+                            logInfoId,
+                            orderId, "Market did not return info by orderId");
+                    getTradeLogger().error(message);
+                    continue;
+                }
                 orderInfo = order.iterator().next();
 
-                if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                    break;
-                }
-
-                getTradeLogger().error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
+                getTradeLogger().error("#{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
                         counterName, i,
                         logInfoId,
                         Utils.convertOrderTypeName(orderInfo.getType()),
@@ -419,6 +423,11 @@ public abstract class MarketService {
                         orderInfo.getId(),
                         orderInfo.getType(),
                         orderInfo.getCumulativeAmount().toPlainString());
+
+                if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
+                    break;
+                }
+
             } catch (Exception e) {
                 final String message = String.format("%s/%s %s orderId=%s, error: %s",
                         counterName, i,

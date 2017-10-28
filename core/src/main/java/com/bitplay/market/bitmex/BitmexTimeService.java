@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.time.LocalTime;
 import java.util.Date;
 
 /**
@@ -27,14 +28,26 @@ public class BitmexTimeService {
     @Scheduled(fixedDelay = 5000)
     public void getTime() throws IOException {
         final BitmexMarketDataService marketDataService = (BitmexMarketDataService) bitmexService.getExchange().getMarketDataService();
+
+        final Date startTime = new Date();
+
         final BitmexInfoDto bitmexInfoDto = marketDataService.getBitmexInfoDto();
 
         final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
 
         final Date marketTime = bitmexInfoDto.getTimestamp();
-        timeCompareString = String.format("bitmex:%s, ourServer:%s",
+
+        final Date endTime = new Date();
+
+        timeCompareString = String.format("ourReq:%s, bitmex:%s, ourResp:%s<br>" +
+                        "bitmex-ourReq:%s ms<br>" +
+                        "ourResp-ourReq:%s ms",
+                sdf.format(startTime),
                 sdf.format(marketTime),
-                sdf.format(new Date()));
+                sdf.format(endTime),
+                marketTime.toInstant().toEpochMilli() - startTime.toInstant().toEpochMilli(),
+                endTime.toInstant().toEpochMilli() - startTime.toInstant().toEpochMilli()
+                );
     }
 
     public String getTimeCompareString() {

@@ -100,7 +100,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     public FutureIndexJson getFutureIndex() {
         final FutureIndexJson futureIndexParent = super.getFutureIndex();
 
-        final BitmexFunding bitmexFunding = service.getBitmexFunding();
+        final BitmexFunding bitmexFunding = service.getBitmexSwapService().getBitmexFunding();
         String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
         String fundingCost = service.getFundingCost() != null ? service.getFundingCost().toPlainString() : "";
 
@@ -138,10 +138,11 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
     public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {
         final String swapTime = customSwapTime.getCommand();
-        final String serviceName = service.getName();
-        SwapParams swapParams = service.getPersistenceService().fetchSwapParams(serviceName);
-        swapParams.setCustomSwapTime(swapTime);
-        service.getPersistenceService().saveSwapParams(swapParams, serviceName);
+//        final String serviceName = service.getName();
+//        SwapParams swapParams = service.getPersistenceService().fetchSwapParams(serviceName);
+//        swapParams.setCustomSwapTime(swapTime);
+//        service.getPersistenceService().saveSwapParams(swapParams, serviceName);
+        service.getBitmexSwapService().setCustomSwapTime(swapTime);
         return new ResultJson("true", "");
     }
 }

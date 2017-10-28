@@ -161,7 +161,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getBusinessService().getAffordableContractsForLong().toPlainString(),
                 getBusinessService().getAffordableContractsForShort().toPlainString(),
                 quAvg.toPlainString(),
-                liqPrice.toPlainString(),
+                liqPrice == null ? null : liqPrice.toPlainString(),
                 accountInfoContracts.toString());
     }
 
