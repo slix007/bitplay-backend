@@ -141,7 +141,7 @@ public class BitmexAdapters {
                 io.swagger.client.model.Order order = mapper.treeToValue(node, io.swagger.client.model.Order.class);
 
                 //TODO MarketOrder can not be cast to LimitOrder
-                final LimitOrder limitOrder = (LimitOrder) adaptOrder(order);
+                final LimitOrder limitOrder = (LimitOrder) adaptOrder(order, true);
                 openOrders.add(limitOrder);
             }
         }
@@ -150,6 +150,10 @@ public class BitmexAdapters {
     }
 
     public static Order adaptOrder(io.swagger.client.model.Order order) {
+        return adaptOrder(order, false);
+    }
+
+    public static Order adaptOrder(io.swagger.client.model.Order order, boolean alwaysLimit) {
         final String side = order.getSide(); // may be null
         Order.OrderType orderType = null;
         BigDecimal tradableAmount = null;
@@ -183,7 +187,7 @@ public class BitmexAdapters {
         final Order.OrderStatus orderStatus = convertOrderStatus(order.getOrdStatus());
 
         Order resultOrder;
-        if (order.getOrdType() == null || order.getOrdType().equals("Limit")) {
+        if (order.getOrdType() == null || order.getOrdType().equals("Limit") || alwaysLimit) {
             resultOrder = new LimitOrder(orderType,
                     tradableAmount,
                     currencyPair,
