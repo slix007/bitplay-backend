@@ -53,6 +53,8 @@ public abstract class MarketService {
 
     protected final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
+    protected static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected final Object openOrdersLock = new Object();
@@ -518,62 +520,7 @@ public abstract class MarketService {
         }
     }
 
-    protected void iterateOpenOrdersMove() {
-        boolean haveToFetch = false;
-
-        synchronized (openOrdersLock) {
-            boolean freeTheMarket = false;
-            List<String> toRemove = new ArrayList<>();
-            List<LimitOrder> toAdd = new ArrayList<>();
-            try {
-                for (LimitOrder openOrder : openOrders) {
-                    if (openOrder.getType() != null) {
-                        final SignalType signalType = getArbitrageService().getSignalType();
-                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
-
-                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
-                            freeTheMarket = true;
-                            toRemove.add(openOrder.getId());
-                            haveToFetch = true;
-                            logger.info(getName() + response.getDescription());
-                        }
-
-                        if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
-                            toRemove.add(openOrder.getId());
-                            haveToFetch = true;
-                            if (response.getNewOrder() != null) {
-                                toAdd.add(response.getNewOrder());
-                            }
-                        }
-                    }
-                }
-
-                openOrders.removeIf(o -> toRemove.contains(o.getId()));
-                toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
-                openOrders.addAll(toAdd);
-
-                if (freeTheMarket && openOrders.size() > 0) {
-                    logger.warn("Warning: get ALREADY_CLOSED, but there are still open orders");
-                }
-
-                if (freeTheMarket && openOrders.size() == 0) {
-                    eventBus.send(BtsEvent.MARKET_FREE);
-                }
-            } catch (Exception e) {
-                logger.error("On moving", e);
-                haveToFetch = true;
-//                final List<LimitOrder> orderList = fetchOpenOrders();
-//                if (orderList.size() == 0) {
-//                    eventBus.send(BtsEvent.MARKET_FREE);
-//                }
-            }
-        }
-
-        if (haveToFetch) {
-            fetchOpenOrders();
-        }
-    }
+    abstract protected void iterateOpenOrdersMove();
 
     public MoveResponse moveMakerOrderFromGui(String orderId, SignalType signalType) {
         MoveResponse response;

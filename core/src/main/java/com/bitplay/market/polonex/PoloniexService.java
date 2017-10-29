@@ -118,6 +118,11 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
+    protected void iterateOpenOrdersMove() {
+
+    }
+
+    @Override
     protected Exchange getExchange() {
         return exchange;
     }

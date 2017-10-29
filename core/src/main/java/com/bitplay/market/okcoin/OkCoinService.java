@@ -70,7 +70,7 @@ public class OkCoinService extends MarketService {
     public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
-    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
     private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
     private final static String NAME = "okcoin";
@@ -140,7 +140,7 @@ public class OkCoinService extends MarketService {
         accountInfoSubscription = startAccountInfoSubscription();
         futureIndexSubscription = startFutureIndexListener();
 
-        fetchOpenOrdersWithDelay();
+        fetchOpenOrders();
 
 //        fetchAccountInfo();
         try {
@@ -311,6 +311,12 @@ public class OkCoinService extends MarketService {
         }
     }
 
+    @Scheduled(fixedRate = 1000 * 60 * 5)
+    public void checker() {
+
+    }
+
+/*
     //TODO use subscribing on open orders
     @Scheduled(fixedRate = 1000 * 60 * 15)
     public void fetchOpenOrdersWithDelay() {
@@ -323,7 +329,7 @@ public class OkCoinService extends MarketService {
 //                    }
                 })
                 .subscribe();
-    }
+    }*/
 
     /*
         private Disposable startOrderListener(String orderId) {
@@ -458,6 +464,8 @@ public class OkCoinService extends MarketService {
 
     private void updateOpenOrders(List<LimitOrder> trades) {
         synchronized (openOrdersLock) {
+            StringBuilder updateAction = new StringBuilder();
+
             // Replace all existing with new info
             this.openOrders = this.openOrders.stream()
                     .flatMap(existingInMemory -> {
@@ -472,6 +480,7 @@ public class OkCoinService extends MarketService {
                                     getCounterName(),
                                     order.getId(), order.getStatus(), order.getTradableAmount(),
                                     order.getCumulativeAmount());
+                            updateAction.append("update,");
                         }
                         // Remove old. 'CANCELED is skiped because it can be MovingInTheMiddle case'
                         Collection<LimitOrder> optionalOrder = new ArrayList<>();
@@ -513,9 +522,54 @@ public class OkCoinService extends MarketService {
             this.openOrders.addAll(newOrders);
 
             if (this.openOrders.size() == 0) {
+                tradeLogger.info("Okcoin-ready: " + trades.stream()
+                        .map(LimitOrder::toString)
+                        .collect(Collectors.joining("; ")));
+                logger.info("Okcoin-ready: " + trades.stream()
+                        .map(LimitOrder::toString)
+                        .collect(Collectors.joining("; ")));
                 eventBus.send(BtsEvent.MARKET_FREE);
             }
         }
+    }
+
+    /**
+     * Add new openOrders.<br> It removes old. If no one left, it frees market. They will be checked in moveMakerOrder()
+     *
+     * @return list of open orders.
+     */
+    @Override
+    protected List<LimitOrder> fetchOpenOrders() {
+
+        if (getExchange() != null && getTradeService() != null) {
+            try {
+                final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
+                        .getOpenOrders();
+                if (fetchedList == null) {
+                    logger.error("GetOpenOrdersError");
+                    throw new IllegalStateException("GetOpenOrdersError");
+                }
+
+                updateOpenOrders(fetchedList);
+
+//                    if (fetchedList.size() > 1) {
+//                        getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
+//                    }
+//
+//                    final List<LimitOrder> allNew = fetchedList.stream()
+//                            .filter(fetched -> this.openOrders.stream()
+//                                    .noneMatch(o -> o.getId().equals(fetched.getId())))
+//                            .collect(Collectors.toList());
+//
+//                    this.openOrders.addAll(allNew);
+
+            } catch (Exception e) {
+                logger.error("GetOpenOrdersError", e);
+                throw new IllegalStateException("GetOpenOrdersError", e);
+            }
+
+        }
+        return openOrders;
     }
 
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType)
@@ -554,7 +608,6 @@ public class OkCoinService extends MarketService {
                 writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType,
                         orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
 
-                setFree();
             }
         }
 
@@ -800,6 +853,66 @@ public class OkCoinService extends MarketService {
     @Override
     public TradeService getTradeService() {
         return exchange.getTradeService();
+    }
+
+    @Override
+    protected void iterateOpenOrdersMove() {
+        boolean haveToFetch = false;
+
+        synchronized (openOrdersLock) {
+            boolean freeTheMarket = false;
+            List<String> toRemove = new ArrayList<>();
+            List<LimitOrder> toAdd = new ArrayList<>();
+            try {
+                for (LimitOrder openOrder : openOrders) {
+                    if (openOrder.getType() != null) {
+                        final SignalType signalType = getArbitrageService().getSignalType();
+                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
+
+                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
+                            freeTheMarket = true;
+                            toRemove.add(openOrder.getId());
+                            haveToFetch = true;
+                            logger.info(getName() + response.getDescription());
+                        }
+
+                        if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
+                            toRemove.add(openOrder.getId());
+                            haveToFetch = true;
+                            if (response.getNewOrder() != null) {
+                                toAdd.add(response.getNewOrder());
+                            }
+                        }
+                    }
+                }
+
+                openOrders.removeIf(o -> toRemove.contains(o.getId()));
+                toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
+                openOrders.addAll(toAdd);
+
+                if (freeTheMarket && openOrders.size() > 0) {
+                    logger.warn(getName() + " Warning: get ALREADY_CLOSED, but there are still open orders");
+                    warningLogger.warn(getName() + "Warning: get ALREADY_CLOSED, but there are still open orders");
+                }
+
+                if (freeTheMarket && openOrders.size() == 0) {
+                    warningLogger.warn(getName() + " No openOrders left: send READY");
+                    eventBus.send(BtsEvent.MARKET_FREE);
+                }
+            } catch (Exception e) {
+                logger.error("On moving", e);
+                haveToFetch = true;
+//                final List<LimitOrder> orderList = fetchOpenOrders();
+//                if (orderList.size() == 0) {
+//                    eventBus.send(BtsEvent.MARKET_FREE);
+//                }
+            }
+        }
+
+        if (haveToFetch) {
+            fetchOpenOrders();
+        }
     }
 
     @Override
