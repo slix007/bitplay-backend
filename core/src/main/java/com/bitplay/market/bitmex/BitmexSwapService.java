@@ -138,7 +138,7 @@ public class BitmexSwapService {
         bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
     }
 
-    private synchronized void resetTimerToSwapV2Opening(SwapParams swapParams) {
+    public synchronized void resetTimerToSwapV2Opening(SwapParams swapParams) {
         // cancel
         if (scheduledSwapV2Opening != null && !scheduledSwapV2Opening.isDone()) {
             scheduledSwapV2Opening.cancel(true);

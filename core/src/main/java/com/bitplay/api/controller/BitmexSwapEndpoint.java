@@ -1,6 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ResultJson;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.persistance.domain.SwapV2;
@@ -20,6 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class BitmexSwapEndpoint {
     @Autowired
     PersistenceService persistenceService;
+
+    @Autowired
+    BitmexService bitmexService;
 
     @RequestMapping(value = "", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public SwapParams getSwapParams() {
@@ -48,6 +52,10 @@ public class BitmexSwapEndpoint {
                 }
                 if (settings.swapV2.getSwapTimeCorrMs() != null) {
                     swapParams.getSwapV2().setSwapTimeCorrMs(settings.swapV2.getSwapTimeCorrMs());
+
+                    if (swapParams.getActiveVersion() == SwapParams.Ver.V2) {
+                        bitmexService.getBitmexSwapService().resetTimerToSwapV2Opening(swapParams);
+                    }
                 }
 
                 respDetails = "swapV2: " + settings.swapV2;
