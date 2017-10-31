@@ -522,9 +522,9 @@ public class OkCoinService extends MarketService {
             this.openOrders.addAll(newOrders);
 
             if (this.openOrders.size() == 0) {
-                tradeLogger.info("Okcoin-ready: " + trades.stream()
-                        .map(LimitOrder::toString)
-                        .collect(Collectors.joining("; ")));
+//                tradeLogger.info("Okcoin-ready: " + trades.stream()
+//                        .map(LimitOrder::toString)
+//                        .collect(Collectors.joining("; ")));
                 logger.info("Okcoin-ready: " + trades.stream()
                         .map(LimitOrder::toString)
                         .collect(Collectors.joining("; ")));
@@ -583,8 +583,19 @@ public class OkCoinService extends MarketService {
 
         synchronized (openOrdersLock) {
 
-            final MarketOrder marketOrder = new MarketOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, new Date());
-            final String orderId = tradeService.placeMarketOrder(marketOrder);
+            // Option 1: REAL TAKER
+//            final MarketOrder marketOrder = new MarketOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, new Date());
+//            final String orderId = tradeService.placeMarketOrder(marketOrder);
+
+            // Option 2: FAKE LIMIT ORDER
+            BigDecimal thePrice = Utils.createPriceForTaker(getOrderBook(), orderType,
+                    amount.intValue() + 500 //increased by 500 contracts to make sure it will be filled right away
+            );
+            getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
+            final LimitOrder limitOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
+            String orderId = tradeService.placeLimitOrder(limitOrder);
+
+
             tradeResponse.setOrderId(orderId);
             final String counterName = getCounterName();
 
@@ -731,13 +742,22 @@ public class OkCoinService extends MarketService {
 
     public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
                                                boolean isMoving, SignalType signalType) throws Exception {
+        return placeSimpleMakerOrder(orderType, tradeableAmount, bestQuotes, isMoving, signalType, false);
+    }
+
+    public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
+                                               boolean isMoving, SignalType signalType, boolean isFakeTaker) throws Exception {
         final TradeResponse tradeResponse = new TradeResponse();
         arbitrageService.setSignalType(signalType);
         eventBus.send(BtsEvent.MARKET_BUSY);
 
         BigDecimal thePrice;
 
-        thePrice = createBestMakerPrice(orderType, false).setScale(2, BigDecimal.ROUND_HALF_UP);
+        if (isFakeTaker) {
+            thePrice = Utils.createPriceForTaker(getOrderBook(), orderType, tradeableAmount.intValue());
+        } else {
+            thePrice = createBestMakerPrice(orderType, false).setScale(2, BigDecimal.ROUND_HALF_UP);
+        }
 
         if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
             tradeResponse.setErrorCode("The new price is 0 ");

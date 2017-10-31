@@ -8,7 +8,6 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -85,5 +84,44 @@ public class Utils {
         }
         return new BestQuotes(ask1_o, ask1_p, bid1_o, bid1_p);
     }
+
+    public static BigDecimal createPriceForTaker(OrderBook orderBook, Order.OrderType orderType, int amount) {
+        BigDecimal thePrice = BigDecimal.ZERO;
+        int tmpAmount = 0;
+
+        if (orderType == Order.OrderType.ASK
+                || orderType == Order.OrderType.EXIT_BID) {
+
+
+            final List<LimitOrder> bids = orderBook.getBids();
+            synchronized (bids) {
+                for (LimitOrder bid : bids) {
+                    tmpAmount += bid.getTradableAmount().intValue();
+                    thePrice = bid.getLimitPrice();
+                    if (tmpAmount >= amount) {
+                        break;
+                    }
+                }
+            }
+
+        } else if (orderType == Order.OrderType.BID
+                || orderType == Order.OrderType.EXIT_ASK) {
+
+            final List<LimitOrder> asks = orderBook.getAsks();
+            synchronized (asks) {
+                for (LimitOrder ask : asks) {
+                    thePrice = ask.getLimitPrice();
+                    tmpAmount += ask.getTradableAmount().intValue();
+                    if (tmpAmount >= amount) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return thePrice;
+    }
+
+
 
 }
