@@ -1,6 +1,7 @@
 package com.bitplay.api.service;
 
 import com.bitplay.api.domain.AccountInfoJson;
+import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.OrderBookJson;

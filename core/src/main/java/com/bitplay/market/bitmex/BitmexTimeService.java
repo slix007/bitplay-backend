@@ -118,12 +118,13 @@ public class BitmexTimeService {
     private TimeCompareRange fetchTCR() {
         TimeCompareRange one = timeCompareRangeRepository.findOne(1L);
         if (one == null) {
-            one = new TimeCompareRange();
-            one.setId(1L);
-            one.setBitmexOurReq(Range.empty());
-            one.setOurRespOurReq(Range.empty());
-            one.setOurRespBitmex(Range.empty());
+            one = TimeCompareRange.empty();
         }
         return one;
+    }
+
+    public void resetTimeCompare() {
+        final TimeCompareRange empty = TimeCompareRange.empty();
+        timeCompareRangeRepository.save(empty);
     }
 }

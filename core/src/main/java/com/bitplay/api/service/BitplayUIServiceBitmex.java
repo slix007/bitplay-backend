@@ -142,4 +142,9 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         return new ResultJson("true", "");
     }
+
+    public ResultJson resetTimeCompare() {
+        bitmexTimeService.resetTimeCompare();
+        return new ResultJson("true", "");
+    }
 }

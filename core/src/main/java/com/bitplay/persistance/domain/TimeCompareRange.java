@@ -10,6 +10,15 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @TypeAlias("timeCompareRange")
 public class TimeCompareRange extends AbstractDocument {
 
+    public static TimeCompareRange empty() {
+        TimeCompareRange one = new TimeCompareRange();
+        one.setId(1L);
+        one.setBitmexOurReq(Range.empty());
+        one.setOurRespOurReq(Range.empty());
+        one.setOurRespBitmex(Range.empty());
+        return one;
+    }
+
     private Range bitmexOurReq;
     private Range ourRespOurReq;
     private Range ourRespBitmex;
