@@ -78,8 +78,16 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson futureIndex(@RequestBody ChangeRequestJson changeRequestJson) {
+    public ResultJson setCustomSwapTime(@RequestBody ChangeRequestJson changeRequestJson) {
         return this.bitmex.setCustomSwapTime(changeRequestJson);
+    }
+
+    @RequestMapping(value = "/reset-time-compare",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson resetTimeCompare() {
+        return this.bitmex.resetTimeCompare();
     }
 
     @RequestMapping(value = "/liq-info", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

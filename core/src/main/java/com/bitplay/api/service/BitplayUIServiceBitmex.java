@@ -11,7 +11,6 @@ import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.TradeResponse;
-import com.bitplay.persistance.domain.SwapParams;
 
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Position;
@@ -124,7 +123,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         final String position = service.getPosition().getPositionLong().toPlainString();
 
-        final String timeCompareString = bitmexTimeService.getTimeCompareString();
+        final String timeCompareString = bitmexTimeService.getTimeCompare().getTimeCompareString();
 
         return new FutureIndexJson(futureIndexParent.getIndex(), futureIndexParent.getTimestamp(),
                 fundingRate,
@@ -138,11 +137,14 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
     public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {
         final String swapTime = customSwapTime.getCommand();
-//        final String serviceName = service.getName();
-//        SwapParams swapParams = service.getPersistenceService().fetchSwapParams(serviceName);
-//        swapParams.setCustomSwapTime(swapTime);
-//        service.getPersistenceService().saveSwapParams(swapParams, serviceName);
+
         service.getBitmexSwapService().setCustomSwapTime(swapTime);
+
+        return new ResultJson("true", "");
+    }
+
+    public ResultJson resetTimeCompare() {
+        bitmexTimeService.resetTimeCompare();
         return new ResultJson("true", "");
     }
 }
