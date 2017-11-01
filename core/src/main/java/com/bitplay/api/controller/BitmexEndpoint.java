@@ -90,6 +90,14 @@ public class BitmexEndpoint {
         return this.bitmex.resetTimeCompare();
     }
 
+    @RequestMapping(value = "/update-time-compare-updating",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson updateTimeCompareUpdating(@RequestBody ChangeRequestJson changeRequestJson) {
+        return this.bitmex.updateTimeCompareUpdating(changeRequestJson);
+    }
+
     @RequestMapping(value = "/liq-info", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public LiquidationInfoJson getLiquidationInfo() {
         return this.bitmex.getLiquidationInfoJson();

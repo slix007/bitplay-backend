@@ -1,19 +1,27 @@
 package com.bitplay.market.bitmex;
 
 import com.bitplay.persistance.domain.Range;
+import com.bitplay.persistance.domain.TimeCompareParams;
 import com.bitplay.persistance.domain.TimeCompareRange;
+import com.bitplay.persistance.repository.TimeCompareParamsRepository;
 import com.bitplay.persistance.repository.TimeCompareRangeRepository;
 
 import org.knowm.xchange.bitmex.dto.BitmexInfoDto;
 import org.knowm.xchange.bitmex.service.BitmexMarketDataService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Sergey Shurmin on 10/26/17.
@@ -21,50 +29,89 @@ import java.util.Date;
 @Service
 public class BitmexTimeService {
 
-    private final TimeCompare timeCompare = new TimeCompare();
+    private final static Logger logger = LoggerFactory.getLogger(BitmexSwapService.class);
 
-    @Autowired
-    BitmexService bitmexService;
+    private final TimeCompare timeCompare = new TimeCompare();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     @Autowired
     private TimeCompareRangeRepository timeCompareRangeRepository;
+    @Autowired
+    private BitmexService bitmexService;
+    @Autowired
+    private TimeCompareParamsRepository timeCompareParamsRepository;
+    private ScheduledFuture<?> theSchedule;
 
     public BitmexTimeService() {
+        ((ScheduledThreadPoolExecutor) scheduler).setRemoveOnCancelPolicy(true);
+
+        scheduler.schedule(this::init, 5, TimeUnit.SECONDS);
     }
 
-    @Scheduled(fixedDelay = 1000)
-    public void getTime() throws IOException {
+    private void init() {
+        final TimeCompareParams one = timeCompareParamsRepository.findOne(1L);
+        long delay = one == null ? 5L : one.getUpdateSeconds().longValue();
+        schedule(delay);
+    }
+
+    public void schedule(long delay) {
+        if (theSchedule != null && !theSchedule.isDone() && !theSchedule.isCancelled()) {
+            theSchedule.cancel(true);
+        }
+
+        theSchedule = scheduler.scheduleWithFixedDelay(this::getTimeTask, delay, delay, TimeUnit.SECONDS);
+    }
+
+    private void getTimeTask() {
         final BitmexMarketDataService marketDataService = (BitmexMarketDataService) bitmexService.getExchange().getMarketDataService();
 
         final Date startTime = new Date();
 
-        final BitmexInfoDto bitmexInfoDto = marketDataService.getBitmexInfoDto();
-
-        final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
+        final BitmexInfoDto bitmexInfoDto;
+        try {
+            bitmexInfoDto = marketDataService.getBitmexInfoDto();
+        } catch (IOException e) {
+            logger.error("can not get BitmexInfo", e);
+            return;
+        }
 
         final Date marketTime = bitmexInfoDto.getTimestamp();
 
         final Date endTime = new Date();
 
-        final long first = marketTime.toInstant().toEpochMilli() - startTime.toInstant().toEpochMilli();
-        final long second = endTime.toInstant().toEpochMilli() - startTime.toInstant().toEpochMilli();
-        final long third = endTime.toInstant().toEpochMilli() - marketTime.toInstant().toEpochMilli();
+        String timeCompareString = composeTimeCompareString(startTime, marketTime, endTime);
 
+        timeCompare.setTimeCompareString(timeCompareString);
+    }
+
+    private String composeTimeCompareString(Date startTime, Date marketTime, Date endTime) {
         final TimeCompareRange timeCompareRange = fetchTCR();
-        updateRanges(timeCompareRange, first, second, third);
+        long first = 0;
+        long second = 0;
+        long third = 0;
 
+        if (startTime != null && marketTime != null && endTime != null) {
+            first = marketTime.toInstant().toEpochMilli() - startTime.toInstant().toEpochMilli();
+            second = endTime.toInstant().toEpochMilli() - startTime.toInstant().toEpochMilli();
+            third = endTime.toInstant().toEpochMilli() - marketTime.toInstant().toEpochMilli();
+
+            updateRanges(timeCompareRange, first, second, third);
+        }
         timeCompare.setTimeCompareRange(timeCompareRange);
 
-        String timeCompareString = String.format("ourReq:%s, bitmex:%s, ourResp:%s<br>" +
+        final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
+        final String ourReq = startTime != null ? sdf.format(startTime) : null;
+        final String bitmex = marketTime != null ? sdf.format(marketTime) : null;
+        final String ourResp = endTime != null ? sdf.format(endTime) : null;
+        return String.format("ourReq:%s, bitmex:%s, ourResp:%s<br>" +
                         "bitmex-ourReq:%s ms; ..... %s...%s <br>" +
                         "ourResp-ourReq:%s ms; ... %s...%s <br>" +
                         "ourResp-bitmex:%s ms; .... %s...%s",
-                sdf.format(startTime),
-                sdf.format(marketTime),
-                sdf.format(endTime),
+                ourReq,
+                bitmex,
+                ourResp,
                 first, timeCompareRange.getBitmexOurReq().getMin(), timeCompareRange.getBitmexOurReq().getMax(),
                 second, timeCompareRange.getOurRespOurReq().getMin(), timeCompareRange.getOurRespOurReq().getMax(),
                 third, timeCompareRange.getOurRespBitmex().getMin(), timeCompareRange.getOurRespBitmex().getMax());
-        timeCompare.setTimeCompareString(timeCompareString);
     }
 
     private void updateRanges(TimeCompareRange timeCompareRange, long first, long second, long third) {
@@ -111,8 +158,8 @@ public class BitmexTimeService {
         }
     }
 
-    public TimeCompare getTimeCompare() {
-        return timeCompare;
+    public String getTimeCompareString() {
+        return timeCompare.getTimeCompareString();
     }
 
     private TimeCompareRange fetchTCR() {
@@ -123,8 +170,37 @@ public class BitmexTimeService {
         return one;
     }
 
-    public void resetTimeCompare() {
-        final TimeCompareRange empty = TimeCompareRange.empty();
-        timeCompareRangeRepository.save(empty);
+    public Integer fetchTimeCompareUpdating() {
+        TimeCompareParams one = timeCompareParamsRepository.findOne(1L);
+        return one == null ? 10 : one.getUpdateSeconds();
     }
+
+    public Integer updateTimeCompareUpdating(Integer delay) {
+        saveTimeCompareUpdating(delay);
+        schedule(delay);
+        return delay;
+    }
+
+    private void saveTimeCompareUpdating(Integer delay) {
+        TimeCompareParams one = timeCompareParamsRepository.findOne(1L);
+        if (one != null) {
+            one.setUpdateSeconds(delay);
+        } else {
+            one = new TimeCompareParams();
+            one.setId(1L);
+            one.setUpdateSeconds(delay);
+        }
+        timeCompareParamsRepository.save(one);
+    }
+
+    public String resetTimeCompare() {
+        final TimeCompareRange empty = TimeCompareRange.empty();
+        timeCompare.setTimeCompareRange(empty);
+        timeCompareRangeRepository.save(empty);
+
+        final String s = composeTimeCompareString(null, null, null);
+        timeCompare.setTimeCompareString(s);
+        return s;
+    }
+
 }
