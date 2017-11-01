@@ -395,7 +395,7 @@ public abstract class MarketService {
     public Optional<Order> getOrderInfoAttempts(String orderId, String counterName, String logInfoId) throws InterruptedException, IOException {
         final TradeService tradeService = getExchange().getTradeService();
         Order orderInfo = null;
-        for (int i = 0; i < 10; i++) { // about 11 sec
+        for (int i = 0; i < 20; i++) { // about 11 sec
             try {
                 // 2. check status of the order
                 long sleepTime = 200;

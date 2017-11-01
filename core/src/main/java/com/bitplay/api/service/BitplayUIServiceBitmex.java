@@ -123,7 +123,8 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         final String position = service.getPosition().getPositionLong().toPlainString();
 
-        final String timeCompareString = bitmexTimeService.getTimeCompare().getTimeCompareString();
+        final String timeCompareString = bitmexTimeService.getTimeCompareString();
+        final Integer timeCompareUpdating = bitmexTimeService.fetchTimeCompareUpdating();
 
         return new FutureIndexJson(futureIndexParent.getIndex(), futureIndexParent.getTimestamp(),
                 fundingRate,
@@ -132,7 +133,8 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 swapTime,
                 timeToSwap,
                 signalType,
-                timeCompareString);
+                timeCompareString,
+                String.valueOf(timeCompareUpdating));
     }
 
     public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {
@@ -144,7 +146,13 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     }
 
     public ResultJson resetTimeCompare() {
-        bitmexTimeService.resetTimeCompare();
-        return new ResultJson("true", "");
+        final String timeCompareString = bitmexTimeService.resetTimeCompare();
+        return new ResultJson(timeCompareString, "");
+    }
+
+    public ResultJson updateTimeCompareUpdating(ChangeRequestJson changeRequestJson) {
+        final String command = changeRequestJson.getCommand();
+        final Integer timeCompareUpdating = bitmexTimeService.updateTimeCompareUpdating(Integer.valueOf(command));
+        return new ResultJson(String.valueOf(timeCompareUpdating), "");
     }
 }
