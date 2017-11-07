@@ -13,6 +13,7 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -176,6 +177,8 @@ public class BitmexSwapService {
         Order.OrderType orderType = swapV2.getSwapOpenType().equals("Buy") ? Order.OrderType.BID : Order.OrderType.ASK; // Sell, Buy
         final BigDecimal amountInContracts = new BigDecimal(swapV2.getSwapOpenAmount());
 
+        printAskBid("Before request");
+
         final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, amountInContracts, null, SignalType.SWAP_OPEN);
         if (tradeResponse.getErrorCode() == null) {
             swapParams.getSwapV2().setMsToSwapString("");
@@ -246,12 +249,29 @@ public class BitmexSwapService {
             // ---------AW---------SW----(now)---->
             if (fixedSwapTime <= nowSeconds) {
                 if (bitmexService.getMarketState() == MarketState.SWAP) {
+                    printAskBid("endFunding");
+
                     endFunding();
 
                     printSwapParams();
                 }
             }
         }
+    }
+
+    private void printAskBid(String description) {
+        final OrderBook orderBook = bitmexService.getOrderBook();
+        final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
+        final LimitOrder bestBid = Utils.getBestBid(orderBook);
+        final String message = String.format(
+                "#%s %s: ask[1]=%s, bid[1]=%s",
+                arbitrageService.getSignalType().getCounterName(),
+                description,
+                bestAsk.getLimitPrice().toPlainString(),
+                bestBid.getLimitPrice().toPlainString()
+        );
+        logger.info(message);
+        tradeLogger.info(message);
     }
 
     private synchronized void startFunding(int SWAP_INTERVAL) {
