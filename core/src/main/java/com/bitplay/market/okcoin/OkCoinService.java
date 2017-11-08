@@ -26,7 +26,6 @@ import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.FuturesContract;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
@@ -44,6 +43,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -415,11 +415,67 @@ public class OkCoinService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .subscribe(accountInfoContracts -> {
                     logger.debug("AccountInfo.Websocket: " + accountInfoContracts.toString());
-                    this.accountInfoContracts = accountInfoContracts;
+                    setAccountInfoContracts(accountInfoContracts);
 
                 }, throwable -> {
                     logger.error("AccountInfo.Websocket.Exception: ", throwable);
                 });
+    }
+
+    private void setAccountInfoContracts(AccountInfoContracts accountInfoContracts) {
+        BigDecimal eBest = null;
+        BigDecimal eAvg = null;
+        final Position pObj = getPosition();
+        if (accountInfoContracts.getWallet() != null && pObj != null
+                && pObj.getPositionLong() != null && pObj.getPositionShort() != null) {
+            final BigDecimal pos = pObj.getPositionLong().subtract(pObj.getPositionShort());
+            final BigDecimal wallet = accountInfoContracts.getWallet();
+            final OrderBook orderBook = getOrderBook();
+
+            if (pos.signum() > 0) {
+                final BigDecimal entryPrice = pObj.getPriceAvgLong();
+                final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
+                int amount = pObj.getPositionLong().intValue();
+                final BigDecimal avgBid = Utils.getAvgBidPrice(orderBook, amount);
+
+                // upl_long = pos/entry_price - pos/bid[1]
+                final BigDecimal uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
+                        .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
+                        .setScale(8, RoundingMode.HALF_UP);
+                // upl_long_avg = pos/entry_price - pos/bid[]
+                final BigDecimal uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
+                        .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
+                        .setScale(8, RoundingMode.HALF_UP);
+                // e_best = ok_bal + upl_long
+                eBest = wallet.add(uplLong);
+                eAvg = wallet.add(uplLongAvg);
+            } else if (pos.signum() < 0) {
+                final BigDecimal entryPrice = pObj.getPriceAvgShort();
+                final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
+                // upl_short = pos / ask[1] - pos / entry_price
+                final BigDecimal uplShort = pos.divide(ask1, 16, RoundingMode.HALF_UP)
+                        .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
+                        .setScale(8, RoundingMode.HALF_UP);
+                // e_best = ok_bal + upl_long
+                eBest = wallet.add(uplShort);
+            } else { //pos==0
+                // e_best == btm_bal
+                eBest = wallet;
+            }
+        }
+
+        this.accountInfoContracts = new AccountInfoContracts(
+                accountInfoContracts.getWallet(),
+                accountInfoContracts.getAvailable(),
+                accountInfoContracts.geteMark(),
+                accountInfoContracts.geteLast(),
+                eBest,
+                accountInfoContracts.geteAvg(),
+                accountInfoContracts.getMargin(),
+                accountInfoContracts.getUpl(),
+                accountInfoContracts.getRpl(),
+                accountInfoContracts.getRiskRate()
+        );
     }
 
     private Disposable startPrivateDataListener() {
@@ -632,7 +688,7 @@ public class OkCoinService extends MarketService {
 
         if (accountInfoContracts != null && position != null) {
             final BigDecimal availableBtc = accountInfoContracts.getAvailable();
-            final BigDecimal equityBtc = accountInfoContracts.getEquity();
+            final BigDecimal equityBtc = accountInfoContracts.geteLast();
 
             final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
@@ -1113,7 +1169,7 @@ public class OkCoinService extends MarketService {
         final BigDecimal oMrLiq = arbitrageService.getParams().getoMrLiq();
 
         final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
-        final BigDecimal equity = accountInfoContracts.getEquity();
+        final BigDecimal equity = accountInfoContracts.geteLast();
         final BigDecimal margin = accountInfoContracts.getMargin();
 
         if (equity != null && margin != null && oMrLiq != null

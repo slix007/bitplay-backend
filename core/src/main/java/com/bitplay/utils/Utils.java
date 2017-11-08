@@ -122,5 +122,21 @@ public class Utils {
     }
 
 
+    public static BigDecimal getAvgBidPrice(OrderBook orderBook, int amount) {
+        final ArrayList<LimitOrder> filtered = new ArrayList<>();
+        final List<LimitOrder> bids = orderBook.getBids();
+//        bids.sort((o1, o2) -> o2.getLimitPrice().compareTo(o1.getLimitPrice()));
+        synchronized (bids) {
+            bids.stream()
+                    .forEach(limitOrder -> {
 
+                    });
+            for (int i = 0; i < bids.size(); i++) {
+                filtered.add(bids.get(i));
+            }
+        }
+        return filtered;
+
+        return null;
+    }
 }

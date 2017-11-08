@@ -77,15 +77,18 @@ public class BitmexAdapters {
     public static AccountInfoContracts adaptBitmexMargin(Margin marginInfo) {
         final BigDecimal wallet = marginInfo.getWalletBalance() != null ? satoshiToBtc(marginInfo.getWalletBalance()) : null;
         final BigDecimal available = marginInfo.getAvailableMargin() != null ? satoshiToBtc(marginInfo.getAvailableMargin()) : null;
-        final BigDecimal equity = marginInfo.getMarginBalance() != null ? satoshiToBtc(marginInfo.getMarginBalance()) : null;
+        final BigDecimal eMark = marginInfo.getMarginBalance() != null ? satoshiToBtc(marginInfo.getMarginBalance()) : null;
         final BigDecimal upl = marginInfo.getUnrealisedPnl() != null ? satoshiToBtc(marginInfo.getUnrealisedPnl()) : null;
-        final BigDecimal margin = (equity != null && available != null)
-                ? equity.subtract(available)
+        final BigDecimal margin = (eMark != null && available != null)
+                ? eMark.subtract(available)
                 : null;
         return new AccountInfoContracts(
                 wallet,
                 available,
-                equity,
+                eMark,
+                null,
+                null,
+                null,
                 margin,
                 upl
         );

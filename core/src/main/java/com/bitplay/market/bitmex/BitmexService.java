@@ -590,7 +590,7 @@ public class BitmexService extends MarketService {
 
         if (accountInfoContracts != null) {
             final BigDecimal availableBtc = accountInfoContracts.getAvailable();
-            final BigDecimal equityBtc = accountInfoContracts.getEquity();
+            final BigDecimal equityBtc = accountInfoContracts.geteMark();
             final OrderBook orderBook = getOrderBook();
             final BigDecimal bestAsk = Utils.getBestAsk(orderBook).getLimitPrice();
             final BigDecimal bestBid = Utils.getBestBid(orderBook).getLimitPrice();
@@ -877,14 +877,19 @@ public class BitmexService extends MarketService {
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(newInfo -> {
 
-                    final BigDecimal equity = newInfo.getEquity() != null ? newInfo.getEquity() : accountInfoContracts.getEquity();
+                    final BigDecimal eMark = newInfo.geteMark() != null ? newInfo.geteMark() : accountInfoContracts.geteMark();
+                    final BigDecimal eBest = newInfo.geteBest() != null ? newInfo.geteBest() : accountInfoContracts.geteBest();
+                    final BigDecimal eAvg = newInfo.geteAvg() != null ? newInfo.geteAvg() : accountInfoContracts.geteAvg();
                     final BigDecimal available = newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable();
-                    final BigDecimal margin = equity.subtract(available); //equity and available may be updated with separate responses
+                    final BigDecimal margin = eMark.subtract(available); //equity and available may be updated with separate responses
 
                     accountInfoContracts = new AccountInfoContracts(
                             newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
                             available,
-                            equity,
+                            eMark,
+                            BigDecimal.ZERO,
+                            eBest,
+                            eAvg,
                             margin,
                             newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
                             newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
@@ -973,7 +978,7 @@ public class BitmexService extends MarketService {
     private synchronized void recalcLiqInfo() {
         final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
 
-        final BigDecimal equity = accountInfoContracts.getEquity();
+        final BigDecimal equity = accountInfoContracts.geteMark();
         final BigDecimal margin = accountInfoContracts.getMargin();
 
         final BigDecimal bMrliq = arbitrageService.getParams().getbMrLiq();
