@@ -24,6 +24,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -261,14 +262,29 @@ public class BitmexSwapService {
 
     private void printAskBid(String description) {
         final OrderBook orderBook = bitmexService.getOrderBook();
-        final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
-        final LimitOrder bestBid = Utils.getBestBid(orderBook);
+        StringBuilder obBuilder = new StringBuilder();
+        obBuilder.append("ask: ");
+        final List<LimitOrder> asks = orderBook.getAsks();
+        synchronized (asks) {
+            for (int i = 0; i < 10 && i < asks.size(); i++) {
+                final LimitOrder ask = asks.get(i);
+                obBuilder.append(String.format("%d,%s(%s)", i + 1, ask.getLimitPrice(), ask.getTradableAmount()));
+            }
+        }
+        final List<LimitOrder> bids = orderBook.getBids();
+        obBuilder.append("bid: ");
+        synchronized (bids) {
+            for (int i = 0; i < 10 && i < bids.size(); i++) {
+                final LimitOrder bid = bids.get(i);
+                obBuilder.append(String.format("%d. %s (%s);", i + 1, bid.getLimitPrice(), bid.getTradableAmount()));
+            }
+        }
+
         final String message = String.format(
-                "#%s %s: ask[1]=%s, bid[1]=%s",
+                "#%s %s: %s",
                 arbitrageService.getSignalType().getCounterName(),
                 description,
-                bestAsk.getLimitPrice().toPlainString(),
-                bestBid.getLimitPrice().toPlainString()
+                obBuilder.toString()
         );
         logger.info(message);
         tradeLogger.info(message);
