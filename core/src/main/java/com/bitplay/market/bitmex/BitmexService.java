@@ -51,6 +51,8 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -82,6 +84,11 @@ public class BitmexService extends MarketService {
     private static final int MIN_SEC_TO_RESTART = 60 * 5; // 5 min
     private long listenersStartTimeEpochSecond = Instant.now().getEpochSecond();
     private volatile boolean isDestroyed = false;
+
+    private static final int MOVING_TIMEOUT_SEC = 2;
+    // Moving timeout
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private volatile boolean movingInProgress = false;
 
     private Disposable accountInfoSubscription;
     private Disposable positionSubscription;
@@ -684,6 +691,10 @@ public class BitmexService extends MarketService {
                             getCounterName(),
                             attemptCount,
                             message);
+                    if (e.getMessage().startsWith("Read timed out") || e.getMessage().startsWith("Network is unreachable")) {
+                        attemptCount = MAX_ATTEMPTS;
+                    }
+
                     if (attemptCount == MAX_ATTEMPTS) {
                         logger.error(logString, e);
                         tradeLogger.error("Warning placing: " + logString);
@@ -743,6 +754,16 @@ public class BitmexService extends MarketService {
 
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
+        if (movingInProgress) {
+            final String logString = String.format("%s No moving. Too often requests. id=%s", getCounterName(), limitOrder.getId());
+            logger.error(logString);
+            tradeLogger.error(logString);
+            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "No moving to often requests");
+        } else {
+            movingInProgress = true;
+            scheduler.schedule(() -> movingInProgress = false, MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
+        }
+
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
         int attemptCount = 0;
         String lastExceptionMsg = "";
@@ -793,12 +814,15 @@ public class BitmexService extends MarketService {
                         limitOrder.getId(),
                         attemptCount,
                         e.getMessage());
+                if (e.getMessage().startsWith("Read timed out") || e.getMessage().startsWith("Network is unreachable")) {
+                    attemptCount = MAX_ATTEMPTS;
+                }
+
+                logger.error(logString, e);
                 if (attemptCount == MAX_ATTEMPTS) {
-                    logger.error(logString, e);
                     tradeLogger.error("Warning: " + logString);
                     warningLogger.error("bitmex. Warning: " + logString);
                 } else {
-                    logger.error(logString, e);
                     tradeLogger.error(logString);
                 }
             }
@@ -834,7 +858,8 @@ public class BitmexService extends MarketService {
 
             tradeLogger.info(logString);
             moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
-        } else if (moveResponse == null) {
+            movingInProgress = false;
+        } else if (moveResponse == null || moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {
             final String logString = String.format("%s Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
                     getCounterName(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
