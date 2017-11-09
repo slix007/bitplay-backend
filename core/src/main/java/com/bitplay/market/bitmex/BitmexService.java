@@ -248,12 +248,16 @@ public class BitmexService extends MarketService {
         BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
         BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
         BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.position.getMarkValue();
+        BigDecimal avgPriceL = pUpdate.getPriceAvgLong().signum() == 0 ? this.position.getPriceAvgLong() : pUpdate.getPriceAvgLong();
+        BigDecimal avgPriceS = pUpdate.getPriceAvgShort().signum() == 0 ? this.position.getPriceAvgShort() : pUpdate.getPriceAvgShort();
         this.position = new Position(
                 pUpdate.getPositionLong(),
                 pUpdate.getPositionShort(),
                 leverage,
                 liqPrice,
                 markValue,
+                avgPriceL,
+                avgPriceS,
                 pUpdate.getRaw()
         );
     }

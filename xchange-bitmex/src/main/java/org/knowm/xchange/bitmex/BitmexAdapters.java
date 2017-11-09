@@ -112,6 +112,8 @@ public class BitmexAdapters {
                     BigDecimal.ZERO,
                     BigDecimal.ZERO,
                     BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
                     "position is null"
             );
         }
@@ -122,6 +124,8 @@ public class BitmexAdapters {
                 position.getLeverage() != null ? BigDecimal.valueOf(position.getLeverage()) : BigDecimal.ZERO,
                 position.getLiquidationPrice() != null ? BigDecimal.valueOf(position.getLiquidationPrice()) : BigDecimal.ZERO,
                 position.getMarkValue(),
+                position.getAvgEntryPrice() != null ? BigDecimal.valueOf(position.getAvgEntryPrice()) : BigDecimal.ZERO,
+                position.getAvgEntryPrice() != null ? BigDecimal.valueOf(position.getAvgEntryPrice()) : BigDecimal.ZERO,
                 position.toString()
         );
     }

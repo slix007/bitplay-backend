@@ -297,6 +297,7 @@ public class OkCoinService extends MarketService {
                         okCoinPosition.getSellAmount(),
                         okCoinPosition.getRate(),
                         BigDecimal.ZERO,
+                        BigDecimal.ZERO,
                         okCoinPosition.getBuyPriceAvg(),
                         okCoinPosition.getSellPriceAvg(),
                         okCoinPosition.toString()
