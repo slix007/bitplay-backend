@@ -72,10 +72,7 @@ public class OkCoinService extends MarketService {
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
 
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
-    private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
     private final static String NAME = "okcoin";
-    private static final int MAX_ATTEMPTS = 10;
-//    protected State state = State.READY;
     ArbitrageService arbitrageService;
     @Autowired
     private PosDiffService posDiffService;
@@ -107,7 +104,6 @@ public class OkCoinService extends MarketService {
     public PersistenceService getPersistenceService() {
         return persistenceService;
     }
-//    private Map<String, Disposable> orderSubscriptions = new HashMap<>();
 
     @Override
     public String getName() {
@@ -134,15 +130,12 @@ public class OkCoinService extends MarketService {
         createOrderBookObservable();
         subscribeOnOrderBook();
 
-//        startTradesListener(); // to remove openOrders
-
         privateDataSubscription = startPrivateDataListener();
         accountInfoSubscription = startAccountInfoSubscription();
         futureIndexSubscription = startFutureIndexListener();
 
         fetchOpenOrders();
 
-//        fetchAccountInfo();
         try {
             fetchPosition();
         } catch (Exception e) {
@@ -237,16 +230,6 @@ public class OkCoinService extends MarketService {
     public void preDestroy() {
         // Disconnect from exchange (non-blocking)
         closeAllSubscibers().subscribe(() -> logger.info("Disconnected from the Exchange"));
-    }
-
-    @Override
-    protected BigDecimal getMakerPriceStep() {
-        return OKCOIN_STEP;
-    }
-
-    @Override
-    protected BigDecimal getMakerDelta() {
-        return arbitrageService.getParams().getMakerDelta();
     }
 
     @Scheduled(fixedRate = 1000)
@@ -823,7 +806,7 @@ public class OkCoinService extends MarketService {
         if (isFakeTaker) {
             thePrice = Utils.createPriceForTaker(getOrderBook(), orderType, tradeableAmount.intValue());
         } else {
-            thePrice = createBestMakerPrice(orderType, false).setScale(2, BigDecimal.ROUND_HALF_UP);
+            thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
         }
 
         if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
@@ -1008,11 +991,6 @@ public class OkCoinService extends MarketService {
             tradeLogger.error("{} do not move ALREADY_CLOSED order", getCounterName());
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
         }
-
-//        if (state != State.WAITING) {
-//            tradeLogger.error("Moving declined. Try moving in wrong State={}", state);
-//            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "moving declined");
-//        }
 
         arbitrageService.setSignalType(signalType);
         eventBus.send(BtsEvent.MARKET_BUSY);

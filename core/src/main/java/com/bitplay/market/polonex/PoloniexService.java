@@ -67,7 +67,6 @@ public class PoloniexService extends MarketService {
     public final static Currency CURRENCY_USDT = new Currency("USDT");
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
-    private final static BigDecimal POLONIEX_STEP = new BigDecimal("0.00000001");
     private final static String NAME = "poloniex";
 //    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
     Disposable orderBookSubscription;
@@ -492,7 +491,7 @@ public class PoloniexService extends MarketService {
         while (attemptCount < 2) {
             attemptCount++;
             try {
-                bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true);
+                bestMakerPrice = createBestMakerPrice(limitOrder.getType());
                 final PoloniexTradeService poloniexTradeService = (PoloniexTradeService) exchange.getTradeService();
                 moveResponse = poloniexTradeService.move(
                         limitOrder.getId(),
@@ -556,7 +555,7 @@ public class PoloniexService extends MarketService {
 
     private PoloniexLimitOrder tryToPlaceMakerOrder(Order.OrderType orderType, BigDecimal amount) throws Exception {
 
-        BigDecimal thePrice = createBestMakerPrice(orderType, false);
+        BigDecimal thePrice = createBestMakerPrice(orderType);
 
         final PoloniexLimitOrder theOrder = new PoloniexLimitOrder(orderType, amount,
                 CURRENCY_PAIR_USDT_BTC, null, new Date(), thePrice);
@@ -566,16 +565,6 @@ public class PoloniexService extends MarketService {
         exchange.getTradeService().placeLimitOrder(theOrder);
 
         return theOrder;
-    }
-
-    @Override
-    protected BigDecimal getMakerPriceStep() {
-        return POLONIEX_STEP;
-    }
-
-    @Override
-    protected BigDecimal getMakerDelta() {
-        return arbitrageService.getParams().getMakerDelta();
     }
 
     public UserTrades fetchMyTradeHistory() {

@@ -661,7 +661,7 @@ public class BitmexService extends MarketService {
                 try {
                     if (bitmexOrderType == BitmexOrderType.MAKER) {
 
-                        thePrice = createBestMakerPrice(orderType, false)
+                        thePrice = createBestMakerPrice(orderType)
                                 .setScale(1, BigDecimal.ROUND_HALF_UP);
 
                         final LimitOrder limitOrder = new LimitOrder(orderType,
@@ -752,7 +752,7 @@ public class BitmexService extends MarketService {
         while (attemptCount < MAX_ATTEMPTS) {
             attemptCount++;
             try {
-                bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true)
+                bestMakerPrice = createBestMakerPrice(limitOrder.getType())
                         .setScale(1, BigDecimal.ROUND_HALF_UP);
                 final BitmexTradeService tradeService = (BitmexTradeService) exchange.getTradeService();
                 final String order = tradeService.moveLimitOrder(limitOrder, bestMakerPrice);
@@ -858,16 +858,6 @@ public class BitmexService extends MarketService {
     enum BitmexOrderType {
         MAKER,
         TAKER
-    }
-
-    @Override
-    protected BigDecimal getMakerPriceStep() {
-        return new BigDecimal("0.1");
-    }
-
-    @Override
-    protected BigDecimal getMakerDelta() {
-        return new BigDecimal("0.00000001");
     }
 
     private void startAccountInfoListener() {

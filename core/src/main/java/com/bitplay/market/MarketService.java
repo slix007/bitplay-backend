@@ -546,11 +546,7 @@ public abstract class MarketService {
 
     public abstract MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType);
 
-    protected abstract BigDecimal getMakerPriceStep();
-
-    protected abstract BigDecimal getMakerDelta();
-
-    protected BigDecimal createBestMakerPrice(Order.OrderType orderType, boolean forceUsingStep) {
+    protected BigDecimal createBestMakerPrice(Order.OrderType orderType) {
         BigDecimal thePrice = BigDecimal.ZERO;
         if (orderType == Order.OrderType.BID
                 || orderType == Order.OrderType.EXIT_ASK) {
