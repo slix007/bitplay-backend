@@ -435,19 +435,20 @@ public class OkCoinService extends MarketService {
             if (pos.signum() > 0) {
                 final BigDecimal entryPrice = pObj.getPriceAvgLong();
                 final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
-                int amount = pObj.getPositionLong().intValue();
-                final BigDecimal avgBid = Utils.getAvgBidPrice(orderBook, amount);
-
                 // upl_long = pos/entry_price - pos/bid[1]
                 final BigDecimal uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
                         .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
                         .setScale(8, RoundingMode.HALF_UP);
                 // upl_long_avg = pos/entry_price - pos/bid[]
-                final BigDecimal uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
-                        .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
-                        .setScale(8, RoundingMode.HALF_UP);
                 // e_best = ok_bal + upl_long
                 eBest = wallet.add(uplLong);
+
+                int bidAmount = pObj.getPositionLong().intValue();
+                int askAmount = pObj.getPositionShort().intValue();
+                final BigDecimal bidAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, askAmount);
+                final BigDecimal uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
+                        .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
+                        .setScale(8, RoundingMode.HALF_UP);
                 eAvg = wallet.add(uplLongAvg);
             } else if (pos.signum() < 0) {
                 final BigDecimal entryPrice = pObj.getPriceAvgShort();
@@ -458,9 +459,18 @@ public class OkCoinService extends MarketService {
                         .setScale(8, RoundingMode.HALF_UP);
                 // e_best = ok_bal + upl_long
                 eBest = wallet.add(uplShort);
+
+                int bidAmount = pObj.getPositionLong().intValue();
+                int askAmount = pObj.getPositionShort().intValue();
+                final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, askAmount);
+                final BigDecimal uplLongAvg = pos.divide(askAvgPrice, 16, RoundingMode.HALF_UP)
+                        .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
+                        .setScale(8, RoundingMode.HALF_UP);
+                eAvg = wallet.add(uplLongAvg);
             } else { //pos==0
                 // e_best == btm_bal
                 eBest = wallet;
+                eAvg = wallet;
             }
         }
 
@@ -470,7 +480,7 @@ public class OkCoinService extends MarketService {
                 accountInfoContracts.geteMark(),
                 accountInfoContracts.geteLast(),
                 eBest,
-                accountInfoContracts.geteAvg(),
+                eAvg,
                 accountInfoContracts.getMargin(),
                 accountInfoContracts.getUpl(),
                 accountInfoContracts.getRpl(),

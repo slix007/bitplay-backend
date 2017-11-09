@@ -667,15 +667,15 @@ public class ArbitrageService {
         final AccountInfoContracts secondAccount = secondMarketService.getAccountInfoContracts();
         if (firstAccount != null && secondAccount != null) {
             final BigDecimal bW = firstAccount.getWallet();
-            final BigDecimal bEbest = firstAccount.geteBest();
-            final BigDecimal bEAvg = firstAccount.geteAvg();
+            final BigDecimal bEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
+            final BigDecimal bEAvg = firstAccount.geteAvg() != null ? firstAccount.geteAvg() : BigDecimal.ZERO;
             final BigDecimal bU = firstAccount.getUpl();
             final BigDecimal bM = firstAccount.getMargin();
             final BigDecimal bA = firstAccount.getAvailable();
 
             final BigDecimal oW = secondAccount.getWallet();
-            final BigDecimal oEbest = firstAccount.geteBest();
-            final BigDecimal oEAvg = firstAccount.geteAvg();
+            final BigDecimal oEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
+            final BigDecimal oEAvg = firstAccount.geteAvg() != null ? firstAccount.geteAvg() : BigDecimal.ZERO;
             final BigDecimal oM = secondAccount.getMargin();
             final BigDecimal oU = secondAccount.getUpl();
             final BigDecimal oA = secondAccount.getAvailable();
