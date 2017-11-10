@@ -76,7 +76,7 @@ public class BitmexService extends MarketService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private static final String NAME = "bitmex";
-    private static final int MAX_ATTEMPTS = 10;
+    private static final int MAX_ATTEMPTS = 1;
     private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
     private BitmexStreamingExchange exchange;
@@ -695,14 +695,14 @@ public class BitmexService extends MarketService {
                         attemptCount = MAX_ATTEMPTS;
                     }
 
-                    if (attemptCount == MAX_ATTEMPTS) {
+//                    if (attemptCount == MAX_ATTEMPTS) {
                         logger.error(logString, e);
                         tradeLogger.error("Warning placing: " + logString);
                         warningLogger.error("bitmex placing. Warning: " + logString);
-                    } else {
-                        logger.error(logString, e);
-                        tradeLogger.error(logString);
-                    }
+//                    } else {
+//                        logger.error(logString, e);
+//                        tradeLogger.error(logString);
+//                    }
 
                     tradeResponse.setOrderId(message);
                     tradeResponse.setErrorCode(message);
@@ -819,12 +819,12 @@ public class BitmexService extends MarketService {
                 }
 
                 logger.error(logString, e);
-                if (attemptCount == MAX_ATTEMPTS) {
+//                if (attemptCount == MAX_ATTEMPTS) {
                     tradeLogger.error("Warning: " + logString);
                     warningLogger.error("bitmex. Warning: " + logString);
-                } else {
-                    tradeLogger.error(logString);
-                }
+//                } else {
+//                    tradeLogger.error(logString);
+//                }
             }
         }
 
