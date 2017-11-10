@@ -667,6 +667,7 @@ public class ArbitrageService {
         final AccountInfoContracts secondAccount = secondMarketService.getAccountInfoContracts();
         if (firstAccount != null && secondAccount != null) {
             final BigDecimal bW = firstAccount.getWallet();
+            final BigDecimal bEMark = firstAccount.geteMark() != null ? firstAccount.geteMark() : BigDecimal.ZERO;
             final BigDecimal bEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
             final BigDecimal bEAvg = firstAccount.geteAvg() != null ? firstAccount.geteAvg() : BigDecimal.ZERO;
             final BigDecimal bU = firstAccount.getUpl();
@@ -674,6 +675,7 @@ public class ArbitrageService {
             final BigDecimal bA = firstAccount.getAvailable();
 
             final BigDecimal oW = secondAccount.getWallet();
+            final BigDecimal oELast = secondAccount.geteLast() != null ? secondAccount.geteLast() : BigDecimal.ZERO;
             final BigDecimal oEbest = secondAccount.geteBest() != null ? secondAccount.geteBest() : BigDecimal.ZERO;
             final BigDecimal oEAvg = secondAccount.geteAvg() != null ? secondAccount.geteAvg() : BigDecimal.ZERO;
             final BigDecimal oM = secondAccount.getMargin();
@@ -681,6 +683,7 @@ public class ArbitrageService {
             final BigDecimal oA = secondAccount.getAvailable();
 
             final BigDecimal sumW = bW.add(oW).setScale(8, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal sumE = bEMark.add(oELast).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumEBest = bEbest.add(oEbest).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumEAvg = bEAvg.add(oEAvg).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumUpl = bU.add(oU).setScale(8, BigDecimal.ROUND_HALF_UP);
@@ -689,8 +692,9 @@ public class ArbitrageService {
 
             final BigDecimal quAvg = calcQuAvg();
 
-            sumBalString = String.format("s_bal=w%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
+            sumBalString = String.format("s_bal=w%s_%s, s_e_%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
                     sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumEBest.toPlainString(), sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumEAvg.toPlainString(), sumEAvg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -775,15 +779,17 @@ public class ArbitrageService {
             ));
 
             final BigDecimal sumW = bW.add(oW).setScale(8, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal sumE = bEmark.add(oElast).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumEbest = bEbest.add(oEbest).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumEavg = bEavg.add(oEavg).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumUpl = bU.add(oU).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
 
-            String sumBalString = String.format("#%s s_bal=w%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
+            String sumBalString = String.format("#%s s_bal=w%s_%s, s_e%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
                     counterName,
                     sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumEbest.toPlainString(), sumEbest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumEavg.toPlainString(), sumEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
