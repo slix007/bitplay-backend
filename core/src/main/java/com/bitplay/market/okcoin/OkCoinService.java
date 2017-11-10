@@ -26,7 +26,6 @@ import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.FuturesContract;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
@@ -44,6 +43,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -72,10 +72,7 @@ public class OkCoinService extends MarketService {
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
 
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
-    private static final BigDecimal OKCOIN_STEP = new BigDecimal("0.01");
     private final static String NAME = "okcoin";
-    private static final int MAX_ATTEMPTS = 10;
-//    protected State state = State.READY;
     ArbitrageService arbitrageService;
     @Autowired
     private PosDiffService posDiffService;
@@ -107,7 +104,6 @@ public class OkCoinService extends MarketService {
     public PersistenceService getPersistenceService() {
         return persistenceService;
     }
-//    private Map<String, Disposable> orderSubscriptions = new HashMap<>();
 
     @Override
     public String getName() {
@@ -134,15 +130,12 @@ public class OkCoinService extends MarketService {
         createOrderBookObservable();
         subscribeOnOrderBook();
 
-//        startTradesListener(); // to remove openOrders
-
         privateDataSubscription = startPrivateDataListener();
         accountInfoSubscription = startAccountInfoSubscription();
         futureIndexSubscription = startFutureIndexListener();
 
         fetchOpenOrders();
 
-//        fetchAccountInfo();
         try {
             fetchPosition();
         } catch (Exception e) {
@@ -239,16 +232,6 @@ public class OkCoinService extends MarketService {
         closeAllSubscibers().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
-    @Override
-    protected BigDecimal getMakerPriceStep() {
-        return OKCOIN_STEP;
-    }
-
-    @Override
-    protected BigDecimal getMakerDelta() {
-        return arbitrageService.getParams().getMakerDelta();
-    }
-
     @Scheduled(fixedRate = 1000)
     public void requestAccountInfo() {
         try {
@@ -297,6 +280,7 @@ public class OkCoinService extends MarketService {
                         okCoinPosition.getSellAmount(),
                         okCoinPosition.getRate(),
                         BigDecimal.ZERO,
+                        BigDecimal.ZERO,
                         okCoinPosition.getBuyPriceAvg(),
                         okCoinPosition.getSellPriceAvg(),
                         okCoinPosition.toString()
@@ -309,6 +293,8 @@ public class OkCoinService extends MarketService {
                     BigDecimal.ZERO,
                     websocketUpdate.getRaw());
         }
+
+        recalcEquity(getAccountInfoContracts(), position);
     }
 
     @Scheduled(fixedRate = 1000 * 60 * 5)
@@ -415,11 +401,83 @@ public class OkCoinService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .subscribe(accountInfoContracts -> {
                     logger.debug("AccountInfo.Websocket: " + accountInfoContracts.toString());
-                    this.accountInfoContracts = accountInfoContracts;
+                    synchronized (this) {
+                        final Position posObj = getPosition();
+                        recalcEquity(accountInfoContracts, posObj);
+                    }
 
                 }, throwable -> {
                     logger.error("AccountInfo.Websocket.Exception: ", throwable);
                 });
+    }
+
+    private synchronized void recalcEquity(final AccountInfoContracts accountInfoContracts, final Position pObj) {
+        BigDecimal eBest = BigDecimal.ZERO;
+        BigDecimal eAvg = BigDecimal.ZERO;
+        if (accountInfoContracts.getWallet() != null && pObj != null
+                && pObj.getPositionLong() != null && pObj.getPositionShort() != null) {
+            final BigDecimal pos = pObj.getPositionLong().subtract(pObj.getPositionShort());
+            final BigDecimal wallet = accountInfoContracts.getWallet();
+            final OrderBook orderBook = getOrderBook();
+
+            if (pos.signum() > 0) {
+                final BigDecimal entryPrice = pObj.getPriceAvgLong();
+                final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
+                if (entryPrice != null && entryPrice.signum() != 0 && bid1 != null && bid1.signum() != 0) {
+                    // upl_long = pos/entry_price - pos/bid[1]
+                    final BigDecimal uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    // upl_long_avg = pos/entry_price - pos/bid[]
+                    // e_best = ok_bal + upl_long
+                    eBest = wallet.add(uplLong);
+
+                    int bidAmount = pObj.getPositionLong().intValue();
+                    int askAmount = pObj.getPositionShort().intValue();
+                    final BigDecimal bidAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, askAmount);
+                    final BigDecimal uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    eAvg = wallet.add(uplLongAvg);
+                }
+            } else if (pos.signum() < 0) {
+                final BigDecimal entryPrice = pObj.getPriceAvgShort();
+                final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
+                if (entryPrice != null && entryPrice.signum() != 0 && ask1 != null && ask1.signum() != 0) {
+                    // upl_short = pos / ask[1] - pos / entry_price
+                    final BigDecimal uplShort = pos.divide(ask1, 17, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    // e_best = ok_bal + upl_long
+                    eBest = wallet.add(uplShort);
+
+                    int bidAmount = pObj.getPositionLong().intValue();
+                    int askAmount = pObj.getPositionShort().intValue();
+                    final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, askAmount);
+                    final BigDecimal uplLongAvg = pos.divide(askAvgPrice, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    eAvg = wallet.add(uplLongAvg);
+                }
+            } else { //pos==0
+                // e_best == btm_bal
+                eBest = wallet;
+                eAvg = wallet;
+            }
+        }
+
+        this.accountInfoContracts = new AccountInfoContracts(
+                accountInfoContracts.getWallet(),
+                accountInfoContracts.getAvailable(),
+                accountInfoContracts.geteMark(),
+                accountInfoContracts.geteLast(),
+                eBest,
+                eAvg,
+                accountInfoContracts.getMargin(),
+                accountInfoContracts.getUpl(),
+                accountInfoContracts.getRpl(),
+                accountInfoContracts.getRiskRate()
+        );
     }
 
     private Disposable startPrivateDataListener() {
@@ -632,7 +690,7 @@ public class OkCoinService extends MarketService {
 
         if (accountInfoContracts != null && position != null) {
             final BigDecimal availableBtc = accountInfoContracts.getAvailable();
-            final BigDecimal equityBtc = accountInfoContracts.getEquity();
+            final BigDecimal equityBtc = accountInfoContracts.geteLast();
 
             final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
@@ -756,7 +814,7 @@ public class OkCoinService extends MarketService {
         if (isFakeTaker) {
             thePrice = Utils.createPriceForTaker(getOrderBook(), orderType, tradeableAmount.intValue());
         } else {
-            thePrice = createBestMakerPrice(orderType, false).setScale(2, BigDecimal.ROUND_HALF_UP);
+            thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
         }
 
         if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
@@ -942,11 +1000,6 @@ public class OkCoinService extends MarketService {
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
         }
 
-//        if (state != State.WAITING) {
-//            tradeLogger.error("Moving declined. Try moving in wrong State={}", state);
-//            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "moving declined");
-//        }
-
         arbitrageService.setSignalType(signalType);
         eventBus.send(BtsEvent.MARKET_BUSY);
 
@@ -1113,7 +1166,7 @@ public class OkCoinService extends MarketService {
         final BigDecimal oMrLiq = arbitrageService.getParams().getoMrLiq();
 
         final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
-        final BigDecimal equity = accountInfoContracts.getEquity();
+        final BigDecimal equity = accountInfoContracts.geteLast();
         final BigDecimal margin = accountInfoContracts.getMargin();
 
         if (equity != null && margin != null && oMrLiq != null

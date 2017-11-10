@@ -433,20 +433,22 @@ public class BitmexSwapService {
         final BigDecimal maxFRate = bitmexService.getArbitrageService().getParams().getFundingRateFee(); //BitmexFunding.MAX_F_RATE;
         bitmexFunding.setUpdatingTime(OffsetDateTime.now());
 
-        if (pos.signum() > 0) {
-            if (fRate.signum() > 0 && fRate.compareTo(maxFRate) > 0) {
-                bitmexFunding.setSignalType(SignalType.SWAP_CLOSE_LONG);
-            } else {
+        if (pos != null) {
+            if (pos.signum() > 0) {
+                if (fRate.signum() > 0 && fRate.compareTo(maxFRate) > 0) {
+                    bitmexFunding.setSignalType(SignalType.SWAP_CLOSE_LONG);
+                } else {
+                    bitmexFunding.setSignalType(SignalType.SWAP_NONE);
+                }
+            } else if (pos.signum() < 0) {
+                if (fRate.signum() < 0 && fRate.negate().compareTo(maxFRate) > 0) {
+                    bitmexFunding.setSignalType(SignalType.SWAP_CLOSE_SHORT);
+                } else {
+                    bitmexFunding.setSignalType(SignalType.SWAP_NONE);
+                }
+            } else {// pos = 0
                 bitmexFunding.setSignalType(SignalType.SWAP_NONE);
             }
-        } else if (pos.signum() < 0) {
-            if (fRate.signum() < 0 && fRate.negate().compareTo(maxFRate) > 0) {
-                bitmexFunding.setSignalType(SignalType.SWAP_CLOSE_SHORT);
-            } else {
-                bitmexFunding.setSignalType(SignalType.SWAP_NONE);
-            }
-        } else {// pos = 0
-            bitmexFunding.setSignalType(SignalType.SWAP_NONE);
         }
     }
 

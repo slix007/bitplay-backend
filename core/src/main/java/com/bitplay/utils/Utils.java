@@ -7,8 +7,11 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+
+import javafx.util.Pair;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
@@ -122,5 +125,43 @@ public class Utils {
     }
 
 
+    public static BigDecimal getAvgPrice(OrderBook orderBook, int bidAmount, int askAmount) {
+        if (bidAmount == 0 && askAmount == 0) {
+            return BigDecimal.ZERO;
+        }
+
+        final Pair<BigDecimal, Integer> bidAvgPrice = bidAmount > 0 ? getAvgPriceForOrders(bidAmount, orderBook.getBids()) : new Pair<>(BigDecimal.ZERO, 0);
+        final Pair<BigDecimal, Integer> askAvgPrice = askAmount > 0 ? getAvgPriceForOrders(askAmount, orderBook.getAsks()) : new Pair<>(BigDecimal.ZERO, 0);
+
+        return ((bidAvgPrice.getKey().multiply(BigDecimal.valueOf(bidAvgPrice.getValue())))
+                .add(askAvgPrice.getKey().multiply(BigDecimal.valueOf(askAvgPrice.getValue()))))
+                .divide(BigDecimal.valueOf(bidAvgPrice.getValue() + askAvgPrice.getValue()), 2, RoundingMode.HALF_UP);
+    }
+
+    private static Pair<BigDecimal, Integer> getAvgPriceForOrders(int askAmount, List<LimitOrder> limitOrderList) {
+        synchronized (limitOrderList) {
+            // weighted average: sum(priceX*qtyX)/sum(qtyX)
+            BigDecimal sumPrices = BigDecimal.ZERO; // sum(priceX*qtyX)
+            int sumQty = 0; // sum(qtyX)
+
+            for (int i = 0; sumQty < askAmount && i < limitOrderList.size(); i++) {
+                final LimitOrder limitOrder = limitOrderList.get(i);
+                final int anAmount = limitOrder.getTradableAmount().intValue();
+                final int leftToFill = askAmount - sumQty;
+                int qtyX;
+                if (leftToFill <= anAmount) {
+                    qtyX = leftToFill;
+                } else {
+                    qtyX = anAmount;
+                }
+
+                sumQty += qtyX;
+                sumPrices = sumPrices.add(limitOrder.getLimitPrice().multiply(BigDecimal.valueOf(qtyX)));
+            }
+
+            final BigDecimal avgPrice = sumPrices.divide(BigDecimal.valueOf(sumQty), 8, RoundingMode.HALF_UP);
+            return new Pair<>(avgPrice, sumQty);
+        }
+    }
 
 }

@@ -9,7 +9,6 @@ public class AccountInfoJson {
 
     private String wallet;
     private String available;
-    private String equity;
     private String margin;
     private String position;
     private String upl;
@@ -18,6 +17,11 @@ public class AccountInfoJson {
     private String availableForShort;
     private String quAvg;
     private String liqPrice;
+    private String eMark;
+    private String eBest;
+    private String eLast;
+    private String eAvg;
+
     private String raw;
 
     public AccountInfoJson() {
@@ -29,10 +33,9 @@ public class AccountInfoJson {
         this.raw = raw;
     }
 
-    public AccountInfoJson(String wallet, String available, String equity, String margin, String position, String upl, String leverage, String availableForLong, String availableForShort, String quAvg, String liqPrice, String raw) {
+    public AccountInfoJson(String wallet, String available, String margin, String position, String upl, String leverage, String availableForLong, String availableForShort, String quAvg, String liqPrice, String eMark, String eLast, String eBest, String eAvg, String raw) {
         this.wallet = wallet;
         this.available = available;
-        this.equity = equity;
         this.margin = margin;
         this.position = position;
         this.upl = upl;
@@ -41,6 +44,10 @@ public class AccountInfoJson {
         this.availableForShort = availableForShort;
         this.quAvg = quAvg;
         this.liqPrice = liqPrice;
+        this.eMark = eMark;
+        this.eLast = eLast;
+        this.eBest = eBest;
+        this.eAvg = eAvg;
         this.raw = raw;
     }
 
@@ -58,10 +65,6 @@ public class AccountInfoJson {
 
     public String getAvailable() {
         return available;
-    }
-
-    public String getEquity() {
-        return equity;
     }
 
     public String getMargin() {
@@ -94,6 +97,22 @@ public class AccountInfoJson {
 
     public String getLiqPrice() {
         return liqPrice;
+    }
+
+    public String geteMark() {
+        return eMark;
+    }
+
+    public String geteLast() {
+        return eLast;
+    }
+
+    public String geteBest() {
+        return eBest;
+    }
+
+    public String geteAvg() {
+        return eAvg;
     }
 
     public String getRaw() {

@@ -51,7 +51,7 @@ public class StreamingServiceBitmex {
                 completable.onError(e1);
             }
 
-            completable.onComplete();
+            completable.onComplete(); // TODO. Looks like it's async. Need to wait until connection is done.
         });
     }
 

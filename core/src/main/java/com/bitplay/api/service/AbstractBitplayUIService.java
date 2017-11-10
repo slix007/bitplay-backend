@@ -130,16 +130,19 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final AccountInfoContracts accountInfoContracts = getBusinessService().getAccountInfoContracts();
         if (accountInfoContracts == null) {
             return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
-                    "error", "error", "error", "error", "error");
+                    "error", "error", "error", "error", "error", "error", "error", "error");
         }
 
         final BigDecimal available = accountInfoContracts.getAvailable();
-        final BigDecimal equity = accountInfoContracts.getEquity();
         final BigDecimal wallet = accountInfoContracts.getWallet();
         final BigDecimal margin = accountInfoContracts.getMargin();
         final BigDecimal upl = accountInfoContracts.getUpl();
         final BigDecimal quAvg = getBusinessService().getArbitrageService().calcQuAvg();
         final BigDecimal liqPrice = getBusinessService().getPosition().getLiquidationPrice();
+        final BigDecimal eMark = accountInfoContracts.geteMark();
+        final BigDecimal eLast = accountInfoContracts.geteLast();
+        final BigDecimal eBest = accountInfoContracts.geteBest();
+        final BigDecimal eAvg = accountInfoContracts.geteAvg();
 
         final Position position = getBusinessService().getPosition();
 //        String positionString = String.format("%s; leverage=%s",
@@ -154,7 +157,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         return new AccountInfoJson(
                 wallet.toPlainString(),
                 available.toPlainString(),
-                equity.toPlainString(),
                 margin.toPlainString(),
                 getPositionString(position),
                 upl.toPlainString(),
@@ -163,6 +165,10 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getBusinessService().getAffordableContractsForShort().toPlainString(),
                 quAvg.toPlainString(),
                 liqPrice == null ? null : liqPrice.toPlainString(),
+                eMark != null ? eMark.toPlainString() : "0",
+                eLast != null ? eLast.toPlainString() : "0",
+                eBest != null ? eBest.toPlainString() : "0",
+                eAvg != null ? eAvg.toPlainString() : "0",
                 accountInfoContracts.toString());
     }
 

@@ -44,12 +44,15 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.SocketTimeoutException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -73,7 +76,7 @@ public class BitmexService extends MarketService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private static final String NAME = "bitmex";
-    private static final int MAX_ATTEMPTS = 10;
+    private static final int MAX_ATTEMPTS = 1;
     private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
     private BitmexStreamingExchange exchange;
@@ -81,6 +84,11 @@ public class BitmexService extends MarketService {
     private static final int MIN_SEC_TO_RESTART = 60 * 5; // 5 min
     private long listenersStartTimeEpochSecond = Instant.now().getEpochSecond();
     private volatile boolean isDestroyed = false;
+
+    private static final int MOVING_TIMEOUT_SEC = 2;
+    // Moving timeout
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private volatile boolean movingInProgress = false;
 
     private Disposable accountInfoSubscription;
     private Disposable positionSubscription;
@@ -247,14 +255,21 @@ public class BitmexService extends MarketService {
         BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
         BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
         BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.position.getMarkValue();
+        BigDecimal avgPriceL = pUpdate.getPriceAvgLong().signum() == 0 ? this.position.getPriceAvgLong() : pUpdate.getPriceAvgLong();
+        BigDecimal avgPriceS = pUpdate.getPriceAvgShort().signum() == 0 ? this.position.getPriceAvgShort() : pUpdate.getPriceAvgShort();
         this.position = new Position(
                 pUpdate.getPositionLong(),
                 pUpdate.getPositionShort(),
                 leverage,
                 liqPrice,
                 markValue,
+                avgPriceL,
+                avgPriceS,
                 pUpdate.getRaw()
         );
+
+        final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
+        recalcEquity(accountInfoContracts, position);
     }
 
 
@@ -590,7 +605,7 @@ public class BitmexService extends MarketService {
 
         if (accountInfoContracts != null) {
             final BigDecimal availableBtc = accountInfoContracts.getAvailable();
-            final BigDecimal equityBtc = accountInfoContracts.getEquity();
+            final BigDecimal equityBtc = accountInfoContracts.geteMark();
             final OrderBook orderBook = getOrderBook();
             final BigDecimal bestAsk = Utils.getBestAsk(orderBook).getLimitPrice();
             final BigDecimal bestBid = Utils.getBestBid(orderBook).getLimitPrice();
@@ -656,7 +671,7 @@ public class BitmexService extends MarketService {
                 try {
                     if (bitmexOrderType == BitmexOrderType.MAKER) {
 
-                        thePrice = createBestMakerPrice(orderType, false)
+                        thePrice = createBestMakerPrice(orderType)
                                 .setScale(1, BigDecimal.ROUND_HALF_UP);
 
                         final LimitOrder limitOrder = new LimitOrder(orderType,
@@ -679,14 +694,18 @@ public class BitmexService extends MarketService {
                             getCounterName(),
                             attemptCount,
                             message);
-                    if (attemptCount == MAX_ATTEMPTS) {
+                    if (e.getMessage().startsWith("Read timed out") || e.getMessage().startsWith("Network is unreachable")) {
+                        attemptCount = MAX_ATTEMPTS;
+                    }
+
+//                    if (attemptCount == MAX_ATTEMPTS) {
                         logger.error(logString, e);
                         tradeLogger.error("Warning placing: " + logString);
                         warningLogger.error("bitmex placing. Warning: " + logString);
-                    } else {
-                        logger.error(logString, e);
-                        tradeLogger.error(logString);
-                    }
+//                    } else {
+//                        logger.error(logString, e);
+//                        tradeLogger.error(logString);
+//                    }
 
                     tradeResponse.setOrderId(message);
                     tradeResponse.setErrorCode(message);
@@ -738,6 +757,16 @@ public class BitmexService extends MarketService {
 
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
+        if (movingInProgress) {
+            final String logString = String.format("%s No moving. Too often requests. id=%s", getCounterName(), limitOrder.getId());
+            logger.error(logString);
+            tradeLogger.error(logString);
+            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "No moving to often requests");
+        } else {
+            movingInProgress = true;
+            scheduler.schedule(() -> movingInProgress = false, MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
+        }
+
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
         int attemptCount = 0;
         String lastExceptionMsg = "";
@@ -747,7 +776,7 @@ public class BitmexService extends MarketService {
         while (attemptCount < MAX_ATTEMPTS) {
             attemptCount++;
             try {
-                bestMakerPrice = createBestMakerPrice(limitOrder.getType(), true)
+                bestMakerPrice = createBestMakerPrice(limitOrder.getType())
                         .setScale(1, BigDecimal.ROUND_HALF_UP);
                 final BitmexTradeService tradeService = (BitmexTradeService) exchange.getTradeService();
                 final String order = tradeService.moveLimitOrder(limitOrder, bestMakerPrice);
@@ -788,14 +817,17 @@ public class BitmexService extends MarketService {
                         limitOrder.getId(),
                         attemptCount,
                         e.getMessage());
-                if (attemptCount == MAX_ATTEMPTS) {
-                    logger.error(logString, e);
+                if (e.getMessage().startsWith("Read timed out") || e.getMessage().startsWith("Network is unreachable")) {
+                    attemptCount = MAX_ATTEMPTS;
+                }
+
+                logger.error(logString, e);
+//                if (attemptCount == MAX_ATTEMPTS) {
                     tradeLogger.error("Warning: " + logString);
                     warningLogger.error("bitmex. Warning: " + logString);
-                } else {
-                    logger.error(logString, e);
-                    tradeLogger.error(logString);
-                }
+//                } else {
+//                    tradeLogger.error(logString);
+//                }
             }
         }
 
@@ -829,7 +861,8 @@ public class BitmexService extends MarketService {
 
             tradeLogger.info(logString);
             moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
-        } else if (moveResponse == null) {
+            movingInProgress = false;
+        } else if (moveResponse == null || moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {
             final String logString = String.format("%s Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
                     getCounterName(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
@@ -855,16 +888,6 @@ public class BitmexService extends MarketService {
         TAKER
     }
 
-    @Override
-    protected BigDecimal getMakerPriceStep() {
-        return new BigDecimal("0.1");
-    }
-
-    @Override
-    protected BigDecimal getMakerDelta() {
-        return new BigDecimal("0.00000001");
-    }
-
     private void startAccountInfoListener() {
         Observable<AccountInfoContracts> accountInfoObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
                 .getAccountInfoContractsObservable()
@@ -877,21 +900,11 @@ public class BitmexService extends MarketService {
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(newInfo -> {
 
-                    final BigDecimal equity = newInfo.getEquity() != null ? newInfo.getEquity() : accountInfoContracts.getEquity();
-                    final BigDecimal available = newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable();
-                    final BigDecimal margin = equity.subtract(available); //equity and available may be updated with separate responses
+                    synchronized (this) {
+                        final Position pObj = getPosition();
+                        recalcEquity(newInfo, pObj);
+                    }
 
-                    accountInfoContracts = new AccountInfoContracts(
-                            newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
-                            available,
-                            equity,
-                            margin,
-                            newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
-                            newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
-                            newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
-                    );
-
-                    logger.debug("Balance " + accountInfoContracts.toString());
                 }, throwable -> {
                     logger.error("Can not fetchAccountInfo", throwable);
                     // schedule it again
@@ -899,6 +912,80 @@ public class BitmexService extends MarketService {
 //                    startAccountInfoListener();
                     checkForRestart();
                 });
+    }
+
+    private synchronized void recalcEquity(AccountInfoContracts newInfo, Position pObj) {
+        final BigDecimal eMark = newInfo.geteMark() != null ? newInfo.geteMark() : accountInfoContracts.geteMark();
+        final BigDecimal available = newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable();
+        final BigDecimal margin = eMark != null ? eMark.subtract(available) : BigDecimal.ZERO; //equity and available may be updated with separate responses
+
+        //set eBest & eAvg for accountInfoContracts
+        BigDecimal eBest = null;
+        BigDecimal eAvg = null;
+        if (accountInfoContracts.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
+            final BigDecimal pos = pObj.getPositionLong();
+            final BigDecimal wallet = accountInfoContracts.getWallet();
+            final OrderBook orderBook = getOrderBook();
+
+            if (pos.signum() > 0) {
+                //TODO how to find entryPrice.
+                final BigDecimal entryPrice = pObj.getPriceAvgLong();
+                if (entryPrice != null && entryPrice.signum() != 0) {
+                    final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
+                    // upl_long = pos/entry_price - pos/bid[1]
+                    final BigDecimal uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    // upl_long_avg = pos/entry_price - pos/bid[]
+                    // e_best = ok_bal + upl_long
+                    eBest = wallet.add(uplLong);
+
+                    int bidAmount = pObj.getPositionLong().intValue();
+                    final BigDecimal bidAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, 0);
+                    final BigDecimal uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    eAvg = wallet.add(uplLongAvg);
+                }
+            } else if (pos.signum() < 0) {
+                final BigDecimal entryPrice = pObj.getPriceAvgLong();
+                if (entryPrice != null && entryPrice.signum() != 0) {
+                    final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
+                    // upl_short = pos / ask[1] - pos / entry_price
+                    final BigDecimal uplShort = pos.divide(ask1, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    // e_best = ok_bal + upl_long
+                    eBest = wallet.add(uplShort);
+
+                    int askAmount = pObj.getPositionLong().abs().intValue();
+                    final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, 0, askAmount);
+                    final BigDecimal uplLongAvg = pos.divide(askAvgPrice, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    eAvg = wallet.add(uplLongAvg);
+                }
+            } else { //pos==0
+                // e_best == btm_bal
+                eBest = wallet;
+                eAvg = wallet;
+            }
+        }
+
+        accountInfoContracts = new AccountInfoContracts(
+                newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
+                available,
+                eMark,
+                BigDecimal.ZERO,
+                eBest,
+                eAvg,
+                margin,
+                newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
+                newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
+                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
+        );
+
+        logger.debug("Balance " + accountInfoContracts.toString());
     }
 
     private void startPositionListener() {
@@ -973,7 +1060,7 @@ public class BitmexService extends MarketService {
     private synchronized void recalcLiqInfo() {
         final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
 
-        final BigDecimal equity = accountInfoContracts.getEquity();
+        final BigDecimal equity = accountInfoContracts.geteMark();
         final BigDecimal margin = accountInfoContracts.getMargin();
 
         final BigDecimal bMrliq = arbitrageService.getParams().getbMrLiq();
