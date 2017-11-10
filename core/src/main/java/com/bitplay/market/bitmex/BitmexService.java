@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.SocketTimeoutException;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -327,24 +328,52 @@ public class BitmexService extends MarketService {
     }*/
 
     @Override
-    protected void iterateOpenOrdersMove() {
-        boolean haveToClear = false;
-//        synchronized (openOrdersLock) {
-        for (LimitOrder openOrder : openOrders) {
-            if (openOrder.getType() != null) {
-                final SignalType signalType = arbitrageService.getSignalType();
-                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
-                if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                    haveToClear = true;
-                }
-            }
-//            }
+    protected synchronized void iterateOpenOrdersMove() {
+
+        if (movingInProgress) {
+            final String logString = String.format("%s No moving. Too often requests.", getCounterName());
+            logger.error(logString);
+            tradeLogger.error(logString);
+        } else {
+            movingInProgress = true;
+            scheduler.schedule(() -> movingInProgress = false, MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
         }
 
-        if (haveToClear) {
-            openOrders.clear();
-            eventBus.send(BtsEvent.MARKET_FREE);
-        }
+        synchronized (openOrdersLock) {
+            if (openOrders.size() > 0) {
+
+                openOrders = openOrders.stream()
+                        .flatMap(openOrder -> {
+
+                            if (openOrder.getType() != null) {
+                                final SignalType signalType = arbitrageService.getSignalType();
+
+                                try {
+                                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
+                                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                                        return Stream.empty();
+                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
+                                        return Stream.of(response.getNewOrder());
+                                    }
+
+                                } finally {
+
+                                }
+                            }
+
+                            return Stream.of(openOrder);
+                        })
+                        .collect(Collectors.toList());
+
+                if (openOrders.size() == 0) {
+                    eventBus.send(BtsEvent.MARKET_FREE);
+                }
+
+            }
+
+        } // synchronized (openOrdersLock)
+
+        movingInProgress = false;
     }
 
     private BitmexStreamingExchange initExchange(String key, String secret) {
@@ -503,12 +532,12 @@ public class BitmexService extends MarketService {
                 .subscribe(orderBook -> {
                     if (orderBook != null) {
                         //workaround
-                        if (openOrders == null) {
-                            openOrders = new ArrayList<>();
-                            if (isBusy()) {
-                                eventBus.send(BtsEvent.MARKET_FREE);
-                            }
-                        }
+//                            if (openOrders == null) {
+//                                openOrders = new ArrayList<>();
+//                                if (isBusy()) {
+//                                    eventBus.send(BtsEvent.MARKET_FREE);
+//                                }
+//                            }
 
                         final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
                         final LimitOrder bestBid = Utils.getBestBid(orderBook);
@@ -592,7 +621,7 @@ public class BitmexService extends MarketService {
                         if (openOrders.size() == 0) { // End orders right away step2
                             setFree();
                         }
-                    }
+                    } // synchronized (openOrdersLock)
 
                 }, throwable -> {
                     logger.error("OO.Exception: ", throwable);
@@ -791,16 +820,6 @@ public class BitmexService extends MarketService {
 
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
-        if (movingInProgress) {
-            final String logString = String.format("%s No moving. Too often requests. id=%s", getCounterName(), limitOrder.getId());
-            logger.error(logString);
-            tradeLogger.error(logString);
-            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "No moving to often requests");
-        } else {
-            movingInProgress = true;
-            scheduler.schedule(() -> movingInProgress = false, MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
-        }
-
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
         int attemptCount = 0;
         String lastExceptionMsg = "";
@@ -903,8 +922,9 @@ public class BitmexService extends MarketService {
             }
 
             tradeLogger.info(logString);
-            moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
-            movingInProgress = false;
+            final LimitOrder newLimitOrder = new LimitOrder(limitOrder.getType(), limitOrder.getTradableAmount(), limitOrder.getCurrencyPair(),
+                    limitOrder.getId(), new Date(), limitOrder.getLimitPrice());
+            moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, newLimitOrder);
         } else if (moveResponse == null
                 || moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {
             final String logString = String.format("%s Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
