@@ -267,6 +267,9 @@ public class BitmexService extends MarketService {
                 avgPriceS,
                 pUpdate.getRaw()
         );
+
+        final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
+        recalcEquity(accountInfoContracts, position);
     }
 
 
@@ -897,7 +900,11 @@ public class BitmexService extends MarketService {
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
                 .subscribe(newInfo -> {
 
-                    updateAccountInfoContracts(newInfo);
+                    synchronized (this) {
+                        final Position pObj = getPosition();
+                        recalcEquity(newInfo, pObj);
+                    }
+
                 }, throwable -> {
                     logger.error("Can not fetchAccountInfo", throwable);
                     // schedule it again
@@ -907,7 +914,7 @@ public class BitmexService extends MarketService {
                 });
     }
 
-    private void updateAccountInfoContracts(AccountInfoContracts newInfo) {
+    private synchronized void recalcEquity(AccountInfoContracts newInfo, Position pObj) {
         final BigDecimal eMark = newInfo.geteMark() != null ? newInfo.geteMark() : accountInfoContracts.geteMark();
         final BigDecimal available = newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable();
         final BigDecimal margin = eMark != null ? eMark.subtract(available) : BigDecimal.ZERO; //equity and available may be updated with separate responses
@@ -915,7 +922,6 @@ public class BitmexService extends MarketService {
         //set eBest & eAvg for accountInfoContracts
         BigDecimal eBest = null;
         BigDecimal eAvg = null;
-        final Position pObj = getPosition();
         if (accountInfoContracts.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
             final BigDecimal pos = pObj.getPositionLong();
             final BigDecimal wallet = accountInfoContracts.getWallet();
@@ -924,7 +930,7 @@ public class BitmexService extends MarketService {
             if (pos.signum() > 0) {
                 //TODO how to find entryPrice.
                 final BigDecimal entryPrice = pObj.getPriceAvgLong();
-                if (entryPrice != null) {
+                if (entryPrice != null && entryPrice.signum() != 0) {
                     final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
                     // upl_long = pos/entry_price - pos/bid[1]
                     final BigDecimal uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
@@ -942,8 +948,8 @@ public class BitmexService extends MarketService {
                     eAvg = wallet.add(uplLongAvg);
                 }
             } else if (pos.signum() < 0) {
-                final BigDecimal entryPrice = pObj.getPriceAvgShort();
-                if (entryPrice != null) {
+                final BigDecimal entryPrice = pObj.getPriceAvgLong();
+                if (entryPrice != null && entryPrice.signum() != 0) {
                     final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
                     // upl_short = pos / ask[1] - pos / entry_price
                     final BigDecimal uplShort = pos.divide(ask1, 16, RoundingMode.HALF_UP)

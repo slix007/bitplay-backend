@@ -293,6 +293,8 @@ public class OkCoinService extends MarketService {
                     BigDecimal.ZERO,
                     websocketUpdate.getRaw());
         }
+
+        recalcEquity(getAccountInfoContracts(), position);
     }
 
     @Scheduled(fixedRate = 1000 * 60 * 5)
@@ -399,17 +401,19 @@ public class OkCoinService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .subscribe(accountInfoContracts -> {
                     logger.debug("AccountInfo.Websocket: " + accountInfoContracts.toString());
-                    setAccountInfoContracts(accountInfoContracts);
+                    synchronized (this) {
+                        final Position posObj = getPosition();
+                        recalcEquity(accountInfoContracts, posObj);
+                    }
 
                 }, throwable -> {
                     logger.error("AccountInfo.Websocket.Exception: ", throwable);
                 });
     }
 
-    private void setAccountInfoContracts(AccountInfoContracts accountInfoContracts) {
-        BigDecimal eBest = null;
-        BigDecimal eAvg = null;
-        final Position pObj = getPosition();
+    private synchronized void recalcEquity(final AccountInfoContracts accountInfoContracts, final Position pObj) {
+        BigDecimal eBest = BigDecimal.ZERO;
+        BigDecimal eAvg = BigDecimal.ZERO;
         if (accountInfoContracts.getWallet() != null && pObj != null
                 && pObj.getPositionLong() != null && pObj.getPositionShort() != null) {
             final BigDecimal pos = pObj.getPositionLong().subtract(pObj.getPositionShort());
@@ -419,38 +423,42 @@ public class OkCoinService extends MarketService {
             if (pos.signum() > 0) {
                 final BigDecimal entryPrice = pObj.getPriceAvgLong();
                 final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
-                // upl_long = pos/entry_price - pos/bid[1]
-                final BigDecimal uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
-                        .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
-                        .setScale(8, RoundingMode.HALF_UP);
-                // upl_long_avg = pos/entry_price - pos/bid[]
-                // e_best = ok_bal + upl_long
-                eBest = wallet.add(uplLong);
+                if (entryPrice != null && entryPrice.signum() != 0 && bid1 != null && bid1.signum() != 0) {
+                    // upl_long = pos/entry_price - pos/bid[1]
+                    final BigDecimal uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    // upl_long_avg = pos/entry_price - pos/bid[]
+                    // e_best = ok_bal + upl_long
+                    eBest = wallet.add(uplLong);
 
-                int bidAmount = pObj.getPositionLong().intValue();
-                int askAmount = pObj.getPositionShort().intValue();
-                final BigDecimal bidAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, askAmount);
-                final BigDecimal uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
-                        .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
-                        .setScale(8, RoundingMode.HALF_UP);
-                eAvg = wallet.add(uplLongAvg);
+                    int bidAmount = pObj.getPositionLong().intValue();
+                    int askAmount = pObj.getPositionShort().intValue();
+                    final BigDecimal bidAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, askAmount);
+                    final BigDecimal uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    eAvg = wallet.add(uplLongAvg);
+                }
             } else if (pos.signum() < 0) {
                 final BigDecimal entryPrice = pObj.getPriceAvgShort();
                 final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
-                // upl_short = pos / ask[1] - pos / entry_price
-                final BigDecimal uplShort = pos.divide(ask1, 16, RoundingMode.HALF_UP)
-                        .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
-                        .setScale(8, RoundingMode.HALF_UP);
-                // e_best = ok_bal + upl_long
-                eBest = wallet.add(uplShort);
+                if (entryPrice != null && entryPrice.signum() != 0 && ask1 != null && ask1.signum() != 0) {
+                    // upl_short = pos / ask[1] - pos / entry_price
+                    final BigDecimal uplShort = pos.divide(ask1, 17, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    // e_best = ok_bal + upl_long
+                    eBest = wallet.add(uplShort);
 
-                int bidAmount = pObj.getPositionLong().intValue();
-                int askAmount = pObj.getPositionShort().intValue();
-                final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, askAmount);
-                final BigDecimal uplLongAvg = pos.divide(askAvgPrice, 16, RoundingMode.HALF_UP)
-                        .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
-                        .setScale(8, RoundingMode.HALF_UP);
-                eAvg = wallet.add(uplLongAvg);
+                    int bidAmount = pObj.getPositionLong().intValue();
+                    int askAmount = pObj.getPositionShort().intValue();
+                    final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, askAmount);
+                    final BigDecimal uplLongAvg = pos.divide(askAvgPrice, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
+                            .setScale(8, RoundingMode.HALF_UP);
+                    eAvg = wallet.add(uplLongAvg);
+                }
             } else { //pos==0
                 // e_best == btm_bal
                 eBest = wallet;
