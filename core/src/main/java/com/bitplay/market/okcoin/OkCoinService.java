@@ -421,7 +421,7 @@ public class OkCoinService extends MarketService {
         BigDecimal eAvg = BigDecimal.ZERO;
         if (accountInfoContracts.getWallet() != null && pObj != null
                 && pObj.getPositionLong() != null && pObj.getPositionShort() != null) {
-            final BigDecimal pos = pObj.getPositionLong().subtract(pObj.getPositionShort());
+            final BigDecimal pos = (pObj.getPositionLong().subtract(pObj.getPositionShort())).multiply(BigDecimal.valueOf(100));
             final BigDecimal wallet = accountInfoContracts.getWallet();
 
             if (pos.signum() > 0) {
