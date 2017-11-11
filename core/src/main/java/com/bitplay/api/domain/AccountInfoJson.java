@@ -34,7 +34,9 @@ public class AccountInfoJson {
         this.raw = raw;
     }
 
-    public AccountInfoJson(String wallet, String available, String margin, String position, String upl, String leverage, String availableForLong, String availableForShort, String quAvg, String liqPrice, String eMark, String eLast, String eBest, String eAvg, String entryPrice, String raw) {
+    public AccountInfoJson(String wallet, String available, String margin, String position, String upl, String leverage,
+                           String availableForLong, String availableForShort, String quAvg, String liqPrice, String eMark,
+                           String eLast, String eBest, String eAvg, String entryPrice, String raw) {
         this.wallet = wallet;
         this.available = available;
         this.margin = margin;

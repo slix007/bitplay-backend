@@ -268,8 +268,7 @@ public class BitmexService extends MarketService {
                 pUpdate.getRaw()
         );
 
-        final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
-        recalcEquity(accountInfoContracts, position);
+        recalcEquity(getAccountInfoContracts(), position, getOrderBook());
     }
 
 
@@ -518,6 +517,10 @@ public class BitmexService extends MarketService {
                         this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
                         this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                         logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
+
+                        synchronized (this) {
+                            recalcEquity(getAccountInfoContracts(), getPosition(), orderBook);
+                        }
 
                         getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
                     }
@@ -901,8 +904,7 @@ public class BitmexService extends MarketService {
                 .subscribe(newInfo -> {
 
                     synchronized (this) {
-                        final Position pObj = getPosition();
-                        recalcEquity(newInfo, pObj);
+                        recalcEquity(newInfo, getPosition(), getOrderBook());
                     }
 
                 }, throwable -> {
@@ -914,7 +916,7 @@ public class BitmexService extends MarketService {
                 });
     }
 
-    private synchronized void recalcEquity(AccountInfoContracts newInfo, Position pObj) {
+    private synchronized void recalcEquity(AccountInfoContracts newInfo, Position pObj, OrderBook orderBook) {
         final BigDecimal eMark = newInfo.geteMark() != null ? newInfo.geteMark() : accountInfoContracts.geteMark();
         final BigDecimal available = newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable();
         final BigDecimal margin = eMark != null ? eMark.subtract(available) : BigDecimal.ZERO; //equity and available may be updated with separate responses
@@ -925,7 +927,6 @@ public class BitmexService extends MarketService {
         if (accountInfoContracts.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
             final BigDecimal pos = pObj.getPositionLong();
             final BigDecimal wallet = accountInfoContracts.getWallet();
-            final OrderBook orderBook = getOrderBook();
 
             if (pos.signum() > 0) {
                 //TODO how to find entryPrice.

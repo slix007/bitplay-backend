@@ -200,6 +200,10 @@ public class OkCoinService extends MarketService {
 
                     this.orderBook = orderBook;
 
+                    synchronized (this) {
+                        recalcEquity(getAccountInfoContracts(), getPosition(), orderBook);
+                    }
+
                     if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
                             && this.bestAsk.compareTo(bestAsk.getLimitPrice()) != 0
                             && this.bestBid.compareTo(bestBid.getLimitPrice()) != 0) {
@@ -294,7 +298,9 @@ public class OkCoinService extends MarketService {
                     websocketUpdate.getRaw());
         }
 
-        recalcEquity(getAccountInfoContracts(), position);
+        synchronized (this) {
+            recalcEquity(getAccountInfoContracts(), position, getOrderBook());
+        }
     }
 
     @Scheduled(fixedRate = 1000 * 60 * 5)
@@ -402,8 +408,7 @@ public class OkCoinService extends MarketService {
                 .subscribe(accountInfoContracts -> {
                     logger.debug("AccountInfo.Websocket: " + accountInfoContracts.toString());
                     synchronized (this) {
-                        final Position posObj = getPosition();
-                        recalcEquity(accountInfoContracts, posObj);
+                        recalcEquity(accountInfoContracts, getPosition(), getOrderBook());
                     }
 
                 }, throwable -> {
@@ -411,14 +416,13 @@ public class OkCoinService extends MarketService {
                 });
     }
 
-    private synchronized void recalcEquity(final AccountInfoContracts accountInfoContracts, final Position pObj) {
+    private synchronized void recalcEquity(final AccountInfoContracts accountInfoContracts, final Position pObj, final OrderBook orderBook) {
         BigDecimal eBest = BigDecimal.ZERO;
         BigDecimal eAvg = BigDecimal.ZERO;
         if (accountInfoContracts.getWallet() != null && pObj != null
                 && pObj.getPositionLong() != null && pObj.getPositionShort() != null) {
             final BigDecimal pos = pObj.getPositionLong().subtract(pObj.getPositionShort());
             final BigDecimal wallet = accountInfoContracts.getWallet();
-            final OrderBook orderBook = getOrderBook();
 
             if (pos.signum() > 0) {
                 final BigDecimal entryPrice = pObj.getPriceAvgLong();
