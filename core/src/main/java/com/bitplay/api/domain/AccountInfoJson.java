@@ -21,6 +21,7 @@ public class AccountInfoJson {
     private String eBest;
     private String eLast;
     private String eAvg;
+    private String entryPrice;
 
     private String raw;
 
@@ -33,7 +34,7 @@ public class AccountInfoJson {
         this.raw = raw;
     }
 
-    public AccountInfoJson(String wallet, String available, String margin, String position, String upl, String leverage, String availableForLong, String availableForShort, String quAvg, String liqPrice, String eMark, String eLast, String eBest, String eAvg, String raw) {
+    public AccountInfoJson(String wallet, String available, String margin, String position, String upl, String leverage, String availableForLong, String availableForShort, String quAvg, String liqPrice, String eMark, String eLast, String eBest, String eAvg, String entryPrice, String raw) {
         this.wallet = wallet;
         this.available = available;
         this.margin = margin;
@@ -48,6 +49,7 @@ public class AccountInfoJson {
         this.eLast = eLast;
         this.eBest = eBest;
         this.eAvg = eAvg;
+        this.entryPrice = entryPrice;
         this.raw = raw;
     }
 
@@ -113,6 +115,10 @@ public class AccountInfoJson {
 
     public String geteAvg() {
         return eAvg;
+    }
+
+    public String getEntryPrice() {
+        return entryPrice;
     }
 
     public String getRaw() {

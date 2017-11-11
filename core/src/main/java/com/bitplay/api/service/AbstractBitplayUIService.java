@@ -130,7 +130,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final AccountInfoContracts accountInfoContracts = getBusinessService().getAccountInfoContracts();
         if (accountInfoContracts == null) {
             return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
-                    "error", "error", "error", "error", "error", "error", "error", "error");
+                    "error", "error", "error", "error", "error", "error", "error", "error", "error");
         }
 
         final BigDecimal available = accountInfoContracts.getAvailable();
@@ -145,14 +145,9 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final BigDecimal eAvg = accountInfoContracts.geteAvg();
 
         final Position position = getBusinessService().getPosition();
-//        String positionString = String.format("%s; leverage=%s",
-//                getPositionString(position),
-//                position.getLeverage());
-//
-//        positionString += String.format("; AvailableForLong:%s, AvailableForShort:%s",
-//                getBusinessService().getAffordableContractsForLong(),
-//                getBusinessService().getAffordableContractsForShort()
-//        );
+        final String entryPrice = String.format("short/long: %s/%s",
+                position.getPriceAvgShort() != null ? position.getPriceAvgShort().toPlainString() : null,
+                position.getPriceAvgLong() != null ? position.getPriceAvgLong().toPlainString() : null);
 
         return new AccountInfoJson(
                 wallet.toPlainString(),
@@ -169,6 +164,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 eLast != null ? eLast.toPlainString() : "0",
                 eBest != null ? eBest.toPlainString() : "0",
                 eAvg != null ? eAvg.toPlainString() : "0",
+                entryPrice,
                 accountInfoContracts.toString());
     }
 
