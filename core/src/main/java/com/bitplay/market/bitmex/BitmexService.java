@@ -45,6 +45,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.SocketTimeoutException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -76,7 +77,7 @@ public class BitmexService extends MarketService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private static final String NAME = "bitmex";
-    private static final int MAX_ATTEMPTS = 1;
+    private static final int MAX_ATTEMPTS = 3;
     private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
     private BitmexStreamingExchange exchange;
@@ -299,7 +300,7 @@ public class BitmexService extends MarketService {
 //            iterateOpenOrdersMove();
         }
     }*/
-
+/*
     @Scheduled(fixedRate = 1000 * 60)
     public void checkForHangOrders() {
         try {
@@ -312,7 +313,7 @@ public class BitmexService extends MarketService {
         if (openOrders.size() == 0) {
             setFree();
         }
-    }
+    }*/
 
     // Use Websocket API instead
     /*public void getFunding() {
@@ -690,28 +691,54 @@ public class BitmexService extends MarketService {
                     }
 
                     break;
-                } catch (Exception e) {
-                    logger.error("Error on placeLimitOrder", e);
-                    final String message = (e instanceof HttpStatusIOException)
-                            ? e.getMessage() + ((HttpStatusIOException) e).getHttpBody()
-                            : e.getMessage();
+                } catch (HttpStatusIOException e) {
+                    final String httpBody = e.getHttpBody();
 
+                    try {
+
+                        ObjectMapper objectMapper = new ObjectMapper();
+                        final Error error = objectMapper.readValue(httpBody, Error.class);
+                        final String marketResponseMessage = error.getError().getMessage();
+
+                        if (marketResponseMessage.startsWith("The system is currently overloaded. Please try again later")) {
+                            final String logString = String.format("%s maker error attempt=%s: %s. Waiting for 1 min",
+                                    getCounterName(),
+                                    attemptCount,
+                                    httpBody);
+
+                            Thread.sleep(60 * 1000);
+
+                            tradeLogger.error(logString);
+                            logger.error(logString);
+                        } else {
+                            attemptCount = MAX_ATTEMPTS;
+                            final String logString = String.format("%s maker error attempt=%s: %s",
+                                    getCounterName(),
+                                    attemptCount,
+                                    httpBody);
+                            tradeLogger.error(logString);
+                            logger.error(logString, e);
+                        }
+
+                    } catch (IOException e1) {
+                        logger.error("On parse error", e1);
+                    }
+
+                    tradeResponse.setOrderId(httpBody);
+                    tradeResponse.setErrorCode(httpBody);
+                } catch (Exception e) {
+                    final String message = e.getMessage();
                     final String logString = String.format("%s maker error attempt=%s: %s",
                             getCounterName(),
                             attemptCount,
                             message);
-                    if (e.getMessage().startsWith("Read timed out") || e.getMessage().startsWith("Network is unreachable")) {
-                        attemptCount = MAX_ATTEMPTS;
-                    }
-
-//                    if (attemptCount == MAX_ATTEMPTS) {
-                        logger.error(logString, e);
-                        tradeLogger.error("Warning placing: " + logString);
-                        warningLogger.error("bitmex placing. Warning: " + logString);
-//                    } else {
-//                        logger.error(logString, e);
-//                        tradeLogger.error(logString);
+//                    if (e.getMessage().startsWith("Read timed out") || e.getMessage().startsWith("Network is unreachable")) {
+                    attemptCount = MAX_ATTEMPTS;
 //                    }
+
+                    logger.error(logString, e);
+                    tradeLogger.error("Warning placing: " + logString);
+                    warningLogger.error("bitmex placing. Warning: " + logString);
 
                     tradeResponse.setOrderId(message);
                     tradeResponse.setErrorCode(message);
@@ -799,19 +826,28 @@ public class BitmexService extends MarketService {
 
                 try {
                     final Error error = objectMapper.readValue(httpBody, Error.class);
-                    if (error.getError().getMessage().startsWith("Invalid ordStatus")) {
-                        logger.error("MoveException " + httpBody);
-                    } else {
-                        logger.error("MoveException " + httpBody, e);
-                    }
-                    tradeLogger.error("{} MoveException: {}", getCounterName(), error.getError().getMessage());
 
-                    if (error.getError().getMessage().startsWith("Invalid ordStatus")) {
+                    final String message = String.format("%s MoveException: %s", getCounterName(), httpBody);
+                    logger.error(message);
+
+                    final String marketResponseMessage = error.getError().getMessage();
+                    if (marketResponseMessage.startsWith("Invalid ordStatus")) {
+                        tradeLogger.error("{} MoveException: {}", getCounterName(), marketResponseMessage);
+
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
-                        // add flag
-                        arbitrageService.getFlagOpenOrder().setFirstReady(true);
+                        arbitrageService.getFlagOpenOrder().setFirstReady(true); // add flag
                         break;
+
+                    } else if (marketResponseMessage.startsWith("The system is currently overloaded. Please try again later")) {
+                        tradeLogger.error("{} MoveException: {}", getCounterName(), marketResponseMessage);
+
+                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, httpBody);
+                    } else {
+                        tradeLogger.error(message);
+                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, httpBody);
+                        logger.error(message, e); // EXCEPTION, "default")
                     }
+
                 } catch (IOException e1) {
                     logger.error("On parse error", e1);
                 }
@@ -868,7 +904,8 @@ public class BitmexService extends MarketService {
             tradeLogger.info(logString);
             moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
             movingInProgress = false;
-        } else if (moveResponse == null || moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {
+        } else if (moveResponse == null
+                || moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {
             final String logString = String.format("%s Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
                     getCounterName(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
