@@ -102,6 +102,9 @@ public class BitmexService extends MarketService {
     private ArbitrageService arbitrageService;
 
     @Autowired
+    private BitmexBalanceService bitmexBalanceService;
+
+    @Autowired
     private RestartService restartService;
     private volatile String orderBookLastTimestamp = "";
 
@@ -904,7 +907,20 @@ public class BitmexService extends MarketService {
                 .subscribe(newInfo -> {
 
                     synchronized (this) {
-                        recalcEquity(newInfo, getPosition(), getOrderBook());
+                        accountInfoContracts = new AccountInfoContracts(
+                                newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
+                                newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable(),
+                                newInfo.geteMark() != null ? newInfo.geteMark() : accountInfoContracts.geteMark(),
+                                BigDecimal.ZERO,
+                                eBest,
+                                eAvg,
+                                margin,
+                                newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
+                                newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
+                                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
+                        );
+
+                        bitmexBalanceService.recalcEquity(accountInfoContracts, getPosition(), getOrderBook());
                     }
 
                 }, throwable -> {
@@ -914,79 +930,6 @@ public class BitmexService extends MarketService {
 //                    startAccountInfoListener();
                     checkForRestart();
                 });
-    }
-
-    private synchronized void recalcEquity(AccountInfoContracts newInfo, Position pObj, OrderBook orderBook) {
-        final BigDecimal eMark = newInfo.geteMark() != null ? newInfo.geteMark() : accountInfoContracts.geteMark();
-        final BigDecimal available = newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable();
-        final BigDecimal margin = eMark != null ? eMark.subtract(available) : BigDecimal.ZERO; //equity and available may be updated with separate responses
-
-        //set eBest & eAvg for accountInfoContracts
-        BigDecimal eBest = null;
-        BigDecimal eAvg = null;
-        if (accountInfoContracts.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
-            final BigDecimal pos = pObj.getPositionLong();
-            final BigDecimal wallet = accountInfoContracts.getWallet();
-
-            if (pos.signum() > 0) {
-                //TODO how to find entryPrice.
-                final BigDecimal entryPrice = pObj.getPriceAvgLong();
-                if (entryPrice != null && entryPrice.signum() != 0) {
-                    final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
-                    // upl_long = pos/entry_price - pos/bid[1]
-                    final BigDecimal uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
-                            .setScale(8, RoundingMode.HALF_UP);
-                    // upl_long_avg = pos/entry_price - pos/bid[]
-                    // e_best = ok_bal + upl_long
-                    eBest = wallet.add(uplLong);
-
-                    int bidAmount = pObj.getPositionLong().intValue();
-                    final BigDecimal bidAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, 0);
-                    final BigDecimal uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
-                            .setScale(8, RoundingMode.HALF_UP);
-                    eAvg = wallet.add(uplLongAvg);
-                }
-            } else if (pos.signum() < 0) {
-                final BigDecimal entryPrice = pObj.getPriceAvgLong();
-                if (entryPrice != null && entryPrice.signum() != 0) {
-                    final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
-                    // upl_short = pos / ask[1] - pos / entry_price
-                    final BigDecimal uplShort = pos.divide(ask1, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
-                            .setScale(8, RoundingMode.HALF_UP);
-                    // e_best = ok_bal + upl_long
-                    eBest = wallet.add(uplShort);
-
-                    int askAmount = pObj.getPositionLong().abs().intValue();
-                    final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, 0, askAmount);
-                    final BigDecimal uplLongAvg = pos.divide(askAvgPrice, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
-                            .setScale(8, RoundingMode.HALF_UP);
-                    eAvg = wallet.add(uplLongAvg);
-                }
-            } else { //pos==0
-                // e_best == btm_bal
-                eBest = wallet;
-                eAvg = wallet;
-            }
-        }
-
-        accountInfoContracts = new AccountInfoContracts(
-                newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
-                available,
-                eMark,
-                BigDecimal.ZERO,
-                eBest,
-                eAvg,
-                margin,
-                newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
-                newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
-                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
-        );
-
-        logger.debug("Balance " + accountInfoContracts.toString());
     }
 
     private void startPositionListener() {

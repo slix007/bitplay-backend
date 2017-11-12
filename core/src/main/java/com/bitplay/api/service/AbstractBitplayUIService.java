@@ -1,7 +1,6 @@
 package com.bitplay.api.service;
 
 import com.bitplay.api.domain.AccountInfoJson;
-import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.OrderBookJson;
@@ -37,6 +36,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import io.reactivex.Observable;
 
 /**
  * Created by Sergey Shurmin on 3/25/17.
@@ -124,6 +125,13 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 .map(toOrderJson)
                 .collect(Collectors.toList()));
         return orderJson;
+    }
+
+    public Observable<AccountInfoJson> getContractsAccountInfoAsync() {
+        Observable<AccountInfoJson> o = Observable.fromCallable(() -> this.getContractsAccountInfo());
+        getBusinessService()
+
+        return o;
     }
 
     public AccountInfoJson getContractsAccountInfo() {

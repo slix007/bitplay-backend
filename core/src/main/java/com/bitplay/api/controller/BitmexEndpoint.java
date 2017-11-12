@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.async.DeferredResult;
 
 import java.util.List;
 
@@ -42,6 +43,18 @@ public class BitmexEndpoint {
     public AccountInfoJson getAccountInfo() {
         return this.bitmex.getContractsAccountInfo();
     }
+
+    @RequestMapping(value = "/account-async", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public DeferredResult<AccountInfoJson> getAccountInfoAsync() {
+        DeferredResult<AccountInfoJson> deffered = new DeferredResult<>(90 * 1000L); //1.5 min
+
+        this.bitmex.getContractsAccountInfoAsync()
+                .subscribe(deffered::setResult, deffered::setErrorResult);
+
+        return deffered;
+    }
+
+
 
     @RequestMapping(value = "/place-market-order",
             method = RequestMethod.POST,
