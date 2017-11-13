@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 
 /**
  * Created by Sergey Shurmin on 11/12/17.
@@ -20,13 +21,12 @@ import java.math.RoundingMode;
 public class BitmexBalanceService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexBalanceService.class);
 
-    private FullBalance fullBalance = new FullBalance();
+    private volatile Instant lastTime = Instant.now();
+    private volatile FullBalance fullBalance;
 
+    private FullBalance recalcEquity(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
 
-
-    synchronized void recalcEquity(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
-//        final AccountInfoContracts accountInfoContracts = fullBalance.getAccountInfoContracts() != null
-//                ? fullBalance.getAccountInfoContracts() : new AccountInfoContracts();
+        String tempValues = "";
 
         final BigDecimal eMark = accountInfoContracts.geteMark();
         final BigDecimal available = accountInfoContracts.getAvailable();
@@ -58,6 +58,8 @@ public class BitmexBalanceService {
                             .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
                     eAvg = wallet.add(uplLongAvg);
+
+                    tempValues += String.format("bid1=%s,bidAvgPrice=%s", bid1, bidAvgPrice);
                 }
             } else if (pos.signum() < 0) {
                 final BigDecimal entryPrice = pObj.getPriceAvgLong();
@@ -76,6 +78,8 @@ public class BitmexBalanceService {
                             .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
                     eAvg = wallet.add(uplLongAvg);
+
+                    tempValues += String.format("ask1=%s,askAvgPrice=%s", ask1, askAvgPrice);
                 }
             } else { //pos==0
                 // e_best == btm_bal
@@ -84,20 +88,30 @@ public class BitmexBalanceService {
             }
         }
 
-        fullBalance.setAccountInfoContracts(new AccountInfoContracts(
-                newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
+        return new FullBalance(new AccountInfoContracts(
+                accountInfoContracts.getWallet(),
                 available,
                 eMark,
                 BigDecimal.ZERO,
                 eBest,
                 eAvg,
                 margin,
-                newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
-                newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
-                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
-        ));
+                accountInfoContracts.getUpl(),
+                accountInfoContracts.getRpl(),
+                accountInfoContracts.getRiskRate()
+        ),
+                pObj,
+                orderBook,
+                tempValues);
 
-        logger.debug("Balance " + accountInfoContracts.toString());
     }
 
+    public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
+        final Instant nowTime = Instant.now();
+        if (lastTime.toEpochMilli() - nowTime.toEpochMilli() > 500) { //not often than 0.5 sec
+            fullBalance = recalcEquity(accountInfoContracts, pObj, orderBook);
+        }
+        lastTime = nowTime;
+        return fullBalance;
+    }
 }

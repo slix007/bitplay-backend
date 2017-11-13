@@ -690,7 +690,7 @@ public class ArbitrageService {
             final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
 
-            final BigDecimal quAvg = calcQuAvg();
+            final BigDecimal quAvg = Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
 
             sumBalString = String.format("s_bal=w%s_%s, s_e_%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
                     sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -725,7 +725,7 @@ public class ArbitrageService {
             final BigDecimal bLv = firstMarketService.getPosition().getLeverage();
             final BigDecimal bAL = firstMarketService.getAffordableContractsForLong();
             final BigDecimal bAS = firstMarketService.getAffordableContractsForShort();
-            final BigDecimal quAvg = calcQuAvg();
+            final BigDecimal quAvg = Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
             final OrderBook bOrderBook = firstMarketService.getOrderBook();
             final BigDecimal bBestAsk = Utils.getBestAsks(bOrderBook, 1).get(0).getLimitPrice();
             final BigDecimal bBestBid = Utils.getBestBids(bOrderBook, 1).get(0).getLimitPrice();
@@ -899,12 +899,7 @@ public class ArbitrageService {
     }
 
     public BigDecimal calcQuAvg() {
-//        qu_avg = (b_bid[1] + b_ask[1] + o_bid[1] + o_ask[1]) / 4;
-        final BigDecimal bB = Utils.getBestBid(firstMarketService.getOrderBook()).getLimitPrice();
-        final BigDecimal bA = Utils.getBestAsk(firstMarketService.getOrderBook()).getLimitPrice();
-        final BigDecimal oB = Utils.getBestBid(secondMarketService.getOrderBook()).getLimitPrice();
-        final BigDecimal oA = Utils.getBestAsk(secondMarketService.getOrderBook()).getLimitPrice();
-        return (bB.add(bA).add(oB).add(oA)).divide(BigDecimal.valueOf(4), 2, BigDecimal.ROUND_HALF_UP);
+        return Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
     }
 
     public BigDecimal getDelta1() {

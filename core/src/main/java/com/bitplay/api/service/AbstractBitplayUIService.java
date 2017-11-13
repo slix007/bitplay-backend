@@ -129,8 +129,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public Observable<AccountInfoJson> getContractsAccountInfoAsync() {
         Observable<AccountInfoJson> o = Observable.fromCallable(() -> this.getContractsAccountInfo());
-        getBusinessService()
-
         return o;
     }
 

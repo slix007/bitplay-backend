@@ -41,7 +41,7 @@ public class BitmexEndpoint {
 
     @RequestMapping(value = "/account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public AccountInfoJson getAccountInfo() {
-        return this.bitmex.getContractsAccountInfo();
+        return this.bitmex.getFullAccountInfo();
     }
 
     @RequestMapping(value = "/account-async", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

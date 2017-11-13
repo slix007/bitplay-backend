@@ -1,5 +1,6 @@
 package com.bitplay.api.service;
 
+import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.ResultJson;
@@ -7,13 +8,17 @@ import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.bitmex.BitmexBalanceService;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
+import com.bitplay.market.dto.FullBalance;
 import com.bitplay.market.model.TradeResponse;
 
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
+import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,19 +41,22 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     private static final Logger logger = LoggerFactory.getLogger(BitplayUIServiceBitmex.class);
 
     @Autowired
-    private BitmexService service;
+    private BitmexService bitmexService;
 
     @Autowired
     private BitmexTimeService bitmexTimeService;
 
+    @Autowired
+    private BitmexBalanceService bitmexBalanceService;
+
     @Override
     public BitmexService getBusinessService() {
-        return service;
+        return bitmexService;
     }
 
     @Override
     public List<VisualTrade> fetchTrades() {
-        final UserTrades trades = service.fetchMyTradeHistory();
+        final UserTrades trades = bitmexService.fetchMyTradeHistory();
 
         List<VisualTrade> askTrades = trades.getTrades().stream()
                 .sorted((o1, o2) -> o1.getTimestamp().before(o2.getTimestamp()) ? 1 : -1)
@@ -84,11 +92,11 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         String orderId = null;
         if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
-            final TradeResponse tradeResponse = service.takerOrder(orderType, amount, null, signalType);
+            final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, amount, null, signalType);
             orderId = tradeResponse.getOrderId();
         } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
 
-            final TradeResponse tradeResponse = service.placeOrderOnSignal(orderType, amount, null, signalType);
+            final TradeResponse tradeResponse = bitmexService.placeOrderOnSignal(orderType, amount, null, signalType);
             orderId = tradeResponse.getOrderId();
         }
 
@@ -99,9 +107,9 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     public FutureIndexJson getFutureIndex() {
         final FutureIndexJson futureIndexParent = super.getFutureIndex();
 
-        final BitmexFunding bitmexFunding = service.getBitmexSwapService().getBitmexFunding();
+        final BitmexFunding bitmexFunding = bitmexService.getBitmexSwapService().getBitmexFunding();
         String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
-        String fundingCost = service.getFundingCost() != null ? service.getFundingCost().toPlainString() : "";
+        String fundingCost = bitmexService.getFundingCost() != null ? bitmexService.getFundingCost().toPlainString() : "";
 
         String swapTime = "";
         String timeToSwap = "";
@@ -121,7 +129,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
             signalType = bitmexFunding.getSignalType().name();
         }
 
-        final String position = service.getPosition().getPositionLong().toPlainString();
+        final String position = bitmexService.getPosition().getPositionLong().toPlainString();
 
         final String timeCompareString = bitmexTimeService.getTimeCompareString();
         final Integer timeCompareUpdating = bitmexTimeService.fetchTimeCompareUpdating();
@@ -140,7 +148,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {
         final String swapTime = customSwapTime.getCommand();
 
-        service.getBitmexSwapService().setCustomSwapTime(swapTime);
+        bitmexService.getBitmexSwapService().setCustomSwapTime(swapTime);
 
         return new ResultJson("true", "");
     }
@@ -155,4 +163,53 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         final Integer timeCompareUpdating = bitmexTimeService.updateTimeCompareUpdating(Integer.valueOf(command));
         return new ResultJson(String.valueOf(timeCompareUpdating), "");
     }
+
+    public AccountInfoJson getFullAccountInfo() {
+        final AccountInfoContracts inAIC = bitmexService.getAccountInfoContracts();
+        final Position inP = bitmexService.getPosition();
+        final OrderBook inOB = bitmexService.getOrderBook();
+        if (inAIC == null || inP == null || inOB == null) {
+            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
+                    "error", "error", "error", "error", "error", "error", "error", "error", "error");
+        }
+
+        final FullBalance fullBalance = bitmexBalanceService.recalcAndGetAccountInfo(inAIC, inP, inOB);
+
+        final AccountInfoContracts accountInfoContracts = fullBalance.getAccountInfoContracts();
+        final Position position = fullBalance.getPosition();
+
+        final BigDecimal available = accountInfoContracts.getAvailable();
+        final BigDecimal wallet = accountInfoContracts.getWallet();
+        final BigDecimal margin = accountInfoContracts.getMargin();
+        final BigDecimal upl = accountInfoContracts.getUpl();
+        final BigDecimal quAvg = bitmexService.getArbitrageService().calcQuAvg();
+        final BigDecimal liqPrice = position.getLiquidationPrice();
+        final BigDecimal eMark = accountInfoContracts.geteMark();
+        final BigDecimal eLast = accountInfoContracts.geteLast();
+        final BigDecimal eBest = accountInfoContracts.geteBest();
+        final BigDecimal eAvg = accountInfoContracts.geteAvg();
+
+        final String entryPrice = String.format("%s; %s",
+                position.getPriceAvgLong() != null ? position.getPriceAvgLong().toPlainString() : null,
+                fullBalance.getTempValues());
+
+        return new AccountInfoJson(
+                wallet.toPlainString(),
+                available.toPlainString(),
+                margin.toPlainString(),
+                getPositionString(position),
+                upl.toPlainString(),
+                position.getLeverage().toPlainString(),
+                getBusinessService().getAffordableContractsForLong().toPlainString(),
+                getBusinessService().getAffordableContractsForShort().toPlainString(),
+                quAvg.toPlainString(),
+                liqPrice == null ? null : liqPrice.toPlainString(),
+                eMark != null ? eMark.toPlainString() : "0",
+                eLast != null ? eLast.toPlainString() : "0",
+                eBest != null ? eBest.toPlainString() : "0",
+                eAvg != null ? eAvg.toPlainString() : "0",
+                entryPrice,
+                accountInfoContracts.toString());
+    }
+
 }

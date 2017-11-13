@@ -44,7 +44,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.net.SocketTimeoutException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -100,9 +99,6 @@ public class BitmexService extends MarketService {
     private BitmexSwapService bitmexSwapService;
 
     private ArbitrageService arbitrageService;
-
-    @Autowired
-    private BitmexBalanceService bitmexBalanceService;
 
     @Autowired
     private RestartService restartService;
@@ -271,7 +267,7 @@ public class BitmexService extends MarketService {
                 pUpdate.getRaw()
         );
 
-        recalcEquity(getAccountInfoContracts(), position, getOrderBook());
+//        recalcEquity(getAccountInfoContracts(), position, getOrderBook());
     }
 
 
@@ -521,9 +517,9 @@ public class BitmexService extends MarketService {
                         this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                         logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
 
-                        synchronized (this) {
-                            recalcEquity(getAccountInfoContracts(), getPosition(), orderBook);
-                        }
+//                        synchronized (this) {
+//                            recalcEquity(getAccountInfoContracts(), getPosition(), orderBook);
+//                        }
 
                         getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
                     }
@@ -912,15 +908,14 @@ public class BitmexService extends MarketService {
                                 newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable(),
                                 newInfo.geteMark() != null ? newInfo.geteMark() : accountInfoContracts.geteMark(),
                                 BigDecimal.ZERO,
-                                eBest,
-                                eAvg,
-                                margin,
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
                                 newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
                                 newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
                                 newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
                         );
 
-                        bitmexBalanceService.recalcEquity(accountInfoContracts, getPosition(), getOrderBook());
                     }
 
                 }, throwable -> {

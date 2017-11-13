@@ -12,6 +12,14 @@ public class FullBalance {
     AccountInfoContracts accountInfoContracts;
     Position position;
     OrderBook orderBook;
+    String tempValues;
+
+    public FullBalance(AccountInfoContracts accountInfoContracts, Position position, OrderBook orderBook, String tempValues) {
+        this.accountInfoContracts = accountInfoContracts;
+        this.position = position;
+        this.orderBook = orderBook;
+        this.tempValues = tempValues;
+    }
 
     public AccountInfoContracts getAccountInfoContracts() {
         return accountInfoContracts;
@@ -35,5 +43,13 @@ public class FullBalance {
 
     public void setOrderBook(OrderBook orderBook) {
         this.orderBook = orderBook;
+    }
+
+    public String getTempValues() {
+        return tempValues;
+    }
+
+    public void setTempValues(String tempValues) {
+        this.tempValues = tempValues;
     }
 }
