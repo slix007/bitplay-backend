@@ -21,7 +21,7 @@ import java.time.Instant;
 public class BitmexBalanceService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexBalanceService.class);
 
-    private volatile Instant lastTime = Instant.now();
+    private volatile Instant prevTime = Instant.now();
     private volatile FullBalance fullBalance;
 
     private FullBalance recalcEquity(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
@@ -108,10 +108,10 @@ public class BitmexBalanceService {
 
     public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
         final Instant nowTime = Instant.now();
-        if (lastTime.toEpochMilli() - nowTime.toEpochMilli() > 500) { //not often than 0.5 sec
+        if (nowTime.toEpochMilli() - prevTime.toEpochMilli() > 500) { //not often than 0.5 sec
             fullBalance = recalcEquity(accountInfoContracts, pObj, orderBook);
         }
-        lastTime = nowTime;
+        prevTime = nowTime;
         return fullBalance;
     }
 }
