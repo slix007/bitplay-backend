@@ -108,7 +108,7 @@ public class BitmexBalanceService {
 
     public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
         final Instant nowTime = Instant.now();
-        if (nowTime.toEpochMilli() - prevTime.toEpochMilli() > 500) { //not often than 0.5 sec
+        if (Math.abs(nowTime.toEpochMilli() - prevTime.toEpochMilli()) > 500) { //not often than 0.5 sec
             fullBalance = recalcEquity(accountInfoContracts, pObj, orderBook);
         }
         prevTime = nowTime;
