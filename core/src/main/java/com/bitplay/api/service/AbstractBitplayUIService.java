@@ -10,6 +10,7 @@ import com.bitplay.api.domain.TickerJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.dto.FullBalance;
 import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.persistance.domain.LiqParams;
@@ -154,6 +155,55 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final String entryPrice = String.format("short/long: %s/%s",
                 position.getPriceAvgShort() != null ? position.getPriceAvgShort().toPlainString() : null,
                 position.getPriceAvgLong() != null ? position.getPriceAvgLong().toPlainString() : null);
+
+        return new AccountInfoJson(
+                wallet.toPlainString(),
+                available.toPlainString(),
+                margin.toPlainString(),
+                getPositionString(position),
+                upl.toPlainString(),
+                position.getLeverage().toPlainString(),
+                getBusinessService().getAffordableContractsForLong().toPlainString(),
+                getBusinessService().getAffordableContractsForShort().toPlainString(),
+                quAvg.toPlainString(),
+                liqPrice == null ? null : liqPrice.toPlainString(),
+                eMark != null ? eMark.toPlainString() : "0",
+                eLast != null ? eLast.toPlainString() : "0",
+                eBest != null ? eBest.toPlainString() : "0",
+                eAvg != null ? eAvg.toPlainString() : "0",
+                entryPrice,
+                accountInfoContracts.toString());
+    }
+
+
+    public AccountInfoJson getFullAccountInfo() {
+        final AccountInfoContracts inAIC = getBusinessService().getAccountInfoContracts();
+        final Position inP = getBusinessService().getPosition();
+        final OrderBook inOB = getBusinessService().getOrderBook();
+        if (inAIC == null || inP == null || inOB == null) {
+            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
+                    "error", "error", "error", "error", "error", "error", "error", "error", "error");
+        }
+
+        final FullBalance fullBalance = getBusinessService().getBalanceService().recalcAndGetAccountInfo(inAIC, inP, inOB);
+
+        final AccountInfoContracts accountInfoContracts = fullBalance.getAccountInfoContracts();
+        final Position position = fullBalance.getPosition();
+
+        final BigDecimal available = accountInfoContracts.getAvailable();
+        final BigDecimal wallet = accountInfoContracts.getWallet();
+        final BigDecimal margin = accountInfoContracts.getMargin();
+        final BigDecimal upl = accountInfoContracts.getUpl();
+        final BigDecimal quAvg = getBusinessService().getArbitrageService().calcQuAvg();
+        final BigDecimal liqPrice = position.getLiquidationPrice();
+        final BigDecimal eMark = accountInfoContracts.geteMark();
+        final BigDecimal eLast = accountInfoContracts.geteLast();
+        final BigDecimal eBest = accountInfoContracts.geteBest();
+        final BigDecimal eAvg = accountInfoContracts.geteAvg();
+
+        final String entryPrice = String.format("%s; %s",
+                position.getPriceAvgLong() != null ? position.getPriceAvgLong().toPlainString() : null,
+                fullBalance.getTempValues());
 
         return new AccountInfoJson(
                 wallet.toPlainString(),

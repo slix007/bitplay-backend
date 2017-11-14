@@ -99,6 +99,8 @@ public abstract class MarketService {
 
     public abstract boolean checkLiquidationEdge(Order.OrderType orderType);
 
+    public abstract BalanceService getBalanceService();
+
     /*
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable = false;

@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
@@ -89,6 +90,11 @@ public class PoloniexService extends MarketService {
     @Override
     public ArbitrageService getArbitrageService() {
         return arbitrageService;
+    }
+
+    @Override
+    public BalanceService getBalanceService() {
+        return null;
     }
 
     @Autowired

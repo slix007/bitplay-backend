@@ -1,13 +1,12 @@
 package com.bitplay.market.bitmex;
 
+import com.bitplay.market.BalanceService;
 import com.bitplay.market.dto.FullBalance;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -18,8 +17,7 @@ import java.time.Instant;
  * Created by Sergey Shurmin on 11/12/17.
  */
 @Component
-public class BitmexBalanceService {
-    private final static Logger logger = LoggerFactory.getLogger(BitmexBalanceService.class);
+public class BitmexBalanceService implements BalanceService {
 
     private volatile Instant prevTime = Instant.now();
     private volatile FullBalance fullBalance;

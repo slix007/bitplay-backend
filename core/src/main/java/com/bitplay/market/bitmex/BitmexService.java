@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
@@ -101,6 +102,9 @@ public class BitmexService extends MarketService {
     private ArbitrageService arbitrageService;
 
     @Autowired
+    private BitmexBalanceService bitmexBalanceService;
+
+    @Autowired
     private RestartService restartService;
     private volatile String orderBookLastTimestamp = "";
 
@@ -115,6 +119,11 @@ public class BitmexService extends MarketService {
     @Override
     public ArbitrageService getArbitrageService() {
         return arbitrageService;
+    }
+
+    @Override
+    public BalanceService getBalanceService() {
+        return bitmexBalanceService;
     }
 
     @Autowired
