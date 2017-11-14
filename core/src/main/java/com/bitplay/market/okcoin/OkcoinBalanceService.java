@@ -70,7 +70,7 @@ public class OkcoinBalanceService implements BalanceService {
                     // e_best = ok_bal + upl_long
                     eBest = wallet.add(uplShort);
 
-                    int askAmount = pObj.getPositionLong().abs().intValue();
+                    int askAmount = pObj.getPositionShort().abs().intValue();
                     final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, 0, askAmount);
                     final BigDecimal uplLongAvg = pos.divide(askAvgPrice, 16, RoundingMode.HALF_UP)
                             .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
