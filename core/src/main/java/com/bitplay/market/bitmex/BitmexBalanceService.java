@@ -108,8 +108,8 @@ public class BitmexBalanceService implements BalanceService {
         final Instant nowTime = Instant.now();
         if (Math.abs(nowTime.toEpochMilli() - prevTime.toEpochMilli()) > 500) { //not often than 0.5 sec
             fullBalance = recalcEquity(accountInfoContracts, pObj, orderBook);
+            prevTime = nowTime;
         }
-        prevTime = nowTime;
         return fullBalance;
     }
 }
