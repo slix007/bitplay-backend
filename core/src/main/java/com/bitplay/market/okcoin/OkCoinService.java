@@ -305,10 +305,10 @@ public class OkCoinService extends MarketService {
 
     }
 
-    @Scheduled(fixedRate = 1000 * 60 * 5)
-    public void checker() {
-
-    }
+//    @Scheduled(fixedRate = 1000 * 60 * 5)
+//    public void checker() {
+//
+//    }
 
 /*
     //TODO use subscribing on open orders
@@ -414,8 +414,8 @@ public class OkCoinService extends MarketService {
                         accountInfoContracts = new AccountInfoContracts(
                                 newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
                                 newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable(),
-                                newInfo.geteMark() != null ? newInfo.geteMark() : accountInfoContracts.geteMark(),
                                 BigDecimal.ZERO,
+                                newInfo.geteLast() != null ? newInfo.geteLast() : accountInfoContracts.geteLast(),
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO,
