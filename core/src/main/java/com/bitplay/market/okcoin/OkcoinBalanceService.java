@@ -64,16 +64,16 @@ public class OkcoinBalanceService implements BalanceService {
                 if (entryPrice != null && entryPrice.signum() != 0) {
                     final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
                     // upl_short = pos / ask[1] - pos / entry_price
-                    final BigDecimal uplShort = pos.divide(ask1, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
+                    final BigDecimal uplShort = pos.abs().divide(ask1, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
                     // e_best = ok_bal + upl_long
                     eBest = wallet.add(uplShort);
 
                     int askAmount = pObj.getPositionShort().abs().intValue();
                     final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, 0, askAmount);
-                    final BigDecimal uplLongAvg = pos.divide(askAvgPrice, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
+                    final BigDecimal uplLongAvg = pos.abs().divide(askAvgPrice, 16, RoundingMode.HALF_UP)
+                            .subtract(pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
                     eAvg = wallet.add(uplLongAvg);
 
