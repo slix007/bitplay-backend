@@ -704,114 +704,119 @@ public class ArbitrageService {
     }
 
     public void printSumBal(boolean isGuiButton) {
-        String counterName = String.valueOf(getCounter());
-        if (isGuiButton) {
-            counterName = "button";
-        } else if (signalType != SignalType.AUTOMATIC) {
-            counterName = signalType.getCounterName();
-        }
-
-        final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
-        final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();
-        if (firstAccount != null && secondAccount != null) {
-            final BigDecimal bW = firstAccount.getWallet();
-            final BigDecimal bEmark = firstAccount.geteMark() != null ? firstAccount.geteMark() : BigDecimal.ZERO;
-            final BigDecimal bEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
-            final BigDecimal bEavg = firstAccount.geteAvg() != null ? firstAccount.geteAvg() : BigDecimal.ZERO;
-            final BigDecimal bU = firstAccount.getUpl();
-            final BigDecimal bM = firstAccount.getMargin();
-            final BigDecimal bA = firstAccount.getAvailable();
-            final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
-            final BigDecimal bLv = firstMarketService.getPosition().getLeverage();
-            final BigDecimal bAL = firstMarketService.getAffordableContractsForLong();
-            final BigDecimal bAS = firstMarketService.getAffordableContractsForShort();
-            final BigDecimal quAvg = Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
-            final OrderBook bOrderBook = firstMarketService.getOrderBook();
-            final BigDecimal bBestAsk = Utils.getBestAsks(bOrderBook, 1).get(0).getLimitPrice();
-            final BigDecimal bBestBid = Utils.getBestBids(bOrderBook, 1).get(0).getLimitPrice();
-            deltasLogger.info(String.format("#%s b_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s",
-                    counterName,
-                    bW.toPlainString(), bW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    bEmark.toPlainString(), bEmark.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    bEbest.toPlainString(), bEbest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    bEavg.toPlainString(), bEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    bU.toPlainString(), bU.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    bM.toPlainString(), bM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    bA.toPlainString(), bA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    Utils.withSign(bP),
-                    bLv.toPlainString(),
-                    Utils.withSign(bAL),
-                    Utils.withSign(bAS),
-                    bBestAsk,
-                    bBestBid
-            ));
-
-            final BigDecimal oW = secondAccount.getWallet();
-            final BigDecimal oElast = secondAccount.geteLast();
-            final BigDecimal oEbest = secondAccount.geteBest();
-            final BigDecimal oEavg = secondAccount.geteAvg();
-            final BigDecimal oM = secondAccount.getMargin();
-            final BigDecimal oU = secondAccount.getUpl();
-            final BigDecimal oA = secondAccount.getAvailable();
-            final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
-            final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
-            final BigDecimal oLv = secondMarketService.getPosition().getLeverage();
-            final BigDecimal oAL = secondMarketService.getAffordableContractsForLong();
-            final BigDecimal oAS = secondMarketService.getAffordableContractsForShort();
-            final OrderBook oOrderBook = secondMarketService.getOrderBook();
-            final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
-            final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
-            deltasLogger.info(String.format("#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s",
-                    counterName,
-                    oW.toPlainString(), oW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    oElast.toPlainString(), oElast.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    oEbest.toPlainString(), oEbest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    oEavg.toPlainString(), oEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    oU.toPlainString(), oU.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    oM.toPlainString(), oM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    oA.toPlainString(), oA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    oPL, oPS,
-                    oLv.toPlainString(),
-                    Utils.withSign(oAL),
-                    Utils.withSign(oAS),
-                    oBestAsk,
-                    oBestBid
-            ));
-
-            final BigDecimal sumW = bW.add(oW).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumE = bEmark.add(oElast).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumEbest = bEbest.add(oEbest).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumEavg = bEavg.add(oEavg).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumUpl = bU.add(oU).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
-
-            final String sBalStr = String.format("#%s s_bal=w%s_%s, s_e%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
-                    counterName,
-                    sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumEbest.toPlainString(), sumEbest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumEavg.toPlainString(), sumEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumM.toPlainString(), sumM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
-            deltasLogger.info(sBalStr);
-
-            final String bDQLMin;
-            final String oDQLMin;
-            if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
-                bDQLMin = String.format("b_DQL_close_min=%s", getParams().getbDQLCloseMin());
-                oDQLMin = String.format("o_DQL_close_min=%s", getParams().getoDQLCloseMin());
-            } else {
-                bDQLMin = String.format("b_DQL_open_min=%s", getParams().getbDQLOpenMin());
-                oDQLMin = String.format("o_DQL_open_min=%s", getParams().getoDQLOpenMin());
+        try {
+            String counterName = String.valueOf(getCounter());
+            if (isGuiButton) {
+                counterName = "button";
+            } else if (signalType != SignalType.AUTOMATIC) {
+                counterName = signalType.getCounterName();
             }
 
-            deltasLogger.info(String.format("#%s Pos diff: %s", counterName, getPosDiffString()));
-            final LiqInfo bLiqInfo = getFirstMarketService().getLiqInfo();
-            deltasLogger.info(String.format("#%s %s; %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString(), bDQLMin));
-            final LiqInfo oLiqInfo = getSecondMarketService().getLiqInfo();
-            deltasLogger.info(String.format("#%s %s; %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString(), oDQLMin));
+            final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
+            final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();
+            if (firstAccount != null && secondAccount != null) {
+                final BigDecimal bW = firstAccount.getWallet();
+                final BigDecimal bEmark = firstAccount.geteMark() != null ? firstAccount.geteMark() : BigDecimal.ZERO;
+                final BigDecimal bEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
+                final BigDecimal bEavg = firstAccount.geteAvg() != null ? firstAccount.geteAvg() : BigDecimal.ZERO;
+                final BigDecimal bU = firstAccount.getUpl();
+                final BigDecimal bM = firstAccount.getMargin();
+                final BigDecimal bA = firstAccount.getAvailable();
+                final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
+                final BigDecimal bLv = firstMarketService.getPosition().getLeverage();
+                final BigDecimal bAL = firstMarketService.getAffordableContractsForLong();
+                final BigDecimal bAS = firstMarketService.getAffordableContractsForShort();
+                final BigDecimal quAvg = Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
+                final OrderBook bOrderBook = firstMarketService.getOrderBook();
+                final BigDecimal bBestAsk = Utils.getBestAsks(bOrderBook, 1).get(0).getLimitPrice();
+                final BigDecimal bBestBid = Utils.getBestBids(bOrderBook, 1).get(0).getLimitPrice();
+                deltasLogger.info(String.format("#%s b_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s",
+                        counterName,
+                        bW.toPlainString(), bW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bEmark.toPlainString(), bEmark.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bEbest.toPlainString(), bEbest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bEavg.toPlainString(), bEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bU.toPlainString(), bU.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bM.toPlainString(), bM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bA.toPlainString(), bA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        Utils.withSign(bP),
+                        bLv.toPlainString(),
+                        Utils.withSign(bAL),
+                        Utils.withSign(bAS),
+                        bBestAsk,
+                        bBestBid
+                ));
+
+                final BigDecimal oW = secondAccount.getWallet();
+                final BigDecimal oElast = secondAccount.geteLast() != null ? secondAccount.geteLast() : BigDecimal.ZERO;
+                final BigDecimal oEbest = secondAccount.geteBest() != null ? secondAccount.geteBest() : BigDecimal.ZERO;
+                final BigDecimal oEavg = secondAccount.geteAvg() != null ? secondAccount.geteAvg() : BigDecimal.ZERO;
+                final BigDecimal oM = secondAccount.getMargin();
+                final BigDecimal oU = secondAccount.getUpl();
+                final BigDecimal oA = secondAccount.getAvailable();
+                final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
+                final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
+                final BigDecimal oLv = secondMarketService.getPosition().getLeverage();
+                final BigDecimal oAL = secondMarketService.getAffordableContractsForLong();
+                final BigDecimal oAS = secondMarketService.getAffordableContractsForShort();
+                final OrderBook oOrderBook = secondMarketService.getOrderBook();
+                final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
+                final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
+                deltasLogger.info(String.format("#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s",
+                        counterName,
+                        oW.toPlainString(), oW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oElast.toPlainString(), oElast.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oEbest.toPlainString(), oEbest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oEavg.toPlainString(), oEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oU.toPlainString(), oU.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oM.toPlainString(), oM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oA.toPlainString(), oA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oPL, oPS,
+                        oLv.toPlainString(),
+                        Utils.withSign(oAL),
+                        Utils.withSign(oAS),
+                        oBestAsk,
+                        oBestBid
+                ));
+
+                final BigDecimal sumW = bW.add(oW).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumE = bEmark.add(oElast).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumEbest = bEbest.add(oEbest).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumEavg = bEavg.add(oEavg).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumUpl = bU.add(oU).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
+
+                final String sBalStr = String.format("#%s s_bal=w%s_%s, s_e%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
+                        counterName,
+                        sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumEbest.toPlainString(), sumEbest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumEavg.toPlainString(), sumEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumM.toPlainString(), sumM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
+                deltasLogger.info(sBalStr);
+
+                final String bDQLMin;
+                final String oDQLMin;
+                if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
+                    bDQLMin = String.format("b_DQL_close_min=%s", getParams().getbDQLCloseMin());
+                    oDQLMin = String.format("o_DQL_close_min=%s", getParams().getoDQLCloseMin());
+                } else {
+                    bDQLMin = String.format("b_DQL_open_min=%s", getParams().getbDQLOpenMin());
+                    oDQLMin = String.format("o_DQL_open_min=%s", getParams().getoDQLOpenMin());
+                }
+
+                deltasLogger.info(String.format("#%s Pos diff: %s", counterName, getPosDiffString()));
+                final LiqInfo bLiqInfo = getFirstMarketService().getLiqInfo();
+                deltasLogger.info(String.format("#%s %s; %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString(), bDQLMin));
+                final LiqInfo oLiqInfo = getSecondMarketService().getLiqInfo();
+                deltasLogger.info(String.format("#%s %s; %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString(), oDQLMin));
+            }
+        } catch (Exception e) {
+            deltasLogger.info("Error on printSumBal");
+            logger.error("Error on printSumBal", e);
         }
     }
 
