@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 
 /**
  * Created by Sergey Shurmin on 11/12/17.
@@ -19,8 +18,8 @@ import java.time.Instant;
 @Component
 public class BitmexBalanceService implements BalanceService {
 
-    private volatile Instant prevTime = Instant.now();
-    private volatile FullBalance fullBalance;
+//    private volatile Instant prevTime = Instant.now();
+//    private volatile FullBalance fullBalance;
 
     private FullBalance recalcEquity(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
 
@@ -105,11 +104,15 @@ public class BitmexBalanceService implements BalanceService {
     }
 
     public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
-        final Instant nowTime = Instant.now();
-        if (Math.abs(nowTime.toEpochMilli() - prevTime.toEpochMilli()) > 500) { //not often than 0.5 sec
-            fullBalance = recalcEquity(accountInfoContracts, pObj, orderBook);
-            prevTime = nowTime;
+        if (accountInfoContracts == null || pObj == null || orderBook == null) {
+            return new FullBalance(null, null, null, null);
         }
-        return fullBalance;
+
+//        final Instant nowTime = Instant.now();
+//        if (Math.abs(nowTime.toEpochMilli() - prevTime.toEpochMilli()) > 500) { //not often than 0.5 sec
+//            fullBalance = recalcEquity(accountInfoContracts, pObj, orderBook);
+//            prevTime = nowTime;
+//        }
+        return recalcEquity(accountInfoContracts, pObj, orderBook);
     }
 }

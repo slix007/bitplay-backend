@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.dto.FullBalance;
 import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
@@ -280,6 +281,10 @@ public abstract class MarketService {
 
     public AccountInfoContracts getAccountInfoContracts() {
         return accountInfoContracts;
+    }
+
+    public FullBalance calcFullBalance() {
+        return getBalanceService().recalcAndGetAccountInfo(accountInfoContracts, position, orderBook);
     }
 
     public Position getPosition() {

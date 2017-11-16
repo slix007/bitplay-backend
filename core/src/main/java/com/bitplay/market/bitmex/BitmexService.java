@@ -276,7 +276,6 @@ public class BitmexService extends MarketService {
                 pUpdate.getRaw()
         );
 
-//        recalcEquity(getAccountInfoContracts(), position, getOrderBook());
     }
 
 
@@ -525,10 +524,6 @@ public class BitmexService extends MarketService {
                         this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
                         this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                         logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
-
-//                        synchronized (this) {
-//                            recalcEquity(getAccountInfoContracts(), getPosition(), orderBook);
-//                        }
 
                         getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
                     }
@@ -924,7 +919,6 @@ public class BitmexService extends MarketService {
                                 newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
                                 newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
                         );
-
                     }
 
                 }, throwable -> {

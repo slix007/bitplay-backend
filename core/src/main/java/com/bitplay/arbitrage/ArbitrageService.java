@@ -663,8 +663,8 @@ public class ArbitrageService {
 
     @Scheduled(fixedRate = 1000)
     public void calcSumBalForGui() {
-        final AccountInfoContracts firstAccount = firstMarketService.getAccountInfoContracts();
-        final AccountInfoContracts secondAccount = secondMarketService.getAccountInfoContracts();
+        final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
+        final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();
         if (firstAccount != null && secondAccount != null) {
             final BigDecimal bW = firstAccount.getWallet();
             final BigDecimal bEMark = firstAccount.geteMark() != null ? firstAccount.geteMark() : BigDecimal.ZERO;
@@ -711,8 +711,8 @@ public class ArbitrageService {
             counterName = signalType.getCounterName();
         }
 
-        final AccountInfoContracts firstAccount = firstMarketService.getAccountInfoContracts();
-        final AccountInfoContracts secondAccount = secondMarketService.getAccountInfoContracts();
+        final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
+        final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();
         if (firstAccount != null && secondAccount != null) {
             final BigDecimal bW = firstAccount.getWallet();
             final BigDecimal bEmark = firstAccount.geteMark() != null ? firstAccount.geteMark() : BigDecimal.ZERO;
