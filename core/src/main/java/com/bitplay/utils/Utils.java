@@ -90,7 +90,6 @@ public class Utils {
 
     public static BigDecimal createPriceForTaker(OrderBook orderBook, Order.OrderType orderType, int amount) {
         BigDecimal thePrice = BigDecimal.ZERO;
-//        int tmpAmount = 0;
 
         if (orderType == Order.OrderType.ASK
                 || orderType == Order.OrderType.EXIT_BID) {
@@ -98,11 +97,7 @@ public class Utils {
             final List<LimitOrder> bids = orderBook.getBids();
             synchronized (bids) {
                 for (LimitOrder bid : bids) {
-////                    tmpAmount += bid.getTradableAmount().intValue();
                     thePrice = bid.getLimitPrice();
-////                    if (tmpAmount >= amount) {
-////                        break;
-////                    }
                 }
             }
 
@@ -113,10 +108,6 @@ public class Utils {
             synchronized (asks) {
                 for (LimitOrder ask : asks) {
                     thePrice = ask.getLimitPrice();
-//                    tmpAmount += ask.getTradableAmount().intValue();
-//                    if (tmpAmount >= amount) {
-//                        break;
-//                    }
                 }
             }
         }
@@ -124,6 +115,14 @@ public class Utils {
         return thePrice;
     }
 
+    public static BigDecimal calcQuAvg(OrderBook orderBookFirst, OrderBook orderBookSecond) {
+//        qu_avg = (b_bid[1] + b_ask[1] + o_bid[1] + o_ask[1]) / 4;
+        final BigDecimal bB = Utils.getBestBid(orderBookFirst).getLimitPrice();
+        final BigDecimal bA = Utils.getBestAsk(orderBookFirst).getLimitPrice();
+        final BigDecimal oB = Utils.getBestBid(orderBookSecond).getLimitPrice();
+        final BigDecimal oA = Utils.getBestAsk(orderBookSecond).getLimitPrice();
+        return (bB.add(bA).add(oB).add(oA)).divide(BigDecimal.valueOf(4), 2, BigDecimal.ROUND_HALF_UP);
+    }
 
     public static BigDecimal getAvgPrice(OrderBook orderBook, int bidAmount, int askAmount) {
         if (bidAmount == 0 && askAmount == 0) {

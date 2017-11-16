@@ -40,7 +40,7 @@ public class OkCoinEndpoint {
 
     @RequestMapping(value = "/account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public AccountInfoJson getAccountInfo() {
-        return this.okCoin.getContractsAccountInfo();
+        return this.okCoin.getFullAccountInfo();
     }
 
     @RequestMapping(value = "/place-market-order",

@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
@@ -74,6 +75,9 @@ public class OkCoinService extends MarketService {
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
     private final static String NAME = "okcoin";
     ArbitrageService arbitrageService;
+
+    @Autowired
+    private OkcoinBalanceService okcoinBalanceService;
     @Autowired
     private PosDiffService posDiffService;
     @Autowired
@@ -93,6 +97,11 @@ public class OkCoinService extends MarketService {
     @Override
     public ArbitrageService getArbitrageService() {
         return arbitrageService;
+    }
+
+    @Override
+    public BalanceService getBalanceService() {
+        return okcoinBalanceService;
     }
 
     @Autowired
