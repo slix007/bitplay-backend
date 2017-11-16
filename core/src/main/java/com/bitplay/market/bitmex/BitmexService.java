@@ -914,7 +914,7 @@ public class BitmexService extends MarketService {
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO,
-                                BigDecimal.ZERO,
+                                newInfo.getMargin() != null ? newInfo.getMargin() : accountInfoContracts.getMargin(),
                                 newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
                                 newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
                                 newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
