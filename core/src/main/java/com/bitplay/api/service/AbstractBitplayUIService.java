@@ -177,15 +177,12 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
 
     public AccountInfoJson getFullAccountInfo() {
-        final AccountInfoContracts inAIC = getBusinessService().getAccountInfoContracts();
-        final Position inP = getBusinessService().getPosition();
-        final OrderBook inOB = getBusinessService().getOrderBook();
-        if (inAIC == null || inP == null || inOB == null) {
+
+        final FullBalance fullBalance = getBusinessService().calcFullBalance();
+        if (fullBalance.getAccountInfoContracts() == null) {
             return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
                     "error", "error", "error", "error", "error", "error", "error", "error", "error");
         }
-
-        final FullBalance fullBalance = getBusinessService().getBalanceService().recalcAndGetAccountInfo(inAIC, inP, inOB);
 
         final AccountInfoContracts accountInfoContracts = fullBalance.getAccountInfoContracts();
         final Position position = fullBalance.getPosition();

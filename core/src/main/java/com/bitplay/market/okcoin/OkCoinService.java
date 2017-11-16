@@ -209,10 +209,6 @@ public class OkCoinService extends MarketService {
 
                     this.orderBook = orderBook;
 
-                    synchronized (this) {
-                        recalcEquity(getAccountInfoContracts(), getPosition(), orderBook);
-                    }
-
                     if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
                             && this.bestAsk.compareTo(bestAsk.getLimitPrice()) != 0
                             && this.bestBid.compareTo(bestBid.getLimitPrice()) != 0) {
@@ -307,9 +303,6 @@ public class OkCoinService extends MarketService {
                     websocketUpdate.getRaw());
         }
 
-        synchronized (this) {
-            recalcEquity(getAccountInfoContracts(), position, getOrderBook());
-        }
     }
 
     @Scheduled(fixedRate = 1000 * 60 * 5)
@@ -414,83 +407,27 @@ public class OkCoinService extends MarketService {
                 .doOnError(throwable -> logger.error("Error on AccountInfo.Websocket observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
-                .subscribe(accountInfoContracts -> {
+                .subscribe(newInfo -> {
                     logger.debug("AccountInfo.Websocket: " + accountInfoContracts.toString());
+
                     synchronized (this) {
-                        recalcEquity(accountInfoContracts, getPosition(), getOrderBook());
+                        accountInfoContracts = new AccountInfoContracts(
+                                newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
+                                newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable(),
+                                newInfo.geteMark() != null ? newInfo.geteMark() : accountInfoContracts.geteMark(),
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
+                                newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
+                                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
+                        );
                     }
 
                 }, throwable -> {
                     logger.error("AccountInfo.Websocket.Exception: ", throwable);
                 });
-    }
-
-    private synchronized void recalcEquity(final AccountInfoContracts accountInfoContracts, final Position pObj, final OrderBook orderBook) {
-        BigDecimal eBest = BigDecimal.ZERO;
-        BigDecimal eAvg = BigDecimal.ZERO;
-        if (accountInfoContracts.getWallet() != null && pObj != null
-                && pObj.getPositionLong() != null && pObj.getPositionShort() != null) {
-            final BigDecimal pos = (pObj.getPositionLong().subtract(pObj.getPositionShort())).multiply(BigDecimal.valueOf(100));
-            final BigDecimal wallet = accountInfoContracts.getWallet();
-
-            if (pos.signum() > 0) {
-                final BigDecimal entryPrice = pObj.getPriceAvgLong();
-                final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
-                if (entryPrice != null && entryPrice.signum() != 0 && bid1 != null && bid1.signum() != 0) {
-                    // upl_long = pos/entry_price - pos/bid[1]
-                    final BigDecimal uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
-                            .setScale(8, RoundingMode.HALF_UP);
-                    // upl_long_avg = pos/entry_price - pos/bid[]
-                    // e_best = ok_bal + upl_long
-                    eBest = wallet.add(uplLong);
-
-                    int bidAmount = pObj.getPositionLong().intValue();
-                    int askAmount = pObj.getPositionShort().intValue();
-                    final BigDecimal bidAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, askAmount);
-                    final BigDecimal uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
-                            .setScale(8, RoundingMode.HALF_UP);
-                    eAvg = wallet.add(uplLongAvg);
-                }
-            } else if (pos.signum() < 0) {
-                final BigDecimal entryPrice = pObj.getPriceAvgShort();
-                final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
-                if (entryPrice != null && entryPrice.signum() != 0 && ask1 != null && ask1.signum() != 0) {
-                    // upl_short = pos / ask[1] - pos / entry_price
-                    final BigDecimal uplShort = pos.divide(ask1, 17, RoundingMode.HALF_UP)
-                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
-                            .setScale(8, RoundingMode.HALF_UP);
-                    // e_best = ok_bal + upl_long
-                    eBest = wallet.add(uplShort);
-
-                    int bidAmount = pObj.getPositionLong().intValue();
-                    int askAmount = pObj.getPositionShort().intValue();
-                    final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, askAmount);
-                    final BigDecimal uplLongAvg = pos.divide(askAvgPrice, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.divide(entryPrice, 16, RoundingMode.HALF_UP))
-                            .setScale(8, RoundingMode.HALF_UP);
-                    eAvg = wallet.add(uplLongAvg);
-                }
-            } else { //pos==0
-                // e_best == btm_bal
-                eBest = wallet;
-                eAvg = wallet;
-            }
-        }
-
-        this.accountInfoContracts = new AccountInfoContracts(
-                accountInfoContracts.getWallet(),
-                accountInfoContracts.getAvailable(),
-                accountInfoContracts.geteMark(),
-                accountInfoContracts.geteLast(),
-                eBest,
-                eAvg,
-                accountInfoContracts.getMargin(),
-                accountInfoContracts.getUpl(),
-                accountInfoContracts.getRpl(),
-                accountInfoContracts.getRiskRate()
-        );
     }
 
     private Disposable startPrivateDataListener() {
