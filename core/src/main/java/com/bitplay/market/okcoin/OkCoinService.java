@@ -418,7 +418,7 @@ public class OkCoinService extends MarketService {
                                 newInfo.geteLast() != null ? newInfo.geteLast() : accountInfoContracts.geteLast(),
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO,
-                                BigDecimal.ZERO,
+                                newInfo.getMargin() != null ? newInfo.getMargin() : accountInfoContracts.getMargin(),
                                 newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
                                 newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
                                 newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
