@@ -198,8 +198,9 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final BigDecimal eBest = accountInfoContracts.geteBest();
         final BigDecimal eAvg = accountInfoContracts.geteAvg();
 
-        final String entryPrice = String.format("%s; %s",
+        final String entryPrice = String.format("long/short:%s/%s; %s",
                 position.getPriceAvgLong() != null ? position.getPriceAvgLong().toPlainString() : null,
+                position.getPriceAvgShort() != null ? position.getPriceAvgShort().toPlainString() : null,
                 fullBalance.getTempValues());
 
         return new AccountInfoJson(
