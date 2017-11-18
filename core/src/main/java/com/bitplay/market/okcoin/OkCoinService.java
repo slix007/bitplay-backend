@@ -12,6 +12,7 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.utils.Utils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
@@ -44,7 +45,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -60,6 +60,7 @@ import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import io.swagger.client.model.Error;
 import si.mazi.rescu.HttpStatusIOException;
 
 /**
@@ -74,6 +75,7 @@ public class OkCoinService extends MarketService {
 
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
     private final static String NAME = "okcoin";
+    private final int MAX_ATTEMPTS = 3;
     ArbitrageService arbitrageService;
 
     @Autowired
@@ -608,6 +610,9 @@ public class OkCoinService extends MarketService {
             final String counterName = getCounterName();
 
             final Optional<Order> orderInfoAttempts = getOrderInfoAttempts(orderId, counterName, "Taker:Status:");
+            if (!orderInfoAttempts.isPresent()) {
+                throw new Exception("Failed to get info of just created order. id=" + orderId);
+            }
 
             Order orderInfo = orderInfoAttempts.get();
 
@@ -706,10 +711,10 @@ public class OkCoinService extends MarketService {
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
-        TradeResponse tradeResponse = null;
+        TradeResponse tradeResponse = new TradeResponse();
         BigDecimal amountToFill = amountInContracts;
         int attemptCount = 0;
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < MAX_ATTEMPTS; i++) {
             try {
                 attemptCount++;
                 if (attemptCount > 1) {
@@ -727,17 +732,47 @@ public class OkCoinService extends MarketService {
                     }
                 }
                 break;
-            } catch (Exception e) {
-                String message = (e instanceof HttpStatusIOException)
-                        ? e.getMessage() + ((HttpStatusIOException) e).getHttpBody()
-                        : e.getMessage();
+            } catch (HttpStatusIOException e) {
+                final String httpBody = e.getHttpBody();
 
-                String details = String.format("%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s. %s",
-                        getCounterName(),
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    final Error error = objectMapper.readValue(httpBody, Error.class);
+                    final String marketResponseMessage = error.getError().getMessage();
+
+                    if (marketResponseMessage.contains("UnknownHostException: www.okex.com")) {
+                        final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Waiting for 1 min",
+                                getCounterName(),
+                                attemptCount,
+                                httpBody);
+
+                        tradeLogger.error(logString);
+                        logger.error(logString);
+
+                        Thread.sleep(60 * 1000);
+
+                    }
+
+                } catch (IOException | InterruptedException e1) {
+                    logger.error(String.format("On parse error:%s, %s", e.toString(), e.getHttpBody()), e1);
+                }
+
+                tradeResponse.setOrderId(httpBody);
+                tradeResponse.setErrorCode(httpBody);
+            } catch (Exception e) {
+
+                attemptCount = MAX_ATTEMPTS; // 'Read timed out'(all network) and Any unknown exception are without RETRY
+
+                String message = e.getMessage();
+
+                String details = String.format("%s/%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s. %s",
+                        getCounterName(), attemptCount,
                         orderType, amountToFill, bestQuotes, false, signalType, message);
                 logger.error(details.length() < 200 ? details : details.substring(0, 190), e);
                 tradeLogger.error(details);
 //                warningLogger.error("Warning placing: " + details);
+                tradeResponse.setOrderId(message);
+                tradeResponse.setErrorCode(message);
                 break;
             }
         }

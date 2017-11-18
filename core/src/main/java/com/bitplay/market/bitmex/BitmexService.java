@@ -706,10 +706,11 @@ public class BitmexService extends MarketService {
                                     attemptCount,
                                     httpBody);
 
-                            Thread.sleep(60 * 1000);
-
                             tradeLogger.error(logString);
                             logger.error(logString);
+
+                            Thread.sleep(60 * 1000);
+
                         } else {
                             attemptCount = MAX_ATTEMPTS;
                             final String logString = String.format("%s maker error attempt=%s: %s",
@@ -720,8 +721,8 @@ public class BitmexService extends MarketService {
                             logger.error(logString, e);
                         }
 
-                    } catch (IOException e1) {
-                        logger.error("On parse error", e1);
+                    } catch (IOException | InterruptedException e1) {
+                        logger.error(String.format("On parse error:%s, %s", e.toString(), e.getHttpBody()), e1);
                     }
 
                     tradeResponse.setOrderId(httpBody);
@@ -733,7 +734,7 @@ public class BitmexService extends MarketService {
                             attemptCount,
                             message);
 //                    if (e.getMessage().startsWith("Read timed out") || e.getMessage().startsWith("Network is unreachable")) {
-                    attemptCount = MAX_ATTEMPTS;
+                    attemptCount = MAX_ATTEMPTS; // Network AND Any unknown exception are without RETRY
 //                    }
 
                     logger.error(logString, e);
