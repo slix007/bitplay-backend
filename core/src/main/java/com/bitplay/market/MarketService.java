@@ -10,6 +10,7 @@ import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.Counters;
@@ -41,6 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -69,12 +72,16 @@ public abstract class MarketService {
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected volatile int usdInContract = 0;
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
-    protected volatile SpecialFlags specialFlags = SpecialFlags.NONE;
-//    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
-//    protected volatile Boolean isBusy = false;
-    protected volatile MarketState marketState = MarketState.READY;
+    private static final int SYSTEM_OVERLOADED_TIMEOUT_SEC = 60;
+    // Moving timeout
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private volatile SpecialFlags specialFlags = SpecialFlags.NONE;
     protected EventBus eventBus = new EventBus();
     protected volatile LiqInfo liqInfo = new LiqInfo();
+//    protected boolean checkOpenOrdersInProgress = false; - #checkOpenOrdersForMoving() is synchronized instead of it
+//    protected volatile Boolean isBusy = false;
+    private volatile PlaceOrderArgs placeOrderArgs;
+    private volatile MarketState marketState = MarketState.READY;
 
     Disposable openOrdersMovingSubscription;
 
@@ -187,7 +194,11 @@ public abstract class MarketService {
     }
 
     protected void setFree() {
-        if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
+        if (marketState == MarketState.SYSTEM_OVERLOADED) {
+
+            resetOverload(MarketState.ARBITRAGE);
+
+        } else if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (isBusy()) {
 //            fetchPosition(); -- deadlock
                 marketState = MarketState.READY;
@@ -201,6 +212,47 @@ public abstract class MarketService {
                         Thread.holdsLock(openOrdersLock));
                 iterateOpenOrdersMove();
             }
+        }
+    }
+
+    protected void setOverloaded(final PlaceOrderArgs placeOrderArgs) {
+        final MarketState currMarketState = getMarketState();
+
+        final String changeStat = String.format("%s change status from %s to %s",
+                getCounterName(),
+                currMarketState,
+                MarketState.SYSTEM_OVERLOADED);
+        getTradeLogger().warn(changeStat);
+        warningLogger.warn(changeStat);
+        logger.warn(changeStat);
+
+        setMarketState(MarketState.SYSTEM_OVERLOADED);
+        this.placeOrderArgs = placeOrderArgs;
+
+        scheduler.schedule(() -> resetOverload(currMarketState),
+                SYSTEM_OVERLOADED_TIMEOUT_SEC,
+                TimeUnit.SECONDS);
+    }
+
+    private void resetOverload(final MarketState marketStateToSet) {
+        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+
+            final String backWarn = String.format("%s change status from %s to %s",
+                    getCounterName(),
+                    MarketState.SYSTEM_OVERLOADED,
+                    marketStateToSet);
+            getTradeLogger().warn(backWarn);
+            warningLogger.warn(backWarn);
+            logger.warn(backWarn);
+
+            setMarketState(marketStateToSet);
+
+            // Place order if it was placing
+            if (placeOrderArgs != null) {
+                placeOrder(PlaceOrderArgs.nextPlacingArgs(placeOrderArgs));
+                placeOrderArgs = null;
+            }
+
         }
     }
 
@@ -321,6 +373,8 @@ public abstract class MarketService {
     }
 
     public abstract TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);
+
+    protected abstract TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs);
 
     public BigDecimal getTotalPriceOfAmountToBuy(BigDecimal requiredAmountToBuy) {
         BigDecimal totalPrice = BigDecimal.ZERO;

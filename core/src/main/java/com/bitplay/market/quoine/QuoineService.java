@@ -7,6 +7,7 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
 
@@ -75,6 +76,11 @@ public class QuoineService extends MarketService {
 
     @Override
     public UserTrades fetchMyTradeHistory() {
+        return null;
+    }
+
+    @Override
+    protected TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
         return null;
     }
 

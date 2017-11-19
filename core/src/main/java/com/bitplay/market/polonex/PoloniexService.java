@@ -7,6 +7,7 @@ import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.utils.Utils;
@@ -425,6 +426,11 @@ public class PoloniexService extends MarketService {
             thePrice = Utils.getBestBid(getOrderBook()).getLimitPrice();
         }
         return thePrice;
+    }
+
+    @Override
+    protected TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
+        return null;
     }
 
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {

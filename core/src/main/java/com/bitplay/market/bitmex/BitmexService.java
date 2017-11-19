@@ -7,9 +7,12 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.utils.Utils;
@@ -285,13 +288,19 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    protected synchronized void iterateOpenOrdersMove() {
+    protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
+
+        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+            return;
+        }
 
         if (movingInProgress) {
+
             // Should not happen ever, because 'synch' on method
             final String logString = String.format("%s No moving. Too often requests.", getCounterName());
             logger.error(logString);
-            tradeLogger.error(logString);
+            return;
+
         } else {
             movingInProgress = true;
             scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
@@ -313,9 +322,13 @@ public class BitmexService extends MarketService {
 
                                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
                                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                                        optionalOrder = Stream.empty();
+                                        optionalOrder = Stream.empty(); // no such case anymore
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
                                         optionalOrder = Stream.of(response.getNewOrder());
+                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
+
+                                        setOverloaded(null);
+
                                     }
 
                                 } catch (Exception e) {
@@ -639,16 +652,42 @@ public class BitmexService extends MarketService {
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
-        return placeOrder(orderType, amountInContracts, bestQuotes, BitmexOrderType.MAKER, signalType);
+        return placeOrder(orderType, amountInContracts, bestQuotes, PlacingType.MAKER, signalType);
     }
 
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
-        return placeOrder(orderType, amountInContracts, bestQuotes, BitmexOrderType.TAKER, signalType);
+        return placeOrder(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType);
     }
 
     private TradeResponse placeOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
-                                     BitmexOrderType bitmexOrderType, SignalType signalType) {
+                                     PlacingType placingType, SignalType signalType) {
+        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1);
+
+        return placeOrder(placeOrderArgs);
+    }
+
+    protected TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
         final TradeResponse tradeResponse = new TradeResponse();
+
+        if (placeOrderArgs.getAttempt() == MAX_ATTEMPTS) {
+            final String logString = String.format("%s Bitmex Warning placing: too many attempt(%s) when SYSTEM_OVERLOADED. Do nothing.",
+                    getCounterName(),
+                    MAX_ATTEMPTS);
+
+            logger.error(logString);
+            tradeLogger.error(logString);
+            warningLogger.error(logString);
+
+            tradeResponse.setErrorCode(logString);
+            return tradeResponse;
+        }
+
+        final Order.OrderType orderType = placeOrderArgs.getOrderType();
+        final BigDecimal amount = placeOrderArgs.getAmount();
+        final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
+        final PlacingType placingType = placeOrderArgs.getPlacingType();
+        final SignalType signalType = placeOrderArgs.getSignalType();
+
         try {
             arbitrageService.setSignalType(signalType);
             eventBus.send(BtsEvent.MARKET_BUSY);
@@ -661,7 +700,7 @@ public class BitmexService extends MarketService {
             while (attemptCount < MAX_ATTEMPTS) {
                 attemptCount++;
                 try {
-                    if (bitmexOrderType == BitmexOrderType.MAKER) {
+                    if (placingType == PlacingType.MAKER) {
 
                         thePrice = createBestMakerPrice(orderType)
                                 .setScale(1, BigDecimal.ROUND_HALF_UP);
@@ -694,7 +733,9 @@ public class BitmexService extends MarketService {
                             tradeLogger.error(logString);
                             logger.error(logString);
 
-                            Thread.sleep(60 * 1000);
+                            setOverloaded(placeOrderArgs);
+
+                            attemptCount = MAX_ATTEMPTS;
 
                         } else {
                             attemptCount = MAX_ATTEMPTS;
@@ -706,7 +747,7 @@ public class BitmexService extends MarketService {
                             logger.error(logString, e);
                         }
 
-                    } catch (IOException | InterruptedException e1) {
+                    } catch (IOException e1) {
                         logger.error(String.format("On parse error:%s, %s", e.toString(), e.getHttpBody()), e1);
                     }
 
@@ -751,7 +792,7 @@ public class BitmexService extends MarketService {
 
                 tradeLogger.info("{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
                         getCounterName(),
-                        bitmexOrderType.toString(),
+                        placingType.toString(),
                         orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                         amount.toPlainString(),
                         thePrice,
@@ -810,14 +851,15 @@ public class BitmexService extends MarketService {
                     if (marketResponseMessage.startsWith("Invalid ordStatus")) {
                         tradeLogger.error("{} MoveException: {}", getCounterName(), marketResponseMessage);
 
-                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
-                        arbitrageService.getFlagOpenOrder().setFirstReady(true); // add flag
+                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Invalid ordStatus");
+//                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
+
                         break;
 
                     } else if (marketResponseMessage.startsWith("The system is currently overloaded. Please try again later")) {
                         tradeLogger.error("{} MoveException: {}", getCounterName(), marketResponseMessage);
 
-                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, httpBody);
+                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, httpBody);
                     } else {
                         tradeLogger.error(message);
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, httpBody);
@@ -901,11 +943,6 @@ public class BitmexService extends MarketService {
     @Override
     public TradeService getTradeService() {
         return exchange.getTradeService();
-    }
-
-    enum BitmexOrderType {
-        MAKER,
-        TAKER
     }
 
     private void startAccountInfoListener() {

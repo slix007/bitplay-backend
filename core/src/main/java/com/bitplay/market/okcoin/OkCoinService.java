@@ -9,6 +9,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.utils.Utils;
@@ -708,6 +709,12 @@ public class OkCoinService extends MarketService {
         return true;
     }
 
+
+    @Override
+    protected TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
+        return null;
+    }
+
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
@@ -749,11 +756,11 @@ public class OkCoinService extends MarketService {
                         tradeLogger.error(logString);
                         logger.error(logString);
 
-                        Thread.sleep(60 * 1000);
+                        setOverloaded(null); // TODO no retry for now. Think about retry
 
                     }
 
-                } catch (IOException | InterruptedException e1) {
+                } catch (IOException e1) {
                     logger.error(String.format("On parse error:%s, %s", e.toString(), e.getHttpBody()), e1);
                 }
 
