@@ -817,6 +817,7 @@ public class BitmexService extends MarketService {
 
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
+        logger.info("Start Moving " + limitOrder);
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
         int attemptCount = 0;
         String lastExceptionMsg = "";
@@ -828,6 +829,15 @@ public class BitmexService extends MarketService {
             try {
                 bestMakerPrice = createBestMakerPrice(limitOrder.getType())
                         .setScale(1, BigDecimal.ROUND_HALF_UP);
+                if (bestMakerPrice.compareTo(limitOrder.getLimitPrice()) == 0) {
+                    final String logString = String.format("%s ALREADY_FIRST id=%s, price=%s",
+                            getCounterName(),
+                            limitOrder.getId(),
+                            bestMakerPrice.toPlainString());
+                    logger.info(logString);
+                    return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, logString);
+                }
+
                 final BitmexTradeService tradeService = (BitmexTradeService) exchange.getTradeService();
                 final String order = tradeService.moveLimitOrder(limitOrder, bestMakerPrice);
 
@@ -919,6 +929,7 @@ public class BitmexService extends MarketService {
                 arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
             }
 
+            logger.info(logString);
             tradeLogger.info(logString);
             final LimitOrder newLimitOrder = new LimitOrder(limitOrder.getType(), limitOrder.getTradableAmount(), limitOrder.getCurrencyPair(),
                     limitOrder.getId(), new Date(), limitOrder.getLimitPrice());
