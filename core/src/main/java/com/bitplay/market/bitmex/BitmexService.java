@@ -45,9 +45,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.net.SocketTimeoutException;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -87,7 +84,7 @@ public class BitmexService extends MarketService {
     private long listenersStartTimeEpochSecond = Instant.now().getEpochSecond();
     private volatile boolean isDestroyed = false;
 
-    private static final int MOVING_TIMEOUT_SEC = 2;
+    private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     // Moving timeout
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private volatile boolean movingInProgress = false;
@@ -195,10 +192,6 @@ public class BitmexService extends MarketService {
                 .doOnComplete(this::startPositionListener)
                 .subscribe();
 
-//        Completable.timer(4000, TimeUnit.MILLISECONDS)
-//                .doOnComplete(this::startOpenOrderMovingListener)
-//                .subscribe();
-
         Completable.timer(5000, TimeUnit.MILLISECONDS)
                 .doOnComplete(this::startFutureIndexListener)
                 .subscribe();
@@ -291,52 +284,17 @@ public class BitmexService extends MarketService {
         }
     }
 
-/*
-    @Scheduled(fixedRate = 60 * 1000)
-    public void checkForWrongFlag() {
-        if (!isBusy && openOrders.size() > 0) {
-            openOrders.clear();
-            tradeLogger.info("{}: clear openOrders, lock={}", getName());
-            //, Thread.holdsLock(openOrdersLock));
-//            iterateOpenOrdersMove();
-        }
-    }*/
-/*
-    @Scheduled(fixedRate = 1000 * 60)
-    public void checkForHangOrders() {
-        try {
-            fetchOpenOrders(); // Synchronous
-        } catch (IllegalStateException e) {
-            if (e.getCause() instanceof SocketTimeoutException) {
-                checkForRestart();
-            }
-        }
-        if (openOrders.size() == 0) {
-            setFree();
-        }
-    }*/
-
-    // Use Websocket API instead
-    /*public void getFunding() {
-        try {
-            final BitmexTradeService tradeService = (BitmexTradeService) exchange.getTradeService();
-            final List<Instrument> instrumentList = tradeService.getFunding();
-            instrument = instrumentList.get(0);
-        } catch (IOException e) {
-            logger.error("Can not get funding", e);
-        }
-    }*/
-
     @Override
     protected synchronized void iterateOpenOrdersMove() {
 
         if (movingInProgress) {
+            // Should not happen ever, because 'synch' on method
             final String logString = String.format("%s No moving. Too often requests.", getCounterName());
             logger.error(logString);
             tradeLogger.error(logString);
         } else {
             movingInProgress = true;
-            scheduler.schedule(() -> movingInProgress = false, MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
+            scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
         }
 
         synchronized (openOrdersLock) {
@@ -344,24 +302,30 @@ public class BitmexService extends MarketService {
 
                 openOrders = openOrders.stream()
                         .flatMap(openOrder -> {
+                            Stream<LimitOrder> optionalOrder = Stream.of(openOrder); // default - the same
 
-                            if (openOrder.getType() != null) {
+                            if (openOrder.getType() == null) {
+                                warningLogger.warn("OO type is null. " + openOrder.toString());
+                            } else {
+
                                 final SignalType signalType = arbitrageService.getSignalType();
-
                                 try {
+
                                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
                                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                                        return Stream.empty();
+                                        optionalOrder = Stream.empty();
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
-                                        return Stream.of(response.getNewOrder());
+                                        optionalOrder = Stream.of(response.getNewOrder());
                                     }
 
-                                } finally {
-
+                                } catch (Exception e) {
+                                    // use default OO
+                                    warningLogger.warn("Error on moving: " + e.getMessage());
+                                    logger.warn("Error on moving", e);
                                 }
                             }
 
-                            return Stream.of(openOrder);
+                            return optionalOrder;
                         })
                         .collect(Collectors.toList());
 
@@ -531,14 +495,6 @@ public class BitmexService extends MarketService {
                 .observeOn(Schedulers.computation())
                 .subscribe(orderBook -> {
                     if (orderBook != null) {
-                        //workaround
-//                            if (openOrders == null) {
-//                                openOrders = new ArrayList<>();
-//                                if (isBusy()) {
-//                                    eventBus.send(BtsEvent.MARKET_FREE);
-//                                }
-//                            }
-
                         final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
                         final LimitOrder bestBid = Utils.getBestBid(orderBook);
 
