@@ -321,9 +321,11 @@ public class BitmexService extends MarketService {
                                 try {
 
                                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
-                                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                                        optionalOrder = Stream.empty(); // no such case anymore
-                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
+                                    //TODO keep an eye on 'hang open orders'
+//                                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+//                                        optionalOrder = Stream.empty(); // no such case anymore
+//                                    } else
+                                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
                                         optionalOrder = Stream.of(response.getNewOrder());
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 
@@ -342,9 +344,9 @@ public class BitmexService extends MarketService {
                         })
                         .collect(Collectors.toList());
 
-                if (openOrders.size() == 0) {
-                    eventBus.send(BtsEvent.MARKET_FREE);
-                }
+//                if (openOrders.size() == 0) {
+//                    eventBus.send(BtsEvent.MARKET_FREE);
+//                }
 
             }
 
@@ -824,7 +826,7 @@ public class BitmexService extends MarketService {
         BigDecimal bestMakerPrice = BigDecimal.ZERO;
         BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
 
-        while (attemptCount < MAX_ATTEMPTS) {
+        while (attemptCount < 1) {
             attemptCount++;
             try {
                 bestMakerPrice = createBestMakerPrice(limitOrder.getType())
@@ -843,7 +845,8 @@ public class BitmexService extends MarketService {
                 final String order = tradeService.moveLimitOrder(limitOrder, bestMakerPrice);
 
                 if (order != null) {
-                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, "");
+
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, order);
                     break;
                 }
             } catch (HttpStatusIOException e) {
@@ -887,18 +890,18 @@ public class BitmexService extends MarketService {
                         getCounterName(),
                         limitOrder.getId(),
                         attemptCount,
-                        e.getMessage());
-                if (e.getMessage().startsWith("Read timed out") || e.getMessage().startsWith("Network is unreachable")) {
+                        lastExceptionMsg);
+
+                if (lastExceptionMsg.startsWith("connect timed out")) {
+                    tradeLogger.error("{} MoveException: {}", getCounterName(), lastExceptionMsg);
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, lastExceptionMsg);
+                } else if (lastExceptionMsg.startsWith("Read timed out") || lastExceptionMsg.startsWith("Network is unreachable")) {
                     attemptCount = MAX_ATTEMPTS;
                 }
 
                 logger.error(logString, e);
-//                if (attemptCount == MAX_ATTEMPTS) {
-                    tradeLogger.error("Warning: " + logString);
-                    warningLogger.error("bitmex. Warning: " + logString);
-//                } else {
-//                    tradeLogger.error(logString);
-//                }
+                tradeLogger.error("Warning: " + logString);
+                warningLogger.error("bitmex. Warning: " + logString);
             }
         }
 
@@ -914,12 +917,21 @@ public class BitmexService extends MarketService {
                         ? diff1 : diff2);
             }
 
-            final String logString = String.format("%s Moved %s amount=%s, filled=%s,newQuote=%s,avgPrice=%s,id=%s,attempt=%s. %s. position=%s",
+            final Optional<Order> newOrder = getOrderInfoAttempts(limitOrder.getId(), getCounterName(), "Moved order double-check");
+
+            final LimitOrder newLimitOrder = newOrder.map(ord ->
+                    new LimitOrder(ord.getType(), ord.getTradableAmount(), ord.getCurrencyPair(),
+                            ord.getId(), ord.getTimestamp(), ord.getAveragePrice()))
+                    .orElse(limitOrder);
+
+            final String logString = String.format("%s Moved %s from %s to %s(real %s) amount=%s, filled=%s, avgPrice=%s,id=%s,attempt=%s. %s. position=%s",
                     getCounterName(),
                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                    limitOrder.getLimitPrice(),
+                    bestMakerPrice.toPlainString(),
+                    newLimitOrder.getLimitPrice(),
                     limitOrder.getTradableAmount(),
                     limitOrder.getCumulativeAmount(),
-                    bestMakerPrice.toPlainString(),
                     limitOrder.getAveragePrice(),
                     limitOrder.getId(),
                     attemptCount,
@@ -932,8 +944,7 @@ public class BitmexService extends MarketService {
 
             logger.info(logString);
             tradeLogger.info(logString);
-            final LimitOrder newLimitOrder = new LimitOrder(limitOrder.getType(), limitOrder.getTradableAmount(), limitOrder.getCurrencyPair(),
-                    limitOrder.getId(), new Date(), limitOrder.getLimitPrice());
+
             moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, newLimitOrder);
         } else if (moveResponse == null
                 || moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {

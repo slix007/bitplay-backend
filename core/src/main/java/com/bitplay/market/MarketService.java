@@ -196,7 +196,8 @@ public abstract class MarketService {
     protected void setFree() {
         if (marketState == MarketState.SYSTEM_OVERLOADED) {
 
-            resetOverload();
+            logger.info("Free attempt when SYSTEM_OVERLOADED");
+            // resetOverload();
 
         } else if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (isBusy()) {
@@ -226,7 +227,7 @@ public abstract class MarketService {
         warningLogger.warn(changeStat);
         logger.warn(changeStat);
 
-        setMarketState(MarketState.SYSTEM_OVERLOADED);
+        setMarketStateCurrCounter(MarketState.SYSTEM_OVERLOADED);
         this.placeOrderArgs = placeOrderArgs;
 
         scheduler.schedule(this::resetOverload,
@@ -249,7 +250,7 @@ public abstract class MarketService {
             warningLogger.warn(backWarn);
             logger.warn(backWarn);
 
-            setMarketState(marketStateToSet);
+            setMarketStateCurrCounter(marketStateToSet);
 
             // Place order if it was placing
             if (placeOrderArgs != null) {
@@ -312,6 +313,11 @@ public abstract class MarketService {
 
     public void setMarketState(MarketState newState) {
         getTradeLogger().info("{} {} marketState: {} {}", getCounterNameNext(), getName(), newState, getPosDiffString());
+        this.marketState = newState;
+    }
+
+    public void setMarketStateCurrCounter(MarketState newState) {
+        getTradeLogger().info("{} {} marketState: {} {}", getCounterName(), getName(), newState, getPosDiffString());
         this.marketState = newState;
     }
 
@@ -459,7 +465,7 @@ public abstract class MarketService {
         return openOrders;
     }
 
-    public Optional<Order> getOrderInfoAttempts(String orderId, String counterName, String logInfoId) throws InterruptedException, IOException {
+    public Optional<Order> getOrderInfoAttempts(String orderId, String counterName, String logInfoId) {
         final TradeService tradeService = getExchange().getTradeService();
         Order orderInfo = null;
         for (int i = 0; i < 20; i++) { // about 11 sec
