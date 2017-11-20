@@ -196,7 +196,7 @@ public abstract class MarketService {
     protected void setFree() {
         if (marketState == MarketState.SYSTEM_OVERLOADED) {
 
-            resetOverload(MarketState.ARBITRAGE);
+            resetOverload();
 
         } else if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (isBusy()) {
@@ -229,13 +229,17 @@ public abstract class MarketService {
         setMarketState(MarketState.SYSTEM_OVERLOADED);
         this.placeOrderArgs = placeOrderArgs;
 
-        scheduler.schedule(() -> resetOverload(currMarketState),
+        scheduler.schedule(this::resetOverload,
                 SYSTEM_OVERLOADED_TIMEOUT_SEC,
                 TimeUnit.SECONDS);
     }
 
-    private void resetOverload(final MarketState marketStateToSet) {
+    private void resetOverload() {
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+
+            MarketState marketStateToSet = (openOrders.size() > 0 || placeOrderArgs != null) // moving or placing attempt
+                    ? MarketState.ARBITRAGE
+                    : MarketState.READY;
 
             final String backWarn = String.format("%s change status from %s to %s",
                     getCounterName(),

@@ -835,7 +835,8 @@ public class BitmexService extends MarketService {
                             limitOrder.getId(),
                             bestMakerPrice.toPlainString());
                     logger.info(logString);
-                    return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, logString);
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, logString);
+                    break;
                 }
 
                 final BitmexTradeService tradeService = (BitmexTradeService) exchange.getTradeService();
@@ -948,6 +949,8 @@ public class BitmexService extends MarketService {
             sleep(200);
             moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
         }
+
+        logger.info("Stop Moving " + limitOrder);
         return moveResponse;
     }
 
