@@ -12,7 +12,7 @@
   },
   "private_rate_limits": [
     {
-      "calls": 180,
+      "calls": 59,
       "time_unit": "minutes"
     }
   ],
