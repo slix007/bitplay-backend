@@ -541,7 +541,7 @@ public class OkCoinService extends MarketService {
                         .collect(Collectors.joining("; ")));
                 eventBus.send(BtsEvent.MARKET_FREE);
             }
-        }
+        } // synchronized (openOrdersLock)
     }
 
     /**
@@ -824,7 +824,9 @@ public class OkCoinService extends MarketService {
             final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(), thePrice);
             tradeResponse.setLimitOrder(limitOrderWithId);
             if (!isMoving) {
-                openOrders.add(limitOrderWithId);
+                synchronized (openOrdersLock) {
+                    openOrders.add(limitOrderWithId);
+                }
             }
 
             if (signalType == SignalType.AUTOMATIC) {
@@ -928,55 +930,58 @@ public class OkCoinService extends MarketService {
         boolean haveToFetch = false;
 
         synchronized (openOrdersLock) {
-            boolean freeTheMarket = false;
-            List<String> toRemove = new ArrayList<>();
-            List<LimitOrder> toAdd = new ArrayList<>();
-            try {
-                for (LimitOrder openOrder : openOrders) {
-                    if (openOrder.getType() != null) {
-                        final SignalType signalType = getArbitrageService().getSignalType();
-                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
+            if (openOrders.size() > 0) {
 
-                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
-                            freeTheMarket = true;
-                            toRemove.add(openOrder.getId());
-                            haveToFetch = true;
-                            logger.info(getName() + response.getDescription());
-                        }
+                boolean freeTheMarket = false;
+                List<String> toRemove = new ArrayList<>();
+                List<LimitOrder> toAdd = new ArrayList<>();
+                try {
+                    for (LimitOrder openOrder : openOrders) {
+                        if (openOrder.getType() != null) {
+                            final SignalType signalType = getArbitrageService().getSignalType();
+                            final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
 
-                        if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
-                            toRemove.add(openOrder.getId());
-                            haveToFetch = true;
-                            if (response.getNewOrder() != null) {
-                                toAdd.add(response.getNewOrder());
+                            if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                                    || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
+                                freeTheMarket = true;
+                                toRemove.add(openOrder.getId());
+                                haveToFetch = true;
+                                logger.info(getName() + response.getDescription());
+                            }
+
+                            if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
+                                toRemove.add(openOrder.getId());
+                                haveToFetch = true;
+                                if (response.getNewOrder() != null) {
+                                    toAdd.add(response.getNewOrder());
+                                }
                             }
                         }
                     }
-                }
 
-                openOrders.removeIf(o -> toRemove.contains(o.getId()));
-                toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
-                openOrders.addAll(toAdd);
+                    openOrders.removeIf(o -> toRemove.contains(o.getId()));
+                    toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
+                    openOrders.addAll(toAdd);
 
-                if (freeTheMarket && openOrders.size() > 0) {
-                    logger.warn(getName() + " Warning: get ALREADY_CLOSED, but there are still open orders");
-                    warningLogger.warn(getName() + "Warning: get ALREADY_CLOSED, but there are still open orders");
-                }
+                    if (freeTheMarket && openOrders.size() > 0) {
+                        logger.warn(getName() + " Warning: get ALREADY_CLOSED, but there are still open orders");
+                        warningLogger.warn(getName() + "Warning: get ALREADY_CLOSED, but there are still open orders");
+                    }
 
-                if (freeTheMarket && openOrders.size() == 0) {
-                    warningLogger.warn(getName() + " No openOrders left: send READY");
-                    eventBus.send(BtsEvent.MARKET_FREE);
-                }
-            } catch (Exception e) {
-                logger.error("On moving", e);
-                haveToFetch = true;
+                    if (freeTheMarket && openOrders.size() == 0) {
+                        warningLogger.warn(getName() + " No openOrders left: send READY");
+                        eventBus.send(BtsEvent.MARKET_FREE);
+                    }
+                } catch (Exception e) {
+                    logger.error("On moving", e);
+                    haveToFetch = true;
 //                final List<LimitOrder> orderList = fetchOpenOrders();
 //                if (orderList.size() == 0) {
 //                    eventBus.send(BtsEvent.MARKET_FREE);
 //                }
+                }
             }
-        }
+        } // synchronized (openOrdersLock)
 
         if (haveToFetch) {
             fetchOpenOrders();

@@ -84,7 +84,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         return String.valueOf(order.getOrderID());
     }
 
-    public String moveLimitOrder(LimitOrder limitOrder, BigDecimal bestMakerPrice) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+    public LimitOrder moveLimitOrder(LimitOrder limitOrder, BigDecimal bestMakerPrice) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());
         final String side = limitOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
         final Double newPrice = bestMakerPrice.setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
@@ -96,8 +96,9 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 newPrice,
                 "Limit",
                 "ParticipateDoNotInitiate");
-        System.out.println("Moved: " + (order!= null ? order.toString() : "null"));
-        return order != null ? String.valueOf(order.getOrderID()) : null;
+
+        // Updated fields: price. It also has: orderID, timestamp(also it has transactTime), ordStatus
+        return order == null ? null : BitmexAdapters.updateLimitOrder(limitOrder, order);
     }
 
     @Override

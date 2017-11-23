@@ -224,7 +224,7 @@ public class BitmexAdapters {
         if (ordStatus == null) {
             return null;
         }
-        Order.OrderStatus orderStatus = null;
+        Order.OrderStatus orderStatus;
         if (ordStatus.toUpperCase().equals("PARTIALLYFILLED")) {
             orderStatus = Order.OrderStatus.PARTIALLY_FILLED;
         } else { //if (ordStatus.toUpperCase().equals("FILLED")) {
@@ -234,4 +234,20 @@ public class BitmexAdapters {
 
         return orderStatus;
     }
+
+    public static LimitOrder updateLimitOrder(LimitOrder limitOrder, io.swagger.client.model.Order order) {
+        final LimitOrder convertedOrd = (LimitOrder) BitmexAdapters.adaptOrder(order, true);
+
+        return new LimitOrder(
+                limitOrder.getType(),
+                limitOrder.getTradableAmount(),
+                limitOrder.getCurrencyPair(),
+                limitOrder.getId(),
+                convertedOrd.getTimestamp() != null ? convertedOrd.getTimestamp() : limitOrder.getTimestamp(),
+                convertedOrd.getLimitPrice() != null ? convertedOrd.getLimitPrice() : limitOrder.getLimitPrice(),
+                convertedOrd.getAveragePrice() != null ? convertedOrd.getAveragePrice() : limitOrder.getAveragePrice(),
+                convertedOrd.getCumulativeAmount() != null ? convertedOrd.getCumulativeAmount() : limitOrder.getCumulativeAmount(),
+                convertedOrd.getStatus() != null ? convertedOrd.getStatus() : limitOrder.getStatus());
+    }
+
 }

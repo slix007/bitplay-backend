@@ -144,30 +144,35 @@ public abstract class MarketService {
     }
 
     public boolean isReadyForArbitrage() {
-        if (openOrders.stream().anyMatch(Objects::isNull)) {
-            final String warnMsg = "WARNING: OO has null element";
-            getTradeLogger().error(warnMsg);
-            logger.error(warnMsg);
-        }
-        openOrders.stream()
-                .filter(Objects::nonNull)
-                .filter(limitOrder -> limitOrder.getTradableAmount() == null)
-                .forEach(limitOrder -> {
-                    final String warnMsg = "WARNING: OO amount is null. " + limitOrder.toString();
-                    getTradeLogger().error(warnMsg);
-                    logger.error(warnMsg);
-                });
-        openOrders.removeIf(Objects::isNull);
-        openOrders.removeIf(limitOrder -> limitOrder.getTradableAmount() == null);
+        long openOrdersCount;
+        synchronized (openOrdersLock) {
 
-        final long openOrdersCount = openOrders.stream()
-                .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0) // filter as for gui
-                .count();
-        if (openOrders.size() != openOrdersCount) {
-            logger.warn("OO with zero amount: " + openOrders.stream()
-                    .map(LimitOrder::toString)
-                    .reduce((s, s2) -> s + "; " + s2));
-        }
+            if (openOrders.stream().anyMatch(Objects::isNull)) {
+                final String warnMsg = "WARNING: OO has null element";
+                getTradeLogger().error(warnMsg);
+                logger.error(warnMsg);
+            }
+            openOrders.stream()
+                    .filter(Objects::nonNull)
+                    .filter(limitOrder -> limitOrder.getTradableAmount() == null)
+                    .forEach(limitOrder -> {
+                        final String warnMsg = "WARNING: OO amount is null. " + limitOrder.toString();
+                        getTradeLogger().error(warnMsg);
+                        logger.error(warnMsg);
+                    });
+            openOrders.removeIf(Objects::isNull);
+            openOrders.removeIf(limitOrder -> limitOrder.getTradableAmount() == null);
+
+            openOrdersCount = openOrders.stream()
+                    .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0) // filter as for gui
+                    .count();
+            if (openOrders.size() != openOrdersCount) {
+                logger.warn("OO with zero amount: " + openOrders.stream()
+                        .map(LimitOrder::toString)
+                        .reduce((s, s2) -> s + "; " + s2));
+            }
+        } //synchronized (openOrdersLock)
+
         return (openOrdersCount == 0 && !isBusy());
     }
 
@@ -212,11 +217,8 @@ public abstract class MarketService {
             } else {
                 logger.info("{}: already ready", getName());
             }
-            if (openOrders.size() > 0) {
-                getTradeLogger().info("{}: try to move openOrders, lock={}", getName(),
-                        Thread.holdsLock(openOrdersLock));
-                iterateOpenOrdersMove();
-            }
+
+            iterateOpenOrdersMove();
         }
     }
 
@@ -242,9 +244,12 @@ public abstract class MarketService {
     private void resetOverload() {
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
 
-            MarketState marketStateToSet = (openOrders.size() > 0 || placeOrderArgs != null) // moving or placing attempt
-                    ? MarketState.ARBITRAGE
-                    : MarketState.READY;
+            MarketState marketStateToSet;
+            synchronized (openOrdersLock) {
+                marketStateToSet = (openOrders.size() > 0 || placeOrderArgs != null) // moving or placing attempt
+                        ? MarketState.ARBITRAGE
+                        : MarketState.READY;
+            }
 
             final String backWarn = String.format("%s change status from %s to %s",
                     getCounterName(),
@@ -425,7 +430,11 @@ public abstract class MarketService {
     public abstract TradeService getTradeService();
 
     public List<LimitOrder> getOpenOrders() {
-        return openOrders != null ? openOrders : new ArrayList<>();
+        List<LimitOrder> limitOrders;
+        synchronized (openOrdersLock) {
+            limitOrders = openOrders != null ? openOrders : new ArrayList<>();
+        }
+        return limitOrders;
     }
 
     /**
@@ -473,7 +482,7 @@ public abstract class MarketService {
                 }
 
             }
-        }
+        } // synchronized (openOrdersLock)
         return openOrders;
     }
 
@@ -588,9 +597,13 @@ public abstract class MarketService {
         openOrdersMovingSubscription = getArbitrageService().getSignalEventBus().toObserverable()
                 .sample(100, TimeUnit.MILLISECONDS)
                 .subscribe(signalEvent -> {
-                    if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
-                            || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
-                        checkOpenOrdersForMoving();
+                    try {
+                        if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
+                                || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
+                            checkOpenOrdersForMoving();
+                        }
+                    } catch (Exception e) {
+                        logger.error("{} openOrdersMovingSubscription error", getName(), e);
                     }
                 }, throwable -> logger.error("{} openOrdersMovingSubscription error", getName(), throwable));
     }
@@ -616,13 +629,15 @@ public abstract class MarketService {
         if (orderList == null) {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not fetch openOrders list");
         } else {
-            this.openOrders = orderList;
+            synchronized (openOrdersLock) {
+                this.openOrders = orderList;
 
-            response = this.openOrders.stream()
-                    .filter(limitOrder -> limitOrder.getId().equals(orderId))
-                    .findFirst()
-                    .map(limitOrder -> moveMakerOrderIfNotFirst(limitOrder, signalType))
-                    .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
+                response = this.openOrders.stream()
+                        .filter(limitOrder -> limitOrder.getId().equals(orderId))
+                        .findFirst()
+                        .map(limitOrder -> moveMakerOrderIfNotFirst(limitOrder, signalType))
+                        .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
+            }
         }
         return response;
     }

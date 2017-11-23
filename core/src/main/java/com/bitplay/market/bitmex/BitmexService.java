@@ -338,13 +338,12 @@ public class BitmexService extends MarketService {
                                         optionalOrder = Stream.of(response.getNewOrder());
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 
-                                        scheduledMoveInProgressReset =
-                                                scheduler.schedule(() -> movingErrorsOverloaded.set(0),
-                                                        MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
-
                                         if (movingErrorsOverloaded.incrementAndGet() >= MAX_ATTEMPTS) {
                                             setOverloaded(null);
                                             movingErrorsOverloaded.set(0);
+                                        } else {
+                                            scheduledMoveInProgressReset = scheduler.schedule(() -> movingErrorsOverloaded.set(0),
+                                                    MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
                                         }
 
                                     }
@@ -828,17 +827,18 @@ public class BitmexService extends MarketService {
             assert bestMakerPrice.signum() != 0;
             assert bestMakerPrice.compareTo(limitOrder.getLimitPrice()) != 0;
 
-            final String orderId = ((BitmexTradeService) exchange.getTradeService())
+            final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService())
                     .moveLimitOrder(limitOrder, bestMakerPrice);
 
-            if (orderId != null) {
+            if (movedLimitOrder != null) {
                 String diffWithSignal = setQuotesForArbLogs(limitOrder, signalType, bestMakerPrice);
 
-                final String logString = String.format("%s Moved %s from %s to %s amount=%s, filled=%s, avgPrice=%s, id=%s. %s. position=%s",
+                final String logString = String.format("%s Moved %s from %s to %s(real %s) amount=%s, filled=%s, avgPrice=%s, id=%s. %s. position=%s",
                         getCounterName(),
                         limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                         limitOrder.getLimitPrice(),
                         bestMakerPrice.toPlainString(),
+                        movedLimitOrder.getLimitPrice(),
                         limitOrder.getTradableAmount(),
                         limitOrder.getCumulativeAmount(),
                         limitOrder.getAveragePrice(),
@@ -848,7 +848,7 @@ public class BitmexService extends MarketService {
                 logger.info(logString);
                 tradeLogger.info(logString);
 
-                moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
+                moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, movedLimitOrder);
             } else {
                 logger.info("Moving response is null");
                 tradeLogger.info("Moving response is null");
