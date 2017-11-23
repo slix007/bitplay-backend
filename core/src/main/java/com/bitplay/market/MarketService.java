@@ -43,6 +43,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -72,8 +73,9 @@ public abstract class MarketService {
     protected volatile int usdInContract = 0;
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
     private static final int SYSTEM_OVERLOADED_TIMEOUT_SEC = 60;
+    protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     // Moving timeout
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private volatile ScheduledFuture<?> scheduledOverloadReset;
     private volatile PlaceOrderArgs placeOrderArgs;
     private volatile MarketState marketState = MarketState.READY;
 
@@ -174,7 +176,9 @@ public abstract class MarketService {
                 .doOnError(throwable -> logger.error("doOnError handling", throwable))
                 .retry()
                 .subscribe(btsEvent -> {
-                    if (btsEvent == BtsEvent.MARKET_FREE) {
+                    if (btsEvent == BtsEvent.MARKET_FREE_FROM_UI) {
+                        setFree("UI");
+                    } else if (btsEvent == BtsEvent.MARKET_FREE) {
                         setFree();
                     } else if (btsEvent == BtsEvent.MARKET_BUSY) {
                         setBusy();
@@ -191,11 +195,13 @@ public abstract class MarketService {
         }
     }
 
-    protected void setFree() {
+    protected void setFree(String... flags) {
         if (marketState == MarketState.SYSTEM_OVERLOADED) {
 
             logger.info("Free attempt when SYSTEM_OVERLOADED");
-            // resetOverload();
+            if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
+                resetOverload();
+            }
 
         } else if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (isBusy()) {
@@ -228,9 +234,9 @@ public abstract class MarketService {
         setMarketStateCurrCounter(MarketState.SYSTEM_OVERLOADED);
         this.placeOrderArgs = placeOrderArgs;
 
-        scheduler.schedule(this::resetOverload,
-                SYSTEM_OVERLOADED_TIMEOUT_SEC,
-                TimeUnit.SECONDS);
+        scheduledOverloadReset = scheduler.schedule(this::resetOverload,
+                        SYSTEM_OVERLOADED_TIMEOUT_SEC,
+                        TimeUnit.SECONDS);
     }
 
     private void resetOverload() {
@@ -257,6 +263,14 @@ public abstract class MarketService {
             }
 
         }
+    }
+
+    public String getTimeToReset() {
+        String secLeft = "";
+        if (scheduledOverloadReset != null && !scheduledOverloadReset.isDone()) {
+            secLeft = String.valueOf(scheduledOverloadReset.getDelay(TimeUnit.SECONDS));
+        }
+        return secLeft;
     }
 
     private String getPosDiffString() {

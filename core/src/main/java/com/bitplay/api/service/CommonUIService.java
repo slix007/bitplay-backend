@@ -256,13 +256,15 @@ public class CommonUIService {
     public MarketStatesJson getMarketsStates() {
         return new MarketStatesJson(
                 arbitrageService.getFirstMarketService().getMarketState().name(),
-                arbitrageService.getSecondMarketService().getMarketState().name()
+                arbitrageService.getSecondMarketService().getMarketState().name(),
+                arbitrageService.getFirstMarketService().getTimeToReset(),
+                arbitrageService.getSecondMarketService().getTimeToReset()
         );
     }
 
     public MarketFlagsJson freeMarketsStates() {
-        arbitrageService.getFirstMarketService().getEventBus().send(BtsEvent.MARKET_FREE);
-        arbitrageService.getSecondMarketService().getEventBus().send(BtsEvent.MARKET_FREE);
+        arbitrageService.getFirstMarketService().getEventBus().send(BtsEvent.MARKET_FREE_FROM_UI);
+        arbitrageService.getSecondMarketService().getEventBus().send(BtsEvent.MARKET_FREE_FROM_UI);
         return new MarketFlagsJson(
                 arbitrageService.getFirstMarketService().isReadyForArbitrage(),
                 arbitrageService.getSecondMarketService().isReadyForArbitrage()

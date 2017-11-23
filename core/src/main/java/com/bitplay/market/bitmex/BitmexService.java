@@ -55,8 +55,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -90,7 +89,8 @@ public class BitmexService extends MarketService {
     private volatile boolean isDestroyed = false;
 
     // Moving timeout
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private volatile ScheduledFuture<?> scheduledMoveInProgressReset;
+    private volatile ScheduledFuture<?> scheduledMovingErrorsReset;
     private volatile boolean movingInProgress = false;
     private static final int MAX_ATTEMPTS = 3;
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
@@ -308,7 +308,8 @@ public class BitmexService extends MarketService {
 
         } else {
             movingInProgress = true;
-            scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
+            scheduledMoveInProgressReset =
+                    scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
         }
 
         synchronized (openOrdersLock) {
@@ -335,8 +336,9 @@ public class BitmexService extends MarketService {
                                         optionalOrder = Stream.of(response.getNewOrder());
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 
-                                        scheduler.schedule(() -> movingErrorsOverloaded.set(0),
-                                                MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
+                                        scheduledMoveInProgressReset =
+                                                scheduler.schedule(() -> movingErrorsOverloaded.set(0),
+                                                        MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
 
                                         if (movingErrorsOverloaded.incrementAndGet() >= MAX_ATTEMPTS) {
                                             setOverloaded(null);

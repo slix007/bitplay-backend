@@ -9,25 +9,29 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class MarketStatesJson {
     String firstMarket;
     String secondMarket;
+    String firstTimeToReset;
+    String secondTimeToReset;
 
-    public MarketStatesJson(String firstMarket, String secondMarket) {
+    public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;
         this.secondMarket = secondMarket;
+        this.firstTimeToReset = firstTimeToReset;
+        this.secondTimeToReset = secondTimeToReset;
     }
 
     public String getFirstMarket() {
         return firstMarket;
     }
 
-    public void setFirstMarket(String firstMarket) {
-        this.firstMarket = firstMarket;
-    }
-
     public String getSecondMarket() {
         return secondMarket;
     }
 
-    public void setSecondMarket(String secondMarket) {
-        this.secondMarket = secondMarket;
+    public String getFirstTimeToReset() {
+        return firstTimeToReset;
+    }
+
+    public String getSecondTimeToReset() {
+        return secondTimeToReset;
     }
 }
