@@ -70,16 +70,11 @@ public class ArbitrageService {
     private Disposable theTimer;
     private Disposable theCheckBusyTimer;
 
-    private FlagOpenOrder flagOpenOrder = new FlagOpenOrder();
     private OpenPrices openPrices = new OpenPrices();
     private OpenPrices openDiffs = new OpenPrices();
     private volatile SignalType signalType = SignalType.AUTOMATIC;
     private SignalEventBus signalEventBus = new SignalEventBus();
     private volatile DeltaParams deltaParams = new DeltaParams();
-
-    public FlagOpenOrder getFlagOpenOrder() {
-        return flagOpenOrder;
-    }
 
     public OpenPrices getOpenPrices() {
         return openPrices;

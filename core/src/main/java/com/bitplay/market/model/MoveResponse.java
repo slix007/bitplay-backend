@@ -16,6 +16,7 @@ public class MoveResponse {
         ALREADY_CLOSED,
         MOVED,
         EXCEPTION,
+        EXCEPTION_SYSTEM_OVERLOADED,
         WAITING_TIMEOUT,
         MOVED_WITH_NEW_ID,
         ONLY_CANCEL

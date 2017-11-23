@@ -17,7 +17,6 @@ import org.knowm.xchange.service.trade.params.orders.OpenOrdersParams;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -97,8 +96,8 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 newPrice,
                 "Limit",
                 "ParticipateDoNotInitiate");
-
-        return String.valueOf(order.getOrderID());
+        System.out.println("Moved: " + (order!= null ? order.toString() : "null"));
+        return order != null ? String.valueOf(order.getOrderID()) : null;
     }
 
     @Override
