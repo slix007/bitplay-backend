@@ -1,6 +1,7 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketState;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.Counters;
 
@@ -185,6 +186,11 @@ public class PosDiffService {
     }
 
     private void doCorrectionImmediate(SignalType signalType) {
+        if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
+                || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
+            return;
+        }
+
         if (immediateCorrectionEnabled) {
             final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
             final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
@@ -198,6 +204,11 @@ public class PosDiffService {
     }
 
     private synchronized void doCorrection(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount, SignalType signalType) {
+        if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
+                || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
+            return;
+        }
+
         final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
         // 1. What we have to correct
         Order.OrderType orderType;

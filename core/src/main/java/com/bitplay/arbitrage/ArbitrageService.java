@@ -2,6 +2,7 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketState;
 import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
@@ -287,7 +288,16 @@ public class ArbitrageService {
 
         theCheckBusyTimer = Completable.timer(6, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
-                    if (firstMarketService.isBusy() || secondMarketService.isBusy()) {
+                    if (firstMarketService.getMarketState() == MarketState.STOPPED
+                            || secondMarketService.getMarketState() == MarketState.STOPPED
+                            || firstMarketService.getMarketState() == MarketState.SWAP_AWAIT
+                            || secondMarketService.getMarketState() == MarketState.SWAP_AWAIT
+                            || firstMarketService.getMarketState() == MarketState.SWAP
+                            || secondMarketService.getMarketState() == MarketState.SWAP
+                            ) {
+                        // do nothing
+
+                    } else if (firstMarketService.isBusy() || secondMarketService.isBusy()) {
                         final String logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s)",
                                 getCounter(),
                                 firstMarketService.isBusy(),
@@ -360,7 +370,12 @@ public class ArbitrageService {
     private BestQuotes doComparison() {
         BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
 
-        if (isReadyForTheArbitrage) {
+        if (firstMarketService.getMarketState() == MarketState.STOPPED || secondMarketService.getMarketState() == MarketState.STOPPED) {
+            // do nothing
+
+        } else if (!isReadyForTheArbitrage) {
+            debugLog.info("isReadyForTheArbitrage=false");
+        } else {
             if (Thread.holdsLock(calcLock)) {
                 logger.warn("calcLock is in progress");
             }
@@ -375,8 +390,6 @@ public class ArbitrageService {
                     bestQuotes = calcAndDoArbitrage(secondOrderBook, firstOrderBook);
                 }
             }
-        } else {
-            debugLog.info("isReadyForTheArbitrage=false");
         }
         return bestQuotes;
     }

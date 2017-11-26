@@ -118,6 +118,11 @@ public class CommonEndpoint {
         return commonUIService.getMarketsStates();
     }
 
+    @RequestMapping(value = "/market/states", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public MarketStatesJson setMarketsState(@RequestBody MarketStatesJson marketStatesJson) {
+        return commonUIService.setMarketsStates(marketStatesJson);
+    }
+
     @RequestMapping(value = "/market/free-states",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,

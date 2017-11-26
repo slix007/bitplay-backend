@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
@@ -265,6 +266,7 @@ public class OkCoinService extends MarketService {
     public void fetchPosition() throws Exception {
         final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
         mergePosition(positionResult, null);
+        tradeLogger.info(String.format("%s fetchPosition: %s", getCounterName(), position));
 
         recalcAffordableContracts();
         recalcLiqInfo();
@@ -927,6 +929,10 @@ public class OkCoinService extends MarketService {
 
     @Override
     protected void iterateOpenOrdersMove() {
+        if (getMarketState() != MarketState.SYSTEM_OVERLOADED) {
+            return;
+        }
+
         boolean haveToFetch = false;
 
         synchronized (openOrdersLock) {
@@ -1330,6 +1336,10 @@ public class OkCoinService extends MarketService {
 
     @Scheduled(fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
+        if (getMarketState() == MarketState.STOPPED) {
+            return;
+        }
+
         final BigDecimal oDQLCloseMin = arbitrageService.getParams().getoDQLCloseMin();
         final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 

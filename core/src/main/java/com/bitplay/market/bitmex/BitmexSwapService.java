@@ -105,7 +105,12 @@ public class BitmexSwapService {
         final int SWAP_INTERVAL_SEC = 2;
         final MarketState marketState = bitmexService.getMarketState();
         switch (marketState) {
-            default:
+            case STOPPED:
+            case SYSTEM_OVERLOADED:
+                break;
+
+            case READY:
+            case ARBITRAGE:
                 checkStartSwapAwait(SWAP_AWAIT_INTERVAL_SEC, swapParams);
                 break;
 
@@ -120,6 +125,9 @@ public class BitmexSwapService {
             case SWAP:
                 checkEndFunding();
                 break;
+
+            default:
+                throw new IllegalStateException("Unhandled market state");
         }
     }
 
@@ -207,7 +215,7 @@ public class BitmexSwapService {
                     ? SignalType.SWAP_OPEN
                     : bitmexFunding.getSignalType();
             bitmexService.getArbitrageService().setSignalType(signalType);
-            bitmexService.setMarketState(MarketState.SWAP_AWAIT);
+            bitmexService.setMarketStateNextCounter(MarketState.SWAP_AWAIT);
         }
     }
 
@@ -240,7 +248,7 @@ public class BitmexSwapService {
             logger.warn("Warning: SWAP NO_REVERT " + bitmexFunding.toString());
             tradeLogger.warn("Warning: SWAP NO_REVERT " + bitmexFunding.toString());
             warningLogger.warn("Warning: SWAP NO_REVERT " + bitmexFunding.toString());
-            bitmexService.setMarketState(MarketState.READY);
+            bitmexService.setMarketStateNextCounter(MarketState.READY);
             bitmexFunding.setStartPosition(null);
             bitmexFunding.setFixedSwapTime(null);
         } else if (bitmexFunding.getFixedSwapTime() != null && bitmexFunding.getStartPosition() != null) {
@@ -357,7 +365,7 @@ public class BitmexSwapService {
 
     private void setStateSwapStarted(Position position) {
         final BigDecimal pos = position.getPositionLong();
-        bitmexService.setMarketState(MarketState.SWAP);
+        bitmexService.setMarketStateNextCounter(MarketState.SWAP);
         bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
         bitmexFunding.setStartPosition(pos);
         final BigDecimal fundingCost = calcFundingCost(position, bitmexFunding.getFundingRate());
@@ -398,7 +406,7 @@ public class BitmexSwapService {
     }
 
     private void resetSwapState(boolean isVer2) {
-        bitmexService.setMarketState(MarketState.READY);
+        bitmexService.setMarketStateNextCounter(MarketState.READY);
         bitmexFunding.setFixedSwapTime(null);
         if (!isVer2 && maxDiffCorrStored != null) {
             // delay  for mdc

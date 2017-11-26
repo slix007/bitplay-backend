@@ -256,7 +256,7 @@ public class BitmexService extends MarketService {
     public void fetchPosition() throws Exception {
         final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
         final Position pUpdate = accountService.fetchPositionInfo();
-        tradeLogger.info(String.format("%s fetchPosition: %s", getCounterName(), pUpdate));
+        tradeLogger.info(String.format("%s fetchPosition: %s", getCounterName(), BitmexUtils.positionToString(pUpdate)));
 
         mergePosition(pUpdate);
 
@@ -296,8 +296,7 @@ public class BitmexService extends MarketService {
 
     @Override
     protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
-
-        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+        if (getMarketState() != MarketState.SYSTEM_OVERLOADED) {
             return;
         }
 
@@ -1136,6 +1135,10 @@ public class BitmexService extends MarketService {
 
     @Scheduled(fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
+        if (getMarketState() == MarketState.STOPPED) {
+            return;
+        }
+
         final BigDecimal bDQLCloseMin = arbitrageService.getParams().getbDQLCloseMin();
 
         if (liqInfo.getDqlCurr() != null

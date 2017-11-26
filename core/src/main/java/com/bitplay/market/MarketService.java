@@ -144,6 +144,10 @@ public abstract class MarketService {
     }
 
     public boolean isReadyForArbitrage() {
+        if (getMarketState() == MarketState.STOPPED) {
+            return false;
+        }
+
         long openOrdersCount;
         synchronized (openOrdersLock) {
 
@@ -192,6 +196,9 @@ public abstract class MarketService {
     }
 
     public void setBusy() {
+        if (this.marketState == MarketState.STOPPED) {
+            return;
+        }
         if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (!isBusy()) {
                 getTradeLogger().info("{} {}: busy, {}", getCounterNameNext(), getName(), getPosDiffString());
@@ -201,29 +208,53 @@ public abstract class MarketService {
     }
 
     protected void setFree(String... flags) {
-        if (marketState == MarketState.SYSTEM_OVERLOADED) {
+        switch (marketState) {
+            case SWAP:
+            case SWAP_AWAIT:
+                // do nothing
+                break;
+            case STOPPED:
+                if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
+                    logger.info("reset STOPPED from UI");
+                    setMarketState(MarketState.READY);
+                }
+                break;
+            case SYSTEM_OVERLOADED:
+                if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
+                    logger.info("reset SYSTEM_OVERLOADED from UI");
+                    resetOverload();
+                } else {
+                    logger.info("Free attempt when SYSTEM_OVERLOADED");
+                }
+                break;
 
-            logger.info("Free attempt when SYSTEM_OVERLOADED");
-            if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
-                resetOverload();
-            }
-
-        } else if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
-            if (isBusy()) {
+            case ARBITRAGE:
 //            fetchPosition(); -- deadlock
                 marketState = MarketState.READY;
                 getTradeLogger().info("{} {}: ready, {}", getCounterName(), getName(), getPosDiffString());
                 eventBus.send(BtsEvent.MARKET_GOT_FREE);
-            } else {
-                logger.info("{}: already ready", getName());
-            }
 
-            iterateOpenOrdersMove();
+                iterateOpenOrdersMove();
+                break;
+
+            case READY:
+                logger.warn("{}: already ready. Iterate OO.", getName());
+
+                iterateOpenOrdersMove(); // TODO we should not have such cases
+                break;
+
+            default:
+                throw new IllegalStateException("Unhandled market state");
         }
+
     }
 
     protected void setOverloaded(final PlaceOrderArgs placeOrderArgs) {
         final MarketState currMarketState = getMarketState();
+        if (currMarketState == MarketState.STOPPED) {
+            // do nothing
+            return;
+        }
 
         final String changeStat = String.format("%s change status from %s to %s",
                 getCounterName(),
@@ -233,7 +264,7 @@ public abstract class MarketService {
         warningLogger.warn(changeStat);
         logger.warn(changeStat);
 
-        setMarketStateCurrCounter(MarketState.SYSTEM_OVERLOADED);
+        setMarketState(MarketState.SYSTEM_OVERLOADED);
         this.placeOrderArgs = placeOrderArgs;
 
         scheduledOverloadReset = scheduler.schedule(this::resetOverload,
@@ -242,7 +273,12 @@ public abstract class MarketService {
     }
 
     private void resetOverload() {
-        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+        final MarketState currMarketState = getMarketState();
+        if (currMarketState == MarketState.STOPPED) {
+            // do nothing
+            return;
+
+        } else if (currMarketState == MarketState.SYSTEM_OVERLOADED) {
 
             MarketState marketStateToSet;
             synchronized (openOrdersLock) {
@@ -259,14 +295,13 @@ public abstract class MarketService {
             warningLogger.warn(backWarn);
             logger.warn(backWarn);
 
-            setMarketStateCurrCounter(marketStateToSet);
+            setMarketState(marketStateToSet);
 
             // Place order if it was placing
             if (placeOrderArgs != null) {
                 placeOrder(PlaceOrderArgs.nextPlacingArgs(placeOrderArgs));
                 placeOrderArgs = null;
             }
-
         }
     }
 
@@ -324,16 +359,20 @@ public abstract class MarketService {
         return marketState != MarketState.READY;
     }
 
+    public boolean isReadyForMoving() {
+        return marketState != MarketState.SYSTEM_OVERLOADED && marketState != MarketState.STOPPED;
+    }
+
     public EventBus getEventBus() {
         return eventBus;
     }
 
-    public void setMarketState(MarketState newState) {
+    public void setMarketStateNextCounter(MarketState newState) {
         getTradeLogger().info("{} {} marketState: {} {}", getCounterNameNext(), getName(), newState, getPosDiffString());
         this.marketState = newState;
     }
 
-    public void setMarketStateCurrCounter(MarketState newState) {
+    public void setMarketState(MarketState newState) {
         getTradeLogger().info("{} {} marketState: {} {}", getCounterName(), getName(), newState, getPosDiffString());
         this.marketState = newState;
     }

@@ -15,6 +15,7 @@ import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
@@ -254,6 +255,22 @@ public class CommonUIService {
     }
 
     public MarketStatesJson getMarketsStates() {
+        return new MarketStatesJson(
+                arbitrageService.getFirstMarketService().getMarketState().name(),
+                arbitrageService.getSecondMarketService().getMarketState().name(),
+                arbitrageService.getFirstMarketService().getTimeToReset(),
+                arbitrageService.getSecondMarketService().getTimeToReset()
+        );
+    }
+
+    public MarketStatesJson setMarketsStates(MarketStatesJson marketStatesJson) {
+        arbitrageService.getFirstMarketService().setMarketState(
+                MarketState.valueOf(marketStatesJson.getFirstMarket())
+        );
+        arbitrageService.getSecondMarketService().setMarketState(
+                MarketState.valueOf(marketStatesJson.getSecondMarket())
+        );
+
         return new MarketStatesJson(
                 arbitrageService.getFirstMarketService().getMarketState().name(),
                 arbitrageService.getSecondMarketService().getMarketState().name(),

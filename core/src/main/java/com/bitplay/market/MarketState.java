@@ -8,5 +8,7 @@ public enum MarketState {
     ARBITRAGE,
     SWAP,
     SWAP_AWAIT,
-    SYSTEM_OVERLOADED
+    SYSTEM_OVERLOADED,
+    STOPPED,
+
 }

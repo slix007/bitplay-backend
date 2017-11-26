@@ -12,10 +12,29 @@ public class MarketStatesJson {
     String firstTimeToReset;
     String secondTimeToReset;
 
+    public MarketStatesJson() {
+    }
+
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;
         this.secondMarket = secondMarket;
         this.firstTimeToReset = firstTimeToReset;
+        this.secondTimeToReset = secondTimeToReset;
+    }
+
+    public void setFirstMarket(String firstMarket) {
+        this.firstMarket = firstMarket;
+    }
+
+    public void setSecondMarket(String secondMarket) {
+        this.secondMarket = secondMarket;
+    }
+
+    public void setFirstTimeToReset(String firstTimeToReset) {
+        this.firstTimeToReset = firstTimeToReset;
+    }
+
+    public void setSecondTimeToReset(String secondTimeToReset) {
         this.secondTimeToReset = secondTimeToReset;
     }
 
