@@ -938,7 +938,7 @@ public class OkCoinService extends MarketService {
 
     @Override
     protected void iterateOpenOrdersMove() {
-        if (getMarketState() != MarketState.SYSTEM_OVERLOADED) {
+        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
             return;
         }
 
