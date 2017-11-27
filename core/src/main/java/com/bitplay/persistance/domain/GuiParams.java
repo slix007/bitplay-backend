@@ -12,8 +12,8 @@ import java.math.BigDecimal;
 @TypeAlias("guiParams")
 public class GuiParams extends AbstractDocument {
 
-    private BigDecimal border1 = BigDecimal.ZERO;
-    private BigDecimal border2 = BigDecimal.ZERO;
+    private BigDecimal border1 = BigDecimal.valueOf(10000);
+    private BigDecimal border2 = BigDecimal.valueOf(10000);
     private BigDecimal makerDelta = BigDecimal.ZERO;
     private BigDecimal sumDelta = new BigDecimal(5);
     private BigDecimal buValue = BigDecimal.ZERO;

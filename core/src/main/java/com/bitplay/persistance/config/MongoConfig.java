@@ -33,7 +33,7 @@ public class MongoConfig extends AbstractMongoConfiguration {
         clientOptions.minConnectionsPerHost(100);//min
         clientOptions.connectionsPerHost(100);//max
 
-        MongoClient client = new MongoClient("localhost", clientOptions.build());
+        MongoClient client = new MongoClient("localhost:26459", clientOptions.build());
         client.setWriteConcern(WriteConcern.ACKNOWLEDGED);
 
         return client;
