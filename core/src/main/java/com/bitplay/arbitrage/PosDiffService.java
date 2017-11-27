@@ -49,6 +49,10 @@ public class PosDiffService {
     private PersistenceService persistenceService;
 
     private void startTimerToCorrection() {
+        if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
+                || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
+            return;
+        }
         if (!hasTimerStarted) {
             warningLogger.info("Timer for timer-correction has started");
             hasTimerStarted = true;
@@ -78,6 +82,10 @@ public class PosDiffService {
 
     @Scheduled(initialDelay = 10*60*1000, fixedDelay = 5000)
     public void checkMaxDiffCorrection() {
+        if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
+                || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
+            return;
+        }
         if (!hasMDCStarted) {
             warningLogger.info("MDC has started");
             hasMDCStarted = true;
