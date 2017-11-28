@@ -15,6 +15,7 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -674,6 +675,21 @@ public class BitmexService extends MarketService {
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
+        final Settings settings = persistenceService.getSettings();
+        PlacingType placingType = PlacingType.MAKER;
+        switch (settings.getArbScheme()) {
+            case MT:
+            case MT2:
+                placingType = PlacingType.MAKER;
+                break;
+            case TT:
+                placingType = PlacingType.TAKER;
+                break;
+        }
+        return placeOrder(orderType, amountInContracts, bestQuotes, placingType, signalType);
+    }
+
+    public TradeResponse makerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
         return placeOrder(orderType, amountInContracts, bestQuotes, PlacingType.MAKER, signalType);
     }
 
