@@ -31,6 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class CommonEndpoint {
 
+    //TODO move all relevant methods to SettingsEndpoint
+
     @Autowired
     private CommonUIService commonUIService;
 
