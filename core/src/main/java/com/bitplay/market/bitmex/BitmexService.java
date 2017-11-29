@@ -597,6 +597,9 @@ public class BitmexService extends MarketService {
                                             // THere are no updates of FILLED orders
                                             tradeLogger.info("{} Order {} FILLED", getCounterName(), mergedOrderObj.getId());
                                             mergedOrder = Optional.empty();
+
+                                            // MT2
+                                            getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
                                         }
 
                                         return mergedOrder

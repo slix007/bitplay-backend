@@ -11,8 +11,11 @@ import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.settings.ArbScheme;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -53,6 +56,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
@@ -79,6 +83,8 @@ public class OkCoinService extends MarketService {
     private final static String NAME = "okcoin";
     private final int MAX_ATTEMPTS = 3;
     ArbitrageService arbitrageService;
+
+    private volatile AtomicReference<PlaceOrderArgs> placeOrderArgs = new AtomicReference<>();
 
     @Autowired
     private OkcoinBalanceService okcoinBalanceService;
@@ -135,6 +141,7 @@ public class OkCoinService extends MarketService {
         loadLiqParams();
 
         initWebSocketAndAllSubscribers();
+        initDeferedPlacingOrder();
     }
 
     private void initWebSocketAndAllSubscribers() {
@@ -720,17 +727,37 @@ public class OkCoinService extends MarketService {
         return true;
     }
 
+    private void initDeferedPlacingOrder() {
+        getArbitrageService().getSignalEventBus().toObserverable()
+                .subscribe(signalEvent -> {
+                    try {
+                        if (signalEvent == SignalEvent.MT2_BITMEX_ORDER_FILLED) {
+                            final Settings settings = persistenceService.getSettings();
+                            if (settings.getArbScheme() == ArbScheme.MT2) {
 
-    @Override
-    protected TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
-        return null;
+                                final PlaceOrderArgs currArgs = placeOrderArgs.getAndSet(null);
+                                if (currArgs != null) {
+                                    placeOrder(currArgs);
+                                }
+
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.error("{} deferedPlacingOrder error", getName(), e);
+                    }
+                }, throwable -> logger.error("{} deferedPlacingOrder error", getName(), throwable));
     }
 
     @Override
-    public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
-                                            SignalType signalType) {
+    protected TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
+        final Order.OrderType orderType = placeOrderArgs.getOrderType();
+        final BigDecimal amount = placeOrderArgs.getAmount();
+        final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
+        //final PlacingType placingType = placeOrderArgs.getPlacingType(); // Always TAKER
+        final SignalType signalType = placeOrderArgs.getSignalType();
+
         TradeResponse tradeResponse = new TradeResponse();
-        BigDecimal amountToFill = amountInContracts;
+        BigDecimal amountLeft = amount;
         int attemptCount = 0;
         for (int i = 0; i < MAX_ATTEMPTS; i++) {
             try {
@@ -740,12 +767,12 @@ public class OkCoinService extends MarketService {
                 }
 
                 if (arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
-                    tradeResponse = placeSimpleMakerOrder(orderType, amountToFill, bestQuotes, false, signalType);
+                    tradeResponse = placeSimpleMakerOrder(orderType, amountLeft, bestQuotes, false, signalType);
                 } else {
-                    tradeResponse = takerOrder(orderType, amountToFill, bestQuotes, signalType);
+                    tradeResponse = takerOrder(orderType, amountLeft, bestQuotes, signalType);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
                         final BigDecimal filled = tradeResponse.getCancelledOrder().getCumulativeAmount();
-                        amountToFill = amountToFill.subtract(filled);
+                        amountLeft = amountLeft.subtract(filled);
                         continue;
                     }
                 }
@@ -782,7 +809,7 @@ public class OkCoinService extends MarketService {
 
                 String details = String.format("%s/%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s. %s",
                         getCounterName(), attemptCount,
-                        orderType, amountToFill, bestQuotes, false, signalType, message);
+                        orderType, amountLeft, bestQuotes, false, signalType, message);
                 details = details.length() < 200 ? details : details.substring(0, 190);
                 logger.error(details, e);
                 tradeLogger.error(details);
@@ -797,6 +824,25 @@ public class OkCoinService extends MarketService {
         setFree();
 
         return tradeResponse;
+    }
+
+    @Override
+    public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
+                                            SignalType signalType) {
+        final Settings settings = persistenceService.getSettings();
+        final PlaceOrderArgs currPlaceOrderArgs = new PlaceOrderArgs(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType, 1);
+        if (settings.getArbScheme() == ArbScheme.MT2) {
+
+            if (!this.placeOrderArgs.compareAndSet(null, currPlaceOrderArgs)) {
+                final String errorMessage = String.format("double placing-order for MT2. New:%s.", currPlaceOrderArgs);
+                logger.error(errorMessage);
+                tradeLogger.error(errorMessage);
+                warningLogger.error(errorMessage);
+            }
+            return new TradeResponse();
+        }
+
+        return placeOrder(currPlaceOrderArgs);
     }
 
     public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,

@@ -54,4 +54,16 @@ public class PlaceOrderArgs {
     public int getAttempt() {
         return attempt;
     }
+
+    @Override
+    public String toString() {
+        return "PlaceOrderArgs{" +
+                "orderType=" + orderType +
+                ", amount=" + amount +
+                ", bestQuotes=" + bestQuotes +
+                ", placingType=" + placingType +
+                ", signalType=" + signalType +
+                ", attempt=" + attempt +
+                '}';
+    }
 }

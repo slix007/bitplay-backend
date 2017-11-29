@@ -6,4 +6,5 @@ package com.bitplay.market.events;
 public enum SignalEvent {
     O_ORDERBOOK_CHANGED,
     B_ORDERBOOK_CHANGED,
+    MT2_BITMEX_ORDER_FILLED,
 }
