@@ -67,6 +67,19 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         return String.valueOf(order.getOrderID());
     }
 
+    public MarketOrder placeMarketOrderBitmex(MarketOrder marketOrder) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+        final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());
+        final String side = marketOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
+        final Double tradableAmount = marketOrder.getTradableAmount().setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
+        final io.swagger.client.model.Order order = bitmexAuthenitcatedApi.order(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
+                symbol,
+                side,
+                tradableAmount,
+                "Market");
+
+        return (MarketOrder) BitmexAdapters.adaptOrder(order);
+    }
+
     @Override
     public String placeLimitOrder(LimitOrder limitOrder) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());

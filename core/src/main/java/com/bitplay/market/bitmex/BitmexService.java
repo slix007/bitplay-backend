@@ -733,21 +733,23 @@ public class BitmexService extends MarketService {
             arbitrageService.setSignalType(signalType);
             eventBus.send(BtsEvent.MARKET_BUSY);
 
-            final TradeService tradeService = exchange.getTradeService();
-            BigDecimal thePrice = BigDecimal.ZERO;
+            final BitmexTradeService bitmexTradeService = (BitmexTradeService) exchange.getTradeService();
 
             int attemptCount = 0;
             while (attemptCount < MAX_ATTEMPTS) {
                 attemptCount++;
                 try {
                     String orderId;
+                    BigDecimal thePrice;
                     if (placingType == PlacingType.MAKER) {
                         thePrice = createBestMakerPrice(orderType).setScale(1, BigDecimal.ROUND_HALF_UP);
                         final LimitOrder limitOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, "0", new Date(), thePrice);
-                        orderId = tradeService.placeLimitOrder(limitOrder);
+                        orderId = bitmexTradeService.placeLimitOrder(limitOrder);
                     } else {
                         final MarketOrder marketOrder = new MarketOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, new Date());
-                        orderId = getTradeService().placeMarketOrder(marketOrder);
+                        final MarketOrder resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder);
+                        orderId = resultOrder.getId();
+                        thePrice = resultOrder.getAveragePrice();
                     }
 
                     tradeResponse.setOrderId(orderId);
