@@ -17,7 +17,6 @@ import org.knowm.xchange.service.trade.params.orders.OpenOrdersParams;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -68,6 +67,19 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         return String.valueOf(order.getOrderID());
     }
 
+    public MarketOrder placeMarketOrderBitmex(MarketOrder marketOrder) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+        final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());
+        final String side = marketOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
+        final Double tradableAmount = marketOrder.getTradableAmount().setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
+        final io.swagger.client.model.Order order = bitmexAuthenitcatedApi.order(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
+                symbol,
+                side,
+                tradableAmount,
+                "Market");
+
+        return (MarketOrder) BitmexAdapters.adaptOrder(order);
+    }
+
     @Override
     public String placeLimitOrder(LimitOrder limitOrder) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());
@@ -85,7 +97,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         return String.valueOf(order.getOrderID());
     }
 
-    public String moveLimitOrder(LimitOrder limitOrder, BigDecimal bestMakerPrice) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+    public LimitOrder moveLimitOrder(LimitOrder limitOrder, BigDecimal bestMakerPrice) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());
         final String side = limitOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
         final Double newPrice = bestMakerPrice.setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
@@ -98,7 +110,8 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 "Limit",
                 "ParticipateDoNotInitiate");
 
-        return String.valueOf(order.getOrderID());
+        // Updated fields: price. It also has: orderID, timestamp(also it has transactTime), ordStatus
+        return order == null ? null : BitmexAdapters.updateLimitOrder(limitOrder, order);
     }
 
     @Override

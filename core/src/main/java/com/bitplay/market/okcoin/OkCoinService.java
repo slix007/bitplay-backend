@@ -6,12 +6,18 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.settings.ArbScheme;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
@@ -44,13 +50,13 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
@@ -60,6 +66,7 @@ import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import io.swagger.client.model.Error;
 import si.mazi.rescu.HttpStatusIOException;
 
 /**
@@ -74,7 +81,10 @@ public class OkCoinService extends MarketService {
 
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
     private final static String NAME = "okcoin";
+    private final int MAX_ATTEMPTS = 3;
     ArbitrageService arbitrageService;
+
+    private volatile AtomicReference<PlaceOrderArgs> placeOrderArgs = new AtomicReference<>();
 
     @Autowired
     private OkcoinBalanceService okcoinBalanceService;
@@ -131,6 +141,7 @@ public class OkCoinService extends MarketService {
         loadLiqParams();
 
         initWebSocketAndAllSubscribers();
+        initDeferedPlacingOrder();
     }
 
     private void initWebSocketAndAllSubscribers() {
@@ -258,14 +269,24 @@ public class OkCoinService extends MarketService {
     }
 
     @Scheduled(fixedRate = 2000)
+    public void scheduledFetchPosition() throws Exception {
+        fetchPosition(false);
+    }
+
     @Override
     public void fetchPosition() throws Exception {
+        fetchPosition(true);
+    }
+
+    private void fetchPosition(boolean withLogs) throws Exception {
         final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
         mergePosition(positionResult, null);
+        if (withLogs) {
+            tradeLogger.info(String.format("%s fetchPosition: %s", getCounterName(), position));
+        }
 
         recalcAffordableContracts();
         recalcLiqInfo();
-
     }
 
     private synchronized void mergePosition(OkCoinPositionResult restUpdate, Position websocketUpdate) {
@@ -538,7 +559,7 @@ public class OkCoinService extends MarketService {
                         .collect(Collectors.joining("; ")));
                 eventBus.send(BtsEvent.MARKET_FREE);
             }
-        }
+        } // synchronized (openOrdersLock)
     }
 
     /**
@@ -608,6 +629,9 @@ public class OkCoinService extends MarketService {
             final String counterName = getCounterName();
 
             final Optional<Order> orderInfoAttempts = getOrderInfoAttempts(orderId, counterName, "Taker:Status:");
+            if (!orderInfoAttempts.isPresent()) {
+                throw new Exception("Failed to get info of just created order. id=" + orderId);
+            }
 
             Order orderInfo = orderInfoAttempts.get();
 
@@ -703,13 +727,39 @@ public class OkCoinService extends MarketService {
         return true;
     }
 
+    private void initDeferedPlacingOrder() {
+        getArbitrageService().getSignalEventBus().toObserverable()
+                .subscribe(signalEvent -> {
+                    try {
+                        if (signalEvent == SignalEvent.MT2_BITMEX_ORDER_FILLED) {
+                            final Settings settings = persistenceService.getSettings();
+                            if (settings.getArbScheme() == ArbScheme.MT2) {
+
+                                final PlaceOrderArgs currArgs = placeOrderArgs.getAndSet(null);
+                                if (currArgs != null) {
+                                    placeOrder(currArgs);
+                                }
+
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.error("{} deferedPlacingOrder error", getName(), e);
+                    }
+                }, throwable -> logger.error("{} deferedPlacingOrder error", getName(), throwable));
+    }
+
     @Override
-    public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
-                                            SignalType signalType) {
-        TradeResponse tradeResponse = null;
-        BigDecimal amountToFill = amountInContracts;
+    protected TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
+        final Order.OrderType orderType = placeOrderArgs.getOrderType();
+        final BigDecimal amount = placeOrderArgs.getAmount();
+        final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
+        //final PlacingType placingType = placeOrderArgs.getPlacingType(); // Always TAKER
+        final SignalType signalType = placeOrderArgs.getSignalType();
+
+        TradeResponse tradeResponse = new TradeResponse();
+        BigDecimal amountLeft = amount;
         int attemptCount = 0;
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < MAX_ATTEMPTS; i++) {
             try {
                 attemptCount++;
                 if (attemptCount > 1) {
@@ -717,27 +767,55 @@ public class OkCoinService extends MarketService {
                 }
 
                 if (arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
-                    tradeResponse = placeSimpleMakerOrder(orderType, amountToFill, bestQuotes, false, signalType);
+                    tradeResponse = placeSimpleMakerOrder(orderType, amountLeft, bestQuotes, false, signalType);
                 } else {
-                    tradeResponse = takerOrder(orderType, amountToFill, bestQuotes, signalType);
+                    tradeResponse = takerOrder(orderType, amountLeft, bestQuotes, signalType);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
                         final BigDecimal filled = tradeResponse.getCancelledOrder().getCumulativeAmount();
-                        amountToFill = amountToFill.subtract(filled);
+                        amountLeft = amountLeft.subtract(filled);
                         continue;
                     }
                 }
                 break;
-            } catch (Exception e) {
-                String message = (e instanceof HttpStatusIOException)
-                        ? e.getMessage() + ((HttpStatusIOException) e).getHttpBody()
-                        : e.getMessage();
+            } catch (HttpStatusIOException e) {
+                final String httpBody = e.getHttpBody();
+                tradeResponse.setOrderId(httpBody);
+                tradeResponse.setErrorCode(httpBody);
 
-                String details = String.format("%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s. %s",
-                        getCounterName(),
-                        orderType, amountToFill, bestQuotes, false, signalType, message);
-                logger.error(details.length() < 200 ? details : details.substring(0, 190), e);
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    final Error error = objectMapper.readValue(httpBody, Error.class);
+                    final String marketResponseMessage = error.getError().getMessage();
+
+                    if (marketResponseMessage.contains("UnknownHostException: www.okex.com")) {
+                        final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Waiting for 1 min",
+                                getCounterName(),
+                                attemptCount,
+                                httpBody);
+
+                        tradeLogger.error(logString);
+                        logger.error(logString);
+
+                        setOverloaded(null); // TODO Think about retry
+                        break;
+                    }
+
+                } catch (IOException e1) {
+                    logger.error(String.format("On parse error:%s, %s", e.toString(), e.getHttpBody()), e1);
+                }
+
+            } catch (Exception e) {
+                String message = e.getMessage();
+
+                String details = String.format("%s/%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s. %s",
+                        getCounterName(), attemptCount,
+                        orderType, amountLeft, bestQuotes, false, signalType, message);
+                details = details.length() < 200 ? details : details.substring(0, 190);
+                logger.error(details, e);
                 tradeLogger.error(details);
-//                warningLogger.error("Warning placing: " + details);
+
+                tradeResponse.setOrderId(message);
+                tradeResponse.setErrorCode(message);
                 break;
             }
         }
@@ -746,6 +824,25 @@ public class OkCoinService extends MarketService {
         setFree();
 
         return tradeResponse;
+    }
+
+    @Override
+    public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
+                                            SignalType signalType) {
+        final Settings settings = persistenceService.getSettings();
+        final PlaceOrderArgs currPlaceOrderArgs = new PlaceOrderArgs(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType, 1);
+        if (settings.getArbScheme() == ArbScheme.MT2) {
+
+            if (!this.placeOrderArgs.compareAndSet(null, currPlaceOrderArgs)) {
+                final String errorMessage = String.format("double placing-order for MT2. New:%s.", currPlaceOrderArgs);
+                logger.error(errorMessage);
+                tradeLogger.error(errorMessage);
+                warningLogger.error(errorMessage);
+            }
+            return new TradeResponse();
+        }
+
+        return placeOrder(currPlaceOrderArgs);
     }
 
     public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
@@ -784,7 +881,9 @@ public class OkCoinService extends MarketService {
             final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(), thePrice);
             tradeResponse.setLimitOrder(limitOrderWithId);
             if (!isMoving) {
-                openOrders.add(limitOrderWithId);
+                synchronized (openOrdersLock) {
+                    openOrders.add(limitOrderWithId);
+                }
             }
 
             if (signalType == SignalType.AUTOMATIC) {
@@ -885,58 +984,65 @@ public class OkCoinService extends MarketService {
 
     @Override
     protected void iterateOpenOrdersMove() {
+        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+            return;
+        }
+
         boolean haveToFetch = false;
 
         synchronized (openOrdersLock) {
-            boolean freeTheMarket = false;
-            List<String> toRemove = new ArrayList<>();
-            List<LimitOrder> toAdd = new ArrayList<>();
-            try {
-                for (LimitOrder openOrder : openOrders) {
-                    if (openOrder.getType() != null) {
-                        final SignalType signalType = getArbitrageService().getSignalType();
-                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
+            if (openOrders.size() > 0) {
 
-                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
-                            freeTheMarket = true;
-                            toRemove.add(openOrder.getId());
-                            haveToFetch = true;
-                            logger.info(getName() + response.getDescription());
-                        }
+                boolean freeTheMarket = false;
+                List<String> toRemove = new ArrayList<>();
+                List<LimitOrder> toAdd = new ArrayList<>();
+                try {
+                    for (LimitOrder openOrder : openOrders) {
+                        if (openOrder.getType() != null) {
+                            final SignalType signalType = getArbitrageService().getSignalType();
+                            final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
 
-                        if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
-                            toRemove.add(openOrder.getId());
-                            haveToFetch = true;
-                            if (response.getNewOrder() != null) {
-                                toAdd.add(response.getNewOrder());
+                            if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                                    || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
+                                freeTheMarket = true;
+                                toRemove.add(openOrder.getId());
+                                haveToFetch = true;
+                                logger.info(getName() + response.getDescription());
+                            }
+
+                            if (response.getMoveOrderStatus().equals(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID)) {
+                                toRemove.add(openOrder.getId());
+                                haveToFetch = true;
+                                if (response.getNewOrder() != null) {
+                                    toAdd.add(response.getNewOrder());
+                                }
                             }
                         }
                     }
-                }
 
-                openOrders.removeIf(o -> toRemove.contains(o.getId()));
-                toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
-                openOrders.addAll(toAdd);
+                    openOrders.removeIf(o -> toRemove.contains(o.getId()));
+                    toRemove.forEach(s -> orderIdToSignalInfo.remove(s));
+                    openOrders.addAll(toAdd);
 
-                if (freeTheMarket && openOrders.size() > 0) {
-                    logger.warn(getName() + " Warning: get ALREADY_CLOSED, but there are still open orders");
-                    warningLogger.warn(getName() + "Warning: get ALREADY_CLOSED, but there are still open orders");
-                }
+                    if (freeTheMarket && openOrders.size() > 0) {
+                        logger.warn(getName() + " Warning: get ALREADY_CLOSED, but there are still open orders");
+                        warningLogger.warn(getName() + "Warning: get ALREADY_CLOSED, but there are still open orders");
+                    }
 
-                if (freeTheMarket && openOrders.size() == 0) {
-                    warningLogger.warn(getName() + " No openOrders left: send READY");
-                    eventBus.send(BtsEvent.MARKET_FREE);
-                }
-            } catch (Exception e) {
-                logger.error("On moving", e);
-                haveToFetch = true;
+                    if (freeTheMarket && openOrders.size() == 0) {
+                        warningLogger.warn(getName() + " No openOrders left: send READY");
+                        eventBus.send(BtsEvent.MARKET_FREE);
+                    }
+                } catch (Exception e) {
+                    logger.error("On moving", e);
+                    haveToFetch = true;
 //                final List<LimitOrder> orderList = fetchOpenOrders();
 //                if (orderList.size() == 0) {
 //                    eventBus.send(BtsEvent.MARKET_FREE);
 //                }
+                }
             }
-        }
+        } // synchronized (openOrdersLock)
 
         if (haveToFetch) {
             fetchOpenOrders();
@@ -944,7 +1050,7 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType, BigDecimal bestMarketPrice) {
         if (limitOrder.getStatus() == Order.OrderStatus.CANCELED) {
             tradeLogger.error("{} do not move ALREADY_CLOSED order", getCounterName());
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
@@ -1285,6 +1391,10 @@ public class OkCoinService extends MarketService {
 
     @Scheduled(fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
+        if (getMarketState() == MarketState.STOPPED) {
+            return;
+        }
+
         final BigDecimal oDQLCloseMin = arbitrageService.getParams().getoDQLCloseMin();
         final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 

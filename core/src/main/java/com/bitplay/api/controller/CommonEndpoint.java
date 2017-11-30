@@ -31,6 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class CommonEndpoint {
 
+    //TODO move all relevant methods to SettingsEndpoint
+
     @Autowired
     private CommonUIService commonUIService;
 
@@ -116,6 +118,11 @@ public class CommonEndpoint {
     @RequestMapping(value = "/market/states", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public MarketStatesJson getMarketsState() {
         return commonUIService.getMarketsStates();
+    }
+
+    @RequestMapping(value = "/market/states", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public MarketStatesJson setMarketsState(@RequestBody MarketStatesJson marketStatesJson) {
+        return commonUIService.setMarketsStates(marketStatesJson);
     }
 
     @RequestMapping(value = "/market/free-states",

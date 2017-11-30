@@ -6,5 +6,6 @@ package com.bitplay.market.events;
 public enum BtsEvent {
     MARKET_BUSY,
     MARKET_FREE,
+    MARKET_FREE_FROM_UI,
     MARKET_GOT_FREE
 }

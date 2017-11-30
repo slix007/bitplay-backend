@@ -7,11 +7,15 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -45,15 +49,16 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.SocketTimeoutException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -76,7 +81,6 @@ public class BitmexService extends MarketService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private static final String NAME = "bitmex";
-    private static final int MAX_ATTEMPTS = 1;
     private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
     private BitmexStreamingExchange exchange;
@@ -85,10 +89,14 @@ public class BitmexService extends MarketService {
     private long listenersStartTimeEpochSecond = Instant.now().getEpochSecond();
     private volatile boolean isDestroyed = false;
 
-    private static final int MOVING_TIMEOUT_SEC = 2;
     // Moving timeout
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private volatile ScheduledFuture<?> scheduledMoveInProgressReset;
+    private volatile ScheduledFuture<?> scheduledMovingErrorsReset;
     private volatile boolean movingInProgress = false;
+    private static final int MAX_ATTEMPTS = 3;
+    private static final int MAX_MOVING_TIMEOUT_SEC = 2;
+    private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
+    private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
 
     private Disposable accountInfoSubscription;
     private Disposable positionSubscription;
@@ -193,10 +201,6 @@ public class BitmexService extends MarketService {
                 .doOnComplete(this::startPositionListener)
                 .subscribe();
 
-//        Completable.timer(4000, TimeUnit.MILLISECONDS)
-//                .doOnComplete(this::startOpenOrderMovingListener)
-//                .subscribe();
-
         Completable.timer(5000, TimeUnit.MILLISECONDS)
                 .doOnComplete(this::startFutureIndexListener)
                 .subscribe();
@@ -253,6 +257,8 @@ public class BitmexService extends MarketService {
     public void fetchPosition() throws Exception {
         final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
         final Position pUpdate = accountService.fetchPositionInfo();
+        tradeLogger.info(String.format("%s fetchPosition: %s", getCounterName(), BitmexUtils.positionToString(pUpdate)));
+
         mergePosition(pUpdate);
 
         recalcAffordableContracts();
@@ -289,61 +295,81 @@ public class BitmexService extends MarketService {
         }
     }
 
-/*
-    @Scheduled(fixedRate = 60 * 1000)
-    public void checkForWrongFlag() {
-        if (!isBusy && openOrders.size() > 0) {
-            openOrders.clear();
-            tradeLogger.info("{}: clear openOrders, lock={}", getName());
-            //, Thread.holdsLock(openOrdersLock));
-//            iterateOpenOrdersMove();
-        }
-    }*/
-
-    @Scheduled(fixedRate = 1000 * 60)
-    public void checkForHangOrders() {
-        try {
-            fetchOpenOrders(); // Synchronous
-        } catch (IllegalStateException e) {
-            if (e.getCause() instanceof SocketTimeoutException) {
-                checkForRestart();
-            }
-        }
-        if (openOrders.size() == 0) {
-            setFree();
-        }
-    }
-
-    // Use Websocket API instead
-    /*public void getFunding() {
-        try {
-            final BitmexTradeService tradeService = (BitmexTradeService) exchange.getTradeService();
-            final List<Instrument> instrumentList = tradeService.getFunding();
-            instrument = instrumentList.get(0);
-        } catch (IOException e) {
-            logger.error("Can not get funding", e);
-        }
-    }*/
-
     @Override
-    protected void iterateOpenOrdersMove() {
-        boolean haveToClear = false;
-//        synchronized (openOrdersLock) {
-        for (LimitOrder openOrder : openOrders) {
-            if (openOrder.getType() != null) {
-                final SignalType signalType = arbitrageService.getSignalType();
-                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
-                if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                    haveToClear = true;
-                }
-            }
-//            }
+    protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
+        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+            return;
         }
 
-        if (haveToClear) {
-            openOrders.clear();
-            eventBus.send(BtsEvent.MARKET_FREE);
+        if (movingInProgress) {
+
+            // Should not happen ever, because 'synch' on method
+            final String logString = String.format("%s No moving. Too often requests.", getCounterName());
+            logger.error(logString);
+            return;
+
+        } else {
+            movingInProgress = true;
+            scheduledMoveInProgressReset =
+                    scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
         }
+
+        synchronized (openOrdersLock) {
+            if (openOrders.size() > 0) {
+
+                openOrders = openOrders.stream()
+                        .flatMap(openOrder -> {
+                            Stream<LimitOrder> optionalOrder = Stream.of(openOrder); // default - the same
+
+                            if (openOrder == null) {
+                                warningLogger.warn("OO is null.");
+                            } else if (openOrder.getType() == null) {
+                                warningLogger.warn("OO type is null. " + openOrder.toString());
+                            } else {
+
+                                final SignalType signalType = arbitrageService.getSignalType();
+                                try {
+
+                                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
+                                    //TODO keep an eye on 'hang open orders'
+                                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                                        optionalOrder = Stream.empty(); // no such case anymore
+                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
+                                        optionalOrder = Stream.of(response.getNewOrder());
+                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
+
+                                        if (movingErrorsOverloaded.incrementAndGet() >= MAX_ATTEMPTS) {
+                                            setOverloaded(null);
+                                            movingErrorsOverloaded.set(0);
+                                        } else {
+                                            scheduledMoveInProgressReset = scheduler.schedule(() -> movingErrorsOverloaded.set(0),
+                                                    MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
+                                        }
+
+                                    }
+
+                                } catch (Exception e) {
+                                    // use default OO
+                                    warningLogger.warn("Error on moving: " + e.getMessage());
+                                    logger.warn("Error on moving", e);
+                                }
+                            }
+
+                            return optionalOrder;
+                        })
+                        .collect(Collectors.toList());
+
+                if (openOrders.size() == 0) {
+                    tradeLogger.warn("Free by iterateOpenOrdersMove");
+                    logger.warn("Free by iterateOpenOrdersMove");
+                    eventBus.send(BtsEvent.MARKET_FREE);
+                }
+
+            }
+
+        } // synchronized (openOrdersLock)
+
+        movingInProgress = false;
     }
 
     private BitmexStreamingExchange initExchange(String key, String secret) {
@@ -501,14 +527,6 @@ public class BitmexService extends MarketService {
                 .observeOn(Schedulers.computation())
                 .subscribe(orderBook -> {
                     if (orderBook != null) {
-                        //workaround
-                        if (openOrders == null) {
-                            openOrders = new ArrayList<>();
-                            if (isBusy()) {
-                                eventBus.send(BtsEvent.MARKET_FREE);
-                            }
-                        }
-
                         final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
                         final LimitOrder bestBid = Utils.getBestBid(orderBook);
 
@@ -547,50 +565,57 @@ public class BitmexService extends MarketService {
                 .observeOn(Schedulers.computation())
                 .subscribeOn(Schedulers.io())
                 .subscribe(updateOfOpenOrders -> {
-                    synchronized (openOrdersLock) {
-                        logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
-                        this.openOrders = updateOfOpenOrders.getOpenOrders().stream()
-                                .flatMap(update -> {
+                    try {
+                        synchronized (openOrdersLock) {
+                            logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
+                            this.openOrders = updateOfOpenOrders.getOpenOrders().stream()
+                                    .flatMap(update -> {
 
-                                    // merge the orders
-                                    Optional<LimitOrder> mergedOrder = Optional.of(update);
-                                    final Optional<LimitOrder> optionalExisting = this.openOrders.stream()
-                                            .filter(existing -> update.getId().equals(existing.getId()))
-                                            .findFirst();
-                                    if (optionalExisting.isPresent()) {
-                                        final LimitOrder existing = optionalExisting.get();
-                                        mergedOrder = Optional.of(new LimitOrder(
-                                                existing.getType(),
-                                                update.getTradableAmount() != null ? update.getTradableAmount() : existing.getTradableAmount(),
-                                                existing.getCurrencyPair(),
-                                                existing.getId(),
-                                                update.getTimestamp(),
-                                                update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice(),
-                                                update.getAveragePrice() != null ? update.getAveragePrice() : existing.getAveragePrice(),
-                                                update.getCumulativeAmount() != null ? update.getCumulativeAmount() : existing.getCumulativeAmount(),
-                                                update.getStatus() != null ? update.getStatus() : existing.getStatus()
-                                        ));
-                                    }
+                                        // merge the orders
+                                        Optional<LimitOrder> mergedOrder = Optional.of(update);
+                                        final Optional<LimitOrder> optionalExisting = this.openOrders.stream()
+                                                .filter(existing -> update.getId().equals(existing.getId()))
+                                                .findFirst();
+                                        if (optionalExisting.isPresent()) {
+                                            final LimitOrder existing = optionalExisting.get();
+                                            mergedOrder = Optional.of(new LimitOrder(
+                                                    existing.getType(),
+                                                    update.getTradableAmount() != null ? update.getTradableAmount() : existing.getTradableAmount(),
+                                                    existing.getCurrencyPair(),
+                                                    existing.getId(),
+                                                    update.getTimestamp(),
+                                                    update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice(),
+                                                    update.getAveragePrice() != null ? update.getAveragePrice() : existing.getAveragePrice(),
+                                                    update.getCumulativeAmount() != null ? update.getCumulativeAmount() : existing.getCumulativeAmount(),
+                                                    update.getStatus() != null ? update.getStatus() : existing.getStatus()
+                                            ));
+                                        }
 //                                    tradeLogger.info("Order id={} status={}", mergedOrder.get().getId(), mergedOrder.get().getStatus());
-                                    final LimitOrder mergedOrderObj = mergedOrder.get();
-                                    if (mergedOrderObj.getStatus() != null
-                                            && mergedOrderObj.getStatus().equals(Order.OrderStatus.FILLED)) { // End orders right away step1
-                                        // THere are no updates of FILLED orders
-                                        tradeLogger.info("{} Order {} FILLED", getCounterName(), mergedOrderObj.getId());
-                                        mergedOrder = Optional.empty();
-                                    }
+                                        final LimitOrder mergedOrderObj = mergedOrder.get();
+                                        if (mergedOrderObj.getStatus() != null
+                                                && mergedOrderObj.getStatus().equals(Order.OrderStatus.FILLED)) { // End orders right away step1
+                                            // THere are no updates of FILLED orders
+                                            tradeLogger.info("{} Order {} FILLED", getCounterName(), mergedOrderObj.getId());
+                                            mergedOrder = Optional.empty();
 
-                                    return mergedOrder
-                                            .map(Stream::of)
-                                            .orElseGet(Stream::empty);
+                                            // MT2
+                                            getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
+                                        }
 
-                                }).collect(Collectors.toList());
-                        if (this.openOrders == null) {
-                            this.openOrders = new ArrayList<>();
-                        }
-                        if (openOrders.size() == 0) { // End orders right away step2
-                            setFree();
-                        }
+                                        return mergedOrder
+                                                .map(Stream::of)
+                                                .orElseGet(Stream::empty);
+
+                                    }).collect(Collectors.toList());
+                            if (this.openOrders == null) {
+                                this.openOrders = new ArrayList<>();
+                            }
+                            if (openOrders.size() == 0) { // End orders right away step2
+                                setFree();
+                            }
+                        } // synchronized (openOrdersLock)
+                    } catch (Exception e) {
+                        logger.error("OpenOrderListener", e);
                     }
 
                 }, throwable -> {
@@ -653,104 +678,155 @@ public class BitmexService extends MarketService {
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
-        return placeOrder(orderType, amountInContracts, bestQuotes, BitmexOrderType.MAKER, signalType);
+        final Settings settings = persistenceService.getSettings();
+        PlacingType placingType = PlacingType.MAKER;
+        switch (settings.getArbScheme()) {
+            case MT:
+            case MT2:
+                placingType = PlacingType.MAKER;
+                break;
+            case TT:
+                placingType = PlacingType.TAKER;
+                break;
+        }
+        return placeOrder(orderType, amountInContracts, bestQuotes, placingType, signalType);
+    }
+
+    public TradeResponse makerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
+        return placeOrder(orderType, amountInContracts, bestQuotes, PlacingType.MAKER, signalType);
     }
 
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
-        return placeOrder(orderType, amountInContracts, bestQuotes, BitmexOrderType.TAKER, signalType);
+        return placeOrder(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType);
     }
 
     private TradeResponse placeOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
-                                     BitmexOrderType bitmexOrderType, SignalType signalType) {
+                                     PlacingType placingType, SignalType signalType) {
+        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1);
+
+        return placeOrder(placeOrderArgs);
+    }
+
+    protected TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
         final TradeResponse tradeResponse = new TradeResponse();
+
+        if (placeOrderArgs.getAttempt() == MAX_ATTEMPTS) {
+            final String logString = String.format("%s Bitmex Warning placing: too many attempt(%s) when SYSTEM_OVERLOADED. Do nothing.",
+                    getCounterName(),
+                    MAX_ATTEMPTS);
+
+            logger.error(logString);
+            tradeLogger.error(logString);
+            warningLogger.error(logString);
+
+            tradeResponse.setErrorCode(logString);
+            return tradeResponse;
+        }
+
+        final Order.OrderType orderType = placeOrderArgs.getOrderType();
+        final BigDecimal amount = placeOrderArgs.getAmount();
+        final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
+        final PlacingType placingType = placeOrderArgs.getPlacingType();
+        final SignalType signalType = placeOrderArgs.getSignalType();
+
         try {
             arbitrageService.setSignalType(signalType);
             eventBus.send(BtsEvent.MARKET_BUSY);
 
-            final TradeService tradeService = exchange.getTradeService();
-            BigDecimal thePrice = BigDecimal.ZERO;
+            final BitmexTradeService bitmexTradeService = (BitmexTradeService) exchange.getTradeService();
 
-            String orderId = null;
             int attemptCount = 0;
             while (attemptCount < MAX_ATTEMPTS) {
                 attemptCount++;
                 try {
-                    if (bitmexOrderType == BitmexOrderType.MAKER) {
-
-                        thePrice = createBestMakerPrice(orderType)
-                                .setScale(1, BigDecimal.ROUND_HALF_UP);
-
-                        final LimitOrder limitOrder = new LimitOrder(orderType,
-                                amount, CURRENCY_PAIR_XBTUSD, "0", new Date(),
-                                thePrice);
-                        orderId = tradeService.placeLimitOrder(limitOrder);
+                    String orderId;
+                    BigDecimal thePrice;
+                    if (placingType == PlacingType.MAKER) {
+                        thePrice = createBestMakerPrice(orderType).setScale(1, BigDecimal.ROUND_HALF_UP);
+                        final LimitOrder limitOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, "0", new Date(), thePrice);
+                        orderId = bitmexTradeService.placeLimitOrder(limitOrder);
                     } else {
                         final MarketOrder marketOrder = new MarketOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, new Date());
-                        orderId = getTradeService().placeMarketOrder(marketOrder);
+                        final MarketOrder resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder);
+                        orderId = resultOrder.getId();
+                        thePrice = resultOrder.getAveragePrice();
                     }
+
+                    tradeResponse.setOrderId(orderId);
+                    tradeResponse.setErrorCode(null);
+
+                    String diffWithSignal = "";
+                    if (bestQuotes != null) {
+                        final BigDecimal ask1_p = bestQuotes.getAsk1_p().setScale(1, BigDecimal.ROUND_HALF_UP);
+                        final BigDecimal bid1_p = bestQuotes.getBid1_p().setScale(1, BigDecimal.ROUND_HALF_UP);
+                        final BigDecimal diff1 = ask1_p.subtract(thePrice);
+                        final BigDecimal diff2 = thePrice.subtract(bid1_p);
+                        diffWithSignal = orderType.equals(Order.OrderType.BID)
+                                ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
+                                : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
+                        arbitrageService.getOpenDiffs().setFirstOpenPrice(orderType.equals(Order.OrderType.BID)
+                                ? diff1 : diff2);
+                        orderIdToSignalInfo.put(orderId, bestQuotes);
+                    }
+
+                    if (signalType == SignalType.AUTOMATIC) {
+                        arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
+                    }
+
+                    tradeLogger.info("{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
+                            getCounterName(),
+                            placingType.toString(),
+                            orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                            amount.toPlainString(),
+                            thePrice,
+                            orderId,
+                            diffWithSignal,
+                            getPositionAsString());
 
                     break;
-                } catch (Exception e) {
-                    logger.error("Error on placeLimitOrder", e);
-                    final String message = (e instanceof HttpStatusIOException)
-                            ? e.getMessage() + ((HttpStatusIOException) e).getHttpBody()
-                            : e.getMessage();
+                } catch (HttpStatusIOException e) {
+                    final String httpBody = e.getHttpBody();
+                    tradeResponse.setOrderId(httpBody);
+                    tradeResponse.setErrorCode(httpBody);
 
-                    final String logString = String.format("%s maker error attempt=%s: %s",
-                            getCounterName(),
-                            attemptCount,
-                            message);
-                    if (e.getMessage().startsWith("Read timed out") || e.getMessage().startsWith("Network is unreachable")) {
-                        attemptCount = MAX_ATTEMPTS;
+                    HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "PlaceOrderError", attemptCount).invoke();
+
+                    if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == handler.getMoveResponse().getMoveOrderStatus()) {
+                        if (attemptCount < MAX_ATTEMPTS) {
+                            Thread.sleep(1000);
+                        } else {
+                            setOverloaded(null);
+                            break;
+                        }
+                    } else {
+                        break; // any unknown exception - no retry
                     }
-
-//                    if (attemptCount == MAX_ATTEMPTS) {
-                        logger.error(logString, e);
-                        tradeLogger.error("Warning placing: " + logString);
-                        warningLogger.error("bitmex placing. Warning: " + logString);
-//                    } else {
-//                        logger.error(logString, e);
-//                        tradeLogger.error(logString);
-//                    }
-
+                } catch (Exception e) {
+                    final String message = e.getMessage();
                     tradeResponse.setOrderId(message);
                     tradeResponse.setErrorCode(message);
+
+                    final String logString = String.format("%s/%s PlaceOrderError: %s", getCounterName(), attemptCount, message);
+                    logger.error(logString, e);
+                    tradeLogger.error(logString);
+                    warningLogger.error(logString);
+
+                    // message.startsWith("Connection refused") - when we got banned for a week. Just skip it.
+                    // message.startsWith("Read timed out")
+                    if (message.startsWith("Network is unreachable")
+                            || message.startsWith("connect timed out")) {
+                        if (attemptCount < MAX_ATTEMPTS) {
+                            Thread.sleep(1000);
+                        } else {
+                            setOverloaded(null);
+                            break;
+                        }
+                    } else {
+                        break; // any unknown exception - no retry
+                    }
+
                 }
-            }
-            if (orderId != null) {
-
-                tradeResponse.setOrderId(orderId);
-                tradeResponse.setErrorCode(null);
-
-                String diffWithSignal = "";
-                if (bestQuotes != null) {
-                    final BigDecimal ask1_p = bestQuotes.getAsk1_p().setScale(1, BigDecimal.ROUND_HALF_UP);
-                    final BigDecimal bid1_p = bestQuotes.getBid1_p().setScale(1, BigDecimal.ROUND_HALF_UP);
-                    final BigDecimal diff1 = ask1_p.subtract(thePrice);
-                    final BigDecimal diff2 = thePrice.subtract(bid1_p);
-                    diffWithSignal = orderType.equals(Order.OrderType.BID)
-                            ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
-                            : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
-                    arbitrageService.getOpenDiffs().setFirstOpenPrice(orderType.equals(Order.OrderType.BID)
-                            ? diff1 : diff2);
-                    orderIdToSignalInfo.put(orderId, bestQuotes);
-                }
-
-                tradeLogger.info("{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
-                        getCounterName(),
-                        bitmexOrderType.toString(),
-                        orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
-                        amount.toPlainString(),
-                        thePrice,
-                        orderId,
-                        diffWithSignal,
-                        getPositionAsString());
-
-                if (signalType == SignalType.AUTOMATIC) {
-                    arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
-                }
-
-            }
+            } // while
 
         } catch (Exception e) {
             logger.error("Place market order error", e);
@@ -762,136 +838,90 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType) {
-        if (movingInProgress) {
-            final String logString = String.format("%s No moving. Too often requests. id=%s", getCounterName(), limitOrder.getId());
-            logger.error(logString);
-            tradeLogger.error(logString);
-            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "No moving to often requests");
-        } else {
-            movingInProgress = true;
-            scheduler.schedule(() -> movingInProgress = false, MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
-        }
+    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType, BigDecimal newPrice) {
+        MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "do nothing by default");
 
-        MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
-        int attemptCount = 0;
-        String lastExceptionMsg = "";
-        BigDecimal bestMakerPrice = BigDecimal.ZERO;
-        BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
+        try {
+            BigDecimal bestMakerPrice = newPrice.setScale(1, BigDecimal.ROUND_HALF_UP);
 
-        while (attemptCount < MAX_ATTEMPTS) {
-            attemptCount++;
-            try {
-                bestMakerPrice = createBestMakerPrice(limitOrder.getType())
-                        .setScale(1, BigDecimal.ROUND_HALF_UP);
-                final BitmexTradeService tradeService = (BitmexTradeService) exchange.getTradeService();
-                final String order = tradeService.moveLimitOrder(limitOrder, bestMakerPrice);
+            assert bestMakerPrice.signum() != 0;
+            assert bestMakerPrice.compareTo(limitOrder.getLimitPrice()) != 0;
 
-                if (order != null) {
-                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, "");
-                    break;
-                }
-            } catch (HttpStatusIOException e) {
+            final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService())
+                    .moveLimitOrder(limitOrder, bestMakerPrice);
 
-                final String httpBody = e.getHttpBody();
-                lastExceptionMsg = httpBody;
-                ObjectMapper objectMapper = new ObjectMapper();
+            if (movedLimitOrder != null) {
+                String diffWithSignal = setQuotesForArbLogs(limitOrder, signalType, bestMakerPrice);
 
-                try {
-                    final Error error = objectMapper.readValue(httpBody, Error.class);
-                    if (error.getError().getMessage().startsWith("Invalid ordStatus")) {
-                        logger.error("MoveException " + httpBody);
-                    } else {
-                        logger.error("MoveException " + httpBody, e);
-                    }
-                    tradeLogger.error("{} MoveException: {}", getCounterName(), error.getError().getMessage());
-
-                    if (error.getError().getMessage().startsWith("Invalid ordStatus")) {
-                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
-                        // add flag
-                        arbitrageService.getFlagOpenOrder().setFirstReady(true);
-                        break;
-                    }
-                } catch (IOException e1) {
-                    logger.error("On parse error", e1);
-                }
-
-            } catch (Exception e) {
-                lastExceptionMsg = e.getMessage();
-                final String logString = String.format("%s MovingError id=%s, attempt=%s: %s",
+                final String logString = String.format("%s Moved %s from %s to %s(real %s) amount=%s, filled=%s, avgPrice=%s, id=%s. %s. position=%s",
                         getCounterName(),
+                        limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                        limitOrder.getLimitPrice(),
+                        bestMakerPrice.toPlainString(),
+                        movedLimitOrder.getLimitPrice(),
+                        limitOrder.getTradableAmount(),
+                        limitOrder.getCumulativeAmount(),
+                        limitOrder.getAveragePrice(),
                         limitOrder.getId(),
-                        attemptCount,
-                        e.getMessage());
-                if (e.getMessage().startsWith("Read timed out") || e.getMessage().startsWith("Network is unreachable")) {
-                    attemptCount = MAX_ATTEMPTS;
-                }
+                        diffWithSignal,
+                        getPositionAsString());
+                logger.info(logString);
+                tradeLogger.info(logString);
 
-                logger.error(logString, e);
-//                if (attemptCount == MAX_ATTEMPTS) {
-                    tradeLogger.error("Warning: " + logString);
-                    warningLogger.error("bitmex. Warning: " + logString);
-//                } else {
-//                    tradeLogger.error(logString);
-//                }
+                moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, movedLimitOrder);
+            } else {
+                logger.info("Moving response is null");
+                tradeLogger.info("Moving response is null");
             }
+
+        } catch (HttpStatusIOException e) {
+
+            HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "MoveOrderError", 1).invoke();
+            moveResponse = handler.getMoveResponse();
+
+        } catch (Exception e) {
+
+            final String message = e.getMessage();
+            final String logString = String.format("%s/%s MovingError id=%s: %s", getCounterName(), 1, limitOrder.getId(), message);
+            logger.error(logString, e);
+            tradeLogger.error(logString);
+            warningLogger.error(logString);
+
+            // message.startsWith("Connection refused") - when we got banned for a week. Just skip it.
+            // message.startsWith("Read timed out")
+            if (message.startsWith("Network is unreachable")
+                    || message.startsWith("connect timed out")) {
+                tradeLogger.error("{} MoveOrderError: {}", getCounterName(), message);
+                moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, message);
+            }
+
         }
 
-        if (moveResponse != null && moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
-            String diffWithSignal = "";
-            if (bestQuotes != null) {
-                final BigDecimal diff1 = bestQuotes.getAsk1_p().subtract(bestMakerPrice).setScale(1, BigDecimal.ROUND_HALF_UP);
-                final BigDecimal diff2 = bestMakerPrice.subtract(bestQuotes.getBid1_p()).setScale(1, BigDecimal.ROUND_HALF_UP);
-                diffWithSignal = limitOrder.getType().equals(Order.OrderType.BID)
-                        ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
-                        : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
-                arbitrageService.getOpenDiffs().setFirstOpenPrice(limitOrder.getType().equals(Order.OrderType.BID)
-                        ? diff1 : diff2);
-            }
-
-            final String logString = String.format("%s Moved %s amount=%s, filled=%s,newQuote=%s,avgPrice=%s,id=%s,attempt=%s. %s. position=%s",
-                    getCounterName(),
-                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-                    limitOrder.getTradableAmount(),
-                    limitOrder.getCumulativeAmount(),
-                    bestMakerPrice.toPlainString(),
-                    limitOrder.getAveragePrice(),
-                    limitOrder.getId(),
-                    attemptCount,
-                    diffWithSignal,
-                    getPositionAsString());
-
-            if (signalType == SignalType.AUTOMATIC) {
-                arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
-            }
-
-            tradeLogger.info(logString);
-            moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString);
-            movingInProgress = false;
-        } else if (moveResponse == null || moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {
-            final String logString = String.format("%s Moving error %s amount=%s,oldQuote=%s,id=%s,attempt=%s(%s)",
-                    getCounterName(),
-                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-                    limitOrder.getTradableAmount().setScale(1, BigDecimal.ROUND_HALF_UP),
-                    limitOrder.getLimitPrice().toPlainString(),
-                    limitOrder.getId(),
-                    attemptCount,
-                    lastExceptionMsg);
-            tradeLogger.info(logString);
-            sleep(200);
-            moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, logString);
-        }
         return moveResponse;
+    }
+
+    private String setQuotesForArbLogs(LimitOrder limitOrder, SignalType signalType, BigDecimal bestMakerPrice) {
+        String diffWithSignal = "";
+        BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
+        if (bestQuotes != null) {
+            final BigDecimal diff1 = bestQuotes.getAsk1_p().subtract(bestMakerPrice).setScale(1, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal diff2 = bestMakerPrice.subtract(bestQuotes.getBid1_p()).setScale(1, BigDecimal.ROUND_HALF_UP);
+            diffWithSignal = limitOrder.getType().equals(Order.OrderType.BID)
+                    ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
+                    : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
+
+            arbitrageService.getOpenDiffs().setFirstOpenPrice(limitOrder.getType().equals(Order.OrderType.BID)
+                    ? diff1 : diff2);
+        }
+        if (signalType == SignalType.AUTOMATIC) {
+            arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
+        }
+        return diffWithSignal;
     }
 
     @Override
     public TradeService getTradeService() {
         return exchange.getTradeService();
-    }
-
-    enum BitmexOrderType {
-        MAKER,
-        TAKER
     }
 
     private void startAccountInfoListener() {
@@ -1126,6 +1156,10 @@ public class BitmexService extends MarketService {
 
     @Scheduled(fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
+        if (getMarketState() == MarketState.STOPPED) {
+            return;
+        }
+
         final BigDecimal bDQLCloseMin = arbitrageService.getParams().getbDQLCloseMin();
 
         if (liqInfo.getDqlCurr() != null
@@ -1167,6 +1201,62 @@ public class BitmexService extends MarketService {
                     ((BitmexContractIndex) this.getContractIndex()).getFundingRate());
         }
         return fundingCost;
+    }
+
+    private class HttpStatusIOExceptionHandler {
+        private MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
+
+        private HttpStatusIOException e;
+        private String operationName;
+        private int attemptCount;
+
+        public HttpStatusIOExceptionHandler(HttpStatusIOException e, String operationName, int attemptCount) {
+            this.e = e;
+            this.operationName = operationName;
+            this.attemptCount = attemptCount;
+        }
+
+        /**
+         * EXCEPTION or EXCEPTION_SYSTEM_OVERLOADED
+         */
+        public MoveResponse getMoveResponse() {
+            return moveResponse;
+        }
+
+        public HttpStatusIOExceptionHandler invoke() {
+            try {
+
+                final Map<String, List<String>> responseHeaders = e.getResponseHeaders();
+                final List<String> rateLimitValues = responseHeaders.get("X-RateLimit-Remaining");
+                final String rateLimitStr = (rateLimitValues != null && rateLimitValues.size() > 0)
+                        ? String.format(" X-RateLimit-Remaining=%s ", rateLimitValues.get(0)) : " ";
+
+
+                final String httpBody = e.getHttpBody();
+                final String marketResponseMessage = new ObjectMapper().readValue(httpBody, Error.class).getError().getMessage();
+
+                String fullMessage = String.format("%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, httpBody, rateLimitStr);
+                String shortMessage = String.format("%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, marketResponseMessage, rateLimitStr);
+
+                tradeLogger.error(shortMessage);
+
+                if (marketResponseMessage.startsWith("The system is currently overloaded. Please try again later")) {
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, marketResponseMessage);
+                    logger.error(fullMessage);
+                } else if (marketResponseMessage.startsWith("Invalid ordStatus")) {
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, marketResponseMessage);
+                    logger.error(fullMessage);
+                } else {
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, httpBody);
+                    logger.error(fullMessage, e);
+                }
+
+            } catch (IOException e1) {
+                logger.error("Error on parse HttpStatusIOException", e1);
+            }
+
+            return this;
+        }
     }
 
 }
