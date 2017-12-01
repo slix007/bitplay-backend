@@ -1055,8 +1055,11 @@ public class OkCoinService extends MarketService {
             tradeLogger.error("{} do not move ALREADY_CLOSED order", getCounterName());
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
         }
+        if (!arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
+            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "no moving for taker");
+        }
 
-        arbitrageService.setSignalType(signalType);
+            arbitrageService.setSignalType(signalType);
         eventBus.send(BtsEvent.MARKET_BUSY);
 
         // IT doesn't support moving

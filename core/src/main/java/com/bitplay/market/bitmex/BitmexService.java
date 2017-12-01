@@ -15,6 +15,7 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -840,6 +841,10 @@ public class BitmexService extends MarketService {
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType, BigDecimal newPrice) {
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "do nothing by default");
+        final Settings settings = persistenceService.getSettings();
+        if (settings.getArbScheme() == ArbScheme.TT) {
+            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving for taker");
+        }
 
         try {
             BigDecimal bestMakerPrice = newPrice.setScale(1, BigDecimal.ROUND_HALF_UP);
