@@ -492,8 +492,9 @@ public class ArbitrageService {
 
             writeLogDelta1(ask1_o, bid1_p, tradingSignal);
 
-            firstMarketService.placeOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, signalType);
+            // in scheme MT2 Okex should be the first
             secondMarketService.placeOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, signalType);
+            firstMarketService.placeOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, signalType);
             setTimeoutAfterStartTrading();
 
             saveParamsToDb();
@@ -533,8 +534,9 @@ public class ArbitrageService {
 
             writeLogDelta2(ask1_p, bid1_o, tradingSignal);
 
-            firstMarketService.placeOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, signalType);
+            // in scheme MT2 Okex should be the first
             secondMarketService.placeOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, signalType);
+            firstMarketService.placeOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, signalType);
             setTimeoutAfterStartTrading();
 
             saveParamsToDb();

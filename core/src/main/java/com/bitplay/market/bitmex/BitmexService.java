@@ -708,7 +708,7 @@ public class BitmexService extends MarketService {
         return placeOrder(placeOrderArgs);
     }
 
-    protected TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
+    public TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
         final TradeResponse tradeResponse = new TradeResponse();
 
         if (placeOrderArgs.getAttempt() == MAX_ATTEMPTS) {

@@ -2,6 +2,8 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
+import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.Counters;
 
@@ -282,7 +284,8 @@ public class PosDiffService {
             arbitrageService.setSignalType(signalType);
             marketService.setBusy();
             // Market specific params
-            marketService.placeOrderOnSignal(orderType, correctAmount, null, signalType);
+            marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
+                    PlacingType.TAKER, signalType, 1));
         }
     }
 

@@ -733,10 +733,13 @@ public class OkCoinService extends MarketService {
                     try {
                         if (signalEvent == SignalEvent.MT2_BITMEX_ORDER_FILLED) {
                             final Settings settings = persistenceService.getSettings();
-                            if (settings.getArbScheme() == ArbScheme.MT2) {
+                            if (settings.getArbScheme() == ArbScheme.MT2
+                                    && getMarketState() == MarketState.WAITING_ARB) {
 
                                 final PlaceOrderArgs currArgs = placeOrderArgs.getAndSet(null);
                                 if (currArgs != null) {
+                                    setMarketState(MarketState.ARBITRAGE);
+
                                     placeOrder(currArgs);
                                 }
 
@@ -749,7 +752,7 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    protected TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
+    public TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
         final BigDecimal amount = placeOrderArgs.getAmount();
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
@@ -833,7 +836,9 @@ public class OkCoinService extends MarketService {
         final PlaceOrderArgs currPlaceOrderArgs = new PlaceOrderArgs(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType, 1);
         if (settings.getArbScheme() == ArbScheme.MT2) {
 
-            if (!this.placeOrderArgs.compareAndSet(null, currPlaceOrderArgs)) {
+            if (this.placeOrderArgs.compareAndSet(null, currPlaceOrderArgs)) {
+                setMarketState(MarketState.WAITING_ARB);
+            } else {
                 final String errorMessage = String.format("double placing-order for MT2. New:%s.", currPlaceOrderArgs);
                 logger.error(errorMessage);
                 tradeLogger.error(errorMessage);

@@ -80,7 +80,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    protected TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
+    public TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
         return null;
     }
 

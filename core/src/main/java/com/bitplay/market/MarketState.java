@@ -6,9 +6,9 @@ package com.bitplay.market;
 public enum MarketState {
     READY,
     ARBITRAGE,
+    WAITING_ARB,
     SWAP,
     SWAP_AWAIT,
     SYSTEM_OVERLOADED,
     STOPPED,
-
 }

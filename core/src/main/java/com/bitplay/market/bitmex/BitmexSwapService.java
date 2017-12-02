@@ -107,6 +107,7 @@ public class BitmexSwapService {
         switch (marketState) {
             case STOPPED:
             case SYSTEM_OVERLOADED:
+            case WAITING_ARB:
                 break;
 
             case READY:

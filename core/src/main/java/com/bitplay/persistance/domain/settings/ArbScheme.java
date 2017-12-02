@@ -11,7 +11,7 @@ public enum ArbScheme {
      */
     MT,
     /**
-     * Maker - Taker after first has filled
+     * Maker - Taker, but the second only when the first has filled
      */
     MT2,
     /**

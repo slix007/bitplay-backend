@@ -213,6 +213,7 @@ public abstract class MarketService {
             case SWAP_AWAIT:
                 // do nothing
                 break;
+            case WAITING_ARB:
             case STOPPED:
                 if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
                     logger.info("reset STOPPED from UI");
@@ -440,7 +441,7 @@ public abstract class MarketService {
 
     public abstract TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);
 
-    protected abstract TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs);
+    public abstract TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs);
 
     public BigDecimal getTotalPriceOfAmountToBuy(BigDecimal requiredAmountToBuy) {
         BigDecimal totalPrice = BigDecimal.ZERO;
