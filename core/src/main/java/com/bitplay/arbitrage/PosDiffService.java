@@ -15,6 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
@@ -31,6 +32,7 @@ public class PosDiffService {
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
     private final static Logger debugLogger = LoggerFactory.getLogger("DEBUG_LOG");
+    private static final long MIN_CORR_TIME_AFTER_READY = 5000;
 
     private final BigDecimal DIFF_FACTOR = BigDecimal.valueOf(100);
 
@@ -161,7 +163,10 @@ public class PosDiffService {
                 if (arbitrageService.getParams().getPosCorr().equals("enabled")
                         && positionsDiffWithHedge.signum() != 0) {
                     // 0. check if ready
-                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage() && arbitrageService.getSecondMarketService().isReadyForArbitrage()) {
+                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                            && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                            && isReadyByTimeForCorrection(arbitrageService.getFirstMarketService())
+                            && isReadyByTimeForCorrection(arbitrageService.getSecondMarketService())) {
                         if (!isSecondCheck) {
                             try {
                                 Thread.sleep(2000);
@@ -184,6 +189,15 @@ public class PosDiffService {
                 calcInProgress = false;
             }
         }
+    }
+
+    private boolean isReadyByTimeForCorrection(MarketService marketService) {
+        final long nowMs = Instant.now().toEpochMilli();
+        final long readyMs = marketService.getReadyTime().toEpochMilli();
+        if (nowMs - readyMs > MIN_CORR_TIME_AFTER_READY) {
+            return true;
+        }
+        return false;
     }
 
     private BigDecimal getHedgeAmount() {

@@ -84,7 +84,7 @@ public class OkCoinService extends MarketService {
     private final int MAX_ATTEMPTS = 3;
     ArbitrageService arbitrageService;
 
-    private volatile AtomicReference<PlaceOrderArgs> placeOrderArgs = new AtomicReference<>();
+    private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
 
     @Autowired
     private OkcoinBalanceService okcoinBalanceService;
@@ -722,11 +722,6 @@ public class OkCoinService extends MarketService {
         return isAffordable;
     }
 
-    @Override
-    public boolean isReadyForNewOrder() {
-        return true;
-    }
-
     private void initDeferedPlacingOrder() {
         getArbitrageService().getSignalEventBus().toObserverable()
                 .subscribe(signalEvent -> {
@@ -736,7 +731,7 @@ public class OkCoinService extends MarketService {
                             if (settings.getArbScheme() == ArbScheme.MT2
                                     && getMarketState() == MarketState.WAITING_ARB) {
 
-                                final PlaceOrderArgs currArgs = placeOrderArgs.getAndSet(null);
+                                final PlaceOrderArgs currArgs = placeOrderArgsRef.getAndSet(null);
                                 if (currArgs != null) {
                                     setMarketState(MarketState.ARBITRAGE);
 
@@ -756,7 +751,7 @@ public class OkCoinService extends MarketService {
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
         final BigDecimal amount = placeOrderArgs.getAmount();
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
-        //final PlacingType placingType = placeOrderArgs.getPlacingType(); // Always TAKER
+        //final PlacingType placingType = placeOrderArgsRef.getPlacingType(); // Always TAKER
         final SignalType signalType = placeOrderArgs.getSignalType();
 
         TradeResponse tradeResponse = new TradeResponse();
@@ -836,7 +831,7 @@ public class OkCoinService extends MarketService {
         final PlaceOrderArgs currPlaceOrderArgs = new PlaceOrderArgs(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType, 1);
         if (settings.getArbScheme() == ArbScheme.MT2) {
 
-            if (this.placeOrderArgs.compareAndSet(null, currPlaceOrderArgs)) {
+            if (this.placeOrderArgsRef.compareAndSet(null, currPlaceOrderArgs)) {
                 setMarketState(MarketState.WAITING_ARB);
             } else {
                 final String errorMessage = String.format("double placing-order for MT2. New:%s.", currPlaceOrderArgs);

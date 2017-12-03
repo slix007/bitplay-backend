@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -72,12 +73,14 @@ public abstract class MarketService {
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected volatile int usdInContract = 0;
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
+
     private static final int SYSTEM_OVERLOADED_TIMEOUT_SEC = 60;
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     // Moving timeout
     private volatile ScheduledFuture<?> scheduledOverloadReset;
     private volatile PlaceOrderArgs placeOrderArgs;
     private volatile MarketState marketState = MarketState.READY;
+    private volatile Instant readyTime = Instant.now();
 
     private volatile SpecialFlags specialFlags = SpecialFlags.NONE;
     protected EventBus eventBus = new EventBus();
@@ -139,12 +142,8 @@ public abstract class MarketService {
         return BigDecimal.ZERO;
     }
 
-    public boolean isReadyForNewOrder() {
-        return true;
-    }
-
     public boolean isReadyForArbitrage() {
-        if (getMarketState() == MarketState.STOPPED) {
+        if (getMarketState() == MarketState.STOPPED || isBusy()) {
             return false;
         }
 
@@ -177,7 +176,7 @@ public abstract class MarketService {
             }
         } //synchronized (openOrdersLock)
 
-        return (openOrdersCount == 0 && !isBusy());
+        return openOrdersCount == 0;
     }
 
     private void initEventBus() {
@@ -231,8 +230,7 @@ public abstract class MarketService {
 
             case ARBITRAGE:
 //            fetchPosition(); -- deadlock
-                marketState = MarketState.READY;
-                getTradeLogger().info("{} {}: ready, {}", getCounterName(), getName(), getPosDiffString());
+                setMarketState(MarketState.READY);
                 eventBus.send(BtsEvent.MARKET_GOT_FREE);
 
                 iterateOpenOrdersMove();
@@ -369,17 +367,25 @@ public abstract class MarketService {
     }
 
     public void setMarketStateNextCounter(MarketState newState) {
-        getTradeLogger().info("{} {} marketState: {} {}", getCounterNameNext(), getName(), newState, getPosDiffString());
-        this.marketState = newState;
+        setMarketState(newState, getCounterNameNext());
     }
 
     public void setMarketState(MarketState newState) {
-        getTradeLogger().info("{} {} marketState: {} {}", getCounterName(), getName(), newState, getPosDiffString());
+        setMarketState(newState, getCounterName());
+    }
+
+    public void setMarketState(MarketState newState, String counterName) {
+        getTradeLogger().info("{} {} marketState: {} {}", counterName, getName(), newState, getPosDiffString());
         this.marketState = newState;
+        this.readyTime = Instant.now();
     }
 
     public MarketState getMarketState() {
         return marketState;
+    }
+
+    public Instant getReadyTime() {
+        return readyTime;
     }
 
     public abstract String getName();
