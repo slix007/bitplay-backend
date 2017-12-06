@@ -15,6 +15,7 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.Counters;
 import com.bitplay.persistance.domain.LiqParams;
+import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.Exchange;
@@ -74,7 +75,6 @@ public abstract class MarketService {
     protected volatile int usdInContract = 0;
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
-    private static final int SYSTEM_OVERLOADED_TIMEOUT_SEC = 60;
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     // Moving timeout
     private volatile ScheduledFuture<?> scheduledOverloadReset;
@@ -266,9 +266,10 @@ public abstract class MarketService {
         setMarketState(MarketState.SYSTEM_OVERLOADED);
         this.placeOrderArgs = placeOrderArgs;
 
-        scheduledOverloadReset = scheduler.schedule(this::resetOverload,
-                        SYSTEM_OVERLOADED_TIMEOUT_SEC,
-                        TimeUnit.SECONDS);
+        final SysOverloadArgs sysOverloadArgs = getPersistenceService().getSettingsRepositoryService()
+                .getSettings().getBitmexSysOverloadArgs();
+
+        scheduledOverloadReset = scheduler.schedule(this::resetOverload, sysOverloadArgs.getOverloadTimeSec(), TimeUnit.SECONDS);
     }
 
     private void resetOverload() {

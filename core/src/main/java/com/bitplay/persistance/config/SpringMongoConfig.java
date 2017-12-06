@@ -17,7 +17,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @Configuration
 @EnableMongoRepositories(basePackageClasses = RepositoryPackage.class)
 //@ComponentScan(basePackageClasses=TemplatePackage.class)
-public class MongoConfig extends AbstractMongoConfiguration {
+public class SpringMongoConfig extends AbstractMongoConfiguration {
 
     // ---------------------------------------------------- mongodb config
 
@@ -32,11 +32,9 @@ public class MongoConfig extends AbstractMongoConfiguration {
         MongoClientOptions.Builder clientOptions = new MongoClientOptions.Builder();
         clientOptions.minConnectionsPerHost(100);//min
         clientOptions.connectionsPerHost(100);//max
+        clientOptions.writeConcern(WriteConcern.ACKNOWLEDGED);
 
-        MongoClient client = new MongoClient("localhost:26459", clientOptions.build());
-        client.setWriteConcern(WriteConcern.ACKNOWLEDGED);
-
-        return client;
+        return new MongoClient("localhost:26459", clientOptions.build());
     }
 
 //    @Override

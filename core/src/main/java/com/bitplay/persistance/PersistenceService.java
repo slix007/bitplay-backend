@@ -8,7 +8,6 @@ import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.MarketDocument;
 import com.bitplay.persistance.domain.SwapParams;
-import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.repository.BorderParamsRepository;
 import com.bitplay.persistance.repository.CountersRepository;
 import com.bitplay.persistance.repository.DeltaParamsRepository;
@@ -49,7 +48,7 @@ public class PersistenceService {
     private BorderParamsRepository borderParamsRepository;
 
     @Autowired
-    private SettingsRepository settingsRepository;
+    private SettingsRepositoryService settingsRepositoryService;
 
     public void saveGuiParams(GuiParams deltas) {
         deltas.setId(1L);
@@ -118,16 +117,7 @@ public class PersistenceService {
         borderParamsRepository.save(borderParams);
     }
 
-    public Settings getSettings() {
-        Settings settings = settingsRepository.findOne(1L);
-        if (settings == null) {
-            settings = Settings.createDefault();
-            settings.setId(1L);
-        }
-        return settings;
-    }
-
-    public void saveSettings(Settings settings) {
-        settingsRepository.save(settings);
+    public SettingsRepositoryService getSettingsRepositoryService() {
+        return settingsRepositoryService;
     }
 }

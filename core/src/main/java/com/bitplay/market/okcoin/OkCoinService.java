@@ -14,6 +14,7 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
@@ -81,7 +82,6 @@ public class OkCoinService extends MarketService {
 
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
     private final static String NAME = "okcoin";
-    private final int MAX_ATTEMPTS = 3;
     ArbitrageService arbitrageService;
 
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
@@ -92,6 +92,8 @@ public class OkCoinService extends MarketService {
     private PosDiffService posDiffService;
     @Autowired
     private PersistenceService persistenceService;
+    @Autowired
+    private SettingsRepositoryService settingsRepositoryService;
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
     private Disposable privateDataSubscription;
@@ -727,7 +729,7 @@ public class OkCoinService extends MarketService {
                 .subscribe(signalEvent -> {
                     try {
                         if (signalEvent == SignalEvent.MT2_BITMEX_ORDER_FILLED) {
-                            final Settings settings = persistenceService.getSettings();
+                            final Settings settings = settingsRepositoryService.getSettings();
                             if (settings.getArbScheme() == ArbScheme.MT2
                                     && getMarketState() == MarketState.WAITING_ARB) {
 
@@ -748,6 +750,7 @@ public class OkCoinService extends MarketService {
 
     @Override
     public TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
+        final Integer maxAttempts = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs().getErrorsCountForOverload();
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
         final BigDecimal amount = placeOrderArgs.getAmount();
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
@@ -757,7 +760,7 @@ public class OkCoinService extends MarketService {
         TradeResponse tradeResponse = new TradeResponse();
         BigDecimal amountLeft = amount;
         int attemptCount = 0;
-        for (int i = 0; i < MAX_ATTEMPTS; i++) {
+        for (int i = 0; i < maxAttempts; i++) {
             try {
                 attemptCount++;
                 if (attemptCount > 1) {
@@ -827,7 +830,7 @@ public class OkCoinService extends MarketService {
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
-        final Settings settings = persistenceService.getSettings();
+        final Settings settings = settingsRepositoryService.getSettings();
         final PlaceOrderArgs currPlaceOrderArgs = new PlaceOrderArgs(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType, 1);
         if (settings.getArbScheme() == ArbScheme.MT2) {
 

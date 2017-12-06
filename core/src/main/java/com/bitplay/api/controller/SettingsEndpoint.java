@@ -1,10 +1,8 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.api.domain.ArbitrageSchemeJson;
-import com.bitplay.api.domain.ResultJson;
-import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.settings.ArbScheme;
+import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,41 +23,53 @@ public class SettingsEndpoint {
     private final static Logger logger = LoggerFactory.getLogger(SettingsEndpoint.class);
 
     @Autowired
-    PersistenceService persistenceService;
+    SettingsRepositoryService settingsRepositoryService;
 
-    @RequestMapping(value = "/arb-scheme", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ArbitrageSchemeJson getArbScheme() {
-        String result;
+    @RequestMapping(value = "/all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Settings getSettings() {
+        Settings result = new Settings();
         try {
-            result = persistenceService.getSettings().getArbScheme().toString();
+            result = settingsRepositoryService.getSettings();
         } catch (Exception e) {
             final String error = String.format("Failed to get ArbScheme %s", e.toString());
-            result = error;
             logger.error(error, e);
         }
-
-        return new ArbitrageSchemeJson(result);
+        return result;
     }
 
-    @RequestMapping(value = "/arb-scheme", method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson updateArbScheme(@RequestBody ArbitrageSchemeJson arbitrageSchemeJson) {
-        final String schemeName = arbitrageSchemeJson.getSchemeName();
-        String result;
-        try {
-            final Settings settings = persistenceService.getSettings();
-            ArbScheme arbScheme = ArbScheme.valueOf(schemeName);
-            settings.setArbScheme(arbScheme);
-            persistenceService.saveSettings(settings);
-
-            result = arbScheme.toString();
-
-        } catch (Exception e) {
-            final String error = String.format("Failed to get ArbScheme %s", e.toString());
-            result = error;
-            logger.error(error, e);
+    @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Settings updateSettings(@RequestBody Settings settingsUpdate) {
+        final Settings settings = settingsRepositoryService.getSettings();
+        if (settingsUpdate.getArbScheme() != null) {
+            settings.setArbScheme(settingsUpdate.getArbScheme());
+            settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getBitmexSysOverloadArgs() != null) {
+            final SysOverloadArgs refToUpdate = settings.getBitmexSysOverloadArgs();
+            if (settingsUpdate.getBitmexSysOverloadArgs().getErrorsCountForOverload() != null) {
+                refToUpdate.setErrorsCountForOverload(settingsUpdate.getBitmexSysOverloadArgs().getErrorsCountForOverload());
+            }
+            if (settingsUpdate.getBitmexSysOverloadArgs().getOverloadTimeSec() != null) {
+                refToUpdate.setOverloadTimeSec(settingsUpdate.getBitmexSysOverloadArgs().getOverloadTimeSec());
+            }
+            if (settingsUpdate.getBitmexSysOverloadArgs().getMovingErrorsResetTimeout() != null) {
+                refToUpdate.setMovingErrorsResetTimeout(settingsUpdate.getBitmexSysOverloadArgs().getMovingErrorsResetTimeout());
+            }
 
-        return new ResultJson(result, "");
+            settingsRepositoryService.saveSettings(settings);
+        }
+//        if (settingsUpdate.getOkexSysOverloadArgs() != null) {
+//            final SysOverloadArgs refToUpdate = settings.getOkexSysOverloadArgs();
+//            if (settingsUpdate.getOkexSysOverloadArgs().getErrorsCountForOverload() != null) {
+//                refToUpdate.setErrorsCountForOverload(settingsUpdate.getOkexSysOverloadArgs().getErrorsCountForOverload());
+//            }
+//            if (settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeSec() != null) {
+//                refToUpdate.setOverloadTimeSec(settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeSec());
+//            }
+//
+//            settingsRepositoryService.saveSettings(settings);
+//        }
+
+        return settings;
     }
 }

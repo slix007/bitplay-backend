@@ -15,8 +15,10 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -94,9 +96,7 @@ public class BitmexService extends MarketService {
     private volatile ScheduledFuture<?> scheduledMoveInProgressReset;
     private volatile ScheduledFuture<?> scheduledMovingErrorsReset;
     private volatile boolean movingInProgress = false;
-    private static final int MAX_ATTEMPTS = 3;
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
-    private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
 
     private Disposable accountInfoSubscription;
@@ -121,6 +121,8 @@ public class BitmexService extends MarketService {
     private PosDiffService posDiffService;
     @Autowired
     private PersistenceService persistenceService;
+    @Autowired
+    private SettingsRepositoryService settingsRepositoryService;
     private String key;
     private String secret;
     private Disposable restartTimer;
@@ -318,6 +320,10 @@ public class BitmexService extends MarketService {
         synchronized (openOrdersLock) {
             if (openOrders.size() > 0) {
 
+                final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
+                final Integer maxAttempts = sysOverloadArgs.getErrorsCountForOverload();
+                final Integer movingErrorsResetTimeout = sysOverloadArgs.getMovingErrorsResetTimeout();
+
                 openOrders = openOrders.stream()
                         .flatMap(openOrder -> {
                             Stream<LimitOrder> optionalOrder = Stream.of(openOrder); // default - the same
@@ -339,12 +345,12 @@ public class BitmexService extends MarketService {
                                         optionalOrder = Stream.of(response.getNewOrder());
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 
-                                        if (movingErrorsOverloaded.incrementAndGet() >= MAX_ATTEMPTS) {
+                                        if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
                                             setOverloaded(null);
                                             movingErrorsOverloaded.set(0);
                                         } else {
                                             scheduledMoveInProgressReset = scheduler.schedule(() -> movingErrorsOverloaded.set(0),
-                                                    MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
+                                                    movingErrorsResetTimeout, TimeUnit.SECONDS);
                                         }
 
                                     }
@@ -679,7 +685,7 @@ public class BitmexService extends MarketService {
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
-        final Settings settings = persistenceService.getSettings();
+        final Settings settings = settingsRepositoryService.getSettings();
         PlacingType placingType = PlacingType.MAKER;
         switch (settings.getArbScheme()) {
             case MT:
@@ -711,10 +717,11 @@ public class BitmexService extends MarketService {
     public TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
         final TradeResponse tradeResponse = new TradeResponse();
 
-        if (placeOrderArgs.getAttempt() == MAX_ATTEMPTS) {
+        final Integer maxAttempts = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs().getErrorsCountForOverload();
+        if (placeOrderArgs.getAttempt() == maxAttempts) {
             final String logString = String.format("%s Bitmex Warning placing: too many attempt(%s) when SYSTEM_OVERLOADED. Do nothing.",
                     getCounterName(),
-                    MAX_ATTEMPTS);
+                    maxAttempts);
 
             logger.error(logString);
             tradeLogger.error(logString);
@@ -737,7 +744,7 @@ public class BitmexService extends MarketService {
             final BitmexTradeService bitmexTradeService = (BitmexTradeService) exchange.getTradeService();
 
             int attemptCount = 0;
-            while (attemptCount < MAX_ATTEMPTS) {
+            while (attemptCount < maxAttempts) {
                 attemptCount++;
                 try {
                     String orderId;
@@ -793,8 +800,9 @@ public class BitmexService extends MarketService {
                     HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "PlaceOrderError", attemptCount).invoke();
 
                     if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == handler.getMoveResponse().getMoveOrderStatus()) {
-                        if (attemptCount < MAX_ATTEMPTS) {
-                            Thread.sleep(1000);
+                        if (attemptCount < maxAttempts) {
+                            // No sleep
+//                            Thread.sleep(1000);
                         } else {
                             setOverloaded(null);
                             break;
@@ -816,7 +824,7 @@ public class BitmexService extends MarketService {
                     // message.startsWith("Read timed out")
                     if (message.startsWith("Network is unreachable")
                             || message.startsWith("connect timed out")) {
-                        if (attemptCount < MAX_ATTEMPTS) {
+                        if (attemptCount < maxAttempts) {
                             Thread.sleep(1000);
                         } else {
                             setOverloaded(null);
@@ -841,7 +849,7 @@ public class BitmexService extends MarketService {
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType, BigDecimal newPrice) {
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "do nothing by default");
-        final Settings settings = persistenceService.getSettings();
+        final Settings settings = settingsRepositoryService.getSettings();
         if (settings.getArbScheme() == ArbScheme.TT) {
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving for taker");
         }
