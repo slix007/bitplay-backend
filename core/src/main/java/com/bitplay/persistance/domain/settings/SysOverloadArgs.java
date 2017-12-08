@@ -5,25 +5,32 @@ package com.bitplay.persistance.domain.settings;
  */
 public class SysOverloadArgs {
 
-    private Integer errorsCountForOverload;
+    private Integer placeAttempts;
+    private Integer movingErrorsForOverload;
     private Integer overloadTimeSec;
-    private Integer movingErrorsResetTimeout;
-
 
     public static SysOverloadArgs defaults() {
         final SysOverloadArgs newObj = new SysOverloadArgs();
-        newObj.errorsCountForOverload = 3;
+        newObj.placeAttempts = 3;
+        newObj.movingErrorsForOverload = 3;
         newObj.overloadTimeSec = 60;
-        newObj.movingErrorsResetTimeout = 60;
         return newObj;
     }
 
-    public Integer getErrorsCountForOverload() {
-        return errorsCountForOverload;
+    public Integer getPlaceAttempts() {
+        return placeAttempts;
     }
 
-    public void setErrorsCountForOverload(Integer errorsCountForOverload) {
-        this.errorsCountForOverload = errorsCountForOverload;
+    public void setPlaceAttempts(Integer placeAttempts) {
+        this.placeAttempts = placeAttempts;
+    }
+
+    public Integer getMovingErrorsForOverload() {
+        return movingErrorsForOverload;
+    }
+
+    public void setMovingErrorsForOverload(Integer movingErrorsForOverload) {
+        this.movingErrorsForOverload = movingErrorsForOverload;
     }
 
     public Integer getOverloadTimeSec() {
@@ -34,20 +41,12 @@ public class SysOverloadArgs {
         this.overloadTimeSec = overloadTimeSec;
     }
 
-    public Integer getMovingErrorsResetTimeout() {
-        return movingErrorsResetTimeout;
-    }
-
-    public void setMovingErrorsResetTimeout(Integer movingErrorsResetTimeout) {
-        this.movingErrorsResetTimeout = movingErrorsResetTimeout;
-    }
-
     @Override
     public String toString() {
         return "SysOverloadArgs{" +
-                "errorsCountForOverload=" + errorsCountForOverload +
+                "placeAttempts=" + placeAttempts +
+                ", movingErrorsForOverload=" + movingErrorsForOverload +
                 ", overloadTimeSec=" + overloadTimeSec +
-                ", movingErrorsResetTimeout=" + movingErrorsResetTimeout +
                 '}';
     }
 }

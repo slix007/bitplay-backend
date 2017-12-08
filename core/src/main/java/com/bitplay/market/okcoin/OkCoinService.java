@@ -750,7 +750,7 @@ public class OkCoinService extends MarketService {
 
     @Override
     public TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
-        final Integer maxAttempts = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs().getErrorsCountForOverload();
+        final Integer maxAttempts = 3;
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
         final BigDecimal amount = placeOrderArgs.getAmount();
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();

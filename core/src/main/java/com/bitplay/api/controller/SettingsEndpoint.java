@@ -46,22 +46,22 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getBitmexSysOverloadArgs() != null) {
             final SysOverloadArgs refToUpdate = settings.getBitmexSysOverloadArgs();
-            if (settingsUpdate.getBitmexSysOverloadArgs().getErrorsCountForOverload() != null) {
-                refToUpdate.setErrorsCountForOverload(settingsUpdate.getBitmexSysOverloadArgs().getErrorsCountForOverload());
+            if (settingsUpdate.getBitmexSysOverloadArgs().getPlaceAttempts() != null) {
+                refToUpdate.setPlaceAttempts(settingsUpdate.getBitmexSysOverloadArgs().getPlaceAttempts());
+            }
+            if (settingsUpdate.getBitmexSysOverloadArgs().getMovingErrorsForOverload() != null) {
+                refToUpdate.setMovingErrorsForOverload(settingsUpdate.getBitmexSysOverloadArgs().getMovingErrorsForOverload());
             }
             if (settingsUpdate.getBitmexSysOverloadArgs().getOverloadTimeSec() != null) {
                 refToUpdate.setOverloadTimeSec(settingsUpdate.getBitmexSysOverloadArgs().getOverloadTimeSec());
-            }
-            if (settingsUpdate.getBitmexSysOverloadArgs().getMovingErrorsResetTimeout() != null) {
-                refToUpdate.setMovingErrorsResetTimeout(settingsUpdate.getBitmexSysOverloadArgs().getMovingErrorsResetTimeout());
             }
 
             settingsRepositoryService.saveSettings(settings);
         }
 //        if (settingsUpdate.getOkexSysOverloadArgs() != null) {
 //            final SysOverloadArgs refToUpdate = settings.getOkexSysOverloadArgs();
-//            if (settingsUpdate.getOkexSysOverloadArgs().getErrorsCountForOverload() != null) {
-//                refToUpdate.setErrorsCountForOverload(settingsUpdate.getOkexSysOverloadArgs().getErrorsCountForOverload());
+//            if (settingsUpdate.getOkexSysOverloadArgs().getMovingErrorsForOverload() != null) {
+//                refToUpdate.setMovingErrorsForOverload(settingsUpdate.getOkexSysOverloadArgs().getMovingErrorsForOverload());
 //            }
 //            if (settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeSec() != null) {
 //                refToUpdate.setOverloadTimeSec(settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeSec());

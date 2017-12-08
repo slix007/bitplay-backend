@@ -97,6 +97,7 @@ public class BitmexService extends MarketService {
     private volatile ScheduledFuture<?> scheduledMovingErrorsReset;
     private volatile boolean movingInProgress = false;
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
+    private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
 
     private Disposable accountInfoSubscription;
@@ -321,8 +322,7 @@ public class BitmexService extends MarketService {
             if (openOrders.size() > 0) {
 
                 final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
-                final Integer maxAttempts = sysOverloadArgs.getErrorsCountForOverload();
-                final Integer movingErrorsResetTimeout = sysOverloadArgs.getMovingErrorsResetTimeout();
+                final Integer maxAttempts = sysOverloadArgs.getMovingErrorsForOverload();
 
                 openOrders = openOrders.stream()
                         .flatMap(openOrder -> {
@@ -343,6 +343,7 @@ public class BitmexService extends MarketService {
                                         optionalOrder = Stream.empty(); // no such case anymore
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
                                         optionalOrder = Stream.of(response.getNewOrder());
+                                        movingErrorsOverloaded.set(0);
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 
                                         if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
@@ -350,7 +351,7 @@ public class BitmexService extends MarketService {
                                             movingErrorsOverloaded.set(0);
                                         } else {
                                             scheduledMoveInProgressReset = scheduler.schedule(() -> movingErrorsOverloaded.set(0),
-                                                    movingErrorsResetTimeout, TimeUnit.SECONDS);
+                                                    MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
                                         }
 
                                     }
@@ -717,7 +718,7 @@ public class BitmexService extends MarketService {
     public TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
         final TradeResponse tradeResponse = new TradeResponse();
 
-        final Integer maxAttempts = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs().getErrorsCountForOverload();
+        final Integer maxAttempts = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs().getPlaceAttempts();
         if (placeOrderArgs.getAttempt() == maxAttempts) {
             final String logString = String.format("%s Bitmex Warning placing: too many attempt(%s) when SYSTEM_OVERLOADED. Do nothing.",
                     getCounterName(),
@@ -836,7 +837,11 @@ public class BitmexService extends MarketService {
                 }
             } // while
 
-            tradeResponse.setErrorCode(String.format("attempt=%s,%s", attemptCount, tradeResponse.getErrorCode()));
+            String errorCode = "attemtp=" + attemptCount;
+            if (tradeResponse.getErrorCode() != null) {
+                errorCode += "," + tradeResponse.getErrorCode();
+            }
+            tradeResponse.setErrorCode(errorCode);
 
         } catch (Exception e) {
             logger.error("Place market order error", e);
@@ -889,13 +894,13 @@ public class BitmexService extends MarketService {
 
         } catch (HttpStatusIOException e) {
 
-            HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "MoveOrderError", 1).invoke();
+            HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "MoveOrderError", movingErrorsOverloaded.get()).invoke();
             moveResponse = handler.getMoveResponse();
 
         } catch (Exception e) {
 
             final String message = e.getMessage();
-            final String logString = String.format("%s/%s MovingError id=%s: %s", getCounterName(), 1, limitOrder.getId(), message);
+            final String logString = String.format("%s/%s MovingError id=%s: %s", getCounterName(), movingErrorsOverloaded.get(), limitOrder.getId(), message);
             logger.error(logString, e);
             tradeLogger.error(logString);
             warningLogger.error(logString);
