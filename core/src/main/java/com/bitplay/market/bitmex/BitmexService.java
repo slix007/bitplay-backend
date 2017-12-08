@@ -794,7 +794,6 @@ public class BitmexService extends MarketService {
                     break;
                 } catch (HttpStatusIOException e) {
                     final String httpBody = e.getHttpBody();
-                    tradeResponse.setOrderId(httpBody);
                     tradeResponse.setErrorCode(httpBody);
 
                     HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "PlaceOrderError", attemptCount).invoke();
@@ -805,6 +804,7 @@ public class BitmexService extends MarketService {
 //                            Thread.sleep(1000);
                         } else {
                             setOverloaded(null);
+                            tradeResponse.setErrorCode(e.getMessage());
                             break;
                         }
                     } else {
@@ -812,7 +812,6 @@ public class BitmexService extends MarketService {
                     }
                 } catch (Exception e) {
                     final String message = e.getMessage();
-                    tradeResponse.setOrderId(message);
                     tradeResponse.setErrorCode(message);
 
                     final String logString = String.format("%s/%s PlaceOrderError: %s", getCounterName(), attemptCount, message);
@@ -837,10 +836,11 @@ public class BitmexService extends MarketService {
                 }
             } // while
 
+            tradeResponse.setErrorCode(String.format("attempt=%s,%s", attemptCount, tradeResponse.getErrorCode()));
+
         } catch (Exception e) {
             logger.error("Place market order error", e);
             tradeLogger.info("maker error {}", e.toString());
-            tradeResponse.setOrderId(e.getMessage());
             tradeResponse.setErrorCode(e.getMessage());
         }
         return tradeResponse;

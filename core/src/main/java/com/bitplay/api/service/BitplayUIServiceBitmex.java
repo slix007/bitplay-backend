@@ -90,17 +90,14 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 //                throw new IllegalArgumentException("No such order type " + tradeRequestJson.getType());
         }
 
-        String orderId = null;
+        TradeResponse tradeResponse = new TradeResponse();
         if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
-            final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, amount, null, signalType);
-            orderId = tradeResponse.getOrderId();
+            tradeResponse = bitmexService.takerOrder(orderType, amount, null, signalType);
         } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
-
-            final TradeResponse tradeResponse = bitmexService.makerOrder(orderType, amount, null, signalType);
-            orderId = tradeResponse.getOrderId();
+            tradeResponse = bitmexService.makerOrder(orderType, amount, null, signalType);
         }
 
-        return new TradeResponseJson(orderId, null);
+        return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
     }
 
     @Override
