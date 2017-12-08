@@ -90,15 +90,14 @@ public class Utils {
 
     public static BigDecimal createPriceForTaker(OrderBook orderBook, Order.OrderType orderType, int amount) {
         BigDecimal thePrice = BigDecimal.ZERO;
+        BigDecimal extraPrice = BigDecimal.valueOf(50);
 
         if (orderType == Order.OrderType.ASK
                 || orderType == Order.OrderType.EXIT_BID) {
 
             final List<LimitOrder> bids = orderBook.getBids();
             synchronized (bids) {
-                for (LimitOrder bid : bids) {
-                    thePrice = bid.getLimitPrice();
-                }
+                thePrice = bids.get(bids.size() - 1).getLimitPrice().subtract(extraPrice);
             }
 
         } else if (orderType == Order.OrderType.BID
@@ -106,9 +105,7 @@ public class Utils {
 
             final List<LimitOrder> asks = orderBook.getAsks();
             synchronized (asks) {
-                for (LimitOrder ask : asks) {
-                    thePrice = ask.getLimitPrice();
-                }
+                thePrice = asks.get(asks.size() - 1).getLimitPrice().add(extraPrice);
             }
         }
 
