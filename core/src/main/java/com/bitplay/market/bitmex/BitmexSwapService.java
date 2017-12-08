@@ -190,7 +190,7 @@ public class BitmexSwapService {
         printAskBid("Before request");
 
         final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, amountInContracts, null, SignalType.SWAP_OPEN);
-        if (tradeResponse.getErrorCode() == null) {
+        if (tradeResponse.getOrderId() != null) {
             swapParams.getSwapV2().setMsToSwapString("");
             bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
 
@@ -561,8 +561,8 @@ public class BitmexSwapService {
         BigDecimal avgPrice = BigDecimal.ZERO;
 
         final Optional<Order> orderInfoAttempts;
+        final String counterName = arbitrageService.getSignalType().getCounterName();
         try {
-            final String counterName = arbitrageService.getSignalType().getCounterName();
 
             orderInfoAttempts = bitmexService.getOrderInfoAttempts(orderId,
                     counterName, "SwapService:Status:");
@@ -576,6 +576,7 @@ public class BitmexSwapService {
             tradeLogger.info(String.format("#%s SwapOrderInfo: %s", counterName, orderInfo.toString()));
             logger.info("SwapOrderInfo:" + orderInfo.toString());
         } catch (Exception e) {
+            tradeLogger.info(String.format("#%s SwapOrderInfo: Error %s", counterName, e.getMessage()));
             logger.error("Error on getting order details after swap", e);
         }
 
