@@ -896,6 +896,16 @@ public class BitmexService extends MarketService {
 
             HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "MoveOrderError", movingErrorsOverloaded.get()).invoke();
             moveResponse = handler.getMoveResponse();
+            // double check  "Invalid ordStatus"
+            if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), getCounterName(), 1, "Moving:CheckInvOrdStatus:");
+                if (orderInfo.isPresent() && orderInfo.get().getStatus() == Order.OrderStatus.FILLED) {
+                    // we confirmed that order FILLED
+                } else {
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, moveResponse.getDescription());
+                }
+            }
+
 
         } catch (Exception e) {
 
@@ -1235,7 +1245,7 @@ public class BitmexService extends MarketService {
         }
 
         /**
-         * EXCEPTION or EXCEPTION_SYSTEM_OVERLOADED
+         * ALREADY_CLOSED or EXCEPTION or EXCEPTION_SYSTEM_OVERLOADED
          */
         public MoveResponse getMoveResponse() {
             return moveResponse;
@@ -1262,7 +1272,7 @@ public class BitmexService extends MarketService {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, marketResponseMessage);
                     logger.error(fullMessage);
                 } else if (marketResponseMessage.startsWith("Invalid ordStatus")) {
-                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, marketResponseMessage);
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, marketResponseMessage);
                     logger.error(fullMessage);
                 } else {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, httpBody);
@@ -1270,7 +1280,7 @@ public class BitmexService extends MarketService {
                 }
 
             } catch (IOException e1) {
-                logger.error("Error on parse HttpStatusIOException", e1);
+                logger.error("Error on handling HttpStatusIOException", e1);
             }
 
             return this;

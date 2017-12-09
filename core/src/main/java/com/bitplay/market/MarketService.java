@@ -533,34 +533,40 @@ public abstract class MarketService {
         return openOrders;
     }
 
-    public Optional<Order> getOrderInfoAttempts(String orderId, String counterName, String logInfoId) {
+    public Optional<Order> getOrderInfoAttempts(String orderId, String counterName, String logInfoId) throws InterruptedException {
+        Optional<Order> orderInfo = Optional.empty();
+        for (int i = 0; i < 20; i++) { // about 11 sec
+            long sleepTime = 200;
+            if (i > 5) {
+                sleepTime = 2000;
+            }
+            Thread.sleep(sleepTime);
+
+            orderInfo = getOrderInfo(orderId, counterName, i, logInfoId);
+            if (orderInfo.isPresent()) {
+                break;
+            }
+        }
+        return orderInfo;
+    }
+
+    protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId) {
         final TradeService tradeService = getExchange().getTradeService();
         Order orderInfo = null;
-        for (int i = 0; i < 20; i++) { // about 11 sec
-            try {
-                // 2. check status of the order
-                long sleepTime = 200;
-                if (i > 5) {
-                    sleepTime = 2000;
-                }
-                Thread.sleep(sleepTime);
-                final Collection<Order> order = tradeService.getOrder(orderId);
-                if (order.isEmpty()) {
-                    final String message = String.format("%s/%s %s orderId=%s, error: %s",
-                            counterName, i,
-                            logInfoId,
-                            orderId, "Market did not return info by orderId");
-                    getTradeLogger().error(message);
-                    continue;
-                }
-                orderInfo = order.iterator().next();
+        try {
+            final Collection<Order> order = tradeService.getOrder(orderId);
+            if (order.isEmpty()) {
+                final String message = String.format("%s/%s %s orderId=%s, error: %s",
+                        counterName, attemptCount,
+                        logInfoId,
+                        orderId, "Market did not return info by orderId");
+                getTradeLogger().error(message);
+            }
+            orderInfo = order.iterator().next();
 
-                if (orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                    break;
-                }
-
+            if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
                 getTradeLogger().error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
-                        counterName, i,
+                        counterName, attemptCount,
                         logInfoId,
                         Utils.convertOrderTypeName(orderInfo.getType()),
                         orderInfo.getStatus() != null ? orderInfo.getStatus().toString() : null,
@@ -568,77 +574,17 @@ public abstract class MarketService {
                         orderInfo.getId(),
                         orderInfo.getType(),
                         orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null);
-            } catch (Exception e) {
-                final String message = String.format("%s/%s %s orderId=%s, error: %s",
-                        counterName, i,
-                        logInfoId,
-                        orderId, e.toString());
-                getTradeLogger().error(message);
-                logger.error(message, e);
             }
+        } catch (Exception e) {
+            final String message = String.format("%s/%s %s orderId=%s, error: %s",
+                    counterName, attemptCount,
+                    logInfoId,
+                    orderId, e.toString());
+            getTradeLogger().error(message);
+            logger.error(message, e);
         }
         return Optional.ofNullable(orderInfo);
     }
-
-/*
-    protected void initOrderBookSubscribers(Logger logger) {
-        orderBookChangedSubject.subscribe(orderBook -> {
-            final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
-            if (this.bestAsk.compareTo(bestAsk) != 0) {
-                this.bestAsk = bestAsk;
-                bestAskChangedSubject.onNext(bestAsk);
-            }
-            final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
-            if (this.bestBid.compareTo(bestBid) != 0) {
-                this.bestBid = bestBid;
-                bestBidChangedSubject.onNext(bestBid);
-            }
-        });
-        bestAskChangedSubject.subscribe(bestAsk -> {
-//            debugLog.info("BEST ASK WAS CHANGED TO " + bestAsk.toPlainString());
-            if (openOrders.size() > 0) {
-//                logger.info("HAS OPENORDER ON ASK CHANGING" + bestAsk.toPlainString());
-//                final OpenOrders currentOpenOrders = fetchOpenOrders();
-//                this.openOrders = currentOpenOrders != null
-//                        ? currentOpenOrders.getOpenOrders()
-//                        : new ArrayList<>();
-
-                this.openOrders.stream()
-                        .filter(limitOrder -> limitOrder.getType() == Order.OrderType.ASK)
-                        .forEach(limitOrder -> {
-                            if (limitOrder.getLimitPrice().compareTo(bestAsk) != 0) {
-                                logger.info("MOVE OPENORDER {} {}. From {} when best is {}",
-                                        limitOrder.getType(), limitOrder.getTradableAmount(),
-                                        limitOrder.getLimitPrice().toPlainString(),
-                                        bestAsk.toPlainString());
-                                moveMakerOrder(limitOrder);
-                            }
-                        });
-            }
-        });
-        bestBidChangedSubject.subscribe(bestBid -> {
-//            debugLog.info("BEST BID WAS CHANGED TO " + bestBid.toPlainString());
-            if (openOrders.size() > 0) {
-                logger.info("HAS OPENORDER ON ASK CHANGING" + bestBid.toPlainString());
-//                final OpenOrders currentOpenOrders = fetchOpenOrders();
-//                this.openOrders = currentOpenOrders != null
-//                        ? currentOpenOrders.getOpenOrders()
-//                        : new ArrayList<>();
-
-                openOrders.stream()
-                        .filter(limitOrder -> limitOrder.getType() == Order.OrderType.BID)
-                        .forEach(limitOrder -> {
-                            if (limitOrder.getLimitPrice().compareTo(bestBid) != 0) {
-                                logger.info("MOVE OPENORDER {} {}. From {} when best is {}",
-                                        limitOrder.getType(), limitOrder.getTradableAmount(),
-                                        limitOrder.getLimitPrice().toPlainString(),
-                                        bestBid.toPlainString());
-                                moveMakerOrder(limitOrder);
-                            }
-                        });
-            }
-        });
-    }*/
 
     private void initOpenOrdersMovingSubscription() {
         openOrdersMovingSubscription = getArbitrageService().getSignalEventBus().toObserverable()
