@@ -84,9 +84,9 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
             logger.error("Place taker order error", e);
             details = e.getMessage();
         } finally {
-            if (getBusinessService().isBusy()) {
-                getBusinessService().getEventBus().send(BtsEvent.MARKET_FREE);
-            }
+//            if (getBusinessService().isBusy()) {
+//                getBusinessService().getEventBus().send(BtsEvent.MARKET_FREE);
+//            }
         }
 
         return new TradeResponseJson(orderId, details);

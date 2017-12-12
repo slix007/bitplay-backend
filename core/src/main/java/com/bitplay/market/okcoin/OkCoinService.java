@@ -17,6 +17,7 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -51,14 +52,18 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.PreDestroy;
 import javax.validation.constraints.NotNull;
@@ -85,6 +90,13 @@ public class OkCoinService extends MarketService {
     ArbitrageService arbitrageService;
 
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
+
+    private static final int MAX_MOVING_TIMEOUT_SEC = 2;
+    private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
+    // Moving timeout
+    private volatile ScheduledFuture<?> scheduledMovingErrorsReset;
+    private volatile boolean movingInProgress = false;
+    private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
 
     @Autowired
     private OkcoinBalanceService okcoinBalanceService;
@@ -775,6 +787,8 @@ public class OkCoinService extends MarketService {
                         final BigDecimal filled = tradeResponse.getCancelledOrder().getCumulativeAmount();
                         amountLeft = amountLeft.subtract(filled);
                         continue;
+                    } else {
+                        setFree();
                     }
                 }
                 break;
@@ -820,9 +834,6 @@ public class OkCoinService extends MarketService {
                 break;
             }
         }
-
-        //
-        setFree();
 
         return tradeResponse;
     }
@@ -986,6 +997,86 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
+    protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
+        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+            return;
+        }
+
+        if (movingInProgress) {
+
+            // Should not happen ever, because 'synch' on method
+            final String logString = String.format("%s No moving. Too often requests.", getCounterName());
+            logger.error(logString);
+            return;
+
+        } else {
+            movingInProgress = true;
+        }
+
+        try {
+            synchronized (openOrdersLock) {
+                if (openOrders.size() > 0) {
+
+                    final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
+                    final Integer maxAttempts = sysOverloadArgs.getMovingErrorsForOverload();
+
+                    openOrders = openOrders.stream()
+                            .flatMap(openOrder -> {
+                                Stream<LimitOrder> optionalOrder = Stream.of(openOrder); // default - the same
+
+                                if (openOrder == null) {
+                                    warningLogger.warn("OO is null.");
+                                } else if (openOrder.getType() == null) {
+                                    warningLogger.warn("OO type is null. " + openOrder.toString());
+                                } else {
+
+                                    final SignalType signalType = arbitrageService.getSignalType();
+                                    try {
+
+                                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
+                                        //TODO keep an eye on 'hang open orders'
+                                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                                            optionalOrder = Stream.empty(); // no such case anymore
+                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID
+                                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
+                                            optionalOrder = Stream.of(response.getNewOrder());
+                                            movingErrorsOverloaded.set(0);
+                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
+
+                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
+                                                setOverloaded(null);
+                                                movingErrorsOverloaded.set(0);
+                                            }
+
+                                        }
+
+                                    } catch (Exception e) {
+                                        // use default OO
+                                        warningLogger.warn("Error on moving: " + e.getMessage());
+                                        logger.warn("Error on moving", e);
+                                    }
+                                }
+
+                                return optionalOrder;
+                            })
+                            .collect(Collectors.toList());
+
+                    if (openOrders.size() == 0) {
+                        tradeLogger.warn("Free by iterateOpenOrdersMove");
+                        logger.warn("Free by iterateOpenOrdersMove");
+                        eventBus.send(BtsEvent.MARKET_FREE);
+                    }
+
+                }
+
+            } // synchronized (openOrdersLock)
+
+        } finally {
+            movingInProgress = false;
+        }
+    }
+    /*
+    @Override
     protected void iterateOpenOrdersMove() {
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
             return;
@@ -993,7 +1084,9 @@ public class OkCoinService extends MarketService {
 
         boolean haveToFetch = false;
 
-        synchronized (openOrdersLock) {
+//        setMarketState(MarketState.MOVING);
+
+        synchronized (openOrdersLock) { // TODO the queue here may 'move' not updated orders
             if (openOrders.size() > 0) {
 
                 boolean freeTheMarket = false;
@@ -1050,7 +1143,10 @@ public class OkCoinService extends MarketService {
         if (haveToFetch) {
             fetchOpenOrders();
         }
-    }
+
+//        setMarketState(MarketState.ARBITRAGE);
+
+    }*/
 
     @Override
     public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType, BigDecimal bestMarketPrice) {
@@ -1059,45 +1155,52 @@ public class OkCoinService extends MarketService {
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
         }
         if (!arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
-            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "no moving for taker");
+            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving for taker");
         }
 
-            arbitrageService.setSignalType(signalType);
-        eventBus.send(BtsEvent.MARKET_BUSY);
+        arbitrageService.setSignalType(signalType);
 
-        // IT doesn't support moving
-        // Do cancel ant place
+        final MarketState savedState = getMarketState();
+        setMarketState(MarketState.MOVING);
+
         MoveResponse response;
-        BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
+        try {
+            // IT doesn't support moving
+            // Do cancel ant place
+            BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
 
-        // 1. cancell old order
-        final String counterName = getCounterName();
-        cancelOrderSync(limitOrder.getId(), "Moving1:cancelled:");
+            // 1. cancel old order
+            final String counterName = getCounterName();
+            cancelOrderSync(limitOrder.getId(), "Moving1:cancelled:");
 
-        // 2. We got result on cancel(true/false), but double-check status of an old order
-        Order cancelledOrder = getFinalOrderInfoSync(limitOrder.getId(), counterName, "Moving2:cancelStatus:");
+            // 2. We got result on cancel(true/false), but double-check status of an old order
+            Order cancelledOrder = getFinalOrderInfoSync(limitOrder.getId(), counterName, "Moving2:cancelStatus:");
 
-        // 3. Already closed?
-        if (cancelledOrder.getStatus() != Order.OrderStatus.CANCELED) { // Already closed
-            response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
+            // 3. Already closed?
+            if (cancelledOrder.getStatus() != Order.OrderStatus.CANCELED) { // Already closed
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
 
-            final String logString = String.format("%s %s %s status=%s,amount=%s,quote=%s,id=%s,lastException=%s",
-                    counterName,
-                    "Moving3:Already closed:",
-                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-                    cancelledOrder.getStatus(),
-                    limitOrder.getTradableAmount(),
-                    limitOrder.getLimitPrice().toPlainString(),
-                    limitOrder.getId(),
-                    null);
-            tradeLogger.info(logString);
+                final String logString = String.format("%s %s %s status=%s,amount=%s,quote=%s,id=%s,lastException=%s",
+                        counterName,
+                        "Moving3:Already closed:",
+                        limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                        cancelledOrder.getStatus(),
+                        limitOrder.getTradableAmount(),
+                        limitOrder.getLimitPrice().toPlainString(),
+                        limitOrder.getId(),
+                        null);
+                tradeLogger.info(logString);
 
-            // 3. Place order
-        } else { //if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
-            TradeResponse tradeResponse = new TradeResponse();
-            tradeResponse = finishMovingSync(limitOrder, signalType, bestQuotes, counterName, cancelledOrder, tradeResponse);
-            response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
+                // 3. Place order
+            } else { //if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
+                TradeResponse tradeResponse = new TradeResponse();
+                tradeResponse = finishMovingSync(limitOrder, signalType, bestQuotes, counterName, cancelledOrder, tradeResponse);
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
+            }
+        } finally {
+            setMarketState(savedState);
         }
+
         return response;
     }
 
@@ -1110,7 +1213,8 @@ public class OkCoinService extends MarketService {
                     Thread.sleep(200 * attemptCount);
                 }
 
-                final BigDecimal newAmount = limitOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount());
+                final BigDecimal newAmount = limitOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount())
+                        .setScale(0, RoundingMode.HALF_UP);
                 tradeResponse = placeSimpleMakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType);
 
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
