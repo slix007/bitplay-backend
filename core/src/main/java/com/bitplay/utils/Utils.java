@@ -88,7 +88,7 @@ public class Utils {
         return new BestQuotes(ask1_o, ask1_p, bid1_o, bid1_p);
     }
 
-    public static BigDecimal createPriceForTaker(OrderBook orderBook, Order.OrderType orderType, int amount) {
+    public static BigDecimal createPriceForTaker(OrderBook orderBook, Order.OrderType orderType) {
         BigDecimal thePrice = BigDecimal.ZERO;
         BigDecimal extraPrice = BigDecimal.valueOf(50);
 
