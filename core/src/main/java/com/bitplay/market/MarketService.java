@@ -656,6 +656,22 @@ public abstract class MarketService {
         return thePrice;
     }
 
+    protected BigDecimal createBestHybridPrice(Order.OrderType orderType) {
+        BigDecimal thePrice = BigDecimal.ZERO;
+        if (orderType == Order.OrderType.BID
+                || orderType == Order.OrderType.EXIT_ASK) {
+            thePrice = Utils.getBestAsk(getOrderBook()).getLimitPrice();
+        } else if (orderType == Order.OrderType.ASK
+                || orderType == Order.OrderType.EXIT_BID) {
+            thePrice = Utils.getBestBid(getOrderBook()).getLimitPrice();
+        }
+        if (thePrice.signum() == 0) {
+            getTradeLogger().info("WARNING: PRICE IS 0");
+        }
+
+        return thePrice;
+    }
+
     protected MoveResponse moveMakerOrderIfNotFirst(LimitOrder limitOrder, SignalType signalType) {
         MoveResponse response;
 

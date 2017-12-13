@@ -5,6 +5,7 @@ import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.arbitrage.SignalType;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 
@@ -74,9 +75,11 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
                 final TradeResponse tradeResponse = service.takerOrder(orderType, amount, null, signalType);
                 orderId = tradeResponse.getOrderId();
                 details = tradeResponse.getErrorCode();
-            } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER) {
+            } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER
+                    || tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.HYBRID) {
+                final PlacingType placingSubType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
                 final TradeResponse tradeResponse = service.placeSimpleMakerOrder(orderType, amount, null, false,
-                        signalType, false);
+                        signalType, placingSubType);
                 orderId = tradeResponse.getOrderId();
             }
         } catch (Exception e) {

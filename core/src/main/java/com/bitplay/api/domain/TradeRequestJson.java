@@ -15,6 +15,7 @@ public class TradeRequestJson {
     public enum PlacementType {
         TAKER,
         MAKER,
+        HYBRID,
     }
 
     private Type type;

@@ -40,6 +40,10 @@ public class SettingsEndpoint {
     @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public Settings updateSettings(@RequestBody Settings settingsUpdate) {
         final Settings settings = settingsRepositoryService.getSettings();
+        if (settingsUpdate.getOkexPlacingType() != null) {
+            settings.setOkexPlacingType(settingsUpdate.getOkexPlacingType());
+            settingsRepositoryService.saveSettings(settings);
+        }
         if (settingsUpdate.getArbScheme() != null) {
             settings.setArbScheme(settingsUpdate.getArbScheme());
             settingsRepositoryService.saveSettings(settings);

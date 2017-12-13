@@ -10,7 +10,6 @@ import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketList;
 import com.bitplay.api.domain.MarketStatesJson;
-import com.bitplay.api.domain.PlacingTypeJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradableAmountJson;
@@ -162,19 +161,6 @@ public class CommonEndpoint {
     @RequestMapping(value = "/market/pos-diff", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson getPositionEquality() {
         return commonUIService.getPosDiff();
-    }
-
-    @RequestMapping(value = "/market/placing-type", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public PlacingTypeJson getPlacingType() {
-        return commonUIService.getPlacingType();
-    }
-
-    @RequestMapping(value = "/market/placing-type",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public PlacingTypeJson updatePlacingType(@RequestBody PlacingTypeJson placingTypeJson) {
-        return commonUIService.updatePlacingType(placingTypeJson);
     }
 
     @RequestMapping(value = "/market/pos-corr",

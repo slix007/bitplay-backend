@@ -691,15 +691,19 @@ public class OkCoinService extends MarketService {
                     Thread.sleep(200 * attemptCount);
                 }
 
-                if (arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
-                    tradeResponse = placeSimpleMakerOrder(orderType, amountLeft, bestQuotes, false, signalType);
-                } else {
+                final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
+
+                if (okexPlacingType == PlacingType.MAKER || okexPlacingType == PlacingType.HYBRID) {
+                    tradeResponse = placeSimpleMakerOrder(orderType, amountLeft, bestQuotes, false, signalType, okexPlacingType);
+                } else if (okexPlacingType == PlacingType.TAKER) {
                     tradeResponse = takerOrder(orderType, amountLeft, bestQuotes, signalType);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
                         final BigDecimal filled = tradeResponse.getCancelledOrder().getCumulativeAmount();
                         amountLeft = amountLeft.subtract(filled);
                         continue;
                     }
+                } else {
+                    throw new IllegalStateException("unhandled placing type");
                 }
                 break;
             } catch (HttpStatusIOException e) {
@@ -771,21 +775,24 @@ public class OkCoinService extends MarketService {
 
     public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
                                                boolean isMoving, SignalType signalType) throws Exception {
-        return placeSimpleMakerOrder(orderType, tradeableAmount, bestQuotes, isMoving, signalType, false);
+        return placeSimpleMakerOrder(orderType, tradeableAmount, bestQuotes, isMoving, signalType, PlacingType.MAKER);
     }
 
     public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-                                               boolean isMoving, SignalType signalType, boolean isFakeTaker) throws Exception {
+                                               boolean isMoving, SignalType signalType, PlacingType placingSubType) throws Exception {
         final TradeResponse tradeResponse = new TradeResponse();
         arbitrageService.setSignalType(signalType);
         eventBus.send(BtsEvent.MARKET_BUSY);
 
         BigDecimal thePrice;
 
-        if (isFakeTaker) {
-            thePrice = Utils.createPriceForTaker(getOrderBook(), orderType);
-        } else {
+        if (placingSubType == PlacingType.MAKER) {
             thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
+        } else if (placingSubType == PlacingType.HYBRID) {
+            // the best Taker price, but only once
+            thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
+        } else {
+            throw new IllegalStateException("wrong taker order placing sub-type");
         }
 
         if (thePrice.compareTo(BigDecimal.ZERO) == 0) {

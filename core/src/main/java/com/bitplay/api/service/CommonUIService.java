@@ -8,7 +8,6 @@ import com.bitplay.api.domain.DeltasMinMaxJson;
 import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketStatesJson;
-import com.bitplay.api.domain.PlacingTypeJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradableAmountJson;
@@ -320,23 +319,6 @@ public class CommonUIService {
         return new ResultJson(
                 posDiffService.getIsPositionsEqual() ? "0" : "-1",
                 arbitrageService.getPosDiffString());
-    }
-
-    public PlacingTypeJson getPlacingType() {
-        return new PlacingTypeJson(
-                "maker",
-                arbitrageService.getParams().getOkCoinOrderType()
-        );
-    }
-
-    public PlacingTypeJson updatePlacingType(PlacingTypeJson placingTypeJson) {
-        arbitrageService.getParams().setOkCoinOrderType(placingTypeJson.getSecondMarket());
-        arbitrageService.saveParamsToDb();
-
-        return new PlacingTypeJson(
-                "maker",
-                arbitrageService.getParams().getOkCoinOrderType()
-        );
     }
 
     public PosCorrJson getPosCorr() {

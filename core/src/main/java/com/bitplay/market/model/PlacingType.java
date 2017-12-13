@@ -5,5 +5,6 @@ package com.bitplay.market.model;
  */
 public enum PlacingType {
     MAKER,
-    TAKER
+    TAKER,
+    HYBRID
 }
