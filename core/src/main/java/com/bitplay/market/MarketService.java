@@ -540,7 +540,7 @@ public abstract class MarketService {
         for (int i = 0; i < 20; i++) { // about 11 sec
             long sleepTime = 200;
             if (i > 5) {
-                sleepTime = 2000;
+                sleepTime = 500 * i;
             }
             Thread.sleep(sleepTime);
 
@@ -563,19 +563,20 @@ public abstract class MarketService {
                         logInfoId,
                         orderId, "Market did not return info by orderId");
                 getTradeLogger().error(message);
-            }
-            orderInfo = order.iterator().next();
+            } else {
+                orderInfo = order.iterator().next();
 
-            if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                getTradeLogger().error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
-                        counterName, attemptCount,
-                        logInfoId,
-                        Utils.convertOrderTypeName(orderInfo.getType()),
-                        orderInfo.getStatus() != null ? orderInfo.getStatus().toString() : null,
-                        orderInfo.getAveragePrice() != null ? orderInfo.getAveragePrice().toPlainString() : null,
-                        orderInfo.getId(),
-                        orderInfo.getType(),
-                        orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null);
+                if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
+                    getTradeLogger().error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
+                            counterName, attemptCount,
+                            logInfoId,
+                            Utils.convertOrderTypeName(orderInfo.getType()),
+                            orderInfo.getStatus() != null ? orderInfo.getStatus().toString() : null,
+                            orderInfo.getAveragePrice() != null ? orderInfo.getAveragePrice().toPlainString() : null,
+                            orderInfo.getId(),
+                            orderInfo.getType(),
+                            orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null);
+                }
             }
         } catch (Exception e) {
             final String message = String.format("%s/%s %s orderId=%s, error: %s",

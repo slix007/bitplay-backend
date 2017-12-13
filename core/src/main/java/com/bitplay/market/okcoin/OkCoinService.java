@@ -530,6 +530,7 @@ public class OkCoinService extends MarketService {
 
         final MarketState savedState = getMarketState();
         setMarketState(MarketState.TAKER_IN_PROGRESS);
+        arbitrageService.setSignalType(signalType);
 
         try {
             synchronized (openOrdersLock) {
