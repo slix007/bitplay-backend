@@ -214,6 +214,7 @@ public abstract class MarketService {
                 break;
             case WAITING_ARB:
             case MOVING:
+            case TAKER_IN_PROGRESS:
             case STOPPED:
                 if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
                     logger.info("reset STOPPED from UI");

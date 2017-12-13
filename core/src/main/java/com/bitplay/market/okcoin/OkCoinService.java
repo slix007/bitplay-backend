@@ -528,45 +528,53 @@ public class OkCoinService extends MarketService {
 
         orderType = adjustOrderType(orderType, amount);
 
-        synchronized (openOrdersLock) {
+        final MarketState savedState = getMarketState();
+        setMarketState(MarketState.TAKER_IN_PROGRESS);
 
-            // Option 1: REAL TAKER
+        try {
+            synchronized (openOrdersLock) {
+
+                // Option 1: REAL TAKER
 //            final MarketOrder marketOrder = new MarketOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, new Date());
 //            final String orderId = tradeService.placeMarketOrder(marketOrder);
 
-            // Option 2: FAKE LIMIT ORDER
-            BigDecimal thePrice = Utils.createPriceForTaker(getOrderBook(), orderType);
-            getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
-            final LimitOrder limitOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
-            String orderId = tradeService.placeLimitOrder(limitOrder);
+                // Option 2: FAKE LIMIT ORDER
+                BigDecimal thePrice = Utils.createPriceForTaker(getOrderBook(), orderType);
+                getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
+                final LimitOrder limitOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
+                String orderId = tradeService.placeLimitOrder(limitOrder);
 
+                final String counterName = getCounterName();
 
-            tradeResponse.setOrderId(orderId);
-            final String counterName = getCounterName();
-
-            final Optional<Order> orderInfoAttempts = getOrderInfoAttempts(orderId, counterName, "Taker:Status:");
-            if (!orderInfoAttempts.isPresent()) {
-                throw new Exception("Failed to get info of just created order. id=" + orderId);
-            }
-
-            Order orderInfo = orderInfoAttempts.get();
-
-            if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 1. Try cancel then
-                cancelOrderSync(orderId, "Taker:Cancel_maker:");
-                orderInfo = getFinalOrderInfoSync(orderId, counterName, "Taker:Cancel_makerStatus:");
-            }
-
-            if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
-                tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
-                tradeResponse.setCancelledOrder(orderInfo);
-            } else { //FILLED by any (orderInfo or cancelledOrder)
-                if (signalType == SignalType.AUTOMATIC) {
-                    arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
+                final Optional<Order> orderInfoAttempts = getOrderInfoAttempts(orderId, counterName, "Taker:Status:");
+                if (!orderInfoAttempts.isPresent()) {
+                    throw new Exception("Failed to get info of just created order. id=" + orderId);
                 }
 
-                writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType,
-                        orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
+                Order orderInfo = orderInfoAttempts.get();
 
+                if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 1. Try cancel then
+                    cancelOrderSync(orderId, "Taker:Cancel_maker:");
+                    orderInfo = getFinalOrderInfoSync(orderId, counterName, "Taker:Cancel_makerStatus:");
+                }
+
+                if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
+                    tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
+                    tradeResponse.setCancelledOrder(orderInfo);
+                } else { //FILLED by any (orderInfo or cancelledOrder)
+                    if (signalType == SignalType.AUTOMATIC) {
+                        arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
+                    }
+
+                    writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType,
+                            orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
+
+                    tradeResponse.setOrderId(orderId);
+                }
+            }
+        } finally {
+            setMarketState(savedState);
+            if (tradeResponse.getOrderId() != null) {
                 setFree();
             }
         }
@@ -690,8 +698,6 @@ public class OkCoinService extends MarketService {
                         final BigDecimal filled = tradeResponse.getCancelledOrder().getCumulativeAmount();
                         amountLeft = amountLeft.subtract(filled);
                         continue;
-                    } else {
-                        setFree();
                     }
                 }
                 break;
@@ -985,7 +991,7 @@ public class OkCoinService extends MarketService {
             tradeLogger.error("{} do not move ALREADY_CLOSED order", getCounterName());
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
         }
-        if (!arbitrageService.getParams().getOkCoinOrderType().equals("maker")) {
+        if (getMarketState() == MarketState.TAKER_IN_PROGRESS) { // !arbitrageService.getParams().getOkCoinOrderType().equals("maker")
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving for taker");
         }
 
