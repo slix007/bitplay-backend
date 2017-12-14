@@ -773,10 +773,10 @@ public class OkCoinService extends MarketService {
         return placeOrder(currPlaceOrderArgs);
     }
 
-    public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-                                               boolean isMoving, SignalType signalType) throws Exception {
-        return placeSimpleMakerOrder(orderType, tradeableAmount, bestQuotes, isMoving, signalType, PlacingType.MAKER);
-    }
+//    public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
+//                                               boolean isMoving, SignalType signalType) throws Exception {
+//        return placeSimpleMakerOrder(orderType, tradeableAmount, bestQuotes, isMoving, signalType, PlacingType.MAKER);
+//    }
 
     public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
                                                boolean isMoving, SignalType signalType, PlacingType placingSubType) throws Exception {
@@ -792,7 +792,9 @@ public class OkCoinService extends MarketService {
             // the best Taker price, but only once
             thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
         } else {
-            throw new IllegalStateException("wrong taker order placing sub-type");
+            // use hybrid if accidentally TAKER is switched
+            thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
+            //throw new IllegalStateException("placing maker, but subType is taker");
         }
 
         if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
@@ -1060,7 +1062,10 @@ public class OkCoinService extends MarketService {
 
                 final BigDecimal newAmount = limitOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount())
                         .setScale(0, RoundingMode.HALF_UP);
-                tradeResponse = placeSimpleMakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType);
+
+                final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
+
+                tradeResponse = placeSimpleMakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType);
 
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info("{}/{} Moving3:Failed {} amount={},quote={},id={},attempt={}. Error: {}",
