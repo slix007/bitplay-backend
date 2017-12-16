@@ -112,7 +112,7 @@
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %msg %xEx%n</pattern>
         </encoder>
     </appender>
 
@@ -215,6 +215,9 @@
     <!--<logger name="si.mazi.rescu" level="trace"/>-->
 
     <!--<logger name="info.bitrich.xchangestream.bitmex.netty" level="debug">-->
+        <!--<appender-ref ref="CONSOLE_APPENDER"/>-->
+    <!--</logger>-->
+    <!--<logger name="info.bitrich.xchangestream.okex" level="debug">-->
         <!--<appender-ref ref="CONSOLE_APPENDER"/>-->
     <!--</logger>-->
 

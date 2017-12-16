@@ -58,6 +58,7 @@ import java.math.RoundingMode;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -380,7 +381,7 @@ public class OkCoinService extends MarketService {
                         recalcAffordableContracts();
                         recalcLiqInfo();
                     }
-                    if (privateData.getTrades() != null) {
+                    if (privateData.getTrades() != null && privateData.getTrades().size() > 0) {
                         updateOpenOrders(privateData.getTrades());
                     }
                 }, throwable -> {
@@ -407,6 +408,101 @@ public class OkCoinService extends MarketService {
     public void openOrdersCleaner() {
         if (openOrders.size() > 0) {
             cleanOldOO();
+        }
+    }
+
+    private void updateOpenOrders(List<LimitOrder> trades) {
+        synchronized (openOrdersLock) {
+            StringBuilder updateAction = new StringBuilder();
+
+            // replace existing and skip(remove) not found
+            this.openOrders = this.openOrders.stream()
+                    .flatMap(order -> {
+                        // merge if the update of an existingInMemory
+                        return trades.stream()
+                                .filter(update -> order.getId().equals(update.getId()))
+                                .peek(foundUpdate -> {
+                                    tradeLogger.info("{} Order update:id={},status={},amount={},filled={}",
+                                            getCounterName(),
+                                            foundUpdate.getId(), foundUpdate.getStatus(), foundUpdate.getTradableAmount(),
+                                            foundUpdate.getCumulativeAmount());
+                                    updateAction.append("update,");
+                                })
+                                // Skip old. 'CANCELED is picked because it can be MovingInTheMiddle case'
+                                .filter(update -> update.getStatus() == Order.OrderStatus.CANCELED
+                                        || update.getStatus() == Order.OrderStatus.PENDING_CANCEL
+                                        || update.getStatus() == Order.OrderStatus.NEW
+                                        || update.getStatus() == Order.OrderStatus.PENDING_NEW
+                                        || update.getStatus() == Order.OrderStatus.PARTIALLY_FILLED);
+                    }).collect(Collectors.toList());
+
+            // Add new orders
+            List<LimitOrder> newOrders = trades.stream()
+                    .filter(order -> order.getStatus() != Order.OrderStatus.CANCELED
+                            && order.getStatus() != Order.OrderStatus.EXPIRED
+                            && order.getStatus() != Order.OrderStatus.FILLED
+                            && order.getStatus() != Order.OrderStatus.REJECTED
+                            && order.getStatus() != Order.OrderStatus.REPLACED
+                            && order.getStatus() != Order.OrderStatus.PENDING_CANCEL
+                            && order.getStatus() != Order.OrderStatus.PENDING_REPLACE
+                            && order.getStatus() != Order.OrderStatus.STOPPED)
+                    .filter((LimitOrder limitOrder) -> {
+                        final String id = limitOrder.getId();
+                        return this.openOrders.stream()
+                                .anyMatch(existing -> id.equals(existing.getId()));
+                    })
+                    .collect(Collectors.toList());
+
+//            debugLog.info("NewOrders: " + Arrays.toString(newOrders.toArray()));
+            this.openOrders.addAll(newOrders);
+
+            if (this.openOrders.size() == 0) {
+//                tradeLogger.info("Okcoin-ready: " + trades.stream()
+//                        .map(LimitOrder::toString)
+//                        .collect(Collectors.joining("; ")));
+                logger.info("Okcoin-ready: " + trades.stream()
+                        .map(LimitOrder::toString)
+                        .collect(Collectors.joining("; ")));
+                eventBus.send(BtsEvent.MARKET_FREE);
+            }
+        } // synchronized (openOrdersLock)
+    }
+
+    /**
+     * Add new openOrders.<br> It removes old. If no one left, it frees market. They will be checked in moveMakerOrder()
+     *
+     * @return list of open orders.
+     */
+    @Override
+    protected List<LimitOrder> fetchOpenOrders() {
+
+        if (getExchange() != null && getTradeService() != null) {
+            try {
+                final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
+                        .getOpenOrders();
+                if (fetchedList == null) {
+                    logger.error("GetOpenOrdersError");
+                    throw new IllegalStateException("GetOpenOrdersError");
+                }
+
+                updateOpenOrders(fetchedList);
+
+//                    if (fetchedList.size() > 1) {
+//                        getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
+//                    }
+//
+//                    final List<LimitOrder> allNew = fetchedList.stream()
+//                            .filter(fetched -> this.openOrders.stream()
+//                                    .noneMatch(o -> o.getId().equals(fetched.getId())))
+//                            .collect(Collectors.toList());
+//
+//                    this.openOrders.addAll(allNew);
+
+            } catch (Exception e) {
+                logger.error("GetOpenOrdersError", e);
+                throw new IllegalStateException("GetOpenOrdersError", e);
+            }
+
         }
     }
 
@@ -692,33 +788,44 @@ public class OkCoinService extends MarketService {
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
                                           boolean isMoving, SignalType signalType, PlacingType placingSubType) throws IOException {
         final TradeResponse tradeResponse = new TradeResponse();
+        arbitrageService.setSignalType(signalType);
+        setMarketState(MarketState.PLACING_ORDER);
 
         BigDecimal thePrice;
 
-        if (placingSubType == PlacingType.MAKER) {
-            thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-        } else if (placingSubType == PlacingType.HYBRID) {
-            // the best Taker price, but only once
-            thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-        } else {
-            // use hybrid if accidentally TAKER is switched
-            thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-            //throw new IllegalStateException("placing maker, but subType is taker");
-        }
+        try {
+            if (placingSubType == PlacingType.MAKER) {
+                thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
+            } else if (placingSubType == PlacingType.HYBRID) {
+                final String message = Utils.getTenAskBid(getOrderBook(),
+                        arbitrageService.getSignalType().getCounterName(),
+                        "Before hybrid placing");
+                logger.info(message);
+                tradeLogger.info(message);
 
-        if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
-            tradeResponse.setErrorCode("The new price is 0 ");
-        } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
+                // the best Taker price, but only once
+                thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
+            } else {
+                // use hybrid if accidentally TAKER is switched
+                thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
+                //throw new IllegalStateException("placing maker, but subType is taker");
+                tradeLogger.warn("placing maker, but subType is taker");
+                warningLogger.warn("placing maker, but subType is taker");
+            }
 
-            tradeResponse.setErrorCode("Not enough amount left. amount=" + tradeableAmount.toPlainString());
+            if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
+                tradeResponse.setErrorCode("The new price is 0 ");
+            } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
 
-        } else {
-            // USING REST API
-            orderType = adjustOrderType(orderType, tradeableAmount);
+                tradeResponse.setErrorCode("Not enough amount left. amount=" + tradeableAmount.toPlainString());
 
-            final LimitOrder limitOrder = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
-            String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
-            tradeResponse.setOrderId(orderId);
+            } else {
+                // USING REST API
+                orderType = adjustOrderType(orderType, tradeableAmount);
+
+                final LimitOrder limitOrder = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
+                String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
+                tradeResponse.setOrderId(orderId);
 
             final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(), thePrice);
             tradeResponse.setLimitOrder(limitOrderWithId);
@@ -731,14 +838,18 @@ public class OkCoinService extends MarketService {
                 }
             }
 
-            if (signalType == SignalType.AUTOMATIC) {
-                arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
-            }
-            orderIdToSignalInfo.put(orderId, bestQuotes);
+                if (signalType == SignalType.AUTOMATIC) {
+                    arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
+                }
+                orderIdToSignalInfo.put(orderId, bestQuotes);
 
-            writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
-                    isMoving ? "Moving3:Moved" : "maker",
-                    signalType, thePrice, orderId, null);
+                String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType.toString();
+                writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
+                        placingTypeString,
+                        signalType, thePrice, orderId, null);
+            }
+        } finally {
+            setMarketState(MarketState.ARBITRAGE);
         }
         return tradeResponse;
     }
@@ -950,7 +1061,7 @@ public class OkCoinService extends MarketService {
             fOrderToCancel.setOrder(cancelledOrder);
 
             // 3. Already closed?
-            if (cancelledOrder.getStatus() != Order.OrderStatus.CANCELED) { // Already closed (FILLED)
+            if (okCoinTradeResult.isResult() || cancelledOrder.getStatus() == Order.OrderStatus.FILLED) { // Already closed (FILLED)
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null,
                         fOrderToCancel);
 

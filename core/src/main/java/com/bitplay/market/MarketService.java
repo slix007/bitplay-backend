@@ -637,9 +637,16 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             if (bestPrice.signum() == 0) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "bestPrice is 0");
 
-                // TODO no not move from ASK1 to ASK2  and newPrice < oldPrice
-                // TODO no not move from BID1 to BID2  and newPrice > oldPrice
-            } else if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
+                // do not move from ASK1 to ASK2 ==> trigger on ASK and newPrice < oldPrice
+                // do not move from BID1 to BID2 ==> trigger on BID and newPrice > oldPrice
+            } else if (
+                    ((limitOrder.getType() == Order.OrderType.ASK || limitOrder.getType() == Order.OrderType.EXIT_BID)
+                            && bestPrice.compareTo(limitOrder.getLimitPrice()) < 0)
+                            ||
+                            ((limitOrder.getType() == Order.OrderType.BID || limitOrder.getType() == Order.OrderType.EXIT_ASK)
+                                    && bestPrice.compareTo(limitOrder.getLimitPrice()) > 0)
+                    ) {
+//            } else if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
                 logger.info("{} Try to move maker order {} {}, from {} to {}",
                         getName(), limitOrder.getId(), limitOrder.getType(),
                         limitOrder.getLimitPrice(), bestPrice);

@@ -281,30 +281,8 @@ public class BitmexSwapService {
 
     private void printAskBid(String description) {
         final OrderBook orderBook = bitmexService.getOrderBook();
-        StringBuilder obBuilder = new StringBuilder();
-        obBuilder.append("ask: ");
-        final List<LimitOrder> asks = orderBook.getAsks();
-        synchronized (asks) {
-            for (int i = 0; i < 10 && i < asks.size(); i++) {
-                final LimitOrder ask = asks.get(i);
-                obBuilder.append(String.format("%d,%s(%s)", i + 1, ask.getLimitPrice(), ask.getTradableAmount()));
-            }
-        }
-        final List<LimitOrder> bids = orderBook.getBids();
-        obBuilder.append("bid: ");
-        synchronized (bids) {
-            for (int i = 0; i < 10 && i < bids.size(); i++) {
-                final LimitOrder bid = bids.get(i);
-                obBuilder.append(String.format("%d. %s (%s);", i + 1, bid.getLimitPrice(), bid.getTradableAmount()));
-            }
-        }
+        final String message = Utils.getTenAskBid(orderBook, arbitrageService.getSignalType().getCounterName(), description);
 
-        final String message = String.format(
-                "#%s %s: %s",
-                arbitrageService.getSignalType().getCounterName(),
-                description,
-                obBuilder.toString()
-        );
         logger.info(message);
         tradeLogger.info(message);
     }
