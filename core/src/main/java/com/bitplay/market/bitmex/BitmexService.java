@@ -756,9 +756,14 @@ public class BitmexService extends MarketService {
                     String orderId;
                     BigDecimal thePrice;
                     if (placingType == PlacingType.MAKER) {
-                        thePrice = createBestMakerPrice(orderType).setScale(1, BigDecimal.ROUND_HALF_UP);
+
+                        final BigDecimal bitmexPrice = settingsRepositoryService.getSettings().getBitmexPrice();
+                        if (bitmexPrice != null && bitmexPrice.signum() != 0) {
+                            thePrice = bitmexPrice;
+                        } else {
+                            thePrice = createBestMakerPrice(orderType).setScale(1, BigDecimal.ROUND_HALF_UP);
+                        }
                         final LimitOrder limitOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, "0", new Date(), thePrice);
-//                        orderId = bitmexTradeService.placeLimitOrder(limitOrder);
 
                         final LimitOrder resultOrder = bitmexTradeService.placeLimitOrderBitmex(limitOrder);
                         orderId = resultOrder.getId();

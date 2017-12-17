@@ -62,6 +62,10 @@ public class SettingsEndpoint {
 
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getBitmexPrice() != null) {
+            settings.setBitmexPrice(settingsUpdate.getBitmexPrice());
+            settingsRepositoryService.saveSettings(settings);
+        }
 //        if (settingsUpdate.getOkexSysOverloadArgs() != null) {
 //            final SysOverloadArgs refToUpdate = settings.getOkexSysOverloadArgs();
 //            if (settingsUpdate.getOkexSysOverloadArgs().getMovingErrorsForOverload() != null) {
