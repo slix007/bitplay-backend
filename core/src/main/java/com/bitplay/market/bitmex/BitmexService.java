@@ -604,6 +604,7 @@ public class BitmexService extends MarketService {
                                         if (mergedOrderObj.getStatus() != null) {
                                             // MT2
                                             if (mergedOrderObj.getStatus() == Order.OrderStatus.FILLED) {
+                                                tradeLogger.info("{} Order {} FILLED", getCounterName(), mergedOrderObj.getId());
                                                 getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
                                             }
 
