@@ -529,7 +529,7 @@ public class OkCoinService extends MarketService {
         orderType = adjustOrderType(orderType, amount);
 
         final MarketState savedState = getMarketState();
-        setMarketState(MarketState.TAKER_IN_PROGRESS);
+        setMarketState(MarketState.PLACING_ORDER);
         arbitrageService.setSignalType(signalType);
 
         try {
@@ -1001,7 +1001,7 @@ public class OkCoinService extends MarketService {
             tradeLogger.error("{} do not move ALREADY_CLOSED order", getCounterName());
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
         }
-        if (getMarketState() == MarketState.TAKER_IN_PROGRESS) { // !arbitrageService.getParams().getOkCoinOrderType().equals("maker")
+        if (getMarketState() == MarketState.PLACING_ORDER) { // !arbitrageService.getParams().getOkCoinOrderType().equals("maker")
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving for taker");
         }
 

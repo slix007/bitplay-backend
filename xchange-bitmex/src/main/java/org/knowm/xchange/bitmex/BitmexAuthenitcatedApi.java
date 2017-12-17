@@ -86,7 +86,7 @@ public interface BitmexAuthenitcatedApi {
                 @FormParam("orderQty") Double orderQty,
                 @FormParam("price") Double price,
                 @FormParam("ordType") String ordType,
-                @FormParam("execInsts") String execInsts
+                @FormParam("execInst") String execInst
     ) throws IOException;
 
     @POST
@@ -112,7 +112,7 @@ public interface BitmexAuthenitcatedApi {
                       @FormParam("side") String side,
                       @FormParam("price") Double price,
                       @FormParam("ordType") String ordType,
-                      @FormParam("execInsts") String execInsts
+                      @FormParam("execInst") String execInst
     ) throws IOException;
 
     @GET

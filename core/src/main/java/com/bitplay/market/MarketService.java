@@ -214,7 +214,7 @@ public abstract class MarketService {
                 break;
             case WAITING_ARB:
             case MOVING:
-            case TAKER_IN_PROGRESS:
+            case PLACING_ORDER:
             case STOPPED:
                 if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
                     logger.info("reset STOPPED from UI");
@@ -687,6 +687,9 @@ public abstract class MarketService {
 
             if (bestPrice.signum() == 0) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "bestPrice is 0");
+
+                // TODO no not move from ASK1 to ASK2  and newPrice < oldPrice
+                // TODO no not move from BID1 to BID2  and newPrice > oldPrice
             } else if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
                 logger.info("{} Try to move maker order {} {}, from {} to {}",
                         getName(), limitOrder.getId(), limitOrder.getType(),

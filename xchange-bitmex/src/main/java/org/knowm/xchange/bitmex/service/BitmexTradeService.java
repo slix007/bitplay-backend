@@ -93,8 +93,27 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 limitPrice,
                 "Limit",
                 "ParticipateDoNotInitiate");
+        if (order.getOrdStatus().equals("CANCELLED")) {
+            throw new ExchangeException("Order has been cancelled");
+        }
 
         return String.valueOf(order.getOrderID());
+    }
+
+    public LimitOrder placeLimitOrderBitmex(LimitOrder limitOrder) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+        final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());
+        final String side = limitOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
+        final Double tradableAmount = limitOrder.getTradableAmount().setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
+        final Double limitPrice = limitOrder.getLimitPrice().setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
+        final io.swagger.client.model.Order order = bitmexAuthenitcatedApi.order(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
+                symbol,
+                side,
+                tradableAmount,
+                limitPrice,
+                "Limit",
+                "ParticipateDoNotInitiate");
+
+        return (LimitOrder) BitmexAdapters.adaptOrder(order);
     }
 
     public LimitOrder moveLimitOrder(LimitOrder limitOrder, BigDecimal bestMakerPrice) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {

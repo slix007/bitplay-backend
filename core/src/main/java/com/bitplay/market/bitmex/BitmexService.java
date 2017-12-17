@@ -301,7 +301,8 @@ public class BitmexService extends MarketService {
 
     @Override
     protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
-        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+        final MarketState marketState = getMarketState();
+        if (marketState == MarketState.SYSTEM_OVERLOADED || marketState == MarketState.PLACING_ORDER) {
             return;
         }
 
@@ -580,34 +581,37 @@ public class BitmexService extends MarketService {
                                     .flatMap(update -> {
 
                                         // merge the orders
-                                        Optional<LimitOrder> mergedOrder = Optional.of(update);
-                                        final Optional<LimitOrder> optionalExisting = this.openOrders.stream()
+                                        final LimitOrder mergedOrderObj = this.openOrders.stream()
                                                 .filter(existing -> update.getId().equals(existing.getId()))
-                                                .findFirst();
-                                        if (optionalExisting.isPresent()) {
-                                            final LimitOrder existing = optionalExisting.get();
-                                            mergedOrder = Optional.of(new LimitOrder(
-                                                    existing.getType(),
-                                                    update.getTradableAmount() != null ? update.getTradableAmount() : existing.getTradableAmount(),
-                                                    existing.getCurrencyPair(),
-                                                    existing.getId(),
-                                                    update.getTimestamp(),
-                                                    update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice(),
-                                                    update.getAveragePrice() != null ? update.getAveragePrice() : existing.getAveragePrice(),
-                                                    update.getCumulativeAmount() != null ? update.getCumulativeAmount() : existing.getCumulativeAmount(),
-                                                    update.getStatus() != null ? update.getStatus() : existing.getStatus()
-                                            ));
-                                        }
-//                                    tradeLogger.info("Order id={} status={}", mergedOrder.get().getId(), mergedOrder.get().getStatus());
-                                        final LimitOrder mergedOrderObj = mergedOrder.get();
-                                        if (mergedOrderObj.getStatus() != null
-                                                && mergedOrderObj.getStatus().equals(Order.OrderStatus.FILLED)) { // End orders right away step1
-                                            // THere are no updates of FILLED orders
-                                            tradeLogger.info("{} Order {} FILLED", getCounterName(), mergedOrderObj.getId());
-                                            mergedOrder = Optional.empty();
+                                                .findFirst()
+                                                .map(existing -> new LimitOrder(
+                                                        existing.getType(),
+                                                        update.getTradableAmount() != null ? update.getTradableAmount() : existing.getTradableAmount(),
+                                                        existing.getCurrencyPair(),
+                                                        existing.getId(),
+                                                        update.getTimestamp(),
+                                                        update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice(),
+                                                        update.getAveragePrice() != null ? update.getAveragePrice() : existing.getAveragePrice(),
+                                                        update.getCumulativeAmount() != null ? update.getCumulativeAmount() : existing.getCumulativeAmount(),
+                                                        update.getStatus() != null ? update.getStatus() : existing.getStatus()
+                                                ))
+                                                .orElse(update); // this is new order
 
+                                        Optional<LimitOrder> mergedOrder = Optional.of(mergedOrderObj);
+
+//                                        tradeLogger.info("{} Order {} {}", getCounterName(), mergedOrderObj.getId(), mergedOrderObj.getStatus());
+
+                                        if (mergedOrderObj.getStatus() != null) {
                                             // MT2
-                                            getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
+                                            if (mergedOrderObj.getStatus() == Order.OrderStatus.FILLED) {
+                                                getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
+                                            }
+
+                                            if (mergedOrderObj.getStatus() == Order.OrderStatus.FILLED
+                                                    || mergedOrderObj.getStatus() == Order.OrderStatus.REJECTED
+                                                    || mergedOrderObj.getStatus() == Order.OrderStatus.CANCELED) {
+                                                mergedOrder = Optional.empty();
+                                            }
                                         }
 
                                         return mergedOrder
@@ -740,7 +744,7 @@ public class BitmexService extends MarketService {
 
         try {
             arbitrageService.setSignalType(signalType);
-            eventBus.send(BtsEvent.MARKET_BUSY);
+            setMarketState(MarketState.PLACING_ORDER);
 
             final BitmexTradeService bitmexTradeService = (BitmexTradeService) exchange.getTradeService();
 
@@ -753,7 +757,23 @@ public class BitmexService extends MarketService {
                     if (placingType == PlacingType.MAKER) {
                         thePrice = createBestMakerPrice(orderType).setScale(1, BigDecimal.ROUND_HALF_UP);
                         final LimitOrder limitOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, "0", new Date(), thePrice);
-                        orderId = bitmexTradeService.placeLimitOrder(limitOrder);
+//                        orderId = bitmexTradeService.placeLimitOrder(limitOrder);
+
+                        final LimitOrder resultOrder = bitmexTradeService.placeLimitOrderBitmex(limitOrder);
+                        orderId = resultOrder.getId();
+                        if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
+                            tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
+                            tradeLogger.info("{} {} {} CANCELED amount={}, filled={}, quote={}, orderId={}",
+                                    getCounterName(),
+                                    placingType.toString(),
+                                    orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
+                                    amount.toPlainString(),
+                                    resultOrder.getCumulativeAmount(),
+                                    thePrice,
+                                    orderId);
+                            continue;
+                        }
+
                     } else {
                         final MarketOrder marketOrder = new MarketOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, new Date());
                         final MarketOrder resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder);
@@ -847,6 +867,8 @@ public class BitmexService extends MarketService {
             logger.error("Place market order error", e);
             tradeLogger.info("maker error {}", e.toString());
             tradeResponse.setErrorCode(e.getMessage());
+        } finally {
+            setMarketState(MarketState.ARBITRAGE);
         }
         return tradeResponse;
     }
@@ -899,8 +921,11 @@ public class BitmexService extends MarketService {
             // double check  "Invalid ordStatus"
             if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
                 final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), getCounterName(), 1, "Moving:CheckInvOrdStatus:");
-                if (orderInfo.isPresent() && orderInfo.get().getStatus() == Order.OrderStatus.FILLED) {
-                    // we confirmed that order FILLED
+                if (orderInfo.isPresent()
+                        &&
+                        (orderInfo.get().getStatus() == Order.OrderStatus.FILLED
+                                || orderInfo.get().getStatus() == Order.OrderStatus.CANCELED)) {
+                    // we confirmed that order ALREADY_CLOSED (FILLED or CANCELLED)
                 } else {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, moveResponse.getDescription());
                 }
