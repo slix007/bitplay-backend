@@ -127,8 +127,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 side,
                 newPrice,
                 "Limit",
-                "ParticipateDoNotInitiate");
-
+                "");// "ParticipateDoNotInitiate"
         // Updated fields: price. It also has: orderID, timestamp(also it has transactTime), ordStatus
         return order == null ? null : BitmexAdapters.updateLimitOrder(limitOrder, order);
     }
