@@ -320,6 +320,18 @@ public class PosDiffService {
         return getPositionsDiffWithHedge().signum() == 0;
     }
 
+    public BigDecimal getPositionsDiffSafe() {
+        BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
+        BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
+        BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+        bP = bP == null ? BigDecimal.ZERO : bP;
+        oPL = oPL == null ? BigDecimal.ZERO : oPL;
+        oPS = oPS == null ? BigDecimal.ZERO : oPS;
+
+        final BigDecimal okExPosEquivalent = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
+        return okExPosEquivalent.add(bP);
+    }
+
     public BigDecimal getPositionsDiff() {
         final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();

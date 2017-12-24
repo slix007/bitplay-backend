@@ -10,10 +10,10 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.fluent.FplayOrder;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
@@ -95,7 +95,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType, BigDecimal bestMarketPrice) {
+    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, SignalType signalType, BigDecimal bestMarketPrice) {
         return null;
     }
 

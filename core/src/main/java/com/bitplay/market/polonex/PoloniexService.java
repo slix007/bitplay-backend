@@ -10,6 +10,7 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.core.StreamingExchange;
@@ -332,11 +333,11 @@ public class PoloniexService extends MarketService {
 
 //            orderBookChangedSubject.onNext(orderBook);
 
-            CompletableFuture.runAsync(this::checkOpenOrdersForMoving)
-                    .exceptionally(throwable -> {
-                        logger.error("OnCheckOpenOrders", throwable);
-                        return null;
-                    });
+//            CompletableFuture.runAsync(this::checkOpenOrdersForMoving)
+//                    .exceptionally(throwable -> {
+//                        logger.error("OnCheckOpenOrders", throwable);
+//                        return null;
+//                    });
 
         } catch (IOException e) {
             logger.error("Can not fetchOrderBook", e);
@@ -490,9 +491,11 @@ public class PoloniexService extends MarketService {
 
     /**
      * Use when you're sure that order should be moved(has not the best price)
-     * Use {@link MarketService#moveMakerOrderIfNotFirst(LimitOrder, com.bitplay.arbitrage.SignalType)} when you know that price is not the best.
+     * Use {@link MarketService#moveMakerOrderIfNotFirst(FplayOrder, com.bitplay.arbitrage.SignalType)} when you know that price is not the best.
      */
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType, BigDecimal bestMarketPrice) {
+    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, SignalType signalType, BigDecimal bestMarketPrice) {
+        final LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
+
         MoveResponse response;
         int attemptCount = 0;
         String lastExceptionMsg = "";

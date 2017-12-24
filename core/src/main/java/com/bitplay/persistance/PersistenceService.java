@@ -9,11 +9,11 @@ import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.MarketDocument;
 import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.persistance.repository.BorderParamsRepository;
+import com.bitplay.persistance.repository.OrderRepository;
 import com.bitplay.persistance.repository.CountersRepository;
 import com.bitplay.persistance.repository.DeltaParamsRepository;
 import com.bitplay.persistance.repository.GuiParamsRepository;
 import com.bitplay.persistance.repository.LiqParamsRepository;
-import com.bitplay.persistance.repository.SettingsRepository;
 import com.bitplay.persistance.repository.SwapParamsRepository;
 
 import org.slf4j.Logger;
@@ -49,6 +49,12 @@ public class PersistenceService {
 
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private OrderRepositoryService orderRepositoryService;
 
     public void saveGuiParams(GuiParams deltas) {
         deltas.setId(1L);
@@ -119,5 +125,9 @@ public class PersistenceService {
 
     public SettingsRepositoryService getSettingsRepositoryService() {
         return settingsRepositoryService;
+    }
+
+    public OrderRepositoryService getOrderRepositoryService() {
+        return orderRepositoryService;
     }
 }

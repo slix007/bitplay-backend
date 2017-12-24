@@ -301,20 +301,20 @@ public class ArbitrageService {
                         final String logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s)",
                                 getCounter(),
                                 firstMarketService.isBusy(),
-                                firstMarketService.getOpenOrders().size(),
+                                firstMarketService.getOnlyOpenOrders().size(),
                                 secondMarketService.isBusy(),
-                                secondMarketService.getOpenOrders().size());
+                                secondMarketService.getOnlyOpenOrders().size());
                         deltasLogger.warn(logString);
                         warningLogger.warn(logString);
 
 
-                        if (firstMarketService.isBusy() && firstMarketService.getOpenOrders().size() == 0) {
+                        if (firstMarketService.isBusy() && !firstMarketService.hasOpenOrders()) {
                             deltasLogger.warn("Warning: Free Bitmex");
                             warningLogger.warn("Warning: Free Bitmex");
                             firstMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
 
-                        if (secondMarketService.isBusy() && secondMarketService.getOpenOrders().size() == 0) {
+                        if (secondMarketService.isBusy() && !secondMarketService.hasOpenOrders()) {
                             deltasLogger.warn("Warning: Free Okcoin");
                             warningLogger.warn("Warning: Free Okcoin");
                             secondMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
@@ -323,8 +323,8 @@ public class ArbitrageService {
                     } else if (!firstMarketService.isReadyForArbitrage() || !secondMarketService.isReadyForArbitrage()) {
                         final String logString = String.format("#%s Warning: busy for 6 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
                                 getCounter(),
-                                firstMarketService.isReadyForArbitrage(), firstMarketService.getOpenOrders().size(),
-                                secondMarketService.isReadyForArbitrage(), secondMarketService.getOpenOrders().size());
+                                firstMarketService.isReadyForArbitrage(), firstMarketService.getOnlyOpenOrders().size(),
+                                secondMarketService.isReadyForArbitrage(), secondMarketService.getOnlyOpenOrders().size());
                         deltasLogger.warn(logString);
                         warningLogger.warn(logString);
                     }
@@ -831,7 +831,7 @@ public class ArbitrageService {
     }
 
     public String getPosDiffString() {
-        final BigDecimal posDiff = posDiffService.getPositionsDiff();
+        final BigDecimal posDiff = posDiffService.getPositionsDiffSafe();
         final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();

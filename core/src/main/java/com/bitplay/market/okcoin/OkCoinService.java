@@ -13,8 +13,10 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
@@ -53,10 +55,9 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -91,6 +92,7 @@ public class OkCoinService extends MarketService {
 
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
 
+    private static final int MAX_ATTEMPTS_FOR_MOVING = 50;
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     // Moving timeout
@@ -106,6 +108,8 @@ public class OkCoinService extends MarketService {
     private PersistenceService persistenceService;
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
+    @Autowired
+    private OrderRepositoryService orderRepositoryService;
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
     private Disposable privateDataSubscription;
@@ -409,114 +413,11 @@ public class OkCoinService extends MarketService {
                 });
     }
 
-    private void updateOpenOrders(List<LimitOrder> trades) {
-        synchronized (openOrdersLock) {
-            StringBuilder updateAction = new StringBuilder();
-
-            // Replace all existing with new info
-            this.openOrders = this.openOrders.stream()
-                    .flatMap(existingInMemory -> {
-                        // merge if the update of an existingInMemory
-                        LimitOrder order = existingInMemory;
-                        final Optional<LimitOrder> optionalMatch = trades.stream()
-                                .filter(existing -> existingInMemory.getId().equals(existing.getId()))
-                                .findFirst();
-                        if (optionalMatch.isPresent()) {
-                            order = optionalMatch.get();
-                            tradeLogger.info("{} Order update:id={},status={},amount={},filled={}",
-                                    getCounterName(),
-                                    order.getId(), order.getStatus(), order.getTradableAmount(),
-                                    order.getCumulativeAmount());
-                            updateAction.append("update,");
-                        }
-                        // Remove old. 'CANCELED is skiped because it can be MovingInTheMiddle case'
-                        Collection<LimitOrder> optionalOrder = new ArrayList<>();
-                        if (order.getStatus() == Order.OrderStatus.CANCELED
-                                || order.getStatus() == Order.OrderStatus.PENDING_CANCEL
-                                || order.getStatus() == Order.OrderStatus.NEW
-                                || order.getStatus() == Order.OrderStatus.PENDING_NEW
-                                || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
-                                ) {
-                            optionalOrder.add(order);
-                        } else {
-                            tradeLogger.info("{} Order removing:id={},status={},amount={},filled={}",
-                                    getCounterName(),
-                                    order.getId(), order.getStatus(), order.getTradableAmount(),
-                                    order.getCumulativeAmount());
-                        }
-
-                        return optionalOrder.stream();
-                    }).collect(Collectors.toList());
-
-            // Add new orders
-            List<LimitOrder> newOrders = trades.stream()
-                    .filter(order -> order.getStatus() != Order.OrderStatus.CANCELED
-                            && order.getStatus() != Order.OrderStatus.EXPIRED
-                            && order.getStatus() != Order.OrderStatus.FILLED
-                            && order.getStatus() != Order.OrderStatus.REJECTED
-                            && order.getStatus() != Order.OrderStatus.REPLACED
-                            && order.getStatus() != Order.OrderStatus.PENDING_CANCEL
-                            && order.getStatus() != Order.OrderStatus.PENDING_REPLACE
-                            && order.getStatus() != Order.OrderStatus.STOPPED)
-                    .filter((LimitOrder limitOrder) -> {
-                        final String id = limitOrder.getId();
-                        return this.openOrders.stream()
-                                .anyMatch(existing -> id.equals(existing.getId()));
-                    })
-                    .collect(Collectors.toList());
-
-//            debugLog.info("NewOrders: " + Arrays.toString(newOrders.toArray()));
-            this.openOrders.addAll(newOrders);
-
-            if (this.openOrders.size() == 0) {
-//                tradeLogger.info("Okcoin-ready: " + trades.stream()
-//                        .map(LimitOrder::toString)
-//                        .collect(Collectors.joining("; ")));
-                logger.info("Okcoin-ready: " + trades.stream()
-                        .map(LimitOrder::toString)
-                        .collect(Collectors.joining("; ")));
-                eventBus.send(BtsEvent.MARKET_FREE);
-            }
-        } // synchronized (openOrdersLock)
-    }
-
-    /**
-     * Add new openOrders.<br> It removes old. If no one left, it frees market. They will be checked in moveMakerOrder()
-     *
-     * @return list of open orders.
-     */
-    @Override
-    protected List<LimitOrder> fetchOpenOrders() {
-
-        if (getExchange() != null && getTradeService() != null) {
-            try {
-                final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
-                        .getOpenOrders();
-                if (fetchedList == null) {
-                    logger.error("GetOpenOrdersError");
-                    throw new IllegalStateException("GetOpenOrdersError");
-                }
-
-                updateOpenOrders(fetchedList);
-
-//                    if (fetchedList.size() > 1) {
-//                        getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
-//                    }
-//
-//                    final List<LimitOrder> allNew = fetchedList.stream()
-//                            .filter(fetched -> this.openOrders.stream()
-//                                    .noneMatch(o -> o.getId().equals(fetched.getId())))
-//                            .collect(Collectors.toList());
-//
-//                    this.openOrders.addAll(allNew);
-
-            } catch (Exception e) {
-                logger.error("GetOpenOrdersError", e);
-                throw new IllegalStateException("GetOpenOrdersError", e);
-            }
-
+    @Scheduled(fixedDelay = 2000)
+    public void openOrdersCleaner() {
+        if (openOrders.size() > 0) {
+            cleanOldOO();
         }
-        return openOrders;
     }
 
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType)
@@ -553,10 +454,18 @@ public class OkCoinService extends MarketService {
                 }
 
                 Order orderInfo = orderInfoAttempts.get();
+                updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
 
                 if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 1. Try cancel then
-                    cancelOrderSync(orderId, "Taker:Cancel_maker:");
+                    final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(orderId, "Taker:Cancel_maker:");
+
+                    if (!okCoinTradeResult.isResult()) throw new Exception("Failed to cancel taker-maker id=" + orderId);
+
                     orderInfo = getFinalOrderInfoSync(orderId, counterName, "Taker:Cancel_makerStatus:");
+
+                    if (orderInfo == null) throw new Exception("Failed to check status of cancelled taker-maker id=" + orderId);
+
+                    updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
                 }
 
                 if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
@@ -694,7 +603,7 @@ public class OkCoinService extends MarketService {
                 final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
 
                 if (okexPlacingType == PlacingType.MAKER || okexPlacingType == PlacingType.HYBRID) {
-                    tradeResponse = placeSimpleMakerOrder(orderType, amountLeft, bestQuotes, false, signalType, okexPlacingType);
+                    tradeResponse = placeMakerOrderWithStatus(orderType, amountLeft, bestQuotes, false, signalType, okexPlacingType);
                 } else if (okexPlacingType == PlacingType.TAKER) {
                     tradeResponse = takerOrder(orderType, amountLeft, bestQuotes, signalType);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
@@ -773,16 +682,26 @@ public class OkCoinService extends MarketService {
         return placeOrder(currPlaceOrderArgs);
     }
 
-//    public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-//                                               boolean isMoving, SignalType signalType) throws Exception {
-//        return placeSimpleMakerOrder(orderType, tradeableAmount, bestQuotes, isMoving, signalType, PlacingType.MAKER);
-//    }
-
-    public TradeResponse placeSimpleMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-                                               boolean isMoving, SignalType signalType, PlacingType placingSubType) throws Exception {
-        final TradeResponse tradeResponse = new TradeResponse();
+    public TradeResponse placeMakerOrderWithStatus(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
+                                                   boolean isMoving, SignalType signalType, PlacingType placingSubType) throws Exception {
+        final TradeResponse tradeResponse;
         arbitrageService.setSignalType(signalType);
-        eventBus.send(BtsEvent.MARKET_BUSY);
+
+        setMarketState(MarketState.PLACING_ORDER);
+
+        try {
+            tradeResponse = placeMakerOrder(orderType, tradeableAmount, bestQuotes, isMoving, signalType, placingSubType);
+        } finally {
+            setMarketState(MarketState.ARBITRAGE);
+        }
+
+//        fetchOpenOrdersWithDelay();
+        return tradeResponse;
+    }
+
+    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
+                                          boolean isMoving, SignalType signalType, PlacingType placingSubType) throws IOException {
+        final TradeResponse tradeResponse = new TradeResponse();
 
         BigDecimal thePrice;
 
@@ -813,9 +732,12 @@ public class OkCoinService extends MarketService {
 
             final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(), thePrice);
             tradeResponse.setLimitOrder(limitOrderWithId);
+            final FplayOrder fplayOrder = new FplayOrder(limitOrderWithId, bestQuotes, placingSubType, signalType);
+            orderRepositoryService.save(fplayOrder);
+
             if (!isMoving) {
                 synchronized (openOrdersLock) {
-                    openOrders.add(limitOrderWithId);
+                    openOrders.add(fplayOrder);
                 }
             }
 
@@ -828,8 +750,6 @@ public class OkCoinService extends MarketService {
                     isMoving ? "Moving3:Moved" : "maker",
                     signalType, thePrice, orderId, null);
         }
-
-//        fetchOpenOrdersWithDelay();
         return tradeResponse;
     }
 
@@ -917,7 +837,7 @@ public class OkCoinService extends MarketService {
 
     @Override
     protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
-        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+        if (getMarketState() == MarketState.SYSTEM_OVERLOADED || getMarketState() == MarketState.PLACING_ORDER) {
             return;
         }
 
@@ -934,19 +854,24 @@ public class OkCoinService extends MarketService {
 
         try {
             synchronized (openOrdersLock) {
-                if (openOrders.size() > 0) {
+                if (hasOpenOrders()) {
 
                     final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
                     final Integer maxAttempts = sysOverloadArgs.getMovingErrorsForOverload();
 
                     openOrders = openOrders.stream()
                             .flatMap(openOrder -> {
-                                Stream<LimitOrder> optionalOrder = Stream.of(openOrder); // default - the same
+                                Stream<FplayOrder> optionalOrder = Stream.of(openOrder); // default -> keep the order
 
                                 if (openOrder == null) {
                                     warningLogger.warn("OO is null.");
-                                } else if (openOrder.getType() == null) {
+                                    optionalOrder = Stream.empty();
+                                } else if (openOrder.getOrder().getType() == null) {
                                     warningLogger.warn("OO type is null. " + openOrder.toString());
+                                } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
+                                        && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
+                                        && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
+                                    // keep the order
                                 } else {
 
                                     final SignalType signalType = arbitrageService.getSignalType();
@@ -955,10 +880,12 @@ public class OkCoinService extends MarketService {
                                         final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
                                         //TODO keep an eye on 'hang open orders'
                                         if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                                            optionalOrder = Stream.empty(); // no such case anymore
-                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID
-                                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
-                                            optionalOrder = Stream.of(response.getNewOrder());
+                                            // keep the order
+                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
+                                            final FplayOrder newOrder = response.getNewFplayOrder();
+                                            final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+
+                                            optionalOrder = Stream.of(newOrder, cancelledOrder);
                                             movingErrorsOverloaded.set(0);
                                         } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 
@@ -967,7 +894,7 @@ public class OkCoinService extends MarketService {
                                                 movingErrorsOverloaded.set(0);
                                             }
 
-                                        }
+                                        } // else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) { // do nothing
 
                                     } catch (Exception e) {
                                         // use default OO
@@ -976,11 +903,11 @@ public class OkCoinService extends MarketService {
                                     }
                                 }
 
-                                return optionalOrder;
+                                return optionalOrder; // default -> keep the order
                             })
                             .collect(Collectors.toList());
 
-                    if (openOrders.size() == 0) {
+                    if (!hasOpenOrders()) {
                         tradeLogger.warn("Free by iterateOpenOrdersMove");
                         logger.warn("Free by iterateOpenOrdersMove");
                         eventBus.send(BtsEvent.MARKET_FREE);
@@ -996,8 +923,9 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType, BigDecimal bestMarketPrice) {
-        if (limitOrder.getStatus() == Order.OrderStatus.CANCELED) {
+    public MoveResponse moveMakerOrder(FplayOrder fOrderToCancel, SignalType signalType, BigDecimal bestMarketPrice) {
+        final LimitOrder limitOrder = (LimitOrder) fOrderToCancel.getOrder();
+        if (limitOrder.getStatus() == Order.OrderStatus.CANCELED || limitOrder.getStatus() == Order.OrderStatus.FILLED) {
             tradeLogger.error("{} do not move ALREADY_CLOSED order", getCounterName());
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
         }
@@ -1018,14 +946,23 @@ public class OkCoinService extends MarketService {
 
             // 1. cancel old order
             final String counterName = getCounterName();
-            cancelOrderSync(limitOrder.getId(), "Moving1:cancelled:");
+            final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(limitOrder.getId(), "Moving1:cancelled:");
+            if (!okCoinTradeResult.isResult())
+                return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Failed to cancel order on moving id=" + limitOrder.getId());
 
             // 2. We got result on cancel(true/false), but double-check status of an old order
             Order cancelledOrder = getFinalOrderInfoSync(limitOrder.getId(), counterName, "Moving2:cancelStatus:");
+            if (cancelledOrder == null)
+                return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Failed to check status of cancelled order on moving id=" + limitOrder.getId());
+
+            final LimitOrder cancelledLimitOrder = (LimitOrder) cancelledOrder;
+            orderRepositoryService.update(cancelledLimitOrder);
+            fOrderToCancel.setOrder(cancelledOrder);
 
             // 3. Already closed?
-            if (cancelledOrder.getStatus() != Order.OrderStatus.CANCELED) { // Already closed
-                response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
+            if (cancelledOrder.getStatus() != Order.OrderStatus.CANCELED) { // Already closed (FILLED)
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null,
+                        fOrderToCancel);
 
                 final String logString = String.format("%s %s %s status=%s,amount=%s,quote=%s,id=%s,lastException=%s",
                         counterName,
@@ -1042,7 +979,12 @@ public class OkCoinService extends MarketService {
             } else { //if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
                 TradeResponse tradeResponse = new TradeResponse();
                 tradeResponse = finishMovingSync(limitOrder, signalType, bestQuotes, counterName, cancelledOrder, tradeResponse);
-                response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(), tradeResponse.getLimitOrder());
+
+                final LimitOrder newOrder = tradeResponse.getLimitOrder();
+                final FplayOrder newFplayOrder = new FplayOrder(newOrder, fOrderToCancel.getBestQuotes(),
+                        fOrderToCancel.getPlacingType(), fOrderToCancel.getSignalType());
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(),
+                        newOrder, newFplayOrder, fOrderToCancel);
             }
         } finally {
             setMarketState(savedState);
@@ -1053,7 +995,7 @@ public class OkCoinService extends MarketService {
 
     private TradeResponse finishMovingSync(LimitOrder limitOrder, SignalType signalType, BestQuotes bestQuotes, String counterName, Order cancelledOrder, TradeResponse tradeResponse) {
         int attemptCount = 0;
-        while (true) {
+        while (attemptCount < MAX_ATTEMPTS_FOR_MOVING) {
             try {
                 attemptCount++;
                 if (attemptCount > 1) {
@@ -1065,7 +1007,7 @@ public class OkCoinService extends MarketService {
 
                 final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
 
-                tradeResponse = placeSimpleMakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType);
+                tradeResponse = placeMakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType);
 
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info("{}/{} Moving3:Failed {} amount={},quote={},id={},attempt={}. Error: {}",
@@ -1102,9 +1044,9 @@ public class OkCoinService extends MarketService {
     @NotNull
     private Order getFinalOrderInfoSync(String orderId, String counterName, String logInfoId) {
         final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
-        Order result;
+        Order result = null;
         int attemptCount = 0;
-        while (true) {
+        while (attemptCount < MAX_ATTEMPTS_FOR_MOVING) {
             attemptCount++;
             try {
                 if (attemptCount > 1) {
@@ -1136,10 +1078,10 @@ public class OkCoinService extends MarketService {
     @NotNull
     private OkCoinTradeResult cancelOrderSync(String orderId, String logInfoId) {
         final String counterName = getCounterName();
-        OkCoinTradeResult result;
+        OkCoinTradeResult result = new OkCoinTradeResult(false, 0, 0);
 
         int attemptCount = 0;
-        while (true) {
+        while (attemptCount < MAX_ATTEMPTS_FOR_MOVING) {
             attemptCount++;
             try {
                 if (attemptCount > 1) {

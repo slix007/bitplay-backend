@@ -12,9 +12,9 @@ import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
-import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.Counters;
 import com.bitplay.persistance.domain.LiqParams;
+import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 
@@ -30,24 +30,18 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -55,16 +49,11 @@ import io.reactivex.disposables.Disposable;
 /**
  * Created by Sergey Shurmin on 4/16/17.
  */
-public abstract class MarketService {
+public abstract class MarketService extends MarketServiceOpenOrders {
 
-    protected final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
-    private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
-    protected static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
-    protected final Object openOrdersLock = new Object();
-    protected volatile List<LimitOrder> openOrders = new ArrayList<>();
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected volatile AccountInfo accountInfo = null;
     protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
@@ -73,7 +62,6 @@ public abstract class MarketService {
     protected volatile BigDecimal affordableContractsForLong = BigDecimal.ZERO;
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected volatile int usdInContract = 0;
-    protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     // Moving timeout
@@ -101,8 +89,6 @@ public abstract class MarketService {
     public OrderBook getOrderBook() {
         return this.orderBook;
     }
-
-    public abstract Logger getTradeLogger();
 
     public abstract void fetchPosition() throws Exception;
 
@@ -147,36 +133,7 @@ public abstract class MarketService {
             return false;
         }
 
-        long openOrdersCount;
-        synchronized (openOrdersLock) {
-
-            if (openOrders.stream().anyMatch(Objects::isNull)) {
-                final String warnMsg = "WARNING: OO has null element";
-                getTradeLogger().error(warnMsg);
-                logger.error(warnMsg);
-            }
-            openOrders.stream()
-                    .filter(Objects::nonNull)
-                    .filter(limitOrder -> limitOrder.getTradableAmount() == null)
-                    .forEach(limitOrder -> {
-                        final String warnMsg = "WARNING: OO amount is null. " + limitOrder.toString();
-                        getTradeLogger().error(warnMsg);
-                        logger.error(warnMsg);
-                    });
-            openOrders.removeIf(Objects::isNull);
-            openOrders.removeIf(limitOrder -> limitOrder.getTradableAmount() == null);
-
-            openOrdersCount = openOrders.stream()
-                    .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0) // filter as for gui
-                    .count();
-            if (openOrders.size() != openOrdersCount) {
-                logger.warn("OO with zero amount: " + openOrders.stream()
-                        .map(LimitOrder::toString)
-                        .reduce((s, s2) -> s + "; " + s2));
-            }
-        } //synchronized (openOrdersLock)
-
-        return openOrdersCount == 0;
+        return !hasOpenOrders();
     }
 
     private void initEventBus() {
@@ -284,7 +241,7 @@ public abstract class MarketService {
 
             MarketState marketStateToSet;
             synchronized (openOrdersLock) {
-                marketStateToSet = (openOrders.size() > 0 || placeOrderArgs != null) // moving or placing attempt
+                marketStateToSet = (hasOpenOrders() || placeOrderArgs != null) // moving or placing attempt
                         ? MarketState.ARBITRAGE
                         : MarketState.READY;
             }
@@ -316,7 +273,7 @@ public abstract class MarketService {
     }
 
     private String getPosDiffString() {
-        final BigDecimal posDiff = getPosDiffService().getPositionsDiff();
+        final BigDecimal posDiff = getPosDiffService().getPositionsDiffSafe();
         final BigDecimal bP = getArbitrageService().getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = getArbitrageService().getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = getArbitrageService().getSecondMarketService().getPosition().getPositionShort();
@@ -397,8 +354,6 @@ public abstract class MarketService {
 
     public abstract PosDiffService getPosDiffService();
 
-    public abstract PersistenceService getPersistenceService();
-
     public AccountInfo getAccountInfo() {
         return accountInfo;
     }
@@ -478,21 +433,13 @@ public abstract class MarketService {
 
     public abstract TradeService getTradeService();
 
-    public List<LimitOrder> getOpenOrders() {
-        List<LimitOrder> limitOrders;
-        synchronized (openOrdersLock) {
-            limitOrders = openOrders != null ? openOrders : new ArrayList<>();
-        }
-        return limitOrders;
-    }
-
     /**
      * Add new openOrders.<br>
      * Do not remove old. They will be checked in moveMakerOrder()
      *
      * @return list of open orders.
      */
-    protected List<LimitOrder> fetchOpenOrders() {
+    protected List<FplayOrder> fetchOpenOrders() {
         synchronized (openOrdersLock) {
 
             if (getExchange() != null && getTradeService() != null) {
@@ -503,32 +450,17 @@ public abstract class MarketService {
                         logger.error("GetOpenOrdersError");
                         throw new IllegalStateException("GetOpenOrdersError");
                     }
-
                     if (fetchedList.size() > 1) {
                         getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
                     }
 
-                    final List<LimitOrder> allNew = fetchedList.stream()
-                            .filter(fetched -> this.openOrders.stream()
-                                    .noneMatch(o -> o.getId().equals(fetched.getId())))
-                            .collect(Collectors.toList());
-
-                    this.openOrders.addAll(allNew);
+                    updateOpenOrders(fetchedList);
 
                 } catch (Exception e) {
                     logger.error("GetOpenOrdersError", e);
                     throw new IllegalStateException("GetOpenOrdersError", e);
                 }
 
-                if (orderIdToSignalInfo.size() > 100) {
-                    logger.warn("orderIdToSignalInfo over 100");
-                    final Map<String, BestQuotes> newMap = new HashMap<>();
-                    openOrders.stream()
-                            .map(LimitOrder::getId)
-                            .filter(id -> orderIdToSignalInfo.containsKey(id))
-                            .forEach(id -> newMap.put(id, orderIdToSignalInfo.get(id)));
-                    orderIdToSignalInfo = newMap;
-                }
 
             }
         } // synchronized (openOrdersLock)
@@ -616,7 +548,7 @@ public abstract class MarketService {
     public MoveResponse moveMakerOrderFromGui(String orderId, SignalType signalType) {
         MoveResponse response;
 
-        List<LimitOrder> orderList = null;
+        List<FplayOrder> orderList = null;
         try {
             orderList = fetchOpenOrders();
         } catch (Exception e) {
@@ -629,7 +561,7 @@ public abstract class MarketService {
                 this.openOrders = orderList;
 
                 response = this.openOrders.stream()
-                        .filter(limitOrder -> limitOrder.getId().equals(orderId))
+                        .filter(limitOrder -> limitOrder.getOrder().getId().equals(orderId))
                         .findFirst()
                         .map(limitOrder -> moveMakerOrderIfNotFirst(limitOrder, signalType))
                         .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
@@ -638,7 +570,7 @@ public abstract class MarketService {
         return response;
     }
 
-    public abstract MoveResponse moveMakerOrder(LimitOrder limitOrder, SignalType signalType, BigDecimal newPrice);
+    public abstract MoveResponse moveMakerOrder(FplayOrder fplayOrder, SignalType signalType, BigDecimal newPrice);
 
     protected BigDecimal createBestMakerPrice(Order.OrderType orderType) {
         BigDecimal thePrice = BigDecimal.ZERO;
@@ -672,8 +604,19 @@ public abstract class MarketService {
         return thePrice;
     }
 
-    protected MoveResponse moveMakerOrderIfNotFirst(LimitOrder limitOrder, SignalType signalType) {
+    protected MoveResponse moveMakerOrderIfNotFirst(FplayOrder fplayOrder, SignalType signalType) {
         MoveResponse response;
+        LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
+        if (limitOrder.getLimitPrice() == null) {
+            final FplayOrder one = getPersistenceService().getOrderRepositoryService().findOne(limitOrder.getId());
+            if (one != null) {
+                final LimitOrder fromDb = (LimitOrder) one.getOrder();
+                if (fromDb.getLimitPrice() == null) {
+                    return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null");
+                }
+                limitOrder = fromDb;
+            }
+        }
 
         if (specialFlags == SpecialFlags.STOP_MOVING) {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.WAITING_TIMEOUT, "");
@@ -694,7 +637,7 @@ public abstract class MarketService {
                 logger.info("{} Try to move maker order {} {}, from {} to {}",
                         getName(), limitOrder.getId(), limitOrder.getType(),
                         limitOrder.getLimitPrice(), bestPrice);
-                response = moveMakerOrder(limitOrder, signalType, bestPrice);
+                response = moveMakerOrder(fplayOrder, signalType, bestPrice);
             } else {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
             }

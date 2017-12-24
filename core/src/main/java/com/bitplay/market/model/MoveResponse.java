@@ -1,5 +1,7 @@
 package com.bitplay.market.model;
 
+import com.bitplay.persistance.domain.fluent.FplayOrder;
+
 import org.knowm.xchange.dto.trade.LimitOrder;
 
 /**
@@ -10,6 +12,8 @@ public class MoveResponse {
     MoveOrderStatus moveOrderStatus;
     String description;
     LimitOrder newOrder;
+    FplayOrder newFplayOrder;
+    FplayOrder cancelledFplayOrder;
 
     public enum MoveOrderStatus {
         ALREADY_FIRST,
@@ -33,6 +37,21 @@ public class MoveResponse {
         this.newOrder = newOrder;
     }
 
+    public MoveResponse(MoveOrderStatus moveOrderStatus, String description, LimitOrder newOrder, FplayOrder newFplayOrder) {
+        this.moveOrderStatus = moveOrderStatus;
+        this.description = description;
+        this.newOrder = newOrder;
+        this.newFplayOrder = newFplayOrder;
+    }
+
+    public MoveResponse(MoveOrderStatus moveOrderStatus, String description, LimitOrder newOrder, FplayOrder newFplayOrder, FplayOrder cancelledFplayOrder) {
+        this.moveOrderStatus = moveOrderStatus;
+        this.description = description;
+        this.newOrder = newOrder;
+        this.newFplayOrder = newFplayOrder;
+        this.cancelledFplayOrder = cancelledFplayOrder;
+    }
+
     public MoveOrderStatus getMoveOrderStatus() {
         return moveOrderStatus;
     }
@@ -43,5 +62,13 @@ public class MoveResponse {
 
     public LimitOrder getNewOrder() {
         return newOrder;
+    }
+
+    public FplayOrder getNewFplayOrder() {
+        return newFplayOrder;
+    }
+
+    public FplayOrder getCancelledFplayOrder() {
+        return cancelledFplayOrder;
     }
 }

@@ -258,7 +258,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public List<OrderJson> getOpenOrders() {
-        return getBusinessService().getOpenOrders().stream()
+        return getBusinessService().getAllOpenOrders().stream()
                 .filter(limitOrder -> limitOrder.getTradableAmount() != null)
                 .filter(limitOrder -> limitOrder.getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
                 .map(toOrderJson)

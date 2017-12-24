@@ -108,6 +108,8 @@ public class BitmexSwapService {
             case STOPPED:
             case SYSTEM_OVERLOADED:
             case WAITING_ARB:
+            case MOVING:
+            case PLACING_ORDER:
                 break;
 
             case READY:

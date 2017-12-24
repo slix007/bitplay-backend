@@ -8,7 +8,11 @@ import com.mongodb.WriteConcern;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
+import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.convert.DefaultDbRefResolver;
+import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
+import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
 /**
@@ -16,6 +20,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
  */
 @Configuration
 @EnableMongoRepositories(basePackageClasses = RepositoryPackage.class)
+@EnableMongoAuditing
 //@ComponentScan(basePackageClasses=TemplatePackage.class)
 public class SpringMongoConfig extends AbstractMongoConfiguration {
 
@@ -43,10 +48,39 @@ public class SpringMongoConfig extends AbstractMongoConfiguration {
 //    }
 
     // ---------------------------------------------------- MongoTemplate
+/*
+    class DateToZonedDateTimeConverter implements Converter {
+        @Override
+        public Object convert(Object o, Class aClass, Object o1) {
+            final Date source = (Date) o;
+            return source == null ? null : ZonedDateTime.ofInstant(source.toInstant(), ZoneId.systemDefault());
+        }
+    }
+
+    class ZonedDateTimeToDateConverter implements Converter {
+        @Override
+        public Object convert(Object o, Class aClass, Object o1) {
+            final ZonedDateTime source = (ZonedDateTime) o;
+            return source == null ? null : Date.from(source.toInstant());
+        }
+    }
 
     @Bean
+    public CustomConversions customConversions() {
+        List<Converter> converters = new ArrayList<>();
+        converters.add(new DateToZonedDateTimeConverter());
+        converters.add(new ZonedDateTimeToDateConverter());
+        return new CustomConversions(converters);
+    }*/
+    @Bean
     public MongoTemplate mongoTemplate() throws Exception {
-        return new MongoTemplate(mongo(), getDatabaseName());
+        MappingMongoConverter converter = new MappingMongoConverter(
+                new DefaultDbRefResolver(mongoDbFactory()), new MongoMappingContext());
+//        converter.setCustomConversions(customConversions());
+        converter.afterPropertiesSet();
+        return new MongoTemplate(mongoDbFactory(), converter);
+
+//        return new MongoTemplate(mongo(), getDatabaseName());
     }
 
 }
