@@ -470,7 +470,7 @@ public class OkCoinService extends MarketService {
 
                 if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
                     tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
-                    tradeResponse.setCancelledOrder(orderInfo);
+                    tradeResponse.addCancelledOrder((LimitOrder) orderInfo);
                 } else { //FILLED by any (orderInfo or cancelledOrder)
                     if (signalType == SignalType.AUTOMATIC) {
                         arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
@@ -607,7 +607,7 @@ public class OkCoinService extends MarketService {
                 } else if (okexPlacingType == PlacingType.TAKER) {
                     tradeResponse = takerOrder(orderType, amountLeft, bestQuotes, signalType);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
-                        final BigDecimal filled = tradeResponse.getCancelledOrder().getCumulativeAmount();
+                        final BigDecimal filled = tradeResponse.getCancelledOrders().get(0).getCumulativeAmount();
                         amountLeft = amountLeft.subtract(filled);
                         continue;
                     }

@@ -337,11 +337,11 @@ public class BitmexService extends MarketService {
 
                 openOrders = openOrders.stream()
                         .flatMap(openOrder -> {
-                            Stream<FplayOrder> optionalOrder = Stream.of(openOrder); // default - the same
+                            Stream<FplayOrder> orderStream = Stream.of(openOrder); // default - the same
 
                             if (openOrder == null) {
                                 warningLogger.warn("OO is null.");
-                                optionalOrder = Stream.empty();
+                                orderStream = Stream.empty();
                             } else if (openOrder.getOrder().getType() == null) {
                                 warningLogger.warn("OO type is null. " + openOrder.toString());
                             } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
@@ -357,33 +357,43 @@ public class BitmexService extends MarketService {
                                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
                                     //TODO keep an eye on 'hang open orders'
                                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-//                                        optionalOrder = Stream.empty(); // no such case anymore
+//                                        orderStream = Stream.empty(); // no such case anymore
                                         // keep the order
 
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
-                                        optionalOrder = Stream.of(response.getNewFplayOrder());
+                                        orderStream = Stream.of(response.getNewFplayOrder());
                                         movingErrorsOverloaded.set(0);
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
                                         if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
                                             setOverloaded(null);
                                             movingErrorsOverloaded.set(0);
                                         } else {
-                                            final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
-                                            final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
-                                            final TradeResponse tradeResponse = placeOrder(cancelledOrder.getType(),
+
+                                            // place new order instead of 'cancelled-on-moving'
+                                            final LimitOrder cancelledOrder = (LimitOrder) response.getCancelledFplayOrder().getOrder();
+                                            final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
+                                                    cancelledOrder.getType(),
                                                     cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount()),
                                                     openOrder.getBestQuotes(),
                                                     openOrder.getPlacingType(),
-                                                    openOrder.getSignalType());
+                                                    openOrder.getSignalType(),
+                                                    1));
 
-                                            final LimitOrder newOrder = tradeResponse.getLimitOrder();
-                                            if (newOrder != null) {
-                                                final FplayOrder newFplayOrder = new FplayOrder(newOrder, openOrder.getBestQuotes(),
-                                                        openOrder.getPlacingType(), openOrder.getSignalType());
-                                                optionalOrder = Stream.of(cancelledFplayOrder, newFplayOrder);
-                                            } else {
-                                                optionalOrder = Stream.of(cancelledFplayOrder); // placing failed...
+                                            final Stream.Builder<FplayOrder> streamBuilder = Stream.builder();
+                                            // 1. old order
+                                            streamBuilder.add(response.getCancelledFplayOrder());
+
+                                            // 2. new order
+                                            final LimitOrder placedOrder = tradeResponse.getLimitOrder();
+                                            if (placedOrder != null) {
+                                                streamBuilder.add(new FplayOrder(placedOrder, openOrder.getBestQuotes(), openOrder.getPlacingType(), openOrder.getSignalType()));
                                             }
+
+                                            // 3. failed on placing
+                                            tradeResponse.getCancelledOrders()
+                                                    .forEach(limitOrder -> streamBuilder.add(
+                                                            new FplayOrder(limitOrder, openOrder.getBestQuotes(), openOrder.getPlacingType(), openOrder.getSignalType())));
+                                            orderStream = streamBuilder.build();
 
                                             scheduledMoveInProgressReset = scheduler.schedule(() -> movingErrorsOverloaded.set(0),
                                                     MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
@@ -408,7 +418,7 @@ public class BitmexService extends MarketService {
                                 }
                             }
 
-                            return optionalOrder; // default - the same
+                            return orderStream; // default - the same
                         })
                         .collect(Collectors.toList());
 
@@ -709,22 +719,33 @@ public class BitmexService extends MarketService {
                 placingType = PlacingType.TAKER;
                 break;
         }
-        return placeOrder(orderType, amountInContracts, bestQuotes, placingType, signalType);
+        return placeOrderToOpenOrders(orderType, amountInContracts, bestQuotes, placingType, signalType);
     }
 
     public TradeResponse makerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
-        return placeOrder(orderType, amountInContracts, bestQuotes, PlacingType.MAKER, signalType);
+        return placeOrderToOpenOrders(orderType, amountInContracts, bestQuotes, PlacingType.MAKER, signalType);
     }
 
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
-        return placeOrder(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType);
+        return placeOrderToOpenOrders(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType);
     }
 
-    private TradeResponse placeOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
-                                     PlacingType placingType, SignalType signalType) {
+    private TradeResponse placeOrderToOpenOrders(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+                                                 PlacingType placingType, SignalType signalType) {
         final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1);
 
-        return placeOrder(placeOrderArgs);
+        final TradeResponse tradeResponse = placeOrder(placeOrderArgs);
+        final List<FplayOrder> failedOrders = tradeResponse.getCancelledOrders().stream()
+                .map(limitOrder -> new FplayOrder(limitOrder, placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType()))
+                .collect(Collectors.toList());
+        final FplayOrder newOrder = new FplayOrder(tradeResponse.getLimitOrder(), placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType());
+
+        synchronized (openOrdersLock) {
+            this.openOrders.addAll(failedOrders);
+            this.openOrders.add(newOrder);
+        }
+
+        return tradeResponse;
     }
 
     public TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
@@ -775,13 +796,14 @@ public class BitmexService extends MarketService {
                         final LimitOrder requestOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, "0", new Date(), thePrice);
                         final LimitOrder resultOrder = bitmexTradeService.placeLimitOrderBitmex(requestOrder);
                         orderId = resultOrder.getId();
+                        final FplayOrder fplayOrder = new FplayOrder(resultOrder, bestQuotes, placingType, signalType);
+                        orderRepositoryService.save(fplayOrder);
                         if (orderId != null) {
-                            final FplayOrder fplayOrder = new FplayOrder(resultOrder, bestQuotes, placingType, signalType);
-                            orderRepositoryService.save(fplayOrder);
                             tradeResponse.setLimitOrder(resultOrder);
                         }
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
+                            tradeResponse.addCancelledOrder(requestOrder);
                             tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
                             tradeLogger.info("{} {} {} CANCELED amount={}, filled={}, quote={}, orderId={}",
                                     getCounterName(),

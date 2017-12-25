@@ -1,7 +1,9 @@
 package com.bitplay.market.model;
 
-import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 4/21/17.
@@ -12,7 +14,7 @@ public class TradeResponse {
     Object specificResponse;
     String errorCode;
     LimitOrder limitOrder;
-    Order cancelledOrder;
+    List<LimitOrder> cancelledOrders = new ArrayList<>();
 
     public TradeResponse() {
     }
@@ -55,11 +57,11 @@ public class TradeResponse {
         this.limitOrder = limitOrder;
     }
 
-    public Order getCancelledOrder() {
-        return cancelledOrder;
+    public List<LimitOrder> getCancelledOrders() {
+        return cancelledOrders;
     }
 
-    public void setCancelledOrder(Order cancelledOrder) {
-        this.cancelledOrder = cancelledOrder;
+    public void addCancelledOrder(LimitOrder cancelledOrder) {
+        cancelledOrders.add(cancelledOrder);
     }
 }
