@@ -112,7 +112,7 @@
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %msg %xEx%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
         </encoder>
     </appender>
 
