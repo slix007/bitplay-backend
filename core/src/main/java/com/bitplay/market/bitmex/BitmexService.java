@@ -278,15 +278,15 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public void fetchPosition() throws Exception {
+    public String fetchPosition() throws Exception {
         final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
         final Position pUpdate = accountService.fetchPositionInfo();
-        tradeLogger.info(String.format("%s fetchPosition: %s", getCounterName(), BitmexUtils.positionToString(pUpdate)));
 
         mergePosition(pUpdate);
 
         recalcAffordableContracts();
         recalcLiqInfo();
+        return BitmexUtils.positionToString(pUpdate);
     }
 
     private synchronized void mergePosition(Position pUpdate) {

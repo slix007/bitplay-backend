@@ -90,7 +90,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return this.orderBook;
     }
 
-    public abstract void fetchPosition() throws Exception;
+    public abstract String fetchPosition() throws Exception;
 
     public abstract String getPositionAsString();
 

@@ -287,24 +287,14 @@ public class OkCoinService extends MarketService {
     }
 
     @Scheduled(fixedRate = 2000)
-    public void scheduledFetchPosition() throws Exception {
-        fetchPosition(false);
-    }
-
     @Override
-    public void fetchPosition() throws Exception {
-        fetchPosition(true);
-    }
-
-    private void fetchPosition(boolean withLogs) throws Exception {
+    public String fetchPosition() throws Exception {
         final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
         mergePosition(positionResult, null);
-        if (withLogs) {
-            tradeLogger.info(String.format("%s fetchPosition: %s", getCounterName(), position));
-        }
 
         recalcAffordableContracts();
         recalcLiqInfo();
+        return position != null ? position.toString() : "";
     }
 
     private synchronized void mergePosition(OkCoinPositionResult restUpdate, Position websocketUpdate) {

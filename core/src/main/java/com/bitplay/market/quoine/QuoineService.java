@@ -105,8 +105,8 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public void fetchPosition() {
-
+    public String fetchPosition() {
+        return null;
     }
 
     @Override

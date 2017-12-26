@@ -65,8 +65,11 @@ public class PosDiffService {
         final Long periodToCorrection = arbitrageService.getParams().getPeriodToCorrection();
         theTimer = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
                 .doOnComplete(() -> {
-                    arbitrageService.getFirstMarketService().fetchPosition();
-                    arbitrageService.getSecondMarketService().fetchPosition();
+                    final String infoMsg = "Double check before timer-correction: fetchPosition:";
+                    final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+                    final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
+                    warningLogger.info(infoMsg + "bitmex " + pos1);
+                    warningLogger.info(infoMsg + "okex "+ pos2);
 
                     doCorrectionImmediate(SignalType.CORR_PERIOD);
                 })
@@ -97,8 +100,11 @@ public class PosDiffService {
 
         try {
             if (isMdcNeeded()) {
-                arbitrageService.getFirstMarketService().fetchPosition();
-                arbitrageService.getSecondMarketService().fetchPosition();
+                final String infoMsg = "Double check before MDC-correction: fetchPosition:";
+                final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+                final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
+                warningLogger.info(infoMsg + "bitmex " + pos1);
+                warningLogger.info(infoMsg + "okex "+ pos2);
 
                 if (isMdcNeeded()) {
                     final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
@@ -173,9 +179,12 @@ public class PosDiffService {
                             } catch (InterruptedException e) {
                                 logger.error("Sleep was interrupted");
                             }
-                            arbitrageService.getFirstMarketService().fetchPosition();
-                            arbitrageService.getSecondMarketService().fetchPosition();
-                            debugLogger.info("calcPosDiff - fetchPositions");
+
+                            final String infoMsg = "Double check before correction: fetchPosition:";
+                            final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+                            final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
+                            warningLogger.info(infoMsg + "bitmex " + pos1);
+                            warningLogger.info(infoMsg + "okex "+ pos2);
 
                             calcPosDiff(true);
                         } else {
