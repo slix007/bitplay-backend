@@ -168,6 +168,12 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             case SWAP:
             case SWAP_AWAIT:
                 // do nothing
+                if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
+                    logger.info("reset {} from UI", marketState);
+                    setMarketState(MarketState.READY);
+                } else {
+                    logger.info("Free attempt when {}", marketState);
+                }
                 break;
             case WAITING_ARB:
             case MOVING:

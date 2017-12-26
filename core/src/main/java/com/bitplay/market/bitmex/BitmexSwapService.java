@@ -182,23 +182,31 @@ public class BitmexSwapService {
     }
 
     private void doSwapV2Opening() {
-        tradeLogger.info("doSwapV2Opening, thread: " + Thread.currentThread().getName());
+        try {
+            tradeLogger.info("doSwapV2Opening, thread: " + Thread.currentThread().getName());
 
-        SwapParams swapParams = bitmexService.getPersistenceService().fetchSwapParams(bitmexService.getName());
-        final SwapV2 swapV2 = swapParams.getSwapV2();
-        Order.OrderType orderType = swapV2.getSwapOpenType().equals("Buy") ? Order.OrderType.BID : Order.OrderType.ASK; // Sell, Buy
-        final BigDecimal amountInContracts = new BigDecimal(swapV2.getSwapOpenAmount());
+            SwapParams swapParams = bitmexService.getPersistenceService().fetchSwapParams(bitmexService.getName());
+            final SwapV2 swapV2 = swapParams.getSwapV2();
+            Order.OrderType orderType = swapV2.getSwapOpenType().equals("Buy") ? Order.OrderType.BID : Order.OrderType.ASK; // Sell, Buy
+            final BigDecimal amountInContracts = new BigDecimal(swapV2.getSwapOpenAmount());
 
-        printAskBid("Before request");
+            printAskBid("Before request");
 
-        final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, amountInContracts, null, SignalType.SWAP_OPEN);
-        if (tradeResponse.getOrderId() != null) {
-            swapParams.getSwapV2().setMsToSwapString("");
-            bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
+            final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, amountInContracts, null, SignalType.SWAP_OPEN);
+            if (tradeResponse.getOrderId() != null) {
+                swapParams.getSwapV2().setMsToSwapString("");
+                bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
 
-            printSwapTimeAndAvgPrice(tradeResponse.getOrderId());
+                printSwapTimeAndAvgPrice(tradeResponse.getOrderId());
 
-            resetSwapState(true);
+                resetSwapState(true);
+            } else {
+                tradeLogger.warn("orderId is null");
+            }
+        } catch (Exception e) {
+            String message = "doSwapV2Opening error: " + e.getMessage();
+            logger.error(message, e);
+            tradeLogger.error(message);
         }
 
     }

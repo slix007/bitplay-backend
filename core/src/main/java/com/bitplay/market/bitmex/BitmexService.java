@@ -735,14 +735,19 @@ public class BitmexService extends MarketService {
         final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1);
 
         final TradeResponse tradeResponse = placeOrder(placeOrderArgs);
+
         final List<FplayOrder> failedOrders = tradeResponse.getCancelledOrders().stream()
                 .map(limitOrder -> new FplayOrder(limitOrder, placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType()))
                 .collect(Collectors.toList());
-        final FplayOrder newOrder = new FplayOrder(tradeResponse.getLimitOrder(), placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType());
-
-        synchronized (openOrdersLock) {
-            this.openOrders.addAll(failedOrders);
-            this.openOrders.add(newOrder);
+        FplayOrder newOrder = null;
+        if (tradeResponse.getLimitOrder() != null) {
+            newOrder = new FplayOrder(tradeResponse.getLimitOrder(), placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType());
+        }
+        if (!failedOrders.isEmpty() || newOrder != null) {
+            synchronized (openOrdersLock) {
+                this.openOrders.addAll(failedOrders);
+                if (newOrder != null) this.openOrders.add(newOrder);
+            }
         }
 
         return tradeResponse;
