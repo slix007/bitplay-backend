@@ -234,7 +234,13 @@ public class BitmexService extends MarketService {
 
     private synchronized void checkForRestart() {
         logger.info("checkForRestart " + getSubscribersStatuses());
-        if (!isDestroyed) {
+        if (!isDestroyed
+                && orderBookSubscription != null
+                && accountInfoSubscription != null
+                && openOrdersSubscription != null
+                && positionSubscription != null
+                && futureIndexSubscription != null
+                ) {
             if (orderBookSubscription.isDisposed()
                     || accountInfoSubscription.isDisposed()
                     || openOrdersSubscription.isDisposed()

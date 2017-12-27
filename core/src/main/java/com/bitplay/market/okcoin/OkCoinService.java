@@ -58,7 +58,6 @@ import java.math.RoundingMode;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -693,69 +692,64 @@ public class OkCoinService extends MarketService {
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
                                           boolean isMoving, SignalType signalType, PlacingType placingSubType) throws IOException {
         final TradeResponse tradeResponse = new TradeResponse();
-        arbitrageService.setSignalType(signalType);
-        setMarketState(MarketState.PLACING_ORDER);
 
         BigDecimal thePrice;
 
-        try {
-            if (placingSubType == PlacingType.MAKER) {
-                thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-            } else if (placingSubType == PlacingType.HYBRID) {
-                final String message = Utils.getTenAskBid(getOrderBook(),
-                        arbitrageService.getSignalType().getCounterName(),
-                        "Before hybrid placing");
-                logger.info(message);
-                tradeLogger.info(message);
+        if (placingSubType == PlacingType.MAKER) {
+            thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
+        } else if (placingSubType == PlacingType.HYBRID) {
+            final String message = Utils.getTenAskBid(getOrderBook(),
+                    arbitrageService.getSignalType().getCounterName(),
+                    "Before hybrid placing");
+            logger.info(message);
+            tradeLogger.info(message);
 
-                // the best Taker price, but only once
-                thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-            } else {
-                // use hybrid if accidentally TAKER is switched
-                thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-                //throw new IllegalStateException("placing maker, but subType is taker");
-                tradeLogger.warn("placing maker, but subType is taker");
-                warningLogger.warn("placing maker, but subType is taker");
-            }
-
-            if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
-                tradeResponse.setErrorCode("The new price is 0 ");
-            } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
-
-                tradeResponse.setErrorCode("Not enough amount left. amount=" + tradeableAmount.toPlainString());
-
-            } else {
-                // USING REST API
-                orderType = adjustOrderType(orderType, tradeableAmount);
-
-                final LimitOrder limitOrder = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
-                String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
-                tradeResponse.setOrderId(orderId);
-
-                final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(), thePrice);
-                tradeResponse.setLimitOrder(limitOrderWithId);
-                final FplayOrder fplayOrder = new FplayOrder(limitOrderWithId, bestQuotes, placingSubType, signalType);
-                orderRepositoryService.save(fplayOrder);
-
-                if (!isMoving) {
-                    synchronized (openOrdersLock) {
-                        openOrders.add(fplayOrder);
-                    }
-                }
-
-                if (signalType == SignalType.AUTOMATIC) {
-                    arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
-                }
-                orderIdToSignalInfo.put(orderId, bestQuotes);
-
-                String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType.toString();
-                writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
-                        placingTypeString,
-                        signalType, thePrice, orderId, null);
-            }
-        } finally {
-            setMarketState(MarketState.ARBITRAGE);
+            // the best Taker price, but only once
+            thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
+        } else {
+            // use hybrid if accidentally TAKER is switched
+            thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
+            //throw new IllegalStateException("placing maker, but subType is taker");
+            tradeLogger.warn("placing maker, but subType is taker");
+            warningLogger.warn("placing maker, but subType is taker");
         }
+
+        if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
+            tradeResponse.setErrorCode("The new price is 0 ");
+        } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
+
+            tradeResponse.setErrorCode("Not enough amount left. amount=" + tradeableAmount.toPlainString());
+
+        } else {
+            // USING REST API
+            orderType = adjustOrderType(orderType, tradeableAmount);
+
+            final LimitOrder limitOrder = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
+            String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
+            tradeResponse.setOrderId(orderId);
+
+            final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(), thePrice);
+            tradeResponse.setLimitOrder(limitOrderWithId);
+            final FplayOrder fplayOrder = new FplayOrder(limitOrderWithId, bestQuotes, placingSubType, signalType);
+            orderRepositoryService.save(fplayOrder);
+
+            if (!isMoving) {
+                synchronized (openOrdersLock) {
+                    openOrders.add(fplayOrder);
+                }
+            }
+
+            if (signalType == SignalType.AUTOMATIC) {
+                arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
+            }
+            orderIdToSignalInfo.put(orderId, bestQuotes);
+
+            String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType.toString();
+            writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
+                    placingTypeString,
+                    signalType, thePrice, orderId, null);
+        }
+
         return tradeResponse;
     }
 
