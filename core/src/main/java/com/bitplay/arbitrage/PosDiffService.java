@@ -6,6 +6,8 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.Counters;
+import com.bitplay.persistance.domain.settings.ArbScheme;
+import com.bitplay.persistance.domain.settings.Settings;
 
 import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
@@ -247,10 +249,16 @@ public class PosDiffService {
         Order.OrderType orderType;
         BigDecimal correctAmount;
         MarketService marketService;
+        PlacingType placingType;
         final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
         final BigDecimal bEquiv = bP.subtract(hedgeAmount);
 
         final Counters counters = persistenceService.fetchCounters();
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        final PlacingType okexPlacingType = settings.getOkexPlacingType();
+        final PlacingType bitmexPlacingType = settings.getArbScheme() == ArbScheme.TT
+                ? PlacingType.TAKER
+                : PlacingType.MAKER; // else MT,MT2
 
         if (positionsDiffWithHedge.signum() < 0) {
             orderType = Order.OrderType.BID;
@@ -262,6 +270,7 @@ public class PosDiffService {
                     signalType = SignalType.B_CORR;
                     counters.incCorrCounter1();
                 }
+                placingType = bitmexPlacingType;
             } else {
                 // okcoin buy
                 correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
@@ -273,6 +282,7 @@ public class PosDiffService {
                     signalType = SignalType.O_CORR;
                     counters.incCorrCounter2();
                 }
+                placingType = okexPlacingType;
             }
         } else {
             orderType = Order.OrderType.ASK;
@@ -287,6 +297,7 @@ public class PosDiffService {
                     signalType = SignalType.O_CORR;
                     counters.incCorrCounter2();
                 }
+                placingType = okexPlacingType;
             } else {
                 // bitmex sell
                 correctAmount = positionsDiffWithHedge.abs();
@@ -295,6 +306,7 @@ public class PosDiffService {
                     signalType = SignalType.B_CORR;
                     counters.incCorrCounter1();
                 }
+                placingType = bitmexPlacingType;
             }
         }
 
@@ -308,7 +320,7 @@ public class PosDiffService {
             marketService.setBusy();
             // Market specific params
             marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
-                    PlacingType.TAKER, signalType, 1));
+                    placingType, signalType, 1));
         }
     }
 
