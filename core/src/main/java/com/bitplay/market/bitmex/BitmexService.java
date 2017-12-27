@@ -415,6 +415,9 @@ public class BitmexService extends MarketService {
                                                     MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
                                         }
 
+                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {
+                                        tradeLogger.warn("MovingException: " + response.getDescription());
+                                        logger.warn("MovingException: " + response.getDescription());
                                     }
 
                                 } catch (Exception e) {
@@ -644,7 +647,7 @@ public class BitmexService extends MarketService {
                             updateOfOpenOrders.getOpenOrders()
                                     .forEach(update -> {
                                         if (update.getStatus() == Order.OrderStatus.FILLED) {
-                                            tradeLogger.info("{} Order {} FILLED", getCounterName(), update.getId());
+                                            logger.info("{} Order {} FILLED", getCounterName(), update.getId());
                                             getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
                                         }
                                     });
@@ -931,9 +934,9 @@ public class BitmexService extends MarketService {
     public MoveResponse moveMakerOrder(FplayOrder fplayOrder, SignalType signalType, BigDecimal newPrice) {
         final LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "do nothing by default");
-        final Settings settings = settingsRepositoryService.getSettings();
-        if (settings.getArbScheme() == ArbScheme.TT) {
-            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving for taker");
+
+        if (fplayOrder.getPlacingType() != null && fplayOrder.getPlacingType() == PlacingType.TAKER) {
+            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving. Order was placed as taker.");
         }
 
         try {

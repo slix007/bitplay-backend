@@ -42,6 +42,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -440,8 +441,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     public abstract TradeService getTradeService();
 
     /**
-     * Add new openOrders.<br>
-     * Do not remove old. They will be checked in moveMakerOrder()
+     * Refresh all openOrders
      *
      * @return list of open orders.
      */
@@ -460,7 +460,18 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                         getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
                     }
 
-                    updateOpenOrders(fetchedList);
+                    synchronized (openOrdersLock) {
+                        this.openOrders = fetchedList.stream()
+                                .map(limitOrder ->
+                                        this.openOrders.stream()
+                                                .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
+                                                .findAny()
+                                                .map(fOrd -> new FplayOrder(limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(), fOrd.getSignalType()))
+                                                .orElseGet(() -> new FplayOrder((limitOrder), null, null, null)))
+                                .collect(Collectors.toList());
+                    }
+
+                    // updateOpenOrders(fetchedList); - Don't use incremental update
 
                 } catch (Exception e) {
                     logger.error("GetOpenOrdersError", e);

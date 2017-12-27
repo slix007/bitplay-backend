@@ -156,6 +156,10 @@ public abstract class MarketServiceOpenOrders {
                                 update.getCumulativeAmount(),
                                 update.getTimestamp().toString());
 
+                        if (update.getStatus() == Order.OrderStatus.FILLED) {
+                            getTradeLogger().info("{} Order {} FILLED", getCounterName(), update.getId());
+                        }
+
                         final FplayOrder fplayOrder = updateOpenOrder(update); // exist or null
 
                         return removeOpenOrderByTime(fplayOrder);

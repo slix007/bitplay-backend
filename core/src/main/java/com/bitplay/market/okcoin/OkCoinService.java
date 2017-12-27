@@ -247,13 +247,6 @@ public class OkCoinService extends MarketService {
                     this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                     logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
 
-//                    CompletableFuture.runAsync(this::checkOpenOrdersForMoving)
-//                            .exceptionally(throwable -> {
-//                                logger.error("OnCheckOpenOrders", throwable);
-//                                return null;
-//                            });
-
-
                     getArbitrageService().getSignalEventBus().send(SignalEvent.O_ORDERBOOK_CHANGED);
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
@@ -894,7 +887,9 @@ public class OkCoinService extends MarketService {
                                                 movingErrorsOverloaded.set(0);
                                             }
 
-                                        } // else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) { // do nothing
+                                        }
+                                        // else MoveResponse.MoveOrderStatus.ONLY_CANCEL) // do nothing //TODO do something
+                                        // else MoveResponse.MoveOrderStatus.EXCEPTION) // do nothing
 
                                     } catch (Exception e) {
                                         // use default OO
@@ -960,7 +955,7 @@ public class OkCoinService extends MarketService {
             fOrderToCancel.setOrder(cancelledOrder);
 
             // 3. Already closed?
-            if (okCoinTradeResult.isResult() || cancelledOrder.getStatus() == Order.OrderStatus.FILLED) { // Already closed (FILLED)
+            if (cancelledOrder.getStatus() == Order.OrderStatus.FILLED) { // Already closed (FILLED)
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null,
                         fOrderToCancel);
 
@@ -980,11 +975,19 @@ public class OkCoinService extends MarketService {
                 TradeResponse tradeResponse = new TradeResponse();
                 tradeResponse = finishMovingSync(limitOrder, signalType, bestQuotes, counterName, cancelledOrder, tradeResponse);
 
-                final LimitOrder newOrder = tradeResponse.getLimitOrder();
-                final FplayOrder newFplayOrder = new FplayOrder(newOrder, fOrderToCancel.getBestQuotes(),
-                        fOrderToCancel.getPlacingType(), fOrderToCancel.getSignalType());
-                response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(),
-                        newOrder, newFplayOrder, fOrderToCancel);
+                if (tradeResponse.getLimitOrder() != null) {
+                    final LimitOrder newOrder = tradeResponse.getLimitOrder();
+                    final FplayOrder newFplayOrder = new FplayOrder(newOrder, fOrderToCancel.getBestQuotes(),
+                            fOrderToCancel.getPlacingType(), fOrderToCancel.getSignalType());
+                    response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(),
+                            newOrder, newFplayOrder, fOrderToCancel);
+                } else {
+                    warningLogger.info(String.format("%s Can not move orderId=%s, ONLY_CANCEL!!!",
+                            getCounterName(), limitOrder.getId()));
+                    response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, tradeResponse.getOrderId(),
+                            null, null, fOrderToCancel);
+                }
+
             }
         } finally {
             setMarketState(savedState);
