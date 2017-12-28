@@ -376,30 +376,34 @@ public class BitmexService extends MarketService {
                                         } else {
 
                                             // place new order instead of 'cancelled-on-moving'
-                                            final LimitOrder cancelledOrder = (LimitOrder) response.getCancelledFplayOrder().getOrder();
-                                            final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
-                                                    cancelledOrder.getType(),
-                                                    cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount()),
-                                                    openOrder.getBestQuotes(),
-                                                    openOrder.getPlacingType(),
-                                                    openOrder.getSignalType(),
-                                                    1));
+                                            final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
+                                            if (cancelledFplayOrder != null) {
+                                                final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
+                                                final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
+                                                        cancelledOrder.getType(),
+                                                        cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount()),
+                                                        openOrder.getBestQuotes(),
+                                                        openOrder.getPlacingType(),
+                                                        openOrder.getSignalType(),
+                                                        1));
 
-                                            final Stream.Builder<FplayOrder> streamBuilder = Stream.builder();
-                                            // 1. old order
-                                            streamBuilder.add(response.getCancelledFplayOrder());
+                                                final Stream.Builder<FplayOrder> streamBuilder = Stream.builder();
+                                                // 1. old order
+                                                streamBuilder.add(cancelledFplayOrder);
 
-                                            // 2. new order
-                                            final LimitOrder placedOrder = tradeResponse.getLimitOrder();
-                                            if (placedOrder != null) {
-                                                streamBuilder.add(new FplayOrder(placedOrder, openOrder.getBestQuotes(), openOrder.getPlacingType(), openOrder.getSignalType()));
+                                                // 2. new order
+                                                final LimitOrder placedOrder = tradeResponse.getLimitOrder();
+                                                if (placedOrder != null) {
+                                                    streamBuilder.add(new FplayOrder(placedOrder, openOrder.getBestQuotes(), openOrder.getPlacingType(), openOrder.getSignalType()));
+                                                }
+
+                                                // 3. failed on placing
+                                                tradeResponse.getCancelledOrders()
+                                                        .forEach(limitOrder -> streamBuilder.add(
+                                                                new FplayOrder(limitOrder, openOrder.getBestQuotes(), openOrder.getPlacingType(), openOrder.getSignalType())));
+                                                orderStream = streamBuilder.build();
+
                                             }
-
-                                            // 3. failed on placing
-                                            tradeResponse.getCancelledOrders()
-                                                    .forEach(limitOrder -> streamBuilder.add(
-                                                            new FplayOrder(limitOrder, openOrder.getBestQuotes(), openOrder.getPlacingType(), openOrder.getSignalType())));
-                                            orderStream = streamBuilder.build();
 
                                             scheduledMoveInProgressReset = scheduler.schedule(() -> movingErrorsOverloaded.set(0),
                                                     MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
@@ -812,13 +816,14 @@ public class BitmexService extends MarketService {
                         orderId = resultOrder.getId();
                         final FplayOrder fplayOrder = new FplayOrder(resultOrder, bestQuotes, placingType, signalType);
                         orderRepositoryService.save(fplayOrder);
-                        if (orderId != null) {
+                        if (orderId != null && !orderId.equals("0")) {
                             tradeResponse.setLimitOrder(resultOrder);
                         }
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
                             tradeResponse.addCancelledOrder(requestOrder);
                             tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
+                            tradeResponse.setLimitOrder(null);
                             tradeLogger.info("{} {} {} CANCELED amount={}, filled={}, quote={}, orderId={}",
                                     getCounterName(),
                                     placingType,
