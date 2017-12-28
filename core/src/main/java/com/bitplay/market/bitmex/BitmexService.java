@@ -18,7 +18,6 @@ import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
-import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
@@ -357,10 +356,9 @@ public class BitmexService extends MarketService {
 
                             } else {
 
-                                final SignalType signalType = arbitrageService.getSignalType();
                                 try {
 
-                                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
+                                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
                                     //TODO keep an eye on 'hang open orders'
                                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
 //                                        orderStream = Stream.empty(); // no such case anymore
@@ -936,8 +934,9 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, SignalType signalType, BigDecimal newPrice) {
+    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice) {
         final LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
+        final SignalType signalType = fplayOrder.getSignalType() != null ? fplayOrder.getSignalType() : getArbitrageService().getSignalType();
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "do nothing by default");
 
         if (fplayOrder.getPlacingType() != null && fplayOrder.getPlacingType() == PlacingType.TAKER) {

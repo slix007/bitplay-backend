@@ -867,10 +867,9 @@ public class OkCoinService extends MarketService {
                                     // keep the order
                                 } else {
 
-                                    final SignalType signalType = arbitrageService.getSignalType();
                                     try {
 
-                                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, signalType);
+                                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
                                         //TODO keep an eye on 'hang open orders'
                                         if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
                                             // keep the order
@@ -918,8 +917,10 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(FplayOrder fOrderToCancel, SignalType signalType, BigDecimal bestMarketPrice) {
+    public MoveResponse moveMakerOrder(FplayOrder fOrderToCancel, BigDecimal bestMarketPrice) {
         final LimitOrder limitOrder = (LimitOrder) fOrderToCancel.getOrder();
+        final SignalType signalType = fOrderToCancel.getSignalType() != null ? fOrderToCancel.getSignalType() : getArbitrageService().getSignalType();
+
         if (limitOrder.getStatus() == Order.OrderStatus.CANCELED || limitOrder.getStatus() == Order.OrderStatus.FILLED) {
             tradeLogger.error("{} do not move ALREADY_CLOSED order", getCounterName());
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
@@ -973,7 +974,8 @@ public class OkCoinService extends MarketService {
                 // 3. Place order
             } else { //if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
                 TradeResponse tradeResponse = new TradeResponse();
-                tradeResponse = finishMovingSync(limitOrder, signalType, bestQuotes, counterName, cancelledOrder, tradeResponse);
+                tradeResponse = finishMovingSync(limitOrder, signalType, bestQuotes, counterName, cancelledOrder, tradeResponse,
+                        fOrderToCancel.getPlacingType());
 
                 if (tradeResponse.getLimitOrder() != null) {
                     final LimitOrder newOrder = tradeResponse.getLimitOrder();
@@ -996,7 +998,8 @@ public class OkCoinService extends MarketService {
         return response;
     }
 
-    private TradeResponse finishMovingSync(LimitOrder limitOrder, SignalType signalType, BestQuotes bestQuotes, String counterName, Order cancelledOrder, TradeResponse tradeResponse) {
+    private TradeResponse finishMovingSync(LimitOrder limitOrder, SignalType signalType, BestQuotes bestQuotes, String counterName,
+                                           Order cancelledOrder, TradeResponse tradeResponse, PlacingType placingType) {
         int attemptCount = 0;
         while (attemptCount < MAX_ATTEMPTS_FOR_MOVING) {
             try {
@@ -1008,7 +1011,10 @@ public class OkCoinService extends MarketService {
                 final BigDecimal newAmount = limitOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount())
                         .setScale(0, RoundingMode.HALF_UP);
 
-                final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
+                PlacingType okexPlacingType = placingType;
+                if (okexPlacingType == null) {
+                    placingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
+                }
 
                 tradeResponse = placeMakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType);
 
@@ -1079,7 +1085,7 @@ public class OkCoinService extends MarketService {
     }
 
     @NotNull
-    private OkCoinTradeResult cancelOrderSync(String orderId, String logInfoId) {
+    public OkCoinTradeResult cancelOrderSync(String orderId, String logInfoId) {
         final String counterName = getCounterName();
         OkCoinTradeResult result = new OkCoinTradeResult(false, 0, 0);
 

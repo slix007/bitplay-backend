@@ -562,7 +562,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     abstract protected void iterateOpenOrdersMove();
 
-    public MoveResponse moveMakerOrderFromGui(String orderId, SignalType signalType) {
+    public MoveResponse moveMakerOrderFromGui(String orderId) {
         MoveResponse response;
 
         List<FplayOrder> orderList = null;
@@ -578,16 +578,16 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 this.openOrders = orderList;
 
                 response = this.openOrders.stream()
-                        .filter(limitOrder -> limitOrder.getOrder().getId().equals(orderId))
+                        .filter(order -> order.getOrder().getId().equals(orderId))
                         .findFirst()
-                        .map(limitOrder -> moveMakerOrderIfNotFirst(limitOrder, signalType))
+                        .map(this::moveMakerOrderIfNotFirst)
                         .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
             }
         }
         return response;
     }
 
-    public abstract MoveResponse moveMakerOrder(FplayOrder fplayOrder, SignalType signalType, BigDecimal newPrice);
+    public abstract MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice);
 
     protected BigDecimal createBestMakerPrice(Order.OrderType orderType) {
         BigDecimal thePrice = BigDecimal.ZERO;
@@ -621,7 +621,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return thePrice;
     }
 
-    protected MoveResponse moveMakerOrderIfNotFirst(FplayOrder fplayOrder, SignalType signalType) {
+    protected MoveResponse moveMakerOrderIfNotFirst(FplayOrder fplayOrder) {
         MoveResponse response;
         LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
         if (limitOrder.getLimitPrice() == null) {
@@ -661,7 +661,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 logger.info("{} Try to move maker order {} {}, from {} to {}",
                         getName(), limitOrder.getId(), limitOrder.getType(),
                         limitOrder.getLimitPrice(), bestPrice);
-                response = moveMakerOrder(fplayOrder, signalType, bestPrice);
+                response = moveMakerOrder(fplayOrder, bestPrice);
             } else {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
             }

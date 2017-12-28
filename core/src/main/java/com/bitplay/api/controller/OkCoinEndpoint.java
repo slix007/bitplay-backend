@@ -11,6 +11,7 @@ import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.service.BitplayUIServiceOkCoin;
 
+import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
@@ -64,8 +65,18 @@ public class OkCoinEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson openOrders(@RequestBody OrderJson orderJson) {
+    public ResultJson openOrdersMove(@RequestBody OrderJson orderJson) {
         return this.okCoin.moveOpenOrder(orderJson);
+    }
+
+    @RequestMapping(value = "/open-orders/cancel",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson openOrdersCancel(@RequestBody OrderJson orderJson) {
+        final String id = orderJson.getId();
+        final OkCoinTradeResult cancelResult = this.okCoin.getBusinessService().cancelOrderSync(id, "CancelFromUI");
+        return new ResultJson(String.valueOf(cancelResult.isResult()), cancelResult.getDetails());
     }
 
     @RequestMapping(value = "/future-index", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

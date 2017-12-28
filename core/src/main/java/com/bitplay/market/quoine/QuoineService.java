@@ -95,7 +95,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, SignalType signalType, BigDecimal bestMarketPrice) {
+    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal bestMarketPrice) {
         return null;
     }
 

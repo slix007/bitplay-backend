@@ -490,9 +490,9 @@ public class PoloniexService extends MarketService {
 
     /**
      * Use when you're sure that order should be moved(has not the best price)
-     * Use {@link MarketService#moveMakerOrderIfNotFirst(FplayOrder, com.bitplay.arbitrage.SignalType)} when you know that price is not the best.
+     * Use {@link MarketService#moveMakerOrderIfNotFirst(FplayOrder)} when you know that price is not the best.
      */
-    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, SignalType signalType, BigDecimal bestMarketPrice) {
+    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal bestMarketPrice) {
         final LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
 
         MoveResponse response;
