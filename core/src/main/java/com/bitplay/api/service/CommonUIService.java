@@ -16,8 +16,12 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import com.bitplay.persistance.domain.settings.Settings;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -37,6 +41,9 @@ public class CommonUIService {
 
     @Autowired
     private ArbitrageService arbitrageService;
+
+    @Autowired
+    private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
     private PosDiffService posDiffService;
@@ -286,24 +293,25 @@ public class CommonUIService {
                 arbitrageService.getSecondMarketService().isReadyForArbitrage()
         );
     }
-
-    public TradableAmountJson getTradableAmount() {
-        return new TradableAmountJson(arbitrageService.getParams().getBlock1().toPlainString(),
-                arbitrageService.getParams().getBlock2().toPlainString());
-    }
-
-    public TradableAmountJson updateTradableAmount(TradableAmountJson tradableAmountJson) {
-        if (tradableAmountJson.getBlock1() != null) {
-            arbitrageService.getParams().setBlock1(new BigDecimal(tradableAmountJson.getBlock1()));
-        }
-        if (tradableAmountJson.getBlock2() != null) {
-            arbitrageService.getParams().setBlock2(new BigDecimal(tradableAmountJson.getBlock2()));
-        }
-
-        arbitrageService.saveParamsToDb();
-        return new TradableAmountJson(arbitrageService.getParams().getBlock1().toPlainString(),
-                arbitrageService.getParams().getBlock2().toPlainString());
-    }
+//
+//    public TradableAmountJson getTradableAmount() {
+//        final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
+//        return new TradableAmountJson(arbitrageService.getParams().getBlock1().toPlainString(),
+//                arbitrageService.getParams().getBlock2().toPlainString());
+//    }
+//
+//    public TradableAmountJson updateTradableAmount(TradableAmountJson tradableAmountJson) {
+//        if (tradableAmountJson.getBlock1() != null) {
+//            arbitrageService.getParams().setBlock1(new BigDecimal(tradableAmountJson.getBlock1()));
+//        }
+//        if (tradableAmountJson.getBlock2() != null) {
+//            arbitrageService.getParams().setBlock2(new BigDecimal(tradableAmountJson.getBlock2()));
+//        }
+//
+//        arbitrageService.saveParamsToDb();
+//        return new TradableAmountJson(arbitrageService.getParams().getBlock1().toPlainString(),
+//                arbitrageService.getParams().getBlock2().toPlainString());
+//    }
 
     public ResultJson printSumBal() {
         arbitrageService.printSumBal(true);

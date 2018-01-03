@@ -11,6 +11,7 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.dto.Order;
@@ -463,8 +464,9 @@ public class ArbitrageService {
     }
 
     public void startTradingOnDelta1(SignalType signalType, BestQuotes bestQuotes) {
-        final BigDecimal b_block = params.getBlock1();
-        final BigDecimal o_block = params.getBlock2();
+        final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
+        final BigDecimal b_block = placingBlocks.getFixedBlockBitmex();
+        final BigDecimal o_block = placingBlocks.getFixedBlockOkex();
         startTradingOnDelta1(signalType, bestQuotes, b_block, o_block, null);
     }
 
@@ -504,8 +506,9 @@ public class ArbitrageService {
     }
 
     public void startTradingOnDelta2(SignalType signalType, BestQuotes bestQuotes) {
-        final BigDecimal b_block = params.getBlock1();
-        final BigDecimal o_block = params.getBlock2();
+        final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
+        final BigDecimal b_block = placingBlocks.getFixedBlockBitmex();
+        final BigDecimal o_block = placingBlocks.getFixedBlockOkex();
         startTradingOnDelta2(signalType, bestQuotes, b_block, o_block, null);
     }
 

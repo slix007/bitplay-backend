@@ -6,6 +6,7 @@ import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.BorderTable;
 import com.bitplay.persistance.domain.BordersV2;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,7 @@ public class BordersService {
     private volatile static BorderParams.PosMode theMode = BorderParams.PosMode.OK_MODE;
 
     public TradingSignal checkBorders(BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
-        final GuiParams guiParams = persistenceService.fetchGuiParams();
+        final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
 
         final BorderParams borderParams = persistenceService.fetchBorders();
         final BordersV2 bordersV2 = borderParams.getBordersV2();
@@ -45,10 +46,12 @@ public class BordersService {
         final int block;
         final int pos;
         if (theMode == BorderParams.PosMode.BTM_MODE) {
-            block = guiParams.getBlock1().intValueExact();
+//            block = guiParams.getBlock1().intValueExact();
+            block = placingBlocks.getFixedBlockBitmex().intValueExact();
             pos = bP.intValueExact();
         } else {
-            block = guiParams.getBlock2().intValueExact();
+//            block = guiParams.getBlock2().intValueExact();
+            block = placingBlocks.getFixedBlockOkex().intValueExact();
             pos = oPL.intValueExact() - oPS.intValueExact();
         }
 

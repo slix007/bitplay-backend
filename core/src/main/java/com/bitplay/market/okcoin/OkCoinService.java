@@ -168,6 +168,16 @@ public class OkCoinService extends MarketService {
     private void initWebSocketAndAllSubscribers() {
         initWebSocketConnection();
 
+        try {
+            // Workaround for deadlock. Init settings from DB.
+            final Settings settings = settingsRepositoryService.getSettings();
+            logger.trace(settings.getPlacingBlocks().toString());
+
+            fetchPosition();
+        } catch (Exception e) {
+            logger.error("FetchPositionError", e);
+        }
+
         createOrderBookObservable();
         subscribeOnOrderBook();
 
@@ -176,12 +186,6 @@ public class OkCoinService extends MarketService {
         futureIndexSubscription = startFutureIndexListener();
 
         fetchOpenOrders();
-
-        try {
-            fetchPosition();
-        } catch (Exception e) {
-            logger.error("FetchPositionError", e);
-        }
     }
 
     private Completable closeAllSubscibers() {
@@ -481,9 +485,10 @@ public class OkCoinService extends MarketService {
 
     private synchronized void recalcAffordableContracts() {
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc2();
-        final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
+        final BigDecimal volPlan = settingsRepositoryService.getSettings().getPlacingBlocks().getFixedBlockOkex();
+//        final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 
-        if (accountInfoContracts != null && position != null) {
+        if (accountInfoContracts != null && position != null && orderBook != null && orderBook.getBids().size() > 0) {
             final BigDecimal availableBtc = accountInfoContracts.getAvailable();
             final BigDecimal equityBtc = accountInfoContracts.geteLast();
 

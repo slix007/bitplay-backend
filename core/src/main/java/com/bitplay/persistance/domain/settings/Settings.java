@@ -22,6 +22,7 @@ public class Settings extends AbstractDocument {
     private SysOverloadArgs okexSysOverloadArgs;
     private PlacingType okexPlacingType;
     private BigDecimal bitmexPrice;
+    private PlacingBlocks placingBlocks;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -29,6 +30,7 @@ public class Settings extends AbstractDocument {
         settings.bitmexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexPlacingType = PlacingType.TAKER;
+        settings.placingBlocks = PlacingBlocks.createDefault();
         settings.setId(1L);
         return settings;
     }
@@ -79,6 +81,14 @@ public class Settings extends AbstractDocument {
         this.bitmexPrice = bitmexPrice;
     }
 
+    public PlacingBlocks getPlacingBlocks() {
+        return placingBlocks;
+    }
+
+    public void setPlacingBlocks(PlacingBlocks placingBlocks) {
+        this.placingBlocks = placingBlocks;
+    }
+
     @Override
     public String toString() {
         return "Settings{" +
@@ -87,6 +97,8 @@ public class Settings extends AbstractDocument {
                 ", okexSysOverloadArgs=" + okexSysOverloadArgs +
                 ", okexPlacingType=" + okexPlacingType +
                 ", bitmexPrice=" + bitmexPrice +
+                ", bitmexPrice=" + bitmexPrice +
+                ", placingBlocks=" + placingBlocks +
                 '}';
     }
 }

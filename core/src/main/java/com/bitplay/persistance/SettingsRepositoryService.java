@@ -1,5 +1,6 @@
 package com.bitplay.persistance;
 
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.persistance.repository.SettingsRepository;
@@ -27,10 +28,24 @@ public class SettingsRepositoryService {
         this.mongoOperation = mongoOperation;
     }
 
+    private volatile Settings settings;
+
     public Settings getSettings() {
+
+        if (settings == null) {
+            settings = fetchSettings();
+        }
+
+        return settings;
+    }
+
+    private Settings fetchSettings() {
         Settings one = settingsRepository.findOne(1L);
         if (one == null) {
             one = Settings.createDefault();
+        }
+        if (one.getPlacingBlocks() == null) {
+            one.setPlacingBlocks(PlacingBlocks.createDefault());
         }
         if (one.getBitmexSysOverloadArgs() == null) {
             one.setBitmexSysOverloadArgs(SysOverloadArgs.defaults());

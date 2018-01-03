@@ -132,18 +132,18 @@ public class CommonEndpoint {
         return commonUIService.freeMarketsStates();
     }
 
-    @RequestMapping(value = "/market/tradable-amount", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradableAmountJson getTradableAmount() {
-        return commonUIService.getTradableAmount();
-    }
+//    @RequestMapping(value = "/market/tradable-amount", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    public TradableAmountJson getTradableAmount() {
+//        return commonUIService.getTradableAmount();
+//    }
 
-    @RequestMapping(value = "/market/tradable-amount",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradableAmountJson setTradableAmount(@RequestBody TradableAmountJson tradableAmountJson) {
-        return commonUIService.updateTradableAmount(tradableAmountJson);
-    }
+//    @RequestMapping(value = "/market/tradable-amount",
+//            method = RequestMethod.POST,
+//            consumes = MediaType.APPLICATION_JSON_VALUE,
+//            produces = MediaType.APPLICATION_JSON_VALUE)
+//    public TradableAmountJson setTradableAmount(@RequestBody TradableAmountJson tradableAmountJson) {
+//        return commonUIService.updateTradableAmount(tradableAmountJson);
+//    }
 
     @RequestMapping(value = "/market/print-sum-bal",
             method = RequestMethod.POST,

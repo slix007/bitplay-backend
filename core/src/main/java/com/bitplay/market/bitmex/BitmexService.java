@@ -1,5 +1,6 @@
 package com.bitplay.market.bitmex;
 
+import com.bitplay.api.controller.DebugEndpoints;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BestQuotes;
@@ -191,6 +192,13 @@ public class BitmexService extends MarketService {
 
     @Override
     public void initializeMarket(String key, String secret) {
+        scheduledMoveInProgressReset = scheduler.scheduleAtFixedRate(
+                DebugEndpoints::detectDeadlock,
+                5,
+                60,
+                TimeUnit.SECONDS);
+
+
         this.usdInContract = 1;
         this.key = key;
         this.secret = secret;
@@ -606,7 +614,7 @@ public class BitmexService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.computation())
                 .subscribe(orderBook -> {
-                    if (orderBook != null) {
+                    if (orderBook != null && orderBook.getBids().size() > 0) {
                         final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
                         final LimitOrder bestBid = Utils.getBestBid(orderBook);
 
@@ -681,7 +689,7 @@ public class BitmexService extends MarketService {
     private synchronized void recalcAffordableContracts() {
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
 
-        if (accountInfoContracts != null) {
+        if (accountInfoContracts != null && orderBook != null && orderBook.getBids().size() > 0) {
             final BigDecimal availableBtc = accountInfoContracts.getAvailable();
             final BigDecimal equityBtc = accountInfoContracts.geteMark();
             final OrderBook orderBook = getOrderBook();

@@ -1,6 +1,5 @@
 package com.bitplay.api.service;
 
-import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.ResultJson;
@@ -12,13 +11,10 @@ import com.bitplay.market.bitmex.BitmexBalanceService;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
-import com.bitplay.market.dto.FullBalance;
 import com.bitplay.market.model.TradeResponse;
 
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
-import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

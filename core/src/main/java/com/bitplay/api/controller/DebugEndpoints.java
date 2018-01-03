@@ -43,7 +43,7 @@ public class DebugEndpoints {
         return detectDeadlock();
     }
 
-    private ResultJson detectDeadlock() {
+    public static ResultJson detectDeadlock() {
         ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
         long[] threadIds = threadBean.findDeadlockedThreads();
         int deadlockedThreads = (threadIds != null ? threadIds.length : 0);
@@ -59,7 +59,7 @@ public class DebugEndpoints {
         return new ResultJson(String.valueOf(deadlockedThreads), deadlocksMsg);
     }
 
-    private void handleDeadlock(final ThreadInfo[] deadlockedThreads) {
+    private static void handleDeadlock(final ThreadInfo[] deadlockedThreads) {
         if (deadlockedThreads != null) {
             logger.error("Deadlock detected!");
 

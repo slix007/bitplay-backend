@@ -1,6 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 
@@ -78,6 +79,15 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getBitmexPrice() != null) {
             settings.setBitmexPrice(settingsUpdate.getBitmexPrice());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getPlacingBlocks() != null) {
+            final PlacingBlocks current = settings.getPlacingBlocks();
+            final PlacingBlocks update = settingsUpdate.getPlacingBlocks();
+            current.setActiveVersion(update.getActiveVersion() != null ? update.getActiveVersion() : current.getActiveVersion());
+            current.setFixedBlockOkex(update.getFixedBlockOkex() != null ? update.getFixedBlockOkex() : current.getFixedBlockOkex());
+            current.setDynMaxBlockOkex(update.getDynMaxBlockOkex() != null ? update.getDynMaxBlockOkex() : current.getDynMaxBlockOkex());
+            settings.setPlacingBlocks(current);
             settingsRepositoryService.saveSettings(settings);
         }
 
