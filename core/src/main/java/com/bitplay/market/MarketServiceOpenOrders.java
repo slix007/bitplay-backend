@@ -162,6 +162,10 @@ public abstract class MarketServiceOpenOrders {
 
                         final FplayOrder fplayOrder = updateOpenOrder(update); // exist or null
 
+                        if (fplayOrder.getOrderId().equals("0")) {
+                            getTradeLogger().warn("WARNING: update of fplayOrder with id=0: " + fplayOrder);
+                        }
+
                         return removeOpenOrderByTime(fplayOrder);
                     }).collect(Collectors.toList());
 

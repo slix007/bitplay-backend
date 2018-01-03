@@ -357,6 +357,10 @@ public class BitmexService extends MarketService {
                             } else {
 
                                 try {
+                                    if (openOrder.getOrder().getId().equals("0")) {
+                                        orderStream = Stream.empty();
+                                        return orderStream;
+                                    }
 
                                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
                                     //TODO keep an eye on 'hang open orders'
