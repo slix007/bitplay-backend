@@ -997,7 +997,9 @@ public class BitmexService extends MarketService {
 
         } catch (HttpStatusIOException e) {
 
-            HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "MoveOrderError", movingErrorsOverloaded.get()).invoke();
+            HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e,
+                    String.format("MoveOrderError:ordId=%s", limitOrder.getId()),
+                    movingErrorsOverloaded.get()).invoke();
             moveResponse = handler.getMoveResponse();
             // double check  "Invalid ordStatus"
             if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
