@@ -86,6 +86,7 @@ public class OkCoinService extends MarketService {
     public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
+    private static final Logger ordersLogger = LoggerFactory.getLogger("OKCOIN_ORDERS_LOG");
 
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
     private final static String NAME = "okcoin";
@@ -766,7 +767,7 @@ public class OkCoinService extends MarketService {
 
         // sell, buy, close sell, close buy
 
-        tradeLogger.info("{}/end: {} {} amount={}, quote={}, orderId={}, status={}, ({})",
+        final String message = String.format("%s/end: %s %s amount=%s, quote=%s, orderId=%s, status=%s, (%s)",
                 getCounterName(),
                 placingType, //isMoving ? "Moving3:Moved" : "maker",
                 Utils.convertOrderTypeName(orderType),
@@ -775,6 +776,8 @@ public class OkCoinService extends MarketService {
                 orderId,
                 status,
                 diffWithSignal);
+        tradeLogger.info(message);
+        ordersLogger.info(message);
     }
 
     private Order.OrderType adjustOrderType(Order.OrderType orderType, BigDecimal tradeableAmount) {

@@ -82,6 +82,7 @@ import si.mazi.rescu.HttpStatusIOException;
 public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
+    private static final Logger ordersLogger = LoggerFactory.getLogger("BITMEX_ORDERS_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private static final String NAME = "bitmex";
@@ -867,7 +868,7 @@ public class BitmexService extends MarketService {
                         arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
                     }
 
-                    tradeLogger.info("{} {} {} amount={} with quote={} was placed.orderId={}. {}. position={}",
+                    final String message = String.format("%s %s %s amount=%s with quote=%s was placed.orderId=%s. %s. position=%s",
                             getCounterName(),
                             placingType,
                             orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
@@ -876,6 +877,8 @@ public class BitmexService extends MarketService {
                             orderId,
                             diffWithSignal,
                             getPositionAsString());
+                    tradeLogger.info(message);
+                    ordersLogger.info(message);
 
                     break;
                 } catch (HttpStatusIOException e) {
@@ -979,6 +982,7 @@ public class BitmexService extends MarketService {
                         getPositionAsString());
                 logger.info(logString);
                 tradeLogger.info(logString);
+                ordersLogger.info(logString);
 
                 if (movedLimitOrder.getStatus() == Order.OrderStatus.CANCELED) {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
