@@ -18,6 +18,7 @@ import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
@@ -959,7 +960,7 @@ public class BitmexService extends MarketService {
             if (movedLimitOrder != null) {
 
                 orderRepositoryService.updateOrder(fplayOrder, movedLimitOrder);
-                FplayOrder updated = OrderRepositoryService.updateFplayOrder(fplayOrder, movedLimitOrder);
+                FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, movedLimitOrder);
 
                 String diffWithSignal = setQuotesForArbLogs(limitOrder, signalType, bestMakerPrice);
 
@@ -1002,7 +1003,7 @@ public class BitmexService extends MarketService {
                     if (doubleChecked.getStatus() == Order.OrderStatus.FILLED) {
                         // we confirmed that order ALREADY_CLOSED (FILLED)
                     } else if (doubleChecked.getStatus() == Order.OrderStatus.CANCELED) {
-                        final FplayOrder updated = OrderRepositoryService.updateFplayOrder(fplayOrder, (LimitOrder) doubleChecked);
+                        final FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, (LimitOrder) doubleChecked);
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, moveResponse.getDescription(), null, null, updated);
                     }
                 } else {

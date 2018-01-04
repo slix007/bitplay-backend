@@ -1,6 +1,7 @@
 package com.bitplay.persistance;
 
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.repository.OrderRepository;
 
 import org.knowm.xchange.dto.Order;
@@ -30,35 +31,6 @@ public class OrderRepositoryService {
         this.mongoOperation = mongoOperation;
     }
 
-    public static FplayOrder updateFplayOrder(FplayOrder fplayOrder, LimitOrder update) {
-        final FplayOrder updated;
-
-        if (fplayOrder != null) {
-            LimitOrder existing = (LimitOrder) fplayOrder.getOrder();
-            if ((existing.getStatus() == Order.OrderStatus.CANCELED && update.getStatus() != Order.OrderStatus.CANCELED)
-                    || (existing.getStatus() == Order.OrderStatus.FILLED && update.getStatus() != Order.OrderStatus.FILLED)) {
-                updated = fplayOrder;
-            } else {
-                final LimitOrder limitOrder = new LimitOrder(
-                        existing.getType(),
-                        update.getTradableAmount() != null ? update.getTradableAmount() : existing.getTradableAmount(),
-                        existing.getCurrencyPair(),
-                        existing.getId(),
-                        update.getTimestamp(),
-                        update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice(),
-                        update.getAveragePrice() != null ? update.getAveragePrice() : existing.getAveragePrice(),
-                        update.getCumulativeAmount() != null ? update.getCumulativeAmount() : existing.getCumulativeAmount(),
-                        update.getStatus() != null ? update.getStatus() : existing.getStatus());
-
-                updated = new FplayOrder(limitOrder, fplayOrder.getBestQuotes(), fplayOrder.getPlacingType(), fplayOrder.getSignalType());
-            }
-
-        } else {
-            updated = new FplayOrder(update, null, null, null);
-        }
-        return updated;
-    }
-
     public synchronized FplayOrder findOne(String id) {
         return orderRepository.findOne(id);
     }
@@ -71,7 +43,7 @@ public class OrderRepositoryService {
                 return;
             }
 
-            final FplayOrder updated = updateFplayOrder(fplayOrder, movedLimitOrder);
+            final FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, movedLimitOrder);
 
 
             orderRepository.save(updated);
@@ -84,7 +56,7 @@ public class OrderRepositoryService {
             final String orderId = update.getId();
             FplayOrder one = orderRepository.findOne(orderId);
 
-            one = updateFplayOrder(one, update);
+            one = FplayOrderUtils.updateFplayOrder(one, update);
 
             orderRepository.save(one);
 

@@ -17,6 +17,7 @@ import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
@@ -683,28 +684,25 @@ public class OkCoinService extends MarketService {
     }
 
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-                                          boolean isMoving, SignalType signalType, PlacingType placingSubType) throws IOException {
+                                          boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType) throws IOException {
         final TradeResponse tradeResponse = new TradeResponse();
 
         BigDecimal thePrice;
 
+        final String message = Utils.getTenAskBid(getOrderBook(), signalType.getCounterName(), String.format("Before %s placing", placingSubType));
+        logger.info(message);
+        tradeLogger.info(message);
+
         if (placingSubType == PlacingType.MAKER) {
             thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-        } else if (placingSubType == PlacingType.HYBRID) {
-            final String message = Utils.getTenAskBid(getOrderBook(),
-                    arbitrageService.getSignalType().getCounterName(),
-                    "Before hybrid placing");
-            logger.info(message);
-            tradeLogger.info(message);
-
-            // the best Taker price, but only once
-            thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
         } else {
-            // use hybrid if accidentally TAKER is switched
+            // the best Taker price(even for Hybrid)
             thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-            //throw new IllegalStateException("placing maker, but subType is taker");
-            tradeLogger.warn("placing maker, but subType is " + placingSubType);
-            warningLogger.warn("placing maker, but subType is " + placingSubType);
+
+            if (placingSubType == null || placingSubType == PlacingType.TAKER) {
+                tradeLogger.warn("placing maker, but subType is " + placingSubType);
+                warningLogger.warn("placing maker, but subType is " + placingSubType);
+            }
         }
 
         if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
@@ -728,7 +726,12 @@ public class OkCoinService extends MarketService {
 
             if (!isMoving) {
                 synchronized (openOrdersLock) {
-                    openOrders.add(fplayOrder);
+                    openOrders.replaceAll(exists -> {
+                        if (fplayOrder.getOrderId().equals(exists.getOrderId())) {
+                            return FplayOrderUtils.updateFplayOrder(exists, fplayOrder);
+                        }
+                        return exists;
+                    });
                 }
             }
 
@@ -951,7 +954,7 @@ public class OkCoinService extends MarketService {
             if (cancelledOrder == null)
                 return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Failed to check status of cancelled order on moving id=" + limitOrder.getId());
 
-            final FplayOrder cancelledFplayOrd = OrderRepositoryService.updateFplayOrder(fOrderToCancel, (LimitOrder) cancelledOrder);
+            final FplayOrder cancelledFplayOrd = FplayOrderUtils.updateFplayOrder(fOrderToCancel, (LimitOrder) cancelledOrder);
             final LimitOrder cancelledLimitOrder = (LimitOrder) cancelledFplayOrd.getOrder();
             orderRepositoryService.update(cancelledLimitOrder);
 

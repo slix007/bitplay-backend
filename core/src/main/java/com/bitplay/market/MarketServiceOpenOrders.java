@@ -1,9 +1,9 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.BestQuotes;
-import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -231,7 +231,7 @@ public abstract class MarketServiceOpenOrders {
         final FplayOrder existedOrNull = this.openOrders.stream()
                 .filter(fplayOrder -> fplayOrder.getOrderId().equals(update.getId()))
                 .findAny().orElse(null);
-        return OrderRepositoryService.updateFplayOrder(existedOrNull, update);
+        return FplayOrderUtils.updateFplayOrder(existedOrNull, update);
     }
 
     protected void cleanOldOO() {
