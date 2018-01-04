@@ -357,6 +357,9 @@ public class PosDiffService {
         final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+        if (bP == null || oPL == null || oPS == null) {
+            throw new IllegalStateException("Position is not yet defined");
+        }
 
         final BigDecimal okExPosEquivalent = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
         return okExPosEquivalent.add(bP);

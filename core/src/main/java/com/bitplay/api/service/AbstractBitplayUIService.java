@@ -201,6 +201,13 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 position.getPriceAvgLong() != null ? position.getPriceAvgLong().toPlainString() : null,
                 position.getPriceAvgShort() != null ? position.getPriceAvgShort().toPlainString() : null,
                 fullBalance.getTempValues());
+        if (available == null || wallet == null || margin == null || upl == null
+                || position.getLeverage() == null || quAvg == null) {
+//            throw new IllegalStateException("Balance and/or Position are not yet defined. entryPrice=" + entryPrice);
+            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
+                    "error", "error", "error", "error", "error", "error", "error",
+                    entryPrice, "error");
+        }
 
         return new AccountInfoJson(
                 wallet.toPlainString(),

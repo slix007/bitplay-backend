@@ -126,6 +126,9 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
             signalType = bitmexFunding.getSignalType().name();
         }
 
+        if (bitmexService.getPosition() == null || bitmexService.getPosition().getPositionLong() == null) {
+            throw new IllegalStateException("Position is not yet defined");
+        }
         final String position = bitmexService.getPosition().getPositionLong().toPlainString();
 
         final String timeCompareString = bitmexTimeService.getTimeCompareString();

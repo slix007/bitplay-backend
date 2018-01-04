@@ -692,6 +692,9 @@ public class ArbitrageService {
             final BigDecimal oU = secondAccount.getUpl();
             final BigDecimal oA = secondAccount.getAvailable();
 
+            if (bW == null || oW == null) {
+                throw new IllegalStateException(String.format("Balance is not yet defined. bW=%s, oW=%s", bW, oW));
+            }
             final BigDecimal sumW = bW.add(oW).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumE = bEMark.add(oELast).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumEBest = bEbest.add(oEbest).setScale(8, BigDecimal.ROUND_HALF_UP);
