@@ -62,21 +62,24 @@ public class SettingsEndpoint {
 
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getOkexSysOverloadArgs() != null) {
+            final SysOverloadArgs refToUpdate = settings.getOkexSysOverloadArgs();
+            if (settingsUpdate.getOkexSysOverloadArgs().getPlaceAttempts() != null) {
+                refToUpdate.setPlaceAttempts(settingsUpdate.getOkexSysOverloadArgs().getPlaceAttempts());
+            }
+            if (settingsUpdate.getOkexSysOverloadArgs().getMovingErrorsForOverload() != null) {
+                refToUpdate.setMovingErrorsForOverload(settingsUpdate.getOkexSysOverloadArgs().getMovingErrorsForOverload());
+            }
+            if (settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeSec() != null) {
+                refToUpdate.setOverloadTimeSec(settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeSec());
+            }
+
+            settingsRepositoryService.saveSettings(settings);
+        }
         if (settingsUpdate.getBitmexPrice() != null) {
             settings.setBitmexPrice(settingsUpdate.getBitmexPrice());
             settingsRepositoryService.saveSettings(settings);
         }
-//        if (settingsUpdate.getOkexSysOverloadArgs() != null) {
-//            final SysOverloadArgs refToUpdate = settings.getOkexSysOverloadArgs();
-//            if (settingsUpdate.getOkexSysOverloadArgs().getMovingErrorsForOverload() != null) {
-//                refToUpdate.setMovingErrorsForOverload(settingsUpdate.getOkexSysOverloadArgs().getMovingErrorsForOverload());
-//            }
-//            if (settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeSec() != null) {
-//                refToUpdate.setOverloadTimeSec(settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeSec());
-//            }
-//
-//            settingsRepositoryService.saveSettings(settings);
-//        }
 
         return settings;
     }

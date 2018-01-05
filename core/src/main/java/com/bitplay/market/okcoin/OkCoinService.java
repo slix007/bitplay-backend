@@ -56,6 +56,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.SocketTimeoutException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -568,14 +569,16 @@ public class OkCoinService extends MarketService {
 
     @Override
     public TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
-        final Integer maxAttempts = 3;
+        TradeResponse tradeResponse = new TradeResponse();
+
+        final Integer maxAttempts = settingsRepositoryService.getSettings().getOkexSysOverloadArgs().getPlaceAttempts();
+
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
         final BigDecimal amount = placeOrderArgs.getAmount();
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
         //final PlacingType placingType = placeOrderArgsRef.getPlacingType(); // Always TAKER
         final SignalType signalType = placeOrderArgs.getSignalType();
 
-        TradeResponse tradeResponse = new TradeResponse();
         BigDecimal amountLeft = amount;
         int attemptCount = 0;
         for (int i = 0; i < maxAttempts; i++) {
@@ -610,15 +613,15 @@ public class OkCoinService extends MarketService {
                     final Error error = objectMapper.readValue(httpBody, Error.class);
                     final String marketResponseMessage = error.getError().getMessage();
 
-                    if (marketResponseMessage.contains("UnknownHostException: www.okex.com")) {
-                        final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Waiting for 1 min",
-                                getCounterName(),
-                                attemptCount,
-                                httpBody);
+                    final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Waiting for 1 min",
+                            getCounterName(),
+                            attemptCount,
+                            httpBody);
 
-                        tradeLogger.error(logString);
-                        logger.error(logString);
+                    tradeLogger.error(logString);
+                    logger.error(logString);
 
+                    if (marketResponseMessage.contains("UnknownHostException: www.okex.com") && attemptCount == maxAttempts) {
                         setOverloaded(null); // TODO Think about retry
                         break;
                     }
@@ -627,14 +630,32 @@ public class OkCoinService extends MarketService {
                     logger.error(String.format("On parse error:%s, %s", e.toString(), e.getHttpBody()), e1);
                 }
 
+            } catch (SocketTimeoutException e) { // java.net.SocketTimeoutException: connect timed out
+                final String message = e.getMessage();
+                tradeResponse.setOrderId(message);
+                tradeResponse.setErrorCode(message);
+
+                final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Waiting for 1 min",
+                        getCounterName(),
+                        attemptCount,
+                        message);
+
+                tradeLogger.error(logString);
+                logger.error(logString);
+
+                if (attemptCount == maxAttempts) { // message.contains("connect timed out")
+                    setOverloaded(null); // TODO Think about retry
+                    break;
+                }
+
             } catch (Exception e) {
                 String message = e.getMessage();
 
                 String details = String.format("%s/%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s. %s",
                         getCounterName(), attemptCount,
                         orderType, amountLeft, bestQuotes, false, signalType, message);
-                details = details.length() < 200 ? details : details.substring(0, 190);
                 logger.error(details, e);
+                details = details.length() < 300 ? details : details.substring(0, 300); // we can get html page as error message
                 tradeLogger.error(details);
 
                 tradeResponse.setOrderId(message);

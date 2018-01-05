@@ -19,7 +19,7 @@ public class Settings extends AbstractDocument {
 
     private ArbScheme arbScheme;
     private SysOverloadArgs bitmexSysOverloadArgs;
-    //    private SysOverloadArgs okexSysOverloadArgs;
+    private SysOverloadArgs okexSysOverloadArgs;
     private PlacingType okexPlacingType;
     private BigDecimal bitmexPrice;
 
@@ -27,7 +27,7 @@ public class Settings extends AbstractDocument {
         final Settings settings = new Settings();
         settings.arbScheme = ArbScheme.MT;
         settings.bitmexSysOverloadArgs = SysOverloadArgs.defaults();
-//        settings.okexSysOverloadArgs = SysOverloadArgs.defaults();
+        settings.okexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexPlacingType = PlacingType.TAKER;
         settings.setId(1L);
         return settings;
@@ -47,6 +47,14 @@ public class Settings extends AbstractDocument {
 
     public void setBitmexSysOverloadArgs(SysOverloadArgs bimexSysOverloadArgs) {
         this.bitmexSysOverloadArgs = bimexSysOverloadArgs;
+    }
+
+    public SysOverloadArgs getOkexSysOverloadArgs() {
+        return okexSysOverloadArgs;
+    }
+
+    public void setOkexSysOverloadArgs(SysOverloadArgs okexSysOverloadArgs) {
+        this.okexSysOverloadArgs = okexSysOverloadArgs;
     }
 
     public PlacingType getOkexPlacingType() {
@@ -76,7 +84,9 @@ public class Settings extends AbstractDocument {
         return "Settings{" +
                 "arbScheme=" + arbScheme +
                 ", bitmexSysOverloadArgs=" + bitmexSysOverloadArgs +
+                ", okexSysOverloadArgs=" + okexSysOverloadArgs +
                 ", okexPlacingType=" + okexPlacingType +
+                ", bitmexPrice=" + bitmexPrice +
                 '}';
     }
 }

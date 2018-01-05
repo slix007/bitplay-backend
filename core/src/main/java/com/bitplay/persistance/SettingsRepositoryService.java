@@ -35,6 +35,9 @@ public class SettingsRepositoryService {
         if (one.getBitmexSysOverloadArgs() == null) {
             one.setBitmexSysOverloadArgs(SysOverloadArgs.defaults());
         }
+        if (one.getOkexSysOverloadArgs() == null) {
+            one.setOkexSysOverloadArgs(SysOverloadArgs.defaults());
+        }
         return one;
     }
 
