@@ -354,7 +354,7 @@ public class BitmexService extends MarketService {
                         .flatMap(openOrder -> {
                             Stream<FplayOrder> orderStream = Stream.of(openOrder); // default - the same
 
-                            if (openOrder == null) {
+                            if (openOrder == null || openOrder.getOrderId() == null || openOrder.getOrderId().equals("0")) {
                                 warningLogger.warn("OO is null.");
                                 orderStream = Stream.empty();
                             } else if (openOrder.getOrder().getType() == null) {

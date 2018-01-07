@@ -1,6 +1,7 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.TwoMarketStarter;
+import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.dto.LiqInfo;
@@ -12,6 +13,7 @@ import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.dto.Order;
@@ -53,6 +55,8 @@ public class ArbitrageService {
     private boolean firstDeltasAfterStart = true;
     @Autowired
     private BordersService bordersService;
+    @Autowired
+    private PlacingBlocksService placingBlocksService;
     @Autowired
     private PersistenceService persistenceService;
     private Disposable schdeduleUpdateBorders;
@@ -436,14 +440,34 @@ public class ArbitrageService {
 
         final BorderParams borderParams = persistenceService.fetchBorders();
         if (borderParams == null || borderParams.getActiveVersion() == BorderParams.Ver.V1) {
-            if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) == 1) {
-                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes);
-            }
+            final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+            final PlacingBlocks blocksSettings = settings.getPlacingBlocks();
+            if (blocksSettings.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
+                if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) > 0) {
+                    startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes);
+                }
 
-            if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) == 1) {
-                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes);
+                if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) > 0) {
+                    startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes);
+                }
+            } else { // settings.getPlacingBlocks().getActiveVersion() == PlacingBlocks.Ver.DYNAMIC
+                if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) > 0) {
+                    final PlBlocks placingBlocks = placingBlocksService.getDynamicBlockBitmex(poloniexOrderBook,
+                            okCoinOrderBook, delta1, border1, blocksSettings);
+                    final BigDecimal b_block = placingBlocks.getBlockBitmex();
+                    final BigDecimal o_block = placingBlocks.getBlockOkex();
+                    startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, null);
+                }
+
+                if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) > 0) {
+                    final PlBlocks placingBlocks = placingBlocksService.getDynamicBlockBitmex(poloniexOrderBook, okCoinOrderBook,
+                            delta2, border2, blocksSettings);
+                    final BigDecimal b_block = placingBlocks.getBlockBitmex();
+                    final BigDecimal o_block = placingBlocks.getBlockOkex();
+                    startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, null);
+                }
             }
-        } else {
+        } else { // BorderParams.Ver.V2
             final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
             final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
             final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
@@ -464,6 +488,7 @@ public class ArbitrageService {
     }
 
     public void startTradingOnDelta1(SignalType signalType, BestQuotes bestQuotes) {
+        // border V1
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
         final BigDecimal b_block = placingBlocks.getFixedBlockBitmex();
         final BigDecimal o_block = placingBlocks.getFixedBlockOkex();
