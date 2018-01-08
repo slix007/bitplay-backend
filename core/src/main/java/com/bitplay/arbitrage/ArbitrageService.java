@@ -1,7 +1,7 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.TwoMarketStarter;
-import com.bitplay.arbitrage.dto.PlBlocks;
+import com.bitplay.arbitrage.dto.DynBlocks;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.dto.LiqInfo;
@@ -399,14 +399,14 @@ public class ArbitrageService {
         return bestQuotes;
     }
 
-    private BestQuotes calcAndDoArbitrage(OrderBook okCoinOrderBook, OrderBook poloniexOrderBook) {
+    private BestQuotes calcAndDoArbitrage(OrderBook okCoinOrderBook, OrderBook bitmexOrderBook) {
         if (okCoinOrderBook.getAsks().size() == 0 || okCoinOrderBook.getBids().size() == 0
-                || poloniexOrderBook.getAsks().size() == 0 || poloniexOrderBook.getBids().size() == 0) {
+                || bitmexOrderBook.getAsks().size() == 0 || bitmexOrderBook.getBids().size() == 0) {
             return BestQuotes.empty();
         }
 
         // 1. Calc deltas
-        final BestQuotes bestQuotes = Utils.createBestQuotes(okCoinOrderBook, poloniexOrderBook);
+        final BestQuotes bestQuotes = Utils.createBestQuotes(okCoinOrderBook, bitmexOrderBook);
         if (!bestQuotes.hasEmpty()) {
             if (firstDeltasAfterStart) {
                 firstDeltasAfterStart = false;
@@ -415,16 +415,16 @@ public class ArbitrageService {
 
             delta1 = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
             delta2 = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
-            if (delta1.compareTo(deltaParams.getbDeltaMin()) == -1) {
+            if (delta1.compareTo(deltaParams.getbDeltaMin()) < 0) {
                 deltaParams.setbDeltaMin(delta1);
             }
-            if (delta1.compareTo(deltaParams.getbDeltaMax()) == 1) {
+            if (delta1.compareTo(deltaParams.getbDeltaMax()) > 0) {
                 deltaParams.setbDeltaMax(delta1);
             }
-            if (delta2.compareTo(deltaParams.getoDeltaMin()) == -1) {
+            if (delta2.compareTo(deltaParams.getoDeltaMin()) < 0) {
                 deltaParams.setoDeltaMin(delta2);
             }
-            if (delta2.compareTo(deltaParams.getoDeltaMax()) == 1) {
+            if (delta2.compareTo(deltaParams.getoDeltaMax()) > 0) {
                 deltaParams.setoDeltaMax(delta2);
             }
 
@@ -433,6 +433,8 @@ public class ArbitrageService {
             } else {
                 return bestQuotes;
             }
+        } else {
+            return bestQuotes;
         }
 
         BigDecimal border1 = params.getBorder1();
@@ -451,20 +453,27 @@ public class ArbitrageService {
                     startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes);
                 }
             } else { // settings.getPlacingBlocks().getActiveVersion() == PlacingBlocks.Ver.DYNAMIC
-                if (delta1.compareTo(border1) == 0 || delta1.compareTo(border1) > 0) {
-                    final PlBlocks placingBlocks = placingBlocksService.getDynamicBlockBitmex(poloniexOrderBook,
-                            okCoinOrderBook, delta1, border1, blocksSettings);
+                final BigDecimal bMaxBlock = blocksSettings.getDynMaxBlockBitmex();
+                if (delta1.compareTo(border1) >= 0) {
+                    final DynBlocks placingBlocks = placingBlocksService.getDynamicBlockBitmex(bitmexOrderBook, okCoinOrderBook,
+                            border1, bMaxBlock);
                     final BigDecimal b_block = placingBlocks.getBlockBitmex();
                     final BigDecimal o_block = placingBlocks.getBlockOkex();
-                    startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, null);
+
+                    final String b_deltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block);
+
+                    startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, null, b_deltaLogs);
                 }
 
-                if (delta2.compareTo(border2) == 0 || delta2.compareTo(border2) > 0) {
-                    final PlBlocks placingBlocks = placingBlocksService.getDynamicBlockBitmex(poloniexOrderBook, okCoinOrderBook,
-                            delta2, border2, blocksSettings);
+                if (delta2.compareTo(border2) >= 0) {
+                    final DynBlocks placingBlocks = placingBlocksService.getDynamicBlockOkex(bitmexOrderBook, okCoinOrderBook,
+                            border2, bMaxBlock);
                     final BigDecimal b_block = placingBlocks.getBlockBitmex();
                     final BigDecimal o_block = placingBlocks.getBlockOkex();
-                    startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, null);
+
+                    final String o_deltaLogs = composeDynBlockLogs("o_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block);
+
+                    startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, null, o_deltaLogs);
                 }
             }
         } else { // BorderParams.Ver.V2
@@ -475,16 +484,26 @@ public class ArbitrageService {
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(delta1, delta2, bP, oPL, oPS);
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
                 startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock),
-                        BigDecimal.valueOf(tradingSignal.okexBlock), tradingSignal);
+                        BigDecimal.valueOf(tradingSignal.okexBlock), tradingSignal, null);
             }
 
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
                 startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock),
-                        BigDecimal.valueOf(tradingSignal.okexBlock), tradingSignal);
+                        BigDecimal.valueOf(tradingSignal.okexBlock), tradingSignal, null);
             }
         }
 
         return bestQuotes;
+    }
+
+    private String composeDynBlockLogs(String deltaName, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, BigDecimal b_block, BigDecimal o_block) {
+        final String bMsg = Utils.getTenAskBid(bitmexOrderBook, signalType.getCounterName(),
+                "Bitmex OrderBook");
+        final String oMsg = Utils.getTenAskBid(okCoinOrderBook, signalType.getCounterName(),
+                "Okex OrderBook");
+        return String.format("%s: Dynamic: b_block=%s, o_block=%s\n%s\n%s",
+                deltaName, b_block, o_block,
+                bMsg, oMsg);
     }
 
     public void startTradingOnDelta1(SignalType signalType, BestQuotes bestQuotes) {
@@ -492,11 +511,11 @@ public class ArbitrageService {
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
         final BigDecimal b_block = placingBlocks.getFixedBlockBitmex();
         final BigDecimal o_block = placingBlocks.getFixedBlockOkex();
-        startTradingOnDelta1(signalType, bestQuotes, b_block, o_block, null);
+        startTradingOnDelta1(signalType, bestQuotes, b_block, o_block, null, null);
     }
 
     private void startTradingOnDelta1(SignalType signalType, final BestQuotes bestQuotes, final BigDecimal b_block, final BigDecimal o_block,
-                                      final BordersService.TradingSignal tradingSignal) {
+                                      final BordersService.TradingSignal tradingSignal, String dynamicDeltaLogs) {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
         if (checkBalance(DELTA1, b_block, o_block) //) {
@@ -518,6 +537,9 @@ public class ArbitrageService {
             params.setVolPlan(b_block); // buy
 
             writeLogDelta1(ask1_o, bid1_p, tradingSignal);
+            if (dynamicDeltaLogs != null) {
+                deltasLogger.info(String.format("#%s %s", getCounter(), dynamicDeltaLogs));
+            }
 
             // in scheme MT2 Okex should be the first
             secondMarketService.placeOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, signalType);
@@ -534,11 +556,11 @@ public class ArbitrageService {
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
         final BigDecimal b_block = placingBlocks.getFixedBlockBitmex();
         final BigDecimal o_block = placingBlocks.getFixedBlockOkex();
-        startTradingOnDelta2(signalType, bestQuotes, b_block, o_block, null);
+        startTradingOnDelta2(signalType, bestQuotes, b_block, o_block, null, null);
     }
 
     private void startTradingOnDelta2(final SignalType signalType, final BestQuotes bestQuotes, final BigDecimal b_block, final BigDecimal o_block,
-                                      final BordersService.TradingSignal tradingSignal) {
+                                      final BordersService.TradingSignal tradingSignal, String dynamicDeltaLogs) {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
@@ -561,6 +583,9 @@ public class ArbitrageService {
             params.setVolPlan(b_block.negate());//sell
 
             writeLogDelta2(ask1_p, bid1_o, tradingSignal);
+            if (dynamicDeltaLogs != null) {
+                deltasLogger.info(String.format("#%s %s", getCounter(), dynamicDeltaLogs));
+            }
 
             // in scheme MT2 Okex should be the first
             secondMarketService.placeOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, signalType);

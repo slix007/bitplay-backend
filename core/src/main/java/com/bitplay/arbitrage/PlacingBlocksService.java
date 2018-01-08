@@ -1,16 +1,18 @@
 package com.bitplay.arbitrage;
 
-import com.bitplay.arbitrage.dto.PlBlocks;
+import com.bitplay.arbitrage.dto.DynBlocks;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 12/29/17.
@@ -23,121 +25,63 @@ public class PlacingBlocksService {
     @Autowired
     SettingsRepositoryService settingsRepositoryService;
 
-    public PlBlocks getPlacingBlocks(OrderBook bitmexOrderBook, OrderBook okexOrderBook) {
-        final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
-        if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-            return new PlBlocks(placingBlocks.getDynMaxBlockBitmex(), placingBlocks.getDynMaxBlockOkex());
-        } else if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC) {
-            return new PlBlocks(placingBlocks.getDynMaxBlockBitmex(), placingBlocks.getDynMaxBlockOkex());
-        }
-        throw new IllegalStateException("Unhandled PlacsingBlocks version");
+    public DynBlocks getDynamicBlockBitmex(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
+                                           BigDecimal bBorder, BigDecimal bMaxBlock) {
+        // b_bid - o_ask
+        final List<LimitOrder> bids = bitmexOrderBook.getBids();
+        final List<LimitOrder> asks = okexOrderBook.getAsks();
+
+        final BigDecimal[] bBidsAm = bids.stream().map(Order::getTradableAmount).toArray(BigDecimal[]::new);
+        final BigDecimal[] oAsksAm = asks.stream().map(Order::getTradableAmount).map(oAm -> oAm.multiply(OKEX_FACTOR)).toArray(BigDecimal[]::new);
+
+        return getDynBlock(bBorder, asks, bids, oAsksAm, bBidsAm, bMaxBlock);
     }
 
-    public PlBlocks getDynamicBlockBitmex(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                          BigDecimal bDelta, BigDecimal bBorder, PlacingBlocks blocksSettings) {
-        int i = 1;
-        int k = 1;
-        final BigDecimal[] bBidsAm = bitmexOrderBook.getBids().stream().map(Order::getTradableAmount).toArray(BigDecimal[]::new);
-        final BigDecimal[] oAsksAm = okexOrderBook.getAsks().stream().map(Order::getTradableAmount).toArray(BigDecimal[]::new);
+    public DynBlocks getDynamicBlockOkex(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
+                                         BigDecimal oBorder, BigDecimal bMaxBlock) {
+        // o_bid - b_ask
+        final List<LimitOrder> bids = okexOrderBook.getBids();
+        final List<LimitOrder> asks = bitmexOrderBook.getAsks();
 
-        final BigDecimal bMaxBlock = blocksSettings.getDynMaxBlockBitmex();
-        BigDecimal bBlock = BigDecimal.ZERO;
-        BigDecimal amount = BigDecimal.ZERO;
-        BigDecimal bD = bDelta;
-        while (bD.compareTo(bBorder) >= 0 && bMaxBlock.compareTo(bBlock) > 0) {
-            amount = bBidsAm[i].subtract(oAsksAm[k].multiply(OKEX_FACTOR));
-            if (amount.signum() > 0) {
-                bBlock = bBlock.add(oAsksAm[k].multiply(OKEX_FACTOR));
-                bBidsAm[i] = amount;
-                oAsksAm[k] = BigDecimal.ZERO;
-                k++;
-            } else if (amount.signum() < 0) {
-                bBlock = bBlock.add(bBidsAm[i]);
-                bBidsAm[i] = BigDecimal.ZERO;
-                oAsksAm[k] = amount.negate();
-                i++;
-            } else if (amount.signum() == 0) {
-                bBlock = bBlock.add(bBidsAm[i]);
-                bBidsAm[i] = BigDecimal.ZERO;
-                oAsksAm[k] = BigDecimal.ZERO;
-                i++;
-                k++;
-            }
-            bD = bitmexOrderBook.getBids().get(i).getLimitPrice().subtract(okexOrderBook.getAsks().get(k).getLimitPrice());
-        }
+        final BigDecimal[] oBidsAm = bids.stream().map(Order::getTradableAmount).map(oAm -> oAm.multiply(OKEX_FACTOR)).toArray(BigDecimal[]::new);
+        final BigDecimal[] bAsksAm = asks.stream().map(Order::getTradableAmount).toArray(BigDecimal[]::new);
 
-        bBlock = bBlock.min(bMaxBlock);
-
-        return new PlBlocks(bBlock, bBlock.divide(OKEX_FACTOR, 0, RoundingMode.HALF_UP));
+        return getDynBlock(oBorder, asks, bids, bAsksAm, oBidsAm, bMaxBlock);
     }
 
-    public PlBlocks getDynamicBlockOkex(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                        BigDecimal oDelta, BigDecimal oBorder, PlacingBlocks blocksSettings) {
-        while (ok_d >= ok_border && ok_max_block x 100 > ok_block) do
-        {
-            am = b_ob_bid_am[i] - ok_ob_ask_am[k] x 100;
-            if (am > 0)
-            {
-                ok_block += ok_ob_ask_am[k] x 100;
-                b_ob_bid_am[i] = am;
-                ok_ob_ask_am[k] = 0;
-                k++;
-            }
-            if ( am < 0)
-            {
-                ok_block += b_ob_bid_am[i];
-                b_ob_bid_am[i] = 0;
-                ok_ob_ask_am[k] = -am;
-                i++;
-            }
-            if (am == 0)
-            {
-                ok_block += b_ob_bid_am[i];
-                b_ob_bid_am[i] = 0;
-                ok_ob_ask_am[k] = 0;
-                i++;
-                k++;
-            }
-
-            ok_d = ok_ob_bid_qu[i] - b_ob_ask_qu[k];
-        }
-        ok_block = min(ok_max_block x 100, ok_block);
-
-        int i = 1;
-        int k = 1;
-        final BigDecimal[] bAsksAm = bitmexOrderBook.getAsks().stream().map(Order::getTradableAmount).toArray(BigDecimal[]::new);
-        final BigDecimal[] oBidsAm = okexOrderBook.getBids().stream().map(Order::getTradableAmount).toArray(BigDecimal[]::new);
-
-        final BigDecimal oMaxBlock = blocksSettings.getDynMaxBlockOkex();
+    private DynBlocks getDynBlock(BigDecimal oBorder, List<LimitOrder> asks, List<LimitOrder> bids,
+                                  BigDecimal[] bAsksAm, BigDecimal[] oBidsAm, BigDecimal maxBlock) {
+        int i = 0;
+        int k = 0;
         BigDecimal oBlock = BigDecimal.ZERO;
-        BigDecimal amount = BigDecimal.ZERO;
-        BigDecimal okD = oDelta;
-        while (okD.compareTo(oBorder) >= 0 && oMaxBlock.compareTo(oBlock) > 0) {
-            amount = oBidsAm[i].multiply(OKEX_FACTOR).subtract(bAsksAm[k]);
+        BigDecimal delta = bids.get(0).getLimitPrice().subtract(asks.get(0).getLimitPrice());
+
+        BigDecimal amount;
+        while (delta.compareTo(oBorder) >= 0 && maxBlock.compareTo(oBlock) > 0) {
+            amount = oBidsAm[i].subtract(bAsksAm[k]);
             if (amount.signum() > 0) {
-                oBlock = oBlock.add(oBidsAm[k].multiply(OKEX_FACTOR));
-                bAsksAm[i] = amount;
-                oBidsAm[k] = BigDecimal.ZERO;
+                oBlock = oBlock.add(bAsksAm[k]);
+                oBidsAm[i] = amount;
+                bAsksAm[k] = BigDecimal.ZERO;
                 k++;
             } else if (amount.signum() < 0) {
-                oBlock = oBlock.add(bAsksAm[i]);
-                bAsksAm[i] = BigDecimal.ZERO;
-                oBidsAm[k] = amount.negate();
+                oBlock = oBlock.add(oBidsAm[i]);
+                oBidsAm[i] = BigDecimal.ZERO;
+                bAsksAm[k] = amount.negate();
                 i++;
             } else if (amount.signum() == 0) {
-                oBlock = oBlock.add(bAsksAm[i]);
-                bAsksAm[i] = BigDecimal.ZERO;
-                oBidsAm[k] = BigDecimal.ZERO;
+                oBlock = oBlock.add(oBidsAm[i]);
+                oBidsAm[i] = BigDecimal.ZERO;
+                bAsksAm[k] = BigDecimal.ZERO;
                 i++;
                 k++;
             }
-            okD = bitmexOrderBook.getBids().get(i).getLimitPrice().subtract(okexOrderBook.getAsks().get(k).getLimitPrice());
+            delta = bids.get(i).getLimitPrice().subtract(asks.get(k).getLimitPrice());
         }
 
-        oBlock = oBlock.min(oMaxBlock);
+        oBlock = oBlock.min(maxBlock);
 
-        return new PlBlocks(oBlock, oBlock.divide(OKEX_FACTOR, 0, RoundingMode.HALF_UP));
+        oBlock = oBlock.divide(OKEX_FACTOR, 0, RoundingMode.DOWN); // round to OKEX_FACTOR
+        return new DynBlocks(oBlock.multiply(OKEX_FACTOR), oBlock);
     }
-
-
 }

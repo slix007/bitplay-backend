@@ -5,11 +5,11 @@ import java.math.BigDecimal;
 /**
  * Created by Sergey Shurmin on 12/29/17.
  */
-public class PlBlocks {
+public class DynBlocks {
     final private BigDecimal blockBitmex;
     final private BigDecimal blockOkex;
 
-    public PlBlocks(BigDecimal blockBitmex, BigDecimal blockOkex) {
+    public DynBlocks(BigDecimal blockBitmex, BigDecimal blockOkex) {
         this.blockBitmex = blockBitmex;
         this.blockOkex = blockOkex;
     }
