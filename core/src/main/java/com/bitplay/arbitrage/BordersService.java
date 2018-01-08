@@ -5,7 +5,6 @@ import com.bitplay.persistance.domain.BorderItem;
 import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.BorderTable;
 import com.bitplay.persistance.domain.BordersV2;
-import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 
 import org.slf4j.Logger;

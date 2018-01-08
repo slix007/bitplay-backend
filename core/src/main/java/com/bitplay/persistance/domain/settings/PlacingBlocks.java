@@ -62,4 +62,5 @@ public class PlacingBlocks {
     }
 
     public enum Ver {FIXED, DYNAMIC,}
+    public enum DeltaBase {B_DELTA, O_DELTA,}
 }

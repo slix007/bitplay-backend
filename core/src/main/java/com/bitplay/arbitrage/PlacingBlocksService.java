@@ -1,6 +1,6 @@
 package com.bitplay.arbitrage;
 
-import com.bitplay.arbitrage.dto.DynBlocks;
+import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 
@@ -25,8 +25,28 @@ public class PlacingBlocksService {
     @Autowired
     SettingsRepositoryService settingsRepositoryService;
 
-    public DynBlocks getDynamicBlockBitmex(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                           BigDecimal bBorder, BigDecimal bMaxBlock) {
+    public PlBlocks getPlacingBlocks(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
+                                     BigDecimal theBorder, PlacingBlocks.DeltaBase deltaBase) {
+        final PlBlocks theBlocks;
+        final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
+
+        if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
+            theBlocks = new PlBlocks(placingBlocks.getFixedBlockBitmex(), placingBlocks.getFixedBlockOkex(), PlacingBlocks.Ver.FIXED);
+        } else if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC) {
+            final BigDecimal bMaxBlock = placingBlocks.getDynMaxBlockBitmex();
+            if (deltaBase == PlacingBlocks.DeltaBase.B_DELTA) {
+                theBlocks = getDynamicBlockBitmex(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
+            } else { // O_DELTA
+                theBlocks = getDynamicBlockOkex(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
+            }
+        } else {
+            throw new IllegalStateException("Unhandled PlacsingBlocks version");
+        }
+        return theBlocks;
+    }
+
+    public PlBlocks getDynamicBlockBitmex(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
+                                          BigDecimal bBorder, BigDecimal bMaxBlock) {
         // b_bid - o_ask
         final List<LimitOrder> bids = bitmexOrderBook.getBids();
         final List<LimitOrder> asks = okexOrderBook.getAsks();
@@ -37,8 +57,8 @@ public class PlacingBlocksService {
         return getDynBlock(bBorder, asks, bids, oAsksAm, bBidsAm, bMaxBlock);
     }
 
-    public DynBlocks getDynamicBlockOkex(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                         BigDecimal oBorder, BigDecimal bMaxBlock) {
+    public PlBlocks getDynamicBlockOkex(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
+                                        BigDecimal oBorder, BigDecimal bMaxBlock) {
         // o_bid - b_ask
         final List<LimitOrder> bids = okexOrderBook.getBids();
         final List<LimitOrder> asks = bitmexOrderBook.getAsks();
@@ -49,8 +69,8 @@ public class PlacingBlocksService {
         return getDynBlock(oBorder, asks, bids, bAsksAm, oBidsAm, bMaxBlock);
     }
 
-    private DynBlocks getDynBlock(BigDecimal oBorder, List<LimitOrder> asks, List<LimitOrder> bids,
-                                  BigDecimal[] asksAm, BigDecimal[] bidsAm, BigDecimal maxBlock) {
+    private PlBlocks getDynBlock(BigDecimal oBorder, List<LimitOrder> asks, List<LimitOrder> bids,
+                                 BigDecimal[] asksAm, BigDecimal[] bidsAm, BigDecimal maxBlock) {
         int i = 0;
         int k = 0;
         BigDecimal oBlock = BigDecimal.ZERO;
@@ -83,6 +103,6 @@ public class PlacingBlocksService {
         oBlock = oBlock.min(maxBlock);
 
         oBlock = oBlock.divide(OKEX_FACTOR, 0, RoundingMode.DOWN); // round to OKEX_FACTOR
-        return new DynBlocks(oBlock.multiply(OKEX_FACTOR), oBlock);
+        return new PlBlocks(oBlock.multiply(OKEX_FACTOR), oBlock, PlacingBlocks.Ver.DYNAMIC);
     }
 }
