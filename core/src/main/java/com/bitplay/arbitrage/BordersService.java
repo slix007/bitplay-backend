@@ -46,11 +46,18 @@ public class BordersService {
         final int pos;
         if (theMode == BorderParams.PosMode.BTM_MODE) {
 //            block = guiParams.getBlock1().intValueExact();
-            block = placingBlocks.getFixedBlockBitmex().intValueExact();
+            if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
+                block = placingBlocks.getFixedBlockBitmex().intValueExact();
+            } else {
+                block = placingBlocks.getDynMaxBlockBitmex().intValueExact();
+            }
             pos = bP.intValueExact();
         } else {
-//            block = guiParams.getBlock2().intValueExact();
-            block = placingBlocks.getFixedBlockOkex().intValueExact();
+            if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
+                block = placingBlocks.getFixedBlockOkex().intValueExact();
+            } else {
+                block = placingBlocks.getDynMaxBlockOkex().intValueExact();
+            }
             pos = oPL.intValueExact() - oPS.intValueExact();
         }
 
