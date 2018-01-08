@@ -31,8 +31,8 @@ public class PlacingBlocksService {
         final List<LimitOrder> bids = bitmexOrderBook.getBids();
         final List<LimitOrder> asks = okexOrderBook.getAsks();
 
-        final BigDecimal[] bBidsAm = bids.stream().map(Order::getTradableAmount).toArray(BigDecimal[]::new);
-        final BigDecimal[] oAsksAm = asks.stream().map(Order::getTradableAmount).map(oAm -> oAm.multiply(OKEX_FACTOR)).toArray(BigDecimal[]::new);
+        final BigDecimal[] bBidsAm = bids.stream().map(Order::getTradableAmount).limit(20).toArray(BigDecimal[]::new);
+        final BigDecimal[] oAsksAm = asks.stream().map(Order::getTradableAmount).limit(20).map(oAm -> oAm.multiply(OKEX_FACTOR)).toArray(BigDecimal[]::new);
 
         return getDynBlock(bBorder, asks, bids, oAsksAm, bBidsAm, bMaxBlock);
     }
@@ -43,36 +43,37 @@ public class PlacingBlocksService {
         final List<LimitOrder> bids = okexOrderBook.getBids();
         final List<LimitOrder> asks = bitmexOrderBook.getAsks();
 
-        final BigDecimal[] oBidsAm = bids.stream().map(Order::getTradableAmount).map(oAm -> oAm.multiply(OKEX_FACTOR)).toArray(BigDecimal[]::new);
-        final BigDecimal[] bAsksAm = asks.stream().map(Order::getTradableAmount).toArray(BigDecimal[]::new);
+        final BigDecimal[] oBidsAm = bids.stream().map(Order::getTradableAmount).limit(20).map(oAm -> oAm.multiply(OKEX_FACTOR)).toArray(BigDecimal[]::new);
+        final BigDecimal[] bAsksAm = asks.stream().map(Order::getTradableAmount).limit(20).toArray(BigDecimal[]::new);
 
         return getDynBlock(oBorder, asks, bids, bAsksAm, oBidsAm, bMaxBlock);
     }
 
     private DynBlocks getDynBlock(BigDecimal oBorder, List<LimitOrder> asks, List<LimitOrder> bids,
-                                  BigDecimal[] bAsksAm, BigDecimal[] oBidsAm, BigDecimal maxBlock) {
+                                  BigDecimal[] asksAm, BigDecimal[] bidsAm, BigDecimal maxBlock) {
         int i = 0;
         int k = 0;
         BigDecimal oBlock = BigDecimal.ZERO;
         BigDecimal delta = bids.get(0).getLimitPrice().subtract(asks.get(0).getLimitPrice());
 
         BigDecimal amount;
-        while (delta.compareTo(oBorder) >= 0 && maxBlock.compareTo(oBlock) > 0) {
-            amount = oBidsAm[i].subtract(bAsksAm[k]);
+        while (delta.compareTo(oBorder) >= 0 && maxBlock.compareTo(oBlock) > 0
+                && k < asksAm.length && i < bidsAm.length) {
+            amount = bidsAm[i].subtract(asksAm[k]);
             if (amount.signum() > 0) {
-                oBlock = oBlock.add(bAsksAm[k]);
-                oBidsAm[i] = amount;
-                bAsksAm[k] = BigDecimal.ZERO;
+                oBlock = oBlock.add(asksAm[k]);
+                bidsAm[i] = amount;
+                asksAm[k] = BigDecimal.ZERO;
                 k++;
             } else if (amount.signum() < 0) {
-                oBlock = oBlock.add(oBidsAm[i]);
-                oBidsAm[i] = BigDecimal.ZERO;
-                bAsksAm[k] = amount.negate();
+                oBlock = oBlock.add(bidsAm[i]);
+                bidsAm[i] = BigDecimal.ZERO;
+                asksAm[k] = amount.negate();
                 i++;
             } else if (amount.signum() == 0) {
-                oBlock = oBlock.add(oBidsAm[i]);
-                oBidsAm[i] = BigDecimal.ZERO;
-                bAsksAm[k] = BigDecimal.ZERO;
+                oBlock = oBlock.add(bidsAm[i]);
+                bidsAm[i] = BigDecimal.ZERO;
+                asksAm[k] = BigDecimal.ZERO;
                 i++;
                 k++;
             }
