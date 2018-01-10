@@ -463,7 +463,9 @@ public class ArbitrageService {
             final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
             final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
 
-            final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(delta1, delta2, bP, oPL, oPS);
+            final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(
+                    bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS);
+
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
                 startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock),
                         BigDecimal.valueOf(tradingSignal.okexBlock), tradingSignal, null);

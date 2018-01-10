@@ -35,9 +35,9 @@ public class PlacingBlocksService {
         } else if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC) {
             final BigDecimal bMaxBlock = placingBlocks.getDynMaxBlockBitmex();
             if (deltaBase == PlacingBlocks.DeltaBase.B_DELTA) {
-                theBlocks = getDynamicBlockBitmex(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
+                theBlocks = getDynamicBlockByBDelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
             } else { // O_DELTA
-                theBlocks = getDynamicBlockOkex(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
+                theBlocks = getDynamicBlockByODelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
             }
         } else {
             throw new IllegalStateException("Unhandled PlacsingBlocks version");
@@ -45,8 +45,8 @@ public class PlacingBlocksService {
         return theBlocks;
     }
 
-    public PlBlocks getDynamicBlockBitmex(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                          BigDecimal bBorder, BigDecimal bMaxBlock) {
+    public PlBlocks getDynamicBlockByBDelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
+                                            BigDecimal bBorder, BigDecimal bMaxBlock) {
         // b_bid - o_ask
         final List<LimitOrder> bids = bitmexOrderBook.getBids();
         final List<LimitOrder> asks = okexOrderBook.getAsks();
@@ -57,8 +57,8 @@ public class PlacingBlocksService {
         return getDynBlock(bBorder, asks, bids, oAsksAm, bBidsAm, bMaxBlock);
     }
 
-    public PlBlocks getDynamicBlockOkex(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                        BigDecimal oBorder, BigDecimal bMaxBlock) {
+    public PlBlocks getDynamicBlockByODelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
+                                            BigDecimal oBorder, BigDecimal bMaxBlock) {
         // o_bid - b_ask
         final List<LimitOrder> bids = okexOrderBook.getBids();
         final List<LimitOrder> asks = bitmexOrderBook.getAsks();

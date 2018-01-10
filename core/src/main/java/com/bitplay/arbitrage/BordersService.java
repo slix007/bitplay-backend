@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.BorderItem;
 import com.bitplay.persistance.domain.BorderParams;
@@ -7,6 +8,7 @@ import com.bitplay.persistance.domain.BorderTable;
 import com.bitplay.persistance.domain.BordersV2;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 
+import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,9 +32,12 @@ public class BordersService {
     @Autowired
     PersistenceService persistenceService;
 
+    @Autowired
+    PlacingBlocksService placingBlocksService;
+
     private volatile static BorderParams.PosMode theMode = BorderParams.PosMode.OK_MODE;
 
-    public TradingSignal checkBorders(BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
+    public TradingSignal checkBorders(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
 
         final BorderParams borderParams = persistenceService.fetchBorders();
@@ -45,34 +50,60 @@ public class BordersService {
         final int block;
         final int pos;
         if (theMode == BorderParams.PosMode.BTM_MODE) {
-//            block = guiParams.getBlock1().intValueExact();
             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                 block = placingBlocks.getFixedBlockBitmex().intValueExact();
+            } else if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC) {
+                block = placingBlocks.getDynMaxBlockBitmex().intValueExact(); // Dynamic block step 1
             } else {
-                block = placingBlocks.getDynMaxBlockBitmex().intValueExact();
+                throw new IllegalStateException("Unhandled placingBlocks version: " + placingBlocks.getActiveVersion());
             }
             pos = bP.intValueExact();
         } else {
             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                 block = placingBlocks.getFixedBlockOkex().intValueExact();
+            } else if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC) {
+                block = placingBlocks.getDynMaxBlockOkex().intValueExact(); // Dynamic block step 1
             } else {
-                block = placingBlocks.getDynMaxBlockOkex().intValueExact();
+                throw new IllegalStateException("Unhandled placingBlocks version: " + placingBlocks.getActiveVersion());
             }
             pos = oPL.intValueExact() - oPS.intValueExact();
         }
 
+        TradingSignal signal = null;
+
         TradingSignal bbCloseSignal = bDeltaBorderClose(b_delta, block, pos, bordersV2);
-        if (bbCloseSignal != null) return bbCloseSignal;
+        if (bbCloseSignal != null) signal = bbCloseSignal;
         TradingSignal obCloseSignal = oDeltaBorderClose(o_delta, block, pos, bordersV2);
-        if (obCloseSignal != null) return obCloseSignal;
+        if (obCloseSignal != null) signal = obCloseSignal;
 
         TradingSignal bbOpenSignal = bDeltaBorderOpen(b_delta, block, pos, bordersV2);
-        if (bbOpenSignal != null) return bbOpenSignal;
+        if (bbOpenSignal != null) signal = bbOpenSignal;
         TradingSignal obOpenSignal = oDeltaBorderOpen(o_delta, block, pos, bordersV2);
-        if (obOpenSignal != null) return obOpenSignal;
+        if (obOpenSignal != null) signal = obOpenSignal;
 
+        // Dynamic block step 2
+        if (signal != null && placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC) {
+            final BigDecimal bMaxBlock = BigDecimal.valueOf(signal.bitmexBlock);
 
-        return new TradingSignal(TradeType.NONE, 0, "", "", "");
+            if (signal.tradeType == TradeType.DELTA1_B_SELL_O_BUY) { // B_DELTA
+                final PlBlocks bDeltaBlocks = placingBlocksService.getDynamicBlockByBDelta(bitmexOrderBook, okexOrderBook,
+                        new BigDecimal(signal.borderValue), bMaxBlock);
+                int updatedDynBlock = theMode == BorderParams.PosMode.BTM_MODE
+                        ? bDeltaBlocks.getBlockBitmex().intValueExact()
+                        : bDeltaBlocks.getBlockOkex().intValueExact();
+                signal = new TradingSignal(signal.tradeType, updatedDynBlock, signal.borderName, signal.borderValue, signal.deltaVal);
+            } else if (signal.tradeType == TradeType.DELTA2_B_BUY_O_SELL) { // O_DELTA
+                final PlBlocks oDeltaBlocks = placingBlocksService.getDynamicBlockByODelta(bitmexOrderBook, okexOrderBook,
+                        new BigDecimal(signal.borderValue), bMaxBlock);
+                int updatedDynBlock = theMode == BorderParams.PosMode.BTM_MODE
+                        ? oDeltaBlocks.getBlockBitmex().intValueExact()
+                        : oDeltaBlocks.getBlockOkex().intValueExact();
+                signal = new TradingSignal(signal.tradeType, updatedDynBlock, signal.borderName, signal.borderValue, signal.deltaVal);
+            }
+        }
+
+        return signal != null ? signal :
+                new TradingSignal(TradeType.NONE, 0, "", "", "");
     }
 
     private TradingSignal bDeltaBorderClose(BigDecimal b_delta, int block, int pos, BordersV2 bordersV2) {
