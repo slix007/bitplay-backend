@@ -720,21 +720,7 @@ public class OkCoinService extends MarketService {
         logger.info(message);
         tradeLogger.info(message);
 
-        if (placingSubType == PlacingType.MAKER) {
-            thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-        } else {
-            // the best Taker price(even for Hybrid)
-            thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-
-            if (placingSubType == null || placingSubType == PlacingType.TAKER) {
-                tradeLogger.warn("placing maker, but subType is " + placingSubType);
-                warningLogger.warn("placing maker, but subType is " + placingSubType);
-            }
-        }
-
-        if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
-            tradeResponse.setErrorCode("The new price is 0 ");
-        } else if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
+        if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
 
             tradeResponse.setErrorCode("Not enough amount left. amount=" + tradeableAmount.toPlainString());
 
@@ -742,35 +728,52 @@ public class OkCoinService extends MarketService {
             // USING REST API
             orderType = adjustOrderType(orderType, tradeableAmount);
 
-            final LimitOrder limitOrder = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
-            String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
-            tradeResponse.setOrderId(orderId);
+            if (placingSubType == PlacingType.MAKER) {
+                thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
+            } else {
+                // the best Taker price(even for Hybrid)
+                thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-            final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(), thePrice);
-            tradeResponse.setLimitOrder(limitOrderWithId);
-            final FplayOrder fplayOrder = new FplayOrder(limitOrderWithId, bestQuotes, placingSubType, signalType);
-            orderRepositoryService.save(fplayOrder);
-
-            if (!isMoving) {
-                synchronized (openOrdersLock) {
-                    openOrders.replaceAll(exists -> {
-                        if (fplayOrder.getOrderId().equals(exists.getOrderId())) {
-                            return FplayOrderUtils.updateFplayOrder(exists, fplayOrder);
-                        }
-                        return exists;
-                    });
+                if (placingSubType == null || placingSubType == PlacingType.TAKER) {
+                    tradeLogger.warn("placing maker, but subType is " + placingSubType);
+                    warningLogger.warn("placing maker, but subType is " + placingSubType);
                 }
             }
 
-            if (signalType == SignalType.AUTOMATIC) {
-                arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
-            }
-            orderIdToSignalInfo.put(orderId, bestQuotes);
+            if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
+                tradeResponse.setErrorCode("The new price is 0 ");
+            } else {
 
-            String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType;
-            writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
-                    placingTypeString,
-                    signalType, thePrice, orderId, null);
+                final LimitOrder limitOrder = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
+                String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
+                tradeResponse.setOrderId(orderId);
+
+                final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(), thePrice);
+                tradeResponse.setLimitOrder(limitOrderWithId);
+                final FplayOrder fplayOrder = new FplayOrder(limitOrderWithId, bestQuotes, placingSubType, signalType);
+                orderRepositoryService.save(fplayOrder);
+
+                if (!isMoving) {
+                    synchronized (openOrdersLock) {
+                        openOrders.replaceAll(exists -> {
+                            if (fplayOrder.getOrderId().equals(exists.getOrderId())) {
+                                return FplayOrderUtils.updateFplayOrder(exists, fplayOrder);
+                            }
+                            return exists;
+                        });
+                    }
+                }
+
+                if (signalType == SignalType.AUTOMATIC) {
+                    arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
+                }
+                orderIdToSignalInfo.put(orderId, bestQuotes);
+
+                String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType;
+                writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
+                        placingTypeString,
+                        signalType, thePrice, orderId, null);
+            }
         }
 
         return tradeResponse;
