@@ -446,6 +446,9 @@ public class ArbitrageService {
                 final String dynDeltaLogs = plBlocks.isDynamic()
                         ? composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
                         : null;
+                if (plBlocks.getBlockOkex().signum() == 0) {
+                    return bestQuotes;
+                }
 
                 startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
             }
@@ -454,7 +457,9 @@ public class ArbitrageService {
                 final String dynDeltaLogs = plBlocks.isDynamic()
                         ? composeDynBlockLogs("o_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
                         : null;
-
+                if (plBlocks.getBlockOkex().signum() == 0) {
+                    return bestQuotes;
+                }
                 startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
             }
 
@@ -465,6 +470,10 @@ public class ArbitrageService {
 
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(
                     bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS);
+
+            if (tradingSignal.okexBlock == 0) {
+                return bestQuotes;
+            }
 
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
                 startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock),
