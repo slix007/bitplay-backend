@@ -978,8 +978,8 @@ public class OkCoinService extends MarketService {
             // 1. cancel old order
             final String counterName = getCounterName();
             final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(limitOrder.getId(), "Moving1:cancelled:");
-            if (!okCoinTradeResult.isResult())
-                return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Failed to cancel order on moving id=" + limitOrder.getId());
+//            if (!okCoinTradeResult.isResult())
+//                return new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, "Failed to cancel order on moving id=" + limitOrder.getId());
 
             // 2. We got result on cancel(true/false), but double-check status of an old order
             Order cancelledOrder = getFinalOrderInfoSync(limitOrder.getId(), counterName, "Moving2:cancelStatus:");
@@ -991,7 +991,8 @@ public class OkCoinService extends MarketService {
             orderRepositoryService.update(cancelledLimitOrder);
 
             // 3. Already closed?
-            if (cancelledLimitOrder.getStatus() == Order.OrderStatus.FILLED) { // Already closed (FILLED)
+            if (cancelledLimitOrder.getStatus() == Order.OrderStatus.FILLED
+                    || (!okCoinTradeResult.isResult() && cancelledLimitOrder.getStatus() == Order.OrderStatus.CANCELED)) { // Already closed (FILLED)
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null,
                         cancelledFplayOrd);
 
