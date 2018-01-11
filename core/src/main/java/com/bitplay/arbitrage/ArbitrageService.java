@@ -391,14 +391,14 @@ public class ArbitrageService {
                         && secondOrderBook != null
                         && firstMarketService.getAccountInfoContracts() != null
                         && secondMarketService.getAccountInfoContracts() != null) {
-                    bestQuotes = calcAndDoArbitrage(secondOrderBook, firstOrderBook);
+                    bestQuotes = calcAndDoArbitrage(firstOrderBook, secondOrderBook);
                 }
             }
         }
         return bestQuotes;
     }
 
-    private BestQuotes calcAndDoArbitrage(OrderBook okCoinOrderBook, OrderBook bitmexOrderBook) {
+    private BestQuotes calcAndDoArbitrage(OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
         if (okCoinOrderBook.getAsks().size() == 0 || okCoinOrderBook.getBids().size() == 0
                 || bitmexOrderBook.getAsks().size() == 0 || bitmexOrderBook.getBids().size() == 0) {
             return BestQuotes.empty();

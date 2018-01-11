@@ -1,5 +1,6 @@
 package info.bitrich.xchangestream.bitmex.dto;
 
+import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -29,8 +30,10 @@ public class BitmexStreamAdapters {
     }
 
     private static List<LimitOrder> adaptLimitOrders(BigDecimal[][] list, Order.OrderType type, CurrencyPair currencyPair, Date timestamp) {
-        List<LimitOrder> limitOrders = new ArrayList<>(list.length);
-        for (BigDecimal[] data : list) {
+        final int size = Math.min(list.length, BitmexAdapters.MAX_SIZE);
+        List<LimitOrder> limitOrders = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            BigDecimal[] data = list[i];
             limitOrders.add(adaptLimitOrder(type, data, currencyPair, null, timestamp));
         }
         return limitOrders;

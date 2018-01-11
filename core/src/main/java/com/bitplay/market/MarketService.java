@@ -87,8 +87,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public abstract UserTrades fetchMyTradeHistory();
 
-    public OrderBook getOrderBook() {
-        return this.orderBook;
+    public synchronized OrderBook getOrderBook() {
+        return new OrderBook(this.orderBook.getTimeStamp(),
+                new ArrayList<>(this.orderBook.getAsks()),
+                new ArrayList<>(this.orderBook.getBids()));
     }
 
     public abstract String fetchPosition() throws Exception;
@@ -658,7 +660,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                     && bestPrice.compareTo(limitOrder.getLimitPrice()) > 0)
                     ) {
 //            } else if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
-                logger.info("{} Try to move maker order {} {}, from {} to {}",
+                debugLog.info("{} Try to move maker order {} {}, from {} to {}",
                         getName(), limitOrder.getId(), limitOrder.getType(),
                         limitOrder.getLimitPrice(), bestPrice);
                 response = moveMakerOrder(fplayOrder, bestPrice);
