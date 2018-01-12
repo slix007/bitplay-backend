@@ -581,7 +581,7 @@ public class BitmexService extends MarketService {
 
     private OrderBook mergeOrderBook(BitmexOrderBook bitmexOrderBook) {
 
-        OrderBook orderBook = getOrderBook();
+        OrderBook orderBook = getFullOrderBook();
             if (bitmexOrderBook.getAction().equals("partial")) {
                 orderBook = BitmexStreamAdapters.adaptBitmexOrderBook(bitmexOrderBook, CURRENCY_PAIR_XBTUSD);
             } else if (bitmexOrderBook.getAction().equals("delete")) {

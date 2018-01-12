@@ -52,7 +52,7 @@ import io.reactivex.disposables.Disposable;
  */
 public abstract class MarketService extends MarketServiceOpenOrders {
 
-
+    private static final int ORDERBOOK_MAX_SIZE = 20;
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
@@ -88,6 +88,19 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     public abstract UserTrades fetchMyTradeHistory();
 
     public synchronized OrderBook getOrderBook() {
+        List<LimitOrder> asks = this.orderBook.getAsks().size() > ORDERBOOK_MAX_SIZE
+                ? this.orderBook.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).collect(Collectors.toList())
+                : this.orderBook.getAsks();
+        List<LimitOrder> bids = this.orderBook.getBids().size() > ORDERBOOK_MAX_SIZE
+                ? this.orderBook.getBids().stream().limit(ORDERBOOK_MAX_SIZE).collect(Collectors.toList())
+                : this.orderBook.getBids();
+
+        return new OrderBook(this.orderBook.getTimeStamp(),
+                new ArrayList<>(asks),
+                new ArrayList<>(bids));
+    }
+
+    protected synchronized OrderBook getFullOrderBook() {
         return new OrderBook(this.orderBook.getTimeStamp(),
                 new ArrayList<>(this.orderBook.getAsks()),
                 new ArrayList<>(this.orderBook.getBids()));

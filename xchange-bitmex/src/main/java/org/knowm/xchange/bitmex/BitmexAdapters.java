@@ -33,7 +33,6 @@ import io.swagger.client.model.Wallet;
  */
 public class BitmexAdapters {
 
-    public final static int MAX_SIZE = 20;
     private final static String BID_TYPE = "Buy";
     private final static String ASK_TYPE = "Sell";
 
@@ -49,9 +48,7 @@ public class BitmexAdapters {
                                                             Order.OrderType orderType, CurrencyPair currencyPair) {
         List<LimitOrder> limitOrderList = new ArrayList<>();
 
-        int maxI = Math.min(MAX_SIZE, bitmexMarketDepth.size());
-        for (int i = 0; i < maxI; i++) {
-            OrderBookL2 orderBookL2 = bitmexMarketDepth.get(i);
+        for (OrderBookL2 orderBookL2 : bitmexMarketDepth) {
 
             if ((orderBookL2.getSide().equals(BID_TYPE) && orderType.equals(Order.OrderType.BID))
                     || (orderBookL2.getSide().equals(ASK_TYPE) && orderType.equals(Order.OrderType.ASK))) {
