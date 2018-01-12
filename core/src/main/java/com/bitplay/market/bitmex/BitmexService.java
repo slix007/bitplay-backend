@@ -119,7 +119,7 @@ public class BitmexService extends MarketService {
 
     @Autowired
     private RestartService restartService;
-    private volatile String orderBookLastTimestamp = "";
+    private volatile Date orderBookLastTimestamp = new Date();
 
     @Autowired
     private PosDiffService posDiffService;
@@ -132,6 +132,10 @@ public class BitmexService extends MarketService {
     private String key;
     private String secret;
     private Disposable restartTimer;
+
+    public Date getOrderBookLastTimestamp() {
+        return orderBookLastTimestamp;
+    }
 
     @Override
     public ArbitrageService getArbitrageService() {
@@ -582,16 +586,16 @@ public class BitmexService extends MarketService {
     private OrderBook mergeOrderBook(BitmexOrderBook bitmexOrderBook) {
 
         OrderBook orderBook = getFullOrderBook();
-            if (bitmexOrderBook.getAction().equals("partial")) {
-                orderBook = BitmexStreamAdapters.adaptBitmexOrderBook(bitmexOrderBook, CURRENCY_PAIR_XBTUSD);
-            } else if (bitmexOrderBook.getAction().equals("delete")) {
-                orderBook = BitmexStreamAdapters.delete(orderBook, bitmexOrderBook);
-            } else if (bitmexOrderBook.getAction().equals("update")) {
-                orderBook = BitmexStreamAdapters.update(orderBook, bitmexOrderBook, new Date(), CURRENCY_PAIR_XBTUSD);
-            } else if (bitmexOrderBook.getAction().equals("insert")) {
-                orderBook = BitmexStreamAdapters.insert(orderBook, bitmexOrderBook, new Date(), CURRENCY_PAIR_XBTUSD);
-            }
-            this.orderBook = orderBook;
+        if (bitmexOrderBook.getAction().equals("partial")) {
+            orderBook = BitmexStreamAdapters.adaptBitmexOrderBook(bitmexOrderBook, CURRENCY_PAIR_XBTUSD);
+        } else if (bitmexOrderBook.getAction().equals("delete")) {
+            orderBook = BitmexStreamAdapters.delete(orderBook, bitmexOrderBook);
+        } else if (bitmexOrderBook.getAction().equals("update")) {
+            orderBook = BitmexStreamAdapters.update(orderBook, bitmexOrderBook, new Date(), CURRENCY_PAIR_XBTUSD);
+        } else if (bitmexOrderBook.getAction().equals("insert")) {
+            orderBook = BitmexStreamAdapters.insert(orderBook, bitmexOrderBook, new Date(), CURRENCY_PAIR_XBTUSD);
+        }
+        this.orderBook = orderBook;
 
         return this.orderBook;
     }
@@ -619,7 +623,7 @@ public class BitmexService extends MarketService {
                         final LimitOrder bestBid = Utils.getBestBid(orderBook);
 
                         if (bestAsk != null) {
-                            orderBookLastTimestamp = bestAsk.getTimestamp().toString();
+                            orderBookLastTimestamp = new Date();
                         }
 
                         if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
