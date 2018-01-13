@@ -26,7 +26,7 @@ public class PlacingBlocksService {
     SettingsRepositoryService settingsRepositoryService;
 
     public PlBlocks getPlacingBlocks(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                     BigDecimal theBorder, PlacingBlocks.DeltaBase deltaBase) {
+                                     BigDecimal theBorder, PlacingBlocks.DeltaBase deltaBase, BigDecimal oPL, BigDecimal oPS) {
         final PlBlocks theBlocks;
         final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
 
@@ -35,9 +35,9 @@ public class PlacingBlocksService {
         } else if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC) {
             final BigDecimal bMaxBlock = placingBlocks.getDynMaxBlockBitmex();
             if (deltaBase == PlacingBlocks.DeltaBase.B_DELTA) {
-                theBlocks = getDynamicBlockByBDelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
+                theBlocks = getDynamicBlockByBDelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock, oPL, oPS);
             } else { // O_DELTA
-                theBlocks = getDynamicBlockByODelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
+                theBlocks = getDynamicBlockByODelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock, oPL, oPS);
             }
         } else {
             throw new IllegalStateException("Unhandled PlacsingBlocks version");
@@ -46,7 +46,7 @@ public class PlacingBlocksService {
     }
 
     public PlBlocks getDynamicBlockByBDelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                            BigDecimal bBorder, BigDecimal bMaxBlock) {
+                                            BigDecimal bBorder, BigDecimal bMaxBlock, BigDecimal oPL, BigDecimal oPS) {
         // b_bid - o_ask
         final List<LimitOrder> bids = bitmexOrderBook.getBids();
         final List<LimitOrder> asks = okexOrderBook.getAsks();
@@ -54,11 +54,17 @@ public class PlacingBlocksService {
         final BigDecimal[] bBidsAm = bids.stream().map(Order::getTradableAmount).limit(20).toArray(BigDecimal[]::new);
         final BigDecimal[] oAsksAm = asks.stream().map(Order::getTradableAmount).limit(20).map(oAm -> oAm.multiply(OKEX_FACTOR)).toArray(BigDecimal[]::new);
 
-        return getDynBlock(bBorder, asks, bids, oAsksAm, bBidsAm, bMaxBlock);
+        PlBlocks dynBlock = getDynBlock(bBorder, asks, bids, oAsksAm, bBidsAm, bMaxBlock);
+
+        // okex position bound
+        if (oPS.signum() > 0 && dynBlock.getBlockOkex().compareTo(oPS) > 0) { // DELTA1_B_SELL_O_BUY
+            dynBlock = new PlBlocks(oPS.multiply(OKEX_FACTOR), oPS, PlacingBlocks.Ver.DYNAMIC);
+        }
+        return dynBlock;
     }
 
     public PlBlocks getDynamicBlockByODelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                            BigDecimal oBorder, BigDecimal bMaxBlock) {
+                                            BigDecimal oBorder, BigDecimal bMaxBlock, BigDecimal oPL, BigDecimal oPS) {
         // o_bid - b_ask
         final List<LimitOrder> bids = okexOrderBook.getBids();
         final List<LimitOrder> asks = bitmexOrderBook.getAsks();
@@ -66,7 +72,13 @@ public class PlacingBlocksService {
         final BigDecimal[] oBidsAm = bids.stream().map(Order::getTradableAmount).limit(20).map(oAm -> oAm.multiply(OKEX_FACTOR)).toArray(BigDecimal[]::new);
         final BigDecimal[] bAsksAm = asks.stream().map(Order::getTradableAmount).limit(20).toArray(BigDecimal[]::new);
 
-        return getDynBlock(oBorder, asks, bids, bAsksAm, oBidsAm, bMaxBlock);
+        // okex position bound
+        PlBlocks dynBlock = getDynBlock(oBorder, asks, bids, bAsksAm, oBidsAm, bMaxBlock);
+
+        if (oPL.signum() > 0 && dynBlock.getBlockOkex().compareTo(oPL) > 0) { // DELTA2_B_BUY_O_SELL
+            dynBlock = new PlBlocks(oPL.multiply(OKEX_FACTOR), oPL, PlacingBlocks.Ver.DYNAMIC);
+        }
+        return dynBlock;
     }
 
     private PlBlocks getDynBlock(BigDecimal oBorder, List<LimitOrder> asks, List<LimitOrder> bids,

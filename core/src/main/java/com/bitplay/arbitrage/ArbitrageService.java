@@ -436,13 +436,18 @@ public class ArbitrageService {
             return bestQuotes;
         }
 
-        BigDecimal border1 = params.getBorder1();
-        BigDecimal border2 = params.getBorder2();
+        final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
+        final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
+        final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
 
         final BorderParams borderParams = persistenceService.fetchBorders();
         if (borderParams == null || borderParams.getActiveVersion() == BorderParams.Ver.V1) {
+            BigDecimal border1 = params.getBorder1();
+            BigDecimal border2 = params.getBorder2();
+
             if (delta1.compareTo(border1) >= 0) {
-                final PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border1, PlacingBlocks.DeltaBase.B_DELTA);
+                final PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border1,
+                        PlacingBlocks.DeltaBase.B_DELTA, oPL, oPS);
                 final String dynDeltaLogs = plBlocks.isDynamic()
                         ? composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
                         : null;
@@ -453,7 +458,8 @@ public class ArbitrageService {
                 startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
             }
             if (delta2.compareTo(border2) >= 0) {
-                final PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border2, PlacingBlocks.DeltaBase.O_DELTA);
+                final PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border2,
+                        PlacingBlocks.DeltaBase.O_DELTA, oPL, oPS);
                 final String dynDeltaLogs = plBlocks.isDynamic()
                         ? composeDynBlockLogs("o_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
                         : null;
@@ -464,10 +470,6 @@ public class ArbitrageService {
             }
 
         } else { // BorderParams.Ver.V2
-            final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
-            final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
-            final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
-
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(
                     bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS);
 

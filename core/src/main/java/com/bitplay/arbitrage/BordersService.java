@@ -87,14 +87,14 @@ public class BordersService {
 
             if (signal.tradeType == TradeType.DELTA1_B_SELL_O_BUY) { // B_DELTA
                 final PlBlocks bDeltaBlocks = placingBlocksService.getDynamicBlockByBDelta(bitmexOrderBook, okexOrderBook,
-                        new BigDecimal(signal.borderValue), bMaxBlock);
+                        new BigDecimal(signal.borderValue), bMaxBlock, oPL, oPS);
                 int updatedDynBlock = theMode == BorderParams.PosMode.BTM_MODE
                         ? bDeltaBlocks.getBlockBitmex().intValueExact()
                         : bDeltaBlocks.getBlockOkex().intValueExact();
                 signal = new TradingSignal(signal.tradeType, updatedDynBlock, signal.borderName, signal.borderValue, signal.deltaVal);
             } else if (signal.tradeType == TradeType.DELTA2_B_BUY_O_SELL) { // O_DELTA
                 final PlBlocks oDeltaBlocks = placingBlocksService.getDynamicBlockByODelta(bitmexOrderBook, okexOrderBook,
-                        new BigDecimal(signal.borderValue), bMaxBlock);
+                        new BigDecimal(signal.borderValue), bMaxBlock, oPL, oPS);
                 int updatedDynBlock = theMode == BorderParams.PosMode.BTM_MODE
                         ? oDeltaBlocks.getBlockBitmex().intValueExact()
                         : oDeltaBlocks.getBlockOkex().intValueExact();

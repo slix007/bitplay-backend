@@ -80,18 +80,22 @@ public class PlacingBlocksServiceTest {
     @Test
     public void getDynamicBlockBitmexInsideFirst() {
         // b_delta=-438.39
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.ZERO;
         final BigDecimal maxBlock = BigDecimal.valueOf(100); // okex_am[0]
         final BigDecimal bBorder = BigDecimal.valueOf(-438.39);
-        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByBDelta(bOb, oOb, bBorder, maxBlock);
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByBDelta(bOb, oOb, bBorder, maxBlock, oPL, oPS);
         Assert.assertEquals(BigDecimal.valueOf(1), dynamicBlockBitmex.getBlockOkex());
     }
 
     @Test
     public void getDynamicBlockBitmexWholeFirst() {
         // b_delta=-438.39
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.ZERO;
         final BigDecimal maxBlock = BigDecimal.valueOf(500); // okex_am[0]
         final BigDecimal bBorder = BigDecimal.valueOf(-438.39);
-        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByBDelta(bOb, oOb, bBorder, maxBlock);
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByBDelta(bOb, oOb, bBorder, maxBlock, oPL, oPS);
         Assert.assertEquals(BigDecimal.valueOf(2), dynamicBlockBitmex.getBlockOkex());
     }
 
@@ -99,27 +103,33 @@ public class PlacingBlocksServiceTest {
     public void getDynamicBlockBitmexSecond() {
         // b_delta=-438.39
         // b_delta=-438.4  // b_bid[0] - o_ask[1]
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.ZERO;
         final BigDecimal maxBlock = BigDecimal.valueOf(500);
         final BigDecimal bBorder = BigDecimal.valueOf(-438.4);
-        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByBDelta(bOb, oOb, bBorder, maxBlock);
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByBDelta(bOb, oOb, bBorder, maxBlock, oPL, oPS);
         Assert.assertEquals(BigDecimal.valueOf(4), dynamicBlockBitmex.getBlockOkex());
     }
 
     @Test
     public void getDynamicBlockOkexFirstFull() {
         // o_delta=415.43
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.ZERO;
         final BigDecimal maxBlock = BigDecimal.valueOf(500);
         final BigDecimal oBorder = BigDecimal.valueOf(415.43);
-        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock);
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock, oPL, oPS);
         Assert.assertEquals(BigDecimal.valueOf(3), dynamicBlockBitmex.getBlockOkex());
     }
 
     @Test
     public void getDynamicBlockOkexFirstPart() {
         // o_delta=415.43
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.ZERO;
         final BigDecimal maxBlock = BigDecimal.valueOf(200); // bitmex am[0]=342
         final BigDecimal oBorder = BigDecimal.valueOf(415.43);
-        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock);
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock, oPL, oPS);
         Assert.assertEquals(BigDecimal.valueOf(2), dynamicBlockBitmex.getBlockOkex());
     }
 
@@ -127,9 +137,11 @@ public class PlacingBlocksServiceTest {
     public void getDynamicBlockOkexSecondOne() {
         // o_delta=415.43
         // o_delta[b2,o1] = 414.93
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.ZERO;
         final BigDecimal maxBlock = BigDecimal.valueOf(500); // bitmex am[0]=342
         final BigDecimal oBorder = BigDecimal.valueOf(414.93);
-        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock);
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock, oPL, oPS);
         Assert.assertEquals(BigDecimal.valueOf(5), dynamicBlockBitmex.getBlockOkex());
     }
 
@@ -138,9 +150,11 @@ public class PlacingBlocksServiceTest {
         // o_delta=415.43
         // o_delta[b2,o1] = 414.93
         // o_delta[b2,o2] = 414.91
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.ZERO;
         final BigDecimal maxBlock = BigDecimal.valueOf(1000);
         final BigDecimal oBorder = BigDecimal.valueOf(414.91);
-        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock);
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock, oPL, oPS);
         Assert.assertEquals(BigDecimal.valueOf(7), dynamicBlockBitmex.getBlockOkex());
     }
 
@@ -151,9 +165,53 @@ public class PlacingBlocksServiceTest {
         // o_delta[b2,o2] = 414.91
         // o_delta[b3,o2] = 412.65
         // o_delta[b3,o2] = 408.09
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.ZERO;
         final BigDecimal maxBlock = BigDecimal.valueOf(2500);
         final BigDecimal oBorder = BigDecimal.valueOf(408.10); // 408.09 < 408.10 < 412.65
-        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock);
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock, oPL, oPS);
         Assert.assertEquals(BigDecimal.valueOf(18), dynamicBlockBitmex.getBlockOkex());
     }
+
+    // ---------------- OKEX position bounds -------------------
+
+    @Test
+    public void getDynamicBlockOkexFirstFullPlusPosBound() {
+        // o_delta=415.43
+        final BigDecimal oPL = BigDecimal.valueOf(2);
+        final BigDecimal oPS = BigDecimal.ZERO;
+        final BigDecimal maxBlock = BigDecimal.valueOf(500);
+        final BigDecimal oBorder = BigDecimal.valueOf(415.43);
+        // DELTA2_B_BUY_O_SELL
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByODelta(bOb, oOb, oBorder, maxBlock, oPL, oPS);
+        // Unbound == 3
+        Assert.assertEquals(BigDecimal.valueOf(2), dynamicBlockBitmex.getBlockOkex());
+    }
+
+    @Test
+    public void getDynamicBlockBitmexSecondPlusPosBound() {
+        // b_delta=-438.39
+        // b_delta=-438.4  // b_bid[0] - o_ask[1]
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.valueOf(3);
+        final BigDecimal maxBlock = BigDecimal.valueOf(500);
+        final BigDecimal bBorder = BigDecimal.valueOf(-438.4);
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByBDelta(bOb, oOb, bBorder, maxBlock, oPL, oPS);
+        // Unbound == 4
+        Assert.assertEquals(BigDecimal.valueOf(3), dynamicBlockBitmex.getBlockOkex());
+    }
+
+    @Test
+    public void getDynamicBlockBitmexSecondPlusPosInsideBound() {
+        // b_delta=-438.39
+        // b_delta=-438.4  // b_bid[0] - o_ask[1]
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.valueOf(10);
+        final BigDecimal maxBlock = BigDecimal.valueOf(500);
+        final BigDecimal bBorder = BigDecimal.valueOf(-438.4);
+        final PlBlocks dynamicBlockBitmex = placingBlocksService.getDynamicBlockByBDelta(bOb, oOb, bBorder, maxBlock, oPL, oPS);
+        // Unbound == 4
+        Assert.assertEquals(BigDecimal.valueOf(4), dynamicBlockBitmex.getBlockOkex());
+    }
+
 }
