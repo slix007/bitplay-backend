@@ -43,6 +43,14 @@ public class BordersEndpoint {
 
     @RequestMapping(value = "/create-default", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public BorderParams setDefaultBorders() {
+        final BorderParams borderParams = createDefaultBorders();
+
+        persistenceService.saveBorderParams(borderParams);
+
+        return persistenceService.fetchBorders();
+    }
+
+    private BorderParams createDefaultBorders() {
         final List<BorderTable> borders = new ArrayList<>();
         final List<BorderItem> borderBtmClose = new ArrayList<>();
         borderBtmClose.add(new BorderItem(1, BigDecimal.valueOf(-21), 500, 500));
@@ -67,11 +75,7 @@ public class BordersEndpoint {
         borderOkexOpen.add(new BorderItem(3, BigDecimal.valueOf(35), 350, 350));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        final BorderParams borderParams = new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
-
-        persistenceService.saveBorderParams(borderParams);
-
-        return persistenceService.fetchBorders();
+        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
     }
 
     @RequestMapping(value = "/tables", method = RequestMethod.POST,

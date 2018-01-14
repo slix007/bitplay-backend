@@ -24,8 +24,7 @@ public class PlacingBlocksServiceTest {
     private OrderBook oOb;
     private OrderBook bOb;
 
-    @Before
-    public void setUp() {
+    private void initOrderBooks() {
         final Order.OrderType ask = Order.OrderType.ASK;
         final Order.OrderType bid = Order.OrderType.BID;
         final ArrayList<LimitOrder> oAsks = new ArrayList<>();
@@ -75,6 +74,11 @@ public class PlacingBlocksServiceTest {
         bBids.add(new LimitOrder(ask, BigDecimal.valueOf(20000), CurrencyPair.BTC_USD, "t1", new Date(), BigDecimal.valueOf(16461.5)));
         bBids.add(new LimitOrder(ask, BigDecimal.valueOf(464), CurrencyPair.BTC_USD, "ea1h", new Date(), BigDecimal.valueOf(16460)));
         bOb = new OrderBook(new Date(), bAsks, bBids);
+    }
+
+    @Before
+    public void setUp() {
+        initOrderBooks();
     }
 
     @Test
