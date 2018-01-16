@@ -22,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -42,11 +43,14 @@ public class BordersServiceTest {
     @InjectMocks
     BordersService bordersService = new BordersService();
 
+    final Settings settings = new Settings();
     @Mock
     PersistenceService persistenceService;
     @Mock
     SettingsRepositoryService settingsRepositoryService;
-
+    @Spy
+    PlacingBlocksService placingBlocksService = new PlacingBlocksService();
+    BorderParams borderParams;
     private OrderBook oOb;
     private OrderBook bOb;
 
@@ -54,18 +58,18 @@ public class BordersServiceTest {
         final Order.OrderType ask = Order.OrderType.ASK;
         final Order.OrderType bid = Order.OrderType.BID;
         final ArrayList<LimitOrder> oAsks = new ArrayList<>();
-        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(2), CurrencyPair.BTC_USD, "17", new Date(), BigDecimal.valueOf(16908.89)));
-        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(2), CurrencyPair.BTC_USD, "57", new Date(), BigDecimal.valueOf(16908.9)));
-        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "68", new Date(), BigDecimal.valueOf(16908.91)));
-        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "47", new Date(), BigDecimal.valueOf(16908.93)));
-        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "78", new Date(), BigDecimal.valueOf(16908.94)));
-        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "88", new Date(), BigDecimal.valueOf(16908.96)));
-        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "67", new Date(), BigDecimal.valueOf(16908.97)));
-        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(6), CurrencyPair.BTC_USD, "36", new Date(), BigDecimal.valueOf(16910)));
-        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(24), CurrencyPair.BTC_USD, "9", new Date(), BigDecimal.valueOf(16911.45)));
-        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(25), CurrencyPair.BTC_USD, "2", new Date(), BigDecimal.valueOf(16914.28)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(2), CurrencyPair.BTC_USD, "17", new Date(), BigDecimal.valueOf(16887)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(2), CurrencyPair.BTC_USD, "57", new Date(), BigDecimal.valueOf(16887.9)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "68", new Date(), BigDecimal.valueOf(16887.91)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "47", new Date(), BigDecimal.valueOf(16887.93)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "78", new Date(), BigDecimal.valueOf(16887.94)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "88", new Date(), BigDecimal.valueOf(16887.96)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "67", new Date(), BigDecimal.valueOf(16887.97)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(6), CurrencyPair.BTC_USD, "36", new Date(), BigDecimal.valueOf(16889)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(24), CurrencyPair.BTC_USD, "9", new Date(), BigDecimal.valueOf(16890.45)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(25), CurrencyPair.BTC_USD, "2", new Date(), BigDecimal.valueOf(16891.28)));
         final ArrayList<LimitOrder> oBids = new ArrayList<>();
-        oBids.add(new LimitOrder(bid, BigDecimal.valueOf(6), CurrencyPair.BTC_USD, "156", new Date(), BigDecimal.valueOf(16886.43)));
+        oBids.add(new LimitOrder(bid, BigDecimal.valueOf(6), CurrencyPair.BTC_USD, "156", new Date(), BigDecimal.valueOf(16886)));
         oBids.add(new LimitOrder(bid, BigDecimal.valueOf(1), CurrencyPair.BTC_USD, "145", new Date(), BigDecimal.valueOf(16886.41)));
         oBids.add(new LimitOrder(bid, BigDecimal.valueOf(11), CurrencyPair.BTC_USD, "13", new Date(), BigDecimal.valueOf(16884.15)));
         oBids.add(new LimitOrder(bid, BigDecimal.valueOf(10), CurrencyPair.BTC_USD, "12", new Date(), BigDecimal.valueOf(16879.59)));
@@ -78,43 +82,43 @@ public class BordersServiceTest {
         oOb = new OrderBook(new Date(), oAsks, oBids);
 
         final ArrayList<LimitOrder> bAsks = new ArrayList<>();
-        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(342), CurrencyPair.BTC_USD, "adf1f", new Date(), BigDecimal.valueOf(16471)));
-        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(98815), CurrencyPair.BTC_USD, "a12", new Date(), BigDecimal.valueOf(16471.5)));
-        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(10000), CurrencyPair.BTC_USD, "a31", new Date(), BigDecimal.valueOf(16472)));
-        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(3850), CurrencyPair.BTC_USD, "a4g1", new Date(), BigDecimal.valueOf(16472.5)));
-        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(600), CurrencyPair.BTC_USD, "afg15", new Date(), BigDecimal.valueOf(16473)));
-        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(12150), CurrencyPair.BTC_USD, "a14", new Date(), BigDecimal.valueOf(16473.5)));
-        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1158), CurrencyPair.BTC_USD, "a61g", new Date(), BigDecimal.valueOf(16474)));
-        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(50), CurrencyPair.BTC_USD, "a1ddg7", new Date(), BigDecimal.valueOf(16474.5)));
-        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(50), CurrencyPair.BTC_USD, "a81dgf", new Date(), BigDecimal.valueOf(16475)));
-        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(9293), CurrencyPair.BTC_USD, "a1d9", new Date(), BigDecimal.valueOf(16475.5)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(342), CurrencyPair.BTC_USD, "adf1f", new Date(), BigDecimal.valueOf(16834)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(98815), CurrencyPair.BTC_USD, "a12", new Date(), BigDecimal.valueOf(16834.5)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(10000), CurrencyPair.BTC_USD, "a31", new Date(), BigDecimal.valueOf(16835)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(3850), CurrencyPair.BTC_USD, "a4g1", new Date(), BigDecimal.valueOf(16835.5)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(600), CurrencyPair.BTC_USD, "afg15", new Date(), BigDecimal.valueOf(16836)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(12150), CurrencyPair.BTC_USD, "a14", new Date(), BigDecimal.valueOf(16836.5)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1158), CurrencyPair.BTC_USD, "a61g", new Date(), BigDecimal.valueOf(16837)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(50), CurrencyPair.BTC_USD, "a1ddg7", new Date(), BigDecimal.valueOf(16837.5)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(50), CurrencyPair.BTC_USD, "a81dgf", new Date(), BigDecimal.valueOf(16838)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(9293), CurrencyPair.BTC_USD, "a1d9", new Date(), BigDecimal.valueOf(16838.5)));
         final ArrayList<LimitOrder> bBids = new ArrayList<>();
-        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(8583), CurrencyPair.BTC_USD, "ba1", new Date(), BigDecimal.valueOf(16470.5)));
-        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(1200), CurrencyPair.BTC_USD, "ca1", new Date(), BigDecimal.valueOf(16470)));
-        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(922), CurrencyPair.BTC_USD, "sfa1", new Date(), BigDecimal.valueOf(16469)));
-        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(400), CurrencyPair.BTC_USD, "daf1", new Date(), BigDecimal.valueOf(16468.5)));
-        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(2000), CurrencyPair.BTC_USD, "fa1", new Date(), BigDecimal.valueOf(16465.5)));
-        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(1258), CurrencyPair.BTC_USD, "ga1", new Date(), BigDecimal.valueOf(16464.5)));
-        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(1239), CurrencyPair.BTC_USD, "ja1", new Date(), BigDecimal.valueOf(16464)));
-        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(5810), CurrencyPair.BTC_USD, "ka1", new Date(), BigDecimal.valueOf(16463.5)));
-        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(20000), CurrencyPair.BTC_USD, "t1", new Date(), BigDecimal.valueOf(16461.5)));
-        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(464), CurrencyPair.BTC_USD, "ea1h", new Date(), BigDecimal.valueOf(16460)));
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(8583), CurrencyPair.BTC_USD, "ba1", new Date(), BigDecimal.valueOf(16833)));
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(1200), CurrencyPair.BTC_USD, "ca1", new Date(), BigDecimal.valueOf(16832)));
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(922), CurrencyPair.BTC_USD, "sfa1", new Date(), BigDecimal.valueOf(16831)));
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(400), CurrencyPair.BTC_USD, "daf1", new Date(), BigDecimal.valueOf(16830.5)));
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(2000), CurrencyPair.BTC_USD, "fa1", new Date(), BigDecimal.valueOf(16829.5)));
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(1258), CurrencyPair.BTC_USD, "ga1", new Date(), BigDecimal.valueOf(16828.5)));
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(1239), CurrencyPair.BTC_USD, "ja1", new Date(), BigDecimal.valueOf(16827)));
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(5810), CurrencyPair.BTC_USD, "ka1", new Date(), BigDecimal.valueOf(16826.5)));
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(20000), CurrencyPair.BTC_USD, "t1", new Date(), BigDecimal.valueOf(16825.5)));
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(464), CurrencyPair.BTC_USD, "ea1h", new Date(), BigDecimal.valueOf(16824)));
         bOb = new OrderBook(new Date(), bAsks, bBids);
     }
 
     private BorderParams createDefaultBorders() {
         final List<BorderTable> borders = new ArrayList<>();
         final List<BorderItem> borderBtmClose = new ArrayList<>();
-        borderBtmClose.add(new BorderItem(1, BigDecimal.valueOf(-100), 0, 0));
-        borderBtmClose.add(new BorderItem(2, BigDecimal.valueOf(-110), 500, 500));
-        borderBtmClose.add(new BorderItem(3, BigDecimal.valueOf(-120), 1000, 1000));
-        borderBtmClose.add(new BorderItem(4, BigDecimal.valueOf(-130), 1500, 1500));
+        borderBtmClose.add(new BorderItem(1, BigDecimal.valueOf(-30), 0, 0));
+        borderBtmClose.add(new BorderItem(2, BigDecimal.valueOf(-40), 500, 500));
+        borderBtmClose.add(new BorderItem(3, BigDecimal.valueOf(-50), 1000, 1000));
+        borderBtmClose.add(new BorderItem(4, BigDecimal.valueOf(-60), 1500, 1500));
         borders.add(new BorderTable("b_br_close", borderBtmClose));
         final List<BorderItem> borderBtmOpen = new ArrayList<>();
-        borderBtmOpen.add(new BorderItem(1, BigDecimal.valueOf(-90), 500, 500));
-        borderBtmOpen.add(new BorderItem(2, BigDecimal.valueOf(-80), 1000, 1000));
-        borderBtmOpen.add(new BorderItem(3, BigDecimal.valueOf(-70), 1500, 1500));
-        borderBtmOpen.add(new BorderItem(4, BigDecimal.valueOf(-60), 2000, 2000));
+        borderBtmOpen.add(new BorderItem(1, BigDecimal.valueOf(-20), 500, 500));
+        borderBtmOpen.add(new BorderItem(2, BigDecimal.valueOf(-10), 1000, 1000));
+        borderBtmOpen.add(new BorderItem(3, BigDecimal.valueOf(-0), 1500, 1500));
+        borderBtmOpen.add(new BorderItem(4, BigDecimal.valueOf(10), 2000, 2000));
         borders.add(new BorderTable("b_br_open", borderBtmOpen));
         final List<BorderItem> borderOkexClose = new ArrayList<>();
         borderOkexClose.add(new BorderItem(1, BigDecimal.valueOf(160), 0, 0));
@@ -135,31 +139,99 @@ public class BordersServiceTest {
 
     @Before
     public void init() {
-        MockitoAnnotations.initMocks(this);
         initOrderBooks();
 
-        final Settings settings = new Settings();
         final PlacingBlocks placingBlocks = new PlacingBlocks();
         placingBlocks.setActiveVersion(PlacingBlocks.Ver.FIXED);
         placingBlocks.setFixedBlockOkex(BigDecimal.ONE);
         settings.setPlacingBlocks(placingBlocks);
 
         when(settingsRepositoryService.getSettings()).thenReturn(settings);
-
-        final BorderParams borderParams = createDefaultBorders();
+        borderParams = createDefaultBorders();
 
         when(persistenceService.fetchBorders()).thenReturn(borderParams);
 
         when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
     }
 
+    /** like Ex.2 */
     @Test
-    public void testBorders() {
+    public void test_Fixed_okMode() {
+//        B_delta: +52
+//        O_delta: -54
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.FIXED);
+        settings.getPlacingBlocks().setFixedBlockOkex(BigDecimal.valueOf(200));
+
         // delta1 == // b_bid[0] - o_ask[1]
-        final BigDecimal delta1 = Utils.getBestBid(bOb).getLimitPrice().subtract(Utils.getBestAsk(oOb).getLimitPrice());
-        final BigDecimal delta2 = Utils.getBestBid(oOb).getLimitPrice().subtract(Utils.getBestAsk(bOb).getLimitPrice());
-        final BigDecimal bP = BigDecimal.valueOf(2);
-        final BigDecimal oPL = BigDecimal.valueOf(2);
+        final BigDecimal delta1 = BigDecimal.valueOf(52);
+        final BigDecimal delta2 = BigDecimal.valueOf(-54);
+        System.out.println("D1=" + delta1 + ", D2=" + delta2);
+        //D1=-54, D2=52
+        final BigDecimal bP = BigDecimal.valueOf(2000 * 100);
+        final BigDecimal oPL = BigDecimal.valueOf(1900);
+        final BigDecimal oPS = BigDecimal.valueOf(0);
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+
+        System.out.println(signal.toString());
+
+    }
+    @Test
+    public void test_Dynamic_okMode() {
+//        B_delta: +52
+//        O_delta: -54
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
+        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(2000));
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(52);
+        final BigDecimal delta2 = BigDecimal.valueOf(-54);
+        System.out.println("D1=" + delta1 + ", D2=" + delta2);
+        //D1=-54, D2=52
+        final BigDecimal bP = BigDecimal.valueOf(2000 * 100);
+        final BigDecimal oPL = BigDecimal.valueOf(2300);
+        final BigDecimal oPS = BigDecimal.valueOf(400);
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+
+        System.out.println(signal.toString());
+
+    }
+
+    /**
+     Пример 1. Bitmex_br_open
+     Pos_mode == ok_mode
+     Pos. Bitmex: -150000, Okex: +1100 -0
+     B_delta: +52  ==> okcoin_BUY ==> pos_long_limit
+     O_delta: -54  ==> okcoin_SELL
+     Max. dyn_block = 2000 контрактов
+     Начинаем пересчет с первой строки:
+     1 строка - не заходим (не соблюдается условие pos < pos_long_lim)
+     2 строка - не заходим
+     3 строка:
+     рассчитываем динамический шаг для барьера 40. Предположим дин. шаг = 1200 контрактов. У нас квота только на 400, поэтому берем 400 (1500-1100).
+     4 строка:
+     рассчитываем динамический шаг для барьера 50. Предположим дин. шаг = 700 контрактов. У нас квота только на 500, поэтому берем 500 (2000-1500).
+     5 строка и далее - не заходим, b_delta < b_br_open.value
+     Таким образом складываем значения и получаем допустимый динамический шаг 400+500 = 900.
+     В итоге pos = Bitmex: -60000; Okex: +2000 -0
+
+
+     -------------
+     если x_delta {входит} в
+
+     */
+    @Test
+    public void test_Example1() {
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
+        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(2000));
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(52);
+        final BigDecimal delta2 = BigDecimal.valueOf(-54);
+        final BigDecimal bP = BigDecimal.valueOf(-150000);
+        final BigDecimal oPL = BigDecimal.valueOf(1100);
         final BigDecimal oPS = BigDecimal.ZERO;
         final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
 
