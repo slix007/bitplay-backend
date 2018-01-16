@@ -78,40 +78,40 @@ public class PlacingBlocksService {
         return getDynBlock(oBorder, asks, bids, bAsksAm, oBidsAm, bMaxBlock);
     }
 
-    private PlBlocks getDynBlock(BigDecimal oBorder, List<LimitOrder> asks, List<LimitOrder> bids,
+    private PlBlocks getDynBlock(BigDecimal xBorder, List<LimitOrder> asks, List<LimitOrder> bids,
                                  BigDecimal[] asksAm, BigDecimal[] bidsAm, BigDecimal maxBlock) {
         int i = 0;
         int k = 0;
-        BigDecimal oBlock = BigDecimal.ZERO;
-        BigDecimal delta = bids.get(0).getLimitPrice().subtract(asks.get(0).getLimitPrice());
+        BigDecimal xBlock = BigDecimal.ZERO;
+        BigDecimal ob_delta = bids.get(0).getLimitPrice().subtract(asks.get(0).getLimitPrice());
 
         BigDecimal amount;
-        while (delta.compareTo(oBorder) >= 0 && maxBlock.compareTo(oBlock) > 0
+        while (ob_delta.compareTo(xBorder) >= 0 && maxBlock.compareTo(xBlock) > 0
                 && k < asksAm.length - 1 && i < bidsAm.length - 1) {
             amount = bidsAm[i].subtract(asksAm[k]);
             if (amount.signum() > 0) {
-                oBlock = oBlock.add(asksAm[k]);
+                xBlock = xBlock.add(asksAm[k]);
                 bidsAm[i] = amount;
                 asksAm[k] = BigDecimal.ZERO;
                 k++;
             } else if (amount.signum() < 0) {
-                oBlock = oBlock.add(bidsAm[i]);
+                xBlock = xBlock.add(bidsAm[i]);
                 bidsAm[i] = BigDecimal.ZERO;
                 asksAm[k] = amount.negate();
                 i++;
             } else if (amount.signum() == 0) {
-                oBlock = oBlock.add(bidsAm[i]);
+                xBlock = xBlock.add(bidsAm[i]);
                 bidsAm[i] = BigDecimal.ZERO;
                 asksAm[k] = BigDecimal.ZERO;
                 i++;
                 k++;
             }
-            delta = bids.get(i).getLimitPrice().subtract(asks.get(k).getLimitPrice());
+            ob_delta = bids.get(i).getLimitPrice().subtract(asks.get(k).getLimitPrice());
         }
 
-        oBlock = oBlock.min(maxBlock);
+        xBlock = xBlock.min(maxBlock);
 
-        oBlock = oBlock.divide(OKEX_FACTOR, 0, RoundingMode.DOWN); // round to OKEX_FACTOR
-        return new PlBlocks(oBlock.multiply(OKEX_FACTOR), oBlock, PlacingBlocks.Ver.DYNAMIC);
+        xBlock = xBlock.divide(OKEX_FACTOR, 0, RoundingMode.DOWN); // round to OKEX_FACTOR
+        return new PlBlocks(xBlock.multiply(OKEX_FACTOR), xBlock, PlacingBlocks.Ver.DYNAMIC);
     }
 }
