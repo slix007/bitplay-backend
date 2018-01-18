@@ -171,7 +171,8 @@ public class BordersService {
                                 btm_br_close_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
 
                                 borderValue.append(";").append(btm_br_close.get(i).toString())
-                                        .append("min(m,b)=").append(row_block);
+                                        .append(",m=").append(m)
+                                        .append(",b=").append(b);
                             }
                         }
 
@@ -207,7 +208,8 @@ public class BordersService {
                                 btm_br_close_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
 
                                 borderValue.append(";").append(btm_br_close.get(i).toString())
-                                        .append("min(m,b)=").append(row_block);
+                                        .append(",m=").append(m)
+                                        .append(",b=").append(b);
                             }
                         }
                     }
@@ -280,7 +282,8 @@ public class BordersService {
                             btm_br_open_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
 
                             borderValue.append(";").append(btm_br_open.get(i).toString())
-                                    .append("min(m,b)=").append(row_block);
+                                    .append(",m=").append(m)
+                                    .append(",b=").append(b);
                         }
                     }
 
@@ -316,7 +319,8 @@ public class BordersService {
                             btm_br_open_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
 
                             borderValue.append(";").append(btm_br_open.get(i).toString())
-                                    .append("min(m,b)=").append(row_block);
+                                    .append(",m=").append(m)
+                                    .append(",b=").append(b);
                         }
                     }
                 }
@@ -394,19 +398,20 @@ public class BordersService {
                                         return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_close.get(i).toString(), o_delta.toPlainString(), placingBlocks.getActiveVersion());
                                     }
                                 }
-                            }
-                        } else { // DYNAMIC
-                            m = pos - ok_br_close.get(i).getPosLongLimit();
-                            if (m > ok_lvl_max_limit)
-                                ok_lvl_max_limit = m;
-                            final BigDecimal value = ok_br_close.get(i).getValue();
-                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
-                            final int row_block = Math.min(m, b);
-                            ok_lvl_block_limit += row_block;
-                            ok_br_close_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
+                            } else { // DYNAMIC
+                                m = pos - ok_br_close.get(i).getPosLongLimit();
+                                if (m > ok_lvl_max_limit)
+                                    ok_lvl_max_limit = m;
+                                final BigDecimal value = ok_br_close.get(i).getValue();
+                                b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                                final int row_block = Math.min(m, b);
+                                ok_lvl_block_limit += row_block;
+                                ok_br_close_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
 
-                            borderValue.append(";").append(ok_br_close.get(i).toString())
-                                    .append("min(m,b)=").append(row_block);
+                                borderValue.append(";").append(ok_br_close.get(i).toString())
+                                        .append(",m=").append(m)
+                                        .append(",b=").append(b);
+                            }
                         }
 
                         if (pos < 0 && -pos > ok_br_close.get(i).getPosShortLimit()) {
@@ -442,7 +447,8 @@ public class BordersService {
                                 ok_br_close_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
 
                                 borderValue.append(";").append(ok_br_close.get(i).toString())
-                                        .append("min(m,b)=").append(row_block);
+                                        .append(",m=").append(m)
+                                        .append(",b=").append(b);
                             }
                         }
                     }
@@ -504,19 +510,20 @@ public class BordersService {
                                     return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_open.get(i).toString(), o_delta.toPlainString(), placingBlocks.getActiveVersion());
                                 }
                             }
-                        }
-                    } else { // DYNAMIC
-                        m = ok_br_open.get(i).getPosLongLimit() - pos;
-                        if (m > ok_lvl_max_limit)
-                            ok_lvl_max_limit = m;
-                        final BigDecimal value = ok_br_open.get(i).getValue();
-                        b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
-                        final int row_block = Math.min(m, b);
-                        ok_lvl_block_limit += row_block;
-                        ok_br_open_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
+                        } else { // DYNAMIC
+                            m = ok_br_open.get(i).getPosLongLimit() - pos;
+                            if (m > ok_lvl_max_limit)
+                                ok_lvl_max_limit = m;
+                            final BigDecimal value = ok_br_open.get(i).getValue();
+                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                            final int row_block = Math.min(m, b);
+                            ok_lvl_block_limit += row_block;
+                            ok_br_open_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
 
-                        borderValue.append(";").append(ok_br_open.get(i).toString())
-                                .append("min(m,b)=").append(row_block);
+                            borderValue.append(";").append(ok_br_open.get(i).toString())
+                                    .append(",m=").append(m)
+                                    .append(",b=").append(b);
+                        }
                     }
 
                     if (pos <= 0 && -pos < ok_br_open.get(i).getPosShortLimit()) {
@@ -540,20 +547,21 @@ public class BordersService {
                                     return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_open.get(i).toString(), o_delta.toPlainString(), placingBlocks.getActiveVersion());
                                 }
                             }
-                        }
-                    } else { // DYNAMIC
-                        borderValue.append(":").append(ok_br_open.get(i).toString());
-                        m = ok_br_open.get(i).getPosShortLimit() + pos;
-                        if (m > ok_lvl_max_limit)
-                            ok_lvl_max_limit = m;
-                        final BigDecimal value = ok_br_open.get(i).getValue();
-                        b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
-                        final int row_block = Math.min(m, b);
-                        ok_lvl_block_limit += row_block;
-                        ok_br_open_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
+                        } else { // DYNAMIC
+                            borderValue.append(":").append(ok_br_open.get(i).toString());
+                            m = ok_br_open.get(i).getPosShortLimit() + pos;
+                            if (m > ok_lvl_max_limit)
+                                ok_lvl_max_limit = m;
+                            final BigDecimal value = ok_br_open.get(i).getValue();
+                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                            final int row_block = Math.min(m, b);
+                            ok_lvl_block_limit += row_block;
+                            ok_br_open_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
 
-                        borderValue.append(";").append(ok_br_open.get(i).toString())
-                                .append("min(m,b)=").append(row_block);
+                            borderValue.append(";").append(ok_br_open.get(i).toString())
+                                    .append(",m=").append(m)
+                                    .append(",b=").append(b);
+                        }
                     }
                 }
             }

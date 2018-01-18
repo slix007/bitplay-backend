@@ -179,7 +179,7 @@ public class BordersServiceTest {
 
     }
     @Test
-    public void test_Dynamic_okMode() {
+    public void test_Dynamic_b_br_close() {
 //        B_delta: +52
 //        O_delta: -54
         borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
@@ -255,6 +255,120 @@ public class BordersServiceTest {
 
         assertEquals("b_br_open", signal.borderName);
         assertEquals(2, signal.okexBlock);
+        System.out.println(signal.toString());
+    }
+
+    private BorderParams createDefaultBorders3() {
+        final List<BorderTable> borders = new ArrayList<>();
+        final List<BorderItem> borderBtmClose = new ArrayList<>();
+        borderBtmClose.add(new BorderItem(1, BigDecimal.valueOf(90), 0, 0));
+        borderBtmClose.add(new BorderItem(2, BigDecimal.valueOf(80), 500, 500));
+        borderBtmClose.add(new BorderItem(3, BigDecimal.valueOf(70), 1000, 1000));
+        borderBtmClose.add(new BorderItem(4, BigDecimal.valueOf(60), 1500, 1500));
+        borders.add(new BorderTable("b_br_close", borderBtmClose));
+        final List<BorderItem> borderBtmOpen = new ArrayList<>();
+        borderBtmOpen.add(new BorderItem(1, BigDecimal.valueOf(20), 500, 500));
+        borderBtmOpen.add(new BorderItem(2, BigDecimal.valueOf(30), 1000, 1000));
+        borderBtmOpen.add(new BorderItem(3, BigDecimal.valueOf(40), 1500, 1500));
+        borderBtmOpen.add(new BorderItem(4, BigDecimal.valueOf(50), 2000, 2000));
+        borders.add(new BorderTable("b_br_open", borderBtmOpen));
+        final List<BorderItem> borderOkexClose = new ArrayList<>();
+        borderOkexClose.add(new BorderItem(1, BigDecimal.valueOf(160), 0, 0));
+        borderOkexClose.add(new BorderItem(2, BigDecimal.valueOf(150), 500, 500));
+        borderOkexClose.add(new BorderItem(3, BigDecimal.valueOf(140), 1000, 1000));
+        borderOkexClose.add(new BorderItem(4, BigDecimal.valueOf(130), 1500, 1500));
+        borders.add(new BorderTable("o_br_close", borderOkexClose));
+        final List<BorderItem> borderOkexOpen = new ArrayList<>();
+        borderOkexOpen.add(new BorderItem(1, BigDecimal.valueOf(10), 500, 500));
+        borderOkexOpen.add(new BorderItem(2, BigDecimal.valueOf(20), 1000, 1000));
+        borderOkexOpen.add(new BorderItem(3, BigDecimal.valueOf(30), 1500, 1500));
+        borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(40), 2000, 2000));
+        borders.add(new BorderTable("o_br_open", borderOkexOpen));
+
+        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+    }
+
+    @Test
+    public void test_Dynamic_okMode_o_br_open() {
+        borderParams = createDefaultBorders3();
+        when(persistenceService.fetchBorders()).thenReturn(borderParams);
+        when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
+
+//        B_delta: +52
+//        O_delta: -54
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
+        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(20));
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(-54);
+        final BigDecimal delta2 = BigDecimal.valueOf(35);
+        System.out.println("D1=" + delta1 + ", D2=" + delta2);
+        //
+        final BigDecimal bP = BigDecimal.valueOf(-150000);
+        final BigDecimal oPL = BigDecimal.valueOf(900);
+        final BigDecimal oPS = BigDecimal.valueOf(0);
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+
+        assertEquals("o_br_open", signal.borderName);
+        assertEquals(40, signal.okexBlock);
+        System.out.println(signal.toString());
+    }
+
+    private BorderParams createDefaultBorders4() {
+        final List<BorderTable> borders = new ArrayList<>();
+        final List<BorderItem> borderBtmClose = new ArrayList<>();
+        borderBtmClose.add(new BorderItem(1, BigDecimal.valueOf(90), 0, 0));
+        borderBtmClose.add(new BorderItem(2, BigDecimal.valueOf(80), 500, 500));
+        borderBtmClose.add(new BorderItem(3, BigDecimal.valueOf(70), 1000, 1000));
+        borderBtmClose.add(new BorderItem(4, BigDecimal.valueOf(60), 1500, 1500));
+        borders.add(new BorderTable("b_br_close", borderBtmClose));
+        final List<BorderItem> borderBtmOpen = new ArrayList<>();
+        borderBtmOpen.add(new BorderItem(1, BigDecimal.valueOf(20), 500, 500));
+        borderBtmOpen.add(new BorderItem(2, BigDecimal.valueOf(30), 1000, 1000));
+        borderBtmOpen.add(new BorderItem(3, BigDecimal.valueOf(40), 1500, 1500));
+        borderBtmOpen.add(new BorderItem(4, BigDecimal.valueOf(50), 2000, 2000));
+        borders.add(new BorderTable("b_br_open", borderBtmOpen));
+        final List<BorderItem> borderOkexClose = new ArrayList<>();
+        borderOkexClose.add(new BorderItem(1, BigDecimal.valueOf(40), 0, 0));
+        borderOkexClose.add(new BorderItem(2, BigDecimal.valueOf(30), 500, 500));
+        borderOkexClose.add(new BorderItem(3, BigDecimal.valueOf(20), 1000, 1000));
+        borderOkexClose.add(new BorderItem(4, BigDecimal.valueOf(10), 1500, 1500));
+        borders.add(new BorderTable("o_br_close", borderOkexClose));
+        final List<BorderItem> borderOkexOpen = new ArrayList<>();
+        borderOkexOpen.add(new BorderItem(1, BigDecimal.valueOf(10), 500, 500));
+        borderOkexOpen.add(new BorderItem(2, BigDecimal.valueOf(20), 1000, 1000));
+        borderOkexOpen.add(new BorderItem(3, BigDecimal.valueOf(30), 1500, 1500));
+        borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(40), 2000, 2000));
+        borders.add(new BorderTable("o_br_open", borderOkexOpen));
+
+        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+    }
+
+    @Test
+    public void test_Dynamic_okMode_o_br_close() {
+        borderParams = createDefaultBorders4();
+        when(persistenceService.fetchBorders()).thenReturn(borderParams);
+        when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
+
+//        B_delta: +52
+//        O_delta: -54
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
+        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(20));
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(-54);
+        final BigDecimal delta2 = BigDecimal.valueOf(35);
+        System.out.println("D1=" + delta1 + ", D2=" + delta2);
+        //
+        final BigDecimal bP = BigDecimal.valueOf(-150000);
+        final BigDecimal oPL = BigDecimal.valueOf(1300);
+        final BigDecimal oPS = BigDecimal.valueOf(0);
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+
+        assertEquals("o_br_close", signal.borderName);
+        assertEquals(40, signal.okexBlock);
         System.out.println(signal.toString());
     }
 
