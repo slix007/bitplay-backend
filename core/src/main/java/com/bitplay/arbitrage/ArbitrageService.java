@@ -25,6 +25,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
@@ -446,7 +447,7 @@ public class ArbitrageService {
             BigDecimal border2 = params.getBorder2();
 
             if (delta1.compareTo(border1) >= 0) {
-                final PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border1,
+                PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border1,
                         PlacingBlocks.DeltaBase.B_DELTA, oPL, oPS);
                 final String dynDeltaLogs = plBlocks.isDynamic()
                         ? composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
@@ -454,11 +455,16 @@ public class ArbitrageService {
                 if (plBlocks.getBlockOkex().signum() == 0) {
                     return bestQuotes;
                 }
+                if (plBlocks.isDynamic()) {
+                    plBlocks = dynBlockDecriseByAffordable(DELTA1, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
+                }
 
-                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
+                if (plBlocks.getBlockOkex().signum() != 0) {
+                    startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
+                }
             }
             if (delta2.compareTo(border2) >= 0) {
-                final PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border2,
+                PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border2,
                         PlacingBlocks.DeltaBase.O_DELTA, oPL, oPS);
                 final String dynDeltaLogs = plBlocks.isDynamic()
                         ? composeDynBlockLogs("o_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
@@ -466,7 +472,12 @@ public class ArbitrageService {
                 if (plBlocks.getBlockOkex().signum() == 0) {
                     return bestQuotes;
                 }
-                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
+                if (plBlocks.isDynamic()) {
+                    plBlocks = dynBlockDecriseByAffordable(DELTA2, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
+                }
+                if (plBlocks.getBlockOkex().signum() != 0) {
+                    startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
+                }
             }
 
         } else { // BorderParams.Ver.V2
@@ -478,13 +489,41 @@ public class ArbitrageService {
             }
 
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
-                startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock),
-                        BigDecimal.valueOf(tradingSignal.okexBlock), tradingSignal, null);
+                if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
+                    final PlBlocks bl = dynBlockDecriseByAffordable(DELTA1, BigDecimal.valueOf(tradingSignal.bitmexBlock), BigDecimal.valueOf(tradingSignal.okexBlock));
+                    if (bl.getBlockOkex().signum() != 0) {
+                        final BordersService.TradingSignal ts = bordersService.setNewBlock(tradingSignal, bl.getBlockOkex().intValueExact());
+                        final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
+                        final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
+                        final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook,
+                                b_block, o_block);
+
+                        startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
+                    }
+                } else {
+                    final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
+                    final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
+                    startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, null);
+                }
             }
 
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
-                startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, BigDecimal.valueOf(tradingSignal.bitmexBlock),
-                        BigDecimal.valueOf(tradingSignal.okexBlock), tradingSignal, null);
+                if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
+                    final PlBlocks bl = dynBlockDecriseByAffordable(DELTA2, BigDecimal.valueOf(tradingSignal.bitmexBlock), BigDecimal.valueOf(tradingSignal.okexBlock));
+                    if (bl.getBlockOkex().signum() != 0) {
+                        final BordersService.TradingSignal ts = bordersService.setNewBlock(tradingSignal, bl.getBlockOkex().intValueExact());
+                        final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
+                        final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
+                        final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook,
+                                b_block, o_block);
+
+                        startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
+                    }
+                } else {
+                    final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
+                    final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
+                    startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, null);
+                }
             }
         }
 
@@ -513,7 +552,7 @@ public class ArbitrageService {
                                       final BordersService.TradingSignal tradingSignal, String dynamicDeltaLogs) {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
-        if (checkBalance(DELTA1, b_block, o_block) //) {
+        if (checkBalanceBorder1(DELTA1, b_block, o_block) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
                 &&
@@ -559,7 +598,7 @@ public class ArbitrageService {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
-        if (checkBalance(DELTA2, b_block, o_block) //) {
+        if (checkBalanceBorder1(DELTA2, b_block, o_block) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
                 &&
@@ -899,7 +938,34 @@ public class ArbitrageService {
         );
     }
 
-    private boolean checkBalance(String deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {
+    private PlBlocks dynBlockDecriseByAffordable(String deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {
+        BigDecimal b1 = BigDecimal.ZERO;
+        BigDecimal b2 = BigDecimal.ZERO;
+        BigDecimal OKEX_FACTOR = BigDecimal.valueOf(100);
+        if (deltaRef.equals(DELTA1)) {
+            // b_sell, o_buyy
+            final BigDecimal b_sell_lim = firstMarketService.getAffordableContractsForShort();
+            final BigDecimal o_buy_lim = secondMarketService.getAffordableContractsForLong();
+            b1 = blockSize1.compareTo(b_sell_lim) < 0 ? blockSize1 : b_sell_lim;
+            b2 = blockSize2.compareTo(o_buy_lim) < 0 ? blockSize2 : o_buy_lim;
+        } else if (deltaRef.equals(DELTA2)) {
+            // buy p , sell o
+            final BigDecimal b_buy_lim = firstMarketService.getAffordableContractsForLong();
+            final BigDecimal o_sell_lim = secondMarketService.getAffordableContractsForShort();
+            b1 = blockSize1.compareTo(b_buy_lim) < 0 ? blockSize1 : b_buy_lim;
+            b2 = blockSize2.compareTo(o_sell_lim) < 0 ? blockSize2 : o_sell_lim;
+        }
+
+        if (b1.signum() != 0 && b2.signum() != 0
+                && b1.compareTo(b2.multiply(OKEX_FACTOR)) != 0) {
+            b2 = b2.min(b1.divide(OKEX_FACTOR, 0, RoundingMode.HALF_UP));
+            b1 = b2.multiply(OKEX_FACTOR);
+        }
+
+        return new PlBlocks(b1, b2, PlacingBlocks.Ver.DYNAMIC);
+    }
+
+    private boolean checkBalanceBorder1(String deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {
         boolean affordable = false;
         if (deltaRef.equals(DELTA1)) {
             // sell p, buy o
