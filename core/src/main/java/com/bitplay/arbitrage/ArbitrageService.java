@@ -535,8 +535,11 @@ public class ArbitrageService {
                 "Bitmex OrderBook");
         final String oMsg = Utils.getTenAskBid(okCoinOrderBook, signalType.getCounterName(),
                 "Okex OrderBook");
-        return String.format("%s: Dynamic: b_block=%s, o_block=%s\n%s\n%s",
-                deltaName, b_block, o_block,
+        final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
+        return String.format("%s: Dynamic: dynMaxBlockOkex=%s, b_block=%s, o_block=%s\n%s\n%s",
+                deltaName,
+                placingBlocks.getDynMaxBlockOkex(),
+                b_block, o_block,
                 bMsg, oMsg);
     }
 

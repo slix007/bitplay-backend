@@ -58,6 +58,7 @@ public class SettingsRepositoryService {
 
     public void saveSettings(Settings settings) {
         settingsRepository.save(settings);
+        this.settings = settings;
     }
 
     public Settings updateSysOverloadArgs(SysOverloadArgs sysOverloadArgs) {
