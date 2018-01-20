@@ -332,7 +332,9 @@ public class BitmexService extends MarketService {
     @Override
     protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
         final MarketState marketState = getMarketState();
-        if (marketState == MarketState.SYSTEM_OVERLOADED || marketState == MarketState.PLACING_ORDER) {
+        if (marketState == MarketState.SYSTEM_OVERLOADED
+                || marketState == MarketState.PLACING_ORDER
+                || marketState == MarketState.STOPPED) {
             return;
         }
 
