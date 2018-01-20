@@ -670,6 +670,9 @@ public class BitmexService extends MarketService {
                                         if (update.getStatus() == Order.OrderStatus.FILLED) {
                                             logger.info("{} Order {} FILLED", getCounterName(), update.getId());
                                             getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
+                                            if (update.getAveragePrice() != null) {
+                                                setQuotesForArbLogs(update, SignalType.AUTOMATIC, update.getAveragePrice());
+                                            }
                                         }
                                     });
 
