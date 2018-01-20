@@ -57,6 +57,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -765,19 +766,14 @@ public class BitmexService extends MarketService {
 
         final TradeResponse tradeResponse = placeOrder(placeOrderArgs);
 
-        final List<FplayOrder> failedOrders = tradeResponse.getCancelledOrders().stream()
-                .map(limitOrder -> new FplayOrder(limitOrder, placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType()))
-                .collect(Collectors.toList());
-        FplayOrder newOrder = null;
-        if (tradeResponse.getLimitOrder() != null) {
-            newOrder = new FplayOrder(tradeResponse.getLimitOrder(), placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType());
-        }
-        if (!failedOrders.isEmpty() || newOrder != null) {
-            synchronized (openOrdersLock) {
-                this.openOrders.addAll(failedOrders);
-                if (newOrder != null) this.openOrders.add(newOrder);
-            }
-        }
+        // update this.openOrders
+        final List<LimitOrder> updates = new ArrayList<>();
+        if (tradeResponse.getCancelledOrders() != null) updates.addAll(tradeResponse.getCancelledOrders());
+        if (tradeResponse.getLimitOrder() != null) updates.add(tradeResponse.getLimitOrder());
+
+        final FplayOrder stub = new FplayOrder(tradeResponse.getLimitOrder(), placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType());
+
+        updateOpenOrders(updates, stub);
 
         return tradeResponse;
     }

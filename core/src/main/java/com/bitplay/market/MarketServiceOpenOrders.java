@@ -130,6 +130,10 @@ public abstract class MarketServiceOpenOrders {
     }
 
     protected void updateOpenOrders(List<LimitOrder> trades) {
+        updateOpenOrders(trades, null);
+    }
+
+    protected void updateOpenOrders(List<LimitOrder> trades, FplayOrder stabOrderForNew) {
 
         if (trades.size() == 0) {
             return;
@@ -160,7 +164,7 @@ public abstract class MarketServiceOpenOrders {
                             getTradeLogger().info("{} Order {} FILLED", getCounterName(), update.getId());
                         }
 
-                        final FplayOrder fplayOrder = updateOpenOrder(update); // exist or null
+                        final FplayOrder fplayOrder = updateOpenOrder(update, stabOrderForNew); // exist or null
 
                         if (fplayOrder.getOrderId().equals("0")) {
                             getTradeLogger().warn("WARNING: update of fplayOrder with id=0: " + fplayOrder);
@@ -227,11 +231,13 @@ public abstract class MarketServiceOpenOrders {
     /**
      * Use openOrdersLock.
      */
-    protected FplayOrder updateOpenOrder(LimitOrder update) {
-        final FplayOrder existedOrNull = this.openOrders.stream()
+    private FplayOrder updateOpenOrder(LimitOrder update, FplayOrder stabOrderForNew) {
+        final FplayOrder updated = this.openOrders.stream()
                 .filter(fplayOrder -> fplayOrder.getOrderId().equals(update.getId()))
-                .findAny().orElse(null);
-        return FplayOrderUtils.updateFplayOrder(existedOrNull, update);
+                .map(fplayOrder -> FplayOrderUtils.updateFplayOrder(fplayOrder, update))
+                .findAny()
+                .orElseGet(() -> FplayOrderUtils.updateFplayOrder(stabOrderForNew, update));
+        return updated;
     }
 
     protected void cleanOldOO() {
