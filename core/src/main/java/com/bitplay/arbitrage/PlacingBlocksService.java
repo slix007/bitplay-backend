@@ -86,8 +86,10 @@ public class PlacingBlocksService {
         BigDecimal ob_delta = bids.get(0).getLimitPrice().subtract(asks.get(0).getLimitPrice());
 
         BigDecimal amount;
-        while (ob_delta.compareTo(xBorder) >= 0 && maxBlock.compareTo(xBlock) > 0
-                && k < asksAm.length - 1 && i < bidsAm.length - 1) {
+        while (ob_delta.compareTo(xBorder) >= 0
+                && isLessThanMaxBlock(maxBlock, xBlock)
+                && k < asksAm.length - 1
+                && i < bidsAm.length - 1) {
             amount = bidsAm[i].subtract(asksAm[k]);
             if (amount.signum() > 0) {
                 xBlock = xBlock.add(asksAm[k]);
@@ -109,9 +111,13 @@ public class PlacingBlocksService {
             ob_delta = bids.get(i).getLimitPrice().subtract(asks.get(k).getLimitPrice());
         }
 
-        xBlock = xBlock.min(maxBlock);
+        xBlock = maxBlock == null ? xBlock : xBlock.min(maxBlock);
 
         xBlock = xBlock.divide(OKEX_FACTOR, 0, RoundingMode.DOWN); // round to OKEX_FACTOR
         return new PlBlocks(xBlock.multiply(OKEX_FACTOR), xBlock, PlacingBlocks.Ver.DYNAMIC);
+    }
+
+    private boolean isLessThanMaxBlock(BigDecimal maxBlock, BigDecimal xBlock) {
+        return maxBlock == null || maxBlock.compareTo(xBlock) > 0;
     }
 }

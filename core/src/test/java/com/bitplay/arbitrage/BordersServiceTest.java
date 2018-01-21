@@ -370,7 +370,7 @@ public class BordersServiceTest {
         final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
 
         assertEquals("o_br_close", signal.borderName);
-        assertEquals(40, signal.okexBlock);
+        assertEquals(20, signal.okexBlock);
         System.out.println(signal.toString());
     }
 

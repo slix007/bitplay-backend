@@ -161,7 +161,7 @@ public class BordersService {
                                 if (m > btm_lvl_max_limit)
                                     btm_lvl_max_limit = m;
                                 final BigDecimal value = btm_br_close.get(i).getValue();
-                                b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                                b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                                 final int row_block = Math.min(m, b);
                                 btm_lvl_block_limit += row_block;
                                 btm_br_close_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
@@ -194,7 +194,7 @@ public class BordersService {
                                 if (m > btm_lvl_max_limit)
                                     btm_lvl_max_limit = m;
                                 final BigDecimal value = btm_br_close.get(i).getValue();
-                                b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                                b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                                 final int row_block = Math.min(m, b);
                                 btm_lvl_block_limit += row_block;
                                 btm_br_close_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
@@ -210,6 +210,11 @@ public class BordersService {
         }
 
         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC && btm_br_close_dyn_block != 0) {
+            int maxBlock = theMode == BorderParams.PosMode.BTM_MODE
+                    ? placingBlocks.getDynMaxBlockBitmex().intValueExact()
+                    : placingBlocks.getDynMaxBlockOkex().intValueExact();
+            btm_br_close_dyn_block = Math.min(btm_br_close_dyn_block, maxBlock);
+
             return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, btm_br_close_dyn_block,
                     borderName, borderValue.toString(), b_delta.toPlainString(), placingBlocks.getActiveVersion());
         }
@@ -264,7 +269,7 @@ public class BordersService {
                             if (m > btm_lvl_max_limit)
                                 btm_lvl_max_limit = m;
                             final BigDecimal value = btm_br_open.get(i).getValue();
-                            b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                            b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                             final int row_block = Math.min(m, b);
                             btm_lvl_block_limit += row_block;
                             btm_br_open_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
@@ -297,7 +302,7 @@ public class BordersService {
                             if (m > btm_lvl_max_limit)
                                 btm_lvl_max_limit = m;
                             final BigDecimal value = btm_br_open.get(i).getValue();
-                            b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                            b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                             final int row_block = Math.min(m, b);
                             btm_lvl_block_limit += row_block;
                             btm_br_open_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
@@ -312,6 +317,11 @@ public class BordersService {
         }
 
         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC && btm_br_open_dyn_block != 0) {
+            int maxBlock = theMode == BorderParams.PosMode.BTM_MODE
+                    ? placingBlocks.getDynMaxBlockBitmex().intValueExact()
+                    : placingBlocks.getDynMaxBlockOkex().intValueExact();
+            btm_br_open_dyn_block = Math.min(btm_br_open_dyn_block, maxBlock);
+
             return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, btm_br_open_dyn_block,
                     borderName, borderValue.toString(), b_delta.toPlainString(), placingBlocks.getActiveVersion());
         }
@@ -319,17 +329,17 @@ public class BordersService {
         return null;
     }
 
-    private int funcDynBlockByBDelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal value, BigDecimal dynMaxBlockBitmex) {
+    private int funcDynBlockByBDelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal value) {
         final PlBlocks bDeltaBlocks = placingBlocksService.getDynamicBlockByBDelta(bitmexOrderBook, okexOrderBook,
-                value, dynMaxBlockBitmex);
+                value, null);
         return theMode == BorderParams.PosMode.BTM_MODE
                 ? bDeltaBlocks.getBlockBitmex().intValueExact()
                 : bDeltaBlocks.getBlockOkex().intValueExact();
     }
 
-    private int funcDynBlockByODelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal value, BigDecimal dynMaxBlockBitmex) {
+    private int funcDynBlockByODelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal value) {
         final PlBlocks bDeltaBlocks = placingBlocksService.getDynamicBlockByODelta(bitmexOrderBook, okexOrderBook,
-                value, dynMaxBlockBitmex);
+                value, null);
         return theMode == BorderParams.PosMode.BTM_MODE
                 ? bDeltaBlocks.getBlockBitmex().intValueExact()
                 : bDeltaBlocks.getBlockOkex().intValueExact();
@@ -383,7 +393,7 @@ public class BordersService {
                                 if (m > ok_lvl_max_limit)
                                     ok_lvl_max_limit = m;
                                 final BigDecimal value = ok_br_close.get(i).getValue();
-                                b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                                b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                                 final int row_block = Math.min(m, b);
                                 ok_lvl_block_limit += row_block;
                                 ok_br_close_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
@@ -417,7 +427,7 @@ public class BordersService {
                                 if (m > ok_lvl_max_limit)
                                     ok_lvl_max_limit = m;
                                 final BigDecimal value = ok_br_close.get(i).getValue();
-                                b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                                b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                                 final int row_block = Math.min(m, b);
                                 ok_lvl_block_limit += row_block;
                                 ok_br_close_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
@@ -433,6 +443,11 @@ public class BordersService {
         }
 
         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC && ok_br_close_dyn_block != 0) {
+            int maxBlock = theMode == BorderParams.PosMode.BTM_MODE
+                    ? placingBlocks.getDynMaxBlockBitmex().intValueExact()
+                    : placingBlocks.getDynMaxBlockOkex().intValueExact();
+            ok_br_close_dyn_block = Math.min(ok_br_close_dyn_block, maxBlock);
+
             return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, ok_br_close_dyn_block,
                     borderName, borderValue.toString(), o_delta.toPlainString(), placingBlocks.getActiveVersion());
         }
@@ -487,7 +502,7 @@ public class BordersService {
                             if (m > ok_lvl_max_limit)
                                 ok_lvl_max_limit = m;
                             final BigDecimal value = ok_br_open.get(i).getValue();
-                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                             final int row_block = Math.min(m, b);
                             ok_lvl_block_limit += row_block;
                             ok_br_open_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
@@ -521,7 +536,7 @@ public class BordersService {
                             if (m > ok_lvl_max_limit)
                                 ok_lvl_max_limit = m;
                             final BigDecimal value = ok_br_open.get(i).getValue();
-                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value, placingBlocks.getDynMaxBlockBitmex()); // рассчитанное значение динамического шага для соответствующего барьера в таблице
+                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                             final int row_block = Math.min(m, b);
                             ok_lvl_block_limit += row_block;
                             ok_br_open_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
@@ -536,6 +551,11 @@ public class BordersService {
         }
 
         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC && ok_br_open_dyn_block != 0) {
+            int maxBlock = theMode == BorderParams.PosMode.BTM_MODE
+                    ? placingBlocks.getDynMaxBlockBitmex().intValueExact()
+                    : placingBlocks.getDynMaxBlockOkex().intValueExact();
+            ok_br_open_dyn_block = Math.min(ok_br_open_dyn_block, maxBlock);
+
             return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, ok_br_open_dyn_block,
                     borderName, borderValue.toString(), o_delta.toPlainString(), placingBlocks.getActiveVersion());
         }
