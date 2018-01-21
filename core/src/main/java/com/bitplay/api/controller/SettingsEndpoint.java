@@ -90,6 +90,9 @@ public class SettingsEndpoint {
             settings.setPlacingBlocks(current);
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.isRestartEnabled() != null) {
+            settings.setRestartEnabled(settingsUpdate.isRestartEnabled()); // no need to save. it already refers to internal volatile var
+        }
 
         return settings;
     }

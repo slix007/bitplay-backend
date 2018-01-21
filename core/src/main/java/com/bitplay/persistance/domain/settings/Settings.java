@@ -23,6 +23,7 @@ public class Settings extends AbstractDocument {
     private PlacingType okexPlacingType;
     private BigDecimal bitmexPrice;
     private PlacingBlocks placingBlocks;
+    private Boolean restartEnabled;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -89,6 +90,14 @@ public class Settings extends AbstractDocument {
         this.placingBlocks = placingBlocks;
     }
 
+    public Boolean isRestartEnabled() {
+        return restartEnabled;
+    }
+
+    public void setRestartEnabled(Boolean restartEnabled) {
+        this.restartEnabled = restartEnabled;
+    }
+
     @Override
     public String toString() {
         return "Settings{" +
@@ -97,8 +106,8 @@ public class Settings extends AbstractDocument {
                 ", okexSysOverloadArgs=" + okexSysOverloadArgs +
                 ", okexPlacingType=" + okexPlacingType +
                 ", bitmexPrice=" + bitmexPrice +
-                ", bitmexPrice=" + bitmexPrice +
                 ", placingBlocks=" + placingBlocks +
+                ", restartEnabled=" + restartEnabled +
                 '}';
     }
 }

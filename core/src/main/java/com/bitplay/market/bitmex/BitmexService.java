@@ -92,7 +92,7 @@ public class BitmexService extends MarketService {
 
     private BitmexStreamingExchange exchange;
 
-    private static final int MIN_SEC_TO_RESTART = 60 * 5; // 5 min
+    private static final int MIN_SEC_TO_RESTART = 30;
     private long listenersStartTimeEpochSecond = Instant.now().getEpochSecond();
     private volatile boolean isDestroyed = false;
 
@@ -542,7 +542,10 @@ public class BitmexService extends MarketService {
 
     private void doRestart() {
         try {
-            restartService.doFullRestart("BitmexService#doRestart(). orderBookLastTimestamp=" + orderBookLastTimestamp);
+            final Boolean restartEnabled = settingsRepositoryService.getSettings().isRestartEnabled();
+            if (restartEnabled == null || restartEnabled) {
+                restartService.doFullRestart("BitmexService#doRestart(). orderBookLastTimestamp=" + orderBookLastTimestamp);
+            }
         } catch (IOException e) {
             logger.error("Error on full restart", e);
         }
