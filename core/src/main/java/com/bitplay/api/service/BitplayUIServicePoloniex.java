@@ -7,6 +7,7 @@ import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.arbitrage.SignalType;
+import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.polonex.PoloniexService;
 
@@ -94,7 +95,8 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
                 return new TradeResponseJson("Wrong orderType", "Wrong orderType");
             }
 
-            tradeResponse = poloniexService.placeOrderOnSignal(orderType, amount, null, signalType);
+            tradeResponse = poloniexService.placeOrder(new PlaceOrderArgs(orderType, amount, null,
+                    null, signalType, 1));
         }
 
         final PoloniexTradeResponse poloniexTradeResponse = tradeResponse.getSpecificResponse() != null

@@ -672,25 +672,21 @@ public class OkCoinService extends MarketService {
         return tradeResponse;
     }
 
+    public void deferredPlaceOrderOnSignal(PlaceOrderArgs currPlaceOrderArgs) {
+        if (this.placeOrderArgsRef.compareAndSet(null, currPlaceOrderArgs)) {
+            setMarketState(MarketState.WAITING_ARB);
+        } else {
+            final String errorMessage = String.format("double placing-order for MT2. New:%s.", currPlaceOrderArgs);
+            logger.error(errorMessage);
+            tradeLogger.error(errorMessage);
+            warningLogger.error(errorMessage);
+        }
+    }
+
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
-        final Settings settings = settingsRepositoryService.getSettings();
-        final PlaceOrderArgs currPlaceOrderArgs = new PlaceOrderArgs(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType, 1);
-        if (settings.getArbScheme() == ArbScheme.MT2) {
-
-            if (this.placeOrderArgsRef.compareAndSet(null, currPlaceOrderArgs)) {
-                setMarketState(MarketState.WAITING_ARB);
-            } else {
-                final String errorMessage = String.format("double placing-order for MT2. New:%s.", currPlaceOrderArgs);
-                logger.error(errorMessage);
-                tradeLogger.error(errorMessage);
-                warningLogger.error(errorMessage);
-            }
-            return new TradeResponse();
-        }
-
-        return placeOrder(currPlaceOrderArgs);
+        throw new IllegalArgumentException("Use placeOrder instead");
     }
 
     public TradeResponse placeMakerOrderWithStatus(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,

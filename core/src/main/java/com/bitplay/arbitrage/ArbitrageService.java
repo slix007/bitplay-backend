@@ -59,6 +59,8 @@ public class ArbitrageService {
     private PlacingBlocksService placingBlocksService;
     @Autowired
     private PersistenceService persistenceService;
+    @Autowired
+    private SignalService signalService;
     private Disposable schdeduleUpdateBorders;
     private Instant startTimeToUpdateBorders;
     private volatile int updateBordersCounter;
@@ -579,8 +581,9 @@ public class ArbitrageService {
             }
 
             // in scheme MT2 Okex should be the first
-            secondMarketService.placeOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, signalType);
-            firstMarketService.placeOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, signalType);
+            signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType);
+            signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.ASK, b_block, bestQuotes, signalType);
+
             setTimeoutAfterStartTrading();
 
             saveParamsToDb();
@@ -625,8 +628,9 @@ public class ArbitrageService {
             }
 
             // in scheme MT2 Okex should be the first
-            secondMarketService.placeOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, signalType);
-            firstMarketService.placeOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, signalType);
+            signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType);
+            signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.BID, b_block, bestQuotes, signalType);
+
             setTimeoutAfterStartTrading();
 
             saveParamsToDb();
