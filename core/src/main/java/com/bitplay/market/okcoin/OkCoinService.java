@@ -909,7 +909,9 @@ public class OkCoinService extends MarketService {
                                         final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
                                         //TODO keep an eye on 'hang open orders'
                                         if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                                            // keep the order
+                                            // update the status
+                                            final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
+                                            if (cancelledFplayOrder != null) optionalOrder = Stream.of(cancelledFplayOrder);
                                         } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
                                             final FplayOrder newOrder = response.getNewFplayOrder();
                                             final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
@@ -960,7 +962,7 @@ public class OkCoinService extends MarketService {
 
         if (limitOrder.getStatus() == Order.OrderStatus.CANCELED || limitOrder.getStatus() == Order.OrderStatus.FILLED) {
             tradeLogger.error("{} do not move ALREADY_CLOSED order", getCounterName());
-            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "");
+            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null,null, fOrderToCancel);
         }
         if (getMarketState() == MarketState.PLACING_ORDER) { // !arbitrageService.getParams().getOkCoinOrderType().equals("maker")
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving for taker");

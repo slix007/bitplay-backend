@@ -382,9 +382,9 @@ public class BitmexService extends MarketService {
                                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
                                     //TODO keep an eye on 'hang open orders'
                                     if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-//                                        orderStream = Stream.empty(); // no such case anymore
-                                        // keep the order
-
+                                        // update the status
+                                        final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
+                                        if (cancelledFplayOrder != null) orderStream = Stream.of(cancelledFplayOrder);
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
                                         orderStream = Stream.of(response.getNewFplayOrder());
                                         movingErrorsOverloaded.set(0);
@@ -1019,10 +1019,10 @@ public class BitmexService extends MarketService {
                 final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), getCounterName(), 1, "Moving:CheckInvOrdStatus:");
                 if (orderInfo.isPresent()) {
                     final Order doubleChecked = orderInfo.get();
-                    if (doubleChecked.getStatus() == Order.OrderStatus.FILLED) {
-                        // we confirmed that order ALREADY_CLOSED (FILLED)
+                    final FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, (LimitOrder) doubleChecked);
+                    if (doubleChecked.getStatus() == Order.OrderStatus.FILLED) { // just update the status
+                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, moveResponse.getDescription(), null, null, updated);
                     } else if (doubleChecked.getStatus() == Order.OrderStatus.CANCELED) {
-                        final FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, (LimitOrder) doubleChecked);
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, moveResponse.getDescription(), null, null, updated);
                     }
                 } else {
