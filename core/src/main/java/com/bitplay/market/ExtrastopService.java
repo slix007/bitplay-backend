@@ -1,5 +1,6 @@
 package com.bitplay.market;
 
+import com.bitplay.api.service.RestartService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 
@@ -24,6 +25,9 @@ public class ExtrastopService {
     @Autowired
     private OkCoinService okCoinService;
 
+    @Autowired
+    private RestartService restartService;
+
     @Scheduled(initialDelay = 60 * 1000, fixedDelay = 30 * 1000)
     public void checkTimes() {
         final Date bT = bitmexService.getOrderBookLastTimestamp();
@@ -32,6 +36,7 @@ public class ExtrastopService {
         if (isBigDiff(bT, "Bitmex") || isBigDiff(oT, "okex")) {
             bitmexService.setMarketState(MarketState.STOPPED);
             okCoinService.setMarketState(MarketState.STOPPED);
+            restartService.doDeferredRestart();
         }
     }
 
