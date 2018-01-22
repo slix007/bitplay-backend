@@ -112,19 +112,27 @@ public class BitmexSwapService {
 
             case READY:
             case ARBITRAGE:
-                checkStartSwapAwait(SWAP_AWAIT_INTERVAL_SEC, swapParams);
+                if (swapParams.getActiveVersion() != SwapParams.Ver.OFF) {
+                    checkStartSwapAwait(SWAP_AWAIT_INTERVAL_SEC, swapParams);
+                }
                 break;
 
             case SWAP_AWAIT:
                 if (swapParams.getActiveVersion() == SwapParams.Ver.V2) {
                     checkSwapV2();
-                } else {
+                } else if (swapParams.getActiveVersion() == SwapParams.Ver.V1) {
                     checkStartFunding(SWAP_INTERVAL_SEC);
+                } else if (swapParams.getActiveVersion() == SwapParams.Ver.OFF) {
+                    resetSwapState();
                 }
                 break;
 
             case SWAP:
-                checkEndFunding();
+                if (swapParams.getActiveVersion() != SwapParams.Ver.OFF) {
+                    checkEndFunding();
+                } else {
+                    resetSwapState();
+                }
                 break;
 
             default:
@@ -181,25 +189,27 @@ public class BitmexSwapService {
 
     private void doSwapV2Opening() {
         try {
-            tradeLogger.info("doSwapV2Opening, thread: " + Thread.currentThread().getName());
-
             SwapParams swapParams = bitmexService.getPersistenceService().fetchSwapParams(bitmexService.getName());
-            final SwapV2 swapV2 = swapParams.getSwapV2();
-            Order.OrderType orderType = swapV2.getSwapOpenType().equals("Buy") ? Order.OrderType.BID : Order.OrderType.ASK; // Sell, Buy
-            final BigDecimal amountInContracts = new BigDecimal(swapV2.getSwapOpenAmount());
+            if (swapParams.getActiveVersion() == SwapParams.Ver.V2) {
+                tradeLogger.info("doSwapV2Opening, thread: " + Thread.currentThread().getName());
 
-            printAskBid("Before request");
+                final SwapV2 swapV2 = swapParams.getSwapV2();
+                Order.OrderType orderType = swapV2.getSwapOpenType().equals("Buy") ? Order.OrderType.BID : Order.OrderType.ASK; // Sell, Buy
+                final BigDecimal amountInContracts = new BigDecimal(swapV2.getSwapOpenAmount());
 
-            final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, amountInContracts, null, SignalType.SWAP_OPEN);
-            if (tradeResponse.getOrderId() != null) {
-                swapParams.getSwapV2().setMsToSwapString("");
-                bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
+                printAskBid("Before request");
 
-                printSwapTimeAndAvgPrice(tradeResponse.getOrderId());
+                final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, amountInContracts, null, SignalType.SWAP_OPEN);
+                if (tradeResponse.getOrderId() != null) {
+                    swapParams.getSwapV2().setMsToSwapString("");
+                    bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
 
-                resetSwapState(true);
-            } else {
-                tradeLogger.warn("orderId is null");
+                    printSwapTimeAndAvgPrice(tradeResponse.getOrderId());
+
+                    resetSwapState(false);
+                } else {
+                    tradeLogger.warn("orderId is null");
+                }
             }
         } catch (Exception e) {
             String message = "doSwapV2Opening error: " + e.getMessage();
@@ -389,13 +399,13 @@ public class BitmexSwapService {
     }
 
     private void resetSwapState() {
-        resetSwapState(false);
+        resetSwapState(true);
     }
 
-    private void resetSwapState(boolean isVer2) {
+    private void resetSwapState(boolean shouldRestoreMdc) {
         bitmexService.setMarketStateNextCounter(MarketState.READY);
         bitmexFunding.setFixedSwapTime(null);
-        if (!isVer2 && maxDiffCorrStored != null) {
+        if (shouldRestoreMdc && maxDiffCorrStored != null) {
             // delay  for mdc
             Completable.timer(2, TimeUnit.SECONDS)
                     .subscribe(() -> arbitrageService.getParams().setMaxDiffCorr(maxDiffCorrStored));

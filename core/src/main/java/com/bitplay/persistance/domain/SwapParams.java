@@ -38,7 +38,7 @@ public class SwapParams extends MarketDocument {
         this.swapV2 = swapV2;
     }
 
-    public enum Ver {V1, V2,}
+    public enum Ver {OFF, V1, V2,}
 
     public String getCustomSwapTime() {
         return customSwapTime;
