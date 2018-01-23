@@ -779,7 +779,12 @@ public class BitmexService extends MarketService {
         if (tradeResponse.getCancelledOrders() != null) updates.addAll(tradeResponse.getCancelledOrders());
         if (tradeResponse.getLimitOrder() != null) updates.add(tradeResponse.getLimitOrder());
 
-        final FplayOrder stub = new FplayOrder(tradeResponse.getLimitOrder(), placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType());
+        LimitOrder limitOrder = tradeResponse.getLimitOrder();
+        if (limitOrder == null) {
+            String orderId = tradeResponse.getOrderId() != null ? tradeResponse.getOrderId() : "0";
+            limitOrder = new LimitOrder(orderType, amount, CurrencyPair.BTC_USD, orderId, new Date(), BigDecimal.ZERO);
+        }
+        final FplayOrder stub = new FplayOrder(limitOrder, placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType());
 
         updateOpenOrders(updates, stub);
 
@@ -861,6 +866,9 @@ public class BitmexService extends MarketService {
                         final MarketOrder resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder);
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
+                        // workaround for OO list: set as limit order
+                        tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, orderId, new Date(),
+                                thePrice, thePrice, resultOrder.getCumulativeAmount(), resultOrder.getStatus()));
                     }
 
                     tradeResponse.setOrderId(orderId);
