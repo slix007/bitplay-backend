@@ -40,6 +40,6 @@ public class RestartService {
             } catch (IOException e) {
                 logger.error("Error on restart", e);
             }
-        }, 60, TimeUnit.SECONDS);
+        }, 30, TimeUnit.SECONDS);
     }
 }
