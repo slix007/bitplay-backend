@@ -20,6 +20,7 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
+import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
@@ -794,7 +795,8 @@ public class BitmexService extends MarketService {
     public TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
         final TradeResponse tradeResponse = new TradeResponse();
 
-        final Integer maxAttempts = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs().getPlaceAttempts();
+        final Settings settings = settingsRepositoryService.getSettings();
+        final Integer maxAttempts = settings.getBitmexSysOverloadArgs().getPlaceAttempts();
         if (placeOrderArgs.getAttempt() == maxAttempts) {
             final String logString = String.format("%s Bitmex Warning placing: too many attempt(%s) when SYSTEM_OVERLOADED. Do nothing.",
                     getCounterName(),
@@ -811,8 +813,13 @@ public class BitmexService extends MarketService {
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
         final BigDecimal amount = placeOrderArgs.getAmount();
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
-        final PlacingType placingType = placeOrderArgs.getPlacingType();
+        PlacingType placingType = placeOrderArgs.getPlacingType();
         final SignalType signalType = placeOrderArgs.getSignalType();
+
+        if (placingType == null) {
+            tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs);
+            placingType = (settings.getArbScheme() != ArbScheme.TT) ? PlacingType.MAKER : PlacingType.TAKER;
+        }
 
         MarketState nextMarketState = getMarketState();
 
@@ -830,7 +837,7 @@ public class BitmexService extends MarketService {
                     BigDecimal thePrice;
                     if (placingType == PlacingType.MAKER) {
 
-                        final BigDecimal bitmexPrice = settingsRepositoryService.getSettings().getBitmexPrice();
+                        final BigDecimal bitmexPrice = settings.getBitmexPrice();
                         if (bitmexPrice != null && bitmexPrice.signum() != 0) {
                             thePrice = bitmexPrice;
                         } else {
