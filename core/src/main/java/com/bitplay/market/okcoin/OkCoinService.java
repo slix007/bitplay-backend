@@ -16,6 +16,7 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.settings.ArbScheme;
@@ -1348,33 +1349,36 @@ public class OkCoinService extends MarketService {
             return;
         }
 
-        final BigDecimal oDQLCloseMin = arbitrageService.getParams().getoDQLCloseMin();
-        final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
+        final GuiParams params = arbitrageService.getParams();
+        if (params.getPosCorr().equals("enabled")) {
+            final BigDecimal oDQLCloseMin = params.getoDQLCloseMin();
+            final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
-        if (liqInfo.getDqlCurr() != null
-                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
-                && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) < 0
-                && pos.signum() != 0) {
-            final BestQuotes bestQuotes = Utils.createBestQuotes(
-                    arbitrageService.getSecondMarketService().getOrderBook(),
-                    arbitrageService.getFirstMarketService().getOrderBook());
+            if (liqInfo.getDqlCurr() != null
+                    && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
+                    && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) < 0
+                    && pos.signum() != 0) {
+                final BestQuotes bestQuotes = Utils.createBestQuotes(
+                        arbitrageService.getSecondMarketService().getOrderBook(),
+                        arbitrageService.getFirstMarketService().getOrderBook());
 
-            if (pos.signum() > 0) {
-                tradeLogger.info(String.format("%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
-                        getCounterName(),
-                        position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
-                        liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
+                if (pos.signum() > 0) {
+                    tradeLogger.info(String.format("%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
+                            getCounterName(),
+                            position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
+                            liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
 
-                arbitrageService.startTradingOnDelta2(SignalType.O_PRE_LIQ, bestQuotes);
+                    arbitrageService.startTradingOnDelta2(SignalType.O_PRE_LIQ, bestQuotes);
 
-            } else if (pos.signum() < 0) {
-                tradeLogger.info(String.format("%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
-                        getCounterName(),
-                        position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
-                        liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
+                } else if (pos.signum() < 0) {
+                    tradeLogger.info(String.format("%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
+                            getCounterName(),
+                            position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
+                            liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
 
-                arbitrageService.startTradingOnDelta1(SignalType.O_PRE_LIQ, bestQuotes);
+                    arbitrageService.startTradingOnDelta1(SignalType.O_PRE_LIQ, bestQuotes);
 
+                }
             }
         }
     }

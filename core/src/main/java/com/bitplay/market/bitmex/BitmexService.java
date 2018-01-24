@@ -18,6 +18,7 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.settings.ArbScheme;
@@ -1330,32 +1331,35 @@ public class BitmexService extends MarketService {
             return;
         }
 
-        final BigDecimal bDQLCloseMin = arbitrageService.getParams().getbDQLCloseMin();
+        final GuiParams params = arbitrageService.getParams();
+        if (params.getPosCorr().equals("enabled")) {
+            final BigDecimal bDQLCloseMin = params.getbDQLCloseMin();
 
-        if (liqInfo.getDqlCurr() != null
-                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
-                && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) < 0
-                && position.getPositionLong().signum() != 0) {
-            final BestQuotes bestQuotes = Utils.createBestQuotes(
-                    arbitrageService.getSecondMarketService().getOrderBook(),
-                    arbitrageService.getFirstMarketService().getOrderBook());
+            if (liqInfo.getDqlCurr() != null
+                    && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
+                    && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) < 0
+                    && position.getPositionLong().signum() != 0) {
+                final BestQuotes bestQuotes = Utils.createBestQuotes(
+                        arbitrageService.getSecondMarketService().getOrderBook(),
+                        arbitrageService.getFirstMarketService().getOrderBook());
 
-            if (position.getPositionLong().signum() > 0) {
-                tradeLogger.info(String.format("%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
-                        getCounterName(),
-                        position.getPositionLong().toPlainString(),
-                        liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
+                if (position.getPositionLong().signum() > 0) {
+                    tradeLogger.info(String.format("%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+                            getCounterName(),
+                            position.getPositionLong().toPlainString(),
+                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
 
-                arbitrageService.startTradingOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
+                    arbitrageService.startTradingOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
 
-            } else if (position.getPositionLong().signum() < 0) {
-                tradeLogger.info(String.format("%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
-                        getCounterName(),
-                        position.getPositionLong().toPlainString(),
-                        liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
+                } else if (position.getPositionLong().signum() < 0) {
+                    tradeLogger.info(String.format("%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+                            getCounterName(),
+                            position.getPositionLong().toPlainString(),
+                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
 
-                arbitrageService.startTradingOnDelta2(SignalType.B_PRE_LIQ, bestQuotes);
+                    arbitrageService.startTradingOnDelta2(SignalType.B_PRE_LIQ, bestQuotes);
 
+                }
             }
         }
     }
