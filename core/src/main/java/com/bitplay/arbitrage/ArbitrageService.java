@@ -78,8 +78,8 @@ public class ArbitrageService {
     private Disposable theTimer;
     private Disposable theCheckBusyTimer;
 
-    private OpenPrices openPrices = new OpenPrices();
-    private OpenPrices openDiffs = new OpenPrices();
+    private final OpenPrices openPrices = new OpenPrices();
+    private final OpenPrices openDiffs = new OpenPrices();
     private volatile SignalType signalType = SignalType.AUTOMATIC;
     private SignalEventBus signalEventBus = new SignalEventBus();
     private volatile DeltaParams deltaParams = new DeltaParams();
@@ -201,10 +201,19 @@ public class ArbitrageService {
         if (cumDiffsFact.compareTo(params.getCumDiffsFactMin()) == -1) params.setCumDiffsFactMin(cumDiffsFact);
         if (cumDiffsFact.compareTo(params.getCumDiffsFactMax()) == 1) params.setCumDiffsFactMax(cumDiffsFact);
 
+        // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
+        BigDecimal diffFactBr = openPrices.getBorder() == null ? BigDecimal.ZERO
+                : deltaFact.subtract(openPrices.getBorder());
+        params.setCumDiffFactBr(params.getCumDiffFactBr().add(diffFactBr));
+        if (params.getCumDiffFactBr().compareTo(params.getCumDiffFactBrMin()) == -1) params.setCumDiffFactBrMin(params.getCumDiffFactBr());
+        if (params.getCumDiffFactBr().compareTo(params.getCumDiffFactBrMax()) == 1) params.setCumDiffFactBrMax(params.getCumDiffFactBr());
+
         deltasLogger.info(String.format("#%s %s; " +
                         "cum_delta_fact=%s/%s/%s; " +
                         "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
-                        "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s;",
+                        "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
+                        "diff_fact_br=%s-%s=%s\n" +
+                        "cum_diff_fact_br=%s/%s/%s",
                 getCounter(),
                 deltaFactString,
                 params.getCumDeltaFact().toPlainString(),
@@ -215,7 +224,9 @@ public class ArbitrageService {
                 diffFact, params.getDiffFactMin(), params.getDiffFactMax(),
                 params.getCumDiffFact1(), params.getCumDiffFact1Min(), params.getCumDiffFact1Max(),
                 params.getCumDiffFact2(), params.getCumDiffFact2Min(), params.getCumDiffFact2Max(),
-                cumDiffsFact, params.getCumDiffsFactMin(), params.getCumDiffsFactMax()
+                cumDiffsFact, params.getCumDiffsFactMin(), params.getCumDiffsFactMax(),
+                deltaFact.toPlainString(), openPrices.getBorder(), diffFactBr,
+                params.getCumDiffFactBr(), params.getCumDiffFactBrMin(), params.getCumDiffFactBrMax()
         ));
     }
 
@@ -234,9 +245,6 @@ public class ArbitrageService {
     }
 
     private void setTimeoutAfterStartTrading() {
-//        flagOpenOrder.setFirstReady(false);
-//        flagOpenOrder.setSecondReady(false);
-
         isReadyForTheArbitrage = false;
         if (theTimer != null) {
             theTimer.dispose();
@@ -425,6 +433,7 @@ public class ArbitrageService {
                 }
 
                 if (plBlocks.getBlockOkex().signum() != 0) {
+                    openPrices.setBorder(border1);
                     startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
                 }
             }
@@ -441,6 +450,7 @@ public class ArbitrageService {
                     plBlocks = dynBlockDecriseByAffordable(DELTA2, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
                 }
                 if (plBlocks.getBlockOkex().signum() != 0) {
+                    openPrices.setBorder(border2);
                     startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
                 }
             }
@@ -463,11 +473,13 @@ public class ArbitrageService {
                         final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook,
                                 b_block, o_block);
 
+                        openPrices.setBorder(ArbUtils.getBorder(tradingSignal));
                         startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
                     }
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
+                    openPrices.setBorder(ArbUtils.getBorder(tradingSignal));
                     startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, null);
                 }
             }
@@ -482,11 +494,13 @@ public class ArbitrageService {
                         final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook,
                                 b_block, o_block);
 
+                        openPrices.setBorder(ArbUtils.getBorder(tradingSignal));
                         startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
                     }
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
+                    openPrices.setBorder(ArbUtils.getBorder(tradingSignal));
                     startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, null);
                 }
             }

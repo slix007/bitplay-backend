@@ -33,6 +33,9 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal cumDiffFact2Max = BigDecimal.ZERO;
     private BigDecimal cumDiffsFactMin = BigDecimal.valueOf(10000);
     private BigDecimal cumDiffsFactMax = BigDecimal.ZERO;
+    private BigDecimal cumDiffFactBr = BigDecimal.ZERO;
+    private BigDecimal cumDiffFactBrMin = BigDecimal.valueOf(10000);
+    private BigDecimal cumDiffFactBrMax = BigDecimal.ZERO;
     private BigDecimal diffFactMin = BigDecimal.valueOf(10000);
     private BigDecimal diffFactMax = BigDecimal.ZERO;
     private BigDecimal diffFact1Min = BigDecimal.valueOf(10000);
@@ -242,6 +245,30 @@ public class GuiParams extends AbstractDocument {
 
     public void setCumDiffsFactMax(BigDecimal cumDiffsFactMax) {
         this.cumDiffsFactMax = cumDiffsFactMax;
+    }
+
+    public BigDecimal getCumDiffFactBr() {
+        return cumDiffFactBr;
+    }
+
+    public void setCumDiffFactBr(BigDecimal cumDiffFactBr) {
+        this.cumDiffFactBr = cumDiffFactBr;
+    }
+
+    public BigDecimal getCumDiffFactBrMin() {
+        return cumDiffFactBrMin;
+    }
+
+    public void setCumDiffFactBrMin(BigDecimal cumDiffFactBrMin) {
+        this.cumDiffFactBrMin = cumDiffFactBrMin;
+    }
+
+    public BigDecimal getCumDiffFactBrMax() {
+        return cumDiffFactBrMax;
+    }
+
+    public void setCumDiffFactBrMax(BigDecimal cumDiffFactBrMax) {
+        this.cumDiffFactBrMax = cumDiffFactBrMax;
     }
 
     public BigDecimal getDiffFactMin() {

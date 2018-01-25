@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 public class OpenPrices {
     BigDecimal firstOpenPrice = BigDecimal.ZERO;
     BigDecimal secondOpenPrice = BigDecimal.ZERO;
+    BigDecimal border = BigDecimal.ZERO;
 
     public BigDecimal getFirstOpenPrice() {
         return firstOpenPrice;
@@ -35,5 +36,13 @@ public class OpenPrices {
         return (firstOpenPrice != null && secondOpenPrice != null)
                 ? secondOpenPrice.subtract(firstOpenPrice).setScale(2, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO;
+    }
+
+    public BigDecimal getBorder() {
+        return border;
+    }
+
+    public void setBorder(BigDecimal border) {
+        this.border = border;
     }
 }
