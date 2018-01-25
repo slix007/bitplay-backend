@@ -561,6 +561,7 @@ public class OkCoinService extends MarketService {
                                 final PlaceOrderArgs currArgs = placeOrderArgsRef.getAndSet(null);
                                 if (currArgs != null) {
                                     setMarketState(MarketState.ARBITRAGE);
+                                    tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
 
                                     placeOrder(currArgs);
                                 }
@@ -676,6 +677,7 @@ public class OkCoinService extends MarketService {
     public void deferredPlaceOrderOnSignal(PlaceOrderArgs currPlaceOrderArgs) {
         if (this.placeOrderArgsRef.compareAndSet(null, currPlaceOrderArgs)) {
             setMarketState(MarketState.WAITING_ARB);
+            tradeLogger.info(String.format("#%s MT2 deferred placing %s", getCounterName(), currPlaceOrderArgs));
         } else {
             final String errorMessage = String.format("double placing-order for MT2. New:%s.", currPlaceOrderArgs);
             logger.error(errorMessage);
