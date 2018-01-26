@@ -927,21 +927,23 @@ public class ArbitrageService {
         BigDecimal b2 = BigDecimal.ZERO;
         BigDecimal OKEX_FACTOR = BigDecimal.valueOf(100);
         if (deltaRef.equals(DELTA1)) {
-            // b_sell, o_buyy
-            final BigDecimal b_sell_lim = firstMarketService.getAffordableContractsForShort();
-            final BigDecimal o_buy_lim = secondMarketService.getAffordableContractsForLong();
+            // b_sell, o_buy
+            final BigDecimal b_sell_lim = firstMarketService.getAffordableContractsForShort().signum() < 0 ? BigDecimal.ZERO : firstMarketService.getAffordableContractsForShort();
+            final BigDecimal o_buy_lim = secondMarketService.getAffordableContractsForLong().signum() < 0 ? BigDecimal.ZERO : secondMarketService.getAffordableContractsForLong();
             b1 = blockSize1.compareTo(b_sell_lim) < 0 ? blockSize1 : b_sell_lim;
             b2 = blockSize2.compareTo(o_buy_lim) < 0 ? blockSize2 : o_buy_lim;
         } else if (deltaRef.equals(DELTA2)) {
             // buy p , sell o
-            final BigDecimal b_buy_lim = firstMarketService.getAffordableContractsForLong();
-            final BigDecimal o_sell_lim = secondMarketService.getAffordableContractsForShort();
+            final BigDecimal b_buy_lim = firstMarketService.getAffordableContractsForLong().signum() < 0 ? BigDecimal.ZERO : firstMarketService.getAffordableContractsForLong();
+            final BigDecimal o_sell_lim = secondMarketService.getAffordableContractsForShort().signum() < 0 ? BigDecimal.ZERO : secondMarketService.getAffordableContractsForShort();
             b1 = blockSize1.compareTo(b_buy_lim) < 0 ? blockSize1 : b_buy_lim;
             b2 = blockSize2.compareTo(o_sell_lim) < 0 ? blockSize2 : o_sell_lim;
         }
 
-        if (b1.signum() != 0 && b2.signum() != 0
-                && b1.compareTo(b2.multiply(OKEX_FACTOR)) != 0) {
+        if (b1.signum() == 0 || b2.signum() == 0) {
+            b1 = BigDecimal.ZERO;
+            b2 = BigDecimal.ZERO;
+        } else if (b1.compareTo(b2.multiply(OKEX_FACTOR)) != 0) {
             b2 = b2.min(b1.divide(OKEX_FACTOR, 0, RoundingMode.HALF_UP));
             b1 = b2.multiply(OKEX_FACTOR);
         }
