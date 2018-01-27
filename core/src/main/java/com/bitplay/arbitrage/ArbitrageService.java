@@ -103,19 +103,23 @@ public class ArbitrageService {
         signalEventBus.toObserverable()
                 .sample(100, TimeUnit.MILLISECONDS)
                 .subscribe(signalEvent -> {
-                    if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
-                            || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
+                    try {
+                        if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
+                                || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
 
-                        final BestQuotes bestQuotes = doComparison();
+                            final BestQuotes bestQuotes = doComparison();
 
-                        // Logging not often then 5 sec
-                        if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
-                                && bestQuotes != null
-                                && bestQuotes.getArbitrageEvent() != BestQuotes.ArbitrageEvent.NONE) {
+                            // Logging not often then 5 sec
+                            if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
+                                    && bestQuotes != null
+                                    && bestQuotes.getArbitrageEvent() != BestQuotes.ArbitrageEvent.NONE) {
 
-                            previousEmitTime = Instant.now();
-                            signalLogger.info(bestQuotes.toString());
+                                previousEmitTime = Instant.now();
+                                signalLogger.info(bestQuotes.toString());
+                            }
                         }
+                    } catch (Exception e) {
+                        logger.error("signalEventBus errorOnEvent", e);
                     }
                 }, throwable -> {
                     logger.error("signalEventBus errorOnEvent", throwable);
