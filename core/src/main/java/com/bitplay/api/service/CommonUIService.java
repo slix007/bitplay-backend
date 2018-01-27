@@ -95,31 +95,7 @@ public class CommonUIService {
     }
 
     public DeltasJson getDeltas() {
-        return new DeltasJson(
-                arbitrageService.getDelta1().toPlainString(),
-                arbitrageService.getDelta2().toPlainString(),
-                arbitrageService.getParams().getBorder1().toPlainString(),
-                arbitrageService.getParams().getBorder2().toPlainString(),
-                arbitrageService.getParams().getMakerDelta().toPlainString(),
-                arbitrageService.getParams().getSumDelta().toPlainString(),
-                arbitrageService.getParams().getPeriodSec().toString(),
-                arbitrageService.getParams().getBuValue().toPlainString(),
-                arbitrageService.getParams().getCumDelta().toPlainString(),
-                arbitrageService.getParams().getLastDelta(),
-                arbitrageService.getParams().getCumDeltaFact().toPlainString(),
-                arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
-                arbitrageService.getParams().getCumDiffFact1().toPlainString(),
-                arbitrageService.getParams().getCumDiffFact2().toPlainString(),
-                arbitrageService.getParams().getCumCom1().toPlainString(),
-                arbitrageService.getParams().getCumCom2().toPlainString(),
-                String.valueOf(arbitrageService.getParams().getCounter1()),
-                String.valueOf(arbitrageService.getParams().getCounter2()),
-                arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
-                arbitrageService.getParams().getReserveBtc1().toPlainString(),
-                arbitrageService.getParams().getReserveBtc2().toPlainString(),
-                arbitrageService.getParams().getHedgeAmount().toPlainString(),
-                arbitrageService.getParams().getFundingRateFee().toPlainString()
-        );
+        return convertToDeltasJson();
     }
 
     public DeltasJson updateBorders(BorderUpdateJson borderUpdateJson) {
@@ -131,31 +107,7 @@ public class CommonUIService {
         }
         arbitrageService.saveParamsToDb();
 
-        return new DeltasJson(
-                arbitrageService.getDelta1().toPlainString(),
-                arbitrageService.getDelta2().toPlainString(),
-                arbitrageService.getParams().getBorder1().toPlainString(),
-                arbitrageService.getParams().getBorder2().toPlainString(),
-                arbitrageService.getParams().getMakerDelta().toPlainString(),
-                arbitrageService.getParams().getSumDelta().toPlainString(),
-                arbitrageService.getParams().getPeriodSec().toString(),
-                arbitrageService.getParams().getBuValue().toPlainString(),
-                arbitrageService.getParams().getCumDelta().toPlainString(),
-                arbitrageService.getParams().getLastDelta(),
-                arbitrageService.getParams().getCumDeltaFact().toPlainString(),
-                arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
-                arbitrageService.getParams().getCumDiffFact1().toPlainString(),
-                arbitrageService.getParams().getCumDiffFact2().toPlainString(),
-                arbitrageService.getParams().getCumCom1().toPlainString(),
-                arbitrageService.getParams().getCumCom2().toPlainString(),
-                String.valueOf(arbitrageService.getParams().getCounter1()),
-                String.valueOf(arbitrageService.getParams().getCounter2()),
-                arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
-                arbitrageService.getParams().getReserveBtc1().toPlainString(),
-                arbitrageService.getParams().getReserveBtc2().toPlainString(),
-                arbitrageService.getParams().getHedgeAmount().toPlainString(),
-                arbitrageService.getParams().getFundingRateFee().toPlainString()
-        );
+        return convertToDeltasJson();
     }
 
     //TODO move some params from Deltas to separate Data Object
@@ -174,12 +126,14 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCumDelta() != null) {
             arbitrageService.getParams().setCumDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
+            arbitrageService.getParams().setCumAvgDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
         }
         if (deltalUpdateJson.getLastDelta() != null) {
             arbitrageService.getParams().setLastDelta(deltalUpdateJson.getLastDelta());
         }
         if (deltalUpdateJson.getCumDeltaFact() != null) {
             arbitrageService.getParams().setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
+            arbitrageService.getParams().setCumAvgDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
         }
         if (deltalUpdateJson.getCumDiffFactBr() != null) {
             arbitrageService.getParams().setCumDiffFactBr(new BigDecimal(deltalUpdateJson.getCumDiffFactBr()));
@@ -192,9 +146,11 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCumCom1() != null) {
             arbitrageService.getParams().setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
+            arbitrageService.getParams().setCumAvgCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
         }
         if (deltalUpdateJson.getCumCom2() != null) {
             arbitrageService.getParams().setCumCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
+            arbitrageService.getParams().setCumAvgCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
         }
         if (deltalUpdateJson.getCount1() != null) {
             arbitrageService.getParams().setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
@@ -204,6 +160,7 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCumBitmexMCom() != null) {
             arbitrageService.getParams().setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
+            arbitrageService.getParams().setCumAvgBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
         }
         if (deltalUpdateJson.getReserveBtc1() != null) {
             arbitrageService.getParams().setReserveBtc1(new BigDecimal(deltalUpdateJson.getReserveBtc1()));
@@ -219,6 +176,10 @@ public class CommonUIService {
         }
         arbitrageService.saveParamsToDb();
 
+        return convertToDeltasJson();
+    }
+
+    private DeltasJson convertToDeltasJson() {
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
                 arbitrageService.getDelta2().toPlainString(),
@@ -229,16 +190,21 @@ public class CommonUIService {
                 arbitrageService.getParams().getPeriodSec().toString(),
                 arbitrageService.getParams().getBuValue().toPlainString(),
                 arbitrageService.getParams().getCumDelta().toPlainString(),
+                arbitrageService.getParams().getCumAvgDelta().toPlainString(),
                 arbitrageService.getParams().getLastDelta(),
                 arbitrageService.getParams().getCumDeltaFact().toPlainString(),
+                arbitrageService.getParams().getCumAvgDeltaFact().toPlainString(),
                 arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact1().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact2().toPlainString(),
                 arbitrageService.getParams().getCumCom1().toPlainString(),
                 arbitrageService.getParams().getCumCom2().toPlainString(),
+                arbitrageService.getParams().getCumAvgCom1().toPlainString(),
+                arbitrageService.getParams().getCumAvgCom2().toPlainString(),
                 String.valueOf(arbitrageService.getParams().getCounter1()),
                 String.valueOf(arbitrageService.getParams().getCounter2()),
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
+                arbitrageService.getParams().getCumAvgBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
                 arbitrageService.getParams().getReserveBtc2().toPlainString(),
                 arbitrageService.getParams().getHedgeAmount().toPlainString(),

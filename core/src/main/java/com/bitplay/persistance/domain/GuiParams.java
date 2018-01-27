@@ -55,6 +55,20 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal cumBitmexMCom = BigDecimal.ZERO;
     private BigDecimal cumCom1 = BigDecimal.ZERO;
     private BigDecimal cumCom2 = BigDecimal.ZERO;
+
+    private BigDecimal avgDelta = BigDecimal.ZERO;
+    private BigDecimal cumAvgDelta = BigDecimal.ZERO;
+    private BigDecimal avgDeltaFact = BigDecimal.ZERO;
+    private BigDecimal cumAvgDeltaFact = BigDecimal.ZERO;
+    private BigDecimal avgCom1 = BigDecimal.ZERO;
+    private BigDecimal avgCom2 = BigDecimal.ZERO;
+    private BigDecimal avgCom = BigDecimal.ZERO;
+    private BigDecimal cumAvgCom1 = BigDecimal.ZERO;
+    private BigDecimal cumAvgCom2 = BigDecimal.ZERO;
+    private BigDecimal cumAvgCom = BigDecimal.ZERO;
+    private BigDecimal avgBitmexMCom = BigDecimal.ZERO;
+    private BigDecimal cumAvgBitmexMCom = BigDecimal.ZERO;
+
     private int counter1 = 0;
     private int counter2 = 0;
 //    private BigDecimal block1 = BigDecimal.valueOf(100);
@@ -421,6 +435,102 @@ public class GuiParams extends AbstractDocument {
 
     public void setCumCom2(BigDecimal cumCom2) {
         this.cumCom2 = cumCom2;
+    }
+
+    public BigDecimal getAvgDelta() {
+        return avgDelta;
+    }
+
+    public void setAvgDelta(BigDecimal avgDelta) {
+        this.avgDelta = avgDelta;
+    }
+
+    public BigDecimal getCumAvgDelta() {
+        return cumAvgDelta;
+    }
+
+    public void setCumAvgDelta(BigDecimal cumAvgDelta) {
+        this.cumAvgDelta = cumAvgDelta;
+    }
+
+    public BigDecimal getAvgDeltaFact() {
+        return avgDeltaFact;
+    }
+
+    public void setAvgDeltaFact(BigDecimal avgDeltaFact) {
+        this.avgDeltaFact = avgDeltaFact;
+    }
+
+    public BigDecimal getCumAvgDeltaFact() {
+        return cumAvgDeltaFact;
+    }
+
+    public void setCumAvgDeltaFact(BigDecimal cumAvgDeltaFact) {
+        this.cumAvgDeltaFact = cumAvgDeltaFact;
+    }
+
+    public BigDecimal getAvgCom1() {
+        return avgCom1;
+    }
+
+    public void setAvgCom1(BigDecimal avgCom1) {
+        this.avgCom1 = avgCom1;
+    }
+
+    public BigDecimal getAvgCom2() {
+        return avgCom2;
+    }
+
+    public void setAvgCom2(BigDecimal avgCom2) {
+        this.avgCom2 = avgCom2;
+    }
+
+    public BigDecimal getAvgCom() {
+        return avgCom;
+    }
+
+    public void setAvgCom(BigDecimal avgCom) {
+        this.avgCom = avgCom;
+    }
+
+    public BigDecimal getCumAvgCom1() {
+        return cumAvgCom1;
+    }
+
+    public void setCumAvgCom1(BigDecimal cumAvgCom1) {
+        this.cumAvgCom1 = cumAvgCom1;
+    }
+
+    public BigDecimal getCumAvgCom2() {
+        return cumAvgCom2;
+    }
+
+    public void setCumAvgCom2(BigDecimal cumAvgCom2) {
+        this.cumAvgCom2 = cumAvgCom2;
+    }
+
+    public BigDecimal getCumAvgCom() {
+        return cumAvgCom;
+    }
+
+    public void setCumAvgCom(BigDecimal cumAvgCom) {
+        this.cumAvgCom = cumAvgCom;
+    }
+
+    public BigDecimal getAvgBitmexMCom() {
+        return avgBitmexMCom;
+    }
+
+    public void setAvgBitmexMCom(BigDecimal avgBitmexMCom) {
+        this.avgBitmexMCom = avgBitmexMCom;
+    }
+
+    public BigDecimal getCumAvgBitmexMCom() {
+        return cumAvgBitmexMCom;
+    }
+
+    public void setCumAvgBitmexMCom(BigDecimal cumAvgBitmexMCom) {
+        this.cumAvgBitmexMCom = cumAvgBitmexMCom;
     }
 
     public int getCounter1() {

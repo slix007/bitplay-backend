@@ -158,6 +158,8 @@ public class ArbitrageService {
                 final String deltaFactStr = String.format("delta1_fact=%s-%s=%s", openPrices.getFirstOpenPrice(), openPrices.getSecondOpenPrice(), openPrices.getDelta1Fact());
                 printDeltaFact(openPrices.getDelta1Fact(), deltaFactStr);
 
+                writeAvgDeltaLogs(delta1, openPrices.getDelta1Fact(), openPrices);
+
                 printOAvgPrice();
 
                 printCumBitmexMCom();
@@ -166,6 +168,8 @@ public class ArbitrageService {
 
                 final String deltaFactStr = String.format("delta2_fact=%s-%s=%s", openPrices.getSecondOpenPrice(), openPrices.getFirstOpenPrice(), openPrices.getDelta2Fact());
                 printDeltaFact(openPrices.getDelta2Fact(), deltaFactStr);
+
+                writeAvgDeltaLogs(delta2, openPrices.getDelta2Fact(), openPrices);
 
                 printOAvgPrice();
 
@@ -436,9 +440,11 @@ public class ArbitrageService {
                     plBlocks = dynBlockDecriseByAffordable(DELTA1, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
                 }
 
-                if (plBlocks.getBlockOkex().signum() != 0) {
+                if (plBlocks.getBlockOkex().signum() > 0) {
                     openPrices.setBorder(border1);
                     startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
+                } else {
+                    warningLogger.warn("Block should be < 0, but okexBlock=" + plBlocks.getBlockOkex());
                 }
             }
             if (delta2.compareTo(border2) >= 0) {
@@ -453,9 +459,11 @@ public class ArbitrageService {
                 if (plBlocks.isDynamic()) {
                     plBlocks = dynBlockDecriseByAffordable(DELTA2, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
                 }
-                if (plBlocks.getBlockOkex().signum() != 0) {
+                if (plBlocks.getBlockOkex().signum() > 0) {
                     openPrices.setBorder(border2);
                     startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
+                } else {
+                    warningLogger.warn("Block should be < 0, but okexBlock=" + plBlocks.getBlockOkex());
                 }
             }
 
@@ -470,7 +478,7 @@ public class ArbitrageService {
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
                 if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
                     final PlBlocks bl = dynBlockDecriseByAffordable(DELTA1, BigDecimal.valueOf(tradingSignal.bitmexBlock), BigDecimal.valueOf(tradingSignal.okexBlock));
-                    if (bl.getBlockOkex().signum() != 0) {
+                    if (bl.getBlockOkex().signum() > 0) {
                         final BordersService.TradingSignal ts = bordersService.setNewBlock(tradingSignal, bl.getBlockOkex().intValueExact());
                         final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
                         final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
@@ -479,6 +487,8 @@ public class ArbitrageService {
 
                         openPrices.setBorder(ArbUtils.getBorder(tradingSignal));
                         startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
+                    } else {
+                        warningLogger.warn("Block should be < 0, but okexBlock=" + bl.getBlockOkex());
                     }
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
@@ -491,7 +501,7 @@ public class ArbitrageService {
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
                 if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
                     final PlBlocks bl = dynBlockDecriseByAffordable(DELTA2, BigDecimal.valueOf(tradingSignal.bitmexBlock), BigDecimal.valueOf(tradingSignal.okexBlock));
-                    if (bl.getBlockOkex().signum() != 0) {
+                    if (bl.getBlockOkex().signum() > 0) {
                         final BordersService.TradingSignal ts = bordersService.setNewBlock(tradingSignal, bl.getBlockOkex().intValueExact());
                         final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
                         final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
@@ -500,7 +510,10 @@ public class ArbitrageService {
 
                         openPrices.setBorder(ArbUtils.getBorder(tradingSignal));
                         startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
+                    } else {
+                        warningLogger.warn("Block should be < 0, but okexBlock=" + bl.getBlockOkex());
                     }
+
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
@@ -556,6 +569,9 @@ public class ArbitrageService {
             params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
             params.setVolPlan(b_block); // buy
 
+            openPrices.setoBlock(o_block);
+            openPrices.setDelta1Plan(delta1);
+            openPrices.setDelta2Plan(delta2);
             writeLogDelta1(ask1_o, bid1_p, tradingSignal);
             if (dynamicDeltaLogs != null) {
                 deltasLogger.info(String.format("#%s %s", getCounter(), dynamicDeltaLogs));
@@ -603,6 +619,9 @@ public class ArbitrageService {
             params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
             params.setVolPlan(b_block.negate());//sell
 
+            openPrices.setoBlock(o_block);
+            openPrices.setDelta1Plan(delta1);
+            openPrices.setDelta2Plan(delta2);
             writeLogDelta2(ask1_p, bid1_o, tradingSignal);
             if (dynamicDeltaLogs != null) {
                 deltasLogger.info(String.format("#%s %s", getCounter(), dynamicDeltaLogs));
@@ -651,15 +670,6 @@ public class ArbitrageService {
                 params.getCumDeltaMax().toPlainString()
         ));
 
-        // Count com
-        params.setCom1(bid1_p.multiply(FEE_FIRST_MAKER).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
-        params.setCom2(ask1_o.multiply(FEE_SECOND_TAKER).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
-
-
-        if (signalType == SignalType.AUTOMATIC) {
-            printCom();
-        }
-
         printSumBal(false);
     }
 
@@ -692,20 +702,38 @@ public class ArbitrageService {
                 params.getCumDeltaMax().toPlainString()
         ));
 
-        // Count com
-        params.setCom1(ask1_p.multiply(FEE_FIRST_MAKER).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
-        params.setCom2(bid1_o.multiply(FEE_SECOND_TAKER).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP));
-
-        if (signalType == SignalType.AUTOMATIC) {
-            printCom();
-        }
-
         printSumBal(false);
     }
 
-    private void printCom() {
-        BigDecimal com1 = params.getCom1();
-        BigDecimal com2 = params.getCom2();
+    private void writeAvgDeltaLogs(BigDecimal delta, BigDecimal deltaFact, OpenPrices openPrices) {
+        printCom(openPrices);
+
+        final BigDecimal o_block = openPrices.getoBlock();
+        params.setAvgDelta(o_block.multiply(delta));
+        params.setCumAvgDelta(params.getCumAvgDelta().add(params.getAvgDelta()));
+        params.setAvgDeltaFact(o_block.multiply(deltaFact));
+        params.setCumAvgDeltaFact(params.getCumAvgDeltaFact().add(params.getAvgDeltaFact()));
+
+        deltasLogger.info(String.format("avg_delta=%s(o_b)*%s(d)=%s, cum_avg_delta=%s, " +
+                        "avg_delta_fact=%s(o_bl)*%s(d_fact)=%s, cum_avg_delta_fact=%s",
+                o_block, delta, params.getAvgDelta(), params.getCumAvgDelta(),
+                o_block, deltaFact, params.getAvgDeltaFact(), params.getCumAvgDeltaFact()));
+    }
+
+    private void printCom(OpenPrices openPrices) {
+        final BigDecimal price1 = openPrices.getFirstOpenPrice();
+        final BigDecimal price2 = openPrices.getSecondOpenPrice();
+        final BigDecimal com1 = price1.multiply(FEE_FIRST_MAKER).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal com2 = price2.multiply(FEE_SECOND_TAKER).divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
+        params.setCom1(com1);
+        params.setCom2(com2);
+        params.setAvgCom1(com1.multiply(openPrices.getoBlock()));
+        params.setAvgCom2(com2.multiply(openPrices.getoBlock()));
+        params.setAvgCom(params.getAvgCom1().add(params.getAvgCom2()));
+        params.setCumAvgCom1(params.getCumAvgCom1().add(params.getAvgCom1()));
+        params.setCumAvgCom2(params.getCumAvgCom2().add(params.getAvgCom2()));
+        params.setCumAvgCom(params.getCumAvgCom().add(params.getAvgCom()));
+
         BigDecimal com = com1.add(com2);
 
         if (com1.compareTo(params.getCom1Min()) == -1) params.setCom1Min(com1);
@@ -719,14 +747,16 @@ public class ArbitrageService {
         params.setCumCom2(params.getCumCom2().add(com2));
         BigDecimal cumCom = params.getCumCom1().add(params.getCumCom2());
 
-        deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s",
+        deltasLogger.info(String.format("#%s com=%s/%s/%s+%s/%s/%s=%s/%s/%s; cum_com=%s+%s=%s; " +
+                        "avg_com=%s+%s=%s; cum_avg_com=%s",
                 getCounter(),
                 com1, params.getCom1Min(), params.getCom1Max(),
                 com2, params.getCom2Min(), params.getCom2Max(),
                 com, params.getComMin(), params.getComMax(),
                 params.getCumCom1(),
                 params.getCumCom2(),
-                cumCom
+                cumCom,
+                params.getAvgCom1(), params.getAvgCom2(), params.getAvgCom(), params.getCumAvgCom()
         ));
     }
 
@@ -739,10 +769,16 @@ public class ArbitrageService {
 
         params.setCumBitmexMCom(params.getCumBitmexMCom().add(bitmexMCom));
 
-        deltasLogger.info(String.format("#%s bitmex_m_com=%s/%s/%s; cum_bitmex_m_com=%s",
+        params.setAvgBitmexMCom(bitmexMCom.multiply(openPrices.getoBlock()));
+        params.setCumAvgBitmexMCom(params.getCumAvgBitmexMCom().add(params.getAvgBitmexMCom()));
+
+        deltasLogger.info(String.format("#%s bitmex_m_com=%s/%s/%s; cum_bitmex_m_com=%s; " +
+                        "avg_Bitmex_m_com=%s; cum_avg_Bitmex_m_com=%s",
                 getCounter(),
                 bitmexMCom, params.getBitmexMComMin(), params.getBitmexMComMax(),
-                params.getCumBitmexMCom()
+                params.getCumBitmexMCom(),
+                params.getAvgBitmexMCom(),
+                params.getCumAvgBitmexMCom()
         ));
     }
 
