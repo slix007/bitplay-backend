@@ -15,6 +15,7 @@ public class DeltalUpdateJson {
     private String cumDelta;
     private String lastDelta;
     private String cumDeltaFact;
+    private String cumDiffFactBr;
     private String cumDiffFact1;
     private String cumDiffFact2;
     private String cumCom1;
@@ -81,6 +82,14 @@ public class DeltalUpdateJson {
 
     public void setCumDeltaFact(String cumDeltaFact) {
         this.cumDeltaFact = cumDeltaFact;
+    }
+
+    public String getCumDiffFactBr() {
+        return cumDiffFactBr;
+    }
+
+    public void setCumDiffFactBr(String cumDiffFactBr) {
+        this.cumDiffFactBr = cumDiffFactBr;
     }
 
     public String getCumDiffFact1() {

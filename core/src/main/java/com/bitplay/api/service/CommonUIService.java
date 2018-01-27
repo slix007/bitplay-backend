@@ -10,18 +10,14 @@ import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketStatesJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
-import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
-import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
-import com.bitplay.persistance.domain.settings.PlacingBlocks;
-import com.bitplay.persistance.domain.settings.Settings;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -111,6 +107,7 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumDelta().toPlainString(),
                 arbitrageService.getParams().getLastDelta(),
                 arbitrageService.getParams().getCumDeltaFact().toPlainString(),
+                arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact1().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact2().toPlainString(),
                 arbitrageService.getParams().getCumCom1().toPlainString(),
@@ -146,6 +143,7 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumDelta().toPlainString(),
                 arbitrageService.getParams().getLastDelta(),
                 arbitrageService.getParams().getCumDeltaFact().toPlainString(),
+                arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact1().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact2().toPlainString(),
                 arbitrageService.getParams().getCumCom1().toPlainString(),
@@ -182,6 +180,9 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCumDeltaFact() != null) {
             arbitrageService.getParams().setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
+        }
+        if (deltalUpdateJson.getCumDiffFactBr() != null) {
+            arbitrageService.getParams().setCumDiffFactBr(new BigDecimal(deltalUpdateJson.getCumDiffFactBr()));
         }
         if (deltalUpdateJson.getCumDiffFact1() != null) {
             arbitrageService.getParams().setCumDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
@@ -230,6 +231,7 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumDelta().toPlainString(),
                 arbitrageService.getParams().getLastDelta(),
                 arbitrageService.getParams().getCumDeltaFact().toPlainString(),
+                arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact1().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact2().toPlainString(),
                 arbitrageService.getParams().getCumCom1().toPlainString(),
