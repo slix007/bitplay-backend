@@ -58,6 +58,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.SocketTimeoutException;
+import java.time.LocalTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -103,6 +104,8 @@ public class OkCoinService extends MarketService {
     private volatile ScheduledFuture<?> scheduledMovingErrorsReset;
     private volatile boolean movingInProgress = false;
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
+
+    private volatile String ifDisconnetedString = "";
 
     @Autowired
     private OkcoinBalanceService okcoinBalanceService;
@@ -231,9 +234,14 @@ public class OkCoinService extends MarketService {
 
         // Retry on disconnect. (It's disconneced each 5 min)
         exchange.onDisconnect().doOnComplete(() -> {
+            ifDisconnetedString += " okex disconnected at " + LocalTime.now();
             logger.warn("onClientDisconnect okCoinService");
             initWebSocketAndAllSubscribers();
         }).subscribe();
+    }
+
+    public String getIfDisconnetedString() {
+        return ifDisconnetedString;
     }
 
     private void subscribeOnOrderBook() {
@@ -771,7 +779,8 @@ public class OkCoinService extends MarketService {
                 String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType;
                 writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
                         placingTypeString,
-                        signalType, thePrice, orderId, null);
+                        signalType, thePrice, orderId,
+                        (limitOrderWithId.getStatus() != null) ? limitOrderWithId.getStatus().toString() : null);
             }
         }
 

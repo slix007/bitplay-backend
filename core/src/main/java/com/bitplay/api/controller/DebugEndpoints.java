@@ -3,6 +3,7 @@ package com.bitplay.api.controller;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.okcoin.OkCoinService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,9 @@ public class DebugEndpoints {
     @Autowired
     private RestartService restartService;
 
+    @Autowired
+    private OkCoinService okCoinService;
+
     @RequestMapping(value = "/full-restart", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson fullRestart() throws IOException {
 
@@ -40,7 +44,9 @@ public class DebugEndpoints {
 
     @RequestMapping(value = "/deadlock/check", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson checkDeadlocks() {
-        return detectDeadlock();
+        final ResultJson resultJson = detectDeadlock();
+        String okexDisconnects = okCoinService.getIfDisconnetedString();
+        return new ResultJson(resultJson.getResult(), resultJson.getDescription() + okexDisconnects);
     }
 
     public static ResultJson detectDeadlock() {
