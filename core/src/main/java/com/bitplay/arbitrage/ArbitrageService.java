@@ -210,9 +210,8 @@ public class ArbitrageService {
         if (cumDiffsFact.compareTo(params.getCumDiffsFactMax()) == 1) params.setCumDiffsFactMax(cumDiffsFact);
 
         // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
-        BigDecimal diffFactBr = openPrices.getBorder() == null ? BigDecimal.ZERO
-                : deltaFact.subtract(openPrices.getBorder());
-        params.setCumDiffFactBr(params.getCumDiffFactBr().add(diffFactBr));
+        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, openPrices.getBorderList());
+        params.setCumDiffFactBr(params.getCumDiffFactBr().add(diffFactBr.val));
         if (params.getCumDiffFactBr().compareTo(params.getCumDiffFactBrMin()) == -1) params.setCumDiffFactBrMin(params.getCumDiffFactBr());
         if (params.getCumDiffFactBr().compareTo(params.getCumDiffFactBrMax()) == 1) params.setCumDiffFactBrMax(params.getCumDiffFactBr());
 
@@ -220,7 +219,7 @@ public class ArbitrageService {
                         "cum_delta_fact=%s/%s/%s; " +
                         "diffFact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
                         "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
-                        "diff_fact_br=%s-%s=%s\n" +
+                        "diff_fact_br=%s=%s\n" +
                         "cum_diff_fact_br=%s/%s/%s",
                 getCounter(),
                 deltaFactString,
@@ -233,7 +232,7 @@ public class ArbitrageService {
                 params.getCumDiffFact1(), params.getCumDiffFact1Min(), params.getCumDiffFact1Max(),
                 params.getCumDiffFact2(), params.getCumDiffFact2Min(), params.getCumDiffFact2Max(),
                 cumDiffsFact, params.getCumDiffsFactMin(), params.getCumDiffsFactMax(),
-                deltaFact.toPlainString(), openPrices.getBorder(), diffFactBr,
+                diffFactBr.str, diffFactBr.val,
                 params.getCumDiffFactBr(), params.getCumDiffFactBrMin(), params.getCumDiffFactBrMax()
         ));
     }
@@ -485,7 +484,7 @@ public class ArbitrageService {
                         final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook,
                                 b_block, o_block);
 
-                        openPrices.setBorder(ArbUtils.getBorder(tradingSignal));
+                        openPrices.setBorderList(tradingSignal.borderValueList);
                         startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
                     } else {
                         warningLogger.warn("Block should be < 0, but okexBlock=" + bl.getBlockOkex());
@@ -493,7 +492,7 @@ public class ArbitrageService {
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
-                    openPrices.setBorder(ArbUtils.getBorder(tradingSignal));
+                    openPrices.setBorderList(tradingSignal.borderValueList);
                     startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, null);
                 }
             }
@@ -508,7 +507,7 @@ public class ArbitrageService {
                         final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook,
                                 b_block, o_block);
 
-                        openPrices.setBorder(ArbUtils.getBorder(tradingSignal));
+                        openPrices.setBorderList(tradingSignal.borderValueList);
                         startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
                     } else {
                         warningLogger.warn("Block should be < 0, but okexBlock=" + bl.getBlockOkex());
@@ -517,7 +516,7 @@ public class ArbitrageService {
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
-                    openPrices.setBorder(ArbUtils.getBorder(tradingSignal));
+                    openPrices.setBorderList(tradingSignal.borderValueList);
                     startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, null);
                 }
             }

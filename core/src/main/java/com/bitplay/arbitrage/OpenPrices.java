@@ -1,6 +1,9 @@
 package com.bitplay.arbitrage;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 5/24/17.
@@ -8,7 +11,7 @@ import java.math.BigDecimal;
 public class OpenPrices {
     BigDecimal firstOpenPrice = BigDecimal.ZERO;
     BigDecimal secondOpenPrice = BigDecimal.ZERO;
-    BigDecimal border = BigDecimal.ZERO;
+    List<BigDecimal> borderList = new ArrayList<>();
     BigDecimal oBlock = BigDecimal.ZERO;
     BigDecimal delta1Plan = BigDecimal.ZERO;
     BigDecimal delta2Plan = BigDecimal.ZERO;
@@ -41,12 +44,16 @@ public class OpenPrices {
                 : BigDecimal.ZERO;
     }
 
-    public BigDecimal getBorder() {
-        return border;
+    public void setBorder(BigDecimal border) {
+        this.borderList = Collections.singletonList(border);
     }
 
-    public void setBorder(BigDecimal border) {
-        this.border = border;
+    public List<BigDecimal> getBorderList() {
+        return borderList;
+    }
+
+    public void setBorderList(List<BigDecimal> borderList) {
+        this.borderList = borderList;
     }
 
     public BigDecimal getoBlock() {
