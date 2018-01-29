@@ -13,6 +13,7 @@ public class OpenPrices {
     BigDecimal secondOpenPrice = BigDecimal.ZERO;
     List<BigDecimal> borderList = new ArrayList<>();
     BigDecimal oBlock = BigDecimal.ZERO;
+    BigDecimal bBlock = BigDecimal.ZERO;
     BigDecimal delta1Plan = BigDecimal.ZERO;
     BigDecimal delta2Plan = BigDecimal.ZERO;
 
@@ -62,6 +63,14 @@ public class OpenPrices {
 
     public void setoBlock(BigDecimal oBlock) {
         this.oBlock = oBlock;
+    }
+
+    public BigDecimal getbBlock() {
+        return bBlock;
+    }
+
+    public void setbBlock(BigDecimal bBlock) {
+        this.bBlock = bBlock;
     }
 
     public BigDecimal getDelta1Plan() {

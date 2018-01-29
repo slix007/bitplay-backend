@@ -21,6 +21,9 @@ public class DeltasJson {
     private String cumDiffFactBr;
     private String cumDiffFact1;
     private String cumDiffFact2;
+    private String cumAvgDiffFact1;
+    private String cumAvgDiffFact2;
+    private String cumAvgDiffFact;
     private String cumCom1;
     private String cumCom2;
     private String cumAvgCom1;
@@ -34,7 +37,7 @@ public class DeltasJson {
     private String hedgeAmount;
     private String fundingRateFee;
 
-    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String cumAvgDelta, String lastDelta, String cumDeltaFact, String cumAvgDeltaFact, String cumDiffFactBr, String cumDiffFact1, String cumDiffFact2, String cumCom1, String cumCom2, String cumAvgCom1, String cumAvgCom2, String count1, String count2, String cumBitmexMCom, String cumAvgBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee) {
+    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String cumAvgDelta, String lastDelta, String cumDeltaFact, String cumAvgDeltaFact, String cumDiffFactBr, String cumDiffFact1, String cumDiffFact2, String cumAvgDiffFact1, String cumAvgDiffFact2, String cumAvgDiffFact, String cumCom1, String cumCom2, String cumAvgCom1, String cumAvgCom2, String count1, String count2, String cumBitmexMCom, String cumAvgBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee) {
         this.delta1 = delta1;
         this.delta2 = delta2;
         this.border1 = border1;
@@ -51,6 +54,9 @@ public class DeltasJson {
         this.cumDiffFactBr = cumDiffFactBr;
         this.cumDiffFact1 = cumDiffFact1;
         this.cumDiffFact2 = cumDiffFact2;
+        this.cumAvgDiffFact1 = cumAvgDiffFact1;
+        this.cumAvgDiffFact2 = cumAvgDiffFact2;
+        this.cumAvgDiffFact = cumAvgDiffFact;
         this.cumCom1 = cumCom1;
         this.cumCom2 = cumCom2;
         this.cumAvgCom1 = cumAvgCom1;
@@ -127,6 +133,18 @@ public class DeltasJson {
 
     public String getCumDiffFact2() {
         return cumDiffFact2;
+    }
+
+    public String getCumAvgDiffFact1() {
+        return cumAvgDiffFact1;
+    }
+
+    public String getCumAvgDiffFact2() {
+        return cumAvgDiffFact2;
+    }
+
+    public String getCumAvgDiffFact() {
+        return cumAvgDiffFact;
     }
 
     public String getCumCom1() {

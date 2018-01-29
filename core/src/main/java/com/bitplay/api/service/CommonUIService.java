@@ -144,6 +144,11 @@ public class CommonUIService {
         if (deltalUpdateJson.getCumDiffFact2() != null) {
             arbitrageService.getParams().setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
         }
+        if (deltalUpdateJson.getCumAvgDiffFact() != null) {
+            arbitrageService.getParams().setCumAvgDiffFact1(new BigDecimal(deltalUpdateJson.getCumAvgDiffFact()));
+            arbitrageService.getParams().setCumAvgDiffFact2(new BigDecimal(deltalUpdateJson.getCumAvgDiffFact()));
+            arbitrageService.getParams().setCumAvgDiffFact(new BigDecimal(deltalUpdateJson.getCumAvgDiffFact()));
+        }
         if (deltalUpdateJson.getCumCom1() != null) {
             arbitrageService.getParams().setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
             arbitrageService.getParams().setCumAvgCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
@@ -197,6 +202,9 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact1().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact2().toPlainString(),
+                arbitrageService.getParams().getCumAvgDiffFact1().toPlainString(),
+                arbitrageService.getParams().getCumAvgDiffFact2().toPlainString(),
+                arbitrageService.getParams().getCumAvgDiffFact().toPlainString(),
                 arbitrageService.getParams().getCumCom1().toPlainString(),
                 arbitrageService.getParams().getCumCom2().toPlainString(),
                 arbitrageService.getParams().getCumAvgCom1().toPlainString(),
