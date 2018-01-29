@@ -457,7 +457,6 @@ public class BordersService {
                                             o_delta.toPlainString(), placingBlocks.getActiveVersion());
                                 }
                             } else { // DYNAMIC
-                                borderValue.append(":").append(ok_br_close.get(i).toString());
                                 m = -pos - ok_br_close.get(i).getPosShortLimit();
                                 if (m > ok_lvl_max_limit)
                                     ok_lvl_max_limit = m;
@@ -577,7 +576,6 @@ public class BordersService {
                                         o_delta.toPlainString(), placingBlocks.getActiveVersion());
                             }
                         } else { // DYNAMIC
-                            borderValue.append(":").append(ok_br_open.get(i).toString());
                             m = ok_br_open.get(i).getPosShortLimit() + pos;
                             if (m > ok_lvl_max_limit)
                                 ok_lvl_max_limit = m;
