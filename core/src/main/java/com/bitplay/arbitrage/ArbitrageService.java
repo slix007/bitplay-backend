@@ -155,10 +155,10 @@ public class ArbitrageService {
                 && openPrices != null && openDiffs != null && params.getLastDelta() != null) {
             if (params.getLastDelta().equals(DELTA1)) {
 
+                writeAvgDeltaLogs(delta1, openPrices.getDelta1Fact(), openPrices);
+
                 final String deltaFactStr = String.format("delta1_fact=%s-%s=%s", openPrices.getFirstOpenPrice(), openPrices.getSecondOpenPrice(), openPrices.getDelta1Fact());
                 printDeltaFact(openPrices.getDelta1Fact(), deltaFactStr);
-
-                writeAvgDeltaLogs(delta1, openPrices.getDelta1Fact(), openPrices);
 
                 printOAvgPrice();
 
@@ -166,10 +166,10 @@ public class ArbitrageService {
 
             } else if (params.getLastDelta().equals(DELTA2)) {
 
+                writeAvgDeltaLogs(delta2, openPrices.getDelta2Fact(), openPrices);
+
                 final String deltaFactStr = String.format("delta2_fact=%s-%s=%s", openPrices.getSecondOpenPrice(), openPrices.getFirstOpenPrice(), openPrices.getDelta2Fact());
                 printDeltaFact(openPrices.getDelta2Fact(), deltaFactStr);
-
-                writeAvgDeltaLogs(delta2, openPrices.getDelta2Fact(), openPrices);
 
                 printOAvgPrice();
 
@@ -214,10 +214,19 @@ public class ArbitrageService {
         if (params.getCumDiffFactBr().compareTo(params.getCumDiffFactBrMin()) == -1) params.setCumDiffFactBrMin(params.getCumDiffFactBr());
         if (params.getCumDiffFactBr().compareTo(params.getCumDiffFactBrMax()) == 1) params.setCumDiffFactBrMax(params.getCumDiffFactBr());
 
-        // avg_diff_fact
+        // avg_diff_fact_br = (b_block / b_price_fact + b_block / ok_price_fact) * diff_fact_br
+        final BigDecimal b_block = openPrices.getbBlock();
+        final BigDecimal b_price_fact = openPrices.getFirstOpenPrice();
+        final BigDecimal o_price_fact = openPrices.getSecondOpenPrice();
+        BigDecimal avgDiffFactBr = (b_block.divide(b_price_fact, 2, RoundingMode.HALF_UP).add(
+                b_block.divide(o_price_fact, 2, RoundingMode.HALF_UP)
+        )).multiply(diffFactBr.val);
+        params.setCumAvgDiffFactBr(params.getCumAvgDiffFactBr().add(avgDiffFactBr));
+
+        // avg_diff_fact = avg_delta_fact - avg_delta
         BigDecimal avgDiffFact1 = openDiffs.getFirstOpenPrice().multiply(openPrices.getbBlock()).divide(openPrices.getFirstOpenPrice(), 2, RoundingMode.HALF_UP);
         BigDecimal avgDiffFact2 = openDiffs.getSecondOpenPrice().multiply(openPrices.getbBlock()).divide(openPrices.getSecondOpenPrice(), 2, RoundingMode.HALF_UP);
-        BigDecimal avgDiffFact = avgDiffFact1.add(avgDiffFact2);
+        BigDecimal avgDiffFact = params.getAvgDeltaFact().subtract(params.getAvgDelta());
         params.setCumAvgDiffFact1(params.getCumAvgDiffFact1().add(avgDiffFact1));
         params.setCumAvgDiffFact2(params.getCumAvgDiffFact2().add(avgDiffFact2));
         params.setCumAvgDiffFact(params.getCumAvgDiffFact().add(avgDiffFact));
