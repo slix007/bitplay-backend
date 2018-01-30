@@ -72,6 +72,8 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal cumAvgCom = BigDecimal.ZERO;
     private BigDecimal avgBitmexMCom = BigDecimal.ZERO;
     private BigDecimal cumAvgBitmexMCom = BigDecimal.ZERO;
+    private BigDecimal cumSlipM = BigDecimal.ZERO;
+    private BigDecimal cumSlipT = BigDecimal.ZERO;
 
     private int counter1 = 0;
     private int counter2 = 0;
@@ -711,5 +713,21 @@ public class GuiParams extends AbstractDocument {
 
     public void setFundingRateFee(BigDecimal fundingRateFee) {
         this.fundingRateFee = fundingRateFee;
+    }
+
+    public BigDecimal getCumSlipM() {
+        return cumSlipM;
+    }
+
+    public void setCumSlipM(BigDecimal cumSlipM) {
+        this.cumSlipM = cumSlipM;
+    }
+
+    public BigDecimal getCumSlipT() {
+        return cumSlipT;
+    }
+
+    public void setCumSlipT(BigDecimal cumSlipT) {
+        this.cumSlipT = cumSlipT;
     }
 }

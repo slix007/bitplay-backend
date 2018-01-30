@@ -186,6 +186,12 @@ public class CommonUIService {
         if (deltalUpdateJson.getFundingRateFee() != null) {
             arbitrageService.getParams().setFundingRateFee(new BigDecimal(deltalUpdateJson.getFundingRateFee()));
         }
+        if (deltalUpdateJson.getCumSlipM() != null) {
+            arbitrageService.getParams().setCumSlipM(new BigDecimal(deltalUpdateJson.getCumSlipM()));
+        }
+        if (deltalUpdateJson.getCumSlipT() != null) {
+            arbitrageService.getParams().setCumSlipT(new BigDecimal(deltalUpdateJson.getCumSlipT()));
+        }
         arbitrageService.saveParamsToDb();
 
         return convertToDeltasJson();
@@ -224,7 +230,9 @@ public class CommonUIService {
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
                 arbitrageService.getParams().getReserveBtc2().toPlainString(),
                 arbitrageService.getParams().getHedgeAmount().toPlainString(),
-                arbitrageService.getParams().getFundingRateFee().toPlainString()
+                arbitrageService.getParams().getFundingRateFee().toPlainString(),
+                arbitrageService.getParams().getCumSlipM().toPlainString(),
+                arbitrageService.getParams().getCumSlipT().toPlainString()
         );
     }
 

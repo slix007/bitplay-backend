@@ -155,25 +155,24 @@ public class ArbitrageService {
                 && openPrices != null && openDiffs != null && params.getLastDelta() != null) {
             if (params.getLastDelta().equals(DELTA1)) {
 
-                writeAvgDeltaLogs(delta1, openPrices.getDelta1Fact(), openPrices);
+                printP1AvgDeltaLogs(delta1, openPrices.getDelta1Fact(), openPrices);
+                printP2CumBitmexMCom();
 
+                // this should be after
                 final String deltaFactStr = String.format("delta1_fact=%s-%s=%s", openPrices.getFirstOpenPrice(), openPrices.getSecondOpenPrice(), openPrices.getDelta1Fact());
-                printDeltaFact(openPrices.getDelta1Fact(), deltaFactStr);
+                printP3DeltaFact(openPrices.getDelta1Fact(), deltaFactStr);
 
                 printOAvgPrice();
-
-                printCumBitmexMCom();
 
             } else if (params.getLastDelta().equals(DELTA2)) {
 
-                writeAvgDeltaLogs(delta2, openPrices.getDelta2Fact(), openPrices);
+                printP1AvgDeltaLogs(delta2, openPrices.getDelta2Fact(), openPrices);
+                printP2CumBitmexMCom();
 
                 final String deltaFactStr = String.format("delta2_fact=%s-%s=%s", openPrices.getSecondOpenPrice(), openPrices.getFirstOpenPrice(), openPrices.getDelta2Fact());
-                printDeltaFact(openPrices.getDelta2Fact(), deltaFactStr);
+                printP3DeltaFact(openPrices.getDelta2Fact(), deltaFactStr);
 
                 printOAvgPrice();
-
-                printCumBitmexMCom();
 
             }
         }
@@ -183,7 +182,7 @@ public class ArbitrageService {
         saveParamsToDb();
     }
 
-    private void printDeltaFact(BigDecimal deltaFact, String deltaFactString) {
+    private void printP3DeltaFact(BigDecimal deltaFact, String deltaFactString) {
         params.setCumDeltaFact(params.getCumDeltaFact().add(deltaFact));
         if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMin()) == -1) params.setCumDeltaFactMin(params.getCumDeltaFact());
         if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMax()) == 1) params.setCumDeltaFactMax(params.getCumDeltaFact());
@@ -223,6 +222,19 @@ public class ArbitrageService {
         )).multiply(diffFactBr.val);
         params.setCumAvgDiffFactBr(params.getCumAvgDiffFactBr().add(avgDiffFactBr));
 
+        // 5. Добавить значения:
+        //1) slip_m = (avg_diff_fact_br + avg_com2 - avg_Bitmex_m_com) / (count1 + count2)
+        //2) cum_slip_m = sum(slip_m)
+        //3) slip_t = (avg_diff_fact_br + avg_com) / (count1 + count2)
+        //4) cum_slip_t = sum(slip_t)
+        //На UI добавить строчки cum_slip_m, cum_slip_t
+        final BigDecimal slip_m = (avgDiffFactBr.add(params.getAvgCom2()).subtract(params.getAvgBitmexMCom())).divide(
+                BigDecimal.valueOf(getCounter()), 2, RoundingMode.HALF_UP);
+        params.setCumSlipM(params.getCumSlipM().add(slip_m));
+        final BigDecimal slip_t = (avgDiffFactBr.add(params.getAvgCom())).divide(
+                BigDecimal.valueOf(getCounter()), 2, RoundingMode.HALF_UP);
+        params.setCumSlipT(params.getCumSlipT().add(slip_t));
+
         // avg_diff_fact = avg_delta_fact - avg_delta
         BigDecimal avgDiffFact1 = openDiffs.getFirstOpenPrice().multiply(openPrices.getbBlock()).divide(openPrices.getFirstOpenPrice(), 2, RoundingMode.HALF_UP);
         BigDecimal avgDiffFact2 = openDiffs.getSecondOpenPrice().multiply(openPrices.getbBlock()).divide(openPrices.getSecondOpenPrice(), 2, RoundingMode.HALF_UP);
@@ -238,7 +250,10 @@ public class ArbitrageService {
                         "diff_fact_br=%s=%s\n" +
                         "cum_diff_fact_br=%s/%s/%s; " +
                         "avg_diff_fact1=%s, avg_diff_fact2=%s, avg_diff_fact=%s, " +
-                        "cum_avg_diff_fact1=%s, cum_avg_diff_fact2=%s, cum_avg_diff_fact=%s",
+                        "cum_avg_diff_fact1=%s, cum_avg_diff_fact2=%s, cum_avg_diff_fact=%s, " +
+                        "avg_diff_fact_br=%s, cum_avg_diff_fact_br=%s, " +
+                        "slip_m=%s, cum_slip_m=%s, " +
+                        "slip_t=%s, cum_slip_t=%s",
                 getCounter(),
                 deltaFactString,
                 params.getCumDeltaFact().toPlainString(),
@@ -253,7 +268,10 @@ public class ArbitrageService {
                 diffFactBr.str, diffFactBr.val,
                 params.getCumDiffFactBr(), params.getCumDiffFactBrMin(), params.getCumDiffFactBrMax(),
                 avgDiffFact1, avgDiffFact2, avgDiffFact,
-                params.getCumAvgDiffFact1(), params.getCumAvgDiffFact2(), params.getCumAvgDiffFact()
+                params.getCumAvgDiffFact1(), params.getCumAvgDiffFact2(), params.getCumAvgDiffFact(),
+                avgDiffFactBr, params.getCumAvgDiffFactBr(),
+                slip_m, params.getCumSlipM(),
+                slip_t, params.getCumSlipT()
         ));
     }
 
@@ -726,7 +744,7 @@ public class ArbitrageService {
         printSumBal(false);
     }
 
-    private void writeAvgDeltaLogs(BigDecimal deltaPlan, BigDecimal deltaFact, OpenPrices openPrices) {
+    private void printP1AvgDeltaLogs(BigDecimal deltaPlan, BigDecimal deltaFact, OpenPrices openPrices) {
         printCom(openPrices);
 
         final BigDecimal b_block = openPrices.getbBlock();
@@ -786,7 +804,7 @@ public class ArbitrageService {
         ));
     }
 
-    private void printCumBitmexMCom() {
+    private void printP2CumBitmexMCom() {
         // bitmex_m_com = round(open_price_fact * 0.025 / 100; 4),
         BigDecimal bitmexMCom = openPrices.getFirstOpenPrice().multiply(new BigDecimal(0.025))
                 .divide(new BigDecimal(100), 2, BigDecimal.ROUND_HALF_UP);

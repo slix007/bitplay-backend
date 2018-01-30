@@ -37,8 +37,10 @@ public class DeltasJson {
     private String reserveBtc2;
     private String hedgeAmount;
     private String fundingRateFee;
+    private String cumSlipM;
+    private String cumSlipT;
 
-    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String cumAvgDelta, String lastDelta, String cumDeltaFact, String cumAvgDeltaFact, String cumDiffFactBr, String cumAvgDiffFactBr, String cumDiffFact1, String cumDiffFact2, String cumAvgDiffFact1, String cumAvgDiffFact2, String cumAvgDiffFact, String cumCom1, String cumCom2, String cumAvgCom1, String cumAvgCom2, String count1, String count2, String cumBitmexMCom, String cumAvgBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee) {
+    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String cumAvgDelta, String lastDelta, String cumDeltaFact, String cumAvgDeltaFact, String cumDiffFactBr, String cumAvgDiffFactBr, String cumDiffFact1, String cumDiffFact2, String cumAvgDiffFact1, String cumAvgDiffFact2, String cumAvgDiffFact, String cumCom1, String cumCom2, String cumAvgCom1, String cumAvgCom2, String count1, String count2, String cumBitmexMCom, String cumAvgBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee, String cumSlipM, String cumSlipT) {
         this.delta1 = delta1;
         this.delta2 = delta2;
         this.border1 = border1;
@@ -71,6 +73,8 @@ public class DeltasJson {
         this.reserveBtc2 = reserveBtc2;
         this.hedgeAmount = hedgeAmount;
         this.fundingRateFee = fundingRateFee;
+        this.cumSlipM = cumSlipM;
+        this.cumSlipT = cumSlipT;
     }
 
     public String getDelta1() {
@@ -199,5 +203,13 @@ public class DeltasJson {
 
     public String getFundingRateFee() {
         return fundingRateFee;
+    }
+
+    public String getCumSlipM() {
+        return cumSlipM;
+    }
+
+    public String getCumSlipT() {
+        return cumSlipT;
     }
 }
