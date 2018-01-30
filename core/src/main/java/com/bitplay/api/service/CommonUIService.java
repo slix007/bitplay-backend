@@ -140,9 +140,12 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCumDiffFact1() != null) {
             arbitrageService.getParams().setCumDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
+            arbitrageService.getParams().setCumAvgDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
+
         }
         if (deltalUpdateJson.getCumDiffFact2() != null) {
             arbitrageService.getParams().setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
+            arbitrageService.getParams().setCumAvgDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
         }
         if (deltalUpdateJson.getCumAvgDiffFact() != null) {
             arbitrageService.getParams().setCumAvgDiffFact1(new BigDecimal(deltalUpdateJson.getCumAvgDiffFact()));
