@@ -45,8 +45,7 @@ public class DebugEndpoints {
     @RequestMapping(value = "/deadlock/check", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson checkDeadlocks() {
         final ResultJson resultJson = detectDeadlock();
-        String okexDisconnects = okCoinService.getIfDisconnetedString();
-        return new ResultJson(resultJson.getResult(), resultJson.getDescription() + okexDisconnects);
+        return new ResultJson(resultJson.getResult(), resultJson.getDescription());
     }
 
     public static ResultJson detectDeadlock() {
