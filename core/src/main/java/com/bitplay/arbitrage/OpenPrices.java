@@ -16,6 +16,8 @@ public class OpenPrices {
     BigDecimal bBlock = BigDecimal.ZERO;
     BigDecimal delta1Plan = BigDecimal.ZERO;
     BigDecimal delta2Plan = BigDecimal.ZERO;
+    BigDecimal bPricePlan = BigDecimal.ZERO;
+    BigDecimal oPricePlan = BigDecimal.ZERO;
 
     public BigDecimal getFirstOpenPrice() {
         return firstOpenPrice;
@@ -87,5 +89,21 @@ public class OpenPrices {
 
     public void setDelta2Plan(BigDecimal delta2Plan) {
         this.delta2Plan = delta2Plan;
+    }
+
+    public BigDecimal getbPricePlan() {
+        return bPricePlan;
+    }
+
+    public void setbPricePlan(BigDecimal bPricePlan) {
+        this.bPricePlan = bPricePlan;
+    }
+
+    public BigDecimal getoPricePlan() {
+        return oPricePlan;
+    }
+
+    public void setoPricePlan(BigDecimal oPricePlan) {
+        this.oPricePlan = oPricePlan;
     }
 }
