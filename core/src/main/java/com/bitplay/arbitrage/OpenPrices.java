@@ -56,7 +56,7 @@ public class OpenPrices {
     }
 
     public void setBorderList(List<BigDecimal> borderList) {
-        this.borderList = borderList;
+        this.borderList = Collections.unmodifiableList(borderList);
     }
 
     public BigDecimal getoBlock() {

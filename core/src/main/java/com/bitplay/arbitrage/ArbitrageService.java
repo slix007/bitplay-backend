@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
@@ -208,7 +209,7 @@ public class ArbitrageService {
         if (cumDiffsFact.compareTo(params.getCumDiffsFactMax()) == 1) params.setCumDiffsFactMax(cumDiffsFact);
 
         // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
-        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, openPrices.getBorderList());
+        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(openPrices.getBorderList()));
         params.setCumDiffFactBr((params.getCumDiffFactBr().add(diffFactBr.val)).setScale(2, BigDecimal.ROUND_HALF_UP));
         if (params.getCumDiffFactBr().compareTo(params.getCumDiffFactBrMin()) == -1) params.setCumDiffFactBrMin(params.getCumDiffFactBr());
         if (params.getCumDiffFactBr().compareTo(params.getCumDiffFactBrMax()) == 1) params.setCumDiffFactBrMax(params.getCumDiffFactBr());

@@ -372,6 +372,11 @@ public class BordersServiceTest {
         assertEquals("o_br_close", signal.borderName);
         assertEquals(20, signal.okexBlock);
         System.out.println(signal.toString());
+
+        System.out.println(signal.borderValueList);
+        final ArbUtils.DiffFactBr deltaFactBr = ArbUtils.getDeltaFactBr(delta2, signal.borderValueList);
+        System.out.println(deltaFactBr.str);
+        System.out.println(deltaFactBr.val);
     }
 
     /**
