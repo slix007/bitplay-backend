@@ -678,7 +678,7 @@ public class BitmexService extends MarketService {
                                             logger.info("{} Order {} FILLED", getCounterName(), update.getId());
                                             getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
                                             if (update.getAveragePrice() != null) {
-                                                setQuotesForArbLogs(update, SignalType.AUTOMATIC, update.getAveragePrice());
+                                                setQuotesForArbLogs(update, SignalType.AUTOMATIC, update.getAveragePrice(), true);
                                             }
                                         }
                                     });
@@ -865,6 +865,9 @@ public class BitmexService extends MarketService {
                                     resultOrder.getCumulativeAmount(),
                                     thePrice,
                                     orderId);
+                            if (signalType == SignalType.AUTOMATIC) {
+                                arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(resultOrder.getCumulativeAmount(), requestOrder.getAveragePrice());
+                            }
                             continue;
                         }
                         nextMarketState = MarketState.ARBITRAGE;
@@ -997,7 +1000,7 @@ public class BitmexService extends MarketService {
                 orderRepositoryService.updateOrder(fplayOrder, movedLimitOrder);
                 FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, movedLimitOrder);
 
-                String diffWithSignal = setQuotesForArbLogs(limitOrder, signalType, bestMakerPrice);
+                String diffWithSignal = setQuotesForArbLogs(limitOrder, signalType, bestMakerPrice, false);
 
                 final String logString = String.format("%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s. %s. position=%s",
                         getCounterName(),
@@ -1017,6 +1020,9 @@ public class BitmexService extends MarketService {
                 ordersLogger.info(logString);
 
                 if (movedLimitOrder.getStatus() == Order.OrderStatus.CANCELED) {
+                    if (signalType == SignalType.AUTOMATIC) {
+                        arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(movedLimitOrder.getCumulativeAmount(), movedLimitOrder.getAveragePrice());
+                    }
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
                 } else {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, movedLimitOrder, updated);
@@ -1071,7 +1077,8 @@ public class BitmexService extends MarketService {
         return moveResponse;
     }
 
-    private String setQuotesForArbLogs(LimitOrder limitOrder, SignalType signalType, BigDecimal bestMakerPrice) {
+    private String setQuotesForArbLogs(LimitOrder limitOrder, SignalType signalType, BigDecimal bestMakerPrice,
+                                       boolean finishedOrder) {
         String diffWithSignal = "";
         BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
         if (bestQuotes != null && limitOrder.getType() != null) {
@@ -1086,6 +1093,9 @@ public class BitmexService extends MarketService {
         }
         if (signalType == SignalType.AUTOMATIC) {
             arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
+            if (finishedOrder) {
+                arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(limitOrder.getCumulativeAmount(), bestMakerPrice);
+            }
         }
         return diffWithSignal;
     }

@@ -470,9 +470,11 @@ public class OkCoinService extends MarketService {
                 if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
                     tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
                     tradeResponse.addCancelledOrder((LimitOrder) orderInfo);
+                    arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
                 } else { //FILLED by any (orderInfo or cancelledOrder)
                     if (signalType == SignalType.AUTOMATIC) {
                         arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
+                        arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
                     }
 
                     writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType,
@@ -984,14 +986,12 @@ public class OkCoinService extends MarketService {
         MoveResponse response;
         try {
             // IT doesn't support moving
-            // Do cancel ant place
+            // Do cancel and place
             BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
 
             // 1. cancel old order
             final String counterName = getCounterName();
             final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(limitOrder.getId(), "Moving1:cancelled:");
-//            if (!okCoinTradeResult.isResult())
-//                return new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, "Failed to cancel order on moving id=" + limitOrder.getId());
 
             // 2. We got result on cancel(true/false), but double-check status of an old order
             Order cancelledOrder = getFinalOrderInfoSync(limitOrder.getId(), counterName, "Moving2:cancelStatus:");
@@ -1002,19 +1002,24 @@ public class OkCoinService extends MarketService {
             final LimitOrder cancelledLimitOrder = (LimitOrder) cancelledFplayOrd.getOrder();
             orderRepositoryService.update(cancelledLimitOrder);
 
+            if (signalType == SignalType.AUTOMATIC) {
+                arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(cancelledLimitOrder.getCumulativeAmount(),
+                        cancelledLimitOrder.getAveragePrice());
+            }
+
             // 3. Already closed?
             if (cancelledLimitOrder.getStatus() == Order.OrderStatus.FILLED
                     || (!okCoinTradeResult.isResult() && cancelledLimitOrder.getStatus() == Order.OrderStatus.CANCELED)) { // Already closed (FILLED)
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null,
                         cancelledFplayOrd);
 
-                final String logString = String.format("%s %s %s status=%s,amount=%s,quote=%s,id=%s,lastException=%s",
+                final String logString = String.format("%s %s %s status=%s,amount=%s/%s,quote=%s/%s,id=%s,lastException=%s",
                         counterName,
                         "Moving3:Already closed:",
                         limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                         cancelledLimitOrder.getStatus(),
-                        limitOrder.getTradableAmount(),
-                        limitOrder.getLimitPrice().toPlainString(),
+                        limitOrder.getTradableAmount(), cancelledLimitOrder.getCumulativeAmount(),
+                        limitOrder.getLimitPrice().toPlainString(), cancelledLimitOrder.getAveragePrice(),
                         limitOrder.getId(),
                         null);
                 tradeLogger.info(logString);

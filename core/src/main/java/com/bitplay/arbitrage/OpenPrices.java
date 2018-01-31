@@ -1,5 +1,7 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.dto.AvgPrice;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,13 +20,17 @@ public class OpenPrices {
     BigDecimal delta2Plan = BigDecimal.ZERO;
     BigDecimal bPricePlan = BigDecimal.ZERO;
     BigDecimal oPricePlan = BigDecimal.ZERO;
+    AvgPrice firstPriceFact = new AvgPrice();
+    AvgPrice secondPriceFact = new AvgPrice();
 
     public BigDecimal getFirstOpenPrice() {
         return firstOpenPrice;
     }
 
     public void setFirstOpenPrice(BigDecimal firstOpenPrice) {
-        this.firstOpenPrice = firstOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal fop = firstOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
+        firstPriceFact.setOpenPrice(fop);
+        this.firstOpenPrice = fop;
     }
 
     public BigDecimal getSecondOpenPrice() {
@@ -32,7 +38,9 @@ public class OpenPrices {
     }
 
     public void setSecondOpenPrice(BigDecimal secondOpenPrice) {
-        this.secondOpenPrice = secondOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal sop = secondOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
+        secondPriceFact.setOpenPrice(sop);
+        this.secondOpenPrice = sop;
     }
 
     public BigDecimal getDelta1Fact() {
@@ -105,5 +113,21 @@ public class OpenPrices {
 
     public void setoPricePlan(BigDecimal oPricePlan) {
         this.oPricePlan = oPricePlan;
+    }
+
+    public AvgPrice getFirstPriceFact() {
+        return firstPriceFact;
+    }
+
+    public void setFirstPriceFact(AvgPrice firstPriceFact) {
+        this.firstPriceFact = firstPriceFact;
+    }
+
+    public AvgPrice getSecondPriceFact() {
+        return secondPriceFact;
+    }
+
+    public void setSecondPriceFact(AvgPrice secondPriceFact) {
+        this.secondPriceFact = secondPriceFact;
     }
 }
