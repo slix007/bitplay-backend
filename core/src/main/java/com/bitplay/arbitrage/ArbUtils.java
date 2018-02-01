@@ -15,6 +15,7 @@ public class ArbUtils {
 
         BigDecimal dFBr = BigDecimal.ZERO;
         StringBuilder str = new StringBuilder();
+        str.append(borderList.toString());
 
         for (BigDecimal bVal : borderList) {
             final BigDecimal aTerm = deltaFact.subtract(bVal);
