@@ -761,15 +761,23 @@ public class ArbitrageService {
         final BigDecimal b_price_plan = openPrices.getbPricePlan();
         final BigDecimal o_price_plan = openPrices.getoPricePlan();
 
-        //avg_delta = (b_block / b_price_plan + b_block / ok_price_plan) * delta_plan
-        final BigDecimal sum = b_block.divide(b_price_plan, 2, RoundingMode.HALF_UP).add(b_block.divide(o_price_plan, 2, RoundingMode.HALF_UP));
+        // avg_delta = (b_block / b_price_plan + b_block / ok_price_plan) * delta_plan
+        // avg_delta1 = (b_block / b_price_plan - b_block / ok_price_plan)
+        // avg_delta2 = (b_block / ok_price_plan - b_block / b_price_plan)
+        final BigDecimal b_bl_b_price_plan = b_block.divide(b_price_plan, 2, RoundingMode.HALF_UP);
+        final BigDecimal b_block_ok_price_plan = b_block.divide(o_price_plan, 2, RoundingMode.HALF_UP);
+        final BigDecimal avg_delta1 = b_bl_b_price_plan.subtract(b_block_ok_price_plan).setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal avg_delta2 = b_block_ok_price_plan.subtract(b_bl_b_price_plan).setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal sum = b_bl_b_price_plan.add(b_block_ok_price_plan);
         params.setAvgDelta(sum.multiply(deltaPlan).setScale(2, BigDecimal.ROUND_HALF_UP));
         params.setCumAvgDelta((params.getCumAvgDelta().add(params.getAvgDelta())).setScale(2, BigDecimal.ROUND_HALF_UP));
         params.setAvgDeltaFact((sum.multiply(deltaFact)).setScale(2, BigDecimal.ROUND_HALF_UP));
         params.setCumAvgDeltaFact((params.getCumAvgDeltaFact().add(params.getAvgDeltaFact())).setScale(2, BigDecimal.ROUND_HALF_UP));
 
-        deltasLogger.info(String.format("avg_delta=(%s/%s+%s/%s)*%s=%s, cum_avg_delta=%s, " +
+        deltasLogger.info(String.format("avg_delta1=%s, avg_delta2=%s, " +
+                        "avg_delta=(%s/%s+%s/%s)*%s=%s, cum_avg_delta=%s, " +
                         "avg_delta_fact=(%s)*%s=%s, cum_avg_delta_fact=%s",
+                avg_delta1, avg_delta2,
                 b_block, b_price_plan, b_block, o_price_plan, deltaPlan, params.getAvgDelta(), params.getCumAvgDelta(),
                 sum, deltaFact, params.getAvgDeltaFact(), params.getCumAvgDeltaFact()));
     }
