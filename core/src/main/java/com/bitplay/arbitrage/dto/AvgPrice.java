@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Created by Sergey Shurmin on 1/31/18.
@@ -42,10 +43,16 @@ public class AvgPrice {
         }
 
         //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
-        BigDecimal sumNumerator = pItems.stream().reduce(BigDecimal.ZERO,
+        BigDecimal sumNumerator = pItems.stream()
+                .filter(Objects::nonNull)
+                .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
+                .reduce(BigDecimal.ZERO,
                 (accumulated, item) -> accumulated.add(item.getAmount().multiply(item.getPrice())),
                 BigDecimal::add);
-        BigDecimal sumDenominator = pItems.stream().reduce(BigDecimal.ZERO,
+        BigDecimal sumDenominator = pItems.stream()
+                .filter(Objects::nonNull)
+                .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
+                .reduce(BigDecimal.ZERO,
                 (accumulated, item) -> accumulated.add(item.getAmount()),
                 BigDecimal::add);
 
