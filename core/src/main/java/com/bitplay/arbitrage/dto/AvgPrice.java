@@ -14,6 +14,8 @@ import java.util.Objects;
  */
 public class AvgPrice {
     private static final Logger logger = LoggerFactory.getLogger(AvgPrice.class);
+    private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
+    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     private final Map<String, AvgPriceItem> pItems = new LinkedHashMap<>();
     private BigDecimal maxAmount;
@@ -61,6 +63,10 @@ public class AvgPrice {
                 .reduce(BigDecimal.ZERO,
                 (accumulated, item) -> accumulated.add(item.getAmount()),
                 BigDecimal::add);
+
+        if (marketName.equals("bitmex")) {
+            deltasLogger.info(this.toString());
+        }
 
         if (maxAmount.compareTo(sumDenominator) != 0) {
             logger.warn(marketName + " WARNING avg price calc: " + this);
