@@ -391,15 +391,17 @@ public class OkCoinService extends MarketService {
                     }
                     if (privateData.getTrades() != null && privateData.getTrades().size() > 0) {
 
-                        // do not repeat for already 'FILLED' orders.
-                        privateData.getTrades().stream()
-                                .filter(orderInfo -> openOrders.stream()
-                                        .filter(o -> o.getOrderId().equals(orderInfo.getId())).noneMatch(o -> o.getOrder().getStatus() == Order.OrderStatus.FILLED))
-                                .forEach(orderInfo -> {
-                                    if (arbitrageService.getSignalType() == SignalType.AUTOMATIC) {
-                                        arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
-                                    }
-                                });
+                        synchronized (openOrdersLock) {
+                            // do not repeat for already 'FILLED' orders.
+                            privateData.getTrades().stream()
+                                    .filter(orderInfo -> openOrders.stream()
+                                            .filter(o -> o.getOrderId().equals(orderInfo.getId())).noneMatch(o -> o.getOrder().getStatus() == Order.OrderStatus.FILLED))
+                                    .forEach(orderInfo -> {
+                                        if (arbitrageService.getSignalType() == SignalType.AUTOMATIC) {
+                                            arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                                        }
+                                    });
+                        }
 
                         updateOpenOrders(privateData.getTrades());
                     }
@@ -466,6 +468,11 @@ public class OkCoinService extends MarketService {
                 Order orderInfo = orderInfoAttempts.get();
                 updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
 
+                if (signalType == SignalType.AUTOMATIC) {
+                    arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
+                    arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                }
+
                 if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 1. Try cancel then
                     final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(orderId, "Taker:Cancel_maker:");
 
@@ -476,11 +483,6 @@ public class OkCoinService extends MarketService {
                     if (orderInfo == null) throw new Exception("Failed to check status of cancelled taker-maker id=" + orderId);
 
                     updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
-                }
-
-                if (signalType == SignalType.AUTOMATIC) {
-                    arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
-                    arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
                 }
 
                 if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
