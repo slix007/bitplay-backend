@@ -5,8 +5,8 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -15,7 +15,8 @@ import java.util.Objects;
 public class AvgPrice {
     private static final Logger logger = LoggerFactory.getLogger(AvgPrice.class);
 
-    private final List<AvgPriceItem> pItems = new ArrayList<>();
+    //    private final List<AvgPriceItem> pItems = new ArrayList<>();
+    private final Map<String, AvgPriceItem> pItems = new HashMap<>();
     private BigDecimal maxAmount;
     private BigDecimal openPrice;
     private String marketName;
@@ -32,8 +33,12 @@ public class AvgPrice {
         this.openPrice = openPrice;
     }
 
-    public void addPriceItem(BigDecimal amount, BigDecimal price) {
-        pItems.add(new AvgPriceItem(amount, price));
+    public void addPriceItem(String orderId, BigDecimal amount, BigDecimal price) {
+        if (orderId != null && amount != null && price != null) {
+            pItems.put(orderId, new AvgPriceItem(amount, price));
+        } else {
+            logger.info("failed addPriceItem: orderId=" + orderId + ", amount=" + amount + ", price" + price);
+        }
     }
 
     public BigDecimal getAvg() {
@@ -43,13 +48,13 @@ public class AvgPrice {
         }
 
         //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
-        BigDecimal sumNumerator = pItems.stream()
+        BigDecimal sumNumerator = pItems.values().stream()
                 .filter(Objects::nonNull)
                 .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
                 .reduce(BigDecimal.ZERO,
                 (accumulated, item) -> accumulated.add(item.getAmount().multiply(item.getPrice())),
                 BigDecimal::add);
-        BigDecimal sumDenominator = pItems.stream()
+        BigDecimal sumDenominator = pItems.values().stream()
                 .filter(Objects::nonNull)
                 .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
                 .reduce(BigDecimal.ZERO,
@@ -76,6 +81,8 @@ public class AvgPrice {
         return "AvgPrice{" +
                 "pItems=" + pItems +
                 ", maxAmount=" + maxAmount +
+                ", openPrice=" + openPrice +
+                ", marketName='" + marketName + '\'' +
                 '}';
     }
 }

@@ -866,7 +866,7 @@ public class BitmexService extends MarketService {
                                     thePrice,
                                     orderId);
                             if (signalType == SignalType.AUTOMATIC) {
-                                arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(resultOrder.getCumulativeAmount(), requestOrder.getAveragePrice());
+                                arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(resultOrder.getId(), resultOrder.getCumulativeAmount(), requestOrder.getAveragePrice());
                             }
                             continue;
                         }
@@ -1019,10 +1019,11 @@ public class BitmexService extends MarketService {
                 tradeLogger.info(logString);
                 ordersLogger.info(logString);
 
+                if (signalType == SignalType.AUTOMATIC) {
+                    arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(movedLimitOrder.getId(), movedLimitOrder.getCumulativeAmount(), movedLimitOrder.getAveragePrice());
+                }
+
                 if (movedLimitOrder.getStatus() == Order.OrderStatus.CANCELED) {
-                    if (signalType == SignalType.AUTOMATIC) {
-                        arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(movedLimitOrder.getCumulativeAmount(), movedLimitOrder.getAveragePrice());
-                    }
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
                 } else {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, movedLimitOrder, updated);
@@ -1094,7 +1095,7 @@ public class BitmexService extends MarketService {
         if (signalType == SignalType.AUTOMATIC) {
             arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
             if (finishedOrder) {
-                arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(limitOrder.getCumulativeAmount(), bestMakerPrice);
+                arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), bestMakerPrice);
             }
         }
         return diffWithSignal;

@@ -390,6 +390,17 @@ public class OkCoinService extends MarketService {
                         recalcLiqInfo();
                     }
                     if (privateData.getTrades() != null && privateData.getTrades().size() > 0) {
+
+                        // do not repeat for already 'FILLED' orders.
+                        privateData.getTrades().stream()
+                                .filter(orderInfo -> openOrders.stream()
+                                        .filter(o -> o.getOrderId().equals(orderInfo.getId())).noneMatch(o -> o.getOrder().getStatus() == Order.OrderStatus.FILLED))
+                                .forEach(orderInfo -> {
+                                    if (arbitrageService.getSignalType() == SignalType.AUTOMATIC) {
+                                        arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                                    }
+                                });
+
                         updateOpenOrders(privateData.getTrades());
                     }
                 }, throwable -> {
@@ -467,15 +478,15 @@ public class OkCoinService extends MarketService {
                     updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
                 }
 
+                if (signalType == SignalType.AUTOMATIC) {
+                    arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
+                    arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                }
+
                 if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
                     tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
                     tradeResponse.addCancelledOrder((LimitOrder) orderInfo);
-                    arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
                 } else { //FILLED by any (orderInfo or cancelledOrder)
-                    if (signalType == SignalType.AUTOMATIC) {
-                        arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
-                        arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
-                    }
 
                     writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType,
                             orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
@@ -775,6 +786,7 @@ public class OkCoinService extends MarketService {
 
                 if (signalType == SignalType.AUTOMATIC) {
                     arbitrageService.getOpenPrices().setSecondOpenPrice(thePrice);
+                    arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderId, limitOrderWithId.getCumulativeAmount(), limitOrderWithId.getAveragePrice());
                 }
                 orderIdToSignalInfo.put(orderId, bestQuotes);
 
@@ -938,6 +950,19 @@ public class OkCoinService extends MarketService {
                                         }
                                         // else MoveResponse.MoveOrderStatus.ONLY_CANCEL) // do nothing //TODO do something
                                         // else MoveResponse.MoveOrderStatus.EXCEPTION) // do nothing
+                                        final FplayOrder newOrder = response.getNewFplayOrder();
+                                        final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+                                        if (arbitrageService.getSignalType() == SignalType.AUTOMATIC) {
+                                            if (newOrder != null) {
+                                                final Order orderInfo = newOrder.getOrder();
+                                                arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                                            }
+                                            if (cancelledOrder != null) {
+                                                final Order orderInfo = cancelledOrder.getOrder();
+                                                arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                                            }
+                                        }
+
 
                                     } catch (Exception e) {
                                         // use default OO
@@ -1003,7 +1028,7 @@ public class OkCoinService extends MarketService {
             orderRepositoryService.update(cancelledLimitOrder);
 
             if (signalType == SignalType.AUTOMATIC) {
-                arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(cancelledLimitOrder.getCumulativeAmount(),
+                arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(cancelledLimitOrder.getId(), cancelledLimitOrder.getCumulativeAmount(),
                         cancelledLimitOrder.getAveragePrice());
             }
 
