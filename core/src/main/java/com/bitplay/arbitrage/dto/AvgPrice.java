@@ -44,7 +44,7 @@ public class AvgPrice {
     public BigDecimal getAvg() {
         if (pItems.size() == 0 && !marketName.equals("bitmex")) {
             logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
-            return openPrice;
+            return openPrice == null ? BigDecimal.ZERO : openPrice;
         }
 
         //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
