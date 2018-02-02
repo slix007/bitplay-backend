@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -15,8 +15,7 @@ import java.util.Objects;
 public class AvgPrice {
     private static final Logger logger = LoggerFactory.getLogger(AvgPrice.class);
 
-    //    private final List<AvgPriceItem> pItems = new ArrayList<>();
-    private final Map<String, AvgPriceItem> pItems = new HashMap<>();
+    private final Map<String, AvgPriceItem> pItems = new LinkedHashMap<>();
     private BigDecimal maxAmount;
     private BigDecimal openPrice;
     private String marketName;
@@ -42,8 +41,10 @@ public class AvgPrice {
     }
 
     public BigDecimal getAvg() {
-        if (pItems.size() == 0 && !marketName.equals("bitmex")) {
-            logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
+        if (pItems.isEmpty()) {
+            if (!marketName.equals("bitmex")) {
+                logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
+            }
             return openPrice == null ? BigDecimal.ZERO : openPrice;
         }
 
@@ -68,7 +69,8 @@ public class AvgPrice {
                 sumNumerator = sumNumerator.add(left.multiply(openPrice));
             } else {
                 // use left amount * last price
-                sumNumerator = sumNumerator.add(left.multiply(pItems.get(pItems.size() - 1).getPrice()));
+                final AvgPriceItem lastItem = (AvgPriceItem) pItems.entrySet().toArray()[pItems.size() - 1];
+                sumNumerator = sumNumerator.add(left.multiply(lastItem.getPrice()));
             }
             sumDenominator = maxAmount;
         }
