@@ -432,6 +432,15 @@ public class OkCoinService extends MarketService {
         }
     }
 
+    @Scheduled(fixedDelay = 20000)
+    public void openOrdersHangedChecker() {
+        try {
+            updateOOStatuses();
+        } catch (Exception e) {
+            logger.error("Exception on openOrdersHangedChecker", e);
+        }
+    }
+
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType)
             throws Exception {
 

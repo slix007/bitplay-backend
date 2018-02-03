@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -246,6 +247,41 @@ public abstract class MarketServiceOpenOrders {
                     .flatMap(this::removeOpenOrderByTime)
                     .collect(Collectors.toList());
         }
+    }
+
+    protected void updateOOStatuses() {
+        synchronized (openOrdersLock) {
+            this.openOrders = this.openOrders.stream()
+                    .flatMap(fplayOrder -> {
+                        Stream<FplayOrder> optOrd;
+                        try {
+                            optOrd = Stream.of(updateOOStatus(fplayOrder));
+                        } catch (Exception e) {
+                            logger.error("Error on updateOOStatuses", e);
+                            optOrd = Stream.of(fplayOrder);
+                        }
+                        return optOrd;
+                    })
+                    .collect(Collectors.toList());
+        }
+    }
+
+    abstract protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId);
+
+    private FplayOrder updateOOStatus(FplayOrder fplayOrder) throws Exception {
+        final String orderId = fplayOrder.getOrderId();
+        final String counterName = getCounterName();
+        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterName, 1, "updateOOStatus:");
+
+        if (!orderInfoAttempts.isPresent()) {
+            throw new Exception("Failed to updateOOStatus id=" + orderId);
+        }
+        Order orderInfo = orderInfoAttempts.get();
+
+        final FplayOrder updatedOrder = FplayOrderUtils.updateFplayOrder(fplayOrder, (LimitOrder) orderInfo);
+        getPersistenceService().getOrderRepositoryService().update((LimitOrder) orderInfo);
+
+        return updatedOrder;
     }
 
 }
