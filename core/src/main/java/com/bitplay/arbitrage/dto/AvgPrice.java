@@ -50,10 +50,12 @@ public class AvgPrice {
             return openPrice == null ? BigDecimal.ZERO : openPrice;
         }
 
+        StringBuilder sb = new StringBuilder();
         //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
         BigDecimal sumNumerator = pItems.values().stream()
                 .filter(Objects::nonNull)
                 .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
+                .peek(avgPriceItem -> sb.append(String.format("(%s*%s)", avgPriceItem.amount, avgPriceItem.price)))
                 .reduce(BigDecimal.ZERO,
                 (accumulated, item) -> accumulated.add(item.getAmount().multiply(item.getPrice())),
                 BigDecimal::add);
@@ -65,7 +67,7 @@ public class AvgPrice {
                 BigDecimal::add);
 
         if (marketName.equals("bitmex")) {
-            deltasLogger.info(this.toString());
+            deltasLogger.info(sb.toString());
         }
 
         if (maxAmount.compareTo(sumDenominator) != 0) {
