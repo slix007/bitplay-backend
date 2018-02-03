@@ -47,6 +47,7 @@ public class AvgPrice {
             if (!marketName.equals("bitmex")) {
                 logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
             }
+            deltasLogger.info("AvgPrice by openPrice: " + openPrice);
             return openPrice == null ? BigDecimal.ZERO : openPrice;
         }
 
@@ -67,7 +68,7 @@ public class AvgPrice {
                 BigDecimal::add);
 
         if (marketName.equals("bitmex")) {
-            deltasLogger.info(sb.toString());
+            deltasLogger.info("AvgPrice: " + sb.toString());
         }
 
         if (maxAmount.compareTo(sumDenominator) != 0) {
