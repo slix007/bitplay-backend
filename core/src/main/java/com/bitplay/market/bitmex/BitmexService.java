@@ -387,6 +387,12 @@ public class BitmexService extends MarketService {
                                         // update the status
                                         final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
                                         if (cancelledFplayOrder != null) orderStream = Stream.of(cancelledFplayOrder);
+                                        final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
+                                        SignalType signalType = cancelledFplayOrder.getSignalType() != null ? cancelledFplayOrder.getSignalType() : SignalType.AUTOMATIC;
+                                        if (signalType == SignalType.AUTOMATIC) {
+                                            arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
+                                        }
+
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
                                         orderStream = Stream.of(response.getNewFplayOrder());
                                         movingErrorsOverloaded.set(0);
@@ -400,6 +406,11 @@ public class BitmexService extends MarketService {
                                             final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
                                             if (cancelledFplayOrder != null) {
                                                 final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
+
+                                                SignalType signalType = cancelledFplayOrder.getSignalType() != null ? cancelledFplayOrder.getSignalType() : SignalType.AUTOMATIC;
+                                                if (signalType == SignalType.AUTOMATIC) {
+                                                    arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
+                                                }
                                                 final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
                                                         cancelledOrder.getType(),
                                                         cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount()),
@@ -669,7 +680,24 @@ public class BitmexService extends MarketService {
                         synchronized (openOrdersLock) {
                             logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
 
-                            updateOpenOrders(updateOfOpenOrders.getOpenOrders()); // all there: add/update/remove
+                            updateOfOpenOrders.getOpenOrders()
+                                    .forEach(update -> {
+                                        LimitOrder limitOrder = update;
+                                        SignalType signalType = SignalType.AUTOMATIC;
+
+                                        for (FplayOrder ord : openOrders) {
+                                            if (update.getId().equals(ord.getOrderId())) {
+                                                final FplayOrder fplayOrder = FplayOrderUtils.updateFplayOrder(ord, update);
+                                                limitOrder = (LimitOrder) fplayOrder.getOrder();
+                                                if (ord.getSignalType() != null) signalType = ord.getSignalType();
+                                            }
+                                        }
+
+                                        setQuotesForArbLogs(limitOrder, signalType, limitOrder.getAveragePrice(), true);
+
+                                    });
+
+                            updateOpenOrders(updateOfOpenOrders.getOpenOrders()); // all there: add/update/remove -> free Market -> write logs
 
                             // bitmex specific actions
                             updateOfOpenOrders.getOpenOrders()
@@ -677,9 +705,6 @@ public class BitmexService extends MarketService {
                                         if (update.getStatus() == Order.OrderStatus.FILLED) {
                                             logger.info("{} Order {} FILLED", getCounterName(), update.getId());
                                             getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
-                                            if (update.getAveragePrice() != null) {
-                                                setQuotesForArbLogs(update, SignalType.AUTOMATIC, update.getAveragePrice(), true);
-                                            }
                                         }
                                     });
 
