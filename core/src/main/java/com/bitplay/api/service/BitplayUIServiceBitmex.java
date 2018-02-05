@@ -6,7 +6,7 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.arbitrage.SignalType;
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.bitmex.BitmexBalanceService;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexService;

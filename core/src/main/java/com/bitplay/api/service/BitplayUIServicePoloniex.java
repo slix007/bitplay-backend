@@ -6,7 +6,7 @@ import com.bitplay.api.domain.TickerJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.arbitrage.SignalType;
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.polonex.PoloniexService;

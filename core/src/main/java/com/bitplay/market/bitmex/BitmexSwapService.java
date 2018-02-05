@@ -1,7 +1,7 @@
 package com.bitplay.market.bitmex;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.SignalType;
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.domain.SwapParams;

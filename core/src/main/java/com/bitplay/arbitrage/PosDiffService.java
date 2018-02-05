@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;

@@ -1,6 +1,6 @@
 package com.bitplay.market.bitmex;
 
-import com.bitplay.arbitrage.SignalType;
+import com.bitplay.arbitrage.dto.SignalType;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;

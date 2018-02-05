@@ -1,7 +1,7 @@
 package com.bitplay.market.model;
 
-import com.bitplay.arbitrage.BestQuotes;
-import com.bitplay.arbitrage.SignalType;
+import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.arbitrage.dto.SignalType;
 
 import org.knowm.xchange.dto.Order;
 

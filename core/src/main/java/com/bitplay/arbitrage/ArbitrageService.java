@@ -2,7 +2,10 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.dto.AvgPrice;
+import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.arbitrage.dto.OpenPrices;
 import com.bitplay.arbitrage.dto.PlBlocks;
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.dto.LiqInfo;

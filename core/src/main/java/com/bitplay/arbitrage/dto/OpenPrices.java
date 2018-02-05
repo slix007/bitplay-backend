@@ -1,4 +1,4 @@
-package com.bitplay.arbitrage;
+package com.bitplay.arbitrage.dto;
 
 import com.bitplay.arbitrage.dto.AvgPrice;
 

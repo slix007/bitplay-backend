@@ -1,4 +1,4 @@
-package com.bitplay.arbitrage;
+package com.bitplay.arbitrage.dto;
 
 import java.math.BigDecimal;
 
@@ -7,27 +7,20 @@ import java.math.BigDecimal;
  */
 public class BestQuotes {
 
-    public enum ArbitrageEvent {
-        NONE,
-        ONLY_SIGNAL,
-        TRADE_STARTED
-    }
-
     private BigDecimal ask1_o = BigDecimal.ZERO;
     private BigDecimal ask1_p = BigDecimal.ZERO;
     private BigDecimal bid1_o = BigDecimal.ZERO;
     private BigDecimal bid1_p = BigDecimal.ZERO;
     private ArbitrageEvent arbitrageEvent = ArbitrageEvent.NONE;
-
-    public static BestQuotes empty() {
-        return new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
-    }
-
     public BestQuotes(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal bid1_p) {
         this.ask1_o = ask1_o;
         this.ask1_p = ask1_p;
         this.bid1_o = bid1_o;
         this.bid1_p = bid1_p;
+    }
+
+    public static BestQuotes empty() {
+        return new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
     }
 
     public BigDecimal getAsk1_o() {
@@ -70,5 +63,11 @@ public class BestQuotes {
                 ", bid1_p=" + bid1_p +
                 ", arbitrageEvent=" + arbitrageEvent +
                 '}';
+    }
+
+    public enum ArbitrageEvent {
+        NONE,
+        ONLY_SIGNAL,
+        TRADE_STARTED
     }
 }

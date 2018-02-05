@@ -1,6 +1,6 @@
 package com.bitplay.market;
 
-import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;

@@ -1,6 +1,6 @@
 package com.bitplay.utils;
 
-import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.dto.BestQuotes;
 
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;

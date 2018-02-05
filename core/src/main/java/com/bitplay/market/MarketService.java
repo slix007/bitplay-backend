@@ -1,9 +1,9 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.BestQuotes;
+import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
-import com.bitplay.arbitrage.SignalType;
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.dto.FullBalance;
 import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;

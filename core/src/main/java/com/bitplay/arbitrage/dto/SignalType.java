@@ -1,4 +1,4 @@
-package com.bitplay.arbitrage;
+package com.bitplay.arbitrage.dto;
 
 /**
  * Created by Sergey Shurmin on 6/12/17.

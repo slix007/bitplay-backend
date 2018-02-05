@@ -3,7 +3,7 @@ package com.bitplay.api.service;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.arbitrage.SignalType;
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;

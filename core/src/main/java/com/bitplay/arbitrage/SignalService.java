@@ -1,5 +1,7 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.okcoin.OkCoinService;
