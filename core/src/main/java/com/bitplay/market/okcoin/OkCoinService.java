@@ -477,10 +477,8 @@ public class OkCoinService extends MarketService {
                 Order orderInfo = orderInfoAttempts.get();
                 updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
 
-                if (signalType == SignalType.AUTOMATIC) {
-                    arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
-                    arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
-                }
+                arbitrageService.getOpenPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
+                arbitrageService.getOpenPrices().getSecondPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
 
                 if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 1. Try cancel then
                     final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(orderId, "Taker:Cancel_maker:");

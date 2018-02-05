@@ -11,17 +11,17 @@ import java.util.List;
  * Created by Sergey Shurmin on 5/24/17.
  */
 public class OpenPrices {
-    BigDecimal firstOpenPrice = BigDecimal.ZERO;
-    BigDecimal secondOpenPrice = BigDecimal.ZERO;
-    List<BigDecimal> borderList = new ArrayList<>();
-    BigDecimal oBlock = BigDecimal.ZERO;
-    BigDecimal bBlock = BigDecimal.ZERO;
-    BigDecimal delta1Plan = BigDecimal.ZERO;
-    BigDecimal delta2Plan = BigDecimal.ZERO;
-    BigDecimal bPricePlan = BigDecimal.ZERO;
-    BigDecimal oPricePlan = BigDecimal.ZERO;
-    AvgPrice firstPriceFact = new AvgPrice();
-    AvgPrice secondPriceFact = new AvgPrice();
+    private volatile BigDecimal firstOpenPrice = BigDecimal.ZERO;
+    private volatile BigDecimal secondOpenPrice = BigDecimal.ZERO;
+    private volatile List<BigDecimal> borderList = new ArrayList<>();
+    private volatile BigDecimal oBlock = BigDecimal.ZERO;
+    private volatile BigDecimal bBlock = BigDecimal.ZERO;
+    private volatile BigDecimal delta1Plan = BigDecimal.ZERO;
+    private volatile BigDecimal delta2Plan = BigDecimal.ZERO;
+    private volatile BigDecimal bPricePlan = BigDecimal.ZERO;
+    private volatile BigDecimal oPricePlan = BigDecimal.ZERO;
+    private volatile AvgPrice firstPriceFact = new AvgPrice();
+    private volatile AvgPrice secondPriceFact = new AvgPrice();
 
     public BigDecimal getFirstOpenPrice() {
         return firstOpenPrice;

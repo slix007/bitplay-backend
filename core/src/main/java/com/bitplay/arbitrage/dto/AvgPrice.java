@@ -30,11 +30,11 @@ public class AvgPrice {
         this.marketName = marketName;
     }
 
-    public void setOpenPrice(BigDecimal openPrice) {
+    public synchronized void setOpenPrice(BigDecimal openPrice) {
         this.openPrice = openPrice;
     }
 
-    public void addPriceItem(String orderId, BigDecimal amount, BigDecimal price) {
+    public synchronized void addPriceItem(String orderId, BigDecimal amount, BigDecimal price) {
         if (orderId != null && amount != null && price != null) {
             pItems.put(orderId, new AvgPriceItem(amount, price));
         } else {
@@ -42,7 +42,7 @@ public class AvgPrice {
         }
     }
 
-    public BigDecimal getAvg() {
+    public synchronized BigDecimal getAvg() {
         if (pItems.isEmpty()) {
             if (!marketName.equals("bitmex")) {
                 logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
