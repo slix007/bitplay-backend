@@ -277,9 +277,14 @@ public abstract class MarketServiceOpenOrders {
             throw new Exception("Failed to updateOOStatus id=" + orderId);
         }
         Order orderInfo = orderInfoAttempts.get();
+        final LimitOrder limitOrder = (LimitOrder) orderInfo;
 
-        final FplayOrder updatedOrder = FplayOrderUtils.updateFplayOrder(fplayOrder, (LimitOrder) orderInfo);
-        getPersistenceService().getOrderRepositoryService().update((LimitOrder) orderInfo);
+        if (fplayOrder.getOrder().getStatus() != Order.OrderStatus.FILLED && limitOrder.getStatus() == Order.OrderStatus.FILLED) {
+            logger.info("updateOOStatus got FILLED order: " + limitOrder.toString());
+        }
+
+        final FplayOrder updatedOrder = FplayOrderUtils.updateFplayOrder(fplayOrder, limitOrder);
+        getPersistenceService().getOrderRepositoryService().update(limitOrder);
 
         return updatedOrder;
     }
