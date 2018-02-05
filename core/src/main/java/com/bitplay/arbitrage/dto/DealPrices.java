@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Created by Sergey Shurmin on 5/24/17.
  */
-public class OpenPrices {
+public class DealPrices {
     private volatile List<BigDecimal> borderList = new ArrayList<>();
     private volatile BigDecimal oBlock = BigDecimal.ZERO;
     private volatile BigDecimal bBlock = BigDecimal.ZERO;

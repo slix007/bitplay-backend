@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 /**
  * Created by Sergey Shurmin on 2/5/18.
  */
-public class OpenDiffs {
+public class PriceDiffs {
 
     private volatile BigDecimal firstDiff = BigDecimal.ZERO;
     private volatile BigDecimal secondDiff = BigDecimal.ZERO;

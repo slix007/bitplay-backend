@@ -390,7 +390,7 @@ public class BitmexService extends MarketService {
                                         final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
                                         SignalType signalType = cancelledFplayOrder.getSignalType() != null ? cancelledFplayOrder.getSignalType() : SignalType.AUTOMATIC;
                                         if (signalType == SignalType.AUTOMATIC) {
-                                            arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
+                                            arbitrageService.getDealPrices().getFirstPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
                                         }
 
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
@@ -409,7 +409,7 @@ public class BitmexService extends MarketService {
 
                                                 SignalType signalType = cancelledFplayOrder.getSignalType() != null ? cancelledFplayOrder.getSignalType() : SignalType.AUTOMATIC;
                                                 if (signalType == SignalType.AUTOMATIC) {
-                                                    arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
+                                                    arbitrageService.getDealPrices().getFirstPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
                                                 }
                                                 final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
                                                         cancelledOrder.getType(),
@@ -891,7 +891,7 @@ public class BitmexService extends MarketService {
                                     thePrice,
                                     orderId);
                             if (signalType == SignalType.AUTOMATIC) {
-                                arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(resultOrder.getId(), resultOrder.getCumulativeAmount(), requestOrder.getAveragePrice());
+                                arbitrageService.getDealPrices().getFirstPriceFact().addPriceItem(resultOrder.getId(), resultOrder.getCumulativeAmount(), requestOrder.getAveragePrice());
                             }
                             continue;
                         }
@@ -919,12 +919,12 @@ public class BitmexService extends MarketService {
                         diffWithSignal = orderType.equals(Order.OrderType.BID)
                                 ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
                                 : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
-                        arbitrageService.getOpenDiffs().setFirstDiff(orderType.equals(Order.OrderType.BID)
+                        arbitrageService.getPriceDiffs().setFirstDiff(orderType.equals(Order.OrderType.BID)
                                 ? diff1 : diff2);
                         orderIdToSignalInfo.put(orderId, bestQuotes);
                     }
 
-                    arbitrageService.getOpenPrices().getFirstPriceFact().setOpenPrice(thePrice);
+                    arbitrageService.getDealPrices().getFirstPriceFact().setOpenPrice(thePrice);
 
                     final String message = String.format("%s %s %s amount=%s with quote=%s was placed.orderId=%s. %s. position=%s",
                             getCounterName(),
@@ -1043,7 +1043,7 @@ public class BitmexService extends MarketService {
                 ordersLogger.info(logString);
 
                 if (signalType == SignalType.AUTOMATIC) {
-                    arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(movedLimitOrder.getId(), movedLimitOrder.getCumulativeAmount(), movedLimitOrder.getAveragePrice());
+                    arbitrageService.getDealPrices().getFirstPriceFact().addPriceItem(movedLimitOrder.getId(), movedLimitOrder.getCumulativeAmount(), movedLimitOrder.getAveragePrice());
                 }
 
                 if (movedLimitOrder.getStatus() == Order.OrderStatus.CANCELED) {
@@ -1112,13 +1112,13 @@ public class BitmexService extends MarketService {
                         ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
                         : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
 
-            arbitrageService.getOpenDiffs().setFirstDiff(limitOrder.getType().equals(Order.OrderType.BID)
+            arbitrageService.getPriceDiffs().setFirstDiff(limitOrder.getType().equals(Order.OrderType.BID)
                     ? diff1 : diff2);
         }
 
-        arbitrageService.getOpenPrices().setFirstOpenPrice(bestMakerPrice);
+        arbitrageService.getDealPrices().setFirstOpenPrice(bestMakerPrice);
         if (finishedOrder) {
-            arbitrageService.getOpenPrices().getFirstPriceFact().addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), bestMakerPrice);
+            arbitrageService.getDealPrices().getFirstPriceFact().addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), bestMakerPrice);
         }
         return diffWithSignal;
     }
