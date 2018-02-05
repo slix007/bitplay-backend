@@ -7,6 +7,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.events.EventBus;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.events.SignalEventBus;
 import com.bitplay.persistance.PersistenceService;
@@ -134,20 +135,21 @@ public class ArbitrageService {
     }
 
     private void initArbitrageStateListener() {
-        firstMarketService.getEventBus().toObserverable()
+        gotFreeListener(firstMarketService.getEventBus(), secondMarketService.isBusy());
+        gotFreeListener(secondMarketService.getEventBus(), firstMarketService.isBusy());
+    }
+
+    private void gotFreeListener(EventBus eventBus, boolean busy) {
+        eventBus.toObserverable()
                 .subscribe(btsEvent -> {
-                    if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
-                        if (!secondMarketService.isBusy()) {
-                            writeLogArbitrageIsDone();
+                    try {
+                        if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
+                            if (!busy) {
+                                writeLogArbitrageIsDone();
+                            }
                         }
-                    }
-                }, throwable -> logger.error("On event handling", throwable));
-        secondMarketService.getEventBus().toObserverable()
-                .subscribe(btsEvent -> {
-                    if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
-                        if (!firstMarketService.isBusy()) {
-                            writeLogArbitrageIsDone();
-                        }
+                    } catch (Exception e) {
+                        logger.error("On event handling1", e);
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }

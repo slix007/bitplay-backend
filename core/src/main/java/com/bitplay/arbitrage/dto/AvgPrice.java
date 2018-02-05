@@ -48,7 +48,10 @@ public class AvgPrice {
                 logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
             }
             deltasLogger.info("AvgPrice by openPrice: " + openPrice);
-            return openPrice == null ? BigDecimal.ZERO : openPrice;
+            if (openPrice == null) {
+                throw new IllegalStateException("AvgPrice by openPrice: null");
+            }
+            return openPrice;
         }
 
         StringBuilder sb = new StringBuilder();
@@ -72,7 +75,7 @@ public class AvgPrice {
         }
 
         if (maxAmount.compareTo(sumDenominator) != 0) {
-            logger.warn(marketName + " WARNING avg price calc: " + this);
+            logger.warn(marketName + " WARNING avg price calc: " + this + " NiceFormat: " + sb.toString());
             final BigDecimal left = maxAmount.subtract(sumDenominator);
             if (openPrice != null) {
                 sumNumerator = sumNumerator.add(left.multiply(openPrice));
