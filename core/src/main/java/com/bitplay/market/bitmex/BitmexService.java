@@ -919,12 +919,12 @@ public class BitmexService extends MarketService {
                         diffWithSignal = orderType.equals(Order.OrderType.BID)
                                 ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
                                 : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
-                        arbitrageService.getOpenDiffs().setFirstOpenPrice(orderType.equals(Order.OrderType.BID)
+                        arbitrageService.getOpenDiffs().setFirstDiff(orderType.equals(Order.OrderType.BID)
                                 ? diff1 : diff2);
                         orderIdToSignalInfo.put(orderId, bestQuotes);
                     }
 
-                    arbitrageService.getOpenPrices().setFirstOpenPrice(thePrice);
+                    arbitrageService.getOpenPrices().getFirstPriceFact().setOpenPrice(thePrice);
 
                     final String message = String.format("%s %s %s amount=%s with quote=%s was placed.orderId=%s. %s. position=%s",
                             getCounterName(),
@@ -1112,7 +1112,7 @@ public class BitmexService extends MarketService {
                         ? String.format("diff1_buy_p = ask_p[1] - order_price_buy_p = %s", diff1.toPlainString()) //"BUY"
                         : String.format("diff2_sell_p = order_price_sell_p - bid_p[1] = %s", diff2.toPlainString()); //"SELL"
 
-            arbitrageService.getOpenDiffs().setFirstOpenPrice(limitOrder.getType().equals(Order.OrderType.BID)
+            arbitrageService.getOpenDiffs().setFirstDiff(limitOrder.getType().equals(Order.OrderType.BID)
                     ? diff1 : diff2);
         }
 

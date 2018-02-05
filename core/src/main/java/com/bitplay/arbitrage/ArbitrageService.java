@@ -3,6 +3,7 @@ package com.bitplay.arbitrage;
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.arbitrage.dto.OpenDiffs;
 import com.bitplay.arbitrage.dto.OpenPrices;
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.arbitrage.dto.SignalType;
@@ -85,7 +86,7 @@ public class ArbitrageService {
     private Disposable theCheckBusyTimer;
 
     private final OpenPrices openPrices = new OpenPrices();
-    private final OpenPrices openDiffs = new OpenPrices();
+    private final OpenDiffs openDiffs = new OpenDiffs();
     private volatile SignalType signalType = SignalType.AUTOMATIC;
     private SignalEventBus signalEventBus = new SignalEventBus();
     private volatile DeltaParams deltaParams = new DeltaParams();
@@ -194,16 +195,16 @@ public class ArbitrageService {
         if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMin()) == -1) params.setCumDeltaFactMin(params.getCumDeltaFact());
         if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMax()) == 1) params.setCumDeltaFactMax(params.getCumDeltaFact());
 
-        BigDecimal diffFact = openDiffs.getFirstOpenPrice().add(openDiffs.getSecondOpenPrice());
-        if (openDiffs.getFirstOpenPrice().compareTo(params.getDiffFact1Min()) == -1) params.setDiffFact1Min(openDiffs.getFirstOpenPrice());
-        if (openDiffs.getFirstOpenPrice().compareTo(params.getDiffFact1Max()) == 1) params.setDiffFact1Max(openDiffs.getFirstOpenPrice());
-        if (openDiffs.getSecondOpenPrice().compareTo(params.getDiffFact2Min()) == -1) params.setDiffFact2Min(openDiffs.getSecondOpenPrice());
-        if (openDiffs.getSecondOpenPrice().compareTo(params.getDiffFact2Max()) == 1) params.setDiffFact2Max(openDiffs.getSecondOpenPrice());
+        BigDecimal diffFact = openDiffs.getFirstDiff().add(openDiffs.getSecondDiff());
+        if (openDiffs.getFirstDiff().compareTo(params.getDiffFact1Min()) == -1) params.setDiffFact1Min(openDiffs.getFirstDiff());
+        if (openDiffs.getFirstDiff().compareTo(params.getDiffFact1Max()) == 1) params.setDiffFact1Max(openDiffs.getFirstDiff());
+        if (openDiffs.getSecondDiff().compareTo(params.getDiffFact2Min()) == -1) params.setDiffFact2Min(openDiffs.getSecondDiff());
+        if (openDiffs.getSecondDiff().compareTo(params.getDiffFact2Max()) == 1) params.setDiffFact2Max(openDiffs.getSecondDiff());
         if (diffFact.compareTo(params.getDiffFactMin()) == -1) params.setDiffFactMin(diffFact);
         if (diffFact.compareTo(params.getDiffFactMax()) == 1) params.setDiffFactMax(diffFact);
 
-        params.setCumDiffFact1(params.getCumDiffFact1().add(openDiffs.getFirstOpenPrice()));
-        params.setCumDiffFact2(params.getCumDiffFact2().add(openDiffs.getSecondOpenPrice()));
+        params.setCumDiffFact1(params.getCumDiffFact1().add(openDiffs.getFirstDiff()));
+        params.setCumDiffFact2(params.getCumDiffFact2().add(openDiffs.getSecondDiff()));
 
         if (params.getCumDiffFact1().compareTo(params.getCumDiffFact1Min()) == -1) params.setCumDiffFact1Min(params.getCumDiffFact1());
         if (params.getCumDiffFact1().compareTo(params.getCumDiffFact1Max()) == 1) params.setCumDiffFact1Max(params.getCumDiffFact1());
@@ -243,8 +244,8 @@ public class ArbitrageService {
         params.setCumSlipT(params.getCumSlipT().add(slip_t));
 
         // avg_diff_fact = avg_delta_fact - avg_delta
-        BigDecimal avgDiffFact1 = openDiffs.getFirstOpenPrice().multiply(openPrices.getbBlock()).divide(openPrices.getFirstPriceFact().getAvg(), 2, RoundingMode.HALF_UP);
-        BigDecimal avgDiffFact2 = openDiffs.getSecondOpenPrice().multiply(openPrices.getbBlock()).divide(openPrices.getSecondPriceFact().getAvg(), 2, RoundingMode.HALF_UP);
+        BigDecimal avgDiffFact1 = openDiffs.getFirstDiff().multiply(openPrices.getbBlock()).divide(openPrices.getFirstPriceFact().getAvg(), 2, RoundingMode.HALF_UP);
+        BigDecimal avgDiffFact2 = openDiffs.getSecondDiff().multiply(openPrices.getbBlock()).divide(openPrices.getSecondPriceFact().getAvg(), 2, RoundingMode.HALF_UP);
         BigDecimal avgDiffFact = params.getAvgDeltaFact().subtract(params.getAvgDelta());
         params.setCumAvgDiffFact1(params.getCumAvgDiffFact1().add(avgDiffFact1));
         params.setCumAvgDiffFact2(params.getCumAvgDiffFact2().add(avgDiffFact2));
@@ -266,8 +267,8 @@ public class ArbitrageService {
                 params.getCumDeltaFact().toPlainString(),
                 params.getCumDeltaFactMin().toPlainString(),
                 params.getCumDeltaFactMax().toPlainString(),
-                openDiffs.getFirstOpenPrice(), params.getDiffFact1Min(), params.getDiffFact1Max(),
-                openDiffs.getSecondOpenPrice(), params.getDiffFact2Min(), params.getDiffFact2Max(),
+                openDiffs.getFirstDiff(), params.getDiffFact1Min(), params.getDiffFact1Max(),
+                openDiffs.getSecondDiff(), params.getDiffFact2Min(), params.getDiffFact2Max(),
                 diffFact, params.getDiffFactMin(), params.getDiffFactMax(),
                 params.getCumDiffFact1(), params.getCumDiffFact1Min(), params.getCumDiffFact1Max(),
                 params.getCumDiffFact2(), params.getCumDiffFact2Min(), params.getCumDiffFact2Max(),
@@ -1178,7 +1179,7 @@ public class ArbitrageService {
         return deltaParams;
     }
 
-    public OpenPrices getOpenDiffs() {
+    public OpenDiffs getOpenDiffs() {
         return openDiffs;
     }
 

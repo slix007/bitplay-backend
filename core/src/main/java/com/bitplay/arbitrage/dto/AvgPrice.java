@@ -42,6 +42,10 @@ public class AvgPrice {
         }
     }
 
+    public synchronized BigDecimal getOpenPrice() {
+        return openPrice;
+    }
+
     public synchronized BigDecimal getAvg() {
         if (pItems.isEmpty()) {
             if (!marketName.equals("bitmex")) {

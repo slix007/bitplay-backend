@@ -1,7 +1,5 @@
 package com.bitplay.arbitrage.dto;
 
-import com.bitplay.arbitrage.dto.AvgPrice;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,8 +9,6 @@ import java.util.List;
  * Created by Sergey Shurmin on 5/24/17.
  */
 public class OpenPrices {
-    private volatile BigDecimal firstOpenPrice = BigDecimal.ZERO;
-    private volatile BigDecimal secondOpenPrice = BigDecimal.ZERO;
     private volatile List<BigDecimal> borderList = new ArrayList<>();
     private volatile BigDecimal oBlock = BigDecimal.ZERO;
     private volatile BigDecimal bBlock = BigDecimal.ZERO;
@@ -23,33 +19,27 @@ public class OpenPrices {
     private volatile AvgPrice firstPriceFact = new AvgPrice();
     private volatile AvgPrice secondPriceFact = new AvgPrice();
 
-    public BigDecimal getFirstOpenPrice() {
-        return firstOpenPrice;
-    }
-
     public void setFirstOpenPrice(BigDecimal firstOpenPrice) {
         final BigDecimal fop = firstOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
         firstPriceFact.setOpenPrice(fop);
-        this.firstOpenPrice = fop;
-    }
-
-    public BigDecimal getSecondOpenPrice() {
-        return secondOpenPrice;
     }
 
     public void setSecondOpenPrice(BigDecimal secondOpenPrice) {
         final BigDecimal sop = secondOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
         secondPriceFact.setOpenPrice(sop);
-        this.secondOpenPrice = sop;
     }
 
     public BigDecimal getDelta1Fact() {
+        final BigDecimal firstOpenPrice = firstPriceFact.getOpenPrice();
+        final BigDecimal secondOpenPrice = secondPriceFact.getOpenPrice();
         return (firstOpenPrice != null && secondOpenPrice != null)
                 ? firstOpenPrice.subtract(secondOpenPrice).setScale(2, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO;
     }
 
     public BigDecimal getDelta2Fact() {
+        final BigDecimal firstOpenPrice = firstPriceFact.getOpenPrice();
+        final BigDecimal secondOpenPrice = secondPriceFact.getOpenPrice();
         return (firstOpenPrice != null && secondOpenPrice != null)
                 ? secondOpenPrice.subtract(firstOpenPrice).setScale(2, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO;

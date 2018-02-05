@@ -820,7 +820,7 @@ public class OkCoinService extends MarketService {
                     ? String.format("diff1_buy_o = ask_o[1](%s) - order_price_buy_o(%s) = %s", bestQuotes.getAsk1_o().toPlainString(), thePrice.toPlainString(), diff1.toPlainString()) //"BUY"/"EXIT_SELL"
                     : String.format("diff2_sell_o = order_price_sell_o(%s) - bid_o[1](%s) = %s", thePrice.toPlainString(), bestQuotes.getBid1_o().toPlainString(), diff2.toPlainString()); //"SELL"/"EXIT_BUY"
 
-            arbitrageService.getOpenDiffs().setSecondOpenPrice(
+            arbitrageService.getOpenDiffs().setSecondDiff(
                     (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK))
                     ? diff1 : diff2);
         }
