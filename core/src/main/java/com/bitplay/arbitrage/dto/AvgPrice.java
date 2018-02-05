@@ -46,12 +46,14 @@ public class AvgPrice {
         return openPrice;
     }
 
-    public synchronized BigDecimal getAvg() {
+    public BigDecimal getAvg() {
+        return getAvg(false);
+    }
+
+    public synchronized BigDecimal getAvg(boolean withLogs) {
         if (pItems.isEmpty()) {
-            if (!marketName.equals("bitmex")) {
-                logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
-            }
-            deltasLogger.info("AvgPrice by openPrice: " + openPrice);
+            logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
+            deltasLogger.info(marketName + "AvgPrice by openPrice: " + openPrice);
             if (openPrice == null) {
                 throw new IllegalStateException("AvgPrice by openPrice: null");
             }
@@ -74,10 +76,6 @@ public class AvgPrice {
                 (accumulated, item) -> accumulated.add(item.getAmount()),
                 BigDecimal::add);
 
-        if (marketName.equals("bitmex")) {
-            deltasLogger.info("AvgPrice: " + sb.toString());
-        }
-
         if (maxAmount.compareTo(sumDenominator) != 0) {
             logger.warn(marketName + " WARNING avg price calc: " + this + " NiceFormat: " + sb.toString());
             final BigDecimal left = maxAmount.subtract(sumDenominator);
@@ -91,7 +89,12 @@ public class AvgPrice {
             sumDenominator = maxAmount;
         }
 
-        return sumNumerator.divide(sumDenominator, 2, RoundingMode.HALF_UP);
+        final BigDecimal avgPrice = sumNumerator.divide(sumDenominator, 2, RoundingMode.HALF_UP);
+
+        if (withLogs) {
+            deltasLogger.info(marketName + "AvgPrice: " + sb.toString() + " = " + avgPrice);
+        }
+        return avgPrice;
     }
 
     @Override

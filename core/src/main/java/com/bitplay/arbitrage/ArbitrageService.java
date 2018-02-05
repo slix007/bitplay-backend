@@ -139,16 +139,16 @@ public class ArbitrageService {
     }
 
     private void initArbitrageStateListener() {
-        gotFreeListener(firstMarketService.getEventBus(), secondMarketService.isBusy());
-        gotFreeListener(secondMarketService.getEventBus(), firstMarketService.isBusy());
+        gotFreeListener(firstMarketService.getEventBus());
+        gotFreeListener(secondMarketService.getEventBus());
     }
 
-    private void gotFreeListener(EventBus eventBus, boolean busy) {
+    private void gotFreeListener(EventBus eventBus) {
         eventBus.toObserverable()
                 .subscribe(btsEvent -> {
                     try {
                         if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
-                            if (!busy) {
+                            if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
                                 writeLogArbitrageIsDone();
                             }
                         }
@@ -789,8 +789,8 @@ public class ArbitrageService {
     }
 
     private void printCom(DealPrices dealPrices) {
-        final BigDecimal price1 = dealPrices.getFirstPriceFact().getAvg();
-        final BigDecimal price2 = dealPrices.getSecondPriceFact().getAvg();
+        final BigDecimal price1 = dealPrices.getFirstPriceFact().getAvg(true);
+        final BigDecimal price2 = dealPrices.getSecondPriceFact().getAvg(true);
         final BigDecimal com1 = price1.multiply(FEE_FIRST_MAKER).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
         final BigDecimal com2 = price2.multiply(FEE_SECOND_TAKER).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
         params.setCom1(com1);
