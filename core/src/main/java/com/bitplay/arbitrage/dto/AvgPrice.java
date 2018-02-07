@@ -52,8 +52,10 @@ public class AvgPrice {
 
     public synchronized BigDecimal getAvg(boolean withLogs) {
         if (pItems.isEmpty()) {
-            logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
-            deltasLogger.info(marketName + "AvgPrice by openPrice: " + openPrice);
+            if (withLogs) {
+                logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
+                deltasLogger.info(marketName + "AvgPrice by openPrice: " + openPrice);
+            }
             if (openPrice == null) {
                 throw new IllegalStateException("AvgPrice by openPrice: null");
             }

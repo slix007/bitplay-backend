@@ -51,7 +51,7 @@ public class DealPrices {
         }
         //ask1_p.subtract(thePrice);
         Details details;
-        if (deltaName == DeltaName.B_DELTA) {
+        if (deltaName == DeltaName.O_DELTA) {
             final BigDecimal val = bPricePlan.subtract(bPriceFact.getAvg());
             details = new Details(val, String.format("diff_buy_b = ask_b[1](%s) - avg_price_buy_b(%s) = %s",
                     bPricePlan, bPriceFact.getAvg(), val));
@@ -68,7 +68,7 @@ public class DealPrices {
             return new Details(BigDecimal.ZERO, "");
         }
         Details details;
-        if (deltaName == DeltaName.B_DELTA) {
+        if (deltaName == DeltaName.O_DELTA) {
             final BigDecimal val = oPriceFact.getAvg().subtract(oPricePlan);
             details = new Details(val,
                     String.format("diff_sell_o = avg_price_sell_o(%s) - plan_bid_o[1](%s) = %s",
