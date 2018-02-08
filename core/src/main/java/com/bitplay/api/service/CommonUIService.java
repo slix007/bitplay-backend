@@ -126,43 +126,39 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCumDelta() != null) {
             arbitrageService.getParams().setCumDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
-            arbitrageService.getParams().setCumAvgDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
+            arbitrageService.getParams().setCumAstDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
         }
         if (deltalUpdateJson.getLastDelta() != null) {
             arbitrageService.getParams().setLastDelta(deltalUpdateJson.getLastDelta());
         }
         if (deltalUpdateJson.getCumDeltaFact() != null) {
             arbitrageService.getParams().setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
-            arbitrageService.getParams().setCumAvgDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
+            arbitrageService.getParams().setCumAstDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
         }
         if (deltalUpdateJson.getCumDiffFactBr() != null) {
             arbitrageService.getParams().setCumDiffFactBr(new BigDecimal(deltalUpdateJson.getCumDiffFactBr()));
-            arbitrageService.getParams().setCumAvgDiffFactBr(new BigDecimal(deltalUpdateJson.getCumDiffFactBr()));
-        }
-        if (deltalUpdateJson.getCumAvgDiffFactBr() != null) {
-            arbitrageService.getParams().setCumAvgDiffFactBr(new BigDecimal(deltalUpdateJson.getCumAvgDiffFactBr()));
         }
         if (deltalUpdateJson.getCumDiffFact1() != null) {
             arbitrageService.getParams().setCumDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
-            arbitrageService.getParams().setCumAvgDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
+            arbitrageService.getParams().setCumAstDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
 
         }
         if (deltalUpdateJson.getCumDiffFact2() != null) {
             arbitrageService.getParams().setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
-            arbitrageService.getParams().setCumAvgDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
+            arbitrageService.getParams().setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
         }
-        if (deltalUpdateJson.getCumAvgDiffFact() != null) {
-            arbitrageService.getParams().setCumAvgDiffFact1(new BigDecimal(deltalUpdateJson.getCumAvgDiffFact()));
-            arbitrageService.getParams().setCumAvgDiffFact2(new BigDecimal(deltalUpdateJson.getCumAvgDiffFact()));
-            arbitrageService.getParams().setCumAvgDiffFact(new BigDecimal(deltalUpdateJson.getCumAvgDiffFact()));
+        if (deltalUpdateJson.getCumAstDiffFact() != null) {
+            arbitrageService.getParams().setCumAstDiffFact1(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
+            arbitrageService.getParams().setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
+            arbitrageService.getParams().setCumAstDiffFact(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
         }
         if (deltalUpdateJson.getCumCom1() != null) {
             arbitrageService.getParams().setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
-            arbitrageService.getParams().setCumAvgCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
+            arbitrageService.getParams().setCumAstCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
         }
         if (deltalUpdateJson.getCumCom2() != null) {
             arbitrageService.getParams().setCumCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
-            arbitrageService.getParams().setCumAvgCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
+            arbitrageService.getParams().setCumAstCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
         }
         if (deltalUpdateJson.getCount1() != null) {
             arbitrageService.getParams().setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
@@ -172,7 +168,7 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCumBitmexMCom() != null) {
             arbitrageService.getParams().setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
-            arbitrageService.getParams().setCumAvgBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
+            arbitrageService.getParams().setCumAstBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
         }
         if (deltalUpdateJson.getReserveBtc1() != null) {
             arbitrageService.getParams().setReserveBtc1(new BigDecimal(deltalUpdateJson.getReserveBtc1()));
@@ -208,25 +204,24 @@ public class CommonUIService {
                 arbitrageService.getParams().getPeriodSec().toString(),
                 arbitrageService.getParams().getBuValue().toPlainString(),
                 arbitrageService.getParams().getCumDelta().toPlainString(),
-                arbitrageService.getParams().getCumAvgDelta().toPlainString(),
+                arbitrageService.getParams().getCumAstDelta().toPlainString(),
                 arbitrageService.getParams().getLastDelta(),
                 arbitrageService.getParams().getCumDeltaFact().toPlainString(),
-                arbitrageService.getParams().getCumAvgDeltaFact().toPlainString(),
+                arbitrageService.getParams().getCumAstDeltaFact().toPlainString(),
                 arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
-                arbitrageService.getParams().getCumAvgDiffFactBr().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact1().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact2().toPlainString(),
-                arbitrageService.getParams().getCumAvgDiffFact1().toPlainString(),
-                arbitrageService.getParams().getCumAvgDiffFact2().toPlainString(),
-                arbitrageService.getParams().getCumAvgDiffFact().toPlainString(),
+                arbitrageService.getParams().getCumAstDiffFact1().toPlainString(),
+                arbitrageService.getParams().getCumAstDiffFact2().toPlainString(),
+                arbitrageService.getParams().getCumAstDiffFact().toPlainString(),
                 arbitrageService.getParams().getCumCom1().toPlainString(),
                 arbitrageService.getParams().getCumCom2().toPlainString(),
-                arbitrageService.getParams().getCumAvgCom1().toPlainString(),
-                arbitrageService.getParams().getCumAvgCom2().toPlainString(),
+                arbitrageService.getParams().getCumAstCom1().toPlainString(),
+                arbitrageService.getParams().getCumAstCom2().toPlainString(),
                 String.valueOf(arbitrageService.getParams().getCounter1()),
                 String.valueOf(arbitrageService.getParams().getCounter2()),
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
-                arbitrageService.getParams().getCumAvgBitmexMCom().toPlainString(),
+                arbitrageService.getParams().getCumAstBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
                 arbitrageService.getParams().getReserveBtc2().toPlainString(),
                 arbitrageService.getParams().getHedgeAmount().toPlainString(),

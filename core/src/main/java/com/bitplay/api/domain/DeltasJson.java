@@ -14,25 +14,24 @@ public class DeltasJson {
     private String periodSec;
     private String buValue;
     private String cumDelta;
-    private String cumAvgDelta;
+    private String cumAstDelta;
     private String lastDelta;
     private String cumDeltaFact;
-    private String cumAvgDeltaFact;
+    private String cumAstDeltaFact;
     private String cumDiffFactBr;
-    private String cumAvgDiffFactBr;
     private String cumDiffFact1;
     private String cumDiffFact2;
-    private String cumAvgDiffFact1;
-    private String cumAvgDiffFact2;
-    private String cumAvgDiffFact;
+    private String cumAstDiffFact1;
+    private String cumAstDiffFact2;
+    private String cumAstDiffFact;
     private String cumCom1;
     private String cumCom2;
-    private String cumAvgCom1;
-    private String cumAvgCom2;
+    private String cumAstCom1;
+    private String cumAstCom2;
     private String count1;
     private String count2;
     private String cumBitmexMCom;
-    private String cumAvgBitmexMCom;
+    private String cumAstBitmexMCom;
     private String reserveBtc1;
     private String reserveBtc2;
     private String hedgeAmount;
@@ -40,7 +39,7 @@ public class DeltasJson {
     private String cumSlipM;
     private String cumSlipT;
 
-    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String cumAvgDelta, String lastDelta, String cumDeltaFact, String cumAvgDeltaFact, String cumDiffFactBr, String cumAvgDiffFactBr, String cumDiffFact1, String cumDiffFact2, String cumAvgDiffFact1, String cumAvgDiffFact2, String cumAvgDiffFact, String cumCom1, String cumCom2, String cumAvgCom1, String cumAvgCom2, String count1, String count2, String cumBitmexMCom, String cumAvgBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee, String cumSlipM, String cumSlipT) {
+    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String cumAstDelta, String lastDelta, String cumDeltaFact, String cumAstDeltaFact, String cumDiffFactBr, String cumDiffFact1, String cumDiffFact2, String cumAstDiffFact1, String cumAstDiffFact2, String cumAstDiffFact, String cumCom1, String cumCom2, String cumAstCom1, String cumAstCom2, String count1, String count2, String cumBitmexMCom, String cumAstBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee, String cumSlipM, String cumSlipT) {
         this.delta1 = delta1;
         this.delta2 = delta2;
         this.border1 = border1;
@@ -50,25 +49,24 @@ public class DeltasJson {
         this.periodSec = periodSec;
         this.buValue = buValue;
         this.cumDelta = cumDelta;
-        this.cumAvgDelta = cumAvgDelta;
+        this.cumAstDelta = cumAstDelta;
         this.lastDelta = lastDelta;
         this.cumDeltaFact = cumDeltaFact;
-        this.cumAvgDeltaFact = cumAvgDeltaFact;
+        this.cumAstDeltaFact = cumAstDeltaFact;
         this.cumDiffFactBr = cumDiffFactBr;
-        this.cumAvgDiffFactBr = cumAvgDiffFactBr;
         this.cumDiffFact1 = cumDiffFact1;
         this.cumDiffFact2 = cumDiffFact2;
-        this.cumAvgDiffFact1 = cumAvgDiffFact1;
-        this.cumAvgDiffFact2 = cumAvgDiffFact2;
-        this.cumAvgDiffFact = cumAvgDiffFact;
+        this.cumAstDiffFact1 = cumAstDiffFact1;
+        this.cumAstDiffFact2 = cumAstDiffFact2;
+        this.cumAstDiffFact = cumAstDiffFact;
         this.cumCom1 = cumCom1;
         this.cumCom2 = cumCom2;
-        this.cumAvgCom1 = cumAvgCom1;
-        this.cumAvgCom2 = cumAvgCom2;
+        this.cumAstCom1 = cumAstCom1;
+        this.cumAstCom2 = cumAstCom2;
         this.count1 = count1;
         this.count2 = count2;
         this.cumBitmexMCom = cumBitmexMCom;
-        this.cumAvgBitmexMCom = cumAvgBitmexMCom;
+        this.cumAstBitmexMCom = cumAstBitmexMCom;
         this.reserveBtc1 = reserveBtc1;
         this.reserveBtc2 = reserveBtc2;
         this.hedgeAmount = hedgeAmount;
@@ -113,8 +111,8 @@ public class DeltasJson {
         return cumDelta;
     }
 
-    public String getCumAvgDelta() {
-        return cumAvgDelta;
+    public String getCumAstDelta() {
+        return cumAstDelta;
     }
 
     public String getLastDelta() {
@@ -125,16 +123,12 @@ public class DeltasJson {
         return cumDeltaFact;
     }
 
-    public String getCumAvgDeltaFact() {
-        return cumAvgDeltaFact;
+    public String getCumAstDeltaFact() {
+        return cumAstDeltaFact;
     }
 
     public String getCumDiffFactBr() {
         return cumDiffFactBr;
-    }
-
-    public String getCumAvgDiffFactBr() {
-        return cumAvgDiffFactBr;
     }
 
     public String getCumDiffFact1() {
@@ -145,16 +139,16 @@ public class DeltasJson {
         return cumDiffFact2;
     }
 
-    public String getCumAvgDiffFact1() {
-        return cumAvgDiffFact1;
+    public String getCumAstDiffFact1() {
+        return cumAstDiffFact1;
     }
 
-    public String getCumAvgDiffFact2() {
-        return cumAvgDiffFact2;
+    public String getCumAstDiffFact2() {
+        return cumAstDiffFact2;
     }
 
-    public String getCumAvgDiffFact() {
-        return cumAvgDiffFact;
+    public String getCumAstDiffFact() {
+        return cumAstDiffFact;
     }
 
     public String getCumCom1() {
@@ -165,12 +159,12 @@ public class DeltasJson {
         return cumCom2;
     }
 
-    public String getCumAvgCom1() {
-        return cumAvgCom1;
+    public String getCumAstCom1() {
+        return cumAstCom1;
     }
 
-    public String getCumAvgCom2() {
-        return cumAvgCom2;
+    public String getCumAstCom2() {
+        return cumAstCom2;
     }
 
     public String getCount1() {
@@ -185,8 +179,8 @@ public class DeltasJson {
         return cumBitmexMCom;
     }
 
-    public String getCumAvgBitmexMCom() {
-        return cumAvgBitmexMCom;
+    public String getCumAstBitmexMCom() {
+        return cumAstBitmexMCom;
     }
 
     public String getReserveBtc1() {

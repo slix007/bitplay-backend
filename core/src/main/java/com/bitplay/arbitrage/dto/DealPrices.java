@@ -9,16 +9,17 @@ import java.util.List;
  * Created by Sergey Shurmin on 5/24/17.
  */
 public class DealPrices {
-    private volatile List<BigDecimal> borderList = new ArrayList<>();
-    private volatile BigDecimal oBlock = BigDecimal.ZERO;
-    private volatile BigDecimal bBlock = BigDecimal.ZERO;
-    private volatile BigDecimal delta1Plan = BigDecimal.ZERO;
-    private volatile BigDecimal delta2Plan = BigDecimal.ZERO;
-    private volatile BigDecimal bPricePlan = BigDecimal.ZERO;
-    private volatile BigDecimal oPricePlan = BigDecimal.ZERO;
-    private volatile AvgPrice bPriceFact = new AvgPrice();
-    private volatile AvgPrice oPriceFact = new AvgPrice();
-    private volatile DeltaName deltaName = DeltaName.B_DELTA;
+    private List<BigDecimal> borderList = new ArrayList<>();
+    private BigDecimal oBlock = BigDecimal.ZERO;
+    private BigDecimal bBlock = BigDecimal.ZERO;
+    private BigDecimal delta1Plan = BigDecimal.ZERO;
+    private BigDecimal delta2Plan = BigDecimal.ZERO;
+    private BigDecimal bPricePlan = BigDecimal.ZERO;
+    private BigDecimal oPricePlan = BigDecimal.ZERO;
+    private AvgPrice bPriceFact = new AvgPrice();
+    private AvgPrice oPriceFact = new AvgPrice();
+    private DeltaName deltaName = DeltaName.B_DELTA;
+    private BestQuotes bestQuotes;
 
     public synchronized void setDeltaName(DeltaName deltaName) {
         this.deltaName = deltaName;
@@ -156,6 +157,14 @@ public class DealPrices {
 
     public synchronized void setoPriceFact(AvgPrice oPriceFact) {
         this.oPriceFact = oPriceFact;
+    }
+
+    public BestQuotes getBestQuotes() {
+        return bestQuotes;
+    }
+
+    public void setBestQuotes(BestQuotes bestQuotes) {
+        this.bestQuotes = bestQuotes;
     }
 
     public static class Details {
