@@ -98,7 +98,8 @@ public class OkCoinService extends MarketService {
 
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
 
-    private static final int MAX_ATTEMPTS_FOR_MOVING = 50;
+    private static final int MAX_ATTEMPTS = 50;
+    private static final int MAX_ATTEMPTS_FOR_MOVING = 1;
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     // Moving timeout
@@ -943,9 +944,10 @@ public class OkCoinService extends MarketService {
                                                 movingErrorsOverloaded.set(0);
                                             }
 
+                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL
+                                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {
+                                            setMarketState(MarketState.STOPPED);
                                         }
-                                        // else MoveResponse.MoveOrderStatus.ONLY_CANCEL) // do nothing //TODO do something
-                                        // else MoveResponse.MoveOrderStatus.EXCEPTION) // do nothing
                                         final FplayOrder newOrder = response.getNewFplayOrder();
                                         final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
 
@@ -1131,7 +1133,7 @@ public class OkCoinService extends MarketService {
         final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
         Order result = null;
         int attemptCount = 0;
-        while (attemptCount < MAX_ATTEMPTS_FOR_MOVING) {
+        while (attemptCount < MAX_ATTEMPTS) {
             attemptCount++;
             try {
                 if (attemptCount > 1) {
@@ -1166,7 +1168,7 @@ public class OkCoinService extends MarketService {
         OkCoinTradeResult result = new OkCoinTradeResult(false, 0, 0);
 
         int attemptCount = 0;
-        while (attemptCount < MAX_ATTEMPTS_FOR_MOVING) {
+        while (attemptCount < MAX_ATTEMPTS) {
             attemptCount++;
             try {
                 if (attemptCount > 1) {
