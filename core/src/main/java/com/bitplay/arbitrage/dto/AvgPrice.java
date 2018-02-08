@@ -51,50 +51,55 @@ public class AvgPrice {
     }
 
     public synchronized BigDecimal getAvg(boolean withLogs) {
-        if (pItems.isEmpty()) {
+        BigDecimal avgPrice = BigDecimal.ZERO;
+        try {
+            if (pItems.isEmpty()) {
+                if (withLogs) {
+                    logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
+                    deltasLogger.info(marketName + "AvgPrice by openPrice: " + openPrice);
+                }
+                if (openPrice == null) {
+                    throw new IllegalStateException("AvgPrice by openPrice: null");
+                }
+                return openPrice;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
+            BigDecimal sumNumerator = pItems.values().stream()
+                    .filter(Objects::nonNull)
+                    .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
+                    .peek(avgPriceItem -> sb.append(String.format("(%s*%s)", avgPriceItem.amount, avgPriceItem.price)))
+                    .reduce(BigDecimal.ZERO,
+                            (accumulated, item) -> accumulated.add(item.getAmount().multiply(item.getPrice())),
+                            BigDecimal::add);
+            BigDecimal sumDenominator = pItems.values().stream()
+                    .filter(Objects::nonNull)
+                    .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
+                    .reduce(BigDecimal.ZERO,
+                            (accumulated, item) -> accumulated.add(item.getAmount()),
+                            BigDecimal::add);
+
+            if (maxAmount.compareTo(sumDenominator) != 0) {
+                logger.warn(marketName + " WARNING avg price calc: " + this + " NiceFormat: " + sb.toString());
+                final BigDecimal left = maxAmount.subtract(sumDenominator);
+                if (openPrice != null) {
+                    sumNumerator = sumNumerator.add(left.multiply(openPrice));
+                } else {
+                    // use left amount * last price
+                    final AvgPriceItem lastItem = (AvgPriceItem) pItems.entrySet().toArray()[pItems.size() - 1];
+                    sumNumerator = sumNumerator.add(left.multiply(lastItem.getPrice()));
+                }
+                sumDenominator = maxAmount;
+            }
+
+            avgPrice = sumNumerator.divide(sumDenominator, 2, RoundingMode.HALF_UP);
+
             if (withLogs) {
-                logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
-                deltasLogger.info(marketName + "AvgPrice by openPrice: " + openPrice);
+                deltasLogger.info(marketName + "AvgPrice: " + sb.toString() + " = " + avgPrice);
             }
-            if (openPrice == null) {
-                throw new IllegalStateException("AvgPrice by openPrice: null");
-            }
-            return openPrice;
-        }
-
-        StringBuilder sb = new StringBuilder();
-        //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
-        BigDecimal sumNumerator = pItems.values().stream()
-                .filter(Objects::nonNull)
-                .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
-                .peek(avgPriceItem -> sb.append(String.format("(%s*%s)", avgPriceItem.amount, avgPriceItem.price)))
-                .reduce(BigDecimal.ZERO,
-                (accumulated, item) -> accumulated.add(item.getAmount().multiply(item.getPrice())),
-                BigDecimal::add);
-        BigDecimal sumDenominator = pItems.values().stream()
-                .filter(Objects::nonNull)
-                .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
-                .reduce(BigDecimal.ZERO,
-                (accumulated, item) -> accumulated.add(item.getAmount()),
-                BigDecimal::add);
-
-        if (maxAmount.compareTo(sumDenominator) != 0) {
-            logger.warn(marketName + " WARNING avg price calc: " + this + " NiceFormat: " + sb.toString());
-            final BigDecimal left = maxAmount.subtract(sumDenominator);
-            if (openPrice != null) {
-                sumNumerator = sumNumerator.add(left.multiply(openPrice));
-            } else {
-                // use left amount * last price
-                final AvgPriceItem lastItem = (AvgPriceItem) pItems.entrySet().toArray()[pItems.size() - 1];
-                sumNumerator = sumNumerator.add(left.multiply(lastItem.getPrice()));
-            }
-            sumDenominator = maxAmount;
-        }
-
-        final BigDecimal avgPrice = sumNumerator.divide(sumDenominator, 2, RoundingMode.HALF_UP);
-
-        if (withLogs) {
-            deltasLogger.info(marketName + "AvgPrice: " + sb.toString() + " = " + avgPrice);
+        } catch (Exception e) {
+            logger.error("Error on Avg", e);
         }
         return avgPrice;
     }
