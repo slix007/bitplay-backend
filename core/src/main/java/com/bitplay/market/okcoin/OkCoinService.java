@@ -650,41 +650,50 @@ public class OkCoinService extends MarketService {
                     final Error error = objectMapper.readValue(httpBody, Error.class);
                     final String marketResponseMessage = error.getError().getMessage();
 
-                    final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Waiting for 1 min",
-                            getCounterName(),
-                            attemptCount,
-                            httpBody);
-
-                    tradeLogger.error(logString);
-                    logger.error(logString);
-
-                    if (marketResponseMessage.contains("UnknownHostException: www.okex.com") && attemptCount == maxAttempts) {
-                        setOverloaded(null); // TODO Think about retry
-                        break;
+                    if (marketResponseMessage.contains("UnknownHostException: www.okex.com")) {
+                        if (attemptCount < maxAttempts) {
+                            final String logString = String.format("%s/%s placeOrderOnSignal error: %s.",
+                                    getCounterName(), attemptCount, httpBody);
+                            tradeLogger.error(logString);
+                            logger.error(logString);
+                            continue; // retry!
+                        } else {
+                            setOverloaded(null);
+                            final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Set SYSTEM_OVERLOAD for %s sec",
+                                    getCounterName(), attemptCount, httpBody,
+                                    settingsRepositoryService.getSettings().getOkexSysOverloadArgs().getOverloadTimeSec());
+                            tradeLogger.error(logString);
+                            logger.error(logString);
+                        }
                     }
-
                 } catch (IOException e1) {
-                    logger.error(String.format("On parse error:%s, %s", e.toString(), e.getHttpBody()), e1);
+                    final String errMsg = String.format("On parse error:%s, %s", e.toString(), e.getHttpBody());
+                    logger.error(errMsg, e1);
+                    tradeLogger.error(errMsg);
                 }
 
+                break; // no retry by default
             } catch (SocketTimeoutException e) { // java.net.SocketTimeoutException: connect timed out
                 final String message = e.getMessage();
                 tradeResponse.setOrderId(message);
                 tradeResponse.setErrorCode(message);
 
-                final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Waiting for 1 min",
-                        getCounterName(),
-                        attemptCount,
-                        message);
-
-                tradeLogger.error(logString);
-                logger.error(logString);
-
-                if (attemptCount == maxAttempts) { // message.contains("connect timed out")
-                    setOverloaded(null); // TODO Think about retry
-                    break;
+                if (attemptCount < maxAttempts) {
+                    final String logString = String.format("%s/%s placeOrderOnSignal error: %s.",
+                            getCounterName(), attemptCount, message);
+                    tradeLogger.error(logString);
+                    logger.error(logString);
+                    continue;
+                } else { // message.contains("connect timed out")
+                    final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Set SYSTEM_OVERLOAD for %s sec",
+                            getCounterName(), attemptCount, message,
+                            settingsRepositoryService.getSettings().getOkexSysOverloadArgs().getOverloadTimeSec());
+                    tradeLogger.error(logString);
+                    logger.error(logString);
+                    setOverloaded(null);
                 }
 
+                break; // no retry by default
             } catch (Exception e) {
                 String message = e.getMessage();
 
@@ -697,7 +706,8 @@ public class OkCoinService extends MarketService {
 
                 tradeResponse.setOrderId(message);
                 tradeResponse.setErrorCode(message);
-                break;
+
+                break; // no retry by default
             }
         }
 
@@ -945,7 +955,7 @@ public class OkCoinService extends MarketService {
                                             }
 
                                         } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL
-                                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {
+                                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) { // EXCEPTION also duplicated in #moveOO
                                             setMarketState(MarketState.STOPPED);
                                         }
                                         final FplayOrder newOrder = response.getNewFplayOrder();
@@ -1116,6 +1126,7 @@ public class OkCoinService extends MarketService {
 //                    warningLogger.error("Warning: {}/{} Moving3:placingError {}", counterName, attemptCount, e.toString());
                 tradeResponse.setOrderId(null);
                 tradeResponse.setErrorCode(e.getMessage());
+                setMarketState(MarketState.STOPPED); // it's duplicated in #iterateOpenOrdersMove()
             }
         }
         return tradeResponse;
