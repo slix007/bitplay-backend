@@ -31,16 +31,16 @@ public class DealPrices {
     }
 
     public synchronized BigDecimal getDelta1Fact() {
-        final BigDecimal firstOpenPrice = bPriceFact.getOpenPrice();
-        final BigDecimal secondOpenPrice = oPriceFact.getOpenPrice();
+        final BigDecimal firstOpenPrice = bPriceFact.getAvg();
+        final BigDecimal secondOpenPrice = oPriceFact.getAvg();
         return (firstOpenPrice != null && secondOpenPrice != null)
                 ? firstOpenPrice.subtract(secondOpenPrice).setScale(2, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO;
     }
 
     public synchronized BigDecimal getDelta2Fact() {
-        final BigDecimal firstOpenPrice = bPriceFact.getOpenPrice();
-        final BigDecimal secondOpenPrice = oPriceFact.getOpenPrice();
+        final BigDecimal firstOpenPrice = bPriceFact.getAvg();
+        final BigDecimal secondOpenPrice = oPriceFact.getAvg();
         return (firstOpenPrice != null && secondOpenPrice != null)
                 ? secondOpenPrice.subtract(firstOpenPrice).setScale(2, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO;
