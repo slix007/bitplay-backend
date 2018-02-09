@@ -126,14 +126,16 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCumDelta() != null) {
             arbitrageService.getParams().setCumDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
-            arbitrageService.getParams().setCumAstDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
+            arbitrageService.getParams().setCumAstDelta1(new BigDecimal(deltalUpdateJson.getCumDelta()));
+            arbitrageService.getParams().setCumAstDelta2(new BigDecimal(deltalUpdateJson.getCumDelta()));
         }
         if (deltalUpdateJson.getLastDelta() != null) {
             arbitrageService.getParams().setLastDelta(deltalUpdateJson.getLastDelta());
         }
         if (deltalUpdateJson.getCumDeltaFact() != null) {
             arbitrageService.getParams().setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
-            arbitrageService.getParams().setCumAstDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
+            arbitrageService.getParams().setCumAstDeltaFact1(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
+            arbitrageService.getParams().setCumAstDeltaFact2(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
         }
         if (deltalUpdateJson.getCumDiffFactBr() != null) {
             arbitrageService.getParams().setCumDiffFactBr(new BigDecimal(deltalUpdateJson.getCumDiffFactBr()));
@@ -204,10 +206,10 @@ public class CommonUIService {
                 arbitrageService.getParams().getPeriodSec().toString(),
                 arbitrageService.getParams().getBuValue().toPlainString(),
                 arbitrageService.getParams().getCumDelta().toPlainString(),
-                arbitrageService.getParams().getCumAstDelta().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                arbitrageService.getParams().getCumAstDelta1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 arbitrageService.getParams().getLastDelta(),
                 arbitrageService.getParams().getCumDeltaFact().toPlainString(),
-                arbitrageService.getParams().getCumAstDeltaFact().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                arbitrageService.getParams().getCumAstDeltaFact1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact1().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact2().toPlainString(),

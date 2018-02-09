@@ -62,12 +62,12 @@ public class GuiParams extends AbstractDocument {
 
     private BigDecimal astDelta1 = BigDecimal.ZERO;
     private BigDecimal astDelta2 = BigDecimal.ZERO;
-    private BigDecimal astDeltaSum = BigDecimal.ZERO;
-    private BigDecimal cumAstDelta = BigDecimal.ZERO;
+    private BigDecimal cumAstDelta1 = BigDecimal.ZERO;
+    private BigDecimal cumAstDelta2 = BigDecimal.ZERO;
     private BigDecimal astDeltaFact1 = BigDecimal.ZERO;
     private BigDecimal astDeltaFact2 = BigDecimal.ZERO;
-    private BigDecimal astDeltaFactSum = BigDecimal.ZERO;
-    private BigDecimal cumAstDeltaFact = BigDecimal.ZERO;
+    private BigDecimal cumAstDeltaFact1 = BigDecimal.ZERO;
+    private BigDecimal cumAstDeltaFact2 = BigDecimal.ZERO;
     private BigDecimal astCom1 = BigDecimal.ZERO;
     private BigDecimal astCom2 = BigDecimal.ZERO;
     private BigDecimal astCom = BigDecimal.ZERO;
@@ -495,20 +495,20 @@ public class GuiParams extends AbstractDocument {
         this.astDelta2 = astDelta2;
     }
 
-    public BigDecimal getAstDeltaSum() {
-        return astDeltaSum;
+    public BigDecimal getCumAstDelta1() {
+        return cumAstDelta1;
     }
 
-    public void setAstDeltaSum(BigDecimal astDeltaSum) {
-        this.astDeltaSum = astDeltaSum;
+    public void setCumAstDelta1(BigDecimal cumAstDelta1) {
+        this.cumAstDelta1 = cumAstDelta1;
     }
 
-    public BigDecimal getCumAstDelta() {
-        return cumAstDelta;
+    public BigDecimal getCumAstDelta2() {
+        return cumAstDelta2;
     }
 
-    public void setCumAstDelta(BigDecimal cumAstDelta) {
-        this.cumAstDelta = cumAstDelta;
+    public void setCumAstDelta2(BigDecimal cumAstDelta2) {
+        this.cumAstDelta2 = cumAstDelta2;
     }
 
     public BigDecimal getAstDeltaFact1() {
@@ -527,20 +527,20 @@ public class GuiParams extends AbstractDocument {
         this.astDeltaFact2 = astDeltaFact2;
     }
 
-    public BigDecimal getAstDeltaFactSum() {
-        return astDeltaFactSum;
+    public BigDecimal getCumAstDeltaFact1() {
+        return cumAstDeltaFact1;
     }
 
-    public void setAstDeltaFactSum(BigDecimal astDeltaFactSum) {
-        this.astDeltaFactSum = astDeltaFactSum;
+    public void setCumAstDeltaFact1(BigDecimal cumAstDeltaFact1) {
+        this.cumAstDeltaFact1 = cumAstDeltaFact1;
     }
 
-    public BigDecimal getCumAstDeltaFact() {
-        return cumAstDeltaFact;
+    public BigDecimal getCumAstDeltaFact2() {
+        return cumAstDeltaFact2;
     }
 
-    public void setCumAstDeltaFact(BigDecimal cumAstDeltaFact) {
-        this.cumAstDeltaFact = cumAstDeltaFact;
+    public void setCumAstDeltaFact2(BigDecimal cumAstDeltaFact2) {
+        this.cumAstDeltaFact2 = cumAstDeltaFact2;
     }
 
     public BigDecimal getAstCom1() {
