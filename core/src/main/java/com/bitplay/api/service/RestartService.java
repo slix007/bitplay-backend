@@ -32,11 +32,11 @@ public class RestartService {
         Runtime.getRuntime().exec(new String[] { "/bin/systemctl", "restart", "bitplay2" });
     }
 
-    public void doDeferredRestart() {
-        logger.info("deferred restart");
+    public void doDeferredRestart(String details) {
+        logger.info("deferred restart. " + details);
         scheduler.schedule(() -> {
             try {
-                doFullRestart("deferred after flag STOPPED");
+                doFullRestart("deferred after flag STOPPED. " + details);
             } catch (IOException e) {
                 logger.error("Error on restart", e);
             }

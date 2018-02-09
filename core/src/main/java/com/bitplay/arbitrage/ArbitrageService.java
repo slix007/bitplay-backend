@@ -248,7 +248,7 @@ public class ArbitrageService {
 
         // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
         final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(dealPrices.getBorderList()));
-        params.setCumDiffFactBr((params.getCumDiffFactBr().add(diffFactBr.val)).setScale(8, BigDecimal.ROUND_HALF_UP));
+        params.setCumDiffFactBr((params.getCumDiffFactBr().add(diffFactBr.val)).setScale(2, BigDecimal.ROUND_HALF_UP));
         if (params.getCumDiffFactBr().compareTo(params.getCumDiffFactBrMin()) == -1) params.setCumDiffFactBrMin(params.getCumDiffFactBr());
         if (params.getCumDiffFactBr().compareTo(params.getCumDiffFactBrMax()) == 1) params.setCumDiffFactBrMax(params.getCumDiffFactBr());
 
@@ -829,8 +829,8 @@ public class ArbitrageService {
     private void printCom(DealPrices dealPrices) {
         final BigDecimal price1 = dealPrices.getbPriceFact().getAvg(true);
         final BigDecimal price2 = dealPrices.getoPriceFact().getAvg(true);
-        final BigDecimal com1 = price1.multiply(FEE_FIRST_MAKER).divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
-        final BigDecimal com2 = price2.multiply(FEE_SECOND_TAKER).divide(BigDecimal.valueOf(100), 8, BigDecimal.ROUND_HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal com1 = price1.multiply(FEE_FIRST_MAKER).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal com2 = price2.multiply(FEE_SECOND_TAKER).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
         params.setCom1(com1);
         params.setCom2(com2);
         final BigDecimal b_block = dealPrices.getbBlock();
@@ -886,11 +886,11 @@ public class ArbitrageService {
         // bitmex_m_com = round(open_price_fact * 0.025 / 100; 4),
         final BigDecimal BITMEX_M_COM_FACTOR = new BigDecimal(0.025);
         BigDecimal bitmexMCom = dealPrices.getbPriceFact().getAvg().multiply(BITMEX_M_COM_FACTOR)
-                .divide(OKEX_FACTOR, 8, BigDecimal.ROUND_HALF_UP);
+                .divide(OKEX_FACTOR, 2, BigDecimal.ROUND_HALF_UP);
         if (bitmexMCom.compareTo(BigDecimal.ZERO) != 0 && bitmexMCom.compareTo(params.getBitmexMComMin()) == -1) params.setBitmexMComMin(bitmexMCom);
         if (bitmexMCom.compareTo(params.getBitmexMComMax()) == 1) params.setBitmexMComMax(bitmexMCom);
 
-        params.setCumBitmexMCom((params.getCumBitmexMCom().add(bitmexMCom)).setScale(8, BigDecimal.ROUND_HALF_UP));
+        params.setCumBitmexMCom((params.getCumBitmexMCom().add(bitmexMCom)).setScale(2, BigDecimal.ROUND_HALF_UP));
 
         final BigDecimal b_block = dealPrices.getbBlock();
         final BigDecimal con = b_block;
