@@ -200,7 +200,7 @@ public class ArbitrageService {
                         .negate().setScale(8, RoundingMode.HALF_UP);
 
                 printP3DeltaFact(dealPrices.getDelta1Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
-                        params.getAstDelta1(), params.getAstDeltaFact2());
+                        params.getAstDelta1(), params.getAstDeltaFact1());
 
                 printOAvgPrice();
 
@@ -302,7 +302,7 @@ public class ArbitrageService {
                         "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
                         "diff_fact_br=%s=%s\n" +
                         "cum_diff_fact_br=%s/%s/%s; " +
-                        "ast_diff_fact1=%s, ast_diff_fact2=%s, ast_diff_fact=%s, " +
+                        "ast_diff_fact1=%s, ast_diff_fact2=%s, ast_diff_fact=%s-%s=%s, " +
                         "cum_ast_diff_fact1=%s, cum_ast_diff_fact2=%s, cum_ast_diff_fact=%s, " +
                         "slip_m=%s, cum_slip_m=%s, " +
                         "slip_t=%s, cum_slip_t=%s",
@@ -319,7 +319,7 @@ public class ArbitrageService {
                 cumDiffsFact, params.getCumDiffsFactMin(), params.getCumDiffsFactMax(),
                 diffFactBr.str, diffFactBr.val,
                 params.getCumDiffFactBr(), params.getCumDiffFactBrMin(), params.getCumDiffFactBrMax(),
-                ast_diff_fact1, ast_diff_fact2, ast_diff_fact,
+                ast_diff_fact1, ast_diff_fact2, ast_delta_fact, ast_delta, ast_diff_fact,
                 params.getCumAstDiffFact1(), params.getCumAstDiffFact2(), params.getCumAstDiffFact(),
                 slip_m, params.getCumSlipM(),
                 slip_t, params.getCumSlipT()
