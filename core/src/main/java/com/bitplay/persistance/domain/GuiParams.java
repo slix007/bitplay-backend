@@ -60,8 +60,12 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal cumCom1 = BigDecimal.ZERO;
     private BigDecimal cumCom2 = BigDecimal.ZERO;
 
+    private BigDecimal astDelta1 = BigDecimal.ZERO;
+    private BigDecimal astDelta2 = BigDecimal.ZERO;
     private BigDecimal astDeltaSum = BigDecimal.ZERO;
     private BigDecimal cumAstDelta = BigDecimal.ZERO;
+    private BigDecimal astDeltaFact1 = BigDecimal.ZERO;
+    private BigDecimal astDeltaFact2 = BigDecimal.ZERO;
     private BigDecimal astDeltaFactSum = BigDecimal.ZERO;
     private BigDecimal cumAstDeltaFact = BigDecimal.ZERO;
     private BigDecimal astCom1 = BigDecimal.ZERO;
@@ -475,6 +479,22 @@ public class GuiParams extends AbstractDocument {
         this.cumCom2 = cumCom2;
     }
 
+    public BigDecimal getAstDelta1() {
+        return astDelta1;
+    }
+
+    public void setAstDelta1(BigDecimal astDelta1) {
+        this.astDelta1 = astDelta1;
+    }
+
+    public BigDecimal getAstDelta2() {
+        return astDelta2;
+    }
+
+    public void setAstDelta2(BigDecimal astDelta2) {
+        this.astDelta2 = astDelta2;
+    }
+
     public BigDecimal getAstDeltaSum() {
         return astDeltaSum;
     }
@@ -489,6 +509,22 @@ public class GuiParams extends AbstractDocument {
 
     public void setCumAstDelta(BigDecimal cumAstDelta) {
         this.cumAstDelta = cumAstDelta;
+    }
+
+    public BigDecimal getAstDeltaFact1() {
+        return astDeltaFact1;
+    }
+
+    public void setAstDeltaFact1(BigDecimal astDeltaFact1) {
+        this.astDeltaFact1 = astDeltaFact1;
+    }
+
+    public BigDecimal getAstDeltaFact2() {
+        return astDeltaFact2;
+    }
+
+    public void setAstDeltaFact2(BigDecimal astDeltaFact2) {
+        this.astDeltaFact2 = astDeltaFact2;
     }
 
     public BigDecimal getAstDeltaFactSum() {
