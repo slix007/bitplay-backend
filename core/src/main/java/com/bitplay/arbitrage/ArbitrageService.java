@@ -179,9 +179,8 @@ public class ArbitrageService {
                 params.setAstDelta1(ast_delta1);
                 params.setCumAstDelta1((params.getCumAstDelta1().add(params.getAstDelta1())).setScale(8, BigDecimal.ROUND_HALF_UP));
                 // ast_delta1_fact = -(con / b_price_fact - con / ok_price_fact)
-                // ast_delta2_fact = -(con / ok_price_fact - con / b_price_fact)
                 // cum_ast_delta_fact = sum(ast_delta_fact)
-                final BigDecimal ast_delta1_fact = ((con.divide(b_price_fact, 8, RoundingMode.HALF_UP)).add(con.divide(ok_price_fact, 8, RoundingMode.HALF_UP)))
+                final BigDecimal ast_delta1_fact = ((con.divide(b_price_fact, 8, RoundingMode.HALF_UP)).subtract(con.divide(ok_price_fact, 8, RoundingMode.HALF_UP)))
                         .negate().setScale(8, RoundingMode.HALF_UP);
                 params.setAstDeltaFact1(ast_delta1_fact);
                 params.setCumAstDeltaFact1((params.getCumAstDeltaFact1().add(params.getAstDeltaFact1())).setScale(8, BigDecimal.ROUND_HALF_UP));
@@ -211,7 +210,9 @@ public class ArbitrageService {
                         .negate().setScale(8, RoundingMode.HALF_UP);
                 params.setAstDelta2(ast_delta2);
                 params.setCumAstDelta2((params.getCumAstDelta2().add(params.getAstDelta2())).setScale(8, BigDecimal.ROUND_HALF_UP));
-                final BigDecimal ast_delta2_fact = ((con.divide(ok_price_fact, 8, RoundingMode.HALF_UP)).add(con.divide(b_price_fact, 8, RoundingMode.HALF_UP)))
+                // ast_delta2_fact = -(con / ok_price_fact - con / b_price_fact)
+                // cum_ast_delta_fact = sum(ast_delta_fact)
+                final BigDecimal ast_delta2_fact = ((con.divide(ok_price_fact, 8, RoundingMode.HALF_UP)).subtract(con.divide(b_price_fact, 8, RoundingMode.HALF_UP)))
                         .negate().setScale(8, RoundingMode.HALF_UP);
                 params.setAstDeltaFact2(ast_delta2_fact);
                 params.setCumAstDeltaFact2((params.getCumAstDeltaFact2().add(params.getAstDeltaFact2())).setScale(8, BigDecimal.ROUND_HALF_UP));
