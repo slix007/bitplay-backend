@@ -159,7 +159,7 @@ public class ArbitrageService {
     }
 
     private void writeLogArbitrageIsDone() {
-        if (signalType == SignalType.AUTOMATIC && params.getLastDelta() != null) {
+        if (signalType == SignalType.AUTOMATIC && params.getLastDelta() != null && dealPrices.getBestQuotes() != null) {
             if (params.getLastDelta().equals(DELTA1)) {
 
                 printP1AvgDeltaLogs(dealPrices);
@@ -699,6 +699,7 @@ public class ArbitrageService {
             dealPrices.setbPricePlan(ask1_p);
             dealPrices.setoPricePlan(bid1_o);
             dealPrices.setDeltaName(DeltaName.O_DELTA);
+            dealPrices.setBestQuotes(bestQuotes);
             writeLogDelta2(ask1_p, bid1_o, tradingSignal);
             if (dynamicDeltaLogs != null) {
                 deltasLogger.info(String.format("#%s %s", getCounter(), dynamicDeltaLogs));
@@ -835,10 +836,6 @@ public class ArbitrageService {
         params.setCom2(com2);
         final BigDecimal b_block = dealPrices.getbBlock();
         final BigDecimal con = b_block;
-        final BigDecimal b_bid = dealPrices.getBestQuotes().getBid1_p();
-        final BigDecimal ok_ask = dealPrices.getBestQuotes().getAsk1_o();
-        final BigDecimal ok_bid = dealPrices.getBestQuotes().getBid1_o();
-        final BigDecimal b_ask = dealPrices.getBestQuotes().getAsk1_p();
         final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
         final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
         // ast_com1 = con / b_price_fact * 0.075 / 100
@@ -894,10 +891,6 @@ public class ArbitrageService {
 
         final BigDecimal b_block = dealPrices.getbBlock();
         final BigDecimal con = b_block;
-        final BigDecimal b_bid = dealPrices.getBestQuotes().getBid1_p();
-        final BigDecimal ok_ask = dealPrices.getBestQuotes().getAsk1_o();
-        final BigDecimal ok_bid = dealPrices.getBestQuotes().getBid1_o();
-        final BigDecimal b_ask = dealPrices.getBestQuotes().getAsk1_p();
         final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
         final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
         // ast_Bitmex_m_com = con / b_price_fact * 0.025 / 100
