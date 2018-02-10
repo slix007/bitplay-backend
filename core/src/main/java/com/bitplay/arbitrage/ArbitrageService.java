@@ -175,13 +175,13 @@ public class ArbitrageService {
                 // b_block = ok_block*100 = con (не идет в логи и на UI)
                 // ast_delta1 = -(con / b_bid - con / ok_ask)
                 // cum_ast_delta = sum(ast_delta)
-                final BigDecimal ast_delta1 = ((con.divide(b_bid, 8, RoundingMode.HALF_UP)).subtract(con.divide(ok_ask, 8, RoundingMode.HALF_UP)))
+                final BigDecimal ast_delta1 = ((con.divide(b_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_ask, 16, RoundingMode.HALF_UP)))
                         .negate().setScale(8, RoundingMode.HALF_UP);
                 params.setAstDelta1(ast_delta1);
                 params.setCumAstDelta1((params.getCumAstDelta1().add(params.getAstDelta1())).setScale(8, BigDecimal.ROUND_HALF_UP));
                 // ast_delta1_fact = -(con / b_price_fact - con / ok_price_fact)
                 // cum_ast_delta_fact = sum(ast_delta_fact)
-                final BigDecimal ast_delta1_fact = ((con.divide(b_price_fact, 8, RoundingMode.HALF_UP)).subtract(con.divide(ok_price_fact, 8, RoundingMode.HALF_UP)))
+                final BigDecimal ast_delta1_fact = ((con.divide(b_price_fact, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)))
                         .negate().setScale(8, RoundingMode.HALF_UP);
                 params.setAstDeltaFact1(ast_delta1_fact);
                 params.setCumAstDeltaFact1((params.getCumAstDeltaFact1().add(params.getAstDeltaFact1())).setScale(8, BigDecimal.ROUND_HALF_UP));
@@ -195,9 +195,9 @@ public class ArbitrageService {
                 // if ast_delta = ast_delta1
                 //   ast_diff_fact1 = con / b_bid - con / b_price_fact
                 //   ast_diff_fact2 = con / ok_price_fact - con / ok_ask
-                final BigDecimal ast_diff_fact1 = ((con.divide(b_bid, 8, RoundingMode.HALF_UP)).subtract(con.divide(b_price_fact, 8, RoundingMode.HALF_UP)))
+                final BigDecimal ast_diff_fact1 = ((con.divide(b_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(b_price_fact, 16, RoundingMode.HALF_UP)))
                         .negate().setScale(8, RoundingMode.HALF_UP);
-                final BigDecimal ast_diff_fact2 = ((con.divide(ok_price_fact, 8, RoundingMode.HALF_UP)).subtract(con.divide(ok_ask, 8, RoundingMode.HALF_UP)))
+                final BigDecimal ast_diff_fact2 = ((con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_ask, 16, RoundingMode.HALF_UP)))
                         .negate().setScale(8, RoundingMode.HALF_UP);
 
                 printP3DeltaFact(dealPrices.getDelta1Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
@@ -208,13 +208,13 @@ public class ArbitrageService {
             } else if (params.getLastDelta().equals(DELTA2)) {
 
                 // ast_delta2 = -(con / ok_bid - con / b_ask)
-                final BigDecimal ast_delta2 = ((con.divide(ok_bid, 8, RoundingMode.HALF_UP)).subtract(con.divide(b_ask, 8, RoundingMode.HALF_UP)))
+                final BigDecimal ast_delta2 = ((con.divide(ok_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(b_ask, 16, RoundingMode.HALF_UP)))
                         .negate().setScale(8, RoundingMode.HALF_UP);
                 params.setAstDelta2(ast_delta2);
                 params.setCumAstDelta2((params.getCumAstDelta2().add(params.getAstDelta2())).setScale(8, BigDecimal.ROUND_HALF_UP));
                 // ast_delta2_fact = -(con / ok_price_fact - con / b_price_fact)
                 // cum_ast_delta_fact = sum(ast_delta_fact)
-                final BigDecimal ast_delta2_fact = ((con.divide(ok_price_fact, 8, RoundingMode.HALF_UP)).subtract(con.divide(b_price_fact, 8, RoundingMode.HALF_UP)))
+                final BigDecimal ast_delta2_fact = ((con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)).subtract(con.divide(b_price_fact, 16, RoundingMode.HALF_UP)))
                         .negate().setScale(8, RoundingMode.HALF_UP);
                 params.setAstDeltaFact2(ast_delta2_fact);
                 params.setCumAstDeltaFact2((params.getCumAstDeltaFact2().add(params.getAstDeltaFact2())).setScale(8, BigDecimal.ROUND_HALF_UP));
@@ -830,9 +830,9 @@ public class ArbitrageService {
         // ast_com1 = con / b_price_fact * 0.075 / 100
         // ast_com2 = con / ok_price_fact * 0.015 / 100
         // ast_com = ast_com1 + ast_com2
-        final BigDecimal ast_com1 = con.divide(b_price_fact, 8, RoundingMode.HALF_UP).multiply(FEE_FIRST_MAKER)
+        final BigDecimal ast_com1 = con.divide(b_price_fact, 16, RoundingMode.HALF_UP).multiply(FEE_FIRST_MAKER)
                 .divide(OKEX_FACTOR, 8, RoundingMode.HALF_UP);
-        final BigDecimal ast_com2 = con.divide(ok_price_fact, 8, RoundingMode.HALF_UP).multiply(FEE_SECOND_TAKER)
+        final BigDecimal ast_com2 = con.divide(ok_price_fact, 16, RoundingMode.HALF_UP).multiply(FEE_SECOND_TAKER)
                 .divide(OKEX_FACTOR, 8, RoundingMode.HALF_UP);
         final BigDecimal ast_com = ast_com1.add(ast_com2);
         params.setAstCom1(ast_com1);
@@ -884,7 +884,7 @@ public class ArbitrageService {
         final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
         // ast_Bitmex_m_com = con / b_price_fact * 0.025 / 100
         // cum_ast_Bitmex_m_com = sum(ast_Bitmex_m_com)
-        final BigDecimal ast_Bitmex_m_com = con.divide(b_price_fact, 8, RoundingMode.HALF_UP).multiply(BITMEX_M_COM_FACTOR).divide(OKEX_FACTOR, 8, RoundingMode.HALF_UP);
+        final BigDecimal ast_Bitmex_m_com = con.divide(b_price_fact, 16, RoundingMode.HALF_UP).multiply(BITMEX_M_COM_FACTOR).divide(OKEX_FACTOR, 8, RoundingMode.HALF_UP);
         params.setAstBitmexMCom(ast_Bitmex_m_com);
         params.setCumAstBitmexMCom((params.getCumAstBitmexMCom().add(params.getAstBitmexMCom())).setScale(8, BigDecimal.ROUND_HALF_UP));
 
