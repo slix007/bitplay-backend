@@ -163,16 +163,17 @@ public class ArbitrageService {
             final BigDecimal b_block = dealPrices.getbBlock();
             final BigDecimal con = b_block;
             final BigDecimal b_bid = dealPrices.getBestQuotes().getBid1_p();
-            final BigDecimal ok_ask = dealPrices.getBestQuotes().getAsk1_o();
-            final BigDecimal ok_bid = dealPrices.getBestQuotes().getBid1_o();
             final BigDecimal b_ask = dealPrices.getBestQuotes().getAsk1_p();
+            final BigDecimal ok_bid = dealPrices.getBestQuotes().getBid1_o();
+            final BigDecimal ok_ask = dealPrices.getBestQuotes().getAsk1_o();
             final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
             final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
+            deltasLogger.info(String.format("#%s Params for calc: con=%s, b_bid=%s, b_ask=%s, ok_bid=%s, ok_ask=%s, b_price_fact=%s, ok_price_fact=%s",
+                    getCounter(), con, b_bid, b_ask, ok_bid, ok_ask, b_price_fact, ok_price_fact));
 
             if (params.getLastDelta().equals(DELTA1)) {
                 // b_block = ok_block*100 = con (не идет в логи и на UI)
                 // ast_delta1 = -(con / b_bid - con / ok_ask)
-                // ast_delta2 = -(con / ok_bid - con / b_ask)
                 // cum_ast_delta = sum(ast_delta)
                 final BigDecimal ast_delta1 = ((con.divide(b_bid, 8, RoundingMode.HALF_UP)).subtract(con.divide(ok_ask, 8, RoundingMode.HALF_UP)))
                         .negate().setScale(8, RoundingMode.HALF_UP);
@@ -186,7 +187,7 @@ public class ArbitrageService {
                 params.setCumAstDeltaFact1((params.getCumAstDeltaFact1().add(params.getAstDeltaFact1())).setScale(8, BigDecimal.ROUND_HALF_UP));
 
                 printCom(dealPrices);
-                printP1AvgDeltaLogs(ast_delta1, params.getCumAstDelta1(), ast_delta1_fact, params.getCumAstDeltaFact1());
+                printAstDeltaLogs(ast_delta1, params.getCumAstDelta1(), ast_delta1_fact, params.getCumAstDeltaFact1());
                 printP2CumBitmexMCom();
 
                 // this should be after
@@ -206,6 +207,7 @@ public class ArbitrageService {
 
             } else if (params.getLastDelta().equals(DELTA2)) {
 
+                // ast_delta2 = -(con / ok_bid - con / b_ask)
                 final BigDecimal ast_delta2 = ((con.divide(ok_bid, 8, RoundingMode.HALF_UP)).subtract(con.divide(b_ask, 8, RoundingMode.HALF_UP)))
                         .negate().setScale(8, RoundingMode.HALF_UP);
                 params.setAstDelta2(ast_delta2);
@@ -218,7 +220,7 @@ public class ArbitrageService {
                 params.setCumAstDeltaFact2((params.getCumAstDeltaFact2().add(params.getAstDeltaFact2())).setScale(8, BigDecimal.ROUND_HALF_UP));
 
                 printCom(dealPrices);
-                printP1AvgDeltaLogs(ast_delta2, params.getCumAstDelta2(), ast_delta2_fact, params.getCumAstDeltaFact2());
+                printAstDeltaLogs(ast_delta2, params.getCumAstDelta2(), ast_delta2_fact, params.getCumAstDeltaFact2());
                 printP2CumBitmexMCom();
 
                 final String deltaFactStr = String.format("delta2_fact=%s-%s=%s", dealPrices.getoPriceFact().getAvg(), dealPrices.getbPriceFact().getAvg(), dealPrices.getDelta2Fact());
@@ -807,7 +809,7 @@ public class ArbitrageService {
         printSumBal(false);
     }
 
-    private void printP1AvgDeltaLogs(BigDecimal ast_delta, BigDecimal cum_ast_delta, BigDecimal ast_delta_fact, BigDecimal cum_ast_delta_fact) {
+    private void printAstDeltaLogs(BigDecimal ast_delta, BigDecimal cum_ast_delta, BigDecimal ast_delta_fact, BigDecimal cum_ast_delta_fact) {
         deltasLogger.info(String.format("ast_delta=%s, cum_ast_delta=%s, " +
                         "ast_delta_fact=%s, cum_ast_delta_fact=%s",
                 ast_delta, cum_ast_delta,
