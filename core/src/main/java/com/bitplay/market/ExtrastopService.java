@@ -4,6 +4,8 @@ import com.bitplay.api.service.RestartService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,8 @@ import java.util.Date;
 @Service
 public class ExtrastopService {
 
+    private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
+
     @Autowired
     private BitmexService bitmexService;
 
@@ -32,14 +36,18 @@ public class ExtrastopService {
 
     @Scheduled(initialDelay = 60 * 1000, fixedDelay = 30 * 1000)
     public void checkTimes() {
-        final Date bT = bitmexService.getOrderBookLastTimestamp();
-        final Date oT = okCoinService.getOrderBook().getTimeStamp();
-        details = "";
+        try {
+            final Date bT = bitmexService.getOrderBookLastTimestamp();
+            final Date oT = okCoinService.getOrderBook().getTimeStamp();
+            details = "";
 
-        if (isBigDiff(bT, "Bitmex") || isBigDiff(oT, "okex")) {
-            bitmexService.setMarketState(MarketState.STOPPED);
-            okCoinService.setMarketState(MarketState.STOPPED);
-            restartService.doDeferredRestart(details);
+            if (isBigDiff(bT, "Bitmex") || isBigDiff(oT, "okex")) {
+                bitmexService.setMarketState(MarketState.STOPPED);
+                okCoinService.setMarketState(MarketState.STOPPED);
+                restartService.doDeferredRestart(details);
+            }
+        } catch (Exception e) {
+            logger.error("on check times", e);
         }
     }
 

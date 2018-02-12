@@ -29,7 +29,7 @@ public class RestartService {
         logger.error(warningMessage);
         warningLogger.error(warningMessage);
 
-//        Runtime.getRuntime().exec(new String[] { "/bin/systemctl", "restart", "bitplay2" });
+        Runtime.getRuntime().exec(new String[] { "/bin/systemctl", "restart", "bitplay2" });
     }
 
     public void doDeferredRestart(String details) {
