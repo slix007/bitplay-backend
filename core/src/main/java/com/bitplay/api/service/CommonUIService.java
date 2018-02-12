@@ -220,7 +220,7 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumDiffFact().toPlainString(),
                 arbitrageService.getParams().getCumAstDiffFact1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 arbitrageService.getParams().getCumAstDiffFact2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getCumAstDiffFact().toPlainString(),
+                arbitrageService.getParams().getCumAstDiffFact().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 arbitrageService.getParams().getCumCom1().toPlainString(),
                 arbitrageService.getParams().getCumCom2().toPlainString(),
                 arbitrageService.getParams().getCumAstCom1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
