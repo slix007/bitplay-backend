@@ -199,12 +199,12 @@ public class ArbitrageService {
                 //   ast_diff_fact1 = con / b_bid - con / b_price_fact
                 //   ast_diff_fact2 = con / ok_price_fact - con / ok_ask
                 final BigDecimal ast_diff_fact1 = ((con.divide(b_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(b_price_fact, 16, RoundingMode.HALF_UP)))
-                        .negate().setScale(8, RoundingMode.HALF_UP);
+                        .setScale(8, RoundingMode.HALF_UP);
                 final BigDecimal ast_diff_fact2 = ((con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_ask, 16, RoundingMode.HALF_UP)))
-                        .negate().setScale(8, RoundingMode.HALF_UP);
+                        .setScale(8, RoundingMode.HALF_UP);
 
                 printP3DeltaFact(dealPrices.getDelta1Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
-                        params.getAstDelta1(), params.getAstDeltaFact1());
+                        params.getAstDelta1(), params.getAstDeltaFact1(), delta1);
 
                 printOAvgPrice();
 
@@ -233,12 +233,15 @@ public class ArbitrageService {
                 // if ast_delta = ast_delta2
                 //   ast_diff_fact1 = con / ok_bid - con / ok_price_fact
                 //   ast_diff_fact2 = con / b_price_fact - con / b_ask
-                final BigDecimal ast_diff_fact1 = ((con.divide(ok_bid, 8, RoundingMode.HALF_UP)).subtract(con.divide(ok_price_fact, 8, RoundingMode.HALF_UP)))
-                        .negate().setScale(8, RoundingMode.HALF_UP);
-                final BigDecimal ast_diff_fact2 = ((con.divide(b_price_fact, 8, RoundingMode.HALF_UP)).subtract(con.divide(b_ask, 8, RoundingMode.HALF_UP)))
-                        .negate().setScale(8, RoundingMode.HALF_UP);
+
+                //   ast_diff_fact1 = con / b_price_fact - con / b_ask
+                //   ast_diff_fact2 = con / ok_bid - con / ok_price_fact
+                final BigDecimal ast_diff_fact1 = ((con.divide(b_price_fact, 16, RoundingMode.HALF_UP)).subtract(con.divide(b_ask, 16, RoundingMode.HALF_UP)))
+                        .setScale(8, RoundingMode.HALF_UP);
+                final BigDecimal ast_diff_fact2 = ((con.divide(ok_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)))
+                        .setScale(8, RoundingMode.HALF_UP);
                 printP3DeltaFact(dealPrices.getDelta2Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
-                        params.getAstDelta2(), params.getAstDeltaFact2());
+                        params.getAstDelta2(), params.getAstDeltaFact2(), delta2);
 
                 printOAvgPrice();
 
@@ -250,7 +253,7 @@ public class ArbitrageService {
         saveParamsToDb();
     }
 
-    private void printP3DeltaFact(BigDecimal deltaFact, String deltaFactString, BigDecimal ast_diff_fact1, BigDecimal ast_diff_fact2, BigDecimal ast_delta, BigDecimal ast_delta_fact) {
+    private void printP3DeltaFact(BigDecimal deltaFact, String deltaFactString, BigDecimal ast_diff_fact1, BigDecimal ast_diff_fact2, BigDecimal ast_delta, BigDecimal ast_delta_fact, BigDecimal delta) {
 
         params.setCumDeltaFact(params.getCumDeltaFact().add(deltaFact));
         if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMin()) == -1) params.setCumDeltaFactMin(params.getCumDeltaFact());
@@ -272,9 +275,14 @@ public class ArbitrageService {
 
         if (params.getCumDiffFact2().compareTo(params.getCumDiffFact2Min()) == -1) params.setCumDiffFact2Min(params.getCumDiffFact2());
         if (params.getCumDiffFact2().compareTo(params.getCumDiffFact2Max()) == 1) params.setCumDiffFact2Max(params.getCumDiffFact2());
-        BigDecimal cumDiffsFact = params.getCumDiffFact1().add(params.getCumDiffFact2());
-        if (cumDiffsFact.compareTo(params.getCumDiffsFactMin()) == -1) params.setCumDiffsFactMin(cumDiffsFact);
-        if (cumDiffsFact.compareTo(params.getCumDiffsFactMax()) == 1) params.setCumDiffsFactMax(cumDiffsFact);
+
+        // diff_fact = delta_fact - delta
+        // cum_diff_fact = sum(diff_fact)
+        params.setDiffFact(deltaFact.subtract(delta));
+        final BigDecimal cumDiffFact = params.getCumDiffFact().add(params.getDiffFact());
+        params.setCumDiffFact(cumDiffFact);
+        if (cumDiffFact.compareTo(params.getCumDiffFactMin()) == -1) params.setCumDiffFactMin(cumDiffFact);
+        if (cumDiffFact.compareTo(params.getCumDiffFactMax()) == 1) params.setCumDiffFactMax(cumDiffFact);
 
         // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
         final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(dealPrices.getBorderList()));
@@ -324,7 +332,7 @@ public class ArbitrageService {
                 diffFact.toPlainString(), params.getDiffFactMin().toPlainString(), params.getDiffFactMax().toPlainString(),
                 params.getCumDiffFact1().toPlainString(), params.getCumDiffFact1Min().toPlainString(), params.getCumDiffFact1Max().toPlainString(),
                 params.getCumDiffFact2().toPlainString(), params.getCumDiffFact2Min().toPlainString(), params.getCumDiffFact2Max().toPlainString(),
-                cumDiffsFact.toPlainString(), params.getCumDiffsFactMin().toPlainString(), params.getCumDiffsFactMax().toPlainString(),
+                params.getCumDiffFact().toPlainString(), params.getCumDiffFactMin().toPlainString(), params.getCumDiffFactMax().toPlainString(),
                 diffFactBr.str, diffFactBr.val.toPlainString(),
                 params.getCumDiffFactBr().toPlainString(), params.getCumDiffFactBrMin().toPlainString(), params.getCumDiffFactBrMax().toPlainString(),
                 ast_diff_fact1.toPlainString(), ast_diff_fact2.toPlainString(), ast_delta_fact.toPlainString(), ast_delta.toPlainString(), ast_diff_fact.toPlainString(),

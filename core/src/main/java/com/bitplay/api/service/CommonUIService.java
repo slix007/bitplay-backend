@@ -149,6 +149,10 @@ public class CommonUIService {
             arbitrageService.getParams().setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
             arbitrageService.getParams().setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
         }
+        if (deltalUpdateJson.getCumDiffFact() != null) {
+            arbitrageService.getParams().setCumDiffFact(new BigDecimal(deltalUpdateJson.getCumDiffFact()));
+            arbitrageService.getParams().setCumAstDiffFact(new BigDecimal(deltalUpdateJson.getCumDiffFact()));
+        }
         if (deltalUpdateJson.getCumAstDiffFact() != null) {
             arbitrageService.getParams().setCumAstDiffFact1(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
             arbitrageService.getParams().setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
@@ -213,6 +217,7 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact1().toPlainString(),
                 arbitrageService.getParams().getCumDiffFact2().toPlainString(),
+                arbitrageService.getParams().getCumDiffFact().toPlainString(),
                 arbitrageService.getParams().getCumAstDiffFact1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 arbitrageService.getParams().getCumAstDiffFact2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 arbitrageService.getParams().getCumAstDiffFact().toPlainString(),
