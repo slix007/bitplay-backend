@@ -31,7 +31,12 @@ public class BordersEndpoint {
 
     @RequestMapping(value = "/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public BorderParams getBorders() {
-        return persistenceService.fetchBorders();
+        final BorderParams borderParams = persistenceService.fetchBorders();
+        // changeset for BordersV2: new params
+        if (borderParams.getBordersV2().getMaxLvl() == null) {
+            createDefaultV2Params(borderParams);
+        }
+        return borderParams;
     }
 
     @RequestMapping(value = "/tables", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -75,7 +80,21 @@ public class BordersEndpoint {
         borderOkexOpen.add(new BorderItem(3, BigDecimal.valueOf(35), 350, 350));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        final BorderParams borderParams = new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        createDefaultV2Params(borderParams);
+        return borderParams;
+    }
+
+    private void createDefaultV2Params(final BorderParams borderParams) {
+        final BordersV2 bordersV2 = borderParams.getBordersV2();
+        bordersV2.setMaxLvl(7);
+        bordersV2.setPeriodSec(3600);
+        bordersV2.setBaseLvlCnt(4);
+        bordersV2.setBaseLvlType(BordersV2.BaseLvlType.B_OPEN);
+        bordersV2.setStep(20);
+        bordersV2.setGapStep(20);
+        bordersV2.setbAddDelta(BigDecimal.valueOf(20));
+        bordersV2.setOkAddDelta(BigDecimal.valueOf(20));
     }
 
     @RequestMapping(value = "/tables", method = RequestMethod.POST,
@@ -129,4 +148,54 @@ public class BordersEndpoint {
         public String version;
         public String posMode;
     }
+
+    @RequestMapping(value = "/settingsV2", method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson updateBordersSettingsV2(@RequestBody BordersV2 update) {
+        final BorderParams bP = persistenceService.fetchBorders();
+        final BordersV2 bordersV2 = bP.getBordersV2();
+
+        String result = "";
+        try {
+            if (update.getMaxLvl() != null) {
+                bordersV2.setMaxLvl(update.getMaxLvl());
+                result = bordersV2.getMaxLvl().toString();
+            }
+            if (update.getPeriodSec() != null) {
+                bordersV2.setPeriodSec(update.getPeriodSec());
+                result = bordersV2.getPeriodSec().toString();
+            }
+            if (update.getBaseLvlCnt() != null) {
+                bordersV2.setBaseLvlCnt(update.getBaseLvlCnt());
+                result = bordersV2.getBaseLvlCnt().toString();
+            }
+            if (update.getBaseLvlType() != null) {
+                bordersV2.setBaseLvlType(update.getBaseLvlType());
+                result = bordersV2.getBaseLvlType().toString();
+            }
+            if (update.getStep() != null) {
+                bordersV2.setStep(update.getStep());
+                result = bordersV2.getStep().toString();
+            }
+            if (update.getGapStep() != null) {
+                bordersV2.setGapStep(update.getGapStep());
+                result = bordersV2.getGapStep().toString();
+            }
+            if (update.getbAddDelta() != null) {
+                bordersV2.setbAddDelta(update.getbAddDelta());
+                result = bordersV2.getbAddDelta().toString();
+            }
+            if (update.getOkAddDelta() != null) {
+                bordersV2.setOkAddDelta(update.getOkAddDelta());
+                result = bordersV2.getOkAddDelta().toString();
+            }
+        } catch (Exception e) {
+            return new ResultJson("Wrong request", e.getMessage());
+        }
+
+        persistenceService.saveBorderParams(bP);
+
+        return new ResultJson(result, result);
+    }
+
 }
