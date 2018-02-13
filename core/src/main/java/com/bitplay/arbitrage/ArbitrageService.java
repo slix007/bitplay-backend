@@ -259,13 +259,13 @@ public class ArbitrageService {
         if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMin()) == -1) params.setCumDeltaFactMin(params.getCumDeltaFact());
         if (params.getCumDeltaFact().compareTo(params.getCumDeltaFactMax()) == 1) params.setCumDeltaFactMax(params.getCumDeltaFact());
 
-        BigDecimal diffFact = dealPrices.getDiffB().val.add(dealPrices.getDiffO().val);
+        BigDecimal diff_fact_v1 = dealPrices.getDiffB().val.add(dealPrices.getDiffO().val);
         if (dealPrices.getDiffB().val.compareTo(params.getDiffFact1Min()) == -1) params.setDiffFact1Min(dealPrices.getDiffB().val);
         if (dealPrices.getDiffB().val.compareTo(params.getDiffFact1Max()) == 1) params.setDiffFact1Max(dealPrices.getDiffB().val);
         if (dealPrices.getDiffO().val.compareTo(params.getDiffFact2Min()) == -1) params.setDiffFact2Min(dealPrices.getDiffO().val);
         if (dealPrices.getDiffO().val.compareTo(params.getDiffFact2Max()) == 1) params.setDiffFact2Max(dealPrices.getDiffO().val);
-        if (diffFact.compareTo(params.getDiffFactMin()) == -1) params.setDiffFactMin(diffFact);
-        if (diffFact.compareTo(params.getDiffFactMax()) == 1) params.setDiffFactMax(diffFact);
+        if (diff_fact_v1.compareTo(params.getDiffFactMin()) == -1) params.setDiffFactMin(diff_fact_v1);
+        if (diff_fact_v1.compareTo(params.getDiffFactMax()) == 1) params.setDiffFactMax(diff_fact_v1);
 
         params.setCumDiffFact1(params.getCumDiffFact1().add(dealPrices.getDiffB().val));
         params.setCumDiffFact2(params.getCumDiffFact2().add(dealPrices.getDiffO().val));
@@ -278,8 +278,8 @@ public class ArbitrageService {
 
         // diff_fact = delta_fact - delta
         // cum_diff_fact = sum(diff_fact)
-        params.setDiffFact(deltaFact.subtract(delta));
-        final BigDecimal cumDiffFact = params.getCumDiffFact().add(params.getDiffFact());
+        final BigDecimal diff_fact_v2 = deltaFact.subtract(delta);
+        final BigDecimal cumDiffFact = params.getCumDiffFact().add(diff_fact_v2);
         params.setCumDiffFact(cumDiffFact);
         if (cumDiffFact.compareTo(params.getCumDiffFactMin()) == -1) params.setCumDiffFactMin(cumDiffFact);
         if (cumDiffFact.compareTo(params.getCumDiffFactMax()) == 1) params.setCumDiffFactMax(cumDiffFact);
@@ -314,7 +314,8 @@ public class ArbitrageService {
 
         deltasLogger.info(String.format("#%s %s; " +
                         "cum_delta_fact=%s/%s/%s; " +
-                        "diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
+                        "diff_fact_v1=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
+                        "diff_fact_v2=%s-%s=%s; " +
                         "cum_diff_fact=%s/%s/%s+%s/%s/%s=%s/%s/%s; " +
                         "diff_fact_br=%s=%s\n" +
                         "cum_diff_fact_br=%s/%s/%s; " +
@@ -324,12 +325,11 @@ public class ArbitrageService {
                         "slip_t=%s, cum_slip_t=%s",
                 getCounter(),
                 deltaFactString,
-                params.getCumDeltaFact().toPlainString(),
-                params.getCumDeltaFactMin().toPlainString(),
-                params.getCumDeltaFactMax().toPlainString(),
+                params.getCumDeltaFact().toPlainString(), params.getCumDeltaFactMin().toPlainString(), params.getCumDeltaFactMax().toPlainString(),
                 dealPrices.getDiffB().val.toPlainString(), params.getDiffFact1Min().toPlainString(), params.getDiffFact1Max().toPlainString(),
                 dealPrices.getDiffO().val.toPlainString(), params.getDiffFact2Min().toPlainString(), params.getDiffFact2Max().toPlainString(),
-                diffFact.toPlainString(), params.getDiffFactMin().toPlainString(), params.getDiffFactMax().toPlainString(),
+                diff_fact_v1.toPlainString(), params.getDiffFactMin().toPlainString(), params.getDiffFactMax().toPlainString(),
+                deltaFact.toPlainString(), delta.toPlainString(), diff_fact_v2.toPlainString(),
                 params.getCumDiffFact1().toPlainString(), params.getCumDiffFact1Min().toPlainString(), params.getCumDiffFact1Max().toPlainString(),
                 params.getCumDiffFact2().toPlainString(), params.getCumDiffFact2Min().toPlainString(), params.getCumDiffFact2Max().toPlainString(),
                 params.getCumDiffFact().toPlainString(), params.getCumDiffFactMin().toPlainString(), params.getCumDiffFactMax().toPlainString(),
