@@ -38,7 +38,6 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
-import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
@@ -69,9 +68,11 @@ public class ArbitrageService {
     private PersistenceService persistenceService;
     @Autowired
     private SignalService signalService;
-    private Disposable schdeduleUpdateBorders;
-    private Instant startTimeToUpdateBorders;
-    private volatile int updateBordersCounter;
+    @Autowired
+    private BordersCalcScheduler bordersCalcScheduler;
+//    private Disposable schdeduleUpdateBorders;
+//    private Instant startTimeToUpdateBorders;
+//    private volatile int updateBordersCounter;
     //TODO rename them to first and second
     private MarketService firstMarketService;
     private MarketService secondMarketService;
@@ -101,7 +102,6 @@ public class ArbitrageService {
         this.secondMarketService = twoMarketStarter.getSecondMarketService();
         this.posDiffService = twoMarketStarter.getPosDiffService();
 //        startArbitrageMonitoring();
-        scheduleRecalculateBorders();
         initArbitrageStateListener();
         initSignalEventBus();
     }
@@ -204,7 +204,7 @@ public class ArbitrageService {
                         .setScale(8, RoundingMode.HALF_UP);
 
                 printP3DeltaFact(dealPrices.getDelta1Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
-                        params.getAstDelta1(), params.getAstDeltaFact1(), delta1);
+                        params.getAstDelta1(), params.getAstDeltaFact1(), dealPrices.getDelta1Plan());
 
                 printOAvgPrice();
 
@@ -241,7 +241,7 @@ public class ArbitrageService {
                 final BigDecimal ast_diff_fact2 = ((con.divide(ok_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)))
                         .setScale(8, RoundingMode.HALF_UP);
                 printP3DeltaFact(dealPrices.getDelta2Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
-                        params.getAstDelta2(), params.getAstDeltaFact2(), delta2);
+                        params.getAstDelta2(), params.getAstDeltaFact2(), dealPrices.getDelta2Plan());
 
                 printOAvgPrice();
 
@@ -1140,52 +1140,6 @@ public class ArbitrageService {
         return affordable;
     }
 
-    private void scheduleRecalculateBorders() {
-        if (schdeduleUpdateBorders != null && !schdeduleUpdateBorders.isDisposed()) {
-            schdeduleUpdateBorders.dispose();
-        }
-
-        startTimeToUpdateBorders = Instant.now();
-        schdeduleUpdateBorders = Observable.interval(params.getPeriodSec(), TimeUnit.SECONDS, Schedulers.computation())
-                .doOnEach(longNotification -> startTimeToUpdateBorders = Instant.now())
-                .doOnError((e) -> logger.error("OnRecalculateBorders", e))
-                .retry()
-                .subscribe(this::recalculateBordersV1);
-    }
-
-    public String getUpdateBordersTimerString() {
-        final Duration duration = Duration.between(startTimeToUpdateBorders, Instant.now());
-        return String.format("Borders updated %s sec ago. Next (%s) in %s sec",
-                duration.getSeconds(),
-                updateBordersCounter + 1,
-                String.valueOf(params.getPeriodSec() - duration.getSeconds()));
-    }
-
-    private void recalculateBordersV1(Long intervalInt) {
-        updateBordersCounter = updateBordersCounter + 1;
-
-        final BigDecimal two = new BigDecimal(2);
-        final BigDecimal sumDelta = params.getSumDelta();
-        if (sumDelta.compareTo(BigDecimal.ZERO) != 0) {
-            if (delta1.compareTo(delta2) == 1) {
-//            border1 = (abs(delta1) + abs(delta2)) / 2 + sum_delta / 2;
-//            border2 = -((abs(delta1) + abs(delta2)) / 2 - sum_delta / 2);
-                params.setBorder1(((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
-                        .add(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)));
-                params.setBorder2(((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
-                        .subtract(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)).negate());
-            } else {
-//            border1 = -(abs(delta1) + abs(delta2)) / 2 - sum_delta / 2;
-//            border2 = abs(delta1) + abs(delta2)) / 2 + sum_delta / 2;
-                params.setBorder1(((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
-                        .subtract(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)).negate());
-                params.setBorder2(((delta1.abs().add(delta2.abs())).divide(two, 2, BigDecimal.ROUND_HALF_UP))
-                        .add(sumDelta.divide(two, 2, BigDecimal.ROUND_HALF_UP)));
-            }
-            saveParamsToDb();
-        }
-    }
-
     public BigDecimal calcQuAvg() {
         return Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
     }
@@ -1247,11 +1201,6 @@ public class ArbitrageService {
 
     public synchronized void setSignalType(SignalType signalType) {
         this.signalType = signalType != null ? signalType : SignalType.AUTOMATIC;
-    }
-
-    public void setPeriodSec(Integer integer) {
-        params.setPeriodSec(integer);
-        scheduleRecalculateBorders();
     }
 
     public int getCounter() {

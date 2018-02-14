@@ -15,9 +15,7 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal border1 = BigDecimal.valueOf(10000);
     private BigDecimal border2 = BigDecimal.valueOf(10000);
     private BigDecimal makerDelta = BigDecimal.ZERO;
-    private BigDecimal sumDelta = new BigDecimal(5);
     private BigDecimal buValue = BigDecimal.ZERO;
-    private Integer periodSec = 60;
     private BigDecimal cumDelta = BigDecimal.ZERO;
     private BigDecimal cumDeltaMin = BigDecimal.valueOf(10000);
     private BigDecimal cumDeltaMax = BigDecimal.ZERO;
@@ -129,28 +127,12 @@ public class GuiParams extends AbstractDocument {
         this.makerDelta = makerDelta;
     }
 
-    public BigDecimal getSumDelta() {
-        return sumDelta;
-    }
-
-    public void setSumDelta(BigDecimal sumDelta) {
-        this.sumDelta = sumDelta;
-    }
-
     public BigDecimal getBuValue() {
         return buValue;
     }
 
     public void setBuValue(BigDecimal buValue) {
         this.buValue = buValue;
-    }
-
-    public Integer getPeriodSec() {
-        return periodSec;
-    }
-
-    public void setPeriodSec(Integer periodSec) {
-        this.periodSec = periodSec;
     }
 
     public BigDecimal getCumDelta() {
