@@ -3,7 +3,6 @@ package com.bitplay.arbitrage;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.BorderItem;
 import com.bitplay.persistance.domain.BorderParams;
-import com.bitplay.persistance.domain.BorderTable;
 import com.bitplay.persistance.domain.BordersV2;
 import com.bitplay.persistance.domain.GuiParams;
 
@@ -122,7 +121,10 @@ public class BordersRecalcService {
                             int currStep = step * (i + 1 - base_lvl); // val *_br_open:0,1,2,3
                             final BigDecimal val = b_baseVal.add(BigDecimal.valueOf(currStep));
                             items.get(i).setValue(val);
+                            items.get(i).setId(i + 1);
                         }
+                        items.stream().skip(max_lvl)
+                                .forEach(item -> item.setId(0));
                     });
             // with gap_step
             bordersV2.getBorderTableByName("b_br_close")
@@ -135,7 +137,10 @@ public class BordersRecalcService {
                             int currStep = stepToZeroThis + step * (-i);
                             final BigDecimal val = b_baseVal.add(BigDecimal.valueOf(currStep));
                             items.get(i).setValue(val);
+                            items.get(i).setId(i + 1);
                         }
+                        items.stream().skip(max_lvl)
+                                .forEach(item -> item.setId(0));
                     });
 
             bordersV2.getBorderTableByName("o_br_close")
@@ -145,7 +150,10 @@ public class BordersRecalcService {
                             int currStep = step * (base_lvl - i - 1); // val X_br_open:0,-1,-2,-3
                             final BigDecimal val = ok_baseVal.add(BigDecimal.valueOf(currStep));
                             items.get(i).setValue(val);
+                            items.get(i).setId(i + 1);
                         }
+                        items.stream().skip(max_lvl)
+                                .forEach(item -> item.setId(0));
                     });
             // with gap_step
             bordersV2.getBorderTableByName("o_br_open")
@@ -158,7 +166,10 @@ public class BordersRecalcService {
                             int currStep = stepToZeroThis + step * i;
                             final BigDecimal val = ok_baseVal.add(BigDecimal.valueOf(currStep));
                             items.get(i).setValue(val);
+                            items.get(i).setId(i + 1);
                         }
+                        items.stream().skip(max_lvl)
+                                .forEach(item -> item.setId(0));
                     });
 
 
@@ -170,7 +181,10 @@ public class BordersRecalcService {
                             int currStep = step * (i + 1 - base_lvl); // val *_br_open:0,1,2,3
                             final BigDecimal val = ok_baseVal.add(BigDecimal.valueOf(currStep));
                             items.get(i).setValue(val);
+                            items.get(i).setId(i + 1);
                         }
+                        items.stream().skip(max_lvl)
+                                .forEach(item -> item.setId(0));
                     });
             // with gap_step
             bordersV2.getBorderTableByName("o_br_close")
@@ -183,7 +197,10 @@ public class BordersRecalcService {
                             int currStep = stepToZeroThis + step * (-i);
                             final BigDecimal val = ok_baseVal.add(BigDecimal.valueOf(currStep));
                             items.get(i).setValue(val);
+                            items.get(i).setId(i + 1);
                         }
+                        items.stream().skip(max_lvl)
+                                .forEach(item -> item.setId(0));
                     });
 
             bordersV2.getBorderTableByName("b_br_close")
@@ -193,7 +210,10 @@ public class BordersRecalcService {
                             int currStep = step * (base_lvl - i - 1); // val X_br_open:0,-1,-2,-3
                             final BigDecimal val = b_baseVal.add(BigDecimal.valueOf(currStep));
                             items.get(i).setValue(val);
+                            items.get(i).setId(i + 1);
                         }
+                        items.stream().skip(max_lvl)
+                                .forEach(item -> item.setId(0));
                     });
             // with gap_step
             bordersV2.getBorderTableByName("b_br_open")
@@ -206,7 +226,10 @@ public class BordersRecalcService {
                             int currStep = stepToZeroThis + step * i;
                             final BigDecimal val = b_baseVal.add(BigDecimal.valueOf(currStep));
                             items.get(i).setValue(val);
+                            items.get(i).setId(i + 1);
                         }
+                        items.stream().skip(max_lvl)
+                                .forEach(item -> item.setId(0));
                     });
         }
 
