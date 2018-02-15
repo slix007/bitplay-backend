@@ -1,7 +1,10 @@
 package com.bitplay.persistance.domain;
 
+import org.springframework.data.annotation.Transient;
+
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -16,6 +19,8 @@ public class BordersV2 {
     private Integer gapStep; // between tables
     private BigDecimal bAddDelta;
     private BigDecimal okAddDelta;
+    @Transient
+    private int borderTableHashCode;
 
     /**
      * in use as json object by API
@@ -99,4 +104,8 @@ public class BordersV2 {
     }
 
     public enum BaseLvlType {B_OPEN, OK_OPEN}
+
+    public int getBorderTableHashCode() {
+        return Objects.hash(borderTableList);
+    }
 }

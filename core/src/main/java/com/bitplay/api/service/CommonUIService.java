@@ -16,7 +16,9 @@ import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 
@@ -44,6 +46,9 @@ public class CommonUIService {
 
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
+
+    @Autowired
+    private PersistenceService persistenceService;
 
     @Autowired
     private PosDiffService posDiffService;
@@ -408,6 +413,9 @@ public class CommonUIService {
 
     public ResultJson getUpdateBordersTimerString() {
         final String updateBordersTimerString = bordersCalcScheduler.getUpdateBordersTimerString();
-        return new ResultJson(updateBordersTimerString, "");
+        final BorderParams borderParams = persistenceService.fetchBorders();
+        final int tableHashCode = borderParams.getBordersV2().getBorderTableHashCode();
+
+        return new ResultJson(updateBordersTimerString, String.valueOf(tableHashCode));
     }
 }

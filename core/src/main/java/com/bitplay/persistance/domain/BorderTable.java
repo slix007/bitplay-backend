@@ -1,6 +1,7 @@
 package com.bitplay.persistance.domain;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Created by Sergey Shurmin on 10/9/17.
@@ -32,5 +33,10 @@ public class BorderTable {
 
     public void setBorderItemList(List<BorderItem> borderItemList) {
         this.borderItemList = borderItemList;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(borderName, borderItemList);
     }
 }

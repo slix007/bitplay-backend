@@ -80,28 +80,6 @@ public class BordersCalcScheduler {
         bordersCalcService.recalc();
     }
 
-/*
-    public void scheduleRecalculateBorders(Integer periodSec) {
-        if (schdeduleUpdateBorders != null && !schdeduleUpdateBorders.isDisposed()) {
-            schdeduleUpdateBorders.dispose();
-        }
-
-        lastRecalcTime = Instant.now();
-        schdeduleUpdateBorders = Observable.interval(periodSec, TimeUnit.SECONDS, Schedulers.computation())
-                .doOnEach(longNotification -> lastRecalcTime = Instant.now())
-                .doOnError((e) -> logger.error("OnRecalculateBorders", e))
-                .retry()
-                .subscribe(this::recalculateBordersV1);
-    }
-
-    public String getUpdateBordersTimerString() {
-        final Duration duration = Duration.between(lastRecalcTime, Instant.now());
-        return String.format("Borders updated %s sec ago. Next (%s) in %s sec",
-                duration.getSeconds(),
-                updateBordersCounter + 1,
-                String.valueOf(params.getPeriodSec() - duration.getSeconds()));
-    }*/
-
     public String getUpdateBordersTimerString() {
         String lastUpdate = "()";
         if (lastRecalcTime != null) {
