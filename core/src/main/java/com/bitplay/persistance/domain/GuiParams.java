@@ -17,45 +17,18 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal makerDelta = BigDecimal.ZERO;
     private BigDecimal buValue = BigDecimal.ZERO;
     private BigDecimal cumDelta = BigDecimal.ZERO;
-    private BigDecimal cumDeltaMin = BigDecimal.valueOf(10000);
-    private BigDecimal cumDeltaMax = BigDecimal.ZERO;
     private BigDecimal cumDeltaFact = BigDecimal.ZERO;
-    private BigDecimal cumDeltaFactMin = BigDecimal.valueOf(10000);
-    private BigDecimal cumDeltaFactMax = BigDecimal.ZERO;
     private String lastDelta = null;
     private BigDecimal cumDiffFact1 = BigDecimal.ZERO;
-    private BigDecimal cumDiffFact1Min = BigDecimal.valueOf(10000);
-    private BigDecimal cumDiffFact1Max = BigDecimal.ZERO;
     private BigDecimal cumDiffFact2 = BigDecimal.ZERO;
-    private BigDecimal cumDiffFact2Min = BigDecimal.valueOf(10000);
-    private BigDecimal cumDiffFact2Max = BigDecimal.ZERO;
     private BigDecimal cumDiffFact = BigDecimal.ZERO;
-    private BigDecimal cumDiffFactMin = BigDecimal.valueOf(10000);
-    private BigDecimal cumDiffFactMax = BigDecimal.ZERO;
     private BigDecimal cumDiffFactBr = BigDecimal.ZERO;
-    private BigDecimal cumDiffFactBrMin = BigDecimal.valueOf(10000);
-    private BigDecimal cumDiffFactBrMax = BigDecimal.ZERO;
-//    private BigDecimal cumAvgDiffFactBr = BigDecimal.ZERO;
     private BigDecimal cumAstDiffFact1 = BigDecimal.ZERO;
     private BigDecimal cumAstDiffFact2 = BigDecimal.ZERO;
     private BigDecimal cumAstDiffFact = BigDecimal.ZERO;
-    private BigDecimal diffFactMin = BigDecimal.valueOf(10000);
-    private BigDecimal diffFactMax = BigDecimal.ZERO;
-    private BigDecimal diffFact1Min = BigDecimal.valueOf(10000);
-    private BigDecimal diffFact1Max = BigDecimal.ZERO;
-    private BigDecimal diffFact2Min = BigDecimal.valueOf(10000);
-    private BigDecimal diffFact2Max = BigDecimal.ZERO;
     private BigDecimal diffFact = BigDecimal.ZERO;
-    private BigDecimal comMin = BigDecimal.valueOf(10000);
-    private BigDecimal comMax = BigDecimal.ZERO;
     private BigDecimal com1 = BigDecimal.ZERO;
-    private BigDecimal com1Min = BigDecimal.valueOf(10000);
-    private BigDecimal com1Max = BigDecimal.ZERO;
     private BigDecimal com2 = BigDecimal.ZERO;
-    private BigDecimal com2Min = BigDecimal.valueOf(10000);
-    private BigDecimal com2Max = BigDecimal.ZERO;
-    private BigDecimal bitmexMComMin = BigDecimal.valueOf(10000);
-    private BigDecimal bitmexMComMax = BigDecimal.ZERO;
     private BigDecimal cumBitmexMCom = BigDecimal.ZERO;
     private BigDecimal cumCom1 = BigDecimal.ZERO;
     private BigDecimal cumCom2 = BigDecimal.ZERO;
@@ -143,44 +116,12 @@ public class GuiParams extends AbstractDocument {
         this.cumDelta = cumDelta;
     }
 
-    public BigDecimal getCumDeltaMin() {
-        return cumDeltaMin;
-    }
-
-    public void setCumDeltaMin(BigDecimal cumDeltaMin) {
-        this.cumDeltaMin = cumDeltaMin;
-    }
-
-    public BigDecimal getCumDeltaMax() {
-        return cumDeltaMax;
-    }
-
-    public void setCumDeltaMax(BigDecimal cumDeltaMax) {
-        this.cumDeltaMax = cumDeltaMax;
-    }
-
     public BigDecimal getCumDeltaFact() {
         return cumDeltaFact;
     }
 
     public void setCumDeltaFact(BigDecimal cumDeltaFact) {
         this.cumDeltaFact = cumDeltaFact;
-    }
-
-    public BigDecimal getCumDeltaFactMin() {
-        return cumDeltaFactMin;
-    }
-
-    public void setCumDeltaFactMin(BigDecimal cumDeltaFactMin) {
-        this.cumDeltaFactMin = cumDeltaFactMin;
-    }
-
-    public BigDecimal getCumDeltaFactMax() {
-        return cumDeltaFactMax;
-    }
-
-    public void setCumDeltaFactMax(BigDecimal cumDeltaFactMax) {
-        this.cumDeltaFactMax = cumDeltaFactMax;
     }
 
     public String getLastDelta() {
@@ -199,52 +140,12 @@ public class GuiParams extends AbstractDocument {
         this.cumDiffFact1 = cumDiffFact1;
     }
 
-    public BigDecimal getCumDiffFact1Min() {
-        return cumDiffFact1Min;
-    }
-
-    public void setCumDiffFact1Min(BigDecimal cumDiffFact1Min) {
-        this.cumDiffFact1Min = cumDiffFact1Min;
-    }
-
-    public BigDecimal getCumDiffFact1Max() {
-        return cumDiffFact1Max;
-    }
-
-    public void setCumDiffFact1Max(BigDecimal cumDiffFact1Max) {
-        this.cumDiffFact1Max = cumDiffFact1Max;
-    }
-
     public BigDecimal getCumDiffFact2() {
         return cumDiffFact2;
     }
 
     public void setCumDiffFact2(BigDecimal cumDiffFact2) {
         this.cumDiffFact2 = cumDiffFact2;
-    }
-
-    public BigDecimal getCumDiffFact2Min() {
-        return cumDiffFact2Min;
-    }
-
-    public void setCumDiffFact2Min(BigDecimal cumDiffFact2Min) {
-        this.cumDiffFact2Min = cumDiffFact2Min;
-    }
-
-    public BigDecimal getCumDiffFact2Max() {
-        return cumDiffFact2Max;
-    }
-
-    public void setCumDiffFact2Max(BigDecimal cumDiffFact2Max) {
-        this.cumDiffFact2Max = cumDiffFact2Max;
-    }
-
-    public BigDecimal getDiffFact() {
-        return diffFact;
-    }
-
-    public void setDiffFact(BigDecimal diffFact) {
-        this.diffFact = diffFact;
     }
 
     public BigDecimal getCumDiffFact() {
@@ -255,22 +156,6 @@ public class GuiParams extends AbstractDocument {
         this.cumDiffFact = cumDiffFact;
     }
 
-    public BigDecimal getCumDiffFactMin() {
-        return cumDiffFactMin;
-    }
-
-    public void setCumDiffFactMin(BigDecimal cumDiffFactMin) {
-        this.cumDiffFactMin = cumDiffFactMin;
-    }
-
-    public BigDecimal getCumDiffFactMax() {
-        return cumDiffFactMax;
-    }
-
-    public void setCumDiffFactMax(BigDecimal cumDiffFactMax) {
-        this.cumDiffFactMax = cumDiffFactMax;
-    }
-
     public BigDecimal getCumDiffFactBr() {
         return cumDiffFactBr;
     }
@@ -278,30 +163,6 @@ public class GuiParams extends AbstractDocument {
     public void setCumDiffFactBr(BigDecimal cumDiffFactBr) {
         this.cumDiffFactBr = cumDiffFactBr;
     }
-
-    public BigDecimal getCumDiffFactBrMin() {
-        return cumDiffFactBrMin;
-    }
-
-    public void setCumDiffFactBrMin(BigDecimal cumDiffFactBrMin) {
-        this.cumDiffFactBrMin = cumDiffFactBrMin;
-    }
-
-    public BigDecimal getCumDiffFactBrMax() {
-        return cumDiffFactBrMax;
-    }
-
-    public void setCumDiffFactBrMax(BigDecimal cumDiffFactBrMax) {
-        this.cumDiffFactBrMax = cumDiffFactBrMax;
-    }
-
-//    public BigDecimal getCumAvgDiffFactBr() {
-//        return cumAvgDiffFactBr;
-//    }
-//
-//    public void setCumAvgDiffFactBr(BigDecimal cumAvgDiffFactBr) {
-//        this.cumAvgDiffFactBr = cumAvgDiffFactBr;
-//    }
 
     public BigDecimal getCumAstDiffFact1() {
         return cumAstDiffFact1;
@@ -327,68 +188,12 @@ public class GuiParams extends AbstractDocument {
         this.cumAstDiffFact = cumAstDiffFact;
     }
 
-    public BigDecimal getDiffFactMin() {
-        return diffFactMin;
+    public BigDecimal getDiffFact() {
+        return diffFact;
     }
 
-    public void setDiffFactMin(BigDecimal diffFactMin) {
-        this.diffFactMin = diffFactMin;
-    }
-
-    public BigDecimal getDiffFactMax() {
-        return diffFactMax;
-    }
-
-    public void setDiffFactMax(BigDecimal diffFactMax) {
-        this.diffFactMax = diffFactMax;
-    }
-
-    public BigDecimal getDiffFact1Min() {
-        return diffFact1Min;
-    }
-
-    public void setDiffFact1Min(BigDecimal diffFact1Min) {
-        this.diffFact1Min = diffFact1Min;
-    }
-
-    public BigDecimal getDiffFact1Max() {
-        return diffFact1Max;
-    }
-
-    public void setDiffFact1Max(BigDecimal diffFact1Max) {
-        this.diffFact1Max = diffFact1Max;
-    }
-
-    public BigDecimal getDiffFact2Min() {
-        return diffFact2Min;
-    }
-
-    public void setDiffFact2Min(BigDecimal diffFact2Min) {
-        this.diffFact2Min = diffFact2Min;
-    }
-
-    public BigDecimal getDiffFact2Max() {
-        return diffFact2Max;
-    }
-
-    public void setDiffFact2Max(BigDecimal diffFact2Max) {
-        this.diffFact2Max = diffFact2Max;
-    }
-
-    public BigDecimal getComMin() {
-        return comMin;
-    }
-
-    public void setComMin(BigDecimal comMin) {
-        this.comMin = comMin;
-    }
-
-    public BigDecimal getComMax() {
-        return comMax;
-    }
-
-    public void setComMax(BigDecimal comMax) {
-        this.comMax = comMax;
+    public void setDiffFact(BigDecimal diffFact) {
+        this.diffFact = diffFact;
     }
 
     public BigDecimal getCom1() {
@@ -399,60 +204,12 @@ public class GuiParams extends AbstractDocument {
         this.com1 = com1;
     }
 
-    public BigDecimal getCom1Min() {
-        return com1Min;
-    }
-
-    public void setCom1Min(BigDecimal com1Min) {
-        this.com1Min = com1Min;
-    }
-
-    public BigDecimal getCom1Max() {
-        return com1Max;
-    }
-
-    public void setCom1Max(BigDecimal com1Max) {
-        this.com1Max = com1Max;
-    }
-
     public BigDecimal getCom2() {
         return com2;
     }
 
     public void setCom2(BigDecimal com2) {
         this.com2 = com2;
-    }
-
-    public BigDecimal getCom2Min() {
-        return com2Min;
-    }
-
-    public void setCom2Min(BigDecimal com2Min) {
-        this.com2Min = com2Min;
-    }
-
-    public BigDecimal getCom2Max() {
-        return com2Max;
-    }
-
-    public void setCom2Max(BigDecimal com2Max) {
-        this.com2Max = com2Max;
-    }
-
-    public BigDecimal getBitmexMComMin() {
-        return bitmexMComMin;
-    }
-
-    public void setBitmexMComMin(BigDecimal bitmexMComMin) {
-        this.bitmexMComMin = bitmexMComMin;
-    }
-
-    public BigDecimal getBitmexMComMax() {
-        return bitmexMComMax;
-    }
-
-    public void setBitmexMComMax(BigDecimal bitmexMComMax) {
-        this.bitmexMComMax = bitmexMComMax;
     }
 
     public BigDecimal getCumBitmexMCom() {
@@ -607,6 +364,22 @@ public class GuiParams extends AbstractDocument {
         this.cumAstBitmexMCom = cumAstBitmexMCom;
     }
 
+    public BigDecimal getCumSlipM() {
+        return cumSlipM;
+    }
+
+    public void setCumSlipM(BigDecimal cumSlipM) {
+        this.cumSlipM = cumSlipM;
+    }
+
+    public BigDecimal getCumSlipT() {
+        return cumSlipT;
+    }
+
+    public void setCumSlipT(BigDecimal cumSlipT) {
+        this.cumSlipT = cumSlipT;
+    }
+
     public int getCounter1() {
         return counter1;
     }
@@ -749,21 +522,5 @@ public class GuiParams extends AbstractDocument {
 
     public void setFundingRateFee(BigDecimal fundingRateFee) {
         this.fundingRateFee = fundingRateFee;
-    }
-
-    public BigDecimal getCumSlipM() {
-        return cumSlipM;
-    }
-
-    public void setCumSlipM(BigDecimal cumSlipM) {
-        this.cumSlipM = cumSlipM;
-    }
-
-    public BigDecimal getCumSlipT() {
-        return cumSlipT;
-    }
-
-    public void setCumSlipT(BigDecimal cumSlipT) {
-        this.cumSlipT = cumSlipT;
     }
 }
