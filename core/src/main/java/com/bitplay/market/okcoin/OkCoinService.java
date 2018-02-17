@@ -497,7 +497,7 @@ public class OkCoinService extends MarketService {
                     tradeResponse.addCancelledOrder((LimitOrder) orderInfo);
                 } else { //FILLED by any (orderInfo or cancelledOrder)
 
-                    writeLogPlaceOrder(orderType, amount, bestQuotes, "taker", signalType,
+                    writeLogPlaceOrder(orderType, amount, "taker",
                             orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
 
                     tradeResponse.setOrderId(orderId);
@@ -809,9 +809,9 @@ public class OkCoinService extends MarketService {
                 orderIdToSignalInfo.put(orderId, bestQuotes);
 
                 String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType;
-                writeLogPlaceOrder(orderType, tradeableAmount, bestQuotes,
+                writeLogPlaceOrder(orderType, tradeableAmount,
                         placingTypeString,
-                        signalType, thePrice, orderId,
+                        thePrice, orderId,
                         (limitOrderWithId.getStatus() != null) ? limitOrderWithId.getStatus().toString() : null);
             }
         }
@@ -819,21 +819,17 @@ public class OkCoinService extends MarketService {
         return tradeResponse;
     }
 
-    private void writeLogPlaceOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-                                    String placingType, SignalType signalType, BigDecimal thePrice, String orderId, String status) {
+    private void writeLogPlaceOrder(Order.OrderType orderType, BigDecimal tradeableAmount,
+                                    String placingType, BigDecimal thePrice, String orderId, String status) {
 
-        final DealPrices.Details diff = arbitrageService.getDealPrices().getDiffO();
-        String diffWithSignal = diff.str;
-
-        final String message = String.format("%s/end: %s %s amount=%s, quote=%s, orderId=%s, status=%s, (%s)",
+        final String message = String.format("%s/end: %s %s amount=%s, quote=%s, orderId=%s, status=%s",
                 getCounterName(),
                 placingType, //isMoving ? "Moving3:Moved" : "maker",
                 Utils.convertOrderTypeName(orderType),
                 tradeableAmount.toPlainString(),
                 thePrice,
                 orderId,
-                status,
-                diffWithSignal);
+                status);
         tradeLogger.info(message);
         ordersLogger.info(message);
     }
