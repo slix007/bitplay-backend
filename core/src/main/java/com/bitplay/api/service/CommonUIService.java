@@ -12,10 +12,13 @@ import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 
@@ -39,7 +42,13 @@ public class CommonUIService {
     private ArbitrageService arbitrageService;
 
     @Autowired
+    private BordersCalcScheduler bordersCalcScheduler;
+
+    @Autowired
     private SettingsRepositoryService settingsRepositoryService;
+
+    @Autowired
+    private PersistenceService persistenceService;
 
     @Autowired
     private PosDiffService posDiffService;
@@ -114,12 +123,6 @@ public class CommonUIService {
     public DeltasJson updateMakerDelta(DeltalUpdateJson deltalUpdateJson) {
         if (deltalUpdateJson.getMakerDelta() != null) {
             arbitrageService.getParams().setMakerDelta(new BigDecimal(deltalUpdateJson.getMakerDelta()));
-        }
-        if (deltalUpdateJson.getSumDelta() != null) {
-            arbitrageService.getParams().setSumDelta(new BigDecimal(deltalUpdateJson.getSumDelta()));
-        }
-        if (deltalUpdateJson.getPeriodSec() != null) {
-            arbitrageService.setPeriodSec(Integer.valueOf(deltalUpdateJson.getPeriodSec()));
         }
         if (deltalUpdateJson.getBuValue() != null) {
             arbitrageService.getParams().setBuValue(new BigDecimal(deltalUpdateJson.getBuValue()));
@@ -206,8 +209,6 @@ public class CommonUIService {
                 arbitrageService.getParams().getBorder1().toPlainString(),
                 arbitrageService.getParams().getBorder2().toPlainString(),
                 arbitrageService.getParams().getMakerDelta().toPlainString(),
-                arbitrageService.getParams().getSumDelta().toPlainString(),
-                arbitrageService.getParams().getPeriodSec().toString(),
                 arbitrageService.getParams().getBuValue().toPlainString(),
                 arbitrageService.getParams().getCumDelta().toPlainString(),
                 arbitrageService.getParams().getCumAstDelta1().add(arbitrageService.getParams().getCumAstDelta2()).setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
@@ -411,7 +412,10 @@ public class CommonUIService {
     }
 
     public ResultJson getUpdateBordersTimerString() {
-        final String updateBordersTimerString = arbitrageService.getUpdateBordersTimerString();
-        return new ResultJson(updateBordersTimerString, "");
+        final String updateBordersTimerString = bordersCalcScheduler.getUpdateBordersTimerString();
+        final BorderParams borderParams = persistenceService.fetchBorders();
+        final int tableHashCode = borderParams.getBordersV2().getBorderTableHashCode();
+
+        return new ResultJson(updateBordersTimerString, String.valueOf(tableHashCode));
     }
 }

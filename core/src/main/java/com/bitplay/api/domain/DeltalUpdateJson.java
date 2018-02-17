@@ -9,8 +9,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class DeltalUpdateJson {
 
     private String makerDelta;
-    private String sumDelta;
-    private String periodSec;
     private String buValue;
     private String cumDelta;
     private String lastDelta;
@@ -38,22 +36,6 @@ public class DeltalUpdateJson {
 
     public void setMakerDelta(String makerDelta) {
         this.makerDelta = makerDelta;
-    }
-
-    public String getSumDelta() {
-        return sumDelta;
-    }
-
-    public void setSumDelta(String sumDelta) {
-        this.sumDelta = sumDelta;
-    }
-
-    public String getPeriodSec() {
-        return periodSec;
-    }
-
-    public void setPeriodSec(String periodSec) {
-        this.periodSec = periodSec;
     }
 
     public String getBuValue() {

@@ -10,8 +10,6 @@ public class DeltasJson {
     private String border1;
     private String border2;
     private String makerDelta;
-    private String sumDelta;
-    private String periodSec;
     private String buValue;
     private String cumDelta;
     private String cumAstDelta;
@@ -40,14 +38,12 @@ public class DeltasJson {
     private String cumSlipM;
     private String cumSlipT;
 
-    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String sumDelta, String periodSec, String buValue, String cumDelta, String cumAstDelta, String lastDelta, String cumDeltaFact, String cumAstDeltaFact, String cumDiffFactBr, String cumDiffFact1, String cumDiffFact2, String cumDiffFact, String cumAstDiffFact1, String cumAstDiffFact2, String cumAstDiffFact, String cumCom1, String cumCom2, String cumAstCom1, String cumAstCom2, String count1, String count2, String cumBitmexMCom, String cumAstBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee, String cumSlipM, String cumSlipT) {
+    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String buValue, String cumDelta, String cumAstDelta, String lastDelta, String cumDeltaFact, String cumAstDeltaFact, String cumDiffFactBr, String cumDiffFact1, String cumDiffFact2, String cumDiffFact, String cumAstDiffFact1, String cumAstDiffFact2, String cumAstDiffFact, String cumCom1, String cumCom2, String cumAstCom1, String cumAstCom2, String count1, String count2, String cumBitmexMCom, String cumAstBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee, String cumSlipM, String cumSlipT) {
         this.delta1 = delta1;
         this.delta2 = delta2;
         this.border1 = border1;
         this.border2 = border2;
         this.makerDelta = makerDelta;
-        this.sumDelta = sumDelta;
-        this.periodSec = periodSec;
         this.buValue = buValue;
         this.cumDelta = cumDelta;
         this.cumAstDelta = cumAstDelta;
@@ -95,14 +91,6 @@ public class DeltasJson {
 
     public String getMakerDelta() {
         return makerDelta;
-    }
-
-    public String getSumDelta() {
-        return sumDelta;
-    }
-
-    public String getPeriodSec() {
-        return periodSec;
     }
 
     public String getBuValue() {

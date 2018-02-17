@@ -14,6 +14,8 @@ public class BorderParams extends AbstractDocument {
     private PosMode posMode;
     private BordersV1 bordersV1;
     private BordersV2 bordersV2;
+    private Integer recalcPeriodSec;
+
     public BorderParams(Ver activeVersion, BordersV1 bordersV1, BordersV2 bordersV2) {
         this.setId(1L);
         this.activeVersion = activeVersion;
@@ -52,6 +54,14 @@ public class BorderParams extends AbstractDocument {
 
     public void setBordersV2(BordersV2 bordersV2) {
         this.bordersV2 = bordersV2;
+    }
+
+    public Integer getRecalcPeriodSec() {
+        return recalcPeriodSec;
+    }
+
+    public void setRecalcPeriodSec(Integer recalcPeriodSec) {
+        this.recalcPeriodSec = recalcPeriodSec;
     }
 
     public enum Ver {V1, V2,}
