@@ -204,7 +204,7 @@ public class ArbitrageService {
                         .setScale(8, RoundingMode.HALF_UP);
 
                 printP3DeltaFact(dealPrices.getDelta1Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
-                        params.getAstDelta1(), params.getAstDeltaFact1(), delta1);
+                        params.getAstDelta1(), params.getAstDeltaFact1(), dealPrices.getDelta1Plan());
 
                 printOAvgPrice();
 
@@ -241,7 +241,7 @@ public class ArbitrageService {
                 final BigDecimal ast_diff_fact2 = ((con.divide(ok_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)))
                         .setScale(8, RoundingMode.HALF_UP);
                 printP3DeltaFact(dealPrices.getDelta2Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
-                        params.getAstDelta2(), params.getAstDeltaFact2(), delta2);
+                        params.getAstDelta2(), params.getAstDeltaFact2(), dealPrices.getDelta2Plan());
 
                 printOAvgPrice();
 
