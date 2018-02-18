@@ -14,6 +14,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import io.swagger.client.model.Execution;
 import io.swagger.client.model.Instrument;
 import io.swagger.client.model.Margin;
 import io.swagger.client.model.Order;
@@ -32,14 +33,12 @@ public interface BitmexAuthenitcatedApi {
 
     @GET
     @Path("/user")
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     User account(@HeaderParam("api-key") String apiKey,
                  @HeaderParam("api-signature") ParamsDigest signer,
                  @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce) throws IOException;
 
     @GET
     @Path("/user/wallet")
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     Wallet wallet(@HeaderParam("api-key") String apiKey,
                   @HeaderParam("api-signature") ParamsDigest signer,
                   @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
@@ -48,7 +47,6 @@ public interface BitmexAuthenitcatedApi {
 
     @GET
     @Path("/user/margin")
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     Margin margin(@HeaderParam("api-key") String apiKey,
                   @HeaderParam("api-signature") ParamsDigest signer,
                   @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
@@ -57,7 +55,6 @@ public interface BitmexAuthenitcatedApi {
 
     @GET
     @Path("/instrument")
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     List<Instrument> instrument(@HeaderParam("api-key") String apiKey,
                                 @HeaderParam("api-signature") ParamsDigest signer,
                                 @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
@@ -67,7 +64,6 @@ public interface BitmexAuthenitcatedApi {
 
     @GET
     @Path("/order")
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     List<Order> getOrders(@HeaderParam("api-key") String apiKey,
                            @HeaderParam("api-signature") ParamsDigest signer,
                            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
@@ -117,9 +113,15 @@ public interface BitmexAuthenitcatedApi {
 
     @GET
     @Path("/position")
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     List<Position> position(@HeaderParam("api-key") String apiKey,
                       @HeaderParam("api-signature") ParamsDigest signer,
                       @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce) throws IOException;
 
+    @GET
+    @Path("/execution/tradeHistory")
+    List<Execution> getTradeHistory(@HeaderParam("api-key") String apiKey,
+                                    @HeaderParam("api-signature") ParamsDigest signer,
+                                    @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+                                    @QueryParam("filter") String filter
+    ) throws IOException;
 }

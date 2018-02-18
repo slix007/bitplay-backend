@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.swagger.client.model.Execution;
 import io.swagger.client.model.Instrument;
 
 /**
@@ -168,6 +169,21 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 .collect(Collectors.toList());
     }
 
+    public Collection<Execution> getOrderParts(String orderId) throws IOException {
+        String filter = "{\"orderID\":\"" + orderId + "\"}"; //{"orderID": "0c8f1e6f-5a06-a8a8-6abf-96ebdecea95f"};
+        final List<Execution> executionList = bitmexAuthenitcatedApi.getTradeHistory(
+                exchange.getExchangeSpecification().getApiKey(),
+                signatureCreator,
+                exchange.getNonceFactory(),
+                filter
+        );
+        final List<Execution> collect = executionList.stream()
+                .filter(ord -> ord.getOrdStatus().equals("PartiallyFilled") || ord.getOrdStatus().equals("Filled"))
+//                .map(BitmexAdapters::adaptOrder)
+                .collect(Collectors.toList());
+        return collect;
+    }
+
     public List<Instrument> getFunding() throws IOException {
         final String symbol = "XBTUSD";
         String columns = "[\"fundingRate\",\"fundingTimestamp\"]";
@@ -179,7 +195,5 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 symbol,
                 columns
         );
-
-
     }
 }

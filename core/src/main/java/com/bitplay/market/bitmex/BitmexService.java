@@ -4,8 +4,8 @@ import com.bitplay.api.controller.DebugEndpoints;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
@@ -58,9 +58,12 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +81,7 @@ import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.swagger.client.model.Error;
+import io.swagger.client.model.Execution;
 import si.mazi.rescu.HttpStatusIOException;
 
 /**
@@ -1429,6 +1433,58 @@ public class BitmexService extends MarketService {
             }
 
             return this;
+        }
+    }
+
+    /**
+     * Workaround! <br>
+     * Bitmex sends wrong avgPrice. Fetch detailed history for each order and calc avgPrice.
+     *
+     * @param avgPrice the object to be updated.
+     */
+    public void updateAvgPrice(AvgPrice avgPrice) {
+        for (String orderId : avgPrice.getpItems().keySet()) {
+            final String logMsg = String.format("%s AvgPrice update of orderId=%s.", getCounterName(), orderId);
+            int MAX_ATTEMPTS = 5;
+            for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+                try {
+                    final Collection<Execution> orderParts = ((BitmexTradeService) getTradeService()).getOrderParts(orderId);
+
+                    BigDecimal multiplySum = BigDecimal.ZERO;
+                    BigDecimal amountSum = BigDecimal.ZERO;
+                    for (Execution orderPart : orderParts) {
+                        final BigDecimal lastPx = BigDecimal.valueOf(orderPart.getLastPx());
+                        final BigDecimal lastQty = orderPart.getLastQty();
+
+                        multiplySum = multiplySum.add(lastPx.multiply(lastQty));
+                        amountSum = amountSum.add(lastQty);
+                    }
+
+                    if (amountSum.signum() > 0) {
+                        final BigDecimal price = multiplySum.divide(amountSum, 2, RoundingMode.HALF_UP);
+                        avgPrice.addPriceItem(orderId, amountSum, price);
+                        tradeLogger.info(String.format("%s p=%s, a=%s.", logMsg, price, amountSum));
+                        break;
+                    } else {
+                        tradeLogger.info(String.format("%s price=0. Use old p=%s, a=%s. %s",
+                                logMsg,
+                                avgPrice.getpItems().get(orderId).getPrice(),
+                                avgPrice.getpItems().get(orderId).getAmount(),
+                                Arrays.toString(orderParts.toArray())
+                        ));
+                    }
+                } catch (Exception e) {
+                    logger.info(String.format("%s Error.", logMsg), e);
+                    tradeLogger.info(String.format("%s Error %s", logMsg, e.getMessage()));
+                    warningLogger.info(String.format("%s Error %s", logMsg, e.getMessage()));
+                }
+
+                try {
+                    Thread.sleep(attempt * 200);
+                } catch (InterruptedException e) {
+                    logger.info(String.format("%s Sleep Error.", logMsg), e);
+                }
+            }
         }
     }
 

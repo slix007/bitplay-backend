@@ -9,6 +9,7 @@ import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.dto.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
@@ -165,8 +166,15 @@ public class ArbitrageService {
             final BigDecimal b_ask = dealPrices.getBestQuotes().getAsk1_p();
             final BigDecimal ok_bid = dealPrices.getBestQuotes().getBid1_o();
             final BigDecimal ok_ask = dealPrices.getBestQuotes().getAsk1_o();
-            final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
-            final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
+
+            // workaround. Bitmex sends wrong avgPrice. Fetch detailed history for each order and calc avgPrice.
+            final Instant start = Instant.now();
+            ((BitmexService) getFirstMarketService()).updateAvgPrice(dealPrices.getbPriceFact());
+            final Instant end = Instant.now();
+            logger.info("workaround: Bitmex updateAvgPrice. Time: " + Duration.between(start, end).toString());
+
+            final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg(true);
+            final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
             deltasLogger.info(String.format("#%s Params for calc: con=%s, b_bid=%s, b_ask=%s, ok_bid=%s, ok_ask=%s, b_price_fact=%s, ok_price_fact=%s",
                     getCounter(), con, b_bid, b_ask, ok_bid, ok_ask, b_price_fact, ok_price_fact));
 
@@ -191,8 +199,8 @@ public class ArbitrageService {
 
                 // this should be after
                 final String deltaFactStr = String.format("delta1_fact=%s-%s=%s",
-                        dealPrices.getbPriceFact().getAvg().toPlainString(),
-                        dealPrices.getoPriceFact().getAvg().toPlainString(),
+                        b_price_fact.toPlainString(),
+                        ok_price_fact.toPlainString(),
                         dealPrices.getDelta1Fact().toPlainString());
                 // if ast_delta = ast_delta1
                 //   ast_diff_fact1 = con / b_bid - con / b_price_fact
@@ -226,8 +234,8 @@ public class ArbitrageService {
                 printP2CumBitmexMCom();
 
                 final String deltaFactStr = String.format("delta2_fact=%s-%s=%s",
-                        dealPrices.getoPriceFact().getAvg().toPlainString(),
-                        dealPrices.getbPriceFact().getAvg().toPlainString(),
+                        ok_price_fact.toPlainString(),
+                        b_price_fact.toPlainString(),
                         dealPrices.getDelta2Fact().toPlainString());
                 // if ast_delta = ast_delta2
                 //   ast_diff_fact1 = con / ok_bid - con / ok_price_fact
@@ -802,15 +810,13 @@ public class ArbitrageService {
     }
 
     private void printCom(DealPrices dealPrices) {
-        final BigDecimal price1 = dealPrices.getbPriceFact().getAvg(true);
-        final BigDecimal price2 = dealPrices.getoPriceFact().getAvg(true);
-        final BigDecimal com1 = price1.multiply(FEE_FIRST_MAKER).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
-        final BigDecimal com2 = price2.multiply(FEE_SECOND_TAKER).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
+        final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
+        final BigDecimal com1 = b_price_fact.multiply(FEE_FIRST_MAKER).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal com2 = ok_price_fact.multiply(FEE_SECOND_TAKER).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
         params.setCom1(com1);
         params.setCom2(com2);
         final BigDecimal con = dealPrices.getbBlock();
-        final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
-        final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
         // ast_com1 = con / b_price_fact * 0.075 / 100
         // ast_com2 = con / ok_price_fact * 0.015 / 100
         // ast_com = ast_com1 + ast_com2
@@ -847,17 +853,16 @@ public class ArbitrageService {
     }
 
     private void printP2CumBitmexMCom() {
+
+        final BigDecimal con = dealPrices.getbBlock();
+        final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
+
         // bitmex_m_com = round(open_price_fact * 0.025 / 100; 4),
         final BigDecimal BITMEX_M_COM_FACTOR = new BigDecimal(0.025);
-        BigDecimal bitmexMCom = dealPrices.getbPriceFact().getAvg().multiply(BITMEX_M_COM_FACTOR)
+        BigDecimal bitmexMCom = b_price_fact.multiply(BITMEX_M_COM_FACTOR)
                 .divide(OKEX_FACTOR, 2, BigDecimal.ROUND_HALF_UP);
 
         params.setCumBitmexMCom((params.getCumBitmexMCom().add(bitmexMCom)).setScale(2, BigDecimal.ROUND_HALF_UP));
-
-        final BigDecimal b_block = dealPrices.getbBlock();
-        final BigDecimal con = b_block;
-        final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
-        final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
         // ast_Bitmex_m_com = con / b_price_fact * 0.025 / 100
         // cum_ast_Bitmex_m_com = sum(ast_Bitmex_m_com)
         final BigDecimal ast_Bitmex_m_com = con.divide(b_price_fact, 16, RoundingMode.HALF_UP).multiply(BITMEX_M_COM_FACTOR).divide(OKEX_FACTOR, 8, RoundingMode.HALF_UP);

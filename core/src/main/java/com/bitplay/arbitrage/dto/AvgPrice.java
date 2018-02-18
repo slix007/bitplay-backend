@@ -104,6 +104,10 @@ public class AvgPrice {
         return avgPrice;
     }
 
+    public Map<String, AvgPriceItem> getpItems() {
+        return pItems;
+    }
+
     @Override
     public String toString() {
         return "AvgPrice{" +
