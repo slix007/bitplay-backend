@@ -71,7 +71,7 @@ public class DealPrices {
         Details details;
         if (deltaName == DeltaName.O_DELTA) {
             final BigDecimal val = oPriceFact.getAvg().subtract(oPricePlan);
-            details = new Details(val, String.format("diff_sell_o = avg_price_sell_o(%s) - plan_bid_o[1](%s) = %s",
+            details = new Details(val, String.format("diff_sell_o = avg_price_sell_o(%s) - bid_o[1](%s) = %s",
                             oPriceFact.getAvg(), oPricePlan, val));
         } else {
             final BigDecimal val = oPricePlan.subtract(oPriceFact.getAvg());

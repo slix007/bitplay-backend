@@ -400,6 +400,7 @@ public class OkCoinService extends MarketService {
                                             .filter(o -> o.getOrderId().equals(orderInfo.getId())).noneMatch(o -> o.getOrder().getStatus() == Order.OrderStatus.FILLED))
                                     .forEach(orderInfo -> {
                                         arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                                        writeAvgPriceLog();
                                     });
                         }
 
@@ -965,6 +966,9 @@ public class OkCoinService extends MarketService {
                                             final Order orderInfo = cancelledOrder.getOrder();
                                             arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
                                         }
+                                        if (newOrder != null || cancelledOrder != null) {
+                                            writeAvgPriceLog();
+                                        }
 
                                     } catch (Exception e) {
                                         // use default OO
@@ -1423,5 +1427,9 @@ public class OkCoinService extends MarketService {
                 }
             }
         }
+    }
+
+    public void writeAvgPriceLog() {
+        tradeLogger.info("{} {}", getCounterName(), arbitrageService.getDealPrices().getDiffO().str);
     }
 }

@@ -15,6 +15,7 @@ import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.events.SignalEventBus;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
@@ -170,6 +171,7 @@ public class ArbitrageService {
             // workaround. Bitmex sends wrong avgPrice. Fetch detailed history for each order and calc avgPrice.
             final Instant start = Instant.now();
             ((BitmexService) getFirstMarketService()).updateAvgPrice(dealPrices.getbPriceFact());
+            ((OkCoinService) getFirstMarketService()).writeAvgPriceLog();
             final Instant end = Instant.now();
             logger.info("workaround: Bitmex updateAvgPrice. Time: " + Duration.between(start, end).toString());
 

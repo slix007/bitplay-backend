@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
@@ -912,17 +913,20 @@ public class BitmexService extends MarketService {
                     tradeResponse.setOrderId(orderId);
                     tradeResponse.setErrorCode(null);
 
+                    final DealPrices.Details diff = arbitrageService.getDealPrices().getDiffB();
+                    String diffWithSignal = diff.str;
                     if (bestQuotes != null) {
                         orderIdToSignalInfo.put(orderId, bestQuotes);
                     }
 
-                    final String message = String.format("%s %s %s amount=%s with quote=%s was placed.orderId=%s. position=%s",
+                    final String message = String.format("%s %s %s amount=%s with quote=%s was placed.orderId=%s. %s. position=%s",
                             getCounterName(),
                             placingType,
                             orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                             amount.toPlainString(),
                             thePrice,
                             orderId,
+                            diffWithSignal,
                             getPositionAsString());
                     tradeLogger.info(message);
                     ordersLogger.info(message);
@@ -1011,9 +1015,9 @@ public class BitmexService extends MarketService {
                 orderRepositoryService.updateOrder(fplayOrder, movedLimitOrder);
                 FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, movedLimitOrder);
 
-                setQuotesForArbLogs(limitOrder, bestMakerPrice);
+                String diffWithSignal = setQuotesForArbLogs(limitOrder, bestMakerPrice);
 
-                final String logString = String.format("%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s. position=%s",
+                final String logString = String.format("%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s. %s. position=%s",
                         getCounterName(),
                         limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                         limitOrder.getLimitPrice(),
@@ -1024,6 +1028,7 @@ public class BitmexService extends MarketService {
                         limitOrder.getCumulativeAmount(),
                         limitOrder.getAveragePrice(),
                         limitOrder.getId(),
+                        diffWithSignal,
                         getPositionAsString());
                 logger.info(logString);
                 tradeLogger.info(logString);
@@ -1086,11 +1091,17 @@ public class BitmexService extends MarketService {
         return moveResponse;
     }
 
-    private void setQuotesForArbLogs(LimitOrder limitOrder, BigDecimal openPrice) {
+    private String setQuotesForArbLogs(LimitOrder limitOrder, BigDecimal openPrice) {
+        String diffWithSignal = "";
         if (openPrice != null) {
             arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(openPrice);
+
+            final DealPrices.Details diff = arbitrageService.getDealPrices().getDiffB();
+            diffWithSignal = diff.str;
         }
+
         arbitrageService.getDealPrices().getbPriceFact().addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), limitOrder.getAveragePrice());
+        return diffWithSignal;
     }
 
     @Override
@@ -1486,6 +1497,8 @@ public class BitmexService extends MarketService {
                 }
             }
         }
+
+        tradeLogger.info("{} {}", getCounterName(), arbitrageService.getDealPrices().getDiffB().str);
     }
 
 }
