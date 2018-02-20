@@ -30,6 +30,7 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
+import org.slf4j.Logger;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -517,6 +518,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId) {
+        return getOrderInfo(orderId, counterName, attemptCount, logInfoId, getTradeLogger());
+    }
+
+    protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, Logger customLogger) {
         final TradeService tradeService = getExchange().getTradeService();
         Order orderInfo = null;
         try {
@@ -526,12 +531,12 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                         counterName, attemptCount,
                         logInfoId,
                         orderId, "Market did not return info by orderId");
-                getTradeLogger().error(message);
+                customLogger.error(message);
             } else {
                 orderInfo = order.iterator().next();
 
                 if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                    getTradeLogger().error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
+                    customLogger.error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
                             counterName, attemptCount,
                             logInfoId,
                             Utils.convertOrderTypeName(orderInfo.getType()),
@@ -547,7 +552,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     counterName, attemptCount,
                     logInfoId,
                     orderId, e.toString());
-            getTradeLogger().error(message);
+            customLogger.error(message);
             logger.error(message, e);
         }
         return Optional.ofNullable(orderInfo);

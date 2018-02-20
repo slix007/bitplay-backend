@@ -266,12 +266,12 @@ public abstract class MarketServiceOpenOrders {
         }
     }
 
-    abstract protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId);
+    abstract protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, Logger logger);
 
     private FplayOrder updateOOStatus(FplayOrder fplayOrder) throws Exception {
         final String orderId = fplayOrder.getOrderId();
         final String counterName = getCounterName();
-        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterName, 1, "updateOOStatus:");
+        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterName, 1, "updateOOStatus:", logger);
 
         if (!orderInfoAttempts.isPresent()) {
             throw new Exception("Failed to updateOOStatus id=" + orderId);
