@@ -890,112 +890,7 @@ public class OkCoinService extends MarketService {
         return exchange.getTradeService();
     }
 
-    @Override
-    protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
-        if (getMarketState() == MarketState.SYSTEM_OVERLOADED
-                || getMarketState() == MarketState.PLACING_ORDER
-                || getMarketState() == MarketState.STOPPED) {
-            return;
-        }
-
-        if (movingInProgress) {
-
-            // Should not happen ever, because 'synch' on method
-            final String logString = String.format("%s No moving. Too often requests.", getCounterName());
-            logger.error(logString);
-            return;
-
-        } else {
-            movingInProgress = true;
-        }
-
-        try {
-            synchronized (openOrdersLock) {
-                if (hasOpenOrders()) {
-
-                    final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
-                    final Integer maxAttempts = sysOverloadArgs.getMovingErrorsForOverload();
-
-                    openOrders = openOrders.stream()
-                            .flatMap(openOrder -> {
-                                Stream<FplayOrder> optionalOrder = Stream.of(openOrder); // default -> keep the order
-
-                                if (openOrder == null) {
-                                    warningLogger.warn("OO is null.");
-                                    optionalOrder = Stream.empty();
-                                } else if (openOrder.getOrder().getType() == null) {
-                                    warningLogger.warn("OO type is null. " + openOrder.toString());
-                                } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
-                                        && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
-                                        && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
-                                    // keep the order
-                                } else {
-
-                                    try {
-
-                                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
-                                        //TODO keep an eye on 'hang open orders'
-                                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                                            // update the status
-                                            final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
-                                            if (cancelledFplayOrder != null) optionalOrder = Stream.of(cancelledFplayOrder);
-                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
-                                            final FplayOrder newOrder = response.getNewFplayOrder();
-                                            final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
-
-                                            optionalOrder = Stream.of(newOrder, cancelledOrder);
-                                            movingErrorsOverloaded.set(0);
-                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
-
-                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
-                                                setOverloaded(null);
-                                                movingErrorsOverloaded.set(0);
-                                            }
-
-                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL
-                                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) { // EXCEPTION also duplicated in #moveOO
-                                            setMarketState(MarketState.STOPPED);
-                                        }
-                                        final FplayOrder newOrder = response.getNewFplayOrder();
-                                        final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
-
-                                        if (newOrder != null) {
-                                            final Order orderInfo = newOrder.getOrder();
-                                            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
-                                        }
-                                        if (cancelledOrder != null) {
-                                            final Order orderInfo = cancelledOrder.getOrder();
-                                            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
-                                        }
-                                        if (newOrder != null || cancelledOrder != null) {
-                                            writeAvgPriceLog();
-                                        }
-
-                                    } catch (Exception e) {
-                                        // use default OO
-                                        warningLogger.warn("Error on moving: " + e.getMessage());
-                                        logger.warn("Error on moving", e);
-                                    }
-                                }
-
-                                return optionalOrder; // default -> keep the order
-                            })
-                            .collect(Collectors.toList());
-
-                    if (!hasOpenOrders()) {
-                        tradeLogger.warn("Free by iterateOpenOrdersMove");
-                        logger.warn("Free by iterateOpenOrdersMove");
-                        eventBus.send(BtsEvent.MARKET_FREE);
-                    }
-
-                }
-
-            } // synchronized (openOrdersLock)
-
-        } finally {
-            movingInProgress = false;
-        }
-    }
+    private volatile CounterToDiff counterToDiff = new CounterToDiff(null, null);
 
     @Override
     public MoveResponse moveMakerOrder(FplayOrder fOrderToCancel, BigDecimal bestMarketPrice) {
@@ -1432,7 +1327,131 @@ public class OkCoinService extends MarketService {
         }
     }
 
+    @Override
+    protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
+        if (getMarketState() == MarketState.SYSTEM_OVERLOADED
+                || getMarketState() == MarketState.PLACING_ORDER
+                || getMarketState() == MarketState.STOPPED) {
+            return;
+        }
+
+        if (movingInProgress) {
+
+            // Should not happen ever, because 'synch' on method
+            final String logString = String.format("%s No moving. Too often requests.", getCounterName());
+            logger.error(logString);
+            return;
+
+        } else {
+            movingInProgress = true;
+        }
+
+        try {
+            synchronized (openOrdersLock) {
+                if (hasOpenOrders()) {
+
+                    final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
+                    final Integer maxAttempts = sysOverloadArgs.getMovingErrorsForOverload();
+
+                    openOrders = openOrders.stream()
+                            .flatMap(openOrder -> {
+                                Stream<FplayOrder> optionalOrder = Stream.of(openOrder); // default -> keep the order
+
+                                if (openOrder == null) {
+                                    warningLogger.warn("OO is null.");
+                                    optionalOrder = Stream.empty();
+                                } else if (openOrder.getOrder().getType() == null) {
+                                    warningLogger.warn("OO type is null. " + openOrder.toString());
+                                } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
+                                        && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
+                                        && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
+                                    // keep the order
+                                } else {
+
+                                    try {
+
+                                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
+                                        //TODO keep an eye on 'hang open orders'
+                                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                                            // update the status
+                                            final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
+                                            if (cancelledFplayOrder != null) optionalOrder = Stream.of(cancelledFplayOrder);
+                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
+                                            final FplayOrder newOrder = response.getNewFplayOrder();
+                                            final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+
+                                            optionalOrder = Stream.of(newOrder, cancelledOrder);
+                                            movingErrorsOverloaded.set(0);
+                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
+
+                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
+                                                setOverloaded(null);
+                                                movingErrorsOverloaded.set(0);
+                                            }
+
+                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL
+                                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) { // EXCEPTION also duplicated in #moveOO
+                                            setMarketState(MarketState.STOPPED);
+                                        }
+                                        final FplayOrder newOrder = response.getNewFplayOrder();
+                                        final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+
+                                        if (newOrder != null) {
+                                            final Order orderInfo = newOrder.getOrder();
+                                            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                                        }
+                                        if (cancelledOrder != null) {
+                                            final Order orderInfo = cancelledOrder.getOrder();
+                                            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                                            if (cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
+                                                writeAvgPriceLog();
+                                            }
+                                        }
+
+                                    } catch (Exception e) {
+                                        // use default OO
+                                        warningLogger.warn("Error on moving: " + e.getMessage());
+                                        logger.warn("Error on moving", e);
+                                    }
+                                }
+
+                                return optionalOrder; // default -> keep the order
+                            })
+                            .collect(Collectors.toList());
+
+                    if (!hasOpenOrders()) {
+                        tradeLogger.warn("Free by iterateOpenOrdersMove");
+                        logger.warn("Free by iterateOpenOrdersMove");
+                        eventBus.send(BtsEvent.MARKET_FREE);
+                    }
+
+                }
+
+            } // synchronized (openOrdersLock)
+
+        } finally {
+            movingInProgress = false;
+        }
+    }
+
     public void writeAvgPriceLog() {
-        tradeLogger.info("{} {}", getCounterName(), arbitrageService.getDealPrices().getDiffO().str);
+        final DealPrices.Details diffO = arbitrageService.getDealPrices().getDiffO();
+        final String counter = getCounterName();
+        if (counterToDiff == null || counterToDiff.counter == null || !counterToDiff.counter.equals(counter)
+                || counterToDiff.diff.compareTo(diffO.val) != 0) {
+            tradeLogger.info("{} {}", counter, diffO.str);
+            counterToDiff = new CounterToDiff(counter, diffO.val);
+        }
+
+    }
+
+    static class CounterToDiff {
+        String counter;
+        BigDecimal diff;
+
+        public CounterToDiff(String counter, BigDecimal diff) {
+            this.counter = counter;
+            this.diff = diff;
+        }
     }
 }
