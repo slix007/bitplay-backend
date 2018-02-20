@@ -171,7 +171,7 @@ public class ArbitrageService {
             // workaround. Bitmex sends wrong avgPrice. Fetch detailed history for each order and calc avgPrice.
             final Instant start = Instant.now();
             ((BitmexService) getFirstMarketService()).updateAvgPrice(dealPrices.getbPriceFact());
-            ((OkCoinService) getFirstMarketService()).writeAvgPriceLog();
+            ((OkCoinService) getSecondMarketService()).writeAvgPriceLog();
             final Instant end = Instant.now();
             logger.info("workaround: Bitmex updateAvgPrice. Time: " + Duration.between(start, end).toString());
 
