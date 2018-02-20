@@ -98,7 +98,8 @@ public class OkCoinService extends MarketService {
 
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
 
-    private static final int MAX_ATTEMPTS = 50;
+    private static final int MAX_ATTEMPTS_STATUS = 50;
+    private static final int MAX_ATTEMPTS_CANCEL = 10;
     private static final int MAX_ATTEMPTS_FOR_MOVING = 1;
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
@@ -1022,7 +1023,7 @@ public class OkCoinService extends MarketService {
 
             // 1. cancel old order
             final String counterName = getCounterName();
-            final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(limitOrder.getId(), "Moving1:cancelled:");
+            final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(limitOrder.getId(), "Moving1:cancelling:");
 
             // 2. We got result on cancel(true/false), but double-check status of an old order
             Order cancelledOrder = getFinalOrderInfoSync(limitOrder.getId(), counterName, "Moving2:cancelStatus:");
@@ -1144,7 +1145,7 @@ public class OkCoinService extends MarketService {
         final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
         Order result = null;
         int attemptCount = 0;
-        while (attemptCount < MAX_ATTEMPTS) {
+        while (attemptCount < MAX_ATTEMPTS_STATUS) {
             attemptCount++;
             try {
                 if (attemptCount > 1) {
@@ -1179,7 +1180,7 @@ public class OkCoinService extends MarketService {
         OkCoinTradeResult result = new OkCoinTradeResult(false, 0, 0);
 
         int attemptCount = 0;
-        while (attemptCount < MAX_ATTEMPTS) {
+        while (attemptCount < MAX_ATTEMPTS_CANCEL) {
             attemptCount++;
             try {
                 if (attemptCount > 1) {
@@ -1202,7 +1203,9 @@ public class OkCoinService extends MarketService {
                         result.getErrorCode(),
                         result.getDetails());
 
-                break;
+                if (result.isResult()) {
+                    break;
+                }
 
             } catch (Exception e) {
                 logger.error("{}/{} error cancel maker order", counterName, attemptCount, e);
