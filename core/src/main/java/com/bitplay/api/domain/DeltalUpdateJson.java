@@ -29,6 +29,7 @@ public class DeltalUpdateJson {
     private String fundingRateFee;
     private String cumSlipM;
     private String cumSlipT;
+    private Boolean resetAllCumValues;
 
     public String getMakerDelta() {
         return makerDelta;
@@ -196,5 +197,13 @@ public class DeltalUpdateJson {
 
     public void setCumSlipT(String cumSlipT) {
         this.cumSlipT = cumSlipT;
+    }
+
+    public Boolean getResetAllCumValues() {
+        return resetAllCumValues;
+    }
+
+    public void setResetAllCumValues(Boolean resetAllCumValues) {
+        this.resetAllCumValues = resetAllCumValues;
     }
 }

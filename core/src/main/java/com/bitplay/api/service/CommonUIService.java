@@ -197,6 +197,32 @@ public class CommonUIService {
         if (deltalUpdateJson.getCumSlipT() != null) {
             arbitrageService.getParams().setCumSlipT(new BigDecimal(deltalUpdateJson.getCumSlipT()));
         }
+        if (deltalUpdateJson.getResetAllCumValues() != null && deltalUpdateJson.getResetAllCumValues()) {
+            arbitrageService.getParams().setCumDelta(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstDelta1(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstDelta2(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumDeltaFact(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstDeltaFact1(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstDeltaFact2(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumDiffFactBr(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumDiffFact1(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstDiffFact1(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumDiffFact2(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstDiffFact2(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumDiffFact(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstDiffFact(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstDiffFact1(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstDiffFact2(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstDiffFact(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumCom1(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstCom1(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumCom2(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstCom2(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumBitmexMCom(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumAstBitmexMCom(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumSlipM(BigDecimal.ZERO);
+            arbitrageService.getParams().setCumSlipT(BigDecimal.ZERO);
+        }
         arbitrageService.saveParamsToDb();
 
         return convertToDeltasJson();
