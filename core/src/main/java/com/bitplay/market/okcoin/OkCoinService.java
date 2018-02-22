@@ -100,7 +100,7 @@ public class OkCoinService extends MarketService {
 
     private static final int MAX_ATTEMPTS_STATUS = 50;
     private static final int MAX_ATTEMPTS_CANCEL = 10;
-    private static final int MAX_ATTEMPTS_FOR_MOVING = 1;
+    private static final int MAX_ATTEMPTS_FOR_MOVING = 2;
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     // Moving timeout
@@ -987,7 +987,7 @@ public class OkCoinService extends MarketService {
             try {
                 attemptCount++;
                 if (attemptCount > 1) {
-                    Thread.sleep(200 * attemptCount);
+                    Thread.sleep(500 * attemptCount);
                 }
 
                 final BigDecimal newAmount = limitOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount())
@@ -1022,7 +1022,12 @@ public class OkCoinService extends MarketService {
 //                    warningLogger.error("Warning: {}/{} Moving3:placingError {}", counterName, attemptCount, e.toString());
                 tradeResponse.setOrderId(null);
                 tradeResponse.setErrorCode(e.getMessage());
+                if (attemptCount < MAX_ATTEMPTS_FOR_MOVING &&
+                        e.toString().startsWith("org.knowm.xchange.exceptions.ExchangeException: Code: 20012, translation: Risk rate higher than 90% after opening position")) {
+                    continue;
+                }
                 setMarketState(MarketState.STOPPED); // it's duplicated in #iterateOpenOrdersMove()
+                break;
             }
         }
         return tradeResponse;
