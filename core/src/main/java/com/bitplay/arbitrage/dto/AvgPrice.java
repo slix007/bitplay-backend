@@ -82,18 +82,18 @@ public class AvgPrice {
 
             if (maxAmount.compareTo(sumDenominator) != 0) {
                 logger.warn(marketName + " WARNING avg price calc: " + this + " NiceFormat: " + sb.toString());
-                final BigDecimal left = maxAmount.subtract(sumDenominator);
-                if (openPrice != null) {
-                    sumNumerator = sumNumerator.add(left.multiply(openPrice));
-                } else {
-                    // use left amount * last price
-                    final AvgPriceItem lastItem = (AvgPriceItem) pItems.entrySet().toArray()[pItems.size() - 1];
-                    sumNumerator = sumNumerator.add(left.multiply(lastItem.getPrice()));
-                }
-                sumDenominator = maxAmount;
+//                final BigDecimal left = maxAmount.subtract(sumDenominator);
+//                if (openPrice != null) {
+//                    sumNumerator = sumNumerator.add(left.multiply(openPrice));
+//                } else {
+//                    // use left amount * last price
+//                    final AvgPriceItem lastItem = (AvgPriceItem) pItems.entrySet().toArray()[pItems.size() - 1];
+//                    sumNumerator = sumNumerator.add(left.multiply(lastItem.getPrice()));
+//                }
+//                sumDenominator = maxAmount;
             }
 
-            avgPrice = sumNumerator.divide(sumDenominator, 2, RoundingMode.HALF_UP);
+            avgPrice = sumDenominator.signum() == 0 ? BigDecimal.ZERO : sumNumerator.divide(sumDenominator, 2, RoundingMode.HALF_UP);
 
             if (withLogs) {
                 deltasLogger.info(marketName + "AvgPrice: " + sb.toString() + " = " + avgPrice);

@@ -1435,10 +1435,13 @@ public class OkCoinService extends MarketService {
     }
 
     public void writeAvgPriceLog() {
-        final DealPrices.Details diffO = arbitrageService.getDealPrices().getDiffO();
+        final DealPrices dealPrices = arbitrageService.getDealPrices();
+        final DealPrices.Details diffO = dealPrices.getDiffO();
+        final BigDecimal avg = dealPrices.getoPriceFact().getAvg();
         final String counter = getCounterName();
-        if (counterToDiff == null || counterToDiff.counter == null || !counterToDiff.counter.equals(counter)
-                || counterToDiff.diff.compareTo(diffO.val) != 0) {
+        if ((counterToDiff == null || counterToDiff.counter == null || !counterToDiff.counter.equals(counter)
+                || counterToDiff.diff.compareTo(diffO.val) != 0)
+                && avg.signum() != 0) {
             tradeLogger.info("{} {}", counter, diffO.str);
             counterToDiff = new CounterToDiff(counter, diffO.val);
         }
