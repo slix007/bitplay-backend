@@ -863,6 +863,11 @@ public class OkCoinService extends MarketService {
             final Collection<Order> orderCollection = exchange.getTradeService().getOrder(orderId);
             if (!orderCollection.isEmpty()) {
                 order = orderCollection.iterator().next();
+                tradeLogger.info("{} OrderInfo id={}, status={}, filled={}",
+                        getCounterName(),
+                        orderId,
+                        order.getStatus(),
+                        order.getCumulativeAmount());
             }
         } catch (Exception e) {
             logger.error("on fetch order info by id=" + orderId, e);
@@ -1110,6 +1115,17 @@ public class OkCoinService extends MarketService {
             } catch (Exception e) {
                 logger.error("{}/{} error cancel maker order", counterName, attemptCount, e);
                 tradeLogger.error("{}/{} error cancel maker order: {}", counterName, attemptCount, e.toString());
+                final Order order = fetchOrderInfo(orderId);
+                if (order != null) {
+                    if (order.getStatus() == Order.OrderStatus.CANCELED) {
+                        result = new OkCoinTradeResult(true, 0, Long.valueOf(orderId));
+                        break;
+                    }
+                    if (order.getStatus() == Order.OrderStatus.FILLED) {
+                        result = new OkCoinTradeResult(false, 0, Long.valueOf(orderId));
+                        break;
+                    }
+                }
             }
         }
         return result;
