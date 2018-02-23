@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.service.RestartService;
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 
@@ -17,6 +18,8 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 
 /**
@@ -34,6 +37,9 @@ public class DebugEndpoints {
     @Autowired
     private OkCoinService okCoinService;
 
+    @Autowired
+    private ArbitrageService arbitrageService;
+
     @RequestMapping(value = "/full-restart", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson fullRestart() throws IOException {
 
@@ -45,7 +51,25 @@ public class DebugEndpoints {
     @RequestMapping(value = "/deadlock/check", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson checkDeadlocks() {
         final ResultJson resultJson = detectDeadlock();
-        return new ResultJson(resultJson.getResult(), resultJson.getDescription());
+//        arbitrageService.getParams()
+
+        String deadLockDescr = resultJson.getDescription();
+
+        final Date lastOBChange = arbitrageService.getParams().getLastOBChange();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        if (lastOBChange != null) {
+            deadLockDescr += "<br>last_OB_change=" + sdf.format(lastOBChange);
+        }
+        final Date lastCorrCheck = arbitrageService.getParams().getLastCorrCheck();
+        if (lastCorrCheck != null) {
+            deadLockDescr += "<br>last_corr_check=" + sdf.format(lastCorrCheck);
+        }
+        final Date lastMDCCheck = arbitrageService.getParams().getLastMDCCheck();
+        if (lastMDCCheck != null) {
+            deadLockDescr += "<br>last_MDC_check=" + sdf.format(lastMDCCheck);
+        }
+
+        return new ResultJson(resultJson.getResult(), deadLockDescr);
     }
 
     public static ResultJson detectDeadlock() {

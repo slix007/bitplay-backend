@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
@@ -92,6 +93,8 @@ public class PosDiffService {
 
     @Scheduled(initialDelay = 10*60*1000, fixedDelay = 5000)
     public void checkMaxDiffCorrection() {
+        arbitrageService.getParams().setLastMDCCheck(new Date());
+
         if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
                 || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
             return;
@@ -149,6 +152,8 @@ public class PosDiffService {
         if (!hasGeneralCorrStarted) {
             return;
         }
+
+        arbitrageService.getParams().setLastCorrCheck(new Date());
 
         if (!calcInProgress || isSecondCheck) {
             calcInProgress = true;

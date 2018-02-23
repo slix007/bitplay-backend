@@ -4,6 +4,7 @@ import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * Created by Sergey Shurmin on 4/18/17.
@@ -72,6 +73,10 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal bDQLCloseMin = BigDecimal.valueOf(100);
     private BigDecimal oDQLCloseMin = BigDecimal.valueOf(150);
     private BigDecimal fundingRateFee = BigDecimal.ZERO;
+
+    private Date lastOBChange;
+    private Date lastCorrCheck;
+    private Date lastMDCCheck;
 
     public GuiParams() {
     }
@@ -522,5 +527,29 @@ public class GuiParams extends AbstractDocument {
 
     public void setFundingRateFee(BigDecimal fundingRateFee) {
         this.fundingRateFee = fundingRateFee;
+    }
+
+    public Date getLastOBChange() {
+        return lastOBChange;
+    }
+
+    public void setLastOBChange(Date lastOBChange) {
+        this.lastOBChange = lastOBChange;
+    }
+
+    public Date getLastCorrCheck() {
+        return lastCorrCheck;
+    }
+
+    public void setLastCorrCheck(Date lastCorrCheck) {
+        this.lastCorrCheck = lastCorrCheck;
+    }
+
+    public Date getLastMDCCheck() {
+        return lastMDCCheck;
+    }
+
+    public void setLastMDCCheck(Date lastMDCCheck) {
+        this.lastMDCCheck = lastMDCCheck;
     }
 }

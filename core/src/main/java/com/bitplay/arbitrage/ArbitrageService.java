@@ -37,6 +37,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
@@ -117,6 +118,7 @@ public class ArbitrageService {
                                 || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
 
                             final BestQuotes bestQuotes = doComparison();
+                            params.setLastOBChange(new Date());
 
                             // Logging not often then 5 sec
                             if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
