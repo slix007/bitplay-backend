@@ -143,6 +143,7 @@ public class BitmexService extends MarketService {
     private String key;
     private String secret;
     private Disposable restartTimer;
+    private AtomicInteger cancelledInRow = new AtomicInteger();
 
     public Date getOrderBookLastTimestamp() {
         return orderBookLastTimestamp;
@@ -886,6 +887,7 @@ public class BitmexService extends MarketService {
                         }
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
+                            if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
                             tradeResponse.addCancelledOrder(requestOrder);
                             tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
                             tradeResponse.setLimitOrder(null);
@@ -899,6 +901,7 @@ public class BitmexService extends MarketService {
                                     orderId);
                             continue;
                         }
+                        cancelledInRow.set(0);
                         nextMarketState = MarketState.ARBITRAGE;
 
                     } else {
@@ -1044,8 +1047,10 @@ public class BitmexService extends MarketService {
                 arbitrageService.getDealPrices().getbPriceFact().addPriceItem(movedLimitOrder.getId(), movedLimitOrder.getCumulativeAmount(), movedLimitOrder.getAveragePrice());
 
                 if (movedLimitOrder.getStatus() == Order.OrderStatus.CANCELED) {
+                    if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
                 } else {
+                    cancelledInRow.set(0);
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, movedLimitOrder, updated);
                 }
 
@@ -1069,6 +1074,7 @@ public class BitmexService extends MarketService {
                     if (doubleChecked.getStatus() == Order.OrderStatus.FILLED) { // just update the status
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, moveResponse.getDescription(), null, null, updated);
                     } else if (doubleChecked.getStatus() == Order.OrderStatus.CANCELED) {
+                        if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, moveResponse.getDescription(), null, null, updated);
                     }
                 } else {
