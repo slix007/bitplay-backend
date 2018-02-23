@@ -6,7 +6,6 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
@@ -447,7 +446,8 @@ public class BitmexService extends MarketService {
                                                     MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
                                         }
 
-                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
+                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED
+                                            || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY) {
 
                                         if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
                                             setOverloaded(null);
@@ -942,10 +942,13 @@ public class BitmexService extends MarketService {
 
                     HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "PlaceOrderError", attemptCount).invoke();
 
-                    if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == handler.getMoveResponse().getMoveOrderStatus()) {
-                        if (attemptCount < maxAttempts) {
+                    final MoveResponse.MoveOrderStatus placeOrderStatus = handler.getMoveResponse().getMoveOrderStatus();
+                    if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == placeOrderStatus
+                            || MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus) {
+                        int maxAttemptsForException = (MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus)
+                                ? 3 : maxAttempts;
+                        if (attemptCount < maxAttemptsForException) {
                             // No sleep
-//                            Thread.sleep(1000);
                         } else {
                             setOverloaded(null);
                             tradeResponse.setErrorCode(e.getMessage());
@@ -1434,8 +1437,14 @@ public class BitmexService extends MarketService {
                         ? String.format(" X-RateLimit-Remaining=%s ", rateLimitValues.get(0)) : " ";
 
 
+                final String marketResponseMessage;
                 final String httpBody = e.getHttpBody();
-                final String marketResponseMessage = new ObjectMapper().readValue(httpBody, Error.class).getError().getMessage();
+                final String BAD_GATEWAY = "502 Bad Gateway";
+                if (httpBody.contains(BAD_GATEWAY)) {
+                    marketResponseMessage = BAD_GATEWAY;
+                } else {
+                    marketResponseMessage = new ObjectMapper().readValue(httpBody, Error.class).getError().getMessage();
+                }
 
                 String fullMessage = String.format("%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, httpBody, rateLimitStr);
                 String shortMessage = String.format("%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, marketResponseMessage, rateLimitStr);
@@ -1447,6 +1456,9 @@ public class BitmexService extends MarketService {
                     logger.error(fullMessage);
                 } else if (marketResponseMessage.startsWith("Invalid ordStatus")) {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, marketResponseMessage);
+                    logger.error(fullMessage);
+                } else if (marketResponseMessage.startsWith(BAD_GATEWAY)) {
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY, marketResponseMessage);
                     logger.error(fullMessage);
                 } else {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, httpBody);
