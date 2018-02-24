@@ -19,29 +19,19 @@ remotes {
         password = bpPassword
         port = bpPort as Integer
     }
+    demo {
+        host = bpDemoHost
+        user = bpDemoUser
+        password = bpDemoPassword
+        port = bpDemoPort as Integer
+    }
 }
 
-def remoteInstallDir = '/opt/bitplay'
-def remoteInstallDir2 = '/opt/bitplay/bitmex-okcoin'
+def remoteInstallDir = '/opt/bitplay/bitmex-okcoin'
 def remoteHomeDir = '/home/' + bpUser
 
 task clean << {
     delete project.buildDir
-}
-
-task deploy << {
-    ssh.run {
-        session(remotes.test) {
-
-            put from: "core/target/bitplay-0.0.1-SNAPSHOT.jar", into: "${remoteHomeDir}/"
-
-            executeSudo "sudo systemctl stop bitplay", pty: true
-            executeSudo "sudo rm -f ${remoteInstallDir}/bitplay.jar", pty: true
-            executeSudo "sudo cp ${remoteHomeDir}/bitplay-0.0.1-SNAPSHOT.jar ${remoteInstallDir}/bitplay.jar", pty: true
-            executeSudo "sudo systemctl start bitplay", pty: true
-            executeSudo "sudo systemctl start bitplay", pty: true
-        }
-    }
 }
 
 task deployTest << {
@@ -51,8 +41,8 @@ task deployTest << {
             put from: "core/target/bitplay-0.0.1-SNAPSHOT.jar", into: "${remoteHomeDir}/"
 
             executeSudo "sudo systemctl stop bitplay2", pty: true
-            executeSudo "sudo rm -f ${remoteInstallDir2}/bitplay.jar", pty: true
-            executeSudo "sudo cp ${remoteHomeDir}/bitplay-0.0.1-SNAPSHOT.jar ${remoteInstallDir2}/bitplay.jar", pty: true
+            executeSudo "sudo rm -f ${remoteInstallDir}/bitplay.jar", pty: true
+            executeSudo "sudo cp ${remoteHomeDir}/bitplay-0.0.1-SNAPSHOT.jar ${remoteInstallDir}/bitplay.jar", pty: true
             executeSudo "sudo systemctl start bitplay2", pty: true
             executeSudo "sudo systemctl start bitplay2", pty: true
         }
@@ -66,8 +56,26 @@ task deployProd << {
             put from: "core/target/bitplay-0.0.1-SNAPSHOT.jar", into: "${remoteHomeDir}/"
 
             executeSudo "sudo systemctl stop bitplay2", pty: true
-            executeSudo "sudo rm -f ${remoteInstallDir2}/bitplay.jar", pty: true
-            executeSudo "sudo cp ${remoteHomeDir}/bitplay-0.0.1-SNAPSHOT.jar ${remoteInstallDir2}/bitplay.jar", pty: true
+            executeSudo "sudo rm -f ${remoteInstallDir}/bitplay.jar", pty: true
+            executeSudo "sudo cp ${remoteHomeDir}/bitplay-0.0.1-SNAPSHOT.jar ${remoteInstallDir}/bitplay.jar", pty: true
+            executeSudo "sudo systemctl start bitplay2", pty: true
+            executeSudo "sudo systemctl start bitplay2", pty: true
+        }
+    }
+}
+
+task deployDemo << {
+    def env = remotes.demo
+    def remoteHomeDir1 = '/home/' + env.user
+
+    ssh.run {
+        session(env) {
+
+            put from: "core/target/bitplay-0.0.1-SNAPSHOT.jar", into: "${remoteHomeDir1}/"
+
+            executeSudo "sudo systemctl stop bitplay2", pty: true
+            executeSudo "sudo rm -f ${remoteInstallDir}/bitplay.jar", pty: true
+            executeSudo "sudo cp ${remoteHomeDir1}/bitplay-0.0.1-SNAPSHOT.jar ${remoteInstallDir}/bitplay.jar", pty: true
             executeSudo "sudo systemctl start bitplay2", pty: true
             executeSudo "sudo systemctl start bitplay2", pty: true
         }

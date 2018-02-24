@@ -1,0 +1,12 @@
+[Unit]
+Description=bitplay core service
+After=syslog.target
+
+[Service]
+WorkingDirectory=/opt/bitplay/bitmex-okcoin
+#ExecStart=/usr/bin/java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=3783,suspend=n -javaagent:/opt/plumbr/plumbr.jar -jar /opt/bitplay/bitmex-okcoin/bitplay.jar
+ExecStart=/usr/bin/java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=3783,suspend=n -jar /opt/bitplay/bitmex-okcoin/bitplay.jar
+#User=ss6magsto
+
+[Install]
+WantedBy=multi-user.target
