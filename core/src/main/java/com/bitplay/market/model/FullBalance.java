@@ -1,4 +1,4 @@
-package com.bitplay.market.dto;
+package com.bitplay.market.model;
 
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;

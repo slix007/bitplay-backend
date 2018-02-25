@@ -10,6 +10,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
+import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
@@ -533,6 +534,7 @@ public class OkCoinService extends MarketService {
 
 //                if (availableBtc.signum() > 0) {
 //                if (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK)) {
+                    BigDecimal affordableContractsForLong;
                     if (position.getPositionShort().signum() != 0) { // there are sells
                         if (volPlan.compareTo(position.getPositionShort()) != 1) {
                             affordableContractsForLong = (position.getPositionShort().subtract(position.getPositionLong()).add(
@@ -547,9 +549,11 @@ public class OkCoinService extends MarketService {
                     } else { // no sells
                         affordableContractsForLong = (availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
                     }
+                    affordable.setForLong(affordableContractsForLong);
 //                }
 
 //                if (orderType.equals(Order.OrderType.ASK) || orderType.equals(Order.OrderType.EXIT_BID)) {
+                    BigDecimal affordableContractsForShort;
                     if (position.getPositionLong().signum() != 0) { // we have BIDs
                         if (volPlan.compareTo(position.getPositionLong()) != 1) { // если мы хотим закрыть меньше чем есть
                             final BigDecimal divide = (equityBtc.subtract(reserveBtc)).multiply(bestBid.multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
@@ -565,6 +569,7 @@ public class OkCoinService extends MarketService {
                     } else { // no BIDs
                         affordableContractsForShort = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
                     }
+                    affordable.setForShort(affordableContractsForShort);
 //                }
 //                }
             }
@@ -572,10 +577,16 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
+    public Affordable recalcAffordable() {
+        recalcAffordableContracts();
+        return affordable;
+    }
+
+    @Override
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable;
         final BigDecimal affordableVol = (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK)
-                ? this.affordableContractsForLong : this.affordableContractsForShort;
+                ? this.affordable.getForLong() : this.affordable.getForShort();
         isAffordable = affordableVol.compareTo(tradableAmount) != -1;
 
         return isAffordable;

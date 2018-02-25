@@ -9,8 +9,8 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TickerJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.dto.FullBalance;
-import com.bitplay.market.dto.LiqInfo;
+import com.bitplay.market.model.FullBalance;
+import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.utils.Utils;
@@ -162,8 +162,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getPositionString(position),
                 upl.toPlainString(),
                 position.getLeverage().toPlainString(),
-                getBusinessService().getAffordableContractsForLong().toPlainString(),
-                getBusinessService().getAffordableContractsForShort().toPlainString(),
+                getBusinessService().getAffordable().getForLong().toPlainString(),
+                getBusinessService().getAffordable().getForShort().toPlainString(),
                 quAvg.toPlainString(),
                 liqPrice == null ? null : liqPrice.toPlainString(),
                 eMark != null ? eMark.toPlainString() : "0",
@@ -216,8 +216,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getPositionString(position),
                 upl.toPlainString(),
                 position.getLeverage().toPlainString(),
-                getBusinessService().getAffordableContractsForLong().toPlainString(),
-                getBusinessService().getAffordableContractsForShort().toPlainString(),
+                getBusinessService().getAffordable().getForLong().toPlainString(),
+                getBusinessService().getAffordable().getForShort().toPlainString(),
                 quAvg.toPlainString(),
                 liqPrice == null ? null : liqPrice.toPlainString(),
                 eMark != null ? eMark.toPlainString() : "0",

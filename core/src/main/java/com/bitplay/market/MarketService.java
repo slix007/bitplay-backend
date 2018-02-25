@@ -4,8 +4,9 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.market.dto.FullBalance;
-import com.bitplay.market.dto.LiqInfo;
+import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.FullBalance;
+import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.events.SignalEvent;
@@ -60,8 +61,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected volatile AccountInfo accountInfo = null;
     protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
     protected volatile Position position = new Position(null, null, null, null, "");
-    protected volatile BigDecimal affordableContractsForShort = BigDecimal.ZERO;
-    protected volatile BigDecimal affordableContractsForLong = BigDecimal.ZERO;
+    protected volatile Affordable affordable = new Affordable();
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected volatile int usdInContract = 0;
 
@@ -137,6 +137,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }*/
 
     public abstract boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount);
+    public abstract Affordable recalcAffordable();
+
+    public Affordable getAffordable() {
+        return affordable;
+    }
 
     public BigDecimal calcBtcInContract() {
         if (contractIndex.getIndexPrice() != null && contractIndex.getIndexPrice().signum() != 0) {
@@ -737,11 +742,4 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }
     }
 
-    public BigDecimal getAffordableContractsForShort() {
-        return affordableContractsForShort;
-    }
-
-    public BigDecimal getAffordableContractsForLong() {
-        return affordableContractsForLong;
-    }
 }

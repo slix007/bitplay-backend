@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
@@ -375,6 +376,11 @@ public class PoloniexService extends MarketService {
             }
         }
         return isAffordable;
+    }
+
+    @Override
+    public Affordable recalcAffordable() {
+        return null;
     }
 
     public Ticker getTicker() {

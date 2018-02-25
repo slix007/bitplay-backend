@@ -1,6 +1,6 @@
 package com.bitplay.market;
 
-import com.bitplay.market.dto.FullBalance;
+import com.bitplay.market.model.FullBalance;
 
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;

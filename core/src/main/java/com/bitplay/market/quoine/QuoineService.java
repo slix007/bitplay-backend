@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
@@ -72,6 +73,11 @@ public class QuoineService extends MarketService {
     @Override
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         return false;
+    }
+
+    @Override
+    public Affordable recalcAffordable() {
+        return null;
     }
 
     @Override

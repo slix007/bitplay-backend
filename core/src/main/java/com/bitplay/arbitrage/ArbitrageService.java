@@ -10,7 +10,8 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.dto.LiqInfo;
+import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.events.SignalEvent;
@@ -962,8 +963,8 @@ public class ArbitrageService {
                 final BigDecimal bA = firstAccount.getAvailable();
                 final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
                 final BigDecimal bLv = firstMarketService.getPosition().getLeverage();
-                final BigDecimal bAL = firstMarketService.getAffordableContractsForLong();
-                final BigDecimal bAS = firstMarketService.getAffordableContractsForShort();
+                final BigDecimal bAL = firstMarketService.getAffordable().getForLong();
+                final BigDecimal bAS = firstMarketService.getAffordable().getForShort();
                 final BigDecimal quAvg = Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
                 final OrderBook bOrderBook = firstMarketService.getOrderBook();
                 final BigDecimal bBestAsk = Utils.getBestAsks(bOrderBook, 1).get(0).getLimitPrice();
@@ -995,8 +996,8 @@ public class ArbitrageService {
                 final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
                 final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
                 final BigDecimal oLv = secondMarketService.getPosition().getLeverage();
-                final BigDecimal oAL = secondMarketService.getAffordableContractsForLong();
-                final BigDecimal oAS = secondMarketService.getAffordableContractsForShort();
+                final BigDecimal oAL = secondMarketService.getAffordable().getForLong();
+                final BigDecimal oAS = secondMarketService.getAffordable().getForShort();
                 final OrderBook oOrderBook = secondMarketService.getOrderBook();
                 final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
@@ -1079,16 +1080,18 @@ public class ArbitrageService {
     private PlBlocks dynBlockDecriseByAffordable(String deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {
         BigDecimal b1 = BigDecimal.ZERO;
         BigDecimal b2 = BigDecimal.ZERO;
+        final Affordable firstAffordable = firstMarketService.recalcAffordable();
+        final Affordable secondAffordable = secondMarketService.recalcAffordable();
         if (deltaRef.equals(DELTA1)) {
             // b_sell, o_buy
-            final BigDecimal b_sell_lim = firstMarketService.getAffordableContractsForShort().signum() < 0 ? BigDecimal.ZERO : firstMarketService.getAffordableContractsForShort();
-            final BigDecimal o_buy_lim = secondMarketService.getAffordableContractsForLong().signum() < 0 ? BigDecimal.ZERO : secondMarketService.getAffordableContractsForLong();
+            final BigDecimal b_sell_lim = firstAffordable.getForShort().signum() < 0 ? BigDecimal.ZERO : firstAffordable.getForShort();
+            final BigDecimal o_buy_lim = secondAffordable.getForLong().signum() < 0 ? BigDecimal.ZERO : secondAffordable.getForLong();
             b1 = blockSize1.compareTo(b_sell_lim) < 0 ? blockSize1 : b_sell_lim;
             b2 = blockSize2.compareTo(o_buy_lim) < 0 ? blockSize2 : o_buy_lim;
         } else if (deltaRef.equals(DELTA2)) {
             // buy p , sell o
-            final BigDecimal b_buy_lim = firstMarketService.getAffordableContractsForLong().signum() < 0 ? BigDecimal.ZERO : firstMarketService.getAffordableContractsForLong();
-            final BigDecimal o_sell_lim = secondMarketService.getAffordableContractsForShort().signum() < 0 ? BigDecimal.ZERO : secondMarketService.getAffordableContractsForShort();
+            final BigDecimal b_buy_lim = firstAffordable.getForLong().signum() < 0 ? BigDecimal.ZERO : firstAffordable.getForLong();
+            final BigDecimal o_sell_lim = secondAffordable.getForShort().signum() < 0 ? BigDecimal.ZERO : secondAffordable.getForShort();
             b1 = blockSize1.compareTo(b_buy_lim) < 0 ? blockSize1 : b_buy_lim;
             b2 = blockSize2.compareTo(o_sell_lim) < 0 ? blockSize2 : o_sell_lim;
         }

@@ -1,4 +1,4 @@
-package com.bitplay.market.dto;
+package com.bitplay.market.model;
 
 import com.bitplay.persistance.domain.LiqParams;
 

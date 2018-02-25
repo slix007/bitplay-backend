@@ -1,7 +1,7 @@
 package com.bitplay.market.okcoin;
 
 import com.bitplay.market.BalanceService;
-import com.bitplay.market.dto.FullBalance;
+import com.bitplay.market.model.FullBalance;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.dto.account.AccountInfoContracts;

@@ -12,6 +12,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
+import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
@@ -744,20 +745,22 @@ public class BitmexService extends MarketService {
             if (availableBtc != null && equityBtc != null && positionContracts != null && leverage != null) {
 
                 if (positionContracts.signum() == 0) {
-                    affordableContractsForLong = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
-                    affordableContractsForShort = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
+                    affordable.setForLong(((availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN));
+                    affordable.setForShort(((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN));
                 } else if (positionContracts.signum() > 0) {
-                    affordableContractsForLong = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
-                    affordableContractsForShort = (positionContracts.add((equityBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
-                    if (affordableContractsForShort.compareTo(positionContracts) == -1) {
-                        affordableContractsForShort = positionContracts;
+                    affordable.setForLong(((availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN));
+                    BigDecimal forShort = (positionContracts.add((equityBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
+                    if (forShort.compareTo(positionContracts) < 0) {
+                        forShort = positionContracts;
                     }
+                    affordable.setForShort(forShort);
                 } else if (positionContracts.signum() < 0) {
-                    affordableContractsForLong = (positionContracts.negate().add((equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
-                    if (affordableContractsForLong.compareTo(positionContracts.negate()) == -1) {
-                        affordableContractsForLong = positionContracts.negate();
+                    BigDecimal forLong = (positionContracts.negate().add((equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
+                    if (forLong.compareTo(positionContracts) < 0) {
+                        forLong = positionContracts;
                     }
-                    affordableContractsForShort = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN);
+                    affordable.setForLong(forLong);
+                    affordable.setForShort(((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN));
                 }
 
             }
@@ -765,10 +768,16 @@ public class BitmexService extends MarketService {
     }
 
     @Override
+    public Affordable recalcAffordable() {
+        recalcAffordableContracts();
+        return affordable;
+    }
+
+    @Override
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         boolean isAffordable;
         final BigDecimal affordableVol = (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK)
-                ? this.affordableContractsForLong : this.affordableContractsForShort;
+                ? this.affordable.getForLong() : this.affordable.getForShort();
         isAffordable = affordableVol.compareTo(tradableAmount) != -1;
         return isAffordable;
     }
