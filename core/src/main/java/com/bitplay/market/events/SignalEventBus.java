@@ -13,7 +13,7 @@ import io.reactivex.subjects.Subject;
 public class SignalEventBus {
 
     private static final Logger logger = LoggerFactory.getLogger(SignalEventBus.class);
-    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
+//    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
     private final Subject<SignalEvent> _bus = PublishSubject.create();
 
@@ -26,7 +26,7 @@ public class SignalEventBus {
                 .doOnError(throwable -> logger.error("SignalEventBus.", throwable))
                 .retry()
                 .share()
-                .doOnTerminate(() -> logger.info("SignalEventBus has been terminated."))
-                .doOnEach(notification -> debugLog.info("SignalEventBus:" + (notification != null ? notification.toString() : "null")));
+                .doOnTerminate(() -> logger.info("SignalEventBus has been terminated."));
+//                .doOnEach(notification -> debugLog.debug("SignalEventBus:" + (notification != null ? notification.toString() : "null")));
     }
 }

@@ -794,15 +794,44 @@ public class OkCoinService extends MarketService {
                 final FplayOrder fplayOrder = new FplayOrder(limitOrderWithId, bestQuotes, placingSubType, signalType);
                 orderRepositoryService.save(fplayOrder);
 
+                String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType;
+
                 if (!isMoving) {
+
+                    final Order.OrderStatus status = limitOrderWithId.getStatus();
+                    final String msg = String.format("%s: %s %s amount=%s, quote=%s, orderId=%s, status=%s",
+                            getCounterName(),
+                            placingTypeString,
+                            Utils.convertOrderTypeName(orderType),
+                            tradeableAmount.toPlainString(),
+                            thePrice,
+                            orderId,
+                            status);
+
+                    debugLog.info("placeOrder1 " + msg);
+
                     synchronized (openOrdersLock) {
+
+                        debugLog.info("placeOrder2 " + msg);
+
+                        tradeLogger.info(msg);
                         openOrders.replaceAll(exists -> {
                             if (fplayOrder.getOrderId().equals(exists.getOrderId())) {
                                 return FplayOrderUtils.updateFplayOrder(exists, fplayOrder);
                             }
                             return exists;
                         });
+
+                        if (openOrders.stream().noneMatch(o -> o.getOrderId().equals(fplayOrder.getOrderId()))) {
+                            debugLog.warn("placeOrder2 Order was missed " + msg);
+                            logger.warn("placeOrder2 Order was missed " + msg);
+                            tradeLogger.warn("placeOrder2 Order was missed " + msg);
+
+                            openOrders.add(fplayOrder);
+                        }
                     }
+
+                    debugLog.info("placeOrder3 " + msg);
                 }
 
                 arbitrageService.getDealPrices().setSecondOpenPrice(thePrice);
@@ -810,7 +839,6 @@ public class OkCoinService extends MarketService {
 
                 orderIdToSignalInfo.put(orderId, bestQuotes);
 
-                String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType;
                 writeLogPlaceOrder(orderType, tradeableAmount,
                         placingTypeString,
                         thePrice, orderId,
