@@ -222,6 +222,8 @@ public class CommonUIService {
             arbitrageService.getParams().setCumAstBitmexMCom(BigDecimal.ZERO);
             arbitrageService.getParams().setCumSlipM(BigDecimal.ZERO);
             arbitrageService.getParams().setCumSlipT(BigDecimal.ZERO);
+            arbitrageService.getParams().setCounter1(0);
+            arbitrageService.getParams().setCounter2(0);
         }
         arbitrageService.saveParamsToDb();
 
