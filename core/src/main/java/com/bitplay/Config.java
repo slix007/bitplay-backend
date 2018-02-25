@@ -23,6 +23,9 @@ public class Config {
     @Value("${market.second.secret}")
     private String secondMarketSecret;
 
+    @Value("${deltas-series.enabled}")
+    private Boolean deltasSeriesEnabled;
+
     public String getFirstMarketName() {
         return firstMarketName;
     }
@@ -45,5 +48,13 @@ public class Config {
 
     public String getSecondMarketSecret() {
         return secondMarketSecret;
+    }
+
+    public boolean isDeltasSeriesEnabled() {
+        return deltasSeriesEnabled != null && deltasSeriesEnabled;
+    }
+
+    public void setDeltasSeriesEnabled(Boolean deltasSeriesEnabled) {
+        this.deltasSeriesEnabled = deltasSeriesEnabled;
     }
 }

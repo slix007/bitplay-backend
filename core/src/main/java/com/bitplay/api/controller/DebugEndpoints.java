@@ -28,7 +28,7 @@ import java.util.Map;
 @RestController
 public class DebugEndpoints {
 
-    private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
+    private final static Logger logger = LoggerFactory.getLogger(DebugEndpoints.class);
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     @Autowired

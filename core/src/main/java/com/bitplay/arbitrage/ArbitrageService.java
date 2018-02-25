@@ -16,10 +16,12 @@ import com.bitplay.market.events.EventBus;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.events.SignalEventBus;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.fluent.Delta;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.utils.Utils;
 
@@ -69,6 +71,8 @@ public class ArbitrageService {
     private PlacingBlocksService placingBlocksService;
     @Autowired
     private PersistenceService persistenceService;
+    @Autowired
+    private DeltaRepositoryService deltaRepositoryService;
     @Autowired
     private SignalService signalService;
     @Autowired
@@ -505,6 +509,10 @@ public class ArbitrageService {
             }
 
             if (!Thread.interrupted()) {
+                deltaRepositoryService.add(new Delta(new Date(),
+                        bestQuotes.getAsk1_p(), bestQuotes.getBid1_p(),
+                        bestQuotes.getAsk1_o(), bestQuotes.getBid1_o()));
+
                 storeDeltaParams();
             } else {
                 return bestQuotes;
