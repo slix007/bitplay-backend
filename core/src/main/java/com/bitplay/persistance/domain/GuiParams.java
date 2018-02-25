@@ -30,6 +30,7 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal diffFact = BigDecimal.ZERO;
     private BigDecimal com1 = BigDecimal.ZERO;
     private BigDecimal com2 = BigDecimal.ZERO;
+    private BigDecimal bitmexMCom = BigDecimal.ZERO;
     private BigDecimal cumBitmexMCom = BigDecimal.ZERO;
     private BigDecimal cumCom1 = BigDecimal.ZERO;
     private BigDecimal cumCom2 = BigDecimal.ZERO;
@@ -215,6 +216,14 @@ public class GuiParams extends AbstractDocument {
 
     public void setCom2(BigDecimal com2) {
         this.com2 = com2;
+    }
+
+    public BigDecimal getBitmexMCom() {
+        return bitmexMCom;
+    }
+
+    public void setBitmexMCom(BigDecimal bitmexMCom) {
+        this.bitmexMCom = bitmexMCom;
     }
 
     public BigDecimal getCumBitmexMCom() {
