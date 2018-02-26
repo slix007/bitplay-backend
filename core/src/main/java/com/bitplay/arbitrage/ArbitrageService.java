@@ -122,8 +122,13 @@ public class ArbitrageService {
                         if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
                                 || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
 
-                            final BestQuotes bestQuotes = doComparison();
+                            final OrderBook firstOrderBook = firstMarketService.getOrderBook();
+                            final OrderBook secondOrderBook = secondMarketService.getOrderBook();
+
+                            final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
                             params.setLastOBChange(new Date());
+
+                            doComparison(bestQuotes, firstOrderBook, secondOrderBook);
 
                             // Logging not often then 5 sec
                             if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
@@ -454,8 +459,57 @@ public class ArbitrageService {
                     });
         }
     */
-    private BestQuotes doComparison() {
+    private BestQuotes calcBestQuotesAndDeltas(OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
         BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+
+        if (bitmexOrderBook != null && okCoinOrderBook != null) {
+
+            if (okCoinOrderBook.getAsks().size() == 0 || okCoinOrderBook.getBids().size() == 0
+                    || bitmexOrderBook.getAsks().size() == 0 || bitmexOrderBook.getBids().size() == 0) {
+                return BestQuotes.empty();
+            }
+
+            // 1. Calc deltas
+            bestQuotes = Utils.createBestQuotes(okCoinOrderBook, bitmexOrderBook);
+            if (!bestQuotes.hasEmpty()) {
+                if (firstDeltasAfterStart) {
+                    firstDeltasAfterStart = false;
+                    warningLogger.info("Started: First delta calculated");
+                }
+
+                delta1 = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
+                delta2 = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
+                if (delta1.compareTo(deltaParams.getbDeltaMin()) < 0) {
+                    deltaParams.setbDeltaMin(delta1);
+                }
+                if (delta1.compareTo(deltaParams.getbDeltaMax()) > 0) {
+                    deltaParams.setbDeltaMax(delta1);
+                }
+                if (delta2.compareTo(deltaParams.getoDeltaMin()) < 0) {
+                    deltaParams.setoDeltaMin(delta2);
+                }
+                if (delta2.compareTo(deltaParams.getoDeltaMax()) > 0) {
+                    deltaParams.setoDeltaMax(delta2);
+                }
+
+                if (!Thread.interrupted()) {
+                    deltaRepositoryService.add(new Delta(new Date(),
+                            bestQuotes.getAsk1_p(), bestQuotes.getBid1_p(),
+                            bestQuotes.getAsk1_o(), bestQuotes.getBid1_o()));
+
+                    storeDeltaParams();
+                } else {
+                    return bestQuotes;
+                }
+            } else {
+                return bestQuotes;
+            }
+        }
+
+        return bestQuotes;
+    }
+
+    private void doComparison(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
 
         if (firstMarketService.getMarketState() == MarketState.STOPPED || secondMarketService.getMarketState() == MarketState.STOPPED) {
             // do nothing
@@ -467,61 +521,19 @@ public class ArbitrageService {
                 logger.warn("calcLock is in progress");
             }
             synchronized (calcLock) {
-                final OrderBook firstOrderBook = firstMarketService.getOrderBook();
-                final OrderBook secondOrderBook = secondMarketService.getOrderBook();
 
-                if (firstOrderBook != null
-                        && secondOrderBook != null
+                if (bitmexOrderBook != null
+                        && okCoinOrderBook != null
                         && firstMarketService.getAccountInfoContracts() != null
                         && secondMarketService.getAccountInfoContracts() != null) {
-                    bestQuotes = calcAndDoArbitrage(firstOrderBook, secondOrderBook);
+                    calcAndDoArbitrage(bestQuotes, bitmexOrderBook, okCoinOrderBook);
                 }
             }
         }
-        return bestQuotes;
+
     }
 
-    private BestQuotes calcAndDoArbitrage(OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
-        if (okCoinOrderBook.getAsks().size() == 0 || okCoinOrderBook.getBids().size() == 0
-                || bitmexOrderBook.getAsks().size() == 0 || bitmexOrderBook.getBids().size() == 0) {
-            return BestQuotes.empty();
-        }
-
-        // 1. Calc deltas
-        final BestQuotes bestQuotes = Utils.createBestQuotes(okCoinOrderBook, bitmexOrderBook);
-        if (!bestQuotes.hasEmpty()) {
-            if (firstDeltasAfterStart) {
-                firstDeltasAfterStart = false;
-                warningLogger.info("Started: First delta calculated");
-            }
-
-            delta1 = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
-            delta2 = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
-            if (delta1.compareTo(deltaParams.getbDeltaMin()) < 0) {
-                deltaParams.setbDeltaMin(delta1);
-            }
-            if (delta1.compareTo(deltaParams.getbDeltaMax()) > 0) {
-                deltaParams.setbDeltaMax(delta1);
-            }
-            if (delta2.compareTo(deltaParams.getoDeltaMin()) < 0) {
-                deltaParams.setoDeltaMin(delta2);
-            }
-            if (delta2.compareTo(deltaParams.getoDeltaMax()) > 0) {
-                deltaParams.setoDeltaMax(delta2);
-            }
-
-            if (!Thread.interrupted()) {
-                deltaRepositoryService.add(new Delta(new Date(),
-                        bestQuotes.getAsk1_p(), bestQuotes.getBid1_p(),
-                        bestQuotes.getAsk1_o(), bestQuotes.getBid1_o()));
-
-                storeDeltaParams();
-            } else {
-                return bestQuotes;
-            }
-        } else {
-            return bestQuotes;
-        }
+    private BestQuotes calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
 
         final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
         final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
