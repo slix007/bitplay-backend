@@ -15,10 +15,12 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -93,6 +95,17 @@ public abstract class MarketServiceOpenOrders {
 
         }
         return hasOO;
+    }
+
+    protected void distinctOpenOrders() {
+        Set<String> ordIdSet = new HashSet<>();
+        openOrders = openOrders.stream().flatMap(fplayOrder -> {
+            if (ordIdSet.add(fplayOrder.getOrderId())) {
+                return Stream.of(fplayOrder);
+            }
+            logger.warn("OO is repeated " + fplayOrder.toString());
+            return Stream.empty();
+        }).collect(Collectors.toList());
     }
 
     private boolean validateOpenOrders() {

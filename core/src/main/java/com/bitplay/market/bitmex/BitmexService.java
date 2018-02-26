@@ -368,6 +368,8 @@ public class BitmexService extends MarketService {
                 final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
                 final Integer maxAttempts = sysOverloadArgs.getMovingErrorsForOverload();
 
+                distinctOpenOrders();
+
                 openOrders = openOrders.stream()
                         .flatMap(openOrder -> {
                             Stream<FplayOrder> orderStream = Stream.of(openOrder); // default - the same
@@ -1073,9 +1075,11 @@ public class BitmexService extends MarketService {
 
         } catch (HttpStatusIOException e) {
 
-            HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e,
+            HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(
+                    e,
                     String.format("MoveOrderError:ordId=%s", limitOrder.getId()),
-                    movingErrorsOverloaded.get()).invoke();
+                    movingErrorsOverloaded.get()
+            ).invoke();
             moveResponse = handler.getMoveResponse();
             // double check  "Invalid ordStatus"
             if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
@@ -1086,8 +1090,8 @@ public class BitmexService extends MarketService {
                     if (doubleChecked.getStatus() == Order.OrderStatus.FILLED) { // just update the status
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, moveResponse.getDescription(), null, null, updated);
                     } else if (doubleChecked.getStatus() == Order.OrderStatus.CANCELED) {
-                        if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
-                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, moveResponse.getDescription(), null, null, updated);
+//                        if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
+                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, moveResponse.getDescription(), null, null, updated);
                     }
                 } else {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, moveResponse.getDescription());
