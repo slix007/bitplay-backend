@@ -1087,10 +1087,7 @@ public class BitmexService extends MarketService {
                 if (orderInfo.isPresent()) {
                     final Order doubleChecked = orderInfo.get();
                     final FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, (LimitOrder) doubleChecked);
-                    if (doubleChecked.getStatus() == Order.OrderStatus.FILLED) { // just update the status
-                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, moveResponse.getDescription(), null, null, updated);
-                    } else if (doubleChecked.getStatus() == Order.OrderStatus.CANCELED) {
-//                        if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
+                    if (doubleChecked.getStatus() == Order.OrderStatus.FILLED || doubleChecked.getStatus() == Order.OrderStatus.CANCELED) { // just update the status
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, moveResponse.getDescription(), null, null, updated);
                     }
                 } else {

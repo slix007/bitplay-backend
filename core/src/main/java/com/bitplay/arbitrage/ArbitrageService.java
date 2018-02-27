@@ -302,16 +302,14 @@ public class ArbitrageService {
         BigDecimal ast_diff_fact = ast_delta_fact.subtract(ast_delta);
         params.setCumAstDiffFact(params.getCumAstDiffFact().add(ast_diff_fact));
 
-        // slip_m = (diff_fact - com2 + Bitmex_m_com) / (count1 + count2)
+        // slip_m = (diff_fact - com2 + Bitmex_m_com)
         // cum_slip_m = sum(slip_m)
-        // slip_t = (diff_fact - com) / (count1 + count2)
+        // slip_t = (diff_fact - com)
         // cum_slip_t = sum(slip_t)
-        final BigDecimal slip_m = (diff_fact_v2.subtract(params.getCom2()).add(params.getBitmexMCom())).divide(
-                BigDecimal.valueOf(getCounter()), 8, RoundingMode.HALF_UP);
+        final BigDecimal slip_m = diff_fact_v2.subtract(params.getCom2()).add(params.getBitmexMCom());
         params.setCumSlipM(params.getCumSlipM().add(slip_m));
         final BigDecimal com = params.getCom1().add(params.getCom2());
-        final BigDecimal slip_t = (diff_fact_v2.subtract(com)).divide(
-                BigDecimal.valueOf(getCounter()), 8, RoundingMode.HALF_UP);
+        final BigDecimal slip_t = diff_fact_v2.subtract(com);
         params.setCumSlipT(params.getCumSlipT().add(slip_t));
 
         deltasLogger.info(String.format("#%s %s; " +
@@ -560,8 +558,6 @@ public class ArbitrageService {
                 if (plBlocks.getBlockOkex().signum() > 0) {
                     dealPrices.setBorder(border1);
                     startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
-                } else {
-                    warningLogger.warn("Block should be < 0, but okexBlock=" + plBlocks.getBlockOkex());
                 }
             }
             if (delta2.compareTo(border2) >= 0) {
@@ -579,8 +575,6 @@ public class ArbitrageService {
                 if (plBlocks.getBlockOkex().signum() > 0) {
                     dealPrices.setBorder(border2);
                     startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
-                } else {
-                    warningLogger.warn("Block should be < 0, but okexBlock=" + plBlocks.getBlockOkex());
                 }
             }
 
@@ -606,10 +600,7 @@ public class ArbitrageService {
                         } else {
                             warningLogger.warn("Block calc(after border2Calc): Block should be > 0, but okexBlock=" + bl.getBlockOkex());
                         }
-                    } else {
-                        warningLogger.warn("Block calc(after dynBlock): Block should be > 0, but okexBlock=" + bl.getBlockOkex());
                     }
-
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
@@ -632,10 +623,7 @@ public class ArbitrageService {
                         } else {
                             warningLogger.warn("Block calc(after border2Calc): Block should be > 0, but okexBlock=" + bl.getBlockOkex());
                         }
-                    } else {
-                        warningLogger.warn("Block calc(after dynBlock): Block should be > 0, but okexBlock=" + bl.getBlockOkex());
                     }
-
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
