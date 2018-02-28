@@ -959,7 +959,7 @@ public class BitmexService extends MarketService {
                         int maxAttemptsForException = (MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus)
                                 ? 3 : maxAttempts;
                         if (attemptCount < maxAttemptsForException) {
-                            // No sleep
+                            Thread.sleep(200);
                         } else {
                             setOverloaded(null);
                             tradeResponse.setErrorCode(e.getMessage());

@@ -10,12 +10,12 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.model.Affordable;
-import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.events.SignalEventBus;
+import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
@@ -65,6 +65,7 @@ public class ArbitrageService {
     private final BigDecimal FEE_FIRST_MAKER = new BigDecimal("0.075");//Bitmex
     private final BigDecimal FEE_SECOND_TAKER = new BigDecimal("0.015");//OkCoin
     private final BigDecimal OKEX_FACTOR = BigDecimal.valueOf(100);
+    private final DealPrices dealPrices = new DealPrices();
     private boolean firstDeltasAfterStart = true;
     @Autowired
     private BordersService bordersService;
@@ -90,12 +91,9 @@ public class ArbitrageService {
     private GuiParams params = new GuiParams();
     private Instant previousEmitTime = Instant.now();
     private String sumBalString = "";
-
     private volatile Boolean isReadyForTheArbitrage = true;
     private Disposable theTimer;
     private Disposable theCheckBusyTimer;
-
-    private final DealPrices dealPrices = new DealPrices();
     private volatile SignalType signalType = SignalType.AUTOMATIC;
     private SignalEventBus signalEventBus = new SignalEventBus();
     private volatile DeltaParams deltaParams = new DeltaParams();
