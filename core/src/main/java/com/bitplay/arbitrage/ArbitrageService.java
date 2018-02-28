@@ -302,11 +302,11 @@ public class ArbitrageService {
 
         // slip_m = (cum_diff_fact - cum_com2 + cum_Bitmex_m_com) / count1 + count2
         // slip_t = (cum_diff_fact - cum_com) / count1 + count2
-        final BigDecimal slip_m = (diff_fact_v2.subtract(params.getCom2()).add(params.getBitmexMCom()))
+        final BigDecimal slip_m = (params.getCumDiffFact().subtract(params.getCumCom2()).add(params.getCumBitmexMCom()))
                 .divide(BigDecimal.valueOf(getCounter()), 8, RoundingMode.HALF_UP);
         params.setSlipM(slip_m);
-        final BigDecimal com = params.getCom1().add(params.getCom2());
-        final BigDecimal slip_t = diff_fact_v2.subtract(com)
+        final BigDecimal cumCom = params.getCumCom1().add(params.getCumCom2());
+        final BigDecimal slip_t = (params.getCumDiffFact().subtract(cumCom))
                 .divide(BigDecimal.valueOf(getCounter()), 8, RoundingMode.HALF_UP);;
         params.setSlipT(slip_t);
 
