@@ -24,6 +24,7 @@ import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.fluent.Delta;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 
 import org.knowm.xchange.dto.Order;
@@ -62,8 +63,6 @@ public class ArbitrageService {
     private static final String DELTA1 = "delta1";
     private static final String DELTA2 = "delta2";
     private static final Object calcLock = new Object();
-    private final BigDecimal FEE_FIRST_MAKER = new BigDecimal("0.075");//Bitmex
-    private final BigDecimal FEE_SECOND_TAKER = new BigDecimal("0.015");//OkCoin
     private final BigDecimal OKEX_FACTOR = BigDecimal.valueOf(100);
     private final DealPrices dealPrices = new DealPrices();
     private boolean firstDeltasAfterStart = true;
@@ -827,19 +826,23 @@ public class ArbitrageService {
     }
 
     private void printCom(DealPrices dealPrices) {
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        final BigDecimal bFee = settings.getBFee();
+        final BigDecimal oFee = settings.getOFee();
+
         final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
         final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
-        final BigDecimal com1 = b_price_fact.multiply(FEE_FIRST_MAKER).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
-        final BigDecimal com2 = ok_price_fact.multiply(FEE_SECOND_TAKER).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal com1 = b_price_fact.multiply(bFee).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal com2 = ok_price_fact.multiply(oFee).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
         params.setCom1(com1);
         params.setCom2(com2);
         final BigDecimal con = dealPrices.getbBlock();
         // ast_com1 = con / b_price_fact * 0.075 / 100
         // ast_com2 = con / ok_price_fact * 0.015 / 100
         // ast_com = ast_com1 + ast_com2
-        final BigDecimal ast_com1 = con.divide(b_price_fact, 16, RoundingMode.HALF_UP).multiply(FEE_FIRST_MAKER)
+        final BigDecimal ast_com1 = con.divide(b_price_fact, 16, RoundingMode.HALF_UP).multiply(bFee)
                 .divide(OKEX_FACTOR, 8, RoundingMode.HALF_UP);
-        final BigDecimal ast_com2 = con.divide(ok_price_fact, 16, RoundingMode.HALF_UP).multiply(FEE_SECOND_TAKER)
+        final BigDecimal ast_com2 = con.divide(ok_price_fact, 16, RoundingMode.HALF_UP).multiply(oFee)
                 .divide(OKEX_FACTOR, 8, RoundingMode.HALF_UP);
         final BigDecimal ast_com = ast_com1.add(ast_com2);
         params.setAstCom1(ast_com1);

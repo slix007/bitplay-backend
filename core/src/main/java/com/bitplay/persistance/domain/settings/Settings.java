@@ -24,6 +24,7 @@ public class Settings extends AbstractDocument {
     private BigDecimal bitmexPrice;
     private PlacingBlocks placingBlocks;
     private Boolean restartEnabled;
+    private FeeSettings feeSettings;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -32,6 +33,7 @@ public class Settings extends AbstractDocument {
         settings.okexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexPlacingType = PlacingType.TAKER;
         settings.placingBlocks = PlacingBlocks.createDefault();
+        settings.feeSettings = FeeSettings.createDefault();
         settings.setId(1L);
         return settings;
     }
@@ -98,6 +100,31 @@ public class Settings extends AbstractDocument {
         this.restartEnabled = restartEnabled;
     }
 
+    public FeeSettings getFeeSettings() {
+        if (feeSettings == null || feeSettings.getbMakerComRate() == null) {
+            feeSettings = FeeSettings.createDefault();
+        }
+        return feeSettings;
+    }
+
+    public BigDecimal getBFee() {
+        final FeeSettings feeSettings = getFeeSettings();
+        final ArbScheme arbScheme = getArbScheme();
+        if (arbScheme == ArbScheme.TT) {
+            return feeSettings.getbTakerComRate();
+        }
+        return feeSettings.getbMakerComRate();
+    }
+
+    public BigDecimal getOFee() {
+        final FeeSettings feeSettings = getFeeSettings();
+        final PlacingType okexPlacingType = getOkexPlacingType();
+        if (okexPlacingType == PlacingType.MAKER) {
+            return feeSettings.getoMakerComRate();
+        }
+        return feeSettings.getoTakerComRate(); // TAKER, HYBRID
+    }
+
     @Override
     public String toString() {
         return "Settings{" +
@@ -108,6 +135,7 @@ public class Settings extends AbstractDocument {
                 ", bitmexPrice=" + bitmexPrice +
                 ", placingBlocks=" + placingBlocks +
                 ", restartEnabled=" + restartEnabled +
+                ", feeSettings=" + feeSettings +
                 '}';
     }
 }

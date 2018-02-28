@@ -93,6 +93,21 @@ public class SettingsEndpoint {
         if (settingsUpdate.isRestartEnabled() != null) {
             settings.setRestartEnabled(settingsUpdate.isRestartEnabled()); // no need to save. it already refers to internal volatile var
         }
+        if (settingsUpdate.getFeeSettings() != null) {
+            if (settingsUpdate.getFeeSettings().getbMakerComRate() != null) {
+                settings.getFeeSettings().setbMakerComRate(settingsUpdate.getFeeSettings().getbMakerComRate());
+            }
+            if (settingsUpdate.getFeeSettings().getbTakerComRate() != null) {
+                settings.getFeeSettings().setbTakerComRate(settingsUpdate.getFeeSettings().getbTakerComRate());
+            }
+            if (settingsUpdate.getFeeSettings().getoMakerComRate() != null) {
+                settings.getFeeSettings().setoMakerComRate(settingsUpdate.getFeeSettings().getoMakerComRate());
+            }
+            if (settingsUpdate.getFeeSettings().getoTakerComRate() != null) {
+                settings.getFeeSettings().setoTakerComRate(settingsUpdate.getFeeSettings().getoTakerComRate());
+            }
+            settingsRepositoryService.saveSettings(settings);
+        }
 
         return settings;
     }
