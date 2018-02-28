@@ -192,10 +192,10 @@ public class CommonUIService {
             arbitrageService.getParams().setFundingRateFee(new BigDecimal(deltalUpdateJson.getFundingRateFee()));
         }
         if (deltalUpdateJson.getCumSlipM() != null) {
-            arbitrageService.getParams().setCumSlipM(new BigDecimal(deltalUpdateJson.getCumSlipM()));
+            arbitrageService.getParams().setSlipM(new BigDecimal(deltalUpdateJson.getCumSlipM()));
         }
         if (deltalUpdateJson.getCumSlipT() != null) {
-            arbitrageService.getParams().setCumSlipT(new BigDecimal(deltalUpdateJson.getCumSlipT()));
+            arbitrageService.getParams().setSlipT(new BigDecimal(deltalUpdateJson.getCumSlipT()));
         }
         if (deltalUpdateJson.getResetAllCumValues() != null && deltalUpdateJson.getResetAllCumValues()) {
             arbitrageService.getParams().setCumDelta(BigDecimal.ZERO);
@@ -220,8 +220,8 @@ public class CommonUIService {
             arbitrageService.getParams().setCumAstCom2(BigDecimal.ZERO);
             arbitrageService.getParams().setCumBitmexMCom(BigDecimal.ZERO);
             arbitrageService.getParams().setCumAstBitmexMCom(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumSlipM(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumSlipT(BigDecimal.ZERO);
+            arbitrageService.getParams().setSlipM(BigDecimal.ZERO);
+            arbitrageService.getParams().setSlipT(BigDecimal.ZERO);
             arbitrageService.getParams().setCounter1(0);
             arbitrageService.getParams().setCounter2(0);
         }
@@ -262,8 +262,8 @@ public class CommonUIService {
                 arbitrageService.getParams().getReserveBtc2().toPlainString(),
                 arbitrageService.getParams().getHedgeAmount().toPlainString(),
                 arbitrageService.getParams().getFundingRateFee().toPlainString(),
-                arbitrageService.getParams().getCumSlipM().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getCumSlipT().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString()
+                arbitrageService.getParams().getSlipM().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                arbitrageService.getParams().getSlipT().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString()
         );
     }
 

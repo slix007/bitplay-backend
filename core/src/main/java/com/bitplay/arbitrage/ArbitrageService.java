@@ -300,15 +300,15 @@ public class ArbitrageService {
         BigDecimal ast_diff_fact = ast_delta_fact.subtract(ast_delta);
         params.setCumAstDiffFact(params.getCumAstDiffFact().add(ast_diff_fact));
 
-        // slip_m = (diff_fact - com2 + Bitmex_m_com)
-        // cum_slip_m = sum(slip_m)
-        // slip_t = (diff_fact - com)
-        // cum_slip_t = sum(slip_t)
-        final BigDecimal slip_m = diff_fact_v2.subtract(params.getCom2()).add(params.getBitmexMCom());
-        params.setCumSlipM(params.getCumSlipM().add(slip_m));
+        // slip_m = (cum_diff_fact - cum_com2 + cum_Bitmex_m_com) / count1 + count2
+        // slip_t = (cum_diff_fact - cum_com) / count1 + count2
+        final BigDecimal slip_m = (diff_fact_v2.subtract(params.getCom2()).add(params.getBitmexMCom()))
+                .divide(BigDecimal.valueOf(getCounter()), 8, RoundingMode.HALF_UP);
+        params.setSlipM(slip_m);
         final BigDecimal com = params.getCom1().add(params.getCom2());
-        final BigDecimal slip_t = diff_fact_v2.subtract(com);
-        params.setCumSlipT(params.getCumSlipT().add(slip_t));
+        final BigDecimal slip_t = diff_fact_v2.subtract(com)
+                .divide(BigDecimal.valueOf(getCounter()), 8, RoundingMode.HALF_UP);;
+        params.setSlipT(slip_t);
 
         deltasLogger.info(String.format("#%s %s; " +
                         "cum_delta_fact=%s; " +
@@ -335,8 +335,8 @@ public class ArbitrageService {
                 params.getCumDiffFactBr().toPlainString(),
                 ast_diff_fact1.toPlainString(), ast_diff_fact2.toPlainString(), ast_delta_fact.toPlainString(), ast_delta.toPlainString(), ast_diff_fact.toPlainString(),
                 params.getCumAstDiffFact1().toPlainString(), params.getCumAstDiffFact2().toPlainString(), params.getCumAstDiffFact().toPlainString(),
-                slip_m.toPlainString(), params.getCumSlipM().toPlainString(),
-                slip_t.toPlainString(), params.getCumSlipT().toPlainString()
+                slip_m.toPlainString(), params.getSlipM().toPlainString(),
+                slip_t.toPlainString(), params.getSlipT().toPlainString()
         ));
     }
 

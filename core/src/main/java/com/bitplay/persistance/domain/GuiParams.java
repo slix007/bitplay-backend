@@ -51,8 +51,8 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal cumAstCom = BigDecimal.ZERO;
     private BigDecimal astBitmexMCom = BigDecimal.ZERO;
     private BigDecimal cumAstBitmexMCom = BigDecimal.ZERO;
-    private BigDecimal cumSlipM = BigDecimal.ZERO;
-    private BigDecimal cumSlipT = BigDecimal.ZERO;
+    private BigDecimal slipM = BigDecimal.ZERO;
+    private BigDecimal slipT = BigDecimal.ZERO;
 
     private int counter1 = 0;
     private int counter2 = 0;
@@ -378,20 +378,20 @@ public class GuiParams extends AbstractDocument {
         this.cumAstBitmexMCom = cumAstBitmexMCom;
     }
 
-    public BigDecimal getCumSlipM() {
-        return cumSlipM;
+    public BigDecimal getSlipM() {
+        return slipM;
     }
 
-    public void setCumSlipM(BigDecimal cumSlipM) {
-        this.cumSlipM = cumSlipM;
+    public void setSlipM(BigDecimal slipM) {
+        this.slipM = slipM;
     }
 
-    public BigDecimal getCumSlipT() {
-        return cumSlipT;
+    public BigDecimal getSlipT() {
+        return slipT;
     }
 
-    public void setCumSlipT(BigDecimal cumSlipT) {
-        this.cumSlipT = cumSlipT;
+    public void setSlipT(BigDecimal slipT) {
+        this.slipT = slipT;
     }
 
     public int getCounter1() {
