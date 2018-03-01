@@ -32,7 +32,7 @@ public class SettingsEndpoint {
         try {
             result = settingsRepositoryService.getSettings();
         } catch (Exception e) {
-            final String error = String.format("Failed to get ArbScheme %s", e.toString());
+            final String error = String.format("Failed to get settings %s", e.toString());
             logger.error(error, e);
         }
         return result;

@@ -63,9 +63,6 @@ public class Settings extends AbstractDocument {
     }
 
     public PlacingType getOkexPlacingType() {
-        if (okexPlacingType == null) {
-            okexPlacingType = PlacingType.TAKER;
-        }
         return okexPlacingType;
     }
 
