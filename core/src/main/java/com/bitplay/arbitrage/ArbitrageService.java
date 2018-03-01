@@ -268,6 +268,8 @@ public class ArbitrageService {
 
         printSumBal(false);
 
+        deltasLogger.info("#{} Round completed", getCounter());
+
         saveParamsToDb();
     }
 
