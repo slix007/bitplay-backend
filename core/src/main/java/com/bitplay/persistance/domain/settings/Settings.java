@@ -110,9 +110,6 @@ public class Settings extends AbstractDocument {
     }
 
     public FeeSettings getFeeSettings() {
-        if (feeSettings == null || feeSettings.getbMakerComRate() == null) {
-            feeSettings = FeeSettings.createDefault();
-        }
         return feeSettings;
     }
 
