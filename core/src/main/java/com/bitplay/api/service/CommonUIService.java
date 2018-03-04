@@ -191,11 +191,8 @@ public class CommonUIService {
         if (deltalUpdateJson.getFundingRateFee() != null) {
             arbitrageService.getParams().setFundingRateFee(new BigDecimal(deltalUpdateJson.getFundingRateFee()));
         }
-        if (deltalUpdateJson.getCumSlipM() != null) {
-            arbitrageService.getParams().setSlipM(new BigDecimal(deltalUpdateJson.getCumSlipM()));
-        }
-        if (deltalUpdateJson.getCumSlipT() != null) {
-            arbitrageService.getParams().setSlipT(new BigDecimal(deltalUpdateJson.getCumSlipT()));
+        if (deltalUpdateJson.getSlip() != null) {
+            arbitrageService.getParams().setSlip(new BigDecimal(deltalUpdateJson.getSlip()));
         }
         if (deltalUpdateJson.getResetAllCumValues() != null && deltalUpdateJson.getResetAllCumValues()) {
             arbitrageService.getParams().setCumDelta(BigDecimal.ZERO);
@@ -220,8 +217,7 @@ public class CommonUIService {
             arbitrageService.getParams().setCumAstCom2(BigDecimal.ZERO);
             arbitrageService.getParams().setCumBitmexMCom(BigDecimal.ZERO);
             arbitrageService.getParams().setCumAstBitmexMCom(BigDecimal.ZERO);
-            arbitrageService.getParams().setSlipM(BigDecimal.ZERO);
-            arbitrageService.getParams().setSlipT(BigDecimal.ZERO);
+            arbitrageService.getParams().setSlip(BigDecimal.ZERO);
             arbitrageService.getParams().setCounter1(0);
             arbitrageService.getParams().setCounter2(0);
         }
@@ -262,8 +258,7 @@ public class CommonUIService {
                 arbitrageService.getParams().getReserveBtc2().toPlainString(),
                 arbitrageService.getParams().getHedgeAmount().toPlainString(),
                 arbitrageService.getParams().getFundingRateFee().toPlainString(),
-                arbitrageService.getParams().getSlipM().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getSlipT().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString()
+                arbitrageService.getParams().getSlip().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString()
         );
     }
 

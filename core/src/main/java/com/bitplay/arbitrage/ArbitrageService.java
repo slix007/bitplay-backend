@@ -301,15 +301,11 @@ public class ArbitrageService {
         BigDecimal ast_diff_fact = ast_delta_fact.subtract(ast_delta);
         params.setCumAstDiffFact(params.getCumAstDiffFact().add(ast_diff_fact));
 
-        // slip_m = (cum_diff_fact - cum_com2 + cum_Bitmex_m_com) / count1 + count2
-        // slip_t = (cum_diff_fact - cum_com) / count1 + count2
-        final BigDecimal slip_m = (params.getCumDiffFact().subtract(params.getCumCom2()).add(params.getCumBitmexMCom()))
-                .divide(BigDecimal.valueOf(getCounter()), 8, RoundingMode.HALF_UP);
-        params.setSlipM(slip_m);
+        // slip = (cum_diff_fact - cum_com) / count1 + count2
         final BigDecimal cumCom = params.getCumCom1().add(params.getCumCom2());
-        final BigDecimal slip_t = (params.getCumDiffFact().subtract(cumCom))
-                .divide(BigDecimal.valueOf(getCounter()), 8, RoundingMode.HALF_UP);;
-        params.setSlipT(slip_t);
+        final BigDecimal slip = (params.getCumDiffFact().subtract(cumCom))
+                .divide(BigDecimal.valueOf(getCounter()), 8, RoundingMode.HALF_UP);
+        params.setSlip(slip);
 
         deltasLogger.info(String.format("#%s %s; " +
                         "cum_delta_fact=%s; " +
@@ -320,8 +316,7 @@ public class ArbitrageService {
                         "cum_diff_fact_br=%s; " +
                         "ast_diff_fact1=%s, ast_diff_fact2=%s, ast_diff_fact=%s-%s=%s, " +
                         "cum_ast_diff_fact1=%s, cum_ast_diff_fact2=%s, cum_ast_diff_fact=%s, " +
-                        "slip_m=%s, cum_slip_m=%s, " +
-                        "slip_t=%s, cum_slip_t=%s",
+                        "slip=%s",
                 getCounter(),
                 deltaFactString,
                 params.getCumDeltaFact().toPlainString(),
@@ -336,8 +331,7 @@ public class ArbitrageService {
                 params.getCumDiffFactBr().toPlainString(),
                 ast_diff_fact1.toPlainString(), ast_diff_fact2.toPlainString(), ast_delta_fact.toPlainString(), ast_delta.toPlainString(), ast_diff_fact.toPlainString(),
                 params.getCumAstDiffFact1().toPlainString(), params.getCumAstDiffFact2().toPlainString(), params.getCumAstDiffFact().toPlainString(),
-                slip_m.toPlainString(), params.getSlipM().toPlainString(),
-                slip_t.toPlainString(), params.getSlipT().toPlainString()
+                slip.toPlainString()
         ));
     }
 
