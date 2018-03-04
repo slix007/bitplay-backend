@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ArbScheme;
@@ -31,12 +32,13 @@ public class SignalService {
     private SettingsRepositoryService settingsRepositoryService;
 
     public void placeOkexOrderOnSignal(MarketService okexService, Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes, SignalType signalType) {
+        final Settings settings = settingsRepositoryService.getSettings();
+        final PlacingType okexPlacingType = settings.getOkexPlacingType();
         final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
-                null, //TODO refactor it. Okex defines it later for now
+                okexPlacingType,
                 signalType, 1);
 
-        final Settings settings = settingsRepositoryService.getSettings();
-        if (settings.getArbScheme() == ArbScheme.MT2) {
+        if (settings.getArbScheme() == ArbScheme.CON_B_O) {
             ((OkCoinService) okexService).deferredPlaceOrderOnSignal(placeOrderArgs);
         } else {
             executorService.submit(() -> {

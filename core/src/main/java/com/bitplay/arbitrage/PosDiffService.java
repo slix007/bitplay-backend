@@ -262,9 +262,7 @@ public class PosDiffService {
         final Counters counters = persistenceService.fetchCounters();
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final PlacingType okexPlacingType = settings.getOkexPlacingType();
-        final PlacingType bitmexPlacingType = settings.getArbScheme() == ArbScheme.TT
-                ? PlacingType.TAKER
-                : PlacingType.MAKER; // else MT,MT2
+        final PlacingType bitmexPlacingType = settings.getBitmexPlacingType();
 
         if (positionsDiffWithHedge.signum() < 0) {
             orderType = Order.OrderType.BID;

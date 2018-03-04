@@ -7,15 +7,16 @@ package com.bitplay.persistance.domain.settings;
  */
 public enum ArbScheme {
     /**
-     * Maker - Taker
+     * TODO remove it. (only for backword compatibility)
      */
-    MT,
+    MT,MT2,TT,
+
     /**
-     * Maker - Taker, but the second only when the first has filled
+     * Consistently bitmex then okex.
      */
-    MT2,
+    CON_B_O,
     /**
-     * Taker - Taker
+     * Simultaneously set both orders.
      */
-    TT
+    SIM
 }

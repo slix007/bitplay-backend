@@ -788,16 +788,7 @@ public class BitmexService extends MarketService {
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
         final Settings settings = settingsRepositoryService.getSettings();
-        PlacingType placingType = PlacingType.MAKER;
-        switch (settings.getArbScheme()) {
-            case MT:
-            case MT2:
-                placingType = PlacingType.MAKER;
-                break;
-            case TT:
-                placingType = PlacingType.TAKER;
-                break;
-        }
+        PlacingType placingType = settings.getBitmexPlacingType();
         return placeOrderToOpenOrders(orderType, amountInContracts, bestQuotes, placingType, signalType);
     }
 
@@ -860,7 +851,7 @@ public class BitmexService extends MarketService {
 
         if (placingType == null) {
             tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs);
-            placingType = (settings.getArbScheme() != ArbScheme.TT) ? PlacingType.MAKER : PlacingType.TAKER;
+            placingType = settings.getBitmexPlacingType();
         }
 
         MarketState nextMarketState = getMarketState();

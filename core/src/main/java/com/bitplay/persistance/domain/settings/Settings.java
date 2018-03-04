@@ -20,6 +20,7 @@ public class Settings extends AbstractDocument {
     private ArbScheme arbScheme;
     private SysOverloadArgs bitmexSysOverloadArgs;
     private SysOverloadArgs okexSysOverloadArgs;
+    private PlacingType bitmexPlacingType;
     private PlacingType okexPlacingType;
     private BigDecimal bitmexPrice;
     private PlacingBlocks placingBlocks;
@@ -28,7 +29,7 @@ public class Settings extends AbstractDocument {
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
-        settings.arbScheme = ArbScheme.MT;
+        settings.arbScheme = ArbScheme.SIM;
         settings.bitmexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexPlacingType = PlacingType.TAKER;
@@ -39,6 +40,9 @@ public class Settings extends AbstractDocument {
     }
 
     public ArbScheme getArbScheme() {
+        if (arbScheme == ArbScheme.MT || arbScheme == ArbScheme.MT2 || arbScheme == ArbScheme.TT) {
+            arbScheme = ArbScheme.SIM;
+        }
         return arbScheme;
     }
 
@@ -52,6 +56,14 @@ public class Settings extends AbstractDocument {
 
     public void setBitmexSysOverloadArgs(SysOverloadArgs bimexSysOverloadArgs) {
         this.bitmexSysOverloadArgs = bimexSysOverloadArgs;
+    }
+
+    public PlacingType getBitmexPlacingType() {
+        return bitmexPlacingType;
+    }
+
+    public void setBitmexPlacingType(PlacingType bitmexPlacingType) {
+        this.bitmexPlacingType = bitmexPlacingType;
     }
 
     public SysOverloadArgs getOkexSysOverloadArgs() {
@@ -106,11 +118,11 @@ public class Settings extends AbstractDocument {
 
     public BigDecimal getBFee() {
         final FeeSettings feeSettings = getFeeSettings();
-        final ArbScheme arbScheme = getArbScheme();
-        if (arbScheme == ArbScheme.TT) {
-            return feeSettings.getbTakerComRate();
+        final PlacingType bitmexPlacingType = getBitmexPlacingType();
+        if (bitmexPlacingType == PlacingType.MAKER) {
+            return feeSettings.getbMakerComRate();
         }
-        return feeSettings.getbMakerComRate();
+        return feeSettings.getbTakerComRate();
     }
 
     public BigDecimal getOFee() {

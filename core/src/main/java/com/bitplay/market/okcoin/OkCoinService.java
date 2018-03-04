@@ -598,7 +598,7 @@ public class OkCoinService extends MarketService {
                     try {
                         if (signalEvent == SignalEvent.MT2_BITMEX_ORDER_FILLED) {
                             final Settings settings = settingsRepositoryService.getSettings();
-                            if (settings.getArbScheme() == ArbScheme.MT2
+                            if (settings.getArbScheme() == ArbScheme.CON_B_O
                                     && getMarketState() == MarketState.WAITING_ARB) {
 
                                 final PlaceOrderArgs currArgs = placeOrderArgsRef.getAndSet(null);
