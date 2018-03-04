@@ -4,6 +4,7 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.okcoin.OkCoinService;
 
 import org.slf4j.Logger;
@@ -67,6 +68,13 @@ public class DebugEndpoints {
         final Date lastMDCCheck = arbitrageService.getParams().getLastMDCCheck();
         if (lastMDCCheck != null) {
             deadLockDescr += "<br>last_MDC_check=" + sdf.format(lastMDCCheck);
+        }
+        final BitmexService bs = (BitmexService) (arbitrageService.getFirstMarketService());
+        final BitmexXRateLimit bitmexXRateLimit = bs.getxRateLimit();
+        if (bitmexXRateLimit != null) {
+            final Integer theLimit = bitmexXRateLimit.getxRateLimit();
+            deadLockDescr += "<br>xRateLimit=" + (theLimit == -1 ? "no info" : theLimit)
+                    + "; lastUpdate: " + sdf.format(bitmexXRateLimit.getLastUpdate());
         }
 
         return new ResultJson(resultJson.getResult(), deadLockDescr);

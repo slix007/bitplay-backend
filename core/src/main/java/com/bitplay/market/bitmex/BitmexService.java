@@ -13,6 +13,7 @@ import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
@@ -23,7 +24,6 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
-import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
@@ -111,6 +111,7 @@ public class BitmexService extends MarketService {
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
+    private volatile BitmexXRateLimit xRateLimit = new BitmexXRateLimit(-1, new Date());
 
     private volatile BigDecimal prevCumulativeAmount;
 
@@ -393,8 +394,14 @@ public class BitmexService extends MarketService {
                                     }
 
                                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
+
                                     //TODO keep an eye on 'hang open orders'
-                                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                                    if (xRateLimit.getxRateLimit() == 0) {
+                                        logger.info("xRateLimit=0. Stop!");
+                                        tradeLogger.info("xRateLimit=0. Stop!");
+                                        setOverloaded(null);
+                                        movingErrorsOverloaded.set(0);
+                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
                                         // update the status
                                         final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
                                         if (cancelledFplayOrder != null) {
@@ -944,6 +951,14 @@ public class BitmexService extends MarketService {
 
                     HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "PlaceOrderError", attemptCount).invoke();
 
+                    if (xRateLimit.getxRateLimit() == 0) {
+                        logger.info("xRateLimit=0. Stop!");
+                        tradeLogger.info("xRateLimit=0. Stop!");
+                        setOverloaded(null);
+                        tradeResponse.setErrorCode(e.getMessage());
+                        break;
+                    }
+
                     final MoveResponse.MoveOrderStatus placeOrderStatus = handler.getMoveResponse().getMoveOrderStatus();
                     if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == placeOrderStatus
                             || MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus) {
@@ -1409,69 +1424,8 @@ public class BitmexService extends MarketService {
         return fundingCost;
     }
 
-    private class HttpStatusIOExceptionHandler {
-        private MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
-
-        private HttpStatusIOException e;
-        private String operationName;
-        private int attemptCount;
-
-        public HttpStatusIOExceptionHandler(HttpStatusIOException e, String operationName, int attemptCount) {
-            this.e = e;
-            this.operationName = operationName;
-            this.attemptCount = attemptCount;
-        }
-
-        /**
-         * ALREADY_CLOSED or EXCEPTION or EXCEPTION_SYSTEM_OVERLOADED
-         */
-        public MoveResponse getMoveResponse() {
-            return moveResponse;
-        }
-
-        public HttpStatusIOExceptionHandler invoke() {
-            try {
-
-                final Map<String, List<String>> responseHeaders = e.getResponseHeaders();
-                final List<String> rateLimitValues = responseHeaders.get("X-RateLimit-Remaining");
-                final String rateLimitStr = (rateLimitValues != null && rateLimitValues.size() > 0)
-                        ? String.format(" X-RateLimit-Remaining=%s ", rateLimitValues.get(0)) : " ";
-
-
-                final String marketResponseMessage;
-                final String httpBody = e.getHttpBody();
-                final String BAD_GATEWAY = "502 Bad Gateway";
-                if (httpBody.contains(BAD_GATEWAY)) {
-                    marketResponseMessage = BAD_GATEWAY;
-                } else {
-                    marketResponseMessage = new ObjectMapper().readValue(httpBody, Error.class).getError().getMessage();
-                }
-
-                String fullMessage = String.format("%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, httpBody, rateLimitStr);
-                String shortMessage = String.format("%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, marketResponseMessage, rateLimitStr);
-
-                tradeLogger.error(shortMessage);
-
-                if (marketResponseMessage.startsWith("The system is currently overloaded. Please try again later")) {
-                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, marketResponseMessage);
-                    logger.error(fullMessage);
-                } else if (marketResponseMessage.startsWith("Invalid ordStatus")) {
-                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, marketResponseMessage);
-                    logger.error(fullMessage);
-                } else if (marketResponseMessage.startsWith(BAD_GATEWAY)) {
-                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY, marketResponseMessage);
-                    logger.error(fullMessage);
-                } else {
-                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, httpBody);
-                    logger.error(fullMessage, e);
-                }
-
-            } catch (IOException e1) {
-                logger.error("Error on handling HttpStatusIOException", e1);
-            }
-
-            return this;
-        }
+    public BitmexXRateLimit getxRateLimit() {
+        return xRateLimit;
     }
 
     /**
@@ -1528,4 +1482,73 @@ public class BitmexService extends MarketService {
         tradeLogger.info("{} {}", getCounterName(), arbitrageService.getDealPrices().getDiffB().str);
     }
 
+    private class HttpStatusIOExceptionHandler {
+        private MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
+
+        private HttpStatusIOException e;
+        private String operationName;
+        private int attemptCount;
+
+        public HttpStatusIOExceptionHandler(HttpStatusIOException e, String operationName, int attemptCount) {
+            this.e = e;
+            this.operationName = operationName;
+            this.attemptCount = attemptCount;
+        }
+
+        /**
+         * ALREADY_CLOSED or EXCEPTION or EXCEPTION_SYSTEM_OVERLOADED
+         */
+        public MoveResponse getMoveResponse() {
+            return moveResponse;
+        }
+
+        public HttpStatusIOExceptionHandler invoke() {
+            try {
+
+                final Map<String, List<String>> responseHeaders = e.getResponseHeaders();
+                final List<String> rateLimitValues = responseHeaders.get("X-RateLimit-Remaining");
+                if (rateLimitValues != null && rateLimitValues.size() > 0) {
+                    xRateLimit = new BitmexXRateLimit(
+                            Integer.valueOf(rateLimitValues.get(0)),
+                            new Date()
+                    );
+                }
+
+                final String rateLimitStr = String.format(" X-RateLimit-Remaining=%s ", xRateLimit.getxRateLimit());
+
+                final String marketResponseMessage;
+                final String httpBody = e.getHttpBody();
+                final String BAD_GATEWAY = "502 Bad Gateway";
+                if (httpBody.contains(BAD_GATEWAY)) {
+                    marketResponseMessage = BAD_GATEWAY;
+                } else {
+                    marketResponseMessage = new ObjectMapper().readValue(httpBody, Error.class).getError().getMessage();
+                }
+
+                String fullMessage = String.format("%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, httpBody, rateLimitStr);
+                String shortMessage = String.format("%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, marketResponseMessage, rateLimitStr);
+
+                tradeLogger.error(shortMessage);
+
+                if (marketResponseMessage.startsWith("The system is currently overloaded. Please try again later")) {
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, marketResponseMessage);
+                    logger.error(fullMessage);
+                } else if (marketResponseMessage.startsWith("Invalid ordStatus")) {
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, marketResponseMessage);
+                    logger.error(fullMessage);
+                } else if (marketResponseMessage.startsWith(BAD_GATEWAY)) {
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY, marketResponseMessage);
+                    logger.error(fullMessage);
+                } else {
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, httpBody);
+                    logger.error(fullMessage, e);
+                }
+
+            } catch (IOException e1) {
+                logger.error("Error on handling HttpStatusIOException", e1);
+            }
+
+            return this;
+        }
+    }
 }
