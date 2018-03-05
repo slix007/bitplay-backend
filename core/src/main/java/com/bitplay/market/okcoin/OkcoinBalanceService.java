@@ -7,6 +7,8 @@ import com.bitplay.utils.Utils;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -17,6 +19,8 @@ import java.math.RoundingMode;
  */
 @Component
 public class OkcoinBalanceService implements BalanceService {
+
+    private static final Logger logger = LoggerFactory.getLogger(OkcoinBalanceService.class);
 
 //    private volatile Instant prevTime = Instant.now();
 //    private volatile FullBalance fullBalance;
@@ -105,6 +109,8 @@ public class OkcoinBalanceService implements BalanceService {
 
     public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
         if (accountInfoContracts == null || pObj == null || orderBook == null) {
+            logger.error(String.format("Can not calc full balance: accountInfoContracts=%s, pObj=%s",
+                    accountInfoContracts, pObj));
             return new FullBalance(null, null, null, null);
         }
 

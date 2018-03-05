@@ -895,7 +895,7 @@ public class ArbitrageService {
         ));
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)
     public void calcSumBalForGui() {
         final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
         final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();
