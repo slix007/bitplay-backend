@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.arbitrage.dto.PlBlocks;
+import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
@@ -163,13 +164,23 @@ public class ArbitrageService {
                                 writeLogArbitrageIsDone();
                             }
                         }
+                    } catch (RoundIsNotDoneException e) {
+                        deltasLogger.info("Round is not done. Error: " + e.getMessage());
+                        logger.error("Round is not done", e);
                     } catch (Exception e) {
-                        logger.error("On event handling1", e);
+                        deltasLogger.info("Write logs error: " + e.getMessage());
+                        logger.error("Write logs error", e);
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }
 
-    private void writeLogArbitrageIsDone() {
+    private void validateAvgPrice(AvgPrice avgPrice) throws RoundIsNotDoneException {
+        if (avgPrice.getpItems().size() == 0) {
+            throw new RoundIsNotDoneException(avgPrice.getMarketName() + " has no orders");
+        }
+    }
+
+    private void writeLogArbitrageIsDone() throws RoundIsNotDoneException {
         if (signalType == SignalType.AUTOMATIC && params.getLastDelta() != null && dealPrices.getBestQuotes() != null) {
             final BigDecimal con = dealPrices.getbBlock();
             final BigDecimal b_bid = dealPrices.getBestQuotes().getBid1_p();
@@ -183,6 +194,9 @@ public class ArbitrageService {
             ((OkCoinService) getSecondMarketService()).writeAvgPriceLog();
             final Instant end = Instant.now();
             logger.info("workaround: Bitmex updateAvgPrice. Time: " + Duration.between(start, end).toString());
+
+            validateAvgPrice(dealPrices.getbPriceFact());
+            validateAvgPrice(dealPrices.getoPriceFact());
 
             final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg(true);
             final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg(true);

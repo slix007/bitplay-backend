@@ -5,6 +5,7 @@ import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.AvgPrice;
+import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
@@ -1435,7 +1436,8 @@ public class BitmexService extends MarketService {
      * @param avgPrice the object to be updated.
      */
     public void updateAvgPrice(AvgPrice avgPrice) {
-        for (String orderId : avgPrice.getpItems().keySet()) {
+        final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
+        for (String orderId : itemMap.keySet()) {
             final String logMsg = String.format("%s AvgPrice update of orderId=%s.", getCounterName(), orderId);
             int MAX_ATTEMPTS = 5;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -1460,8 +1462,8 @@ public class BitmexService extends MarketService {
                     } else {
                         tradeLogger.info(String.format("%s price=0. Use old p=%s, a=%s. %s",
                                 logMsg,
-                                avgPrice.getpItems().get(orderId).getPrice(),
-                                avgPrice.getpItems().get(orderId).getAmount(),
+                                itemMap.get(orderId).getPrice(),
+                                itemMap.get(orderId).getAmount(),
                                 Arrays.toString(orderParts.toArray())
                         ));
                     }

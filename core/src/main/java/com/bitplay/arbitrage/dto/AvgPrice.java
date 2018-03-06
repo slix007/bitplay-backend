@@ -14,20 +14,21 @@ import java.util.Objects;
  */
 public class AvgPrice {
     private static final Logger logger = LoggerFactory.getLogger(AvgPrice.class);
-    private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     private final Map<String, AvgPriceItem> pItems = new LinkedHashMap<>();
-    private BigDecimal maxAmount;
-    private BigDecimal openPrice;
-    private String marketName;
+    private final BigDecimal maxAmount;
+    private final String marketName;
 
-    public AvgPrice() {
-    }
+    private BigDecimal openPrice;
 
     public AvgPrice(BigDecimal maxAmount, String marketName) {
         this.maxAmount = maxAmount;
         this.marketName = marketName;
+    }
+
+    public String getMarketName() {
+        return marketName;
     }
 
     public synchronized void setOpenPrice(BigDecimal openPrice) {
@@ -104,7 +105,7 @@ public class AvgPrice {
         return avgPrice;
     }
 
-    public Map<String, AvgPriceItem> getpItems() {
+    public synchronized Map<String, AvgPriceItem> getpItems() {
         return pItems;
     }
 
