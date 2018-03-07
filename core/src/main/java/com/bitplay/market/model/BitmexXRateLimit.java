@@ -7,8 +7,8 @@ import java.util.Date;
  */
 public class BitmexXRateLimit {
 
-    private volatile Integer xRateLimit;
-    private volatile Date lastUpdate;
+    private final Integer xRateLimit;
+    private final Date lastUpdate;
 
     public BitmexXRateLimit(Integer xRateLimit, Date lastUpdate) {
         this.xRateLimit = xRateLimit;

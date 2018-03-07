@@ -397,7 +397,7 @@ public class BitmexService extends MarketService {
                                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
 
                                     //TODO keep an eye on 'hang open orders'
-                                    if (xRateLimit.getxRateLimit() == 0) {
+                                    if (xRateLimit.getxRateLimit() <= 0) {
                                         logger.info("xRateLimit=0. Stop!");
                                         tradeLogger.info("xRateLimit=0. Stop!");
                                         setOverloaded(null);
@@ -952,7 +952,7 @@ public class BitmexService extends MarketService {
 
                     HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "PlaceOrderError", attemptCount).invoke();
 
-                    if (xRateLimit.getxRateLimit() == 0) {
+                    if (xRateLimit.getxRateLimit() <= 0) {
                         logger.info("xRateLimit=0. Stop!");
                         tradeLogger.info("xRateLimit=0. Stop!");
                         setOverloaded(null);
