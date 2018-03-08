@@ -47,7 +47,7 @@ public class AvgPrice {
         return openPrice;
     }
 
-    public BigDecimal getAvg() {
+    public synchronized BigDecimal getAvg() {
         return getAvg(false);
     }
 
@@ -59,10 +59,7 @@ public class AvgPrice {
                     logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
                     deltasLogger.info(marketName + "AvgPrice by openPrice: " + openPrice);
                 }
-                if (openPrice == null) {
-                    throw new IllegalStateException("AvgPrice by openPrice: null");
-                }
-                return openPrice;
+                return openPrice; // may be null
             }
 
             StringBuilder sb = new StringBuilder();
@@ -82,7 +79,7 @@ public class AvgPrice {
                             BigDecimal::add);
 
             if (maxAmount.compareTo(sumDenominator) != 0) {
-                logger.warn(marketName + " WARNING avg price calc: " + this + " NiceFormat: " + sb.toString());
+                logger.warn(marketName + " WARNING avg price calc: " + this.toString() + " NiceFormat: " + sb.toString());
 //                final BigDecimal left = maxAmount.subtract(sumDenominator);
 //                if (openPrice != null) {
 //                    sumNumerator = sumNumerator.add(left.multiply(openPrice));

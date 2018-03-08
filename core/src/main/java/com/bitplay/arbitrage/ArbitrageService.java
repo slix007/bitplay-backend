@@ -195,13 +195,13 @@ public class ArbitrageService {
             final Instant end = Instant.now();
             logger.info("workaround: Bitmex updateAvgPrice. Time: " + Duration.between(start, end).toString());
 
-            validateAvgPrice(dealPrices.getbPriceFact());
-            validateAvgPrice(dealPrices.getoPriceFact());
-
             final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg(true);
             final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
             deltasLogger.info(String.format("#%s Params for calc: con=%s, b_bid=%s, b_ask=%s, ok_bid=%s, ok_ask=%s, b_price_fact=%s, ok_price_fact=%s",
                     getCounter(), con, b_bid, b_ask, ok_bid, ok_ask, b_price_fact, ok_price_fact));
+
+            validateAvgPrice(dealPrices.getbPriceFact());
+            validateAvgPrice(dealPrices.getoPriceFact());
 
             if (params.getLastDelta().equals(DELTA1)) {
                 // b_block = ok_block*100 = con (не идет в логи и на UI)

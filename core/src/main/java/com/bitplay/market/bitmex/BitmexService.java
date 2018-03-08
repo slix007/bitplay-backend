@@ -425,7 +425,9 @@ public class BitmexService extends MarketService {
                                             if (cancelledFplayOrder != null) {
                                                 final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
 
-                                                arbitrageService.getDealPrices().getbPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
+                                                if (cancelledOrder.getCumulativeAmount() != null && cancelledOrder.getCumulativeAmount().signum() > 0) {
+                                                    arbitrageService.getDealPrices().getbPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
+                                                }
 
                                                 final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
                                                         cancelledOrder.getType(),
@@ -893,7 +895,9 @@ public class BitmexService extends MarketService {
                         orderRepositoryService.save(fplayOrder);
                         if (orderId != null && !orderId.equals("0")) {
                             tradeResponse.setLimitOrder(resultOrder);
-                            arbitrageService.getDealPrices().getbPriceFact().addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice());
+                            if (resultOrder.getCumulativeAmount() != null && resultOrder.getCumulativeAmount().signum() > 0) {
+                                arbitrageService.getDealPrices().getbPriceFact().addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice());
+                            }
                         }
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
@@ -920,7 +924,9 @@ public class BitmexService extends MarketService {
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
-                        arbitrageService.getDealPrices().getbPriceFact().addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice());
+                        if (resultOrder.getCumulativeAmount() != null && resultOrder.getCumulativeAmount().signum() > 0) {
+                            arbitrageService.getDealPrices().getbPriceFact().addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice());
+                        }
 
                         // workaround for OO list: set as limit order
                         tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, orderId, new Date(),
@@ -1046,6 +1052,8 @@ public class BitmexService extends MarketService {
                 }
                 prevCumulativeAmount = movedLimitOrder.getCumulativeAmount();
 
+                final LimitOrder updatedOrder = (LimitOrder)updated.getOrder();
+
                 String diffWithSignal = setQuotesForArbLogs(limitOrder, bestMakerPrice, showDiff);
 
                 final String logString = String.format("%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s. %s.",
@@ -1053,8 +1061,8 @@ public class BitmexService extends MarketService {
                         limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                         limitOrder.getLimitPrice(),
                         bestMakerPrice.toPlainString(),
-                        movedLimitOrder.getLimitPrice(),
-                        movedLimitOrder.getStatus(),
+                        updatedOrder.getLimitPrice(),
+                        updatedOrder.getStatus(),
                         limitOrder.getTradableAmount(),
                         limitOrder.getCumulativeAmount(),
                         limitOrder.getAveragePrice(),
@@ -1065,14 +1073,16 @@ public class BitmexService extends MarketService {
                 tradeLogger.info(logString);
                 ordersLogger.info(logString);
 
-                arbitrageService.getDealPrices().getbPriceFact().addPriceItem(movedLimitOrder.getId(), movedLimitOrder.getCumulativeAmount(), movedLimitOrder.getAveragePrice());
+                if (updatedOrder.getCumulativeAmount() != null && updatedOrder.getCumulativeAmount().signum() > 0) {
+                    arbitrageService.getDealPrices().getbPriceFact().addPriceItem(updatedOrder.getId(), updatedOrder.getCumulativeAmount(), updatedOrder.getAveragePrice());
+                }
 
-                if (movedLimitOrder.getStatus() == Order.OrderStatus.CANCELED) {
+                if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
                     if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
                 } else {
                     cancelledInRow.set(0);
-                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, movedLimitOrder, updated);
+                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, updatedOrder, updated);
                 }
 
             } else {
@@ -1134,7 +1144,9 @@ public class BitmexService extends MarketService {
             }
         }
 
-        arbitrageService.getDealPrices().getbPriceFact().addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), limitOrder.getAveragePrice());
+        if (limitOrder.getCumulativeAmount() != null && limitOrder.getCumulativeAmount().signum() > 0) {
+            arbitrageService.getDealPrices().getbPriceFact().addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), limitOrder.getAveragePrice());
+        }
         return diffWithSignal;
     }
 
