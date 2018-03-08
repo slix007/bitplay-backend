@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -103,7 +104,11 @@ public class AvgPrice {
     }
 
     public synchronized Map<String, AvgPriceItem> getpItems() {
-        return pItems;
+        return new HashMap<>(pItems);
+    }
+
+    public synchronized boolean isItemsEmpty() {
+        return pItems.size() == 0;
     }
 
     @Override

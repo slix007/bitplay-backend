@@ -175,7 +175,7 @@ public class ArbitrageService {
     }
 
     private void validateAvgPrice(AvgPrice avgPrice) throws RoundIsNotDoneException {
-        if (avgPrice.getpItems().size() == 0) {
+        if (avgPrice.isItemsEmpty()) {
             throw new RoundIsNotDoneException(avgPrice.getMarketName() + " has no orders");
         }
     }
