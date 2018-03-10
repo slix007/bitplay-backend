@@ -278,13 +278,14 @@ public class ArbitrageService {
                 printOAvgPrice();
 
             }
+
+            printSumBal(false);
+
+            deltasLogger.info("#{} Round completed", getCounter());
+
+            saveParamsToDb();
         }
 
-        printSumBal(false);
-
-        deltasLogger.info("#{} Round completed", getCounter());
-
-        saveParamsToDb();
     }
 
     private void printP3DeltaFact(BigDecimal deltaFact, String deltaFactString, BigDecimal ast_diff_fact1, BigDecimal ast_diff_fact2, BigDecimal ast_delta, BigDecimal ast_delta_fact, BigDecimal delta) {

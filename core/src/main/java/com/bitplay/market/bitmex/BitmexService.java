@@ -1449,9 +1449,10 @@ public class BitmexService extends MarketService {
      */
     public void updateAvgPrice(AvgPrice avgPrice) {
         final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
+        boolean success = false;
         for (String orderId : itemMap.keySet()) {
-            final String logMsg = String.format("%s AvgPrice update of orderId=%s.", getCounterName(), orderId);
-            int MAX_ATTEMPTS = 5;
+            final String logMsg = String.format("%s AvgPrice update of orderId=%s.", getCounterNameNext(), orderId);
+            int MAX_ATTEMPTS = 3;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 try {
                     final Collection<Execution> orderParts = ((BitmexTradeService) getTradeService()).getOrderParts(orderId);
@@ -1479,10 +1480,11 @@ public class BitmexService extends MarketService {
                                 Arrays.toString(orderParts.toArray())
                         ));
                     }
+                    success = true;
                 } catch (Exception e) {
-                    logger.info(String.format("%s Error.", logMsg), e);
-                    tradeLogger.info(String.format("%s Error %s", logMsg, e.getMessage()));
-                    warningLogger.info(String.format("%s Error %s", logMsg, e.getMessage()));
+                    logger.info(String.format("%s updateAvgPriceError.", logMsg), e);
+                    tradeLogger.info(String.format("%s updateAvgPriceError %s", logMsg, e.getMessage()));
+                    warningLogger.info(String.format("%s updateAvgPriceError %s", logMsg, e.getMessage()));
                 }
 
                 try {
@@ -1491,6 +1493,9 @@ public class BitmexService extends MarketService {
                     logger.info(String.format("%s Sleep Error.", logMsg), e);
                 }
             }
+        }
+        if (!success) {
+            tradeLogger.info("{} Use old price! {}", getCounterName(), arbitrageService.getDealPrices().getDiffB().str);
         }
 
         tradeLogger.info("{} {}", getCounterName(), arbitrageService.getDealPrices().getDiffB().str);
