@@ -168,8 +168,8 @@ public class ArbitrageService {
                         deltasLogger.info("Round is not done. Error: " + e.getMessage());
                         logger.error("Round is not done", e);
                     } catch (Exception e) {
-                        deltasLogger.info("Write logs error: " + e.getMessage());
-                        logger.error("Write logs error", e);
+                        deltasLogger.info("Round is not done. Write logs error: " + e.getMessage());
+                        logger.error("Round is not done. Write logs error", e);
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }
@@ -195,8 +195,19 @@ public class ArbitrageService {
             final Instant end = Instant.now();
             logger.info("workaround: Bitmex updateAvgPrice. Time: " + Duration.between(start, end).toString());
 
-            final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg(true);
-            final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
+            BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg(true);
+            BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
+            if (b_price_fact.signum() == 0 || ok_price_fact.signum() == 0) {
+                deltasLogger.info("Wait 200mc for avgPrice");
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    logger.error("Error on Wait 200mc for avgPrice");
+                }
+                b_price_fact = dealPrices.getbPriceFact().getAvg(true);
+                ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
+            }
+
             deltasLogger.info(String.format("#%s Params for calc: con=%s, b_bid=%s, b_ask=%s, ok_bid=%s, ok_ask=%s, b_price_fact=%s, ok_price_fact=%s",
                     getCounter(), con, b_bid, b_ask, ok_bid, ok_ask, b_price_fact, ok_price_fact));
 
