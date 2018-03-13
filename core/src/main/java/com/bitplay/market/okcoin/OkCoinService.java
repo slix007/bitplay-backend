@@ -228,6 +228,7 @@ public class OkCoinService extends MarketService {
         spec.setExchangeSpecificParametersItem("Use_Intl", true);
         spec.setExchangeSpecificParametersItem("Use_Futures", true);
         spec.setExchangeSpecificParametersItem("Futures_Contract", FuturesContract.ThisWeek);
+        spec.setExchangeSpecificParametersItem("Futures_Leverage", "20");
 
         return (OkExStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
     }
@@ -288,7 +289,7 @@ public class OkCoinService extends MarketService {
         try {
             exchange.getStreamingAccountInfoService().requestAccountInfo();
         } catch (NotConnectedException e) {
-
+            logger.error("AccountInfo request error: NotConnectedException", e);
             closeAllSubscibers()
                     .doOnComplete(this::initWebSocketAndAllSubscribers)
                     .subscribe(() -> logger.warn("Closing okcoin subscribers was done"),
