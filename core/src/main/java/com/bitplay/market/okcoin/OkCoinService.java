@@ -1,5 +1,6 @@
 package com.bitplay.market.okcoin;
 
+import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.BestQuotes;
@@ -121,6 +122,9 @@ public class OkCoinService extends MarketService {
     private SettingsRepositoryService settingsRepositoryService;
     @Autowired
     private OrderRepositoryService orderRepositoryService;
+    @Autowired
+    private RestartService restartService;
+
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
     private Disposable privateDataSubscription;
@@ -293,7 +297,14 @@ public class OkCoinService extends MarketService {
             closeAllSubscibers()
                     .doOnComplete(this::initWebSocketAndAllSubscribers)
                     .subscribe(() -> logger.warn("Closing okcoin subscribers was done"),
-                            throwable -> logger.error("ERROR on Closing okcoin subscribers", throwable));
+                            throwable -> {
+                                logger.error("ERROR on Closing okcoin subscribers", throwable);
+                                final String TOO_MANY_OPEN_FILES = "Too many open files";
+                                if (throwable.getCause().getMessage().equals(TOO_MANY_OPEN_FILES)
+                                        || throwable.getCause().getCause().getMessage().equals(TOO_MANY_OPEN_FILES)) {
+                                    restartService.doFullRestart(TOO_MANY_OPEN_FILES);
+                                }
+                            });
 
         } catch (IOException e) {
             logger.error("AccountInfo request error", e);
