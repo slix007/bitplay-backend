@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,7 +41,7 @@ public class DeltasEndpoint {
         final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         final Date fromDate = from != null
                 ? sdf.parse(from)
-                : sdf.parse("2018-01-01");
+                : Date.from(Instant.now().minus(24, ChronoUnit.HOURS));
 
         final Date toDate = to != null
                 ? sdf.parse(to)
