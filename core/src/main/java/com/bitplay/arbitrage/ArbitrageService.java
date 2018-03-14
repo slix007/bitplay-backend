@@ -215,6 +215,8 @@ public class ArbitrageService {
             validateAvgPrice(dealPrices.getoPriceFact());
 
             if (params.getLastDelta().equals(DELTA1)) {
+                params.setCumDelta(params.getCumDelta().add(dealPrices.getDelta1Plan()));
+
                 // b_block = ok_block*100 = con (не идет в логи и на UI)
                 // ast_delta1 = -(con / b_bid - con / ok_ask)
                 // cum_ast_delta = sum(ast_delta)
@@ -229,6 +231,7 @@ public class ArbitrageService {
                 params.setAstDeltaFact1(ast_delta1_fact);
                 params.setCumAstDeltaFact1((params.getCumAstDeltaFact1().add(params.getAstDeltaFact1())).setScale(8, BigDecimal.ROUND_HALF_UP));
 
+                printCumDelta();
                 printCom(dealPrices);
                 printAstDeltaLogs(ast_delta1, params.getCumAstDelta1(), ast_delta1_fact, params.getCumAstDeltaFact1());
                 printP2CumBitmexMCom();
@@ -252,6 +255,7 @@ public class ArbitrageService {
                 printOAvgPrice();
 
             } else if (params.getLastDelta().equals(DELTA2)) {
+                params.setCumDelta(params.getCumDelta().add(dealPrices.getDelta1Plan()));
 
                 // ast_delta2 = -(con / ok_bid - con / b_ask)
                 final BigDecimal ast_delta2 = ((con.divide(ok_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(b_ask, 16, RoundingMode.HALF_UP)))
@@ -265,6 +269,7 @@ public class ArbitrageService {
                 params.setAstDeltaFact2(ast_delta2_fact);
                 params.setCumAstDeltaFact2((params.getCumAstDeltaFact2().add(params.getAstDeltaFact2())).setScale(8, BigDecimal.ROUND_HALF_UP));
 
+                printCumDelta();
                 printCom(dealPrices);
                 printAstDeltaLogs(ast_delta2, params.getCumAstDelta2(), ast_delta2_fact, params.getCumAstDeltaFact2());
                 printP2CumBitmexMCom();
@@ -799,14 +804,12 @@ public class ArbitrageService {
         }
         deltasLogger.info(String.format("#%s count=%s+%s=%s %s", counter1 + counter2, counter1, counter2, counter1 + counter2, iterationMarker));
 
-        params.setCumDelta(params.getCumDelta().add(delta1));
-        deltasLogger.info(String.format("#%s delta1=%s-%s=%s; %s; cum_delta=%s;",
+        deltasLogger.info(String.format("#%s delta1=%s-%s=%s; %s",
                 //usdP=%s; btcO=%s; usdO=%s; w=%s; ",
                 getCounter(),
                 bid1_p.toPlainString(), ask1_o.toPlainString(),
                 delta1.toPlainString(),
-                tradingSignal == null ? ("b1=" + border1.toPlainString()) : ("borderV2:" + tradingSignal.toString()),
-                params.getCumDelta().toPlainString()
+                tradingSignal == null ? ("b1=" + border1.toPlainString()) : ("borderV2:" + tradingSignal.toString())
         ));
 
         printSumBal(false);
@@ -828,21 +831,24 @@ public class ArbitrageService {
         }
         deltasLogger.info(String.format("#%s count=%s+%s=%s %s", getCounter(), counter1, counter2, counter1 + counter2, iterationMarker));
 
-        params.setCumDelta(params.getCumDelta().add(delta2));
-        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; %s; cum_delta=%s;",
+        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; %s",
                 getCounter(),
                 bid1_o.toPlainString(), ask1_p.toPlainString(),
                 delta2.toPlainString(),
-                tradingSignal == null ? ("b2=" + border2.toPlainString()) : ("borderV2:" + tradingSignal.toString()),
-                params.getCumDelta().toPlainString()
+                tradingSignal == null ? ("b2=" + border2.toPlainString()) : ("borderV2:" + tradingSignal.toString())
         ));
 
         printSumBal(false);
     }
 
+    private void printCumDelta() {
+        deltasLogger.info(String.format("#%s cum_delta=%s", getCounter(), params.getCumDelta().toPlainString()));
+    }
+
     private void printAstDeltaLogs(BigDecimal ast_delta, BigDecimal cum_ast_delta, BigDecimal ast_delta_fact, BigDecimal cum_ast_delta_fact) {
-        deltasLogger.info(String.format("ast_delta=%s, cum_ast_delta=%s, " +
+        deltasLogger.info(String.format("#%s ast_delta=%s, cum_ast_delta=%s, " +
                         "ast_delta_fact=%s, cum_ast_delta_fact=%s",
+                getCounter(),
                 ast_delta.toPlainString(), cum_ast_delta.toPlainString(),
                 ast_delta_fact.toPlainString(), cum_ast_delta_fact.toPlainString()));
     }
