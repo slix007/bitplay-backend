@@ -71,6 +71,10 @@ public class QuoineService extends MarketService {
     }
 
     @Override
+    protected void postOverload() {
+    }
+
+    @Override
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
         return false;
     }

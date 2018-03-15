@@ -1529,4 +1529,8 @@ public class OkCoinService extends MarketService {
             this.diff = diff;
         }
     }
+
+    @Override
+    protected void postOverload() {
+    }
 }

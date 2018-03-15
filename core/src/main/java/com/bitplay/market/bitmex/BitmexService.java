@@ -112,7 +112,7 @@ public class BitmexService extends MarketService {
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
-    private volatile BitmexXRateLimit xRateLimit = new BitmexXRateLimit(-1, new Date());
+    private volatile BitmexXRateLimit xRateLimit = BitmexXRateLimit.initValue();
 
     private volatile BigDecimal prevCumulativeAmount;
 
@@ -551,7 +551,10 @@ public class BitmexService extends MarketService {
             exchange.connect()
                     .doOnError(throwable -> logger.error("doOnError", throwable))
                     .doOnDispose(() -> logger.info("bitmex connect doOnDispose"))
-                    .doOnTerminate(() -> logger.info("bitmex connect doOnTerminate"))
+                    .doOnTerminate(() -> {
+                        logger.info("bitmex connect doOnTerminate");
+                        checkForRestart();
+                    })
                     .retryWhen(e -> e.delay(10, TimeUnit.SECONDS))
                     .blockingAwait();
 
@@ -1439,6 +1442,11 @@ public class BitmexService extends MarketService {
 
     public BitmexXRateLimit getxRateLimit() {
         return xRateLimit;
+    }
+
+    @Override
+    protected void postOverload() {
+        xRateLimit = BitmexXRateLimit.initValue();
     }
 
     /**

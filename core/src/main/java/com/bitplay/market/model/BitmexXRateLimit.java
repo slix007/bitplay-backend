@@ -10,6 +10,10 @@ public class BitmexXRateLimit {
     private final Integer xRateLimit;
     private final Date lastUpdate;
 
+    public static BitmexXRateLimit initValue() {
+        return new BitmexXRateLimit(301, new Date());
+    }
+
     public BitmexXRateLimit(Integer xRateLimit, Date lastUpdate) {
         this.xRateLimit = xRateLimit;
         this.lastUpdate = lastUpdate;

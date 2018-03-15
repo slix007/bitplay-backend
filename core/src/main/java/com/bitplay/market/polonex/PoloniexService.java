@@ -130,6 +130,10 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
+    protected void postOverload() {
+    }
+
+    @Override
     protected Exchange getExchange() {
         return exchange;
     }

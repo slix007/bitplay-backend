@@ -259,7 +259,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         scheduledOverloadReset = scheduler.schedule(this::resetOverload, sysOverloadArgs.getOverloadTimeSec(), TimeUnit.SECONDS);
     }
 
+    protected abstract void postOverload();
+
     private void resetOverload() {
+        postOverload();
+
         final MarketState currMarketState = getMarketState();
         if (currMarketState == MarketState.STOPPED) {
             // do nothing

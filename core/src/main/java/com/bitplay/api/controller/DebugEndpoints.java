@@ -73,7 +73,7 @@ public class DebugEndpoints {
         final BitmexXRateLimit bitmexXRateLimit = bs.getxRateLimit();
         if (bitmexXRateLimit != null) {
             final Integer theLimit = bitmexXRateLimit.getxRateLimit();
-            deadLockDescr += "<br>xRateLimit=" + (theLimit == -1 ? "no info" : theLimit)
+            deadLockDescr += "<br>xRateLimit=" + (theLimit == 301 ? "no info" : theLimit)
                     + "; lastUpdate: " + sdf.format(bitmexXRateLimit.getLastUpdate());
         }
 
