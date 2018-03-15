@@ -876,6 +876,7 @@ public class BitmexService extends MarketService {
             final BitmexTradeService bitmexTradeService = (BitmexTradeService) exchange.getTradeService();
 
             int attemptCount = 0;
+            int badGatewayCount = 0;
             while (attemptCount < maxAttempts) {
                 attemptCount++;
                 try {
@@ -970,15 +971,21 @@ public class BitmexService extends MarketService {
                     }
 
                     final MoveResponse.MoveOrderStatus placeOrderStatus = handler.getMoveResponse().getMoveOrderStatus();
-                    if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == placeOrderStatus
-                            || MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus) {
-                        int maxAttemptsForException = (MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus)
-                                ? 3 : maxAttempts;
-                        if (attemptCount < maxAttemptsForException) {
+                    if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == placeOrderStatus) {
+                        if (attemptCount < maxAttempts) {
                             Thread.sleep(200);
                         } else {
                             setOverloaded(null);
                             tradeResponse.setErrorCode(e.getMessage());
+                            break;
+                        }
+                    } else if (MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus) {
+                        badGatewayCount++;
+                        if (badGatewayCount < 3) {
+                            Thread.sleep(200);
+                        } else {
+                            tradeResponse.setErrorCode(e.getMessage());
+                            nextMarketState = MarketState.READY;
                             break;
                         }
                     } else {
@@ -1459,7 +1466,7 @@ public class BitmexService extends MarketService {
         final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
         boolean success = false;
         for (String orderId : itemMap.keySet()) {
-            final String logMsg = String.format("%s AvgPrice update of orderId=%s.", getCounterNameNext(), orderId);
+            final String logMsg = String.format("%s AvgPrice update of orderId=%s.", getCounterName(), orderId);
             int MAX_ATTEMPTS = 3;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 try {
