@@ -11,11 +11,20 @@ public class PlBlocks {
     final private BigDecimal blockBitmex;
     final private BigDecimal blockOkex;
     final private PlacingBlocks.Ver ver;
+    final private String debugLog;
 
     public PlBlocks(BigDecimal blockBitmex, BigDecimal blockOkex, PlacingBlocks.Ver ver) {
         this.blockBitmex = blockBitmex;
         this.blockOkex = blockOkex;
         this.ver = ver;
+        this.debugLog = "";
+    }
+
+    public PlBlocks(BigDecimal blockBitmex, BigDecimal blockOkex, PlacingBlocks.Ver ver, String debugLog) {
+        this.blockBitmex = blockBitmex;
+        this.blockOkex = blockOkex;
+        this.ver = ver;
+        this.debugLog = debugLog;
     }
 
     public BigDecimal getBlockBitmex() {
@@ -30,4 +39,7 @@ public class PlBlocks {
         return ver == PlacingBlocks.Ver.DYNAMIC;
     }
 
+    public String getDebugLog() {
+        return debugLog;
+    }
 }

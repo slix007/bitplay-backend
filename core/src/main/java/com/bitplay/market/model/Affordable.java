@@ -24,4 +24,12 @@ public class Affordable {
     public void setForLong(BigDecimal forLong) {
         this.forLong = forLong;
     }
+
+    @Override
+    public String toString() {
+        return "Affordable{" +
+                "lg=" + forLong +
+                ", st=" + forShort +
+                '}';
+    }
 }

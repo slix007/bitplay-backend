@@ -452,39 +452,6 @@ public class ArbitrageService {
                 .subscribe();
     }
 
-    /*
-        private void startArbitrageMonitoring() {
-
-            final Observable<OrderBook> firstOrderBook = firstMarketService.getOrderBookObservable();
-            final Observable<OrderBook> secondOrderBook = secondMarketService.getOrderBookObservable();
-
-            // Observable.combineLatest - doesn't work while observable isn't completed
-            Observable
-                    .merge(firstOrderBook, secondOrderBook)
-                    .subscribeOn(Schedulers.computation())
-                    .observeOn(Schedulers.computation())
-                    //Do not use .retry(), because observableOrderBooks can be changed
-                    .subscribe(orderBook -> {
-
-                        final BestQuotes bestQuotes = doComparison();
-
-                        // Logging not often then 5 sec
-                        if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
-                                && bestQuotes != null
-                                && bestQuotes.getArbitrageEvent() != BestQuotes.ArbitrageEvent.NONE) {
-
-                            previousEmitTime = Instant.now();
-                            signalLogger.info(bestQuotes.toString());
-                        }
-                    }, throwable -> {
-                        logger.error("OnCombine orderBooks", throwable);
-                        startArbitrageMonitoring();
-                    }, () -> {
-                        logger.error("OnComplete orderBooks");
-                        startArbitrageMonitoring();
-                    });
-        }
-    */
     private BestQuotes calcBestQuotesAndDeltas(OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
         BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
 
@@ -573,14 +540,14 @@ public class ArbitrageService {
             if (delta1.compareTo(border1) >= 0) {
                 PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border1,
                         PlacingBlocks.DeltaBase.B_DELTA, oPL, oPS);
-                final String dynDeltaLogs = plBlocks.isDynamic()
-                        ? composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
-                        : null;
                 if (plBlocks.getBlockOkex().signum() == 0) {
                     return bestQuotes;
                 }
+                String dynDeltaLogs = null;
                 if (plBlocks.isDynamic()) {
                     plBlocks = dynBlockDecriseByAffordable(DELTA1, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
+                    dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
+                            + plBlocks.getDebugLog();
                 }
 
                 if (plBlocks.getBlockOkex().signum() > 0) {
@@ -591,14 +558,14 @@ public class ArbitrageService {
             if (delta2.compareTo(border2) >= 0) {
                 PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border2,
                         PlacingBlocks.DeltaBase.O_DELTA, oPL, oPS);
-                final String dynDeltaLogs = plBlocks.isDynamic()
-                        ? composeDynBlockLogs("o_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
-                        : null;
                 if (plBlocks.getBlockOkex().signum() == 0) {
                     return bestQuotes;
                 }
+                String dynDeltaLogs = null;
                 if (plBlocks.isDynamic()) {
                     plBlocks = dynBlockDecriseByAffordable(DELTA2, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
+                    dynDeltaLogs = composeDynBlockLogs("o_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
+                            + plBlocks.getDebugLog();
                 }
                 if (plBlocks.getBlockOkex().signum() > 0) {
                     dealPrices.setBorder(border2);
@@ -622,7 +589,8 @@ public class ArbitrageService {
                         final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
                         final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
                         if (b_block.signum() > 0 && o_block.signum() > 0) {
-                            final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block);
+                            final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
+                                    + bl.getDebugLog();
                             dealPrices.setBorderList(tradingSignal.borderValueList);
                             startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
                         } else {
@@ -645,7 +613,8 @@ public class ArbitrageService {
                         final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
                         final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
                         if (b_block.signum() > 0 && o_block.signum() > 0) {
-                            final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block);
+                            final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
+                                    + bl.getDebugLog();
                             dealPrices.setBorderList(tradingSignal.borderValueList);
                             startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
                         } else {
@@ -670,7 +639,7 @@ public class ArbitrageService {
         final String oMsg = Utils.getTenAskBid(okCoinOrderBook, signalType.getCounterName(),
                 "Okex OrderBook");
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
-        return String.format("%s: Dynamic: dynMaxBlockOkex=%s, b_block=%s, o_block=%s\n%s\n%s",
+        return String.format("%s: Dynamic: dynMaxBlockOkex=%s, b_block=%s, o_block=%s\n%s\n%s. ",
                 deltaName,
                 placingBlocks.getDynMaxBlockOkex(),
                 b_block, o_block,
@@ -1138,7 +1107,10 @@ public class ArbitrageService {
             b1 = b2.multiply(OKEX_FACTOR);
         }
 
-        return new PlBlocks(b1, b2, PlacingBlocks.Ver.DYNAMIC);
+        String debugLog = String.format("%s dynBlockDecriseByAffordable: %s, %s. bitmex %s, okex %s",
+                getCounter(), b1, b2, firstAffordable, secondAffordable);
+
+        return new PlBlocks(b1, b2, PlacingBlocks.Ver.DYNAMIC, debugLog);
     }
 
     private boolean checkBalanceBorder1(String deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {
