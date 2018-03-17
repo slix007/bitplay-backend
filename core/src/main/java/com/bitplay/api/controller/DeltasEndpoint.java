@@ -36,16 +36,25 @@ public class DeltasEndpoint {
 
     @RequestMapping(value = "/deltas", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Delta> deltas(@RequestParam(value = "from", required = false) String from,
-                              @RequestParam(value = "to", required = false) String to) throws ParseException {
+                              @RequestParam(value = "to", required = false) String to,
+                              @RequestParam(value = "lastHours", required = false) String lastHours
+                              ) throws ParseException {
 
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        final Date fromDate = from != null
-                ? sdf.parse(from)
-                : Date.from(Instant.now().minus(24, ChronoUnit.HOURS));
+        Date fromDate;
+        Date toDate;
+        if (lastHours != null) {
+            fromDate = Date.from(Instant.now().minus(Integer.valueOf(lastHours), ChronoUnit.HOURS));
+            toDate = new Date();
+        } else {
+            final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            fromDate = from != null
+                    ? sdf.parse(from)
+                    : Date.from(Instant.now().minus(24, ChronoUnit.HOURS));
 
-        final Date toDate = to != null
-                ? sdf.parse(to)
-                : new Date();
+            toDate = to != null
+                    ? sdf.parse(to)
+                    : new Date();
+        }
 
         final Stream<Delta> deltaStream = deltaRepositoryService.streamDeltas(fromDate, toDate);
         return deltaStream.collect(Collectors.toList());

@@ -7,17 +7,27 @@
 </head>
 <body>
 <div id="app">
-    <v-app>
-        <v-content>
-            <v-container>Hello world</v-container>
-        </v-content>
-    </v-app>
+    {{ message }}
+    <!--<single-file-component></single-file-component>-->
+    <line-chart></line-chart>
+    <!--<simple-fetch></simple-fetch>-->
 </div>
 
-<script src="https://unpkg.com/vue/dist/vue.js"></script>
-<script src="https://unpkg.com/vuetify/dist/vuetify.js"></script>
-<script>
-    new Vue({ el: '#app' })
-</script>
+<!--<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>-->
+
+<script src="scripts/vue.js"></script>
+<script src="scripts/vuetify.js"></script>
+<script src="scripts/vue-chartjs.full.min.js"></script>
+<script src="scripts/axios.min.js"></script>
+
+<script type="module" src="scripts/app/SimpleFetch.js"></script>
+<script type="module" src="scripts/app/LineChart.js"></script>
+<script type="module" src="scripts/app/SingleFileComponent.js"></script>
+<script type="module" src="scripts/main.js"></script>
+
+<!--<script type="text/babel" src="scripts/main.js"></script>-->
+<!--<script type="text/babel" data-main="scripts/main" src="scripts/require.js"></script>-->
+
+
 </body>
 </html>

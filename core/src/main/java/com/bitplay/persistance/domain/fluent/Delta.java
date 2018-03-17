@@ -1,5 +1,7 @@
 package com.bitplay.persistance.domain.fluent;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
@@ -11,6 +13,7 @@ import java.util.Date;
 @Document(collection = "deltasSeries")
 public class Delta {
 
+    @JsonFormat(pattern="HH:mm")
     private Date timestamp;
     private BigDecimal bAsk;
     private BigDecimal bBid;
