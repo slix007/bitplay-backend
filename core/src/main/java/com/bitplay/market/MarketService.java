@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -529,42 +530,48 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId) {
         return getOrderInfo(orderId, counterName, attemptCount, logInfoId, getTradeLogger());
     }
-
     protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, Logger customLogger) {
+        final String[] orderIds = {orderId};
+        final Collection<Order> orderInfos = getOrderInfos(orderIds, counterName, attemptCount, logInfoId, customLogger);
+        return orderInfos.isEmpty() ? Optional.empty() : Optional.ofNullable(orderInfos.iterator().next());
+    }
+
+    protected Collection<Order> getOrderInfos(String[] orderIds, String counterName, int attemptCount, String logInfoId, Logger customLogger) {
         final TradeService tradeService = getExchange().getTradeService();
-        Order orderInfo = null;
+        Collection<Order> orders = new ArrayList<>();
         try {
-            final Collection<Order> order = tradeService.getOrder(orderId);
-            if (order.isEmpty()) {
-                final String message = String.format("%s/%s %s orderId=%s, error: %s",
+            orders = tradeService.getOrder(orderIds);
+            if (orders.isEmpty()) {
+                final String message = String.format("%s/%s %s orderIds=%s, error: %s",
                         counterName, attemptCount,
                         logInfoId,
-                        orderId, "Market did not return info by orderId");
+                        Arrays.toString(orderIds), "Market did not return info by orderIds");
                 customLogger.error(message);
             } else {
-                orderInfo = order.iterator().next();
-
-                if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                    customLogger.error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
-                            counterName, attemptCount,
-                            logInfoId,
-                            Utils.convertOrderTypeName(orderInfo.getType()),
-                            orderInfo.getStatus() != null ? orderInfo.getStatus().toString() : null,
-                            orderInfo.getAveragePrice() != null ? orderInfo.getAveragePrice().toPlainString() : null,
-                            orderInfo.getId(),
-                            orderInfo.getType(),
-                            orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null);
+                for (Order orderInfo : orders) {
+                    orderInfo = orders.iterator().next();
+                    if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
+                        customLogger.error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
+                                counterName, attemptCount,
+                                logInfoId,
+                                Utils.convertOrderTypeName(orderInfo.getType()),
+                                orderInfo.getStatus() != null ? orderInfo.getStatus().toString() : null,
+                                orderInfo.getAveragePrice() != null ? orderInfo.getAveragePrice().toPlainString() : null,
+                                orderInfo.getId(),
+                                orderInfo.getType(),
+                                orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null);
+                    }
                 }
             }
         } catch (Exception e) {
-            final String message = String.format("%s/%s %s orderId=%s, error: %s",
+            final String message = String.format("%s/%s %s orderIds=%s, error: %s",
                     counterName, attemptCount,
                     logInfoId,
-                    orderId, e.toString());
+                    Arrays.toString(orderIds), e.toString());
             customLogger.error(message);
             logger.error(message, e);
         }
-        return Optional.ofNullable(orderInfo);
+        return orders;
     }
 
     private void initOpenOrdersMovingSubscription() {

@@ -3,6 +3,7 @@ package com.bitplay.market.okcoin;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
@@ -62,10 +63,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.SocketTimeoutException;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1532,5 +1535,37 @@ public class OkCoinService extends MarketService {
 
     @Override
     protected void postOverload() {
+    }
+
+    /**
+     * Workaround! <br>
+     * Request orders details. Use it before ending of a Round.
+     *
+     * @param avgPrice the object to be updated.
+     */
+    public void updateAvgPrice(AvgPrice avgPrice) {
+        final Set<String> orderIds = avgPrice.getpItems().keySet();
+        Collection<Order> orderInfos = new ArrayList<>();
+
+        for (int attempt = 0; attempt < 3; attempt++) { // about 11 sec
+            long sleepTime = 200;
+            try {
+                Thread.sleep(sleepTime);
+            } catch (InterruptedException e) {
+                tradeLogger.error("Error on sleeping");
+            }
+
+            orderInfos = getOrderInfos(orderIds.toArray(new String[0]), getCounterName(),
+                    attempt, "updateAvgPrice:", getTradeLogger());
+
+            if (orderInfos.size() == orderIds.size()
+                    && orderInfos.stream()
+                    .filter(order -> order.getAveragePrice() != null)
+                    .anyMatch(order -> order.getAveragePrice().signum() > 0)) {
+                break;
+            }
+        }
+
+        orderInfos.forEach(order -> avgPrice.addPriceItem(order.getId(), order.getCumulativeAmount(), order.getAveragePrice()));
     }
 }

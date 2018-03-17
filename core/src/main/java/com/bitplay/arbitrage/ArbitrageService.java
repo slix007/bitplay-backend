@@ -197,13 +197,17 @@ public class ArbitrageService {
 
             BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg(true);
             BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
-            if (b_price_fact.signum() == 0 || ok_price_fact.signum() == 0) {
+            if (ok_price_fact.signum() == 0) {
                 deltasLogger.info("Wait 200mc for avgPrice");
                 try {
                     Thread.sleep(200);
                 } catch (InterruptedException e) {
                     logger.error("Error on Wait 200mc for avgPrice");
                 }
+
+                ((OkCoinService) getSecondMarketService()).updateAvgPrice(dealPrices.getoPriceFact());
+                ((OkCoinService) getSecondMarketService()).writeAvgPriceLog();
+
                 b_price_fact = dealPrices.getbPriceFact().getAvg(true);
                 ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
             }
