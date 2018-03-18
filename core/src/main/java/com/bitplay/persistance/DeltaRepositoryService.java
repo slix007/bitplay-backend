@@ -20,6 +20,7 @@ import javax.annotation.PostConstruct;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.Scheduler;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.internal.schedulers.ExecutorScheduler;
 
 /**
@@ -58,7 +59,7 @@ public class DeltaRepositoryService {
     }
 
     private void defferedSaver() {
-        createObservable()
+        final Disposable disposable = createObservable()
                 .sample(1, TimeUnit.MINUTES)
                 .subscribeOn(scheduler)
                 .subscribe(delta -> deltaRepository.save(delta));

@@ -32,7 +32,7 @@ public class Delta {
         this.oAsk = oAsk;
         this.oBid = oBid;
         this.bDelta = bBid.subtract(oAsk);
-        this.oDelta = oBid.subtract(oAsk);
+        this.oDelta = oBid.subtract(bAsk);
     }
 
     public Date getTimestamp() {
