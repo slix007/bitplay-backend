@@ -735,6 +735,15 @@ public class OkCoinService extends MarketService {
                 tradeResponse.setOrderId(message);
                 tradeResponse.setErrorCode(message);
 
+                if (message.contains("Close amount bigger than your open positions")) {
+                    try {
+                        fetchPosition();
+                    } catch (Exception e1) {
+                        logger.info("FetchPositionError:", e1);
+                    }
+                    continue;
+                }
+
                 break; // no retry by default
             }
         }
