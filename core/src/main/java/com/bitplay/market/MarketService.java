@@ -1,20 +1,20 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.market.model.Affordable;
-import com.bitplay.market.model.FullBalance;
-import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.events.SignalEvent;
+import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.FullBalance;
+import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
-import com.bitplay.persistance.domain.Counters;
 import com.bitplay.persistance.domain.LiqParams;
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
@@ -336,11 +336,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         } else if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
             value = String.format("%s:%s", String.valueOf(counter), signalType.getCounterName());
         } else if (signalType == SignalType.B_CORR) {
-            final Counters counters = getPersistenceService().fetchCounters();
-            value = String.format("%s:%s", String.valueOf(counters.getCorrCounter1()), signalType.getCounterName());
+            final CorrParams corrParams = getPersistenceService().fetchCorrection();
+            value = String.format("%s:%s", String.valueOf(corrParams.getCorrCount1()), signalType.getCounterName());
         } else if (signalType == SignalType.O_CORR) {
-            final Counters counters = getPersistenceService().fetchCounters();
-            value = String.format("%s:%s", String.valueOf(counters.getCorrCounter2()), signalType.getCounterName());
+            final CorrParams corrParams = getPersistenceService().fetchCorrection();
+            value = String.format("%s:%s", String.valueOf(corrParams.getCorrCount2()), signalType.getCounterName());
         } else {
             value = signalType.getCounterName();
         }

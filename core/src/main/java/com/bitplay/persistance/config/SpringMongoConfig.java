@@ -26,6 +26,11 @@ public class SpringMongoConfig extends AbstractMongoConfiguration {
 
     // ---------------------------------------------------- mongodb config
 
+//    @Bean(name="mongoAudit")
+//    public AuditorAware<String> mongoAuditProvider() {
+//        return new DefaultAuditor();
+//    }
+
     @Override
     protected String getDatabaseName() {
         return "bitplay";

@@ -2,18 +2,19 @@ package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.persistance.domain.BorderParams;
-import com.bitplay.persistance.domain.Counters;
 import com.bitplay.persistance.domain.DeltaParams;
+import com.bitplay.persistance.domain.ExchangePair;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.MarketDocument;
 import com.bitplay.persistance.domain.SwapParams;
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.repository.BorderParamsRepository;
-import com.bitplay.persistance.repository.OrderRepository;
-import com.bitplay.persistance.repository.CountersRepository;
+import com.bitplay.persistance.repository.CorrParamsRepository;
 import com.bitplay.persistance.repository.DeltaParamsRepository;
 import com.bitplay.persistance.repository.GuiParamsRepository;
 import com.bitplay.persistance.repository.LiqParamsRepository;
+import com.bitplay.persistance.repository.OrderRepository;
 import com.bitplay.persistance.repository.SwapParamsRepository;
 
 import org.slf4j.Logger;
@@ -42,7 +43,7 @@ public class PersistenceService {
     private SwapParamsRepository swapParamsRepository;
 
     @Autowired
-    private CountersRepository countersRepository;
+    private CorrParamsRepository corrParamsRepository;
 
     @Autowired
     private BorderParamsRepository borderParamsRepository;
@@ -105,14 +106,13 @@ public class PersistenceService {
         return first == null ? new SwapParams() : first;
     }
 
-    public void saveCounters(Counters counters) {
-        counters.setId(1L);
-        countersRepository.save(counters);
+    public void saveCorrParams(CorrParams corrParams) {
+        corrParamsRepository.save(corrParams);
     }
 
-    public Counters fetchCounters() {
-        final Counters firstByDocumentId = countersRepository.findFirstByDocumentId(1L);
-        return firstByDocumentId == null ? new Counters() : firstByDocumentId;
+    public CorrParams fetchCorrection() {
+        final CorrParams first = corrParamsRepository.findFirstByExchangePair(ExchangePair.BITMEX_OKEX);
+        return first == null ? CorrParams.createDefault() : first;
     }
 
     public BorderParams fetchBorders() {

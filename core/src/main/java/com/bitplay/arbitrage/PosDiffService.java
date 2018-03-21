@@ -6,8 +6,7 @@ import com.bitplay.market.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.Counters;
-import com.bitplay.persistance.domain.settings.ArbScheme;
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.Settings;
 
 import org.knowm.xchange.dto.Order;
@@ -259,7 +258,7 @@ public class PosDiffService {
         final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
         final BigDecimal bEquiv = bP.subtract(hedgeAmount);
 
-        final Counters counters = persistenceService.fetchCounters();
+        final CorrParams corrParams = persistenceService.fetchCorrection();
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final PlacingType okexPlacingType = settings.getOkexPlacingType();
         final PlacingType bitmexPlacingType = settings.getBitmexPlacingType();
@@ -272,7 +271,7 @@ public class PosDiffService {
                 marketService = arbitrageService.getFirstMarketService();
                 if (signalType == SignalType.CORR) {
                     signalType = SignalType.B_CORR;
-                    counters.incCorrCounter1();
+                    corrParams.incCorrCounter1();
                 }
                 placingType = bitmexPlacingType;
             } else {
@@ -284,7 +283,7 @@ public class PosDiffService {
                 marketService = arbitrageService.getSecondMarketService();
                 if (signalType == SignalType.CORR) {
                     signalType = SignalType.O_CORR;
-                    counters.incCorrCounter2();
+                    corrParams.incCorrCounter2();
                 }
                 placingType = okexPlacingType;
             }
@@ -296,11 +295,11 @@ public class PosDiffService {
                 if (oPL.subtract(correctAmount).signum() < 0) { // orderType==CLOSE_BID
                     correctAmount = oPL;
                 }
-                marketService = arbitrageService.getSecondMarketService();
                 if (signalType == SignalType.CORR) {
                     signalType = SignalType.O_CORR;
-                    counters.incCorrCounter2();
+                    corrParams.incCorrCounter2();
                 }
+                marketService = arbitrageService.getSecondMarketService();
                 placingType = okexPlacingType;
             } else {
                 // bitmex sell
@@ -308,13 +307,13 @@ public class PosDiffService {
                 marketService = arbitrageService.getFirstMarketService();
                 if (signalType == SignalType.CORR) {
                     signalType = SignalType.B_CORR;
-                    counters.incCorrCounter1();
+                    corrParams.incCorrCounter1();
                 }
                 placingType = bitmexPlacingType;
             }
         }
 
-        persistenceService.saveCounters(counters);
+        persistenceService.saveCorrParams(corrParams);
 
         // 2. check isAffordable
         if (correctAmount.signum() != 0
