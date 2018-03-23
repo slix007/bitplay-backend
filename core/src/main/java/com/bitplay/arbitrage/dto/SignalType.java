@@ -30,4 +30,8 @@ public enum SignalType {
     public String getCounterName() {
         return counterName;
     }
+
+    public boolean isCorr() {
+        return this == CORR || this == CORR_MDC || this == CORR_TIMER || this == B_CORR || this == O_CORR;
+    }
 }

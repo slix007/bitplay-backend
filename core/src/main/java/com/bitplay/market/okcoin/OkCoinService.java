@@ -641,7 +641,6 @@ public class OkCoinService extends MarketService {
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
         final BigDecimal amount = placeOrderArgs.getAmount();
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
-        //final PlacingType placingType = placeOrderArgsRef.getPlacingType(); // Always TAKER
         final SignalType signalType = placeOrderArgs.getSignalType();
 
         BigDecimal amountLeft = amount;
@@ -745,6 +744,14 @@ public class OkCoinService extends MarketService {
                 }
 
                 break; // no retry by default
+            }
+        }
+
+        if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
+            if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
+                posDiffService.finishCorr(true);
+            } else {
+                posDiffService.finishCorr(false);
             }
         }
 

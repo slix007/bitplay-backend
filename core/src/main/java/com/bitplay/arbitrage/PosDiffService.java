@@ -7,7 +7,6 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.correction.CorrParams;
-import com.bitplay.persistance.domain.settings.Settings;
 
 import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
@@ -46,12 +45,60 @@ public class PosDiffService {
     private boolean hasMDCStarted = false;
     private volatile boolean hasTimerStarted = false;
     private volatile boolean hasGeneralCorrStarted = false;
+    private volatile boolean corrInProgress = false;
 
     @Autowired
     private ArbitrageService arbitrageService;
 
     @Autowired
     private PersistenceService persistenceService;
+
+    public void finishCorr(boolean wasOrderSuccess) {
+        if (corrInProgress) {
+            try {
+                boolean isCorrect = false;
+                if (wasOrderSuccess) {
+                    if (getIsPositionsEqual()) {
+                        isCorrect = true;
+                    } else {
+
+                        Thread.sleep(200);
+
+                        final String infoMsg = "Double check before finishCorr: fetchPosition:";
+                        final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+                        final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
+                        logger.info(infoMsg + "bitmex " + pos1);
+                        logger.info(infoMsg + "okex " + pos2);
+                        if (getIsPositionsEqual()) {
+                            isCorrect = true;
+                        }
+                    }
+                }
+
+                corrInProgress = false;
+                if (isCorrect) {
+                    // correct++
+                    final CorrParams corrParams = persistenceService.fetchCorrection();
+                    corrParams.getCorrError().setCurrentErrorAmount(0);
+                    persistenceService.saveCorrParams(corrParams);
+                } else {
+                    // error++
+                    final CorrParams corrParams = persistenceService.fetchCorrection();
+                    corrParams.getCorrError().incCurrentErrorAmount();
+                    persistenceService.saveCorrParams(corrParams);
+                }
+
+            } catch (Exception e) {
+                warningLogger.error("Error on finishCorr: " + e.getMessage());
+                logger.error("Error on finishCorr: ", e);
+
+                // error++
+                final CorrParams corrParams = persistenceService.fetchCorrection();
+                corrParams.getCorrError().incCurrentErrorAmount();
+                persistenceService.saveCorrParams(corrParams);
+            }
+        }
+    }
 
     private void startTimerToCorrection() {
         if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
@@ -313,6 +360,9 @@ public class PosDiffService {
 //                bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
             arbitrageService.setSignalType(signalType);
             marketService.setBusy();
+
+            corrInProgress = true;
+
             // Market specific params
             marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
                     PlacingType.TAKER, signalType, 1));

@@ -1030,6 +1030,15 @@ public class BitmexService extends MarketService {
         } finally {
             setMarketState(nextMarketState);
         }
+
+        if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
+            if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
+                posDiffService.finishCorr(true);
+            } else {
+                posDiffService.finishCorr(false);
+            }
+        }
+
         return tradeResponse;
     }
 

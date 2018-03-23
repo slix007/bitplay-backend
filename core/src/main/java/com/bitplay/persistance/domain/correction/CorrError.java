@@ -28,6 +28,10 @@ public class CorrError {
         this.currentErrorAmount = currentErrorAmount;
     }
 
+    public void incCurrentErrorAmount() {
+        this.currentErrorAmount = this.currentErrorAmount + 1;
+    }
+
     public Integer getMaxErrorAmount() {
         return maxErrorAmount;
     }
