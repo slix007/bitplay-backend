@@ -2,7 +2,6 @@ package com.bitplay.api.controller;
 
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.api.domain.BorderUpdateJson;
-import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltasMinMaxJson;
@@ -12,7 +11,6 @@ import com.bitplay.api.domain.MarketList;
 import com.bitplay.api.domain.MarketStatesJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
-import com.bitplay.api.domain.TradableAmountJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 
@@ -191,21 +189,6 @@ public class CommonEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public LiqParamsJson updateLiqParams(@RequestBody LiqParamsJson liqParamsJson) {
         return commonUIService.updateLiqParams(liqParamsJson);
-    }
-
-    @RequestMapping(value = "/market/pos-corr-imm",
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson getImmediateCorrection() {
-        return commonUIService.getImmediateCorrection();
-    }
-
-    @RequestMapping(value = "/market/pos-corr-imm",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson updateImmediateCorrection(@RequestBody ChangeRequestJson command) {
-        return commonUIService.updateImmediateCorrection(command);
     }
 
     @RequestMapping(value = "/delta-params",

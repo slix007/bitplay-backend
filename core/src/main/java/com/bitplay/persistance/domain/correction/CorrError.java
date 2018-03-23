@@ -36,6 +36,10 @@ public class CorrError {
         this.maxErrorAmount = maxErrorAmount;
     }
 
+    public boolean hasSpareAttempts() {
+        return currentErrorAmount < maxErrorAmount;
+    }
+
     @Override
     public String toString() {
         return String.format("CorrError{%s/%s}", currentErrorAmount, maxErrorAmount);

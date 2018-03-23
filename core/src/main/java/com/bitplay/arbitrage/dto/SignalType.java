@@ -9,7 +9,7 @@ public enum SignalType {
     B_CORR("b_corr"),
     O_CORR("o_corr"),
     CORR_MDC("corr_mdc"),
-    CORR_PERIOD("corr_period"),
+    CORR_TIMER("corr_timer"),
     B_PRE_LIQ("b_preliq"),
     O_PRE_LIQ("o_preliq"),
     MANUAL_BUY("button_buy"),

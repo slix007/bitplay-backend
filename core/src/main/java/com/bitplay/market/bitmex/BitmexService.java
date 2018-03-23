@@ -1402,7 +1402,7 @@ public class BitmexService extends MarketService {
         }
 
         final GuiParams params = arbitrageService.getParams();
-        if (params.getPosCorr().equals("enabled")) {
+        if (params.getPreliqPosCorr().equals("enabled")) {
             final BigDecimal bDQLCloseMin = params.getbDQLCloseMin();
 
             if (liqInfo.getDqlCurr() != null

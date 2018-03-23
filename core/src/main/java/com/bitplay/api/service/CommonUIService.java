@@ -1,7 +1,6 @@
 package com.bitplay.api.service;
 
 import com.bitplay.api.domain.BorderUpdateJson;
-import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltasMinMaxJson;
@@ -348,14 +347,14 @@ public class CommonUIService {
     }
 
     public PosCorrJson getPosCorr() {
-        return new PosCorrJson(arbitrageService.getParams().getPosCorr(),
+        return new PosCorrJson(arbitrageService.getParams().getPreliqPosCorr(),
                 arbitrageService.getParams().getPeriodToCorrection(),
                 arbitrageService.getParams().getMaxDiffCorr().toPlainString());
     }
 
     public PosCorrJson updatePosCorr(PosCorrJson posCorrJson) {
         if (posCorrJson.getStatus() != null) {
-            arbitrageService.getParams().setPosCorr(posCorrJson.getStatus());
+            arbitrageService.getParams().setPreliqPosCorr(posCorrJson.getStatus());
         }
         if (posCorrJson.getMaxDiffCorr() != null) {
             arbitrageService.getParams().setMaxDiffCorr(new BigDecimal(posCorrJson.getMaxDiffCorr()));
@@ -364,7 +363,7 @@ public class CommonUIService {
             posDiffService.setPeriodToCorrection(posCorrJson.getPeriodToCorrection());
         }
         arbitrageService.saveParamsToDb();
-        return new PosCorrJson(arbitrageService.getParams().getPosCorr(),
+        return new PosCorrJson(arbitrageService.getParams().getPreliqPosCorr(),
                 arbitrageService.getParams().getPeriodToCorrection(),
                 arbitrageService.getParams().getMaxDiffCorr().toPlainString());
     }
@@ -407,17 +406,6 @@ public class CommonUIService {
                 params.getoDQLOpenMin().toPlainString(),
                 params.getbDQLCloseMin().toPlainString(),
                 params.getoDQLCloseMin().toPlainString());
-    }
-
-    public ResultJson getImmediateCorrection() {
-        return new ResultJson(String.valueOf(posDiffService.isImmediateCorrectionEnabled()), "");
-    }
-
-    public ResultJson updateImmediateCorrection(ChangeRequestJson command) {
-        if (command.getCommand().equals("true")) {
-            posDiffService.setImmediateCorrectionEnabled(true);
-        }
-        return new ResultJson(String.valueOf(posDiffService.isImmediateCorrectionEnabled()), "");
     }
 
     public DeltasMinMaxJson getDeltaParamsJson() {

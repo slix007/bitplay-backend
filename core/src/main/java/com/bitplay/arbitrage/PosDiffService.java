@@ -41,8 +41,6 @@ public class PosDiffService {
 
     private Disposable theTimer;
 
-    private boolean immediateCorrectionEnabled = true;
-
     private volatile boolean calcInProgress = false;
 
     private boolean hasMDCStarted = false;
@@ -74,7 +72,7 @@ public class PosDiffService {
                     warningLogger.info(infoMsg + "bitmex " + pos1);
                     warningLogger.info(infoMsg + "okex "+ pos2);
 
-                    doCorrectionImmediate(SignalType.CORR_PERIOD);
+                    doCorrectionImmediate(SignalType.CORR_TIMER);
                 })
                 .doOnError(e -> {
                     warningLogger.error("Correction on timer failed. " + e.getMessage());
@@ -172,8 +170,9 @@ public class PosDiffService {
                 }
 
 //                writeWarnings(bP, oPL, oPS);
+                final CorrParams corrParams = persistenceService.fetchCorrection();
 
-                if (arbitrageService.getParams().getPosCorr().equals("enabled")
+                if (corrParams.getCorrError().hasSpareAttempts()
                         && positionsDiffWithHedge.signum() != 0) {
                     // 0. check if ready
                     if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
@@ -225,21 +224,22 @@ public class PosDiffService {
         return hedgeAmount;
     }
 
-    private void doCorrectionImmediate(SignalType signalType) {
+    private void doCorrectionImmediate(SignalType signalType) throws Exception {
         if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
                 || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
             return;
         }
 
-        if (immediateCorrectionEnabled) {
+        final CorrParams corrParams = persistenceService.fetchCorrection();
+
+        if (corrParams.getCorrError().hasSpareAttempts()) {
+            // The double check with 'fetchPosition' should be before this method
             final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
             final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
             final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
             final BigDecimal hedgeAmount = getHedgeAmount();
-            if (arbitrageService.getParams().getPosCorr().equals("enabled")) {
-                doCorrection(bP, oPL, oPS, hedgeAmount, signalType);
-                immediateCorrectionEnabled = false;
-            }
+
+            doCorrection(bP, oPL, oPS, hedgeAmount, signalType);
         }
     }
 
@@ -254,14 +254,10 @@ public class PosDiffService {
         Order.OrderType orderType;
         BigDecimal correctAmount;
         MarketService marketService;
-        PlacingType placingType;
         final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
         final BigDecimal bEquiv = bP.subtract(hedgeAmount);
 
         final CorrParams corrParams = persistenceService.fetchCorrection();
-        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        final PlacingType okexPlacingType = settings.getOkexPlacingType();
-        final PlacingType bitmexPlacingType = settings.getBitmexPlacingType();
 
         if (positionsDiffWithHedge.signum() < 0) {
             orderType = Order.OrderType.BID;
@@ -273,7 +269,6 @@ public class PosDiffService {
                     signalType = SignalType.B_CORR;
                     corrParams.incCorrCounter1();
                 }
-                placingType = bitmexPlacingType;
             } else {
                 // okcoin buy
                 correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
@@ -285,7 +280,6 @@ public class PosDiffService {
                     signalType = SignalType.O_CORR;
                     corrParams.incCorrCounter2();
                 }
-                placingType = okexPlacingType;
             }
         } else {
             orderType = Order.OrderType.ASK;
@@ -300,7 +294,6 @@ public class PosDiffService {
                     corrParams.incCorrCounter2();
                 }
                 marketService = arbitrageService.getSecondMarketService();
-                placingType = okexPlacingType;
             } else {
                 // bitmex sell
                 correctAmount = positionsDiffWithHedge.abs();
@@ -309,7 +302,6 @@ public class PosDiffService {
                     signalType = SignalType.B_CORR;
                     corrParams.incCorrCounter1();
                 }
-                placingType = bitmexPlacingType;
             }
         }
 
@@ -323,7 +315,7 @@ public class PosDiffService {
             marketService.setBusy();
             // Market specific params
             marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
-                    placingType, signalType, 1));
+                    PlacingType.TAKER, signalType, 1));
         }
     }
 
@@ -396,11 +388,4 @@ public class PosDiffService {
         }
     }
 
-    public boolean isImmediateCorrectionEnabled() {
-        return immediateCorrectionEnabled;
-    }
-
-    public void setImmediateCorrectionEnabled(boolean immediateCorrectionEnabled) {
-        this.immediateCorrectionEnabled = immediateCorrectionEnabled;
-    }
 }

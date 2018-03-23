@@ -1378,7 +1378,7 @@ public class OkCoinService extends MarketService {
         }
 
         final GuiParams params = arbitrageService.getParams();
-        if (params.getPosCorr().equals("enabled")) {
+        if (params.getPreliqPosCorr().equals("enabled")) {
             final BigDecimal oDQLCloseMin = params.getoDQLCloseMin();
             final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
