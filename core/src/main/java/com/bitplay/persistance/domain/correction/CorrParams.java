@@ -15,19 +15,21 @@ public class CorrParams extends ExchangePairDocument {
 
     private Integer corrCount1;
     private Integer corrCount2;
+    private Integer failedCount;
     private CorrError corrError;
 
     public CorrParams() {
     }
 
-    public CorrParams(Integer corrCount1, Integer corrCount2, CorrError corrError) {
+    public CorrParams(Integer corrCount1, Integer corrCount2, Integer failedCount, CorrError corrError) {
         this.corrCount1 = corrCount1;
         this.corrCount2 = corrCount2;
+        this.failedCount = failedCount;
         this.corrError = corrError;
     }
 
     public static CorrParams createDefault() {
-        final CorrParams corrParams = new CorrParams(0, 0, CorrError.createDefault());
+        final CorrParams corrParams = new CorrParams(0, 0, 0, CorrError.createDefault());
         corrParams.setId(1L);
         corrParams.setExchangePair(ExchangePair.BITMEX_OKEX);
         return corrParams;
@@ -53,6 +55,14 @@ public class CorrParams extends ExchangePairDocument {
         return corrError;
     }
 
+    public Integer getFailedCount() {
+        return failedCount;
+    }
+
+    public void setFailedCount(Integer failedCount) {
+        this.failedCount = failedCount;
+    }
+
     public void setCorrError(CorrError corrError) {
         this.corrError = corrError;
     }
@@ -63,5 +73,12 @@ public class CorrParams extends ExchangePairDocument {
 
     public void incCorrCounter2() {
         this.corrCount2++;
+    }
+
+    public void incFailedCount() {
+        if (failedCount == null) {
+            failedCount = 0;
+        }
+        this.failedCount++;
     }
 }

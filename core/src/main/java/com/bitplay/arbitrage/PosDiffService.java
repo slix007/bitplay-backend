@@ -80,11 +80,17 @@ public class PosDiffService {
                     // correct++
                     final CorrParams corrParams = persistenceService.fetchCorrection();
                     corrParams.getCorrError().setCurrentErrorAmount(0);
+                    if (arbitrageService.getSignalType() == SignalType.B_CORR) {
+                        corrParams.incCorrCounter1();
+                    } else { // O_CORR or ?others?
+                        corrParams.incCorrCounter2();
+                    }
                     persistenceService.saveCorrParams(corrParams);
                 } else {
                     // error++
                     final CorrParams corrParams = persistenceService.fetchCorrection();
                     corrParams.getCorrError().incCurrentErrorAmount();
+                    corrParams.incFailedCount();
                     persistenceService.saveCorrParams(corrParams);
                 }
 
@@ -95,6 +101,7 @@ public class PosDiffService {
                 // error++
                 final CorrParams corrParams = persistenceService.fetchCorrection();
                 corrParams.getCorrError().incCurrentErrorAmount();
+                corrParams.incFailedCount();
                 persistenceService.saveCorrParams(corrParams);
             }
         }
@@ -304,8 +311,6 @@ public class PosDiffService {
         final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
         final BigDecimal bEquiv = bP.subtract(hedgeAmount);
 
-        final CorrParams corrParams = persistenceService.fetchCorrection();
-
         if (positionsDiffWithHedge.signum() < 0) {
             orderType = Order.OrderType.BID;
             if (bEquiv.compareTo(okEquiv) < 0) {
@@ -314,7 +319,6 @@ public class PosDiffService {
                 marketService = arbitrageService.getFirstMarketService();
                 if (signalType == SignalType.CORR) {
                     signalType = SignalType.B_CORR;
-                    corrParams.incCorrCounter1();
                 }
             } else {
                 // okcoin buy
@@ -325,7 +329,6 @@ public class PosDiffService {
                 marketService = arbitrageService.getSecondMarketService();
                 if (signalType == SignalType.CORR) {
                     signalType = SignalType.O_CORR;
-                    corrParams.incCorrCounter2();
                 }
             }
         } else {
@@ -338,7 +341,6 @@ public class PosDiffService {
                 }
                 if (signalType == SignalType.CORR) {
                     signalType = SignalType.O_CORR;
-                    corrParams.incCorrCounter2();
                 }
                 marketService = arbitrageService.getSecondMarketService();
             } else {
@@ -347,12 +349,9 @@ public class PosDiffService {
                 marketService = arbitrageService.getFirstMarketService();
                 if (signalType == SignalType.CORR) {
                     signalType = SignalType.B_CORR;
-                    corrParams.incCorrCounter1();
                 }
             }
         }
-
-        persistenceService.saveCorrParams(corrParams);
 
         // 2. check isAffordable
         if (correctAmount.signum() != 0

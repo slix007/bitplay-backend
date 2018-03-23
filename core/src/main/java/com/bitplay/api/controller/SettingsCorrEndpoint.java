@@ -46,14 +46,13 @@ public class SettingsCorrEndpoint {
 
     @RequestMapping(value = "/corr-set-max-error", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public CorrParams updateCorrError(@RequestBody ChangeRequestJson changeRequestJson) {
-        final CorrParams corrParams = persistenceService.fetchCorrection();
+        CorrParams corrParams;
         if (changeRequestJson.getCommand() != null) {
-            corrParams.setCorrCount1(0);
-            corrParams.setCorrCount2(0);
-            final CorrError corrError = corrParams.getCorrError();
-            corrError.setCurrentErrorAmount(0);
-            corrError.setMaxErrorAmount(Integer.valueOf(changeRequestJson.getCommand()));
+            corrParams = CorrParams.createDefault();
+            corrParams.getCorrError().setMaxErrorAmount(Integer.valueOf(changeRequestJson.getCommand()));
             persistenceService.saveCorrParams(corrParams);
+        } else {
+            corrParams = persistenceService.fetchCorrection();
         }
         return corrParams;
     }
