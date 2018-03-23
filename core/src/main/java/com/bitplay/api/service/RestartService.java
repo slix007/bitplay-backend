@@ -5,9 +5,11 @@ package com.bitplay.api.service;
  */
 
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.persistance.SettingsRepositoryService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -23,13 +25,22 @@ public class RestartService {
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
+    @Autowired
+    SettingsRepositoryService settingsRepositoryService;
+
     public void doFullRestart(String source) throws IOException {
-        final String warningMessage = String.format("Full Restart has been requested by %s", source);
+        final Boolean restartEnabled = settingsRepositoryService.getSettings().isRestartEnabled();
+        if (restartEnabled == null || restartEnabled) {
+            final String warningMessage = String.format("Full Restart has been requested by %s", source);
+            logger.error(warningMessage);
+            warningLogger.error(warningMessage);
 
-        logger.error(warningMessage);
-        warningLogger.error(warningMessage);
-
-        Runtime.getRuntime().exec(new String[] { "/bin/systemctl", "restart", "bitplay2" });
+            Runtime.getRuntime().exec(new String[]{"/bin/systemctl", "restart", "bitplay2"});
+        } else {
+            final String warningMessage = String.format("Restart is disabled. The attempt source is %s", source);
+            logger.error(warningMessage);
+            warningLogger.error(warningMessage);
+        }
     }
 
     public void doDeferredRestart(String details) {

@@ -577,10 +577,9 @@ public class BitmexService extends MarketService {
 
     private void doRestart() {
         try {
-            final Boolean restartEnabled = settingsRepositoryService.getSettings().isRestartEnabled();
-            if (restartEnabled == null || restartEnabled) {
-                restartService.doFullRestart("BitmexService#doRestart(). orderBookLastTimestamp=" + orderBookLastTimestamp);
-            }
+
+            restartService.doFullRestart("BitmexService#doRestart(). orderBookLastTimestamp=" + orderBookLastTimestamp);
+
         } catch (IOException e) {
             logger.error("Error on full restart", e);
         }
