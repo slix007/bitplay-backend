@@ -29,7 +29,11 @@ export default Vue.component('line-chart', {
             // axios.get("http://104.238.170.152:4031/deltas")
             let hostname = window.location.hostname;
             if (hostname === 'localhost') hostname = '664-vuld.fplay.io';
-            axios.get('http://' + hostname + ':4031/deltas?lastHours=2')
+
+            let params = (new URL(document.location)).searchParams;
+            let hoursCount = params.get("hours") !== null ? params.get("hours") : 2;
+
+            axios.get('http://' + hostname + ':4031/deltas?lastHours=' + hoursCount)
                 .then(response => {
                     this.loading = false;
                     // let theData = response.data.slice(Math.max(response.data.length - 120, 1));
