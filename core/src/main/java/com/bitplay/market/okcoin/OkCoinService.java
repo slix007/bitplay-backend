@@ -21,6 +21,7 @@ import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.settings.ArbScheme;
@@ -314,7 +315,7 @@ public class OkCoinService extends MarketService {
         }
     }
 
-    @Scheduled(fixedRate = 3000)
+    @Scheduled(fixedRate = 1000)
     @Override
     public String fetchPosition() throws Exception {
         final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
@@ -1384,8 +1385,10 @@ public class OkCoinService extends MarketService {
             return;
         }
 
+        final CorrParams corrParams = getPersistenceService().fetchCorrParams();
         final GuiParams params = arbitrageService.getParams();
-        if (params.getPreliqPosCorr().equals("enabled")) {
+
+        if (corrParams.getPreliq().hasSpareAttempts()) {
             final BigDecimal oDQLCloseMin = params.getoDQLCloseMin();
             final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
@@ -1403,7 +1406,7 @@ public class OkCoinService extends MarketService {
                             position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
                             liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
 
-                    arbitrageService.startTradingOnDelta2(SignalType.O_PRE_LIQ, bestQuotes);
+                    arbitrageService.startPerliqOnDelta2(SignalType.O_PRE_LIQ, bestQuotes);
 
                 } else if (pos.signum() < 0) {
                     tradeLogger.info(String.format("%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
@@ -1411,7 +1414,7 @@ public class OkCoinService extends MarketService {
                             position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
                             liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
 
-                    arbitrageService.startTradingOnDelta1(SignalType.O_PRE_LIQ, bestQuotes);
+                    arbitrageService.startPreliqOnDelta1(SignalType.O_PRE_LIQ, bestQuotes);
 
                 }
             }

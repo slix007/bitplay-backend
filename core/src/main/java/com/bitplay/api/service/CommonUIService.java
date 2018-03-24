@@ -347,15 +347,12 @@ public class CommonUIService {
     }
 
     public PosCorrJson getPosCorr() {
-        return new PosCorrJson(arbitrageService.getParams().getPreliqPosCorr(),
+        return new PosCorrJson("",
                 arbitrageService.getParams().getPeriodToCorrection(),
                 arbitrageService.getParams().getMaxDiffCorr().toPlainString());
     }
 
     public PosCorrJson updatePosCorr(PosCorrJson posCorrJson) {
-        if (posCorrJson.getStatus() != null) {
-            arbitrageService.getParams().setPreliqPosCorr(posCorrJson.getStatus());
-        }
         if (posCorrJson.getMaxDiffCorr() != null) {
             arbitrageService.getParams().setMaxDiffCorr(new BigDecimal(posCorrJson.getMaxDiffCorr()));
         }
@@ -363,7 +360,7 @@ public class CommonUIService {
             posDiffService.setPeriodToCorrection(posCorrJson.getPeriodToCorrection());
         }
         arbitrageService.saveParamsToDb();
-        return new PosCorrJson(arbitrageService.getParams().getPreliqPosCorr(),
+        return new PosCorrJson("",
                 arbitrageService.getParams().getPeriodToCorrection(),
                 arbitrageService.getParams().getMaxDiffCorr().toPlainString());
     }

@@ -13,72 +13,38 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @TypeAlias("corrParams")
 public class CorrParams extends ExchangePairDocument {
 
-    private Integer corrCount1;
-    private Integer corrCount2;
-    private Integer failedCount;
-    private CorrError corrError;
+
+    private Corr corr;
+    private Preliq preliq;
 
     public CorrParams() {
     }
 
-    public CorrParams(Integer corrCount1, Integer corrCount2, Integer failedCount, CorrError corrError) {
-        this.corrCount1 = corrCount1;
-        this.corrCount2 = corrCount2;
-        this.failedCount = failedCount;
-        this.corrError = corrError;
+    public CorrParams(Corr corr, Preliq preliq) {
+        this.corr = corr;
+        this.preliq = preliq;
     }
 
     public static CorrParams createDefault() {
-        final CorrParams corrParams = new CorrParams(0, 0, 0, CorrError.createDefault());
+        final CorrParams corrParams = new CorrParams(Corr.createDefault(), Preliq.createDefault());
         corrParams.setId(1L);
         corrParams.setExchangePair(ExchangePair.BITMEX_OKEX);
         return corrParams;
     }
 
-    public Integer getCorrCount1() {
-        return corrCount1;
+    public Corr getCorr() {
+        return corr;
     }
 
-    public void setCorrCount1(Integer corrCount1) {
-        this.corrCount1 = corrCount1;
+    public void setCorr(Corr corr) {
+        this.corr = corr;
     }
 
-    public Integer getCorrCount2() {
-        return corrCount2;
+    public Preliq getPreliq() {
+        return preliq;
     }
 
-    public void setCorrCount2(Integer corrCount2) {
-        this.corrCount2 = corrCount2;
-    }
-
-    public CorrError getCorrError() {
-        return corrError;
-    }
-
-    public Integer getFailedCount() {
-        return failedCount;
-    }
-
-    public void setFailedCount(Integer failedCount) {
-        this.failedCount = failedCount;
-    }
-
-    public void setCorrError(CorrError corrError) {
-        this.corrError = corrError;
-    }
-
-    public void incCorrCounter1() {
-        this.corrCount1++;
-    }
-
-    public void incCorrCounter2() {
-        this.corrCount2++;
-    }
-
-    public void incFailedCount() {
-        if (failedCount == null) {
-            failedCount = 0;
-        }
-        this.failedCount++;
+    public void setPreliq(Preliq preliq) {
+        this.preliq = preliq;
     }
 }

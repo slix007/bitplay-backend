@@ -23,6 +23,7 @@ import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -1409,8 +1410,10 @@ public class BitmexService extends MarketService {
             return;
         }
 
+        final CorrParams corrParams = getPersistenceService().fetchCorrParams();
         final GuiParams params = arbitrageService.getParams();
-        if (params.getPreliqPosCorr().equals("enabled")) {
+
+        if (corrParams.getPreliq().hasSpareAttempts()) {
             final BigDecimal bDQLCloseMin = params.getbDQLCloseMin();
 
             if (liqInfo.getDqlCurr() != null
@@ -1427,7 +1430,7 @@ public class BitmexService extends MarketService {
                             position.getPositionLong().toPlainString(),
                             liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
 
-                    arbitrageService.startTradingOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
+                    arbitrageService.startPreliqOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
 
                 } else if (position.getPositionLong().signum() < 0) {
                     tradeLogger.info(String.format("%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
@@ -1435,7 +1438,7 @@ public class BitmexService extends MarketService {
                             position.getPositionLong().toPlainString(),
                             liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
 
-                    arbitrageService.startTradingOnDelta2(SignalType.B_PRE_LIQ, bestQuotes);
+                    arbitrageService.startPerliqOnDelta2(SignalType.B_PRE_LIQ, bestQuotes);
 
                 }
             }

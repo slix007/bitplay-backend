@@ -62,7 +62,7 @@ public class PosDiffService {
                         isCorrect = true;
                     } else {
 
-                        Thread.sleep(200);
+                        Thread.sleep(1000);
 
                         final String infoMsg = "Double check before finishCorr: fetchPosition:";
                         final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
@@ -78,20 +78,17 @@ public class PosDiffService {
                 corrInProgress = false;
                 if (isCorrect) {
                     // correct++
-                    final CorrParams corrParams = persistenceService.fetchCorrection();
-                    corrParams.getCorrError().setCurrentErrorAmount(0);
-                    if (arbitrageService.getSignalType() == SignalType.B_CORR) {
-                        corrParams.incCorrCounter1();
-                    } else { // O_CORR or ?others?
-                        corrParams.incCorrCounter2();
-                    }
+                    final CorrParams corrParams = persistenceService.fetchCorrParams();
+                    corrParams.getCorr().incSuccesses();
                     persistenceService.saveCorrParams(corrParams);
+                    deltasLogger.info("Correction succeed. " + corrParams.getCorr().toString());
                 } else {
                     // error++
-                    final CorrParams corrParams = persistenceService.fetchCorrection();
-                    corrParams.getCorrError().incCurrentErrorAmount();
-                    corrParams.incFailedCount();
+                    final CorrParams corrParams = persistenceService.fetchCorrParams();
+                    corrParams.getCorr().incFails();
                     persistenceService.saveCorrParams(corrParams);
+                    deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(),
+                            getPositionsDiffWithHedge());
                 }
 
             } catch (Exception e) {
@@ -99,10 +96,11 @@ public class PosDiffService {
                 logger.error("Error on finishCorr: ", e);
 
                 // error++
-                final CorrParams corrParams = persistenceService.fetchCorrection();
-                corrParams.getCorrError().incCurrentErrorAmount();
-                corrParams.incFailedCount();
+                final CorrParams corrParams = persistenceService.fetchCorrParams();
+                corrParams.getCorr().incFails();
                 persistenceService.saveCorrParams(corrParams);
+                deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(),
+                        getPositionsDiffWithHedge());
             }
         }
     }
@@ -224,9 +222,9 @@ public class PosDiffService {
                 }
 
 //                writeWarnings(bP, oPL, oPS);
-                final CorrParams corrParams = persistenceService.fetchCorrection();
+                final CorrParams corrParams = persistenceService.fetchCorrParams();
 
-                if (corrParams.getCorrError().hasSpareAttempts()
+                if (corrParams.getCorr().hasSpareAttempts()
                         && positionsDiffWithHedge.signum() != 0) {
                     // 0. check if ready
                     if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
@@ -284,9 +282,9 @@ public class PosDiffService {
             return;
         }
 
-        final CorrParams corrParams = persistenceService.fetchCorrection();
+        final CorrParams corrParams = persistenceService.fetchCorrParams();
 
-        if (corrParams.getCorrError().hasSpareAttempts()) {
+        if (corrParams.getCorr().hasSpareAttempts()) {
             // The double check with 'fetchPosition' should be before this method
             final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
             final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();

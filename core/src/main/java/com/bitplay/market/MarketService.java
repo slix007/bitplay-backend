@@ -334,13 +334,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         if (signalType == SignalType.AUTOMATIC) {
             value = String.valueOf(counter);
         } else if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
-            value = String.format("%s:%s", String.valueOf(counter), signalType.getCounterName());
-        } else if (signalType == SignalType.B_CORR) {
-            final CorrParams corrParams = getPersistenceService().fetchCorrection();
-            value = String.format("%s:%s", String.valueOf(corrParams.getCorrCount1()), signalType.getCounterName());
-        } else if (signalType == SignalType.O_CORR) {
-            final CorrParams corrParams = getPersistenceService().fetchCorrection();
-            value = String.format("%s:%s", String.valueOf(corrParams.getCorrCount2()), signalType.getCounterName());
+            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+            value = String.format("%s:%s", String.valueOf(corrParams.getPreliq().getTotalCount()), signalType.getCounterName());
+        } else if (signalType.isCorr()) {
+            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+            value = String.format("%s:%s", String.valueOf(corrParams.getCorr().getTotalCount()), signalType.getCounterName());
         } else {
             value = signalType.getCounterName();
         }

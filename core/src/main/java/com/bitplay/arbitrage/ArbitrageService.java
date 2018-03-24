@@ -23,6 +23,7 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.Delta;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -78,7 +79,7 @@ public class ArbitrageService {
     @Autowired
     private SignalService signalService;
     @Autowired
-    private BordersCalcScheduler bordersCalcScheduler;
+    private PreliqUtilsService preliqUtilsService;
 //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
 //    private volatile int updateBordersCounter;
@@ -161,15 +162,20 @@ public class ArbitrageService {
                     try {
                         if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
                             if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
+
                                 writeLogArbitrageIsDone();
+
+                                preliqUtilsService.preliqCountersOnRoundDone(true);
                             }
                         }
                     } catch (RoundIsNotDoneException e) {
                         deltasLogger.info("Round is not done. Error: " + e.getMessage());
                         logger.error("Round is not done", e);
+                        preliqUtilsService.preliqCountersOnRoundDone(false);
                     } catch (Exception e) {
                         deltasLogger.info("Round is not done. Write logs error: " + e.getMessage());
                         logger.error("Round is not done. Write logs error", e);
+                        preliqUtilsService.preliqCountersOnRoundDone(false);
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }
@@ -646,11 +652,11 @@ public class ArbitrageService {
                 bMsg, oMsg);
     }
 
-    public void startTradingOnDelta1(SignalType signalType, BestQuotes bestQuotes) {
+    public void startPreliqOnDelta1(SignalType signalType, BestQuotes bestQuotes) {
         // border V1
-        final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
-        final BigDecimal b_block = placingBlocks.getFixedBlockBitmex();
-        final BigDecimal o_block = placingBlocks.getFixedBlockOkex();
+        final CorrParams corrParams = persistenceService.fetchCorrParams();
+        final BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
+        final BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
         startTradingOnDelta1(signalType, bestQuotes, b_block, o_block, null, null);
     }
 
@@ -703,10 +709,10 @@ public class ArbitrageService {
         }
     }
 
-    public void startTradingOnDelta2(SignalType signalType, BestQuotes bestQuotes) {
-        final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
-        final BigDecimal b_block = placingBlocks.getFixedBlockBitmex();
-        final BigDecimal o_block = placingBlocks.getFixedBlockOkex();
+    public void startPerliqOnDelta2(SignalType signalType, BestQuotes bestQuotes) {
+        final CorrParams corrParams = persistenceService.fetchCorrParams();
+        final BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
+        final BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
         startTradingOnDelta2(signalType, bestQuotes, b_block, o_block, null, null);
     }
 

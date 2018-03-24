@@ -2,7 +2,6 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.correction.CorrError;
 import com.bitplay.persistance.domain.correction.CorrParams;
 
 import org.slf4j.Logger;
@@ -30,7 +29,7 @@ public class SettingsCorrEndpoint {
     public CorrParams getCorrParams() {
         CorrParams result = new CorrParams();
         try {
-            result = persistenceService.fetchCorrection();
+            result = persistenceService.fetchCorrParams();
         } catch (Exception e) {
             final String error = String.format("Failed to get corrParams %s", e.toString());
             logger.error(error, e);
@@ -41,20 +40,32 @@ public class SettingsCorrEndpoint {
     @RequestMapping(value = "/corr-reset", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public CorrParams updateSettings() {
         persistenceService.saveCorrParams(CorrParams.createDefault());
-        return persistenceService.fetchCorrection();
+        return persistenceService.fetchCorrParams();
     }
 
     @RequestMapping(value = "/corr-set-max-error", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public CorrParams updateCorrError(@RequestBody ChangeRequestJson changeRequestJson) {
-        CorrParams corrParams;
+        CorrParams corrParams = persistenceService.fetchCorrParams();
         if (changeRequestJson.getCommand() != null) {
-            corrParams = CorrParams.createDefault();
-            corrParams.getCorrError().setMaxErrorAmount(Integer.valueOf(changeRequestJson.getCommand()));
+            corrParams.getCorr().setSucceedCount(0);
+            corrParams.getCorr().setFailedCount(0);
+            corrParams.getCorr().setCurrErrorCount(0);
+            corrParams.getCorr().setMaxErrorCount(Integer.valueOf(changeRequestJson.getCommand()));
             persistenceService.saveCorrParams(corrParams);
-        } else {
-            corrParams = persistenceService.fetchCorrection();
         }
         return corrParams;
     }
 
+    @RequestMapping(value = "/corr-set-max-error-preliq", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public CorrParams updatePreliq(@RequestBody ChangeRequestJson changeRequestJson) {
+        CorrParams corrParams = persistenceService.fetchCorrParams();
+        if (changeRequestJson.getCommand() != null) {
+            corrParams.getPreliq().setSucceedCount(0);
+            corrParams.getPreliq().setFailedCount(0);
+            corrParams.getPreliq().setCurrErrorCount(0);
+            corrParams.getPreliq().setMaxErrorCount(Integer.valueOf(changeRequestJson.getCommand()));
+            persistenceService.saveCorrParams(corrParams);
+        }
+        return corrParams;
+    }
 }
