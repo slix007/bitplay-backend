@@ -62,7 +62,7 @@ public class PosDiffService {
                         isCorrect = true;
                     } else {
 
-                        Thread.sleep(1000);
+                        Thread.sleep(2000);
 
                         final String infoMsg = "Double check before finishCorr: fetchPosition:";
                         final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();

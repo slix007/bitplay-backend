@@ -165,17 +165,20 @@ public class ArbitrageService {
 
                                 writeLogArbitrageIsDone();
 
-                                preliqUtilsService.preliqCountersOnRoundDone(true);
+                                preliqUtilsService.preliqCountersOnRoundDone(true, params, signalType,
+                                        firstMarketService, secondMarketService);
                             }
                         }
                     } catch (RoundIsNotDoneException e) {
                         deltasLogger.info("Round is not done. Error: " + e.getMessage());
                         logger.error("Round is not done", e);
-                        preliqUtilsService.preliqCountersOnRoundDone(false);
+                        preliqUtilsService.preliqCountersOnRoundDone(false, params, signalType,
+                                firstMarketService, secondMarketService);
                     } catch (Exception e) {
                         deltasLogger.info("Round is not done. Write logs error: " + e.getMessage());
                         logger.error("Round is not done. Write logs error", e);
-                        preliqUtilsService.preliqCountersOnRoundDone(false);
+                        preliqUtilsService.preliqCountersOnRoundDone(false, params, signalType,
+                                firstMarketService, secondMarketService);
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }
