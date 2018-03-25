@@ -3,6 +3,7 @@ package com.bitplay.api.controller;
 import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.correction.Preliq;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,7 @@ public class SettingsCorrEndpoint {
     }
 
     @RequestMapping(value = "/corr-set-max-error-preliq", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public CorrParams updatePreliq(@RequestBody ChangeRequestJson changeRequestJson) {
+    public CorrParams updatePreliqErros(@RequestBody ChangeRequestJson changeRequestJson) {
         CorrParams corrParams = persistenceService.fetchCorrParams();
         if (changeRequestJson.getCommand() != null) {
             corrParams.getPreliq().setSucceedCount(0);
@@ -68,4 +69,18 @@ public class SettingsCorrEndpoint {
         }
         return corrParams;
     }
+
+    @RequestMapping(value = "/corr", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public CorrParams updatePreliq(@RequestBody CorrParams anUpdate) {
+        CorrParams corrParams = persistenceService.fetchCorrParams();
+        if (anUpdate != null && anUpdate.getPreliq() != null) {
+            final Preliq uPreliq = anUpdate.getPreliq();
+            if (uPreliq.getPreliqBlockOkex() != null) {
+                corrParams.getPreliq().setPreliqBlockOkex(uPreliq.getPreliqBlockOkex());
+                persistenceService.saveCorrParams(corrParams);
+            }
+        }
+        return corrParams;
+    }
+
 }

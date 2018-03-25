@@ -2,6 +2,7 @@ package com.bitplay.persistance.domain.correction;
 
 import com.bitplay.persistance.domain.ExchangePair;
 import com.bitplay.persistance.domain.ExchangePairDocument;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -11,8 +12,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
  */
 @Document(collection = "corrParamsCollection")
 @TypeAlias("corrParams")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CorrParams extends ExchangePairDocument {
-
 
     private Corr corr;
     private Preliq preliq;

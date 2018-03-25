@@ -1,8 +1,11 @@
 package com.bitplay.persistance.domain.correction;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Created by Sergey Shurmin on 3/21/18.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Corr {
 
     private Integer succeedCount;
