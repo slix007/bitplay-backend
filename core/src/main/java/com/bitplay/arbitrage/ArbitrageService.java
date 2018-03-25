@@ -17,6 +17,7 @@ import com.bitplay.market.events.SignalEvent;
 import com.bitplay.market.events.SignalEventBus;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.LiqInfo;
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
@@ -561,7 +562,8 @@ public class ArbitrageService {
 
                 if (plBlocks.getBlockOkex().signum() > 0) {
                     dealPrices.setBorder(border1);
-                    startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
+                    startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
+                            null, dynDeltaLogs, null);
                 }
             }
             if (delta2.compareTo(border2) >= 0) {
@@ -578,7 +580,8 @@ public class ArbitrageService {
                 }
                 if (plBlocks.getBlockOkex().signum() > 0) {
                     dealPrices.setBorder(border2);
-                    startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), null, dynDeltaLogs);
+                    startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
+                            null, dynDeltaLogs, null);
                 }
             }
 
@@ -601,7 +604,7 @@ public class ArbitrageService {
                             final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
                                     + bl.getDebugLog();
                             dealPrices.setBorderList(tradingSignal.borderValueList);
-                            startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
+                            startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs, null);
                         } else {
                             warningLogger.warn("Block calc(after border2Calc): Block should be > 0, but okexBlock=" + bl.getBlockOkex());
                         }
@@ -610,7 +613,7 @@ public class ArbitrageService {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
                     dealPrices.setBorderList(tradingSignal.borderValueList);
-                    startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, null);
+                    startTradingOnDelta1(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, null, null);
                 }
             }
 
@@ -625,7 +628,7 @@ public class ArbitrageService {
                             final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
                                     + bl.getDebugLog();
                             dealPrices.setBorderList(tradingSignal.borderValueList);
-                            startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs);
+                            startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, dynDeltaLogs, null);
                         } else {
                             warningLogger.warn("Block calc(after border2Calc): Block should be > 0, but okexBlock=" + bl.getBlockOkex());
                         }
@@ -634,7 +637,7 @@ public class ArbitrageService {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
                     dealPrices.setBorderList(tradingSignal.borderValueList);
-                    startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, null);
+                    startTradingOnDelta2(SignalType.AUTOMATIC, bestQuotes, b_block, o_block, tradingSignal, null, null);
                 }
             }
         }
@@ -660,11 +663,12 @@ public class ArbitrageService {
         final CorrParams corrParams = persistenceService.fetchCorrParams();
         final BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
         final BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
-        startTradingOnDelta1(signalType, bestQuotes, b_block, o_block, null, null);
+        startTradingOnDelta1(signalType, bestQuotes, b_block, o_block, null, null, PlacingType.TAKER);
     }
 
     private void startTradingOnDelta1(SignalType signalType, final BestQuotes bestQuotes, final BigDecimal b_block, final BigDecimal o_block,
-                                      final BordersService.TradingSignal tradingSignal, String dynamicDeltaLogs) {
+                                      final BordersService.TradingSignal tradingSignal, String dynamicDeltaLogs,
+                                      PlacingType predefinedPlacingType) {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
         if (checkBalanceBorder1(DELTA1, b_block, o_block) //) {
@@ -701,8 +705,8 @@ public class ArbitrageService {
             dealPrices.setbPriceFact(new AvgPrice(b_block, "bitmex"));
             dealPrices.setoPriceFact(new AvgPrice(o_block, "okex"));
             // in scheme MT2 Okex should be the first
-            signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType);
-            signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.ASK, b_block, bestQuotes, signalType);
+            signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType, predefinedPlacingType);
+            signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.ASK, b_block, bestQuotes, signalType, predefinedPlacingType);
 
             setTimeoutAfterStartTrading();
 
@@ -716,11 +720,11 @@ public class ArbitrageService {
         final CorrParams corrParams = persistenceService.fetchCorrParams();
         final BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
         final BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
-        startTradingOnDelta2(signalType, bestQuotes, b_block, o_block, null, null);
+        startTradingOnDelta2(signalType, bestQuotes, b_block, o_block, null, null, PlacingType.TAKER);
     }
 
     private void startTradingOnDelta2(final SignalType signalType, final BestQuotes bestQuotes, final BigDecimal b_block, final BigDecimal o_block,
-                                      final BordersService.TradingSignal tradingSignal, String dynamicDeltaLogs) {
+                                      final BordersService.TradingSignal tradingSignal, String dynamicDeltaLogs, PlacingType predefinedPlacingType) {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
@@ -758,8 +762,8 @@ public class ArbitrageService {
             dealPrices.setbPriceFact(new AvgPrice(b_block, "bitmex"));
             dealPrices.setoPriceFact(new AvgPrice(o_block, "okex"));
             // in scheme MT2 Okex should be the first
-            signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType);
-            signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.BID, b_block, bestQuotes, signalType);
+            signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType, predefinedPlacingType);
+            signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.BID, b_block, bestQuotes, signalType, predefinedPlacingType);
 
             setTimeoutAfterStartTrading();
 

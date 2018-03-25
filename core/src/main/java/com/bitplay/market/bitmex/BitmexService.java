@@ -813,7 +813,7 @@ public class BitmexService extends MarketService {
         return placeOrderToOpenOrders(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType);
     }
 
-    private TradeResponse placeOrderToOpenOrders(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+    public TradeResponse placeOrderToOpenOrders(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
                                                  PlacingType placingType, SignalType signalType) {
         final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1);
 

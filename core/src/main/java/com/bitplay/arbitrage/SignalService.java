@@ -3,6 +3,7 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -31,9 +32,10 @@ public class SignalService {
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
-    public void placeOkexOrderOnSignal(MarketService okexService, Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes, SignalType signalType) {
+    public void placeOkexOrderOnSignal(MarketService okexService, Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
+                                       SignalType signalType, PlacingType predefinedPlacingType) {
         final Settings settings = settingsRepositoryService.getSettings();
-        final PlacingType okexPlacingType = settings.getOkexPlacingType();
+        final PlacingType okexPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getOkexPlacingType();
         final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
                 okexPlacingType,
                 signalType, 1);
@@ -51,10 +53,13 @@ public class SignalService {
         }
     }
 
-    public void placeBitmexOrderOnSignal(MarketService bitmexService, Order.OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes, SignalType signalType) {
+    public void placeBitmexOrderOnSignal(MarketService bitmexService, Order.OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
+                                         SignalType signalType, PlacingType predefinedPlacingType) {
         executorService.submit(() -> {
             try {
-                bitmexService.placeOrderOnSignal(orderType, b_block, bestQuotes, signalType);
+                final Settings settings = settingsRepositoryService.getSettings();
+                PlacingType placingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
+                ((BitmexService) bitmexService).placeOrderToOpenOrders(orderType, b_block, bestQuotes, placingType, signalType);
             } catch (Exception e) {
                 logger.error("Error on placeOrderOnSignal", e);
             }
