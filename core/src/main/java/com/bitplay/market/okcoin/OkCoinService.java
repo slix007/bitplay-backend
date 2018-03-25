@@ -1535,7 +1535,7 @@ public class OkCoinService extends MarketService {
         final String counter = getCounterName();
         if ((counterToDiff == null || counterToDiff.counter == null || !counterToDiff.counter.equals(counter)
                 || counterToDiff.diff.compareTo(diffO.val) != 0)
-                && avg.signum() != 0) {
+                && avg != null && avg.signum() != 0) {
             tradeLogger.info("{} {}", counter, diffO.str);
             counterToDiff = new CounterToDiff(counter, diffO.val);
         }
