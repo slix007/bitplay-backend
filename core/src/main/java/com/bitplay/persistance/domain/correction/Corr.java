@@ -76,7 +76,7 @@ public class Corr {
 
     @Override
     public String toString() {
-        return String.format("Corr Attempts(curr/max): %s/%s. Total(success/fail): %s/%s",
+        return String.format("Corr errors(curr/max): %s/%s. Total(success/fail): %s/%s",
                 currErrorCount, maxErrorCount,
                 succeedCount, failedCount);
     }

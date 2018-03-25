@@ -89,7 +89,7 @@ public class Preliq {
 
     @Override
     public String toString() {
-        return String.format("Preliq Attempts(curr/max): %s/%s. Total(success/fail): %s/%s",
+        return String.format("Preliq errors(curr/max): %s/%s. Total(success/fail): %s/%s",
                 currErrorCount, maxErrorCount,
                 succeedCount, failedCount);
     }

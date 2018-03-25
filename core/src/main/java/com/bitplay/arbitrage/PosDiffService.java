@@ -55,6 +55,7 @@ public class PosDiffService {
 
     public void finishCorr(boolean wasOrderSuccess) {
         if (corrInProgress) {
+            corrInProgress = false;
             try {
                 boolean isCorrect = false;
                 if (wasOrderSuccess) {
@@ -62,7 +63,7 @@ public class PosDiffService {
                         isCorrect = true;
                     } else {
 
-                        Thread.sleep(2000);
+                        Thread.sleep(1000);
 
                         final String infoMsg = "Double check before finishCorr: fetchPosition:";
                         final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
@@ -75,7 +76,6 @@ public class PosDiffService {
                     }
                 }
 
-                corrInProgress = false;
                 if (isCorrect) {
                     // correct++
                     final CorrParams corrParams = persistenceService.fetchCorrParams();
