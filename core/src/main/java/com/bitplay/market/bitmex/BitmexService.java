@@ -1497,6 +1497,7 @@ public class BitmexService extends MarketService {
                         final BigDecimal price = multiplySum.divide(amountSum, 2, RoundingMode.HALF_UP);
                         avgPrice.addPriceItem(orderId, amountSum, price);
                         tradeLogger.info(String.format("%s p=%s, a=%s.", logMsg, price, amountSum));
+                        success = true;
                         break;
                     } else {
                         tradeLogger.info(String.format("%s price=0. Use old p=%s, a=%s. %s",
@@ -1505,8 +1506,8 @@ public class BitmexService extends MarketService {
                                 itemMap.get(orderId).getAmount(),
                                 Arrays.toString(orderParts.toArray())
                         ));
+                        success = false;
                     }
-                    success = true;
                 } catch (Exception e) {
                     logger.info(String.format("%s updateAvgPriceError.", logMsg), e);
                     tradeLogger.info(String.format("%s updateAvgPriceError %s", logMsg, e.getMessage()));
