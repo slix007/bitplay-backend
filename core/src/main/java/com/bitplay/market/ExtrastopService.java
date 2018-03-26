@@ -3,7 +3,10 @@ package com.bitplay.market;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.utils.Utils;
 
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.stream.Stream;
 
 /**
  * Created by Sergey Shurmin on 1/12/18.
@@ -37,7 +41,8 @@ public class ExtrastopService {
     @Scheduled(initialDelay = 60 * 1000, fixedDelay = 30 * 1000)
     public void checkTimes() {
         try {
-            final Date bT = bitmexService.getOrderBookLastTimestamp();
+            final Date bT = getBitmexOrderBook3BestTimestamp(); // bitmexService.getOrderBookLastTimestamp();
+//            logger.info("Bitmex timestamp: " + bT.toString());
             final Date oT = okCoinService.getOrderBook().getTimeStamp();
             details = "";
 
@@ -46,9 +51,22 @@ public class ExtrastopService {
                 okCoinService.setMarketState(MarketState.STOPPED);
                 restartService.doDeferredRestart(details);
             }
+        } catch (IllegalArgumentException e) {
+            bitmexService.setMarketState(MarketState.STOPPED);
+            okCoinService.setMarketState(MarketState.STOPPED);
+            restartService.doDeferredRestart(e.getMessage());
         } catch (Exception e) {
             logger.error("on check times", e);
         }
+    }
+
+    private Date getBitmexOrderBook3BestTimestamp() {
+        final OrderBook orderBook = bitmexService.getOrderBook();
+        return Stream.concat(Utils.getBestBids(orderBook, 3).stream(),
+                Utils.getBestAsks(orderBook, 3).stream())
+                .map(LimitOrder::getTimestamp)
+                .reduce((date, date2) -> date.after(date2) ? date : date2)
+                .orElseThrow(() -> new IllegalArgumentException("Can not get bitmex timestamp"));
     }
 
     private boolean isBigDiff(Date marketUpdateTime, String name) {
