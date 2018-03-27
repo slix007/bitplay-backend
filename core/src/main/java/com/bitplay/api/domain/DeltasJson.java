@@ -36,8 +36,14 @@ public class DeltasJson {
     private String hedgeAmount;
     private String fundingRateFee;
     private String slip;
+    private String delta1Calc;
+    private String delta2Calc;
 
-    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String buValue, String cumDelta, String cumAstDelta, String lastDelta, String cumDeltaFact, String cumAstDeltaFact, String cumDiffFactBr, String cumDiffFact1, String cumDiffFact2, String cumDiffFact, String cumAstDiffFact1, String cumAstDiffFact2, String cumAstDiffFact, String cumCom1, String cumCom2, String cumAstCom1, String cumAstCom2, String count1, String count2, String cumBitmexMCom, String cumAstBitmexMCom, String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee, String slip) {
+    public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String buValue, String cumDelta,
+            String cumAstDelta, String lastDelta, String cumDeltaFact, String cumAstDeltaFact, String cumDiffFactBr, String cumDiffFact1,
+            String cumDiffFact2, String cumDiffFact, String cumAstDiffFact1, String cumAstDiffFact2, String cumAstDiffFact, String cumCom1,
+            String cumCom2, String cumAstCom1, String cumAstCom2, String count1, String count2, String cumBitmexMCom, String cumAstBitmexMCom,
+            String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee, String slip, String delta1Calc, String delta2Calc) {
         this.delta1 = delta1;
         this.delta2 = delta2;
         this.border1 = border1;
@@ -69,6 +75,8 @@ public class DeltasJson {
         this.hedgeAmount = hedgeAmount;
         this.fundingRateFee = fundingRateFee;
         this.slip = slip;
+        this.delta1Calc = delta1Calc;
+        this.delta2Calc = delta2Calc;
     }
 
     public String getDelta1() {
@@ -193,5 +201,13 @@ public class DeltasJson {
 
     public String getSlip() {
         return slip;
+    }
+
+    public String getDelta1Calc() {
+        return delta1Calc;
+    }
+
+    public String getDelta2Calc() {
+        return delta2Calc;
     }
 }

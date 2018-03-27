@@ -12,6 +12,7 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
+import com.bitplay.arbitrage.BordersRecalcService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
@@ -39,6 +40,9 @@ public class CommonUIService {
 
     @Autowired
     private ArbitrageService arbitrageService;
+
+    @Autowired
+    private BordersRecalcService bordersRecalcService;
 
     @Autowired
     private BordersCalcScheduler bordersCalcScheduler;
@@ -257,7 +261,9 @@ public class CommonUIService {
                 arbitrageService.getParams().getReserveBtc2().toPlainString(),
                 arbitrageService.getParams().getHedgeAmount().toPlainString(),
                 arbitrageService.getParams().getFundingRateFee().toPlainString(),
-                arbitrageService.getParams().getSlip().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString()
+                arbitrageService.getParams().getSlip().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                bordersRecalcService.getB_delta().toPlainString(),
+                bordersRecalcService.getO_delta().toPlainString()
         );
     }
 
