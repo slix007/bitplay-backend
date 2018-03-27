@@ -750,7 +750,7 @@ public class OkCoinService extends MarketService {
 
         if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
             if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
-                posDiffService.finishCorr(true);
+//                posDiffService.finishCorr(true); - when market is READY
             } else {
                 posDiffService.finishCorr(false);
             }

@@ -1033,7 +1033,7 @@ public class BitmexService extends MarketService {
 
         if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
             if (tradeResponse.getOrderId() != null) {
-                posDiffService.finishCorr(true);
+//                posDiffService.finishCorr(true); - Only when FILLED by subscription
             } else {
                 posDiffService.finishCorr(false);
             }

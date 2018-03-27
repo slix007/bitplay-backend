@@ -220,6 +220,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 //            fetchPosition(); -- deadlock
                 setMarketState(MarketState.READY);
                 eventBus.send(BtsEvent.MARKET_GOT_FREE);
+                if (getArbitrageService().getSignalType().isCorr()) {
+                    getPosDiffService().finishCorr(true);
+                }
 
                 iterateOpenOrdersMove();
                 break;

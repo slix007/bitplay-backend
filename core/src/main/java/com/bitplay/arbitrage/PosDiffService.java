@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Completable;
@@ -54,35 +55,48 @@ public class PosDiffService {
     private PersistenceService persistenceService;
 
     public void finishCorr(boolean wasOrderSuccess) {
-        if (corrInProgress) {
-            corrInProgress = false;
-            try {
-                boolean isCorrect = false;
-                if (wasOrderSuccess) {
-                    if (getIsPositionsEqual()) {
-                        isCorrect = true;
-                    } else {
-
-                        Thread.sleep(1000);
-
-                        final String infoMsg = "Double check before finishCorr: fetchPosition:";
-                        final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
-                        final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
-                        logger.info(infoMsg + "bitmex " + pos1);
-                        logger.info(infoMsg + "okex " + pos2);
+        CompletableFuture.runAsync(() -> {
+            if (corrInProgress) {
+                corrInProgress = false;
+                try {
+                    boolean isCorrect = false;
+                    if (wasOrderSuccess) {
                         if (getIsPositionsEqual()) {
                             isCorrect = true;
+                        } else {
+
+                            Thread.sleep(1000);
+
+                            final String infoMsg = "Double check before finishCorr: fetchPosition:";
+                            final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+                            final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
+                            logger.info(infoMsg + "bitmex " + pos1);
+                            logger.info(infoMsg + "okex " + pos2);
+                            if (getIsPositionsEqual()) {
+                                isCorrect = true;
+                            }
                         }
                     }
-                }
 
-                if (isCorrect) {
-                    // correct++
-                    final CorrParams corrParams = persistenceService.fetchCorrParams();
-                    corrParams.getCorr().incSuccesses();
-                    persistenceService.saveCorrParams(corrParams);
-                    deltasLogger.info("Correction succeed. " + corrParams.getCorr().toString());
-                } else {
+                    if (isCorrect) {
+                        // correct++
+                        final CorrParams corrParams = persistenceService.fetchCorrParams();
+                        corrParams.getCorr().incSuccesses();
+                        persistenceService.saveCorrParams(corrParams);
+                        deltasLogger.info("Correction succeed. " + corrParams.getCorr().toString());
+                    } else {
+                        // error++
+                        final CorrParams corrParams = persistenceService.fetchCorrParams();
+                        corrParams.getCorr().incFails();
+                        persistenceService.saveCorrParams(corrParams);
+                        deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(),
+                                getPositionsDiffWithHedge());
+                    }
+
+                } catch (Exception e) {
+                    warningLogger.error("Error on finishCorr: " + e.getMessage());
+                    logger.error("Error on finishCorr: ", e);
+
                     // error++
                     final CorrParams corrParams = persistenceService.fetchCorrParams();
                     corrParams.getCorr().incFails();
@@ -90,19 +104,8 @@ public class PosDiffService {
                     deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(),
                             getPositionsDiffWithHedge());
                 }
-
-            } catch (Exception e) {
-                warningLogger.error("Error on finishCorr: " + e.getMessage());
-                logger.error("Error on finishCorr: ", e);
-
-                // error++
-                final CorrParams corrParams = persistenceService.fetchCorrParams();
-                corrParams.getCorr().incFails();
-                persistenceService.saveCorrParams(corrParams);
-                deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(),
-                        getPositionsDiffWithHedge());
             }
-        }
+        });
     }
 
     private void startTimerToCorrection() {
