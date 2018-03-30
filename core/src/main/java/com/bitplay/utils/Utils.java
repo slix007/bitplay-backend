@@ -113,6 +113,9 @@ public class Utils {
     }
 
     public static BigDecimal calcQuAvg(OrderBook orderBookFirst, OrderBook orderBookSecond) {
+        if (orderBookFirst.getBids().size() == 0|| orderBookSecond.getBids().size() == 0) {
+            return BigDecimal.ZERO;
+        }
 //        qu_avg = (b_bid[1] + b_ask[1] + o_bid[1] + o_ask[1]) / 4;
         final BigDecimal bB = Utils.getBestBid(orderBookFirst).getLimitPrice();
         final BigDecimal bA = Utils.getBestAsk(orderBookFirst).getLimitPrice();
