@@ -93,6 +93,7 @@ public class BordersEndpoint {
         borderParams.setRecalcPeriodSec(3600);
         final BordersV2 bordersV2 = borderParams.getBordersV2();
         bordersV2.setMaxLvl(7);
+        bordersV2.setAutoBaseLvl(false);
         bordersV2.setBaseLvlCnt(4);
         bordersV2.setBaseLvlType(BordersV2.BaseLvlType.B_OPEN);
         bordersV2.setStep(20);
@@ -179,6 +180,10 @@ public class BordersEndpoint {
             if (update.getMaxLvl() != null) {
                 bordersV2.setMaxLvl(update.getMaxLvl());
                 result = bordersV2.getMaxLvl().toString();
+            }
+            if (update.getAutoBaseLvl() != null) {
+                bordersV2.setAutoBaseLvl(update.getAutoBaseLvl());
+                result = bordersV2.getAutoBaseLvl().toString();
             }
             if (update.getBaseLvlCnt() != null) {
                 bordersV2.setBaseLvlCnt(update.getBaseLvlCnt());

@@ -13,6 +13,7 @@ import java.util.Optional;
 public class BordersV2 {
     private List<BorderTable> borderTableList;
     private Integer maxLvl;
+    private Boolean autoBaseLvl;
     private Integer baseLvlCnt; // base level, starting point
     private BaseLvlType baseLvlType;
     private Integer step; // between levels
@@ -53,6 +54,14 @@ public class BordersV2 {
 
     public void setMaxLvl(Integer maxLvl) {
         this.maxLvl = maxLvl;
+    }
+
+    public Boolean getAutoBaseLvl() {
+        return autoBaseLvl;
+    }
+
+    public void setAutoBaseLvl(Boolean autoBaseLvl) {
+        this.autoBaseLvl = autoBaseLvl;
     }
 
     public Integer getBaseLvlCnt() {

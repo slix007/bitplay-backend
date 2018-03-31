@@ -1,6 +1,7 @@
 package com.bitplay.persistance.config;
 
 import com.bitplay.persistance.repository.RepositoryPackage;
+import com.github.mongobee.Mongobee;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
@@ -23,6 +24,8 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @EnableMongoAuditing
 //@ComponentScan(basePackageClasses=TemplatePackage.class)
 public class SpringMongoConfig extends AbstractMongoConfiguration {
+    private static final String DBNAME = "bitplay";
+    private static final String HOST_WITH_PORT = "localhost:26459";
 
     // ---------------------------------------------------- mongodb config
 
@@ -33,18 +36,18 @@ public class SpringMongoConfig extends AbstractMongoConfiguration {
 
     @Override
     protected String getDatabaseName() {
-        return "bitplay";
+        return DBNAME;
     }
 
     @Override
     @Bean
-    public MongoClient mongo() throws Exception {
+    public MongoClient mongo() {
         MongoClientOptions.Builder clientOptions = new MongoClientOptions.Builder();
         clientOptions.minConnectionsPerHost(100);//min
         clientOptions.connectionsPerHost(100);//max
         clientOptions.writeConcern(WriteConcern.ACKNOWLEDGED);
 
-        return new MongoClient("localhost:26459", clientOptions.build());
+        return new MongoClient(HOST_WITH_PORT, clientOptions.build());
     }
 
 //    @Override
@@ -88,4 +91,12 @@ public class SpringMongoConfig extends AbstractMongoConfiguration {
 //        return new MongoTemplate(mongo(), getDatabaseName());
     }
 
+    @Bean
+    public Mongobee mongobee() {
+        Mongobee runner = new Mongobee(String.format("mongodb://%s/%s", HOST_WITH_PORT, DBNAME));
+        runner.setDbName(DBNAME);         // host must be set if not set in URI
+        runner.setChangeLogsScanPackage("com.bitplay.persistance.migration.changelogs"); // the package to be scanned for changesets
+
+        return runner;
+    }
 }
