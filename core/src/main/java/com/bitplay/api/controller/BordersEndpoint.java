@@ -3,6 +3,7 @@ package com.bitplay.api.controller;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.borders.BorderDelta;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderTable;
@@ -86,6 +87,7 @@ public class BordersEndpoint {
 
         final BorderParams borderParams = new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
         createDefaultParams2(borderParams);
+        borderParams.setBorderDelta(BorderDelta.createDefault());
         return borderParams;
     }
 
@@ -129,29 +131,44 @@ public class BordersEndpoint {
 
     @RequestMapping(value = "/settings", method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson updateBordersSettings(@RequestBody BordersSettings settings) {
+    public ResultJson updateBordersSettings(@RequestBody BordersSettings update) {
         final BorderParams bP = persistenceService.fetchBorders();
 
         String respDetails = "";
         try {
-            if (settings.version != null) {
-                bP.setActiveVersion(BorderParams.Ver.valueOf(settings.version));
-                respDetails = "ver: " + settings.version;
+            if (update.version != null) {
+                bP.setActiveVersion(BorderParams.Ver.valueOf(update.version));
+                respDetails = "ver: " + update.version;
             }
-            if (settings.posMode != null) {
-                bP.setPosMode(BorderParams.PosMode.valueOf(settings.posMode));
-                respDetails += " posMode: " + settings.posMode;
+            if (update.posMode != null) {
+                bP.setPosMode(BorderParams.PosMode.valueOf(update.posMode));
+                respDetails += " posMode: " + update.posMode;
             }
-            if (settings.recalcPeriodSec != null) {
-                final Integer periodSec = Integer.valueOf(settings.recalcPeriodSec);
+            if (update.recalcPeriodSec != null) {
+                final Integer periodSec = Integer.valueOf(update.recalcPeriodSec);
                 bP.setRecalcPeriodSec(periodSec);
                 bordersCalcScheduler.resetTimerToRecalc(periodSec);
-                respDetails = settings.recalcPeriodSec;
+                respDetails = update.recalcPeriodSec;
             }
-            if (settings.borderV1SumDelta != null) {
-                final BigDecimal sumDelta = new BigDecimal(settings.borderV1SumDelta);
+            if (update.borderV1SumDelta != null) {
+                final BigDecimal sumDelta = new BigDecimal(update.borderV1SumDelta);
                 bP.getBordersV1().setSumDelta(sumDelta);
                 respDetails = bP.getBordersV1().getSumDelta().toPlainString();
+            }
+
+            if (update.borderDelta != null) {
+                if (update.borderDelta.getDeltaType() != null) {
+                    bP.getBorderDelta().setDeltaType(update.borderDelta.getDeltaType());
+                    respDetails += ", " + update.borderDelta.getDeltaType().toString();
+                }
+                if (update.borderDelta.getDeltaPer() != null) {
+                    bP.getBorderDelta().setDeltaPer(update.borderDelta.getDeltaPer());
+                    respDetails += ", " + update.borderDelta.getDeltaPer().toString();
+                }
+                if (update.borderDelta.getDeltaUnit() != null) {
+                    bP.getBorderDelta().setDeltaUnit(update.borderDelta.getDeltaUnit());
+                    respDetails += ", " + update.borderDelta.getDeltaUnit().toString();
+                }
             }
         } catch (Exception e) {
             return new ResultJson("Wrong version", e.getMessage());
@@ -167,6 +184,7 @@ public class BordersEndpoint {
         public String posMode;
         public String recalcPeriodSec;
         public String borderV1SumDelta;
+        public BorderDelta borderDelta;
     }
 
     @RequestMapping(value = "/settingsV2", method = RequestMethod.POST,
