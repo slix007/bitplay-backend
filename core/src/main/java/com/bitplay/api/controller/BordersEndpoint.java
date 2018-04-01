@@ -3,11 +3,11 @@ package com.bitplay.api.controller;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.BorderItem;
-import com.bitplay.persistance.domain.BorderParams;
-import com.bitplay.persistance.domain.BorderTable;
-import com.bitplay.persistance.domain.BordersV1;
-import com.bitplay.persistance.domain.BordersV2;
+import com.bitplay.persistance.domain.borders.BorderItem;
+import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderTable;
+import com.bitplay.persistance.domain.borders.BordersV1;
+import com.bitplay.persistance.domain.borders.BordersV2;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;

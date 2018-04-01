@@ -1,4 +1,4 @@
-package com.bitplay.persistance.domain;
+package com.bitplay.persistance.domain.borders;
 
 import java.math.BigDecimal;
 

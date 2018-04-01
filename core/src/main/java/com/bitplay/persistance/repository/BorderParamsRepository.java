@@ -1,6 +1,6 @@
 package com.bitplay.persistance.repository;
 
-import com.bitplay.persistance.domain.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 

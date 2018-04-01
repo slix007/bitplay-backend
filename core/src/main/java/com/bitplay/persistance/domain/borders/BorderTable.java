@@ -1,4 +1,4 @@
-package com.bitplay.persistance.domain;
+package com.bitplay.persistance.domain.borders;
 
 import java.util.List;
 import java.util.Objects;

@@ -2,14 +2,13 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.BorderItem;
-import com.bitplay.persistance.domain.BorderParams;
-import com.bitplay.persistance.domain.BorderTable;
-import com.bitplay.persistance.domain.BordersV1;
-import com.bitplay.persistance.domain.BordersV2;
+import com.bitplay.persistance.domain.borders.BorderItem;
+import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderTable;
+import com.bitplay.persistance.domain.borders.BordersV1;
+import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.utils.Utils;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -20,11 +19,8 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

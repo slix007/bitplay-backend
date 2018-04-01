@@ -1,4 +1,4 @@
-package com.bitplay.persistance.domain;
+package com.bitplay.persistance.domain.borders;
 
 import org.springframework.data.annotation.Transient;
 
@@ -112,9 +112,9 @@ public class BordersV2 {
         this.okAddDelta = okAddDelta;
     }
 
-    public enum BaseLvlType {B_OPEN, OK_OPEN}
-
     public int getBorderTableHashCode() {
         return Objects.hash(borderTableList);
     }
+
+    public enum BaseLvlType {B_OPEN, OK_OPEN}
 }

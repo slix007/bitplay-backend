@@ -1,7 +1,7 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

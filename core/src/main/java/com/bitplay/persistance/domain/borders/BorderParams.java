@@ -1,4 +1,6 @@
-package com.bitplay.persistance.domain;
+package com.bitplay.persistance.domain.borders;
+
+import com.bitplay.persistance.domain.AbstractDocument;
 
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;

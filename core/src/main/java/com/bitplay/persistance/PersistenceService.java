@@ -1,7 +1,7 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.persistance.domain.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.ExchangePair;
 import com.bitplay.persistance.domain.GuiParams;

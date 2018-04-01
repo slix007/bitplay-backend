@@ -2,10 +2,10 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.BorderItem;
-import com.bitplay.persistance.domain.BorderParams;
-import com.bitplay.persistance.domain.BorderTable;
-import com.bitplay.persistance.domain.BordersV2;
+import com.bitplay.persistance.domain.borders.BorderItem;
+import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderTable;
+import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 
 import org.knowm.xchange.dto.marketdata.OrderBook;
