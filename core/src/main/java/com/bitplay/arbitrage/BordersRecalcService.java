@@ -3,6 +3,7 @@ package com.bitplay.arbitrage;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.BorderItem;
 import com.bitplay.persistance.domain.BorderParams;
+import com.bitplay.persistance.domain.BorderTable;
 import com.bitplay.persistance.domain.BordersV2;
 import com.bitplay.persistance.domain.GuiParams;
 
@@ -81,6 +82,11 @@ public class BordersRecalcService {
         final BigDecimal o_delta = arbitrageService.getDelta2();
 
         final BordersV2 bordersV2 = borderParams.getBordersV2();
+
+        if (bordersV2.getAutoBaseLvl()) {
+            recalcAutoBaseLvl(borderParams); // 'borderParams' will be saved after full recalculateBordersV2
+//            persistenceService.saveBorderParams(borderParams);
+        }
 
 //        b_add_delta, ok_add_delta
 //        mid_delta = (abs(delta1) + abs(delta2)) / 2
@@ -235,4 +241,86 @@ public class BordersRecalcService {
 
         persistenceService.saveBorderParams(borderParams);
     }
+
+    private void recalcAutoBaseLvl(BorderParams borderParams) {
+        recalcBaseLvlType(borderParams);
+        recalcBaseLvlCnt(borderParams);
+    }
+
+    private void recalcBaseLvlType(BorderParams borderParams) {
+        final BigDecimal b_pos = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
+        final BigDecimal ok_pos_long = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
+        final BigDecimal ok_pos_short = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+        final BigDecimal ok_pos = ok_pos_long.subtract(ok_pos_short);
+
+        final BordersV2 bordersV2 = borderParams.getBordersV2();
+
+        if (borderParams.getPosMode() == BorderParams.PosMode.OK_MODE) {
+            if (ok_pos.signum() > 0) {
+                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.B_OPEN);
+            } else { // if (ok_pos <= 0)
+                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.OK_OPEN);
+            }
+        } else { //BorderParams.PosMode.BTM_MODE
+            if (b_pos.signum() > 0) {
+                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.OK_OPEN);
+            } else { // if (b_pos <= 0)
+                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.B_OPEN);
+            }
+        }
+    }
+
+    private void recalcBaseLvlCnt(BorderParams borderParams) {
+        final BigDecimal b_pos = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
+        final BigDecimal ok_pos_long = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
+        final BigDecimal ok_pos_short = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+        final BigDecimal ok_pos = ok_pos_long.subtract(ok_pos_short);
+
+        final BordersV2 bordersV2 = borderParams.getBordersV2();
+
+        final BorderTable b_br_open = bordersV2.getBorderTableByName("b_br_open")
+                .orElseThrow(() -> new IllegalArgumentException("no table b_br_open"));
+        final BorderTable o_br_open = bordersV2.getBorderTableByName("o_br_open")
+                .orElseThrow(() -> new IllegalArgumentException("no table o_br_open"));
+
+        int base_lvl_cnt = borderParams.getBordersV2().getBaseLvlCnt();
+
+        if (borderParams.getPosMode() == BorderParams.PosMode.OK_MODE) {
+            if (ok_pos.signum() > 0) {
+                for (BorderItem borderItem : b_br_open.getBorderItemList()) {
+                    if (ok_pos.compareTo(BigDecimal.valueOf(borderItem.getPosLongLimit())) < 0) {
+                        base_lvl_cnt = borderItem.getId(); // первый уровень pos_long_limit, который больше ok_pos;
+                        break;
+                    }
+                }
+            } else // if (ok_pos <= 0) {
+                for (BorderItem borderItem : o_br_open.getBorderItemList()) {
+                    // if (abs(ok_pos) < o_br_open.pos_short_limit)
+                    if ((ok_pos.abs()).compareTo(BigDecimal.valueOf(borderItem.getPosShortLimit())) < 0) {
+                        base_lvl_cnt = borderItem.getId(); // первый уровень pos_short_limit, который больше abs(ok_pos);
+                        break;
+                    }
+                }
+        } else { //BorderParams.PosMode.BTM_MODE
+            if (b_pos.signum() > 0) {
+                for (BorderItem borderItem : o_br_open.getBorderItemList()) {
+                    if (b_pos.compareTo(BigDecimal.valueOf(borderItem.getPosLongLimit())) < 0) {
+                        base_lvl_cnt = borderItem.getId(); // первый уровень pos_long_limit, который больше b_pos;
+                        break;
+                    }
+                }
+            } else { //if (b_pos <= 0) {
+                for (BorderItem borderItem : b_br_open.getBorderItemList()) {
+                    if ((b_pos.abs()).compareTo(BigDecimal.valueOf(borderItem.getPosShortLimit())) < 0) {
+                        base_lvl_cnt = borderItem.getId(); // первый уровень pos_short_limit, который больше abs(b_pos);
+                        break;
+                    }
+                }
+            }
+        }
+
+        borderParams.getBordersV2().setBaseLvlCnt(base_lvl_cnt);
+        // 'borderParams' will be saved after full recalculateBordersV2
+    }
+
 }
