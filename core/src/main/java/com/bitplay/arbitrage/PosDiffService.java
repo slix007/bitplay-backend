@@ -236,9 +236,10 @@ public class PosDiffService {
                             && isReadyByTimeForCorrection(arbitrageService.getSecondMarketService())) {
                         if (!isSecondCheck) {
                             try {
-                                Thread.sleep(2000);
+                                Thread.sleep(15 * 1000);
                             } catch (InterruptedException e) {
-                                logger.error("Sleep was interrupted");
+                                logger.error("Sleep before correction was interrupted");
+                                warningLogger.error("Sleep before correction was interrupted");
                             }
 
                             final String infoMsg = "Double check before correction: fetchPosition:";
