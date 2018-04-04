@@ -27,6 +27,7 @@ import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.exceptions.ExchangeException;
@@ -64,6 +65,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected volatile Position position = new Position(null, null, null, null, "");
     protected volatile Affordable affordable = new Affordable();
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
+    protected volatile Ticker ticker;
     protected volatile int usdInContract = 0;
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -416,6 +418,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public ContractIndex getContractIndex() {
         return contractIndex;
+    }
+
+    public Ticker getTicker() {
+        return ticker;
     }
 
     public LiqInfo getLiqInfo() {

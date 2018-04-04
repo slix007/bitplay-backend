@@ -1,5 +1,6 @@
 package com.bitplay.api.service;
 
+import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
@@ -10,6 +11,8 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
+import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -93,6 +98,19 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         }
 
         return new TradeResponseJson(orderId, details);
+    }
+
+    public FutureIndexJson getFutureIndex() {
+        final ContractIndex contractIndex = getBusinessService().getContractIndex();
+        final Ticker ticker = getBusinessService().getTicker();
+        final String indexString = String.format("%s (%s/%s) (1c=%sbtc)",
+                contractIndex.getIndexPrice().toPlainString(),
+                ticker.getLow(),
+                ticker.getHigh(),
+                getBusinessService().calcBtcInContract());
+        final Date timestamp = contractIndex.getTimestamp();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return new FutureIndexJson(indexString, sdf.format(timestamp));
     }
 
 }

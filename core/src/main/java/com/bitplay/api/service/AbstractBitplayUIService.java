@@ -278,16 +278,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         return new ResultJson(response.getMoveOrderStatus().toString(), response.getDescription());
     }
 
-    public FutureIndexJson getFutureIndex() {
-        final ContractIndex contractIndex = getBusinessService().getContractIndex();
-        final String index = String.format("%s (1c=%sbtc)",
-                contractIndex.getIndexPrice().toPlainString(),
-                getBusinessService().calcBtcInContract());
-        final Date timestamp = contractIndex.getTimestamp();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return new FutureIndexJson(index, sdf.format(timestamp));
-    }
-
     public LiquidationInfoJson getLiquidationInfoJson() {
         final LiqInfo liqInfo = getBusinessService().getLiqInfo();
         final LiqParams liqParams = liqInfo.getLiqParams();

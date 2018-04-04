@@ -134,6 +134,7 @@ public class OkCoinService extends MarketService {
     private Disposable privateDataSubscription;
     private Disposable accountInfoSubscription;
     private Disposable futureIndexSubscription;
+    private Disposable tickerSubscription;
     private Observable<OrderBook> orderBookObservable;
 
     @Override
@@ -200,6 +201,7 @@ public class OkCoinService extends MarketService {
         privateDataSubscription = startPrivateDataListener();
         accountInfoSubscription = startAccountInfoSubscription();
         futureIndexSubscription = startFutureIndexListener();
+        tickerSubscription = startTickerListener();
 
         fetchOpenOrders();
     }
@@ -211,6 +213,7 @@ public class OkCoinService extends MarketService {
         privateDataSubscription.dispose();
         accountInfoSubscription.dispose();
         futureIndexSubscription.dispose();
+        tickerSubscription.dispose();
         final Completable com = exchange.disconnect(); // not invoked here
         return com;
     }
@@ -443,6 +446,22 @@ public class OkCoinService extends MarketService {
                     logger.error("FutureIndex.Exception: ", throwable);
                 });
     }
+
+    private Disposable startTickerListener() {
+        return exchange.getStreamingMarketDataService()
+                .getTicker(CURRENCY_PAIR_BTC_USD)
+                .doOnError(throwable -> logger.error("Error on Ticker observing", throwable))
+                .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.io())
+                .subscribe(ticker -> {
+                    logger.debug(ticker.toString());
+                    this.ticker = ticker;
+                }, throwable -> {
+                    logger.error("FutureIndex.Exception: ", throwable);
+                });
+    }
+
+
 
     @Scheduled(fixedDelay = 2000)
     public void openOrdersCleaner() {

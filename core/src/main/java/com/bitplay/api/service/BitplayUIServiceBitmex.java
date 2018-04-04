@@ -99,7 +99,6 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
     }
 
-    @Override
     public FutureIndexJson getFutureIndex() {
         final BitmexContractIndex contractIndex = (BitmexContractIndex) getBusinessService().getContractIndex();
         final String indexString = String.format("%s/%s (1c=%sbtc)",
