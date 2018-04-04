@@ -81,8 +81,12 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
 
                     Instrument instrument = mapper.treeToValue(s.get("data").get(0), Instrument.class);
 
-                    final BigDecimal indexPrice = instrument.getMarkPrice() != null
+                    final BigDecimal markPrice = instrument.getMarkPrice() != null
                             ? new BigDecimal(instrument.getMarkPrice()).setScale(2, BigDecimal.ROUND_HALF_UP)
+                            : null;
+
+                    final BigDecimal indexPrice = instrument.getIndicativeSettlePrice() != null
+                            ? new BigDecimal(instrument.getIndicativeSettlePrice()).setScale(2, BigDecimal.ROUND_HALF_UP)
                             : null;
 
                     final BigDecimal fundingRate = instrument.getFundingRate() != null
@@ -93,6 +97,7 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
 
                     return new BitmexContractIndex(
                             indexPrice,
+                            markPrice,
                             Date.from(instrument.getTimestamp().toInstant()),
                             fundingRate,
                             fundingTimestamp);

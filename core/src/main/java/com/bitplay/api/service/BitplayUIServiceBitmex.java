@@ -13,6 +13,8 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.TradeResponse;
 
+import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
+
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -22,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -98,7 +101,13 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
     @Override
     public FutureIndexJson getFutureIndex() {
-        final FutureIndexJson futureIndexParent = super.getFutureIndex();
+        final BitmexContractIndex contractIndex = (BitmexContractIndex) getBusinessService().getContractIndex();
+        final String indexString = String.format("%s/%s (1c=%sbtc)",
+                contractIndex.getIndexPrice().toPlainString(),
+                contractIndex.getMarkPrice().toPlainString(),
+                getBusinessService().calcBtcInContract());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        final String timestamp = sdf.format(contractIndex.getTimestamp());
 
         final BitmexFunding bitmexFunding = bitmexService.getBitmexSwapService().getBitmexFunding();
         String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
@@ -130,7 +139,9 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         final String timeCompareString = bitmexTimeService.getTimeCompareString();
         final Integer timeCompareUpdating = bitmexTimeService.fetchTimeCompareUpdating();
 
-        return new FutureIndexJson(futureIndexParent.getIndex(), futureIndexParent.getTimestamp(),
+        return new FutureIndexJson(
+                indexString,
+                timestamp,
                 fundingRate,
                 fundingCost,
                 position,

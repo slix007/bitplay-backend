@@ -1247,22 +1247,25 @@ public class BitmexService extends MarketService {
                     final BigDecimal indexPrice = contractIndex1.getIndexPrice() != null
                             ? contractIndex1.getIndexPrice()
                             : contractIndex.getIndexPrice();
+                    final BigDecimal markPrice = contractIndex1.getMarkPrice() != null
+                            ? contractIndex1.getMarkPrice()
+                            : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getMarkPrice() : BigDecimal.ZERO);
                     final BigDecimal fundingRate;
                     final OffsetDateTime fundingTimestamp;
                     if (contractIndex instanceof BitmexContractIndex) {
                         fundingRate = contractIndex1.getFundingRate() != null
                                 ? contractIndex1.getFundingRate()
-                                : ((BitmexContractIndex) contractIndex).getFundingRate();
+                                : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getFundingRate() : BigDecimal.ZERO);
                         fundingTimestamp = contractIndex1.getSwapTime() != null
                                 ? contractIndex1.getSwapTime()
-                                : ((BitmexContractIndex) contractIndex).getSwapTime();
+                                : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getSwapTime() : OffsetDateTime.now().minusHours(10));
                     } else {
                         fundingRate = contractIndex1.getFundingRate();
                         fundingTimestamp = contractIndex1.getSwapTime();
                     }
                     final Date timestamp = contractIndex1.getTimestamp();
 
-                    this.contractIndex = new BitmexContractIndex(indexPrice, timestamp, fundingRate, fundingTimestamp);
+                    this.contractIndex = new BitmexContractIndex(indexPrice, markPrice, timestamp, fundingRate, fundingTimestamp);
 
                 }, throwable -> {
                     logger.error("Can not fetch Position", throwable);
