@@ -1,22 +1,26 @@
 package com.bitplay.api.service;
 
 import com.bitplay.api.domain.ChangeRequestJson;
-import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.api.domain.futureindex.FutureIndexJson;
+import com.bitplay.api.domain.futureindex.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.bitmex.BitmexBalanceService;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.settings.Limits;
 
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Position;
+import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -47,6 +52,9 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
     @Autowired
     private BitmexBalanceService bitmexBalanceService;
+
+    @Autowired
+    private SettingsRepositoryService settingsRepositoryService;
 
     @Override
     public BitmexService getBusinessService() {
@@ -101,9 +109,11 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
     public FutureIndexJson getFutureIndex() {
         final BitmexContractIndex contractIndex = (BitmexContractIndex) getBusinessService().getContractIndex();
+        final BigDecimal indexPrice = contractIndex.getIndexPrice();
+        final BigDecimal markPrice = contractIndex.getMarkPrice();
         final String indexString = String.format("%s/%s (1c=%sbtc)",
-                contractIndex.getIndexPrice().toPlainString(),
-                contractIndex.getMarkPrice().toPlainString(),
+                indexPrice.toPlainString(),
+                markPrice.toPlainString(),
                 getBusinessService().calcBtcInContract());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         final String timestamp = sdf.format(contractIndex.getTimestamp());
@@ -138,6 +148,28 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         final String timeCompareString = bitmexTimeService.getTimeCompareString();
         final Integer timeCompareUpdating = bitmexTimeService.fetchTimeCompareUpdating();
 
+        final Limits limits = settingsRepositoryService.getSettings().getLimits();
+        final BigDecimal bitmexLimitPrice = limits.getBitmexLimitPrice();
+        final OrderBook ob = getBusinessService().getOrderBook();
+        final BigDecimal limitBid = ob.getBids().get(0).getLimitPrice();
+        final BigDecimal limitAsk = ob.getAsks().get(0).getLimitPrice();
+//        Max price = Index (1 + Limit price, %)
+//        Min price = Index (1 - Limit price, %)
+        final BigDecimal lp = bitmexLimitPrice.divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        final BigDecimal maxPrice = indexPrice.multiply(BigDecimal.ONE.add(lp));
+        final BigDecimal minPrice = indexPrice.multiply(BigDecimal.ONE.subtract(lp));
+        // insideLimits: Limit Ask < Max price && Limit bid > Min price
+        final boolean insideLimits = (limitAsk.compareTo(maxPrice) < 0 && limitBid.compareTo(minPrice) > 0);
+
+        final LimitsJson limitsJson = new LimitsJson(
+                bitmexLimitPrice,
+                limitAsk,
+                limitBid,
+                minPrice,
+                maxPrice,
+                insideLimits,
+                limits.getIgnoreLimits());
+
         return new FutureIndexJson(
                 indexString,
                 timestamp,
@@ -148,7 +180,8 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 timeToSwap,
                 signalType,
                 timeCompareString,
-                String.valueOf(timeCompareUpdating));
+                String.valueOf(timeCompareUpdating),
+                limitsJson);
     }
 
     public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {

@@ -29,7 +29,7 @@ public class RestartService {
     SettingsRepositoryService settingsRepositoryService;
 
     public void doFullRestart(String source) throws IOException {
-        final Boolean restartEnabled = settingsRepositoryService.getSettings().isRestartEnabled();
+        final Boolean restartEnabled = settingsRepositoryService.getSettings().getRestartEnabled();
         if (restartEnabled == null || restartEnabled) {
             final String warningMessage = String.format("Full Restart has been requested by %s", source);
             logger.error(warningMessage);

@@ -1,6 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
@@ -94,8 +95,8 @@ public class SettingsEndpoint {
             settings.setPlacingBlocks(current);
             settingsRepositoryService.saveSettings(settings);
         }
-        if (settingsUpdate.isRestartEnabled() != null) {
-            settings.setRestartEnabled(settingsUpdate.isRestartEnabled()); // no need to save. it already refers to internal volatile var
+        if (settingsUpdate.getRestartEnabled() != null) {
+            settings.setRestartEnabled(settingsUpdate.getRestartEnabled()); // no need to save. it already refers to internal volatile var
         }
         if (settingsUpdate.getFeeSettings() != null) {
             if (settingsUpdate.getFeeSettings().getbMakerComRate() != null) {
@@ -111,6 +112,13 @@ public class SettingsEndpoint {
                 settings.getFeeSettings().setoTakerComRate(settingsUpdate.getFeeSettings().getoTakerComRate());
             }
             settingsRepositoryService.saveSettings(settings);
+        }
+
+        if (settingsUpdate.getLimits() != null) {
+            final Limits l = settingsUpdate.getLimits();
+            settings.getLimits().setIgnoreLimits(l.getIgnoreLimits() != null ? l.getIgnoreLimits() : settings.getLimits().getIgnoreLimits());
+            settings.getLimits().setBitmexLimitPrice(l.getBitmexLimitPrice() != null ? l.getBitmexLimitPrice() : settings.getLimits().getBitmexLimitPrice());
+            settings.getLimits().setOkexLimitPrice(l.getOkexLimitPrice() != null ? l.getOkexLimitPrice() : settings.getLimits().getOkexLimitPrice());
         }
 
         return settings;

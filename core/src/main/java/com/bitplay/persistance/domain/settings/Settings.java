@@ -9,12 +9,17 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Created by Sergey Shurmin on 11/27/17.
  */
 @Document(collection = "settingsCollection")
 @TypeAlias("settings")
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Getter
+@Setter
 public class Settings extends AbstractDocument {
 
     private ArbScheme arbScheme;
@@ -26,6 +31,7 @@ public class Settings extends AbstractDocument {
     private PlacingBlocks placingBlocks;
     private Boolean restartEnabled;
     private FeeSettings feeSettings;
+    private Limits limits;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -35,82 +41,9 @@ public class Settings extends AbstractDocument {
         settings.okexPlacingType = PlacingType.TAKER;
         settings.placingBlocks = PlacingBlocks.createDefault();
         settings.feeSettings = FeeSettings.createDefault();
+        settings.limits = Limits.createDefault();
         settings.setId(1L);
         return settings;
-    }
-
-    public ArbScheme getArbScheme() {
-        if (arbScheme == ArbScheme.MT || arbScheme == ArbScheme.MT2 || arbScheme == ArbScheme.TT) {
-            arbScheme = ArbScheme.SIM;
-        }
-        return arbScheme;
-    }
-
-    public void setArbScheme(ArbScheme arbScheme) {
-        this.arbScheme = arbScheme;
-    }
-
-    public SysOverloadArgs getBitmexSysOverloadArgs() {
-        return bitmexSysOverloadArgs;
-    }
-
-    public void setBitmexSysOverloadArgs(SysOverloadArgs bimexSysOverloadArgs) {
-        this.bitmexSysOverloadArgs = bimexSysOverloadArgs;
-    }
-
-    public PlacingType getBitmexPlacingType() {
-        return bitmexPlacingType;
-    }
-
-    public void setBitmexPlacingType(PlacingType bitmexPlacingType) {
-        this.bitmexPlacingType = bitmexPlacingType;
-    }
-
-    public SysOverloadArgs getOkexSysOverloadArgs() {
-        return okexSysOverloadArgs;
-    }
-
-    public void setOkexSysOverloadArgs(SysOverloadArgs okexSysOverloadArgs) {
-        this.okexSysOverloadArgs = okexSysOverloadArgs;
-    }
-
-    public PlacingType getOkexPlacingType() {
-        return okexPlacingType;
-    }
-
-    public void setOkexPlacingType(PlacingType okexPlacingType) {
-        this.okexPlacingType = okexPlacingType;
-    }
-
-    public BigDecimal getBitmexPrice() {
-        if (bitmexPrice == null) {
-            bitmexPrice = BigDecimal.ZERO;
-        }
-        return bitmexPrice;
-    }
-
-    public void setBitmexPrice(BigDecimal bitmexPrice) {
-        this.bitmexPrice = bitmexPrice;
-    }
-
-    public PlacingBlocks getPlacingBlocks() {
-        return placingBlocks;
-    }
-
-    public void setPlacingBlocks(PlacingBlocks placingBlocks) {
-        this.placingBlocks = placingBlocks;
-    }
-
-    public Boolean isRestartEnabled() {
-        return restartEnabled;
-    }
-
-    public void setRestartEnabled(Boolean restartEnabled) {
-        this.restartEnabled = restartEnabled;
-    }
-
-    public FeeSettings getFeeSettings() {
-        return feeSettings;
     }
 
     public BigDecimal getBFee() {

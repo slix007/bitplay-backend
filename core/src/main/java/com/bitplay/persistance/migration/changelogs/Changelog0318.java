@@ -1,6 +1,8 @@
 package com.bitplay.persistance.migration.changelogs;
 
 import com.bitplay.persistance.domain.BorderParams;
+import com.bitplay.persistance.domain.settings.Limits;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.github.mongobee.changeset.ChangeLog;
 import com.github.mongobee.changeset.ChangeSet;
 
@@ -23,6 +25,15 @@ public class Changelog0318 {
         for (BorderParams borderParams : all) {
             borderParams.getBordersV2().setAutoBaseLvl(false);
             mongoTemplate.save(borderParams);
+        }
+    }
+
+    @ChangeSet(order = "002", id = "2018-04-08 add Limits settings", author = "SergeiShurmin")
+    public void someChange041808(MongoTemplate mongoTemplate) {
+        final List<Settings> all = mongoTemplate.findAll(Settings.class);
+        for (Settings settings : all) {
+            settings.setLimits(Limits.createDefault());
+            mongoTemplate.save(settings);
         }
     }
 

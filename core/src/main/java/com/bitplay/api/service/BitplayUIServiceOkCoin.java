@@ -1,17 +1,21 @@
 package com.bitplay.api.service;
 
-import com.bitplay.api.domain.FutureIndexJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.api.domain.futureindex.FutureIndexJson;
+import com.bitplay.api.domain.futureindex.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.settings.Limits;
 
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
+import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
@@ -34,7 +38,10 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
     private static final Logger logger = LoggerFactory.getLogger(BitplayUIServiceOkCoin.class);
 
     @Autowired
-    OkCoinService service;
+    private OkCoinService service;
+
+    @Autowired
+    private SettingsRepositoryService settingsRepositoryService;
 
     @Override
     public OkCoinService getBusinessService() {
@@ -103,14 +110,29 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
     public FutureIndexJson getFutureIndex() {
         final ContractIndex contractIndex = getBusinessService().getContractIndex();
         final Ticker ticker = getBusinessService().getTicker();
+        final BigDecimal minPrice = ticker.getLow();
+        final BigDecimal maxPrice = ticker.getHigh();
         final String indexString = String.format("%s (%s/%s) (1c=%sbtc)",
                 contractIndex.getIndexPrice().toPlainString(),
-                ticker.getLow(),
-                ticker.getHigh(),
+                minPrice,
+                maxPrice,
                 getBusinessService().calcBtcInContract());
         final Date timestamp = contractIndex.getTimestamp();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return new FutureIndexJson(indexString, sdf.format(timestamp));
+
+        final Limits limits = settingsRepositoryService.getSettings().getLimits();
+        final BigDecimal okexLimitPrice = limits.getOkexLimitPrice();
+        final int ind = okexLimitPrice.intValue();
+        final OrderBook ob = getBusinessService().getOrderBook();
+        final BigDecimal limitBid = ob.getBids().get(ind).getLimitPrice();
+        final BigDecimal limitAsk = ob.getAsks().get(ind).getLimitPrice();
+
+        // insideLimits: Limit Ask < Max price && Limit bid > Min price
+        final boolean insideLimits = (limitAsk.compareTo(maxPrice) < 0 && limitBid.compareTo(minPrice) > 0);
+
+        final LimitsJson limitsJson = new LimitsJson(okexLimitPrice, limitAsk, limitBid, minPrice, maxPrice, insideLimits, limits.getIgnoreLimits());
+
+        return new FutureIndexJson(indexString, sdf.format(timestamp), limitsJson);
     }
 
 }
