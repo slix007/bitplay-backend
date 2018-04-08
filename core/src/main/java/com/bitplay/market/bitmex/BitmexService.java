@@ -97,7 +97,7 @@ public class BitmexService extends MarketService {
     private static final Logger ordersLogger = LoggerFactory.getLogger("BITMEX_ORDERS_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    private static final String NAME = "bitmex";
+    public static final String NAME = "bitmex";
     private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
     private BitmexStreamingExchange exchange;
@@ -143,6 +143,8 @@ public class BitmexService extends MarketService {
     private SettingsRepositoryService settingsRepositoryService;
     @Autowired
     private OrderRepositoryService orderRepositoryService;
+    @Autowired
+    private BitmexLimitsService bitmexLimitsService;
     private String key;
     private String secret;
     private Disposable restartTimer;
@@ -175,6 +177,11 @@ public class BitmexService extends MarketService {
     @Override
     public PersistenceService getPersistenceService() {
         return persistenceService;
+    }
+
+    @Override
+    public boolean isMarketStopped() {
+        return getMarketState() == MarketState.STOPPED || bitmexLimitsService.outsideLimits();
     }
 
     @Override
@@ -1407,9 +1414,9 @@ public class BitmexService extends MarketService {
         return isOk;
     }
 
-    @Scheduled(fixedDelay = 5 * 1000) // 30 sec
+    @Scheduled(initialDelay = 60, fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
-        if (getMarketState() == MarketState.STOPPED) {
+        if (isMarketStopped()) {
             return;
         }
 

@@ -8,6 +8,7 @@ import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
@@ -139,6 +140,8 @@ public class ArbitrageService {
                                 signalLogger.info(bestQuotes.toString());
                             }
                         }
+                    } catch (NotYetInitializedException e) {
+                        // do nothing
                     } catch (Exception e) {
                         logger.error("signalEventBus errorOnEvent", e);
                     }
@@ -416,8 +419,8 @@ public class ArbitrageService {
 
         theCheckBusyTimer = Completable.timer(6, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
-                    if (firstMarketService.getMarketState() == MarketState.STOPPED
-                            || secondMarketService.getMarketState() == MarketState.STOPPED
+                    if (firstMarketService.isMarketStopped()
+                            || secondMarketService.isMarketStopped()
                             || firstMarketService.getMarketState() == MarketState.SWAP_AWAIT
                             || secondMarketService.getMarketState() == MarketState.SWAP_AWAIT
                             || firstMarketService.getMarketState() == MarketState.SWAP
@@ -514,7 +517,7 @@ public class ArbitrageService {
 
     private void doComparison(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
 
-        if (firstMarketService.getMarketState() == MarketState.STOPPED || secondMarketService.getMarketState() == MarketState.STOPPED) {
+        if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()) {
             // do nothing
 
         } else if (!isReadyForTheArbitrage) {

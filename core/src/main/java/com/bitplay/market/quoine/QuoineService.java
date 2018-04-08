@@ -46,6 +46,11 @@ public class QuoineService extends MarketService {
     }
 
     @Override
+    public boolean isMarketStopped() {
+        return false;
+    }
+
+    @Override
     public String getName() {
         return NAME;
     }

@@ -99,7 +99,7 @@ public class OkCoinService extends MarketService {
     private static final Logger ordersLogger = LoggerFactory.getLogger("OKCOIN_ORDERS_LOG");
 
     private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
-    private final static String NAME = "okcoin";
+    public final static String NAME = "okcoin";
     ArbitrageService arbitrageService;
 
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
@@ -128,6 +128,8 @@ public class OkCoinService extends MarketService {
     private OrderRepositoryService orderRepositoryService;
     @Autowired
     private RestartService restartService;
+    @Autowired
+    private OkexLimitsService okexLimitsService;
 
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
@@ -160,6 +162,11 @@ public class OkCoinService extends MarketService {
     @Override
     public PersistenceService getPersistenceService() {
         return persistenceService;
+    }
+
+    @Override
+    public boolean isMarketStopped() {
+        return getMarketState() == MarketState.STOPPED || okexLimitsService.outsideLimits();
     }
 
     @Override
@@ -1400,7 +1407,7 @@ public class OkCoinService extends MarketService {
 
     @Scheduled(fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
-        if (getMarketState() == MarketState.STOPPED) {
+        if (isMarketStopped()) {
             return;
         }
 

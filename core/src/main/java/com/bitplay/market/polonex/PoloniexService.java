@@ -110,6 +110,11 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
+    public boolean isMarketStopped() {
+        return false;
+    }
+
+    @Override
     public String getName() {
         return NAME;
     }

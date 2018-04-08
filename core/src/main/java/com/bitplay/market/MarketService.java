@@ -154,7 +154,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public boolean isReadyForArbitrage() {
-        if (getMarketState() == MarketState.STOPPED || isBusy()) {
+        if (isMarketStopped() || isBusy()) {
             return false;
         }
 
@@ -385,6 +385,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     public MarketState getMarketState() {
         return marketState;
     }
+
+    public abstract boolean isMarketStopped();
 
     public Instant getReadyTime() {
         return readyTime;

@@ -10,12 +10,10 @@ import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.settings.Limits;
+import com.bitplay.market.okcoin.OkexLimitsService;
 
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
-import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
@@ -41,7 +39,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
     private OkCoinService service;
 
     @Autowired
-    private SettingsRepositoryService settingsRepositoryService;
+    private OkexLimitsService okexLimitsService;
 
     @Override
     public OkCoinService getBusinessService() {
@@ -120,18 +118,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         final Date timestamp = contractIndex.getTimestamp();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        final Limits limits = settingsRepositoryService.getSettings().getLimits();
-        final BigDecimal okexLimitPrice = limits.getOkexLimitPrice();
-        final int ind = okexLimitPrice.intValue();
-        final OrderBook ob = getBusinessService().getOrderBook();
-        final BigDecimal limitBid = ob.getBids().get(ind).getLimitPrice();
-        final BigDecimal limitAsk = ob.getAsks().get(ind).getLimitPrice();
-
-        // insideLimits: Limit Ask < Max price && Limit bid > Min price
-        final boolean insideLimits = (limitAsk.compareTo(maxPrice) < 0 && limitBid.compareTo(minPrice) > 0);
-
-        final LimitsJson limitsJson = new LimitsJson(okexLimitPrice, limitAsk, limitBid, minPrice, maxPrice, insideLimits, limits.getIgnoreLimits());
-
+        final LimitsJson limitsJson = okexLimitsService.getLimitsJson();
         return new FutureIndexJson(indexString, sdf.format(timestamp), limitsJson);
     }
 

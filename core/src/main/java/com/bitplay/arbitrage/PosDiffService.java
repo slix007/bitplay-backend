@@ -3,8 +3,12 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
+import com.bitplay.market.bitmex.BitmexLimitsService;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
+import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 
@@ -53,6 +57,12 @@ public class PosDiffService {
 
     @Autowired
     private PersistenceService persistenceService;
+
+    @Autowired
+    private BitmexLimitsService bitmexLimitsService;
+    @Autowired
+    private OkexLimitsService okexLimitsService;
+
 
     public void finishCorr(boolean wasOrderSuccess) {
         CompletableFuture.runAsync(() -> {
@@ -364,10 +374,26 @@ public class PosDiffService {
 
             corrInProgress = true;
 
-            // Market specific params
-            marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
-                    PlacingType.TAKER, signalType, 1));
+            if (outsideLimits(marketService)) {
+                // do nothing
+            } else {
+                // Market specific params
+                marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
+                        PlacingType.TAKER, signalType, 1));
+            }
         }
+    }
+
+    private boolean outsideLimits(MarketService marketService) {
+        if (marketService.getName().equals(BitmexService.NAME) && bitmexLimitsService.outsideLimits()) {
+            warningLogger.error("Attempt of correction when outside limits. " + bitmexLimitsService.getLimitsJson());
+            return true;
+        }
+        if (marketService.getName().equals(OkCoinService.NAME) && okexLimitsService.outsideLimits()) {
+            warningLogger.error("Attempt of correction when outside limits. " + okexLimitsService.getLimitsJson());
+            return true;
+        }
+        return false;
     }
 
     boolean isPositionsEqual() {
