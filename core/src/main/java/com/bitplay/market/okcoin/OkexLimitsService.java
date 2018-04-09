@@ -30,7 +30,7 @@ public class OkexLimitsService {
 
         final Limits limits = settingsRepositoryService.getSettings().getLimits();
         final BigDecimal okexLimitPrice = limits.getOkexLimitPrice();
-        final int ind = okexLimitPrice.intValue();
+        final int ind = okexLimitPrice.intValue() - 1;
         final OrderBook ob = okCoinService.getOrderBook();
         final BigDecimal limitBid = ob.getBids().get(ind).getLimitPrice();
         final BigDecimal limitAsk = ob.getAsks().get(ind).getLimitPrice();
