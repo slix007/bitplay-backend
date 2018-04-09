@@ -503,7 +503,8 @@ public class ArbitrageService {
                             bestQuotes.getAsk1_p(), bestQuotes.getBid1_p(),
                             bestQuotes.getAsk1_o(), bestQuotes.getBid1_o()));
 
-                    storeDeltaParams();
+                    persistenceService.storeDeltaParams(deltaParams);
+
                 } else {
                     return bestQuotes;
                 }
@@ -1186,10 +1187,6 @@ public class ArbitrageService {
         deltaParams.setbDeltaMax(delta1);
         deltaParams.setoDeltaMin(delta2);
         deltaParams.setoDeltaMax(delta2);
-    }
-
-    private void storeDeltaParams() {
-        persistenceService.storeDeltaParams(deltaParams);
     }
 
     public GuiParams getParams() {

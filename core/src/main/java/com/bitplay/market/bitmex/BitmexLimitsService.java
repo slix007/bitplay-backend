@@ -8,6 +8,8 @@ import com.bitplay.persistance.domain.settings.Limits;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,11 +22,15 @@ import java.math.RoundingMode;
 @Service
 public class BitmexLimitsService {
 
+    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+
     @Autowired
     private BitmexService bitmexService;
 
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
+
+    private volatile boolean insideLimitsSavedStatus = true;
 
     public LimitsJson getLimitsJson() {
         final BitmexContractIndex contractIndex;
@@ -47,6 +53,12 @@ public class BitmexLimitsService {
         final BigDecimal minPrice = indexPrice.multiply(BigDecimal.ONE.subtract(lp)).setScale(2, RoundingMode.HALF_UP);
         // insideLimits: Limit Ask < Max price && Limit bid > Min price
         final boolean insideLimits = (limitAsk.compareTo(maxPrice) < 0 && limitBid.compareTo(minPrice) > 0);
+
+        if (insideLimitsSavedStatus != insideLimits) {
+            insideLimitsSavedStatus = insideLimits;
+            String status = insideLimits ? "Inside limits" : "Outside limits";
+            warningLogger.warn("Change bitmex limits to " + status);
+        }
 
         return new LimitsJson(
                 bitmexLimitPrice,
