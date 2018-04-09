@@ -355,7 +355,7 @@ public class BitmexService extends MarketService {
         final MarketState marketState = getMarketState();
         if (marketState == MarketState.SYSTEM_OVERLOADED
                 || marketState == MarketState.PLACING_ORDER
-                || marketState == MarketState.STOPPED) {
+                || isMarketStopped()) {
             return;
         }
 

@@ -154,7 +154,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public boolean isReadyForArbitrage() {
-        if (isMarketStopped() || isBusy()) {
+        if (isBusy()) {
             return false;
         }
 
@@ -177,7 +177,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public void setBusy() {
-        if (this.marketState == MarketState.STOPPED) {
+        if (isMarketStopped()) {
             return;
         }
         if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
@@ -243,7 +243,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     protected void setOverloaded(final PlaceOrderArgs placeOrderArgs) {
         final MarketState currMarketState = getMarketState();
-        if (currMarketState == MarketState.STOPPED) {
+        if (isMarketStopped()) {
             // do nothing
             return;
         }
@@ -271,7 +271,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         postOverload();
 
         final MarketState currMarketState = getMarketState();
-        if (currMarketState == MarketState.STOPPED) {
+        if (isMarketStopped()) {
             // do nothing
             return;
 

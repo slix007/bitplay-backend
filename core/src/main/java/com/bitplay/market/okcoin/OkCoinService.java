@@ -1451,7 +1451,7 @@ public class OkCoinService extends MarketService {
     protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED
                 || getMarketState() == MarketState.PLACING_ORDER
-                || getMarketState() == MarketState.STOPPED) {
+                || isMarketStopped()) {
             return;
         }
 

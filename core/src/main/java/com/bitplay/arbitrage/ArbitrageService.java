@@ -677,6 +677,7 @@ public class ArbitrageService {
         if (checkBalanceBorder1(DELTA1, b_block, o_block) //) {
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
+                && !firstMarketService.isMarketStopped() && !secondMarketService.isMarketStopped()
                 &&
                 (signalType != SignalType.AUTOMATIC ||
                         (firstMarketService.checkLiquidationEdge(Order.OrderType.ASK)
