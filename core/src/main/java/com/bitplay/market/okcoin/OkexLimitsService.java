@@ -47,7 +47,12 @@ public class OkexLimitsService {
         if (insideLimitsSavedStatus != insideLimits) {
             insideLimitsSavedStatus = insideLimits;
             String status = insideLimits ? "Inside limits" : "Outside limits";
-            warningLogger.warn("Change okex limits to " + status);
+            final String limitsStr = String.format("Limit ask / Max price = %s / %s ; Limit bid / Min price = %s / %s",
+                    limitAsk.toPlainString(),
+                    maxPrice.toPlainString(),
+                    limitBid.toPlainString(),
+                    minPrice.toPlainString());
+            warningLogger.warn(String.format("Change okex limits to %s. %s", status, limitsStr));
         }
 
         return new LimitsJson(okexLimitPrice, limitAsk, limitBid, minPrice, maxPrice, insideLimits, limits.getIgnoreLimits());
