@@ -44,7 +44,7 @@ public class DebugEndpoints {
     @RequestMapping(value = "/full-restart", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson fullRestart() throws IOException {
 
-        restartService.doFullRestart("API request");
+        restartService.doFullRestart(RestartService.API_REQUEST);
 
         return new ResultJson("Restart has been sent", "");
     }
