@@ -698,40 +698,40 @@ public class OkCoinService extends MarketService {
                 final String httpBody = e.getHttpBody();
                 tradeResponse.setOrderId(httpBody);
                 tradeResponse.setErrorCode(httpBody);
-
+/*
                 try {
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    final Error error = objectMapper.readValue(httpBody, Error.class);
-                    final String marketResponseMessage = error.getError().getMessage();
+//                    ObjectMapper objectMapper = new ObjectMapper();
+//                    final Error error = objectMapper.readValue(httpBody, Error.class);
+//                    final String marketResponseMessage = error.getError().getMessage();
 
-                    if (marketResponseMessage.contains("UnknownHostException: www.okex.com")) {
-                        if (attemptCount < maxAttempts) {
-                            final String logString = String.format("%s/%s placeOrderOnSignal error: %s.",
-                                    getCounterName(), attemptCount, httpBody);
-                            tradeLogger.error(logString);
-                            logger.error(logString);
-                            continue; // retry!
-                        } else {
-                            setOverloaded(null);
-                            final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Set SYSTEM_OVERLOAD for %s sec",
-                                    getCounterName(), attemptCount, httpBody,
-                                    settingsRepositoryService.getSettings().getOkexSysOverloadArgs().getOverloadTimeSec());
-                            tradeLogger.error(logString);
-                            logger.error(logString);
-                        }
-                    }
+//                    if (marketResponseMessage.contains("UnknownHostException: www.okex.com")) {
+//                        if (attemptCount < maxAttempts) {
+//                            final String logString = String.format("%s/%s placeOrderOnSignal error: %s.",
+//                                    getCounterName(), attemptCount, httpBody);
+//                            tradeLogger.error(logString);
+//                            logger.error(logString);
+//                            continue; // retry!
+//                        } else {
+//                            setOverloaded(null);
+//                            final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Set SYSTEM_OVERLOAD for %s sec",
+//                                    getCounterName(), attemptCount, httpBody,
+//                                    settingsRepositoryService.getSettings().getOkexSysOverloadArgs().getOverloadTimeSec());
+//                            tradeLogger.error(logString);
+//                            logger.error(logString);
+//                        }
+//                    }
                 } catch (IOException e1) {
                     final String errMsg = String.format("On parse error:%s, %s", e.toString(), e.getHttpBody());
                     logger.error(errMsg, e1);
                     tradeLogger.error(errMsg);
                 }
-
+*/
                 break; // no retry by default
             } catch (SocketTimeoutException e) { // java.net.SocketTimeoutException: connect timed out
                 final String message = e.getMessage();
                 tradeResponse.setOrderId(message);
                 tradeResponse.setErrorCode(message);
-
+/*
                 if (attemptCount < maxAttempts) {
                     final String logString = String.format("%s/%s placeOrderOnSignal error: %s.",
                             getCounterName(), attemptCount, message);
@@ -745,7 +745,7 @@ public class OkCoinService extends MarketService {
                     tradeLogger.error(logString);
                     logger.error(logString);
                     setOverloaded(null);
-                }
+                }*/
 
                 break; // no retry by default
             } catch (Exception e) {
@@ -1502,12 +1502,12 @@ public class OkCoinService extends MarketService {
 
                                             optionalOrder = Stream.of(newOrder, cancelledOrder);
                                             movingErrorsOverloaded.set(0);
-                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
-
-                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
-                                                setOverloaded(null);
-                                                movingErrorsOverloaded.set(0);
-                                            }
+//                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
+//
+//                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
+//                                                setOverloaded(null);
+//                                                movingErrorsOverloaded.set(0);
+//                                            }
 
                                         } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL
                                                 || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) { // EXCEPTION also duplicated in #moveOO

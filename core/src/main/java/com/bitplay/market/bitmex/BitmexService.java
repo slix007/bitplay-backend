@@ -1010,17 +1010,17 @@ public class BitmexService extends MarketService {
 
                     // message.startsWith("Connection refused") - when we got banned for a week. Just skip it.
                     // message.startsWith("Read timed out")
-                    if (message != null &&
-                            (message.startsWith("Network is unreachable") || message.startsWith("connect timed out"))) {
-                        if (attemptCount < maxAttempts) {
-                            Thread.sleep(1000);
-                        } else {
-                            setOverloaded(null);
-                            break;
-                        }
-                    } else {
+//                    if (message != null &&
+//                            (message.startsWith("Network is unreachable") || message.startsWith("connect timed out"))) {
+//                        if (attemptCount < maxAttempts) {
+//                            Thread.sleep(1000);
+//                        } else {
+//                            setOverloaded(null);
+//                            break;
+//                        }
+//                    } else {
                         break; // any unknown exception - no retry
-                    }
+//                    }
 
                 }
             } // while
@@ -1150,11 +1150,11 @@ public class BitmexService extends MarketService {
 
             // message.startsWith("Connection refused") - when we got banned for a week. Just skip it.
             // message.startsWith("Read timed out")
-            if (message.startsWith("Network is unreachable")
-                    || message.startsWith("connect timed out")) {
-                tradeLogger.error("{} MoveOrderError: {}", getCounterName(), message);
-                moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, message);
-            }
+//            if (message.startsWith("Network is unreachable")
+//                    || message.startsWith("connect timed out")) {
+//                tradeLogger.error("{} MoveOrderError: {}", getCounterName(), message);
+//                moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, message);
+//            }
 
         }
 
