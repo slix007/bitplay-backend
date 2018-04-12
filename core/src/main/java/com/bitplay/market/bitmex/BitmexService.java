@@ -984,6 +984,7 @@ public class BitmexService extends MarketService {
                         } else {
                             setOverloaded(null);
                             tradeResponse.setErrorCode(e.getMessage());
+                            nextMarketState = MarketState.SYSTEM_OVERLOADED;
                             break;
                         }
                     } else if (MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus) {
