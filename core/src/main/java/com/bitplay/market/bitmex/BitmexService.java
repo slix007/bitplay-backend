@@ -559,11 +559,11 @@ public class BitmexService extends MarketService {
             exchange.connect()
                     .doOnError(throwable -> logger.error("doOnError", throwable))
                     .doOnDispose(() -> logger.info("bitmex connect doOnDispose"))
+                    .retryWhen(e -> e.delay(5, TimeUnit.SECONDS))
                     .doOnTerminate(() -> {
                         logger.info("bitmex connect doOnTerminate");
                         checkForRestart();
                     })
-                    .retryWhen(e -> e.delay(10, TimeUnit.SECONDS))
                     .blockingAwait();
 
             exchange.authenticate().blockingAwait();

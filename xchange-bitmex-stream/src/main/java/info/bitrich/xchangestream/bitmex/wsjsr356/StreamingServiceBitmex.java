@@ -47,11 +47,11 @@ public class StreamingServiceBitmex {
                 msgHandler = new WSMessageHandler();
                 clientEndPoint.addMessageHandler(msgHandler);
 
+                completable.onComplete();
+
             } catch (Exception e1) {
                 completable.onError(e1);
             }
-
-            completable.onComplete(); // TODO. Looks like it's async. Need to wait until connection is done.
         });
     }
 
