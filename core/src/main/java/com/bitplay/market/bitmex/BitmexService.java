@@ -1590,7 +1590,7 @@ public class BitmexService extends MarketService {
                 if (marketResponseMessage.startsWith("The system is currently overloaded. Please try again later")) {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, marketResponseMessage);
                     logger.error(fullMessage);
-                } else if (marketResponseMessage.startsWith("Invalid ordStatus")) {
+                } else if (marketResponseMessage.startsWith("Invalid ordStatus") || marketResponseMessage.startsWith("Invalid orderID")) {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, marketResponseMessage);
                     logger.error(fullMessage);
                 } else if (marketResponseMessage.startsWith(BAD_GATEWAY)) {
