@@ -60,7 +60,7 @@ public class DeltaRepositoryService {
 
     private void defferedSaver() {
         final Disposable disposable = createObservable()
-                .sample(1, TimeUnit.MINUTES)
+//                .sample(1, TimeUnit.MINUTES)
                 .subscribeOn(scheduler)
                 .subscribe(delta -> deltaRepository.save(delta));
     }
