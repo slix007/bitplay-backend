@@ -509,7 +509,7 @@ public class OkCoinService extends MarketService {
 
                 Order orderInfo = getFinalOrderInfoSync(orderId, counterName, "Taker:FinalStatus:");
                 if (orderInfo == null) {
-                    throw new Exception("Failed to check final status of taker-maker id=" + orderId);
+                    throw new ResetToReadyException("Failed to check final status of taker-maker id=" + orderId);
                 }
 
                 updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
@@ -517,9 +517,22 @@ public class OkCoinService extends MarketService {
                 arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
                 arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
 
+                if (orderInfo.getStatus() == OrderStatus.NEW) { // 1. Try cancel then
+                    final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(orderId, "Taker:Cancel_maker:");
+
+                    if (!okCoinTradeResult.isResult()) throw new Exception("Failed to cancel taker-maker id=" + orderId);
+
+                    orderInfo = getFinalOrderInfoSync(orderId, counterName, "Taker:Cancel_makerStatus:");
+
+                    if (orderInfo == null) throw new Exception("Failed to check status of cancelled taker-maker id=" + orderId);
+
+                    updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
+                }
+
                 if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
                     tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
                     tradeResponse.addCancelledOrder((LimitOrder) orderInfo);
+                    warningLogger.warn("{} Order was cancelled. orderId={}", getCounterName(), orderId);
                 } else { //FILLED by any (orderInfo or cancelledOrder)
 
                     writeLogPlaceOrder(orderType, amount, "taker",
@@ -750,16 +763,20 @@ public class OkCoinService extends MarketService {
                     continue;
                 }
 
+                if (e instanceof ResetToReadyException) {
+                    setMarketState(MarketState.READY);
+                }
+
                 break; // no retry by default
             }
         }
 
         if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
-            if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
+//            if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
 //                posDiffService.finishCorr(true); - when market is READY
-            } else {
+//            } else {
                 posDiffService.finishCorr(false);
-            }
+//            }
         }
 
         return tradeResponse;
