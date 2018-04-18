@@ -1150,9 +1150,9 @@ public class OkCoinService extends MarketService {
         while (attemptCount < MAX_ATTEMPTS_STATUS) {
             attemptCount++;
             try {
-//                if (attemptCount > 1) {
-                Thread.sleep(200 * attemptCount);
-//                }
+
+                Thread.sleep(200);
+
                 final Collection<Order> order = tradeService.getOrder(orderId);
                 Order cancelledOrder = order.iterator().next();
                 tradeLogger.info("{}/{} {} id={}, status={}, filled={}",
