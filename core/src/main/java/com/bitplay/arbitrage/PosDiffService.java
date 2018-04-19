@@ -11,21 +11,18 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.correction.CorrParams;
-
+import io.reactivex.Completable;
+import io.reactivex.disposables.Disposable;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
-
-import io.reactivex.Completable;
-import io.reactivex.disposables.Disposable;
 
 /**
  * Created by Sergey Shurmin on 7/15/17.
@@ -73,7 +70,7 @@ public class PosDiffService {
                         isCorrect = true;
                     } else {
 
-                        Thread.sleep(1000);
+                        Thread.sleep(5 * 1000);
 
                         final String infoMsg = "Double check before finishCorr: fetchPosition:";
                         final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
