@@ -973,6 +973,7 @@ public class BitmexService extends MarketService {
                         logger.info("xRateLimit=0. Stop!");
                         tradeLogger.info("xRateLimit=0. Stop!");
                         setOverloaded(null);
+                        nextMarketState = MarketState.SYSTEM_OVERLOADED;
                         tradeResponse.setErrorCode(e.getMessage());
                         break;
                     }
@@ -983,8 +984,8 @@ public class BitmexService extends MarketService {
                             Thread.sleep(200);
                         } else {
                             setOverloaded(null);
-                            tradeResponse.setErrorCode(e.getMessage());
                             nextMarketState = MarketState.SYSTEM_OVERLOADED;
+                            tradeResponse.setErrorCode(e.getMessage());
                             break;
                         }
                     } else if (MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus) {
