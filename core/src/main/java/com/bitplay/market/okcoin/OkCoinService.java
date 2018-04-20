@@ -476,8 +476,6 @@ public class OkCoinService extends MarketService {
             updateOOStatuses();
 
             if (!hasOpenOrders()) {
-                tradeLogger.warn("Free by openOrdersHangedChecker");
-                logger.warn("Free by openOrdersHangedChecker");
                 eventBus.send(BtsEvent.MARKET_FREE);
             }
 
