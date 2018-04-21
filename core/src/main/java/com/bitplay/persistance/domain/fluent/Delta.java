@@ -13,7 +13,7 @@ import java.util.Date;
 @Document(collection = "deltasSeries")
 public class Delta {
 
-    @JsonFormat(pattern="HH:mm")
+    @JsonFormat(pattern="HH:mm:ss")
     private Date timestamp;
     private BigDecimal bAsk;
     private BigDecimal bBid;

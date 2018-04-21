@@ -28,9 +28,11 @@ public class RestartService {
     @Autowired
     SettingsRepositoryService settingsRepositoryService;
 
+    final public static String API_REQUEST = "API request";
+
     public void doFullRestart(String source) throws IOException {
         final Boolean restartEnabled = settingsRepositoryService.getSettings().getRestartEnabled();
-        if (restartEnabled == null || restartEnabled) {
+        if (restartEnabled == null || restartEnabled || source.equals(API_REQUEST)) {
             final String warningMessage = String.format("Full Restart has been requested by %s", source);
             logger.error(warningMessage);
             warningLogger.error(warningMessage);

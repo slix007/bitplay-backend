@@ -29,16 +29,38 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
-
+import io.reactivex.Completable;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+import io.swagger.client.model.Error;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.net.SocketTimeoutException;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Set;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.PreDestroy;
+import javax.validation.constraints.NotNull;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
@@ -58,33 +80,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.net.SocketTimeoutException;
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.PreDestroy;
-import javax.validation.constraints.NotNull;
-
-import io.reactivex.Completable;
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
-import io.swagger.client.model.Error;
 import si.mazi.rescu.HttpStatusIOException;
 
 /**
@@ -468,8 +463,6 @@ public class OkCoinService extends MarketService {
                 });
     }
 
-
-
     @Scheduled(fixedDelay = 2000)
     public void openOrdersCleaner() {
         if (openOrders.size() > 0) {
@@ -481,6 +474,11 @@ public class OkCoinService extends MarketService {
     public void openOrdersHangedChecker() {
         try {
             updateOOStatuses();
+
+            if (!hasOpenOrders()) {
+                eventBus.send(BtsEvent.MARKET_FREE);
+            }
+
         } catch (Exception e) {
             logger.error("Exception on openOrdersHangedChecker", e);
         }
@@ -514,18 +512,17 @@ public class OkCoinService extends MarketService {
 
                 final String counterName = getCounterName();
 
-                final Optional<Order> orderInfoAttempts = getOrderInfoAttempts(orderId, counterName, "Taker:Status:");
-                if (!orderInfoAttempts.isPresent()) {
-                    throw new Exception("Failed to get info of just created order. id=" + orderId);
+                Order orderInfo = getFinalOrderInfoSync(orderId, counterName, "Taker:FinalStatus:");
+                if (orderInfo == null) {
+                    throw new ResetToReadyException("Failed to check final status of taker-maker id=" + orderId);
                 }
 
-                Order orderInfo = orderInfoAttempts.get();
                 updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
 
                 arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
                 arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
 
-                if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 1. Try cancel then
+                if (orderInfo.getStatus() == OrderStatus.NEW) { // 1. Try cancel then
                     final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(orderId, "Taker:Cancel_maker:");
 
                     if (!okCoinTradeResult.isResult()) throw new Exception("Failed to cancel taker-maker id=" + orderId);
@@ -537,9 +534,10 @@ public class OkCoinService extends MarketService {
                     updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
                 }
 
-                if (orderInfo.getStatus() != Order.OrderStatus.FILLED) { // 2. It is CANCELED
+                if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
                     tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
                     tradeResponse.addCancelledOrder((LimitOrder) orderInfo);
+                    warningLogger.warn("{} Order was cancelled. orderId={}", getCounterName(), orderId);
                 } else { //FILLED by any (orderInfo or cancelledOrder)
 
                     writeLogPlaceOrder(orderType, amount, "taker",
@@ -698,40 +696,40 @@ public class OkCoinService extends MarketService {
                 final String httpBody = e.getHttpBody();
                 tradeResponse.setOrderId(httpBody);
                 tradeResponse.setErrorCode(httpBody);
-
+/*
                 try {
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    final Error error = objectMapper.readValue(httpBody, Error.class);
-                    final String marketResponseMessage = error.getError().getMessage();
+//                    ObjectMapper objectMapper = new ObjectMapper();
+//                    final Error error = objectMapper.readValue(httpBody, Error.class);
+//                    final String marketResponseMessage = error.getError().getMessage();
 
-                    if (marketResponseMessage.contains("UnknownHostException: www.okex.com")) {
-                        if (attemptCount < maxAttempts) {
-                            final String logString = String.format("%s/%s placeOrderOnSignal error: %s.",
-                                    getCounterName(), attemptCount, httpBody);
-                            tradeLogger.error(logString);
-                            logger.error(logString);
-                            continue; // retry!
-                        } else {
-                            setOverloaded(null);
-                            final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Set SYSTEM_OVERLOAD for %s sec",
-                                    getCounterName(), attemptCount, httpBody,
-                                    settingsRepositoryService.getSettings().getOkexSysOverloadArgs().getOverloadTimeSec());
-                            tradeLogger.error(logString);
-                            logger.error(logString);
-                        }
-                    }
+//                    if (marketResponseMessage.contains("UnknownHostException: www.okex.com")) {
+//                        if (attemptCount < maxAttempts) {
+//                            final String logString = String.format("%s/%s placeOrderOnSignal error: %s.",
+//                                    getCounterName(), attemptCount, httpBody);
+//                            tradeLogger.error(logString);
+//                            logger.error(logString);
+//                            continue; // retry!
+//                        } else {
+//                            setOverloaded(null);
+//                            final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Set SYSTEM_OVERLOAD for %s sec",
+//                                    getCounterName(), attemptCount, httpBody,
+//                                    settingsRepositoryService.getSettings().getOkexSysOverloadArgs().getOverloadTimeSec());
+//                            tradeLogger.error(logString);
+//                            logger.error(logString);
+//                        }
+//                    }
                 } catch (IOException e1) {
                     final String errMsg = String.format("On parse error:%s, %s", e.toString(), e.getHttpBody());
                     logger.error(errMsg, e1);
                     tradeLogger.error(errMsg);
                 }
-
+*/
                 break; // no retry by default
             } catch (SocketTimeoutException e) { // java.net.SocketTimeoutException: connect timed out
                 final String message = e.getMessage();
                 tradeResponse.setOrderId(message);
                 tradeResponse.setErrorCode(message);
-
+/*
                 if (attemptCount < maxAttempts) {
                     final String logString = String.format("%s/%s placeOrderOnSignal error: %s.",
                             getCounterName(), attemptCount, message);
@@ -745,7 +743,7 @@ public class OkCoinService extends MarketService {
                     tradeLogger.error(logString);
                     logger.error(logString);
                     setOverloaded(null);
-                }
+                }*/
 
                 break; // no retry by default
             } catch (Exception e) {
@@ -770,13 +768,17 @@ public class OkCoinService extends MarketService {
                     continue;
                 }
 
+                if (e instanceof ResetToReadyException) {
+                    setMarketState(MarketState.READY);
+                }
+
                 break; // no retry by default
             }
         }
 
         if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
             if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
-//                posDiffService.finishCorr(true); - when market is READY
+                posDiffService.finishCorr(true); // - when market is READY
             } else {
                 posDiffService.finishCorr(false);
             }
@@ -1137,10 +1139,6 @@ public class OkCoinService extends MarketService {
 
     /**
      * Loop until status CANCELED or FILLED.
-     * @param orderId
-     * @param counterName
-     * @param logInfoId
-     * @return
      */
     @NotNull
     private Order getFinalOrderInfoSync(String orderId, String counterName, String logInfoId) {
@@ -1150,9 +1148,9 @@ public class OkCoinService extends MarketService {
         while (attemptCount < MAX_ATTEMPTS_STATUS) {
             attemptCount++;
             try {
-                if (attemptCount > 1) {
-                    Thread.sleep(200 * attemptCount);
-                }
+
+                Thread.sleep(200);
+
                 final Collection<Order> order = tradeService.getOrder(orderId);
                 Order cancelledOrder = order.iterator().next();
                 tradeLogger.info("{}/{} {} id={}, status={}, filled={}",
@@ -1502,12 +1500,12 @@ public class OkCoinService extends MarketService {
 
                                             optionalOrder = Stream.of(newOrder, cancelledOrder);
                                             movingErrorsOverloaded.set(0);
-                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
-
-                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
-                                                setOverloaded(null);
-                                                movingErrorsOverloaded.set(0);
-                                            }
+//                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
+//
+//                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
+//                                                setOverloaded(null);
+//                                                movingErrorsOverloaded.set(0);
+//                                            }
 
                                         } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL
                                                 || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) { // EXCEPTION also duplicated in #moveOO
@@ -1583,8 +1581,7 @@ public class OkCoinService extends MarketService {
     }
 
     /**
-     * Workaround! <br>
-     * Request orders details. Use it before ending of a Round.
+     * Workaround! <br> Request orders details. Use it before ending of a Round.
      *
      * @param avgPrice the object to be updated.
      */

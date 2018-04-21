@@ -973,6 +973,7 @@ public class BitmexService extends MarketService {
                         logger.info("xRateLimit=0. Stop!");
                         tradeLogger.info("xRateLimit=0. Stop!");
                         setOverloaded(null);
+                        nextMarketState = MarketState.SYSTEM_OVERLOADED;
                         tradeResponse.setErrorCode(e.getMessage());
                         break;
                     }
@@ -983,6 +984,7 @@ public class BitmexService extends MarketService {
                             Thread.sleep(200);
                         } else {
                             setOverloaded(null);
+                            nextMarketState = MarketState.SYSTEM_OVERLOADED;
                             tradeResponse.setErrorCode(e.getMessage());
                             break;
                         }
@@ -1009,17 +1011,17 @@ public class BitmexService extends MarketService {
 
                     // message.startsWith("Connection refused") - when we got banned for a week. Just skip it.
                     // message.startsWith("Read timed out")
-                    if (message != null &&
-                            (message.startsWith("Network is unreachable") || message.startsWith("connect timed out"))) {
-                        if (attemptCount < maxAttempts) {
-                            Thread.sleep(1000);
-                        } else {
-                            setOverloaded(null);
-                            break;
-                        }
-                    } else {
+//                    if (message != null &&
+//                            (message.startsWith("Network is unreachable") || message.startsWith("connect timed out"))) {
+//                        if (attemptCount < maxAttempts) {
+//                            Thread.sleep(1000);
+//                        } else {
+//                            setOverloaded(null);
+//                            break;
+//                        }
+//                    } else {
                         break; // any unknown exception - no retry
-                    }
+//                    }
 
                 }
             } // while
@@ -1040,7 +1042,7 @@ public class BitmexService extends MarketService {
 
         if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
             if (tradeResponse.getOrderId() != null) {
-//                posDiffService.finishCorr(true); - Only when FILLED by subscription
+                posDiffService.finishCorr(true); // - Only when FILLED by subscription
             } else {
                 posDiffService.finishCorr(false);
             }
@@ -1149,11 +1151,11 @@ public class BitmexService extends MarketService {
 
             // message.startsWith("Connection refused") - when we got banned for a week. Just skip it.
             // message.startsWith("Read timed out")
-            if (message.startsWith("Network is unreachable")
-                    || message.startsWith("connect timed out")) {
-                tradeLogger.error("{} MoveOrderError: {}", getCounterName(), message);
-                moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, message);
-            }
+//            if (message.startsWith("Network is unreachable")
+//                    || message.startsWith("connect timed out")) {
+//                tradeLogger.error("{} MoveOrderError: {}", getCounterName(), message);
+//                moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, message);
+//            }
 
         }
 
@@ -1589,7 +1591,7 @@ public class BitmexService extends MarketService {
                 if (marketResponseMessage.startsWith("The system is currently overloaded. Please try again later")) {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, marketResponseMessage);
                     logger.error(fullMessage);
-                } else if (marketResponseMessage.startsWith("Invalid ordStatus")) {
+                } else if (marketResponseMessage.startsWith("Invalid ordStatus") || marketResponseMessage.startsWith("Invalid orderID")) {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, marketResponseMessage);
                     logger.error(fullMessage);
                 } else if (marketResponseMessage.startsWith(BAD_GATEWAY)) {

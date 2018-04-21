@@ -293,6 +293,7 @@ public abstract class MarketServiceOpenOrders {
         final LimitOrder limitOrder = (LimitOrder) orderInfo;
 
         if (fplayOrder.getOrder().getStatus() != Order.OrderStatus.FILLED && limitOrder.getStatus() == Order.OrderStatus.FILLED) {
+            getTradeLogger().info("#{} updateOOStatus got FILLED orderId={}", getCounterName(), limitOrder.getId());
             logger.info("updateOOStatus got FILLED order: " + limitOrder.toString());
         }
 
