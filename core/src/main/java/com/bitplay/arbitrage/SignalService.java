@@ -6,6 +6,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
+import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ArbScheme;
@@ -45,7 +46,13 @@ public class SignalService {
         } else {
             executorService.submit(() -> {
                 try {
-                    okexService.placeOrder(placeOrderArgs);
+                    TradeResponse tradeResponse = okexService.placeOrder(placeOrderArgs);
+
+                    if (tradeResponse.getErrorCode() != null) {
+                        okexService.getTradeLogger().warn("WARNING: " + tradeResponse.getErrorCode());
+                        logger.warn("WARNING: " + tradeResponse.getErrorCode());
+                    }
+
                 } catch (Exception e) {
                     logger.error("Error on placeOrderOnSignal", e);
                 }
