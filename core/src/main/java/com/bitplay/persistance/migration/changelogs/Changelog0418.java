@@ -15,7 +15,7 @@ import java.util.List;
 @ChangeLog
 public class Changelog0418 {
 
-    @ChangeSet(order = "001", id = "add avg_delta into BorderParams", author = "SergeiShurmin")
+    @ChangeSet(order = "001", id = "add avg_delta into BorderParams1", author = "SergeiShurmin")
     public void change01(MongoTemplate mongoTemplate) {
         final List<BorderParams> all = mongoTemplate.findAll(BorderParams.class);
         for (BorderParams borderParams : all) {

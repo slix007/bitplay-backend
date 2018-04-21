@@ -157,17 +157,26 @@ public class BordersEndpoint {
             }
 
             if (update.borderDelta != null) {
-                if (update.borderDelta.getDeltaType() != null) {
-                    bP.getBorderDelta().setDeltaType(update.borderDelta.getDeltaType());
-                    respDetails += ", " + update.borderDelta.getDeltaType().toString();
+                if (update.borderDelta.getDeltaCalcType() != null) {
+                    bP.getBorderDelta().setDeltaCalcType(update.borderDelta.getDeltaCalcType());
+                    respDetails += update.borderDelta.getDeltaCalcType().toString();
                 }
-                if (update.borderDelta.getDeltaPer() != null) {
-                    bP.getBorderDelta().setDeltaPer(update.borderDelta.getDeltaPer());
-                    respDetails += ", " + update.borderDelta.getDeltaPer().toString();
+                if (update.borderDelta.getDeltaCalcPast() != null) {
+                    bP.getBorderDelta().setDeltaCalcPast(update.borderDelta.getDeltaCalcPast());
+                    respDetails += update.borderDelta.getDeltaCalcPast().toString();
                 }
-                if (update.borderDelta.getDeltaUnit() != null) {
-                    bP.getBorderDelta().setDeltaUnit(update.borderDelta.getDeltaUnit());
-                    respDetails += ", " + update.borderDelta.getDeltaUnit().toString();
+                if (update.borderDelta.getDeltaSaveType() != null) {
+                    bP.getBorderDelta().setDeltaSaveType(update.borderDelta.getDeltaSaveType());
+                    respDetails += update.borderDelta.getDeltaSaveType().toString();
+                }
+                if (update.borderDelta.getDeltaSaveDev() != null) {
+                    bP.getBorderDelta().setDeltaSaveDev(update.borderDelta.getDeltaSaveDev());
+                    respDetails += update.borderDelta.getDeltaSaveDev().toString();
+                }
+                if (update.borderDelta.getDeltaSavePerSec() != null) {
+                    bP.getBorderDelta().setDeltaSavePerSec(update.borderDelta.getDeltaSavePerSec());
+                    respDetails +=
+                            update.borderDelta.getDeltaSavePerSec().toString();
                 }
             }
         } catch (Exception e) {

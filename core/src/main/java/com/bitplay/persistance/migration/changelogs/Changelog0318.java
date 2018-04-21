@@ -1,6 +1,6 @@
 package com.bitplay.persistance.migration.changelogs;
 
-import com.bitplay.persistance.domain.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.github.mongobee.changeset.ChangeLog;
