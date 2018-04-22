@@ -1,6 +1,7 @@
 package com.bitplay.persistance.domain.borders;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -8,6 +9,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class BorderDelta {
 
     private DeltaCalcType deltaCalcType;

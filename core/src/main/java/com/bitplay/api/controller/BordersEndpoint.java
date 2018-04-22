@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.arbitrage.BordersCalcScheduler;
+import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderDelta;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -9,17 +10,15 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV1;
 import com.bitplay.persistance.domain.borders.BordersV2;
-
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 10/6/17.
@@ -33,6 +32,9 @@ public class BordersEndpoint {
 
     @Autowired
     private BordersCalcScheduler bordersCalcScheduler;
+
+    @Autowired
+    private DeltaRepositoryService deltaRepositoryService;
 
     @RequestMapping(value = "/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public BorderParams getBorders() {
@@ -175,9 +177,9 @@ public class BordersEndpoint {
                 }
                 if (update.borderDelta.getDeltaSavePerSec() != null) {
                     bP.getBorderDelta().setDeltaSavePerSec(update.borderDelta.getDeltaSavePerSec());
-                    respDetails +=
-                            update.borderDelta.getDeltaSavePerSec().toString();
+                    respDetails += update.borderDelta.getDeltaSavePerSec().toString();
                 }
+                deltaRepositoryService.recreateSavingListener(bP.getBorderDelta());
             }
         } catch (Exception e) {
             return new ResultJson("Wrong version", e.getMessage());
