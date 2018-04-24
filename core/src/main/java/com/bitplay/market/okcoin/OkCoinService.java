@@ -476,7 +476,7 @@ public class OkCoinService extends MarketService {
             updateOOStatuses();
 
             if (!hasOpenOrders()) {
-                eventBus.send(BtsEvent.MARKET_FREE);
+                eventBus.send(BtsEvent.MARKET_FREE_FROM_CHECKER);
             }
 
         } catch (Exception e) {

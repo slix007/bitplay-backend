@@ -1,6 +1,7 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexLimitsService;
@@ -424,7 +425,7 @@ public class PosDiffService {
         final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
         if (bP == null || oPL == null || oPS == null) {
-            throw new IllegalStateException("Position is not yet defined");
+            throw new NotYetInitializedException("Position is not yet defined");
         }
 
         final BigDecimal okExPosEquivalent = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);

@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.events.SignalEvent;
@@ -162,12 +163,14 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     private void initEventBus() {
-        eventBus.toObserverable()
+        Disposable subscribe = eventBus.toObserverable()
                 .doOnError(throwable -> logger.error("doOnError handling", throwable))
                 .retry()
                 .subscribe(btsEvent -> {
                     if (btsEvent == BtsEvent.MARKET_FREE_FROM_UI) {
                         setFree("UI");
+                    } else if (btsEvent == BtsEvent.MARKET_FREE_FROM_CHECKER) {
+                        setFree("CHECKER");
                     } else if (btsEvent == BtsEvent.MARKET_FREE) {
                         setFree();
                     } else if (btsEvent == BtsEvent.MARKET_BUSY) {
@@ -230,7 +233,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 break;
 
             case READY:
-                logger.warn("{}: already ready. Iterate OO.", getName());
+                if (flags != null && flags.length > 0 && flags[0].equals("CHECKER")) {
+                    // do nothing
+                } else {
+                    logger.warn("{}: already ready. Iterate OO.", getName());
+                }
 
                 iterateOpenOrdersMove(); // TODO we should not have such cases
                 break;
@@ -598,6 +605,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                 || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
                             checkOpenOrdersForMoving();
                         }
+                    } catch (NotYetInitializedException e) {
+                        // do nothing
                     } catch (Exception e) {
                         logger.error("{} openOrdersMovingSubscription error", getName(), e);
                     }

@@ -22,15 +22,25 @@ import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.Delta;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
-
+import io.reactivex.Completable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -39,18 +49,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
-
-import io.reactivex.Completable;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Sergey Shurmin on 4/18/17.
@@ -547,7 +545,7 @@ public class ArbitrageService {
         final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
 
         final BorderParams borderParams = persistenceService.fetchBorders();
-        if (borderParams == null || borderParams.getActiveVersion() == BorderParams.Ver.V1) {
+        if (borderParams == null || borderParams.getActiveVersion() == Ver.V1) {
             BigDecimal border1 = params.getBorder1();
             BigDecimal border2 = params.getBorder2();
 
@@ -589,7 +587,7 @@ public class ArbitrageService {
                 }
             }
 
-        } else { // BorderParams.Ver.V2
+        } else if (borderParams.getActiveVersion() == Ver.V2) {
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(
                     bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS);
 

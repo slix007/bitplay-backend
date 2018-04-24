@@ -75,7 +75,7 @@ public class BorderParams extends AbstractDocument {
         this.borderDelta = borderDelta;
     }
 
-    public enum Ver {V1, V2,}
+    public enum Ver {V1, V2, OFF}
 
     public enum PosMode {BTM_MODE, OK_MODE}
 }

@@ -1,9 +1,11 @@
 package com.bitplay.market.okcoin;
 
 import com.bitplay.api.domain.futureindex.LimitsJson;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
 
+import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.slf4j.Logger;
@@ -31,6 +33,9 @@ public class OkexLimitsService {
 
     public LimitsJson getLimitsJson() {
         final Ticker ticker = okCoinService.getTicker();
+        if (ticker == null) {
+            throw new NotYetInitializedException();
+        }
         final BigDecimal minPrice = ticker.getLow();
         final BigDecimal maxPrice = ticker.getHigh();
 

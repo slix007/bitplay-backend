@@ -1416,7 +1416,7 @@ public class BitmexService extends MarketService {
         return isOk;
     }
 
-    @Scheduled(initialDelay = 60, fixedDelay = 5 * 1000) // 30 sec
+    @Scheduled(initialDelay = 30 * 1000, fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
         if (isMarketStopped()) {
             return;
