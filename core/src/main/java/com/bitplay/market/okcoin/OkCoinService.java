@@ -729,14 +729,14 @@ public class OkCoinService extends MarketService {
                 final String message = e.getMessage();
                 tradeResponse.setOrderId(message);
                 tradeResponse.setErrorCode(message);
-/*
-                if (attemptCount < maxAttempts) {
+
+                if (message.contains("connect timed out") && attemptCount < maxAttempts) {
                     final String logString = String.format("%s/%s placeOrderOnSignal error: %s.",
                             getCounterName(), attemptCount, message);
                     tradeLogger.error(logString);
                     logger.error(logString);
                     continue;
-                } else { // message.contains("connect timed out")
+                } /* else { // message.contains("connect timed out")
                     final String logString = String.format("%s/%s placeOrderOnSignal error: %s. Set SYSTEM_OVERLOAD for %s sec",
                             getCounterName(), attemptCount, message,
                             settingsRepositoryService.getSettings().getOkexSysOverloadArgs().getOverloadTimeSec());
