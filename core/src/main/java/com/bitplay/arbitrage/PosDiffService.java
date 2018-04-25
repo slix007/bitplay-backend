@@ -360,9 +360,24 @@ public class PosDiffService {
             }
         }
 
-        // 2. check isAffordable
-        if (correctAmount.signum() != 0
-                && marketService.isAffordable(orderType, correctAmount)) {
+        // 2. limit by maxVolCorr
+        if (marketService.getName().equals(OkCoinService.NAME)) {
+            CorrParams corrParams = persistenceService.fetchCorrParams();
+            BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
+            if (correctAmount.compareTo(okMax) > 0) {
+                correctAmount = okMax;
+            }
+        } else {
+            CorrParams corrParams = persistenceService.fetchCorrParams();
+            BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
+            if (correctAmount.compareTo(bMax) > 0) {
+                correctAmount = bMax;
+            }
+        }
+
+        // 3. check isAffordable
+        boolean isAffordable = marketService.isAffordable(orderType, correctAmount);
+        if (correctAmount.signum() > 0 && isAffordable) {
 //                bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
             arbitrageService.setSignalType(signalType);
             marketService.setBusy();
@@ -376,6 +391,8 @@ public class PosDiffService {
                 marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
                         PlacingType.TAKER, signalType, 1));
             }
+        } else {
+            warningLogger.warn("No correction: correctAmount={}, isAffordable=", correctAmount, isAffordable);
         }
     }
 

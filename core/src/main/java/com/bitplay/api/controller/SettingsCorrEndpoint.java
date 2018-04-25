@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.correction.Corr;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.Preliq;
 
@@ -73,11 +74,20 @@ public class SettingsCorrEndpoint {
     @RequestMapping(value = "/corr", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public CorrParams updatePreliq(@RequestBody CorrParams anUpdate) {
         CorrParams corrParams = persistenceService.fetchCorrParams();
-        if (anUpdate != null && anUpdate.getPreliq() != null) {
-            final Preliq uPreliq = anUpdate.getPreliq();
-            if (uPreliq.getPreliqBlockOkex() != null) {
-                corrParams.getPreliq().setPreliqBlockOkex(uPreliq.getPreliqBlockOkex());
-                persistenceService.saveCorrParams(corrParams);
+        if (anUpdate != null) {
+            if (anUpdate.getPreliq() != null) {
+                final Preliq uPreliq = anUpdate.getPreliq();
+                if (uPreliq.getPreliqBlockOkex() != null) {
+                    corrParams.getPreliq().setPreliqBlockOkex(uPreliq.getPreliqBlockOkex());
+                    persistenceService.saveCorrParams(corrParams);
+                }
+            }
+            if (anUpdate.getCorr() != null) {
+                final Corr uCorr = anUpdate.getCorr();
+                if (uCorr.getMaxVolCorrOkex() != null) {
+                    corrParams.getCorr().setMaxVolCorrOkex(uCorr.getMaxVolCorrOkex());
+                    persistenceService.saveCorrParams(corrParams);
+                }
             }
         }
         return corrParams;

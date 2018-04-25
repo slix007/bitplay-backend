@@ -1,28 +1,25 @@
 package com.bitplay.persistance.domain.correction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Created by Sergey Shurmin on 3/24/18.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Preliq {
     private Integer preliqBlockOkex;
     private Integer succeedCount;
     private Integer failedCount;
     private Integer currErrorCount;
     private Integer maxErrorCount;
-
-    public Preliq() {
-    }
-
-    public Preliq(Integer preliqBlockOkex, Integer succeedCount, Integer failedCount, Integer currErrorCount, Integer maxErrorCount) {
-        this.preliqBlockOkex = preliqBlockOkex;
-        this.succeedCount = succeedCount;
-        this.failedCount = failedCount;
-        this.currErrorCount = currErrorCount;
-        this.maxErrorCount = maxErrorCount;
-    }
 
     public static Preliq createDefault() {
         return new Preliq(1, 0, 0, 0, 3);
@@ -50,49 +47,9 @@ public class Preliq {
         this.currErrorCount++;
     }
 
-    public Integer getPreliqBlockOkex() {
-        return preliqBlockOkex;
-    }
-
-    public void setPreliqBlockOkex(Integer preliqBlockOkex) {
-        this.preliqBlockOkex = preliqBlockOkex;
-    }
-
-    public Integer getSucceedCount() {
-        return succeedCount;
-    }
-
-    public void setSucceedCount(Integer succeedCount) {
-        this.succeedCount = succeedCount;
-    }
-
-    public Integer getFailedCount() {
-        return failedCount;
-    }
-
-    public void setFailedCount(Integer failedCount) {
-        this.failedCount = failedCount;
-    }
-
-    public Integer getCurrErrorCount() {
-        return currErrorCount;
-    }
-
-    public void setCurrErrorCount(Integer currErrorCount) {
-        this.currErrorCount = currErrorCount;
-    }
-
-    public Integer getMaxErrorCount() {
-        return maxErrorCount;
-    }
-
-    public void setMaxErrorCount(Integer maxErrorCount) {
-        this.maxErrorCount = maxErrorCount;
-    }
-
     @Override
     public String toString() {
-        return String.format("Preliq errors(curr/max): %s/%s. Total(success/fail): %s/%s",
+        return String.format("Preliq attempts(curr/max): %s/%s. Total(success/fail): %s/%s",
                 currErrorCount, maxErrorCount,
                 succeedCount, failedCount);
     }

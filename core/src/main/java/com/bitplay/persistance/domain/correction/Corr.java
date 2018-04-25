@@ -1,46 +1,33 @@
 package com.bitplay.persistance.domain.correction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Created by Sergey Shurmin on 3/21/18.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Corr {
 
+    private Integer maxVolCorrOkex;
     private Integer succeedCount;
     private Integer failedCount;
     private Integer currErrorCount;
     private Integer maxErrorCount;
 
-    public Corr() {
-    }
-
-    public Corr(Integer succeedCount, Integer failedCount, Integer currErrorCount, Integer maxErrorCount) {
-        this.succeedCount = succeedCount;
-        this.failedCount = failedCount;
-        this.maxErrorCount = maxErrorCount;
-        this.currErrorCount = currErrorCount;
-    }
-
     public static Corr createDefault() {
-        return new Corr(0, 0, 0, 3);
+        return new Corr(1, 0, 0, 3, 1);
     }
 
-    public Integer getCurrErrorCount() {
-        return currErrorCount;
-    }
-
-    public void setCurrErrorCount(Integer currErrorCount) {
-        this.currErrorCount = currErrorCount;
-    }
-
-    public Integer getMaxErrorCount() {
-        return maxErrorCount;
-    }
-
-    public void setMaxErrorCount(Integer maxErrorCount) {
-        this.maxErrorCount = maxErrorCount;
+    public Integer getMaxVolCorrBitmex() {
+        return maxVolCorrOkex * 100;
     }
 
     public boolean hasSpareAttempts() {
@@ -49,22 +36,6 @@ public class Corr {
 
     public Integer getTotalCount() {
         return succeedCount + failedCount;
-    }
-
-    public Integer getSucceedCount() {
-        return succeedCount;
-    }
-
-    public void setSucceedCount(Integer succeedCount) {
-        this.succeedCount = succeedCount;
-    }
-
-    public Integer getFailedCount() {
-        return failedCount;
-    }
-
-    public void setFailedCount(Integer failedCount) {
-        this.failedCount = failedCount;
     }
 
     public void incSuccesses() {
@@ -79,7 +50,7 @@ public class Corr {
 
     @Override
     public String toString() {
-        return String.format("Corr errors(curr/max): %s/%s. Total(success/fail): %s/%s",
+        return String.format("Corr attempts(curr/max): %s/%s. Total(success/fail): %s/%s",
                 currErrorCount, maxErrorCount,
                 succeedCount, failedCount);
     }
