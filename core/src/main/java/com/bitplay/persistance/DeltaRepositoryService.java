@@ -73,6 +73,7 @@ public class DeltaRepositoryService {
         BorderDelta borderDelta = borderParams.getBorderDelta();
         if (borderDelta == null) {
             borderDelta = BorderDelta.createDefault();
+            persistenceService.saveBorderParams(borderParams);
         }
 
         recreateSavingListener(borderDelta);
