@@ -470,7 +470,7 @@ public class OkCoinService extends MarketService {
         }
     }
 
-    @Scheduled(fixedDelay = 20000)
+    @Scheduled(fixedDelay = 10000)
     public void openOrdersHangedChecker() {
         try {
             updateOOStatuses();
