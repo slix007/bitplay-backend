@@ -28,7 +28,6 @@ import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
@@ -36,7 +35,6 @@ import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
-import io.swagger.client.model.Error;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -523,11 +521,7 @@ public class OkCoinService extends MarketService {
                 arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
 
                 if (orderInfo.getStatus() == OrderStatus.NEW) { // 1. Try cancel then
-                    final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(orderId, "Taker:Cancel_maker:");
-
-                    if (!okCoinTradeResult.isResult()) throw new Exception("Failed to cancel taker-maker id=" + orderId);
-
-                    orderInfo = getFinalOrderInfoSync(orderId, counterName, "Taker:Cancel_makerStatus:");
+                    orderInfo = cancelOrderWithCheck(orderId, "Taker:Cancel_maker:", "Taker:Cancel_makerStatus:");
 
                     if (orderInfo == null) throw new Exception("Failed to check status of cancelled taker-maker id=" + orderId);
 
@@ -1021,11 +1015,8 @@ public class OkCoinService extends MarketService {
             BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
 
             // 1. cancel old order
-            final String counterName = getCounterName();
-            final OkCoinTradeResult okCoinTradeResult = cancelOrderSync(limitOrder.getId(), "Moving1:cancelling:");
-
             // 2. We got result on cancel(true/false), but double-check status of an old order
-            Order cancelledOrder = getFinalOrderInfoSync(limitOrder.getId(), counterName, "Moving2:cancelStatus:");
+            Order cancelledOrder = cancelOrderWithCheck(limitOrder.getId(), "Moving1:cancelling:", "Moving2:cancelStatus:");
             if (cancelledOrder == null)
                 return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Failed to check status of cancelled order on moving id=" + limitOrder.getId());
 
@@ -1037,8 +1028,9 @@ public class OkCoinService extends MarketService {
                     cancelledLimitOrder.getAveragePrice());
 
             // 3. Already closed?
-            if (cancelledLimitOrder.getStatus() == Order.OrderStatus.FILLED
-                    || (!okCoinTradeResult.isResult() && cancelledLimitOrder.getStatus() == Order.OrderStatus.CANCELED)) { // Already closed (FILLED)
+            final String counterName = getCounterName();
+            if (cancelledLimitOrder.getStatus() == Order.OrderStatus.FILLED) {
+//                    || (!okCoinTradeResult.isResult() && cancelledLimitOrder.getStatus() == Order.OrderStatus.CANCELED)) { // Already closed (FILLED)
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null,
                         cancelledFplayOrd);
 
@@ -1054,7 +1046,7 @@ public class OkCoinService extends MarketService {
                 tradeLogger.info(logString);
 
                 // 3. Place order
-            } else { //if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
+            } else { //if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) { // || PENDING_CANCEL
                 TradeResponse tradeResponse = new TradeResponse();
                 if (cancelledFplayOrd.getPlacingType() == null) {
                     getTradeLogger().warn("WARNING: PlaceType is null." + cancelledFplayOrd);
@@ -1224,6 +1216,69 @@ public class OkCoinService extends MarketService {
             }
         }
         return result;
+    }
+
+    private Order cancelOrderWithCheck(String orderId, String logInfoId1, String logInfoId2) {
+        final String counterName = getCounterName();
+        Order resOrder = null;
+
+        boolean cancelSucceed = false;
+        int attemptCount = 0;
+        while (attemptCount < MAX_ATTEMPTS_CANCEL) {
+            attemptCount++;
+            try {
+                if (attemptCount > 1) {
+                    Thread.sleep(200 * attemptCount);
+                }
+
+                final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
+                // 1. Cancel request
+                if (!cancelSucceed) {
+                    final OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId, CurrencyPair.BTC_USD, FuturesContract.ThisWeek);
+
+                    if (result == null) {
+                        tradeLogger.info("{}/{} {} id={}, no response", counterName, attemptCount, logInfoId1, orderId);
+                        continue;
+                    }
+
+                    tradeLogger.info("{}/{} {} id={},res={}({}),code={},details={}",
+                            counterName, attemptCount,
+                            logInfoId1,
+                            orderId,
+                            result.isResult(),
+                            result.isResult() ? "cancelled" : "probably already filled",
+                            result.getErrorCode(),
+                            result.getDetails());
+
+                    if (result.isResult()) {
+                        cancelSucceed = true;
+                    }
+                }
+
+                // 2. Status check
+                final Collection<Order> order = tradeService.getOrder(orderId);
+                Order cancelledOrder = order.iterator().next();
+                tradeLogger.info("{}/{} {} id={}, status={}, filled={}",
+                        counterName,
+                        attemptCount,
+                        logInfoId2,
+                        cancelledOrder.getId(),
+                        cancelledOrder.getStatus(),
+                        cancelledOrder.getCumulativeAmount());
+
+                if (cancelledOrder.getStatus() == OrderStatus.PENDING_CANCEL
+                        || cancelledOrder.getStatus() == Order.OrderStatus.CANCELED
+                        || cancelledOrder.getStatus() == Order.OrderStatus.FILLED) {
+                    resOrder = cancelledOrder;
+                    break;
+                }
+
+            } catch (Exception e) {
+                logger.error("{}/{} error cancel maker order", counterName, attemptCount, e);
+                tradeLogger.error("{}/{} error cancel maker order: {}", counterName, attemptCount, e.toString());
+            }
+        }
+        return resOrder;
     }
 
     @Override
