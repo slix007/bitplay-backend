@@ -96,7 +96,8 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getRestartEnabled() != null) {
-            settings.setRestartEnabled(settingsUpdate.getRestartEnabled()); // no need to save. it already refers to internal volatile var
+            settings.setRestartEnabled(settingsUpdate.getRestartEnabled());
+            settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getFeeSettings() != null) {
             if (settingsUpdate.getFeeSettings().getbMakerComRate() != null) {
