@@ -3,6 +3,7 @@ package com.bitplay.persistance.migration.changelogs;
 import com.bitplay.persistance.domain.borders.BorderDelta;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.github.mongobee.changeset.ChangeLog;
 import com.github.mongobee.changeset.ChangeSet;
 import java.util.List;
@@ -31,4 +32,14 @@ public class Changelog0418 {
             mongoTemplate.save(corrParams);
         }
     }
+
+    @ChangeSet(order = "003", id = "2018-04-27:Okex placing attempts", author = "SergeiShurmin")
+    public void change03(MongoTemplate mongoTemplate) {
+        final List<Settings> all = mongoTemplate.findAll(Settings.class);
+        for (Settings settings : all) {
+            settings.getOkexSysOverloadArgs().setPlaceAttempts(2);
+            mongoTemplate.save(settings);
+        }
+    }
+
 }
