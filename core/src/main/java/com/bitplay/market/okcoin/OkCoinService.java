@@ -1046,7 +1046,7 @@ public class OkCoinService extends MarketService {
                 tradeLogger.info(logString);
 
                 // 3. Place order
-            } else { //if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) { // || PENDING_CANCEL
+            } else if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
                 TradeResponse tradeResponse = new TradeResponse();
                 if (cancelledFplayOrd.getPlacingType() == null) {
                     getTradeLogger().warn("WARNING: PlaceType is null." + cancelledFplayOrd);
@@ -1068,6 +1068,8 @@ public class OkCoinService extends MarketService {
                             null, null, cancelledFplayOrd);
                 }
 
+            } else {
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "wrong status on cancel/new: " + cancelledLimitOrder.getStatus());
             }
         } finally {
             setMarketState(savedState);
@@ -1266,8 +1268,7 @@ public class OkCoinService extends MarketService {
                         cancelledOrder.getStatus(),
                         cancelledOrder.getCumulativeAmount());
 
-                if (cancelledOrder.getStatus() == OrderStatus.PENDING_CANCEL
-                        || cancelledOrder.getStatus() == Order.OrderStatus.CANCELED
+                if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED
                         || cancelledOrder.getStatus() == Order.OrderStatus.FILLED) {
                     resOrder = cancelledOrder;
                     break;
