@@ -71,6 +71,11 @@ public class QuoineService extends MarketService {
     }
 
     @Override
+    protected void onReadyState() {
+        // nothing for now
+    }
+
+    @Override
     protected void iterateOpenOrdersMove() {
 
     }

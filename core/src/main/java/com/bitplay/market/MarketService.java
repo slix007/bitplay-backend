@@ -386,7 +386,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     public void setMarketState(MarketState newState, String counterName) {
         getTradeLogger().info("{} {} marketState: {} {}", counterName, getName(), newState, getPosDiffString());
         this.marketState = newState;
-        this.readyTime = Instant.now();
+        if (newState == MarketState.READY) {
+            this.readyTime = Instant.now();
+            onReadyState();
+        }
     }
 
     public MarketState getMarketState() {
@@ -621,6 +624,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     abstract protected void iterateOpenOrdersMove();
+    abstract protected void onReadyState();
 
     public MoveResponse moveMakerOrderFromGui(String orderId) {
         MoveResponse response;

@@ -5,6 +5,7 @@ import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.BitmexXRateLimit;
+import com.bitplay.market.okcoin.OOHangedCheckerService;
 import com.bitplay.market.okcoin.OkCoinService;
 
 import org.slf4j.Logger;
@@ -36,7 +37,7 @@ public class DebugEndpoints {
     private RestartService restartService;
 
     @Autowired
-    private OkCoinService okCoinService;
+    private OOHangedCheckerService ooHangedCheckerService;
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -76,6 +77,8 @@ public class DebugEndpoints {
             deadLockDescr += "<br>xRateLimit=" + (theLimit == 301 ? "no info" : theLimit)
                     + "; lastUpdate: " + sdf.format(bitmexXRateLimit.getLastUpdate());
         }
+
+        deadLockDescr += "<br>OOHangedChecker: " + ooHangedCheckerService.getStatus();
 
         return new ResultJson(resultJson.getResult(), deadLockDescr);
     }

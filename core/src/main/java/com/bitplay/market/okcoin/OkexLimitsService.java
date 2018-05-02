@@ -4,16 +4,13 @@ import com.bitplay.api.domain.futureindex.LimitsJson;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
-
-import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
+import java.math.BigDecimal;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
 
 /**
  * Created by Sergey Shurmin on 4/8/18.

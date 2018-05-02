@@ -349,6 +349,10 @@ public class BitmexService extends MarketService {
 
     }
 
+    @Override
+    protected void onReadyState() {
+        iterateOpenOrdersMove();
+    }
 
     @Override
     protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long

@@ -123,6 +123,8 @@ public class OkCoinService extends MarketService {
     private RestartService restartService;
     @Autowired
     private OkexLimitsService okexLimitsService;
+    @Autowired
+    private OOHangedCheckerService ooHangedCheckerService;
 
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
@@ -468,17 +470,15 @@ public class OkCoinService extends MarketService {
         }
     }
 
-    @Scheduled(fixedDelay = 10000)
-    public void openOrdersHangedChecker() {
-        try {
-            updateOOStatuses();
+    /**
+     * See {@link OOHangedCheckerService}.
+     */
+    //    @Scheduled(fixedDelay = 10000)
+    void openOrdersHangedChecker() {
+        updateOOStatuses();
 
-            if (!hasOpenOrders()) {
-                eventBus.send(BtsEvent.MARKET_FREE_FROM_CHECKER);
-            }
-
-        } catch (Exception e) {
-            logger.error("Exception on openOrdersHangedChecker", e);
+        if (!hasOpenOrders()) {
+            eventBus.send(BtsEvent.MARKET_FREE_FROM_CHECKER);
         }
     }
 
@@ -809,6 +809,7 @@ public class OkCoinService extends MarketService {
         try {
             tradeResponse = placeMakerOrder(orderType, tradeableAmount, bestQuotes, isMoving, signalType, placingSubType);
         } finally {
+            ooHangedCheckerService.startChecker();
             setMarketState(MarketState.ARBITRAGE);
         }
 
@@ -1499,6 +1500,12 @@ public class OkCoinService extends MarketService {
                 }
             }
         }
+    }
+
+    @Override
+    protected void onReadyState() {
+        ooHangedCheckerService.stopChecker();
+        iterateOpenOrdersMove();
     }
 
     @Override
