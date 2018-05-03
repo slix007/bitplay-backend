@@ -661,6 +661,12 @@ public class OkCoinService extends MarketService {
         final BigDecimal amount = placeOrderArgs.getAmount();
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
         final SignalType signalType = placeOrderArgs.getSignalType();
+        PlacingType placingType = placeOrderArgs.getPlacingType();
+        if (placingType == null) {
+            tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs);
+            final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+            placingType = settings.getOkexPlacingType();
+        }
 
         BigDecimal amountLeft = amount;
         int attemptCount = 0;
@@ -671,11 +677,9 @@ public class OkCoinService extends MarketService {
                     Thread.sleep(200 * attemptCount);
                 }
 
-                final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
-
-                if (okexPlacingType == PlacingType.MAKER || okexPlacingType == PlacingType.HYBRID) {
-                    tradeResponse = placeMakerOrderWithStatus(orderType, amountLeft, bestQuotes, false, signalType, okexPlacingType);
-                } else if (okexPlacingType == PlacingType.TAKER) {
+                if (placingType == PlacingType.MAKER || placingType == PlacingType.HYBRID) {
+                    tradeResponse = placeMakerOrderWithStatus(orderType, amountLeft, bestQuotes, false, signalType, placingType);
+                } else if (placingType == PlacingType.TAKER) {
                     tradeResponse = takerOrder(orderType, amountLeft, bestQuotes, signalType);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
                         final BigDecimal filled = tradeResponse.getCancelledOrders().get(0).getCumulativeAmount();
