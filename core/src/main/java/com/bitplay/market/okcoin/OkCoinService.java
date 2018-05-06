@@ -757,6 +757,10 @@ public class OkCoinService extends MarketService {
                 tradeResponse.setOrderId(message);
                 tradeResponse.setErrorCode(message);
 
+                if (message.contains("Signature does not match")) { // ExchangeException has equal info with Exception
+                    continue;
+                }
+
                 if (message.contains("Close amount bigger than your open positions")) {
                     try {
                         fetchPosition();

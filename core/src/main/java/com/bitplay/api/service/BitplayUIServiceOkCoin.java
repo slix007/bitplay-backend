@@ -7,11 +7,16 @@ import com.bitplay.api.domain.futureindex.FutureIndexJson;
 import com.bitplay.api.domain.futureindex.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
-
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.Ticker;
@@ -20,12 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
@@ -81,17 +80,12 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
 
             getBusinessService().getEventBus().send(BtsEvent.MARKET_BUSY);
 
-            if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
-                final TradeResponse tradeResponse = service.takerOrder(orderType, amount, null, signalType);
-                orderId = tradeResponse.getOrderId();
-                details = tradeResponse.getErrorCode();
-            } else if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.MAKER
-                    || tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.HYBRID) {
-                final PlacingType placingSubType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
-                final TradeResponse tradeResponse = service.placeMakerOrderWithStatus(orderType, amount, null, false,
-                        signalType, placingSubType);
-                orderId = tradeResponse.getOrderId();
-            }
+            final PlacingType placingSubType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
+            TradeResponse tradeResponse = service.placeOrder(new PlaceOrderArgs(orderType, amount, null, placingSubType,
+                    signalType, 0));
+            orderId = tradeResponse.getOrderId();
+            details = tradeResponse.getErrorCode();
+
         } catch (Exception e) {
             getBusinessService().getTradeLogger().error("Place taker order error " + e.toString());
             logger.error("Place taker order error", e);
