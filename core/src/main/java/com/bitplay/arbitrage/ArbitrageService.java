@@ -270,7 +270,7 @@ public class ArbitrageService {
                 printOAvgPrice();
 
             } else if (params.getLastDelta().equals(DELTA2)) {
-                params.setCumDelta(params.getCumDelta().add(dealPrices.getDelta1Plan()));
+                params.setCumDelta(params.getCumDelta().add(dealPrices.getDelta2Plan()));
 
                 // ast_delta2 = -(con / ok_bid - con / b_ask)
                 final BigDecimal ast_delta2 = ((con.divide(ok_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(b_ask, 16, RoundingMode.HALF_UP)))
