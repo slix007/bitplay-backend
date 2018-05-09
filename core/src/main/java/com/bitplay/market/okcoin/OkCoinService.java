@@ -482,7 +482,7 @@ public class OkCoinService extends MarketService {
         }
     }
 
-    public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType)
+    private TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType)
             throws Exception {
 
         TradeResponse tradeResponse = new TradeResponse();
@@ -491,59 +491,50 @@ public class OkCoinService extends MarketService {
 
         orderType = adjustOrderType(orderType, amount);
 
-        final MarketState savedState = getMarketState();
-        setMarketState(MarketState.PLACING_ORDER);
-        arbitrageService.setSignalType(signalType);
+        synchronized (openOrdersLock) {
 
-        try {
-            synchronized (openOrdersLock) {
-
-                // Option 1: REAL TAKER
+            // Option 1: REAL TAKER
 //            final MarketOrder marketOrder = new MarketOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, new Date());
 //            final String orderId = tradeService.placeMarketOrder(marketOrder);
 
-                // Option 2: FAKE LIMIT ORDER
-                BigDecimal thePrice = Utils.createPriceForTaker(getOrderBook(), orderType);
-                getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
-                final LimitOrder limitOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
-                String orderId = tradeService.placeLimitOrder(limitOrder);
+            // Option 2: FAKE LIMIT ORDER
+            BigDecimal thePrice = Utils.createPriceForTaker(getOrderBook(), orderType);
+            getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
+            final LimitOrder limitOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
+            String orderId = tradeService.placeLimitOrder(limitOrder);
 
-                final String counterName = getCounterName();
+            final String counterName = getCounterName();
 
-                Order orderInfo = getFinalOrderInfoSync(orderId, counterName, "Taker:FinalStatus:");
+            Order orderInfo = getFinalOrderInfoSync(orderId, counterName, "Taker:FinalStatus:");
+            if (orderInfo == null) {
+                throw new ResetToReadyException("Failed to check final status of taker-maker id=" + orderId);
+            }
+
+            updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
+
+            arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
+            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+
+            if (orderInfo.getStatus() == OrderStatus.NEW) { // 1. Try cancel then
+                orderInfo = cancelOrderWithCheck(orderId, "Taker:Cancel_maker:", "Taker:Cancel_makerStatus:");
+
                 if (orderInfo == null) {
-                    throw new ResetToReadyException("Failed to check final status of taker-maker id=" + orderId);
+                    throw new Exception("Failed to check status of cancelled taker-maker id=" + orderId);
                 }
 
                 updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
-
-                arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
-                arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
-
-                if (orderInfo.getStatus() == OrderStatus.NEW) { // 1. Try cancel then
-                    orderInfo = cancelOrderWithCheck(orderId, "Taker:Cancel_maker:", "Taker:Cancel_makerStatus:");
-
-                    if (orderInfo == null) throw new Exception("Failed to check status of cancelled taker-maker id=" + orderId);
-
-                    updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
-                }
-
-                if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
-                    tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
-                    tradeResponse.addCancelledOrder((LimitOrder) orderInfo);
-                    warningLogger.warn("{} Order was cancelled. orderId={}", getCounterName(), orderId);
-                } else { //FILLED by any (orderInfo or cancelledOrder)
-
-                    writeLogPlaceOrder(orderType, amount, "taker",
-                            orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
-
-                    tradeResponse.setOrderId(orderId);
-                }
             }
-        } finally {
-            setMarketState(savedState);
-            if (tradeResponse.getOrderId() != null) {
-                setFree();
+
+            if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
+                tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
+                tradeResponse.addCancelledOrder((LimitOrder) orderInfo);
+                warningLogger.warn("{} Order was cancelled. orderId={}", getCounterName(), orderId);
+            } else { //FILLED by any (orderInfo or cancelledOrder)
+
+                writeLogPlaceOrder(orderType, amount, "taker",
+                        orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString());
+
+                tradeResponse.setOrderId(orderId);
             }
         }
 
@@ -668,6 +659,11 @@ public class OkCoinService extends MarketService {
             placingType = settings.getOkexPlacingType();
         }
 
+        // SET STATE
+        MarketState nextState = getMarketState();
+        setMarketState(MarketState.PLACING_ORDER);
+        arbitrageService.setSignalType(signalType);
+
         BigDecimal amountLeft = amount;
         int attemptCount = 0;
         for (int i = 0; i < maxAttempts; i++) {
@@ -678,7 +674,7 @@ public class OkCoinService extends MarketService {
                 }
 
                 if (placingType == PlacingType.MAKER || placingType == PlacingType.HYBRID) {
-                    tradeResponse = placeMakerOrderWithStatus(orderType, amountLeft, bestQuotes, false, signalType, placingType);
+                    tradeResponse = placeMakerOrder(orderType, amountLeft, bestQuotes, false, signalType, placingType);
                 } else if (placingType == PlacingType.TAKER) {
                     tradeResponse = takerOrder(orderType, amountLeft, bestQuotes, signalType);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
@@ -771,7 +767,7 @@ public class OkCoinService extends MarketService {
                 }
 
                 if (e instanceof ResetToReadyException) {
-                    setMarketState(MarketState.READY);
+                    nextState = MarketState.READY;
                 }
 
                 break; // no retry by default
@@ -783,6 +779,17 @@ public class OkCoinService extends MarketService {
                 posDiffService.finishCorr(true); // - when market is READY
             } else {
                 posDiffService.finishCorr(false);
+            }
+        }
+
+        // RESET STATE
+        if (placingType == PlacingType.MAKER || placingType == PlacingType.HYBRID) {
+            ooHangedCheckerService.startChecker();
+            setMarketState(MarketState.ARBITRAGE);
+        } else if (placingType == PlacingType.TAKER) {
+            setMarketState(nextState); // should be READY
+            if (tradeResponse.getOrderId() != null) {
+                setFree(); // ARBGITRAGE->READY and iterateOOToMove
             }
         }
 
@@ -805,24 +812,6 @@ public class OkCoinService extends MarketService {
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
         throw new IllegalArgumentException("Use placeOrder instead");
-    }
-
-    public TradeResponse placeMakerOrderWithStatus(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-                                                   boolean isMoving, SignalType signalType, PlacingType placingSubType) throws Exception {
-        final TradeResponse tradeResponse;
-        arbitrageService.setSignalType(signalType);
-
-        setMarketState(MarketState.PLACING_ORDER);
-
-        try {
-            tradeResponse = placeMakerOrder(orderType, tradeableAmount, bestQuotes, isMoving, signalType, placingSubType);
-        } finally {
-            ooHangedCheckerService.startChecker();
-            setMarketState(MarketState.ARBITRAGE);
-        }
-
-//        fetchOpenOrdersWithDelay();
-        return tradeResponse;
     }
 
     private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
