@@ -1040,16 +1040,18 @@ public class BitmexService extends MarketService {
             logger.error("Place market order error", e);
             tradeLogger.info("maker error {}", e.toString());
             tradeResponse.setErrorCode(e.getMessage());
-        } finally {
-            setMarketState(nextMarketState);
         }
 
-        if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
-            if (tradeResponse.getOrderId() != null) {
-                posDiffService.finishCorr(true); // - Only when FILLED by subscription
-            } else {
-                posDiffService.finishCorr(false);
+        try {
+            if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
+                if (tradeResponse.getOrderId() != null) {
+                    posDiffService.finishCorr(true); // - Only when FILLED by subscription
+                } else {
+                    posDiffService.finishCorr(false);
+                }
             }
+        } finally {
+            setMarketState(nextMarketState);
         }
 
         return tradeResponse;
@@ -1389,21 +1391,13 @@ public class BitmexService extends MarketService {
         } else {
             if (orderType.equals(Order.OrderType.BID)) { //LONG
                 if (position.getPositionLong().signum() > 0) {
-                    if (liqInfo.getDqlCurr().compareTo(bDQLOpenMin) != -1) {
-                        isOk = true;
-                    } else {
-                        isOk = false;
-                    }
+                    isOk = liqInfo.getDqlCurr().compareTo(bDQLOpenMin) != -1;
                 } else {
                     isOk = true;
                 }
             } else if ((orderType.equals(Order.OrderType.ASK))) {
                 if (position.getPositionLong().signum() < 0) {
-                    if (liqInfo.getDqlCurr().compareTo(bDQLOpenMin) != -1) {
-                        isOk = true;
-                    } else {
-                        isOk = false;
-                    }
+                    isOk = liqInfo.getDqlCurr().compareTo(bDQLOpenMin) != -1;
                 } else {
                     isOk = true;
                 }

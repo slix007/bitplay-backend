@@ -774,22 +774,24 @@ public class OkCoinService extends MarketService {
             }
         }
 
-        if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
-            if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
-                posDiffService.finishCorr(true); // - when market is READY
-            } else {
-                posDiffService.finishCorr(false);
+        try {
+            if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
+                if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
+                    posDiffService.finishCorr(true); // - when market is READY
+                } else {
+                    posDiffService.finishCorr(false);
+                }
             }
-        }
-
-        // RESET STATE
-        if (placingType == PlacingType.MAKER || placingType == PlacingType.HYBRID) {
-            ooHangedCheckerService.startChecker();
-            setMarketState(MarketState.ARBITRAGE);
-        } else if (placingType == PlacingType.TAKER) {
-            setMarketState(nextState); // should be READY
-            if (tradeResponse.getOrderId() != null) {
-                setFree(); // ARBGITRAGE->READY and iterateOOToMove
+        } finally {
+            // RESET STATE
+            if (placingType == PlacingType.MAKER || placingType == PlacingType.HYBRID) {
+                ooHangedCheckerService.startChecker();
+                setMarketState(MarketState.ARBITRAGE);
+            } else if (placingType == PlacingType.TAKER) {
+                setMarketState(nextState); // should be READY
+                if (tradeResponse.getOrderId() != null) {
+                    setFree(); // ARBGITRAGE->READY and iterateOOToMove
+                }
             }
         }
 
@@ -1426,21 +1428,13 @@ public class OkCoinService extends MarketService {
         } else {
             if (orderType.equals(Order.OrderType.BID)) { // LONG
                 if ((position.getPositionLong().subtract(position.getPositionShort())).signum() > 0) {
-                    if (liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1) {
-                        isOk = true;
-                    } else {
-                        isOk = false;
-                    }
+                    isOk = liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1;
                 } else {
                     isOk = true;
                 }
             } else if (orderType.equals(Order.OrderType.ASK)) {
                 if ((position.getPositionLong().subtract(position.getPositionShort()).signum() < 0)) {
-                    if (liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1) {
-                        isOk = true;
-                    } else {
-                        isOk = false;
-                    }
+                    isOk = liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1;
                 } else {
                     isOk = true;
                 }
