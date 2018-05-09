@@ -139,7 +139,6 @@ public class DeltaRepositoryService {
             return lastSavedDelta;
         }
         lastSavedDelta = deltaRepository.findFirstByOrderByTimestampDesc();
-        System.out.println("lastSavedDelta: " + lastSavedDelta.getTimestamp() + lastSavedDelta.toString());
         return lastSavedDelta;
     }
 

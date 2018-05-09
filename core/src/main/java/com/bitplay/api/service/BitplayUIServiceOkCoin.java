@@ -78,8 +78,6 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         String details = null;
         try {
 
-            getBusinessService().getEventBus().send(BtsEvent.MARKET_BUSY);
-
             final PlacingType placingSubType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
             TradeResponse tradeResponse = service.placeOrder(new PlaceOrderArgs(orderType, amount, null, placingSubType,
                     signalType, 0));

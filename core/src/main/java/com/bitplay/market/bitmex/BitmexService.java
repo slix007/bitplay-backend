@@ -879,9 +879,10 @@ public class BitmexService extends MarketService {
         }
 
         MarketState nextMarketState = getMarketState();
+        arbitrageService.setSignalType(signalType);
+        final String counterName = getCounterName();
 
         try {
-            arbitrageService.setSignalType(signalType);
             setMarketState(MarketState.PLACING_ORDER);
 
             final BitmexTradeService bitmexTradeService = (BitmexTradeService) exchange.getTradeService();
@@ -921,7 +922,7 @@ public class BitmexService extends MarketService {
                             tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
                             tradeResponse.setLimitOrder(null);
                             tradeLogger.info("{} {} {} CANCELED amount={}, filled={}, quote={}, orderId={}",
-                                    getCounterName(),
+                                    counterName,
                                     placingType,
                                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                                     amount.toPlainString(),
@@ -956,7 +957,7 @@ public class BitmexService extends MarketService {
                     }
 
                     final String message = String.format("%s %s %s amount=%s with quote=%s was placed.orderId=%s. pos=%s",
-                            getCounterName(),
+                            counterName,
                             placingType,
                             orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                             amount.toPlainString(),
@@ -1008,7 +1009,7 @@ public class BitmexService extends MarketService {
                     final String message = e.getMessage();
                     tradeResponse.setErrorCode(message);
 
-                    final String logString = String.format("%s/%s PlaceOrderError: %s", getCounterName(), attemptCount, message);
+                    final String logString = String.format("%s/%s PlaceOrderError: %s", counterName, attemptCount, message);
                     logger.error(logString, e);
                     tradeLogger.error(logString);
                     warningLogger.error(logString);
@@ -1049,9 +1050,10 @@ public class BitmexService extends MarketService {
                 } else {
                     posDiffService.finishCorr(false);
                 }
+                nextMarketState = MarketState.READY;
             }
         } finally {
-            setMarketState(nextMarketState);
+            setMarketState(nextMarketState, counterName);
         }
 
         return tradeResponse;

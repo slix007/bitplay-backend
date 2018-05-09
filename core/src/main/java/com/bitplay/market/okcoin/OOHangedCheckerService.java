@@ -30,9 +30,11 @@ public class OOHangedCheckerService {
     }
 
     void stopChecker() {
-        logger.info("stopChecker");
-        future.cancel(false);
-        runCounter = 0;
+        if (future != null) { // with TAKER we don't even start it, but do Stop
+            logger.info("stopChecker");
+            future.cancel(false);
+            runCounter = 0;
+        }
     }
 
     void startChecker() {

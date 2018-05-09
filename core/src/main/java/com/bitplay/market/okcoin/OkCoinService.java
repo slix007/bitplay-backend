@@ -660,9 +660,10 @@ public class OkCoinService extends MarketService {
         }
 
         // SET STATE
+        arbitrageService.setSignalType(signalType);
+        final String counterName = getCounterName();
         MarketState nextState = getMarketState();
         setMarketState(MarketState.PLACING_ORDER);
-        arbitrageService.setSignalType(signalType);
 
         BigDecimal amountLeft = amount;
         int attemptCount = 0;
@@ -726,7 +727,7 @@ public class OkCoinService extends MarketService {
 
                 if (message.contains("connect timed out") && attemptCount < maxAttempts) {
                     final String logString = String.format("%s/%s placeOrderOnSignal error: %s.",
-                            getCounterName(), attemptCount, message);
+                            counterName, attemptCount, message);
                     tradeLogger.error(logString);
                     logger.error(logString);
                     continue;
@@ -744,7 +745,7 @@ public class OkCoinService extends MarketService {
                 String message = e.getMessage();
 
                 String details = String.format("%s/%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s. %s",
-                        getCounterName(), attemptCount,
+                        counterName, attemptCount,
                         orderType, amountLeft, bestQuotes, false, signalType, message);
                 logger.error(details, e);
                 details = details.length() < 300 ? details : details.substring(0, 300); // we can get html page as error message
@@ -781,14 +782,15 @@ public class OkCoinService extends MarketService {
                 } else {
                     posDiffService.finishCorr(false);
                 }
+                nextState = MarketState.READY;
             }
         } finally {
             // RESET STATE
             if (placingType == PlacingType.MAKER || placingType == PlacingType.HYBRID) {
                 ooHangedCheckerService.startChecker();
-                setMarketState(MarketState.ARBITRAGE);
+                setMarketState(MarketState.ARBITRAGE, counterName);
             } else if (placingType == PlacingType.TAKER) {
-                setMarketState(nextState); // should be READY
+                setMarketState(nextState, counterName); // should be READY
                 if (tradeResponse.getOrderId() != null) {
                     setFree(); // ARBGITRAGE->READY and iterateOOToMove
                 }

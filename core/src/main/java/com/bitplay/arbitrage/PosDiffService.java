@@ -71,15 +71,27 @@ public class PosDiffService {
                         isCorrect = true;
                     } else {
 
-                        Thread.sleep(10 * 1000);
-
-                        final String infoMsg = "Double check before finishCorr: fetchPosition:";
-                        final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
-                        final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
+                        Thread.sleep(1000);
+                        String infoMsg = "First check before finishCorr: fetchPosition:";
+                        String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+                        String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                         logger.info(infoMsg + "bitmex " + pos1);
                         logger.info(infoMsg + "okex " + pos2);
+
                         if (getIsPositionsEqual()) {
                             isCorrect = true;
+                        } else {
+
+                            Thread.sleep(9 * 1000);
+
+                            infoMsg = "Double check before finishCorr: fetchPosition:";
+                            pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+                            pos2 = arbitrageService.getSecondMarketService().fetchPosition();
+                            logger.info(infoMsg + "bitmex " + pos1);
+                            logger.info(infoMsg + "okex " + pos2);
+                            if (getIsPositionsEqual()) {
+                                isCorrect = true;
+                            }
                         }
                     }
                 }
@@ -127,11 +139,14 @@ public class PosDiffService {
         theTimer = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
                 .doOnComplete(() -> {
                     final String infoMsg = "Double check before timer-correction: fetchPosition:";
+                    if (Thread.interrupted()) return;
                     final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+                    if (Thread.interrupted()) return;
                     final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                     warningLogger.info(infoMsg + "bitmex " + pos1);
                     warningLogger.info(infoMsg + "okex "+ pos2);
 
+                    if (Thread.interrupted()) return;
                     doCorrectionImmediate(SignalType.CORR_TIMER);
                 })
                 .doOnError(e -> {
@@ -270,10 +285,7 @@ public class PosDiffService {
     private boolean isReadyByTimeForCorrection(MarketService marketService) {
         final long nowMs = Instant.now().toEpochMilli();
         final long readyMs = marketService.getReadyTime().toEpochMilli();
-        if (nowMs - readyMs > MIN_CORR_TIME_AFTER_READY) {
-            return true;
-        }
-        return false;
+        return nowMs - readyMs > MIN_CORR_TIME_AFTER_READY;
     }
 
     private BigDecimal getHedgeAmount() {
@@ -285,7 +297,7 @@ public class PosDiffService {
         return hedgeAmount;
     }
 
-    private void doCorrectionImmediate(SignalType signalType) throws Exception {
+    private void doCorrectionImmediate(SignalType signalType) {
         if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
                 || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
             return;
@@ -309,6 +321,7 @@ public class PosDiffService {
                 || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
             return;
         }
+        stopTimerToCorrection(); // avoid double-correction
 
         final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
         // 1. What we have to correct

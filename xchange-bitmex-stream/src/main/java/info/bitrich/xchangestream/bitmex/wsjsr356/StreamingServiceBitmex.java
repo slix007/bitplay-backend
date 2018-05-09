@@ -34,7 +34,7 @@ public class StreamingServiceBitmex {
     private WSMessageHandler msgHandler;
     private Disposable pingDisposable;
 
-    public StreamingServiceBitmex(String apiUrl) throws URISyntaxException {
+    public StreamingServiceBitmex(String apiUrl) {
         this.apiUrl = apiUrl;
     }
 
@@ -108,15 +108,16 @@ public class StreamingServiceBitmex {
                                 clientEndPoint.sendMessage("ping");
                             }
 
-                        }).blockingAwait(1000, TimeUnit.MILLISECONDS);
+                        }).blockingAwait(2000, TimeUnit.MILLISECONDS);
 
                         if (!pongSuccessfully) {
-                            completable.onError(new Exception("ping failed"));
+                            completable.onError(new Exception("Ping failed. Timeout on waiting 'pong'."));
                             log.error("ping failed");
                         }
 
                     }, throwable -> {
                         log.error("ping failed", throwable);
+                        completable.onError(new Exception("Ping failed", throwable));
                         completable.onComplete();
                     });
         });
