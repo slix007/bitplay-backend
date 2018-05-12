@@ -58,6 +58,7 @@ import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
@@ -75,6 +76,7 @@ import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.util.Pair;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import si.mazi.rescu.HttpStatusIOException;
@@ -515,11 +517,12 @@ public class OkCoinService extends MarketService {
             arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
 
             if (orderInfo.getStatus() == OrderStatus.NEW) { // 1. Try cancel then
-                orderInfo = cancelOrderWithCheck(orderId, "Taker:Cancel_maker:", "Taker:Cancel_makerStatus:");
+                Pair<Boolean, Order> orderPair = cancelOrderWithCheck(orderId, "Taker:Cancel_maker:", "Taker:Cancel_makerStatus:");
 
-                if (orderInfo == null) {
+                if (orderPair.getSecond().getId().equals("empty")) {
                     throw new Exception("Failed to check status of cancelled taker-maker id=" + orderId);
                 }
+                orderInfo = orderPair.getSecond();
 
                 updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
             }
@@ -1000,11 +1003,14 @@ public class OkCoinService extends MarketService {
 
             // 1. cancel old order
             // 2. We got result on cancel(true/false), but double-check status of an old order
-            Order cancelledOrder = cancelOrderWithCheck(limitOrder.getId(), "Moving1:cancelling:", "Moving2:cancelStatus:");
-            if (cancelledOrder == null)
+            Pair<Boolean, Order> orderPair = cancelOrderWithCheck(limitOrder.getId(), "Moving1:cancelling:", "Moving2:cancelStatus:");
+            if (orderPair.getSecond().getId().equals("empty")) {
                 return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Failed to check status of cancelled order on moving id=" + limitOrder.getId());
+            }
+            Boolean cancelSucceed = orderPair.getFirst();
+            LimitOrder cancelledOrder = (LimitOrder) orderPair.getSecond();
 
-            final FplayOrder cancelledFplayOrd = FplayOrderUtils.updateFplayOrder(fOrderToCancel, (LimitOrder) cancelledOrder);
+            final FplayOrder cancelledFplayOrd = FplayOrderUtils.updateFplayOrder(fOrderToCancel, cancelledOrder);
             final LimitOrder cancelledLimitOrder = (LimitOrder) cancelledFplayOrd.getOrder();
             orderRepositoryService.update(cancelledLimitOrder);
 
@@ -1013,8 +1019,8 @@ public class OkCoinService extends MarketService {
 
             // 3. Already closed?
             final String counterName = getCounterName();
-            if (cancelledLimitOrder.getStatus() == Order.OrderStatus.FILLED) {
-//                    || (!okCoinTradeResult.isResult() && cancelledLimitOrder.getStatus() == Order.OrderStatus.CANCELED)) { // Already closed (FILLED)
+            if (!cancelSucceed // WORKAROUND: CANCELLED, but was cancelled/placedNew on a previous moving-iteration
+                    || cancelledLimitOrder.getStatus() == Order.OrderStatus.FILLED) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null,
                         cancelledFplayOrd);
 
@@ -1030,7 +1036,7 @@ public class OkCoinService extends MarketService {
                 tradeLogger.info(logString);
 
                 // 3. Place order
-            } else if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
+            } else if (cancelledOrder.getStatus() == OrderStatus.CANCELED) {
                 TradeResponse tradeResponse = new TradeResponse();
                 if (cancelledFplayOrd.getPlacingType() == null) {
                     getTradeLogger().warn("WARNING: PlaceType is null." + cancelledFplayOrd);
@@ -1202,11 +1208,11 @@ public class OkCoinService extends MarketService {
         return result;
     }
 
-    private Order cancelOrderWithCheck(String orderId, String logInfoId1, String logInfoId2) {
+    private Pair<Boolean, Order> cancelOrderWithCheck(String orderId, String logInfoId1, String logInfoId2) {
         final String counterName = getCounterName();
-        Order resOrder = null;
+        Order resOrder = new LimitOrder.Builder(OrderType.ASK, CURRENCY_PAIR_BTC_USD).id("empty").build(); //workaround
 
-        boolean cancelSucceed = false;
+        Boolean cancelSucceed = false;
         int attemptCount = 0;
         while (attemptCount < MAX_ATTEMPTS_CANCEL) {
             attemptCount++;
@@ -1261,7 +1267,7 @@ public class OkCoinService extends MarketService {
                 tradeLogger.error("{}/{} error cancel maker order: {}", counterName, attemptCount, e.toString());
             }
         }
-        return resOrder;
+        return Pair.of(cancelSucceed, resOrder);
     }
 
     @Override
