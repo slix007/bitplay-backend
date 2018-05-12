@@ -99,7 +99,7 @@ public class OkCoinService extends MarketService {
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
 
     private static final int MAX_ATTEMPTS_STATUS = 50;
-    private static final int MAX_ATTEMPTS_CANCEL = 10;
+    private static final int MAX_ATTEMPTS_CANCEL = 20;
     private static final int MAX_ATTEMPTS_FOR_MOVING = 2;
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
