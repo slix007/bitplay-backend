@@ -12,7 +12,7 @@ import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
-import com.bitplay.market.events.SignalEvent;
+import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.model.MoveResponse;

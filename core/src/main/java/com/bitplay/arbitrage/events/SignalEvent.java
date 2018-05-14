@@ -1,4 +1,4 @@
-package com.bitplay.market.events;
+package com.bitplay.arbitrage.events;
 
 /**
  * Created by Sergey Shurmin on 6/6/17.

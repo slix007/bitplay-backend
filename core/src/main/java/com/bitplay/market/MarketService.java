@@ -7,7 +7,7 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
-import com.bitplay.market.events.SignalEvent;
+import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;

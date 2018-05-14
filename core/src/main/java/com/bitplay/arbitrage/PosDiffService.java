@@ -12,17 +12,21 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.PostConstruct;
 import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /**
@@ -36,13 +40,13 @@ public class PosDiffService {
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
     private final static Logger debugLogger = LoggerFactory.getLogger("DEBUG_LOG");
-    private static final long MIN_CORR_TIME_AFTER_READY = 5000;
+    private static final long MIN_CORR_TIME_AFTER_READY_MS = 15000; // 15 sec
 
     private final BigDecimal DIFF_FACTOR = BigDecimal.valueOf(100);
 
-    private Disposable theTimer;
+    private Disposable theTimerToImmidiateCorr;
 
-    private volatile boolean calcInProgress = false;
+    private volatile boolean checkInProgress = false;
 
     private boolean hasMDCStarted = false;
     private volatile boolean hasTimerStarted = false;
@@ -60,6 +64,32 @@ public class PosDiffService {
     @Autowired
     private OkexLimitsService okexLimitsService;
 
+    private ScheduledExecutorService posDiffExecutor;
+
+    @PostConstruct
+    private void init() {
+        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("pos-diff-thread-%d").build();
+        posDiffExecutor = Executors.newSingleThreadScheduledExecutor(namedThreadFactory);
+        posDiffExecutor.scheduleWithFixedDelay(this::calcPosDiffJob,
+                60, 1, TimeUnit.SECONDS);
+
+        posDiffExecutor.scheduleWithFixedDelay(this::checkMDCJob,
+                60, 5, TimeUnit.SECONDS);
+    }
+
+    private void calcPosDiffJob() {
+        if (!hasGeneralCorrStarted) {
+            warningLogger.info("General correction has started");
+            hasGeneralCorrStarted = true;
+        }
+
+        try {
+            checkPosDiff(false);
+        } catch (Exception e) {
+            warningLogger.error("Correction failed. " + e.getMessage());
+            logger.error("Correction failed.", e);
+        }
+    }
 
     public void finishCorr(boolean wasOrderSuccess) {
         if (corrInProgress) {
@@ -125,7 +155,7 @@ public class PosDiffService {
         }
     }
 
-    private void startTimerToCorrection() {
+    private void startTimerToImmidiateCorrection() {
         if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
                 || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
             return;
@@ -136,7 +166,7 @@ public class PosDiffService {
         }
 
         final Long periodToCorrection = arbitrageService.getParams().getPeriodToCorrection();
-        theTimer = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
+        theTimerToImmidiateCorr = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
                 .doOnComplete(() -> {
                     final String infoMsg = "Double check before timer-correction: fetchPosition:";
                     if (Thread.interrupted()) return;
@@ -157,14 +187,13 @@ public class PosDiffService {
                 .subscribe();
     }
 
-    private void stopTimerToCorrection() {
-        if (theTimer != null) {
-            theTimer.dispose();
+    private void stopTimerToImmidiateCorrection() {
+        if (theTimerToImmidiateCorr != null) {
+            theTimerToImmidiateCorr.dispose();
         }
     }
 
-    @Scheduled(initialDelay = 10*60*1000, fixedDelay = 5000)
-    public void checkMaxDiffCorrection() {
+    private void checkMDCJob() {
         arbitrageService.getParams().setLastMDCCheck(new Date());
 
         if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
@@ -205,30 +234,15 @@ public class PosDiffService {
                 && positionsDiffWithHedge.abs().compareTo(maxDiffCorr) != -1;
     }
 
-    @Scheduled(initialDelay = 10*60*1000, fixedDelay = 1000)
-    public void calcPosDiffJob() {
-        if (!hasGeneralCorrStarted) {
-            warningLogger.info("General correction has started");
-            hasGeneralCorrStarted = true;
-        }
-
-        try {
-            calcPosDiff(false);
-        } catch (Exception e) {
-            warningLogger.error("Correction failed. " + e.getMessage());
-            logger.error("Correction failed.", e);
-        }
-    }
-
-    private void calcPosDiff(boolean isSecondCheck) throws Exception {
+    private void checkPosDiff(boolean isSecondCheck) throws Exception {
         if (!hasGeneralCorrStarted) {
             return;
         }
 
         arbitrageService.getParams().setLastCorrCheck(new Date());
 
-        if (!calcInProgress || isSecondCheck) {
-            calcInProgress = true;
+        if (!checkInProgress || isSecondCheck) {
+            checkInProgress = true;
 
             try {
                 final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
@@ -237,11 +251,11 @@ public class PosDiffService {
 
                 final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
                 if (positionsDiffWithHedge.signum() != 0) {
-                    if (theTimer == null || theTimer.isDisposed()) {
-                        startTimerToCorrection();
+                    if (theTimerToImmidiateCorr == null || theTimerToImmidiateCorr.isDisposed()) {
+                        startTimerToImmidiateCorrection();
                     }
                 } else {
-                    stopTimerToCorrection();
+                    stopTimerToImmidiateCorrection();
                 }
 
 //                writeWarnings(bP, oPL, oPS);
@@ -249,26 +263,27 @@ public class PosDiffService {
 
                 if (corrParams.getCorr().hasSpareAttempts()
                         && positionsDiffWithHedge.signum() != 0) {
-                    // 0. check if ready
+                    // if all READY more than 15 sec
                     if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
                             && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                             && isReadyByTimeForCorrection(arbitrageService.getFirstMarketService())
                             && isReadyByTimeForCorrection(arbitrageService.getSecondMarketService())) {
                         if (!isSecondCheck) {
-                            try {
-                                Thread.sleep(15 * 1000);
-                            } catch (InterruptedException e) {
-                                logger.error("Sleep before correction was interrupted");
-                                warningLogger.error("Sleep before correction was interrupted");
-                            }
 
                             final String infoMsg = "Double check before correction: fetchPosition:";
                             final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+                            if (Thread.interrupted()) {
+                                return;
+                            }
                             final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
+                            if (Thread.interrupted()) {
+                                return;
+                            }
                             warningLogger.info(infoMsg + "bitmex " + pos1);
                             warningLogger.info(infoMsg + "okex "+ pos2);
 
-                            calcPosDiff(true);
+                            checkPosDiff(true);
+
                         } else {
                             final BigDecimal hedgeAmount = getHedgeAmount();
                             doCorrection(bP, oPL, oPS, hedgeAmount, SignalType.CORR);
@@ -277,7 +292,7 @@ public class PosDiffService {
                 }
 
             } finally {
-                calcInProgress = false;
+                checkInProgress = false;
             }
         }
     }
@@ -285,14 +300,14 @@ public class PosDiffService {
     private boolean isReadyByTimeForCorrection(MarketService marketService) {
         final long nowMs = Instant.now().toEpochMilli();
         final long readyMs = marketService.getReadyTime().toEpochMilli();
-        return nowMs - readyMs > MIN_CORR_TIME_AFTER_READY;
+        return nowMs - readyMs > MIN_CORR_TIME_AFTER_READY_MS;
     }
 
     private BigDecimal getHedgeAmount() {
         final BigDecimal hedgeAmount = arbitrageService.getParams().getHedgeAmount();
         if (hedgeAmount == null) {
-            warningLogger.error("Hedge amount is null on calcPosDiff");
-            throw new RuntimeException("Hedge amount is null on calcPosDiff");
+            warningLogger.error("Hedge amount is null on checkPosDiff");
+            throw new RuntimeException("Hedge amount is null on checkPosDiff");
         }
         return hedgeAmount;
     }
@@ -321,7 +336,7 @@ public class PosDiffService {
                 || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
             return;
         }
-        stopTimerToCorrection(); // avoid double-correction
+        stopTimerToImmidiateCorrection(); // avoid double-correction
 
         final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
         // 1. What we have to correct
@@ -423,13 +438,14 @@ public class PosDiffService {
 
     boolean isPositionsEqual() {
 
-        try {
-            calcPosDiff(false);
-        } catch (Exception e) {
-            warningLogger.error("Correction failed(check before signal). " + e.getMessage());
-            logger.error("Correction failed(check before signal).", e);
-            return false;
-        }
+        posDiffExecutor.execute(() -> {
+            try {
+                checkPosDiff(false);
+            } catch (Exception e) {
+                warningLogger.error("Correction failed(check before signal). " + e.getMessage());
+                logger.error("Correction failed(check before signal).", e);
+            }
+        });
 
         return getPositionsDiffWithHedge().signum() == 0;
     }
@@ -484,9 +500,9 @@ public class PosDiffService {
     public void setPeriodToCorrection(Long periodToCorrection) {
         arbitrageService.getParams().setPeriodToCorrection(periodToCorrection);
         // restart timer
-        stopTimerToCorrection();
+        stopTimerToImmidiateCorrection();
         if (getPositionsDiffWithHedge().signum() != 0) {
-            startTimerToCorrection();
+            startTimerToImmidiateCorrection();
         }
     }
 
