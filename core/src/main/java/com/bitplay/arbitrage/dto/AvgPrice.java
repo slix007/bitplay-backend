@@ -1,5 +1,8 @@
 package com.bitplay.arbitrage.dto;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +40,7 @@ public class AvgPrice {
     }
 
     public synchronized void addPriceItem(String orderId, BigDecimal amount, BigDecimal price) {
-        if (orderId != null && amount != null && price != null) {
+        if (orderId != null) {
             pItems.put(orderId, new AvgPriceItem(amount, price));
         } else {
             logger.info("failed addPriceItem: orderId=" + orderId + ", amount=" + amount + ", price" + price);
@@ -55,7 +58,12 @@ public class AvgPrice {
     public synchronized BigDecimal getAvg(boolean withLogs) {
         BigDecimal avgPrice = BigDecimal.ZERO;
         try {
-            if (pItems.isEmpty()) {
+            List<AvgPriceItem> notNullItems = pItems.values().stream()
+                    .filter(Objects::nonNull)
+                    .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
+                    .collect(Collectors.toList());
+
+            if (notNullItems.isEmpty()) {
                 if (withLogs) {
                     logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
                     deltasLogger.info(marketName + "AvgPrice by openPrice: " + openPrice);
@@ -65,16 +73,12 @@ public class AvgPrice {
 
             StringBuilder sb = new StringBuilder();
             //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
-            BigDecimal sumNumerator = pItems.values().stream()
-                    .filter(Objects::nonNull)
-                    .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
+            BigDecimal sumNumerator = notNullItems.stream()
                     .peek(avgPriceItem -> sb.append(String.format("(%s*%s)", avgPriceItem.amount, avgPriceItem.price)))
                     .reduce(BigDecimal.ZERO,
                             (accumulated, item) -> accumulated.add(item.getAmount().multiply(item.getPrice())),
                             BigDecimal::add);
-            BigDecimal sumDenominator = pItems.values().stream()
-                    .filter(Objects::nonNull)
-                    .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
+            BigDecimal sumDenominator = notNullItems.stream()
                     .reduce(BigDecimal.ZERO,
                             (accumulated, item) -> accumulated.add(item.getAmount()),
                             BigDecimal::add);
