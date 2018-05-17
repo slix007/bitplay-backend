@@ -94,10 +94,12 @@ public class PosDiffService {
     public void finishCorr(boolean wasOrderSuccess) {
         if (corrInProgress) {
             corrInProgress = false;
+            BigDecimal dc = getPositionsDiffWithHedge();
+
             try {
                 boolean isCorrect = false;
                 if (wasOrderSuccess) {
-                    if (getIsPositionsEqual()) {
+                    if (dc.signum() == 0) {
                         isCorrect = true;
                     } else {
 
@@ -108,7 +110,9 @@ public class PosDiffService {
                         logger.info(infoMsg + "bitmex " + pos1);
                         logger.info(infoMsg + "okex " + pos2);
 
-                        if (getIsPositionsEqual()) {
+                        dc = getPositionsDiffWithHedge();
+
+                        if (dc.signum() == 0) {
                             isCorrect = true;
                         } else {
 
@@ -137,8 +141,7 @@ public class PosDiffService {
                     final CorrParams corrParams = persistenceService.fetchCorrParams();
                     corrParams.getCorr().incFails();
                     persistenceService.saveCorrParams(corrParams);
-                    deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(),
-                            getPositionsDiffWithHedge());
+                    deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(), dc);
                 }
 
             } catch (Exception e) {
@@ -149,8 +152,7 @@ public class PosDiffService {
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
                 corrParams.getCorr().incFails();
                 persistenceService.saveCorrParams(corrParams);
-                deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(),
-                        getPositionsDiffWithHedge());
+                deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(), dc);
             }
         }
     }
