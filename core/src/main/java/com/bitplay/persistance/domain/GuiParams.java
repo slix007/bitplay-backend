@@ -54,7 +54,9 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal slip = BigDecimal.ZERO;
 
     private int counter1 = 0;
+    private int completedCounter1 = 0;
     private int counter2 = 0;
+    private int completedCounter2 = 0;
 //    private BigDecimal block1 = BigDecimal.valueOf(100);
 //    private BigDecimal block2 = BigDecimal.valueOf(1);
     private BigDecimal posBefore = BigDecimal.ZERO;
@@ -398,6 +400,22 @@ public class GuiParams extends AbstractDocument {
 
     public void setCounter2(int counter2) {
         this.counter2 = counter2;
+    }
+
+    public int getCompletedCounter1() {
+        return completedCounter1;
+    }
+
+    public void setCompletedCounter1(int completedCounter1) {
+        this.completedCounter1 = completedCounter1;
+    }
+
+    public int getCompletedCounter2() {
+        return completedCounter2;
+    }
+
+    public void setCompletedCounter2(int completedCounter2) {
+        this.completedCounter2 = completedCounter2;
     }
 
     public BigDecimal getPosBefore() {

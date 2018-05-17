@@ -269,6 +269,8 @@ public class ArbitrageService {
 
                 printOAvgPrice();
 
+                params.setCompletedCounter1(params.getCompletedCounter1() + 1);
+
             } else if (params.getLastDelta().equals(DELTA2)) {
                 params.setCumDelta(params.getCumDelta().add(dealPrices.getDelta2Plan()));
 
@@ -308,6 +310,7 @@ public class ArbitrageService {
 
                 printOAvgPrice();
 
+                params.setCompletedCounter2(params.getCompletedCounter2() + 1);
             }
 
             printSumBal(false);
@@ -350,7 +353,7 @@ public class ArbitrageService {
         // slip = (cum_diff_fact - cum_com) / count1 + count2
         final BigDecimal cumCom = params.getCumCom1().add(params.getCumCom2());
         final BigDecimal slip = (params.getCumDiffFact().subtract(cumCom))
-                .divide(BigDecimal.valueOf(getCounter()), 8, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(params.getCompletedCounter1() + params.getCompletedCounter2()), 8, RoundingMode.HALF_UP);
         params.setSlip(slip);
 
         deltasLogger.info(String.format("#%s %s; " +

@@ -174,9 +174,11 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCount1() != null) {
             arbitrageService.getParams().setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
+            arbitrageService.getParams().setCompletedCounter1(Integer.parseInt(deltalUpdateJson.getCount2()));
         }
         if (deltalUpdateJson.getCount2() != null) {
             arbitrageService.getParams().setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
+            arbitrageService.getParams().setCompletedCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
         }
         if (deltalUpdateJson.getCumBitmexMCom() != null) {
             arbitrageService.getParams().setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
@@ -223,6 +225,8 @@ public class CommonUIService {
             arbitrageService.getParams().setSlip(BigDecimal.ZERO);
             arbitrageService.getParams().setCounter1(0);
             arbitrageService.getParams().setCounter2(0);
+            arbitrageService.getParams().setCompletedCounter1(0);
+            arbitrageService.getParams().setCompletedCounter2(0);
         }
         arbitrageService.saveParamsToDb();
 
@@ -255,6 +259,8 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumAstCom2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 String.valueOf(arbitrageService.getParams().getCounter1()),
                 String.valueOf(arbitrageService.getParams().getCounter2()),
+                String.valueOf(arbitrageService.getParams().getCompletedCounter1()),
+                String.valueOf(arbitrageService.getParams().getCompletedCounter2()),
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getCumAstBitmexMCom().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),

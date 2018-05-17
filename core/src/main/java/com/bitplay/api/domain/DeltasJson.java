@@ -29,6 +29,8 @@ public class DeltasJson {
     private String cumAstCom2;
     private String count1;
     private String count2;
+    private String completedCount1;
+    private String completedCount2;
     private String cumBitmexMCom;
     private String cumAstBitmexMCom;
     private String reserveBtc1;
@@ -42,7 +44,9 @@ public class DeltasJson {
     public DeltasJson(String delta1, String delta2, String border1, String border2, String makerDelta, String buValue, String cumDelta,
             String cumAstDelta, String lastDelta, String cumDeltaFact, String cumAstDeltaFact, String cumDiffFactBr, String cumDiffFact1,
             String cumDiffFact2, String cumDiffFact, String cumAstDiffFact1, String cumAstDiffFact2, String cumAstDiffFact, String cumCom1,
-            String cumCom2, String cumAstCom1, String cumAstCom2, String count1, String count2, String cumBitmexMCom, String cumAstBitmexMCom,
+            String cumCom2, String cumAstCom1, String cumAstCom2, String count1, String count2,
+            String completedCount1, String completedCount2,
+            String cumBitmexMCom, String cumAstBitmexMCom,
             String reserveBtc1, String reserveBtc2, String hedgeAmount, String fundingRateFee, String slip, String delta1Calc, String delta2Calc) {
         this.delta1 = delta1;
         this.delta2 = delta2;
@@ -68,6 +72,8 @@ public class DeltasJson {
         this.cumAstCom2 = cumAstCom2;
         this.count1 = count1;
         this.count2 = count2;
+        this.completedCount1 = completedCount1;
+        this.completedCount2 = completedCount2;
         this.cumBitmexMCom = cumBitmexMCom;
         this.cumAstBitmexMCom = cumAstBitmexMCom;
         this.reserveBtc1 = reserveBtc1;
@@ -173,6 +179,14 @@ public class DeltasJson {
 
     public String getCount2() {
         return count2;
+    }
+
+    public String getCompletedCount1() {
+        return completedCount1;
+    }
+
+    public String getCompletedCount2() {
+        return completedCount2;
     }
 
     public String getCumBitmexMCom() {
