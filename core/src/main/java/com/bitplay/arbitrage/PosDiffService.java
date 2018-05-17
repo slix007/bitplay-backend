@@ -340,52 +340,68 @@ public class PosDiffService {
         }
         stopTimerToImmidiateCorrection(); // avoid double-correction
 
-        final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
+        final BigDecimal dc = getPositionsDiffWithHedge();
         // 1. What we have to correct
         Order.OrderType orderType;
         BigDecimal correctAmount;
-        MarketService marketService;
-        final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
-        final BigDecimal bEquiv = bP.subtract(hedgeAmount);
+        MarketService marketService;                                            // Hedge=-300, dc=-100
+        final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);   // okexPos   100
+        final BigDecimal bEquiv = bP.subtract(hedgeAmount);                     // bitmexPos 100
 
-        if (positionsDiffWithHedge.signum() < 0) {
+        if (dc.signum() < 0) {
             orderType = Order.OrderType.BID;
             if (bEquiv.compareTo(okEquiv) < 0) {
                 // bitmex buy
-                correctAmount = positionsDiffWithHedge.abs();
+                correctAmount = dc.abs();
                 marketService = arbitrageService.getFirstMarketService();
                 if (signalType == SignalType.CORR) {
-                    signalType = SignalType.B_CORR;
+                    if (bP.signum() >= 0) {
+                        signalType = SignalType.B_CORR_INCREASE_POS;
+                    } else {
+                        signalType = SignalType.B_CORR;
+                    }
                 }
             } else {
                 // okcoin buy
-                correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
+                correctAmount = dc.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
                 if (oPS.subtract(correctAmount).signum() < 0) { // orderType==CLOSE_ASK
                     correctAmount = oPS;
                 }
                 marketService = arbitrageService.getSecondMarketService();
                 if (signalType == SignalType.CORR) {
-                    signalType = SignalType.O_CORR;
+                    if ((oPL.subtract(oPS)).signum() >= 0) {
+                        signalType = SignalType.O_CORR_INCREASE_POS;
+                    } else {
+                        signalType = SignalType.O_CORR;
+                    }
                 }
             }
         } else {
             orderType = Order.OrderType.ASK;
             if (bEquiv.compareTo(okEquiv) < 0) {
                 // okcoin sell
-                correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
+                correctAmount = dc.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
                 if (oPL.subtract(correctAmount).signum() < 0) { // orderType==CLOSE_BID
                     correctAmount = oPL;
                 }
                 if (signalType == SignalType.CORR) {
-                    signalType = SignalType.O_CORR;
+                    if ((oPL.subtract(oPS)).signum() <= 0) {
+                        signalType = SignalType.O_CORR_INCREASE_POS;
+                    } else {
+                        signalType = SignalType.O_CORR;
+                    }
                 }
                 marketService = arbitrageService.getSecondMarketService();
             } else {
                 // bitmex sell
-                correctAmount = positionsDiffWithHedge.abs();
+                correctAmount = dc.abs();
                 marketService = arbitrageService.getFirstMarketService();
                 if (signalType == SignalType.CORR) {
-                    signalType = SignalType.B_CORR;
+                    if (bP.signum() <= 0) {
+                        signalType = SignalType.B_CORR_INCREASE_POS;
+                    } else {
+                        signalType = SignalType.B_CORR;
+                    }
                 }
             }
         }

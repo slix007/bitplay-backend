@@ -7,7 +7,9 @@ public enum SignalType {
     AUTOMATIC(""),
     CORR("corr"),
     B_CORR("b_corr"),
+    B_CORR_INCREASE_POS("b_corr_increase_pos"),
     O_CORR("o_corr"),
+    O_CORR_INCREASE_POS("o_corr_increase_pos"),
     CORR_MDC("corr_mdc"),
     CORR_TIMER("corr_timer"),
     B_PRE_LIQ("b_preliq"),
@@ -32,6 +34,7 @@ public enum SignalType {
     }
 
     public boolean isCorr() {
-        return this == CORR || this == CORR_MDC || this == CORR_TIMER || this == B_CORR || this == O_CORR;
+        return this == CORR || this == CORR_MDC || this == CORR_TIMER || this == B_CORR || this == O_CORR || this == B_CORR_INCREASE_POS
+                || this == O_CORR_INCREASE_POS;
     }
 }
