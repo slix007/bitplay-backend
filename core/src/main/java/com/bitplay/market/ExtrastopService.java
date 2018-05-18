@@ -65,7 +65,7 @@ public class ExtrastopService {
         return Stream.concat(Utils.getBestBids(orderBook, 3).stream(),
                 Utils.getBestAsks(orderBook, 3).stream())
                 .map(LimitOrder::getTimestamp)
-                .reduce((date, date2) -> date.after(date2) ? date : date2)
+                .reduce((date, date2) -> date.before(date2) ? date : date2)
                 .orElseThrow(() -> new IllegalArgumentException("Can not get bitmex timestamp"));
     }
 
