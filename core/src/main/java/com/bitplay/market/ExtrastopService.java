@@ -39,14 +39,18 @@ public class ExtrastopService {
     private String details = "";
 
     @Scheduled(initialDelay = 60 * 1000, fixedDelay = 30 * 1000)
-    public void checkTimes() {
+    public void checkOrderBooks() {
         try {
-            final Date bT = getBitmexOrderBook3BestTimestamp(); // bitmexService.getOrderBookLastTimestamp();
+            final OrderBook bOB = bitmexService.getOrderBook();
+            final Date bT = getBitmexOrderBook3BestTimestamp(bOB); // bitmexService.getOrderBookLastTimestamp();
 //            logger.info("Bitmex timestamp: " + bT.toString());
-            final Date oT = okCoinService.getOrderBook().getTimeStamp();
+            final OrderBook oOB = okCoinService.getOrderBook();
+            final Date oT = oOB.getTimeStamp();
             details = "";
 
-            if (isBigDiff(bT, "Bitmex") || isBigDiff(oT, "okex")) {
+            if (isBigDiff(bT, "Bitmex") || isBigDiff(oT, "okex")
+                    || isOrderBookPricesWrong(bOB)
+                    || isOrderBookPricesWrong(oOB)) {
                 bitmexService.setMarketState(MarketState.STOPPED);
                 okCoinService.setMarketState(MarketState.STOPPED);
                 restartService.doDeferredRestart(details);
@@ -60,8 +64,13 @@ public class ExtrastopService {
         }
     }
 
-    private Date getBitmexOrderBook3BestTimestamp() {
-        final OrderBook orderBook = bitmexService.getOrderBook();
+    private boolean isOrderBookPricesWrong(OrderBook orderBook) {
+        LimitOrder bid1 = Utils.getBestBid(orderBook);
+        LimitOrder ask1 = Utils.getBestAsk(orderBook);
+        return bid1.compareTo(ask1) > 0;
+    }
+
+    private Date getBitmexOrderBook3BestTimestamp(OrderBook orderBook) {
         return Stream.concat(Utils.getBestBids(orderBook, 3).stream(),
                 Utils.getBestAsks(orderBook, 3).stream())
                 .map(LimitOrder::getTimestamp)
