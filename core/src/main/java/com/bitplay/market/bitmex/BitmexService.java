@@ -560,6 +560,7 @@ public class BitmexService extends MarketService {
         try {
             exchange = initExchange(this.key, this.secret);
 
+            logger.info("bitmex connecting public");
             exchange.connect()
                     .doOnError(throwable -> logger.error("doOnError", throwable))
                     .doOnDispose(() -> logger.info("bitmex connect doOnDispose"))
@@ -570,6 +571,7 @@ public class BitmexService extends MarketService {
                     })
                     .blockingAwait();
 
+            logger.info("bitmex connecting private");
             exchange.authenticate().blockingAwait();
 
             // Retry on disconnect.

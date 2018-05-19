@@ -38,7 +38,7 @@ public class ExtrastopService {
 
     private String details = "";
 
-    @Scheduled(initialDelay = 60 * 1000, fixedDelay = 30 * 1000)
+    @Scheduled(initialDelay = 60 * 1000, fixedDelay = 10 * 1000)
     public void checkOrderBooks() {
         try {
             final OrderBook bOB = bitmexService.getOrderBook();
