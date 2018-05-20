@@ -230,6 +230,8 @@ public class ArbitrageService {
             validateAvgPrice(dealPrices.getoPriceFact());
 
             if (params.getLastDelta().equals(DELTA1)) {
+                params.setCompletedCounter1(params.getCompletedCounter1() + 1);
+
                 params.setCumDelta(params.getCumDelta().add(dealPrices.getDelta1Plan()));
 
                 // b_block = ok_block*100 = con (не идет в логи и на UI)
@@ -269,9 +271,9 @@ public class ArbitrageService {
 
                 printOAvgPrice();
 
-                params.setCompletedCounter1(params.getCompletedCounter1() + 1);
-
             } else if (params.getLastDelta().equals(DELTA2)) {
+                params.setCompletedCounter2(params.getCompletedCounter2() + 1);
+
                 params.setCumDelta(params.getCumDelta().add(dealPrices.getDelta2Plan()));
 
                 // ast_delta2 = -(con / ok_bid - con / b_ask)
@@ -310,7 +312,6 @@ public class ArbitrageService {
 
                 printOAvgPrice();
 
-                params.setCompletedCounter2(params.getCompletedCounter2() + 1);
             }
 
             printSumBal(false);
