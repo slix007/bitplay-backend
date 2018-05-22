@@ -18,25 +18,29 @@ import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
+import com.bitplay.persistance.domain.RestartMonitoring;
+import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.repository.RestartMonitoringRepository;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 4/17/17.
  */
 @Service
 public class CommonUIService {
+
+    private final static Logger logger = LoggerFactory.getLogger(CommonUIService.class);
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -55,6 +59,9 @@ public class CommonUIService {
 
     @Autowired
     private PosDiffService posDiffService;
+
+    @Autowired
+    private RestartMonitoringRepository restartMonitoringRepository;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -429,6 +436,26 @@ public class CommonUIService {
     public DeltasMinMaxJson resetDeltaParamsJson() {
         arbitrageService.resetDeltaParams();
         return getDeltaParamsJson();
+    }
+
+    public DeltasMinMaxJson geRestartMonitoringParamsJson() {
+        RestartMonitoring restartMonitoring = restartMonitoringRepository.fetchRestartMonitoring();
+        return new DeltasMinMaxJson(
+                "",
+                "",
+                restartMonitoring.getBTimestampDelayMax().toPlainString(),
+                restartMonitoring.getOTimestampDelayMax().toPlainString());
+    }
+
+    public DeltasMinMaxJson resetRestartMonitoringParamsJson() {
+        logger.warn("RESET RestartMonitoring");
+        RestartMonitoring defaults = RestartMonitoring.createDefaults();
+        RestartMonitoring restartMonitoring = restartMonitoringRepository.saveRestartMonitoring(defaults);
+        return new DeltasMinMaxJson(
+                "",
+                "",
+                restartMonitoring.getBTimestampDelayMax().toPlainString(),
+                restartMonitoring.getOTimestampDelayMax().toPlainString());
     }
 
     public ResultJson getUpdateBordersTimerString() {
