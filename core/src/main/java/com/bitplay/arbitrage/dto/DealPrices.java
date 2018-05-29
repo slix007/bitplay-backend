@@ -21,6 +21,7 @@ public class DealPrices {
     private DeltaName deltaName = DeltaName.B_DELTA;
     private BestQuotes bestQuotes;
     private Integer pos_bo;
+    private Integer plan_pos_ao;
 
     public synchronized void setDeltaName(DeltaName deltaName) {
         this.deltaName = deltaName;
@@ -172,6 +173,14 @@ public class DealPrices {
 
     public synchronized void setPos_bo(Integer pos_bo) {
         this.pos_bo = pos_bo;
+    }
+
+    public synchronized Integer getPlan_pos_ao() {
+        return plan_pos_ao;
+    }
+
+    public synchronized void setPlan_pos_ao(Integer plan_pos_ao) {
+        this.plan_pos_ao = plan_pos_ao;
     }
 
     public static class Details {

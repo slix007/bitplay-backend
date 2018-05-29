@@ -63,8 +63,8 @@ public class ArbitrageService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
     private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
-    private static final String DELTA1 = "delta1";
-    private static final String DELTA2 = "delta2";
+    public static final String DELTA1 = "delta1";
+    public static final String DELTA2 = "delta2";
     private static final Object calcLock = new Object();
     private final BigDecimal OKEX_FACTOR = BigDecimal.valueOf(100);
     private final DealPrices dealPrices = new DealPrices();
@@ -347,8 +347,8 @@ public class ArbitrageService {
         BigDecimal diffFactBr = BigDecimal.ZERO;
         if (borderParams.getActiveVersion() == Ver.V2) {
             final PosMode posMode = borderParams.getPosMode();
-            int pos_ao = diffFactBrService.getCurrPos(posMode);
             Integer pos_bo = dealPrices.getPos_bo();
+            Integer pos_ao = dealPrices.getPlan_pos_ao();
             if (pos_bo != null) {
                 DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(
                         posMode,
@@ -360,8 +360,9 @@ public class ArbitrageService {
                         borderParams.getBordersV2());
                 try {
                     diffFactBr = diffFactBrComputer.compute();
-                } catch (ToWarningLogException e) {
+                } catch (Exception e) {
                     warningLogger.warn(e.toString());
+                    deltasLogger.warn("WARNING: " + e.toString());
                     logger.warn(e.toString());
                 }
             }
@@ -619,8 +620,8 @@ public class ArbitrageService {
             }
 
         } else if (borderParams.getActiveVersion() == Ver.V2) {
-            int currPos = diffFactBrService.getCurrPos(borderParams.getPosMode());
-            dealPrices.setPos_bo(currPos);
+            int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
+            dealPrices.setPos_bo(pos_bo);
 
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(
                     bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS);
@@ -630,6 +631,8 @@ public class ArbitrageService {
             }
 
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
+                int plan_pos_ao = diffFactBrService.calcPlanAfterOrderPos(borderParams.getPosMode(), dealPrices, DELTA1);
+                dealPrices.setPlan_pos_ao(plan_pos_ao);
                 if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
                     final PlBlocks bl = dynBlockDecriseByAffordable(DELTA1, BigDecimal.valueOf(tradingSignal.bitmexBlock), BigDecimal.valueOf(tradingSignal.okexBlock));
                     if (bl.getBlockOkex().signum() > 0) {
@@ -654,6 +657,8 @@ public class ArbitrageService {
             }
 
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
+                int plan_pos_ao = diffFactBrService.calcPlanAfterOrderPos(borderParams.getPosMode(), dealPrices, DELTA2);
+                dealPrices.setPlan_pos_ao(plan_pos_ao);
                 if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
                     final PlBlocks bl = dynBlockDecriseByAffordable(DELTA2, BigDecimal.valueOf(tradingSignal.bitmexBlock), BigDecimal.valueOf(tradingSignal.okexBlock));
                     if (bl.getBlockOkex().signum() > 0) {

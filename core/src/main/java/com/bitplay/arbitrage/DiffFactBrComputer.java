@@ -63,7 +63,7 @@ public class DiffFactBrComputer {
                             .setScale(2, BigDecimal.ROUND_HALF_UP);
                 }
             }
-            int b_br_open_cnt = b_br_open.size();
+            int b_br_open_cnt = BordersTableValidator.find_last_active_row(b_br_open);
             for (int i = 1; i < b_br_open_cnt; i++) {
                 if (b_delta_plan.compareTo(b_br_open.get(i).getValue()) >= 0) {
                     if (pos_bo < b_br_open.get(i).getPosLongLimit()
@@ -129,7 +129,8 @@ public class DiffFactBrComputer {
                             .setScale(2, BigDecimal.ROUND_HALF_UP);
                 }
             }
-            int o_br_open_cnt = o_br_open.size();
+
+            int o_br_open_cnt = BordersTableValidator.find_last_active_row(o_br_open);
             for (int i = 1; i < o_br_open_cnt; i++) {
                 if (o_delta_plan.doubleValue() >= o_br_open.get(i).getValue().doubleValue()) {
                     if (-pos_bo < o_br_open.get(i).getPosShortLimit()
@@ -528,6 +529,9 @@ public class DiffFactBrComputer {
         } else if (pos_mode == BTM_MODE && pos_bo < 0 && abs(pos_ao) < abs(pos_bo)) {
             wam_br = comp_wam_br_for_b_close_short();
         } else {
+            if (pos_bo == pos_ao) {
+                throw new ToWarningLogException("Error: case undefined: pos_bo == pos_ao");
+            }
             throw new ToWarningLogException("Error: case undefined");
         }
 
