@@ -671,7 +671,7 @@ public class OkCoinService extends MarketService {
         for (int attemptCount = 1; attemptCount < maxAttempts; attemptCount++) {
             try {
                 if (attemptCount > 1) {
-                    Thread.sleep(200 * attemptCount);
+                    Thread.sleep(1000);
                 }
 
                 if (placingType == PlacingType.MAKER || placingType == PlacingType.HYBRID) {
