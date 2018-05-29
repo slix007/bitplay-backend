@@ -20,6 +20,7 @@ public class DealPrices {
     private AvgPrice oPriceFact = new AvgPrice(BigDecimal.ZERO, "okex");
     private DeltaName deltaName = DeltaName.B_DELTA;
     private BestQuotes bestQuotes;
+    private Integer pos_bo;
 
     public synchronized void setDeltaName(DeltaName deltaName) {
         this.deltaName = deltaName;
@@ -163,6 +164,14 @@ public class DealPrices {
 
     public void setBestQuotes(BestQuotes bestQuotes) {
         this.bestQuotes = bestQuotes;
+    }
+
+    public synchronized Integer getPos_bo() {
+        return pos_bo;
+    }
+
+    public synchronized void setPos_bo(Integer pos_bo) {
+        this.pos_bo = pos_bo;
     }
 
     public static class Details {

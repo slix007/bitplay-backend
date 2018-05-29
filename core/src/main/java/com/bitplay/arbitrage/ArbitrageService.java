@@ -11,6 +11,7 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventBus;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.arbitrage.exceptions.ToWarningLogException;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
@@ -25,6 +26,7 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.Delta;
@@ -38,7 +40,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import org.knowm.xchange.dto.Order;
@@ -80,6 +81,8 @@ public class ArbitrageService {
     private SignalService signalService;
     @Autowired
     private PreliqUtilsService preliqUtilsService;
+    @Autowired
+    private DiffFactBrService diffFactBrService;
 //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
 //    private volatile int updateBordersCounter;
@@ -339,8 +342,32 @@ public class ArbitrageService {
         params.setCumDiffFact(cumDiffFact);
 
         // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
-        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(dealPrices.getBorderList()));
-        params.setCumDiffFactBr((params.getCumDiffFactBr().add(diffFactBr.val)).setScale(2, BigDecimal.ROUND_HALF_UP));
+//        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(dealPrices.getBorderList()));
+        final BorderParams borderParams = persistenceService.fetchBorders();
+        BigDecimal diffFactBr = BigDecimal.ZERO;
+        if (borderParams.getActiveVersion() == Ver.V2) {
+            final PosMode posMode = borderParams.getPosMode();
+            int pos_ao = diffFactBrService.getCurrPos(posMode);
+            Integer pos_bo = dealPrices.getPos_bo();
+            if (pos_bo != null) {
+                DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(
+                        posMode,
+                        pos_bo,
+                        pos_ao,
+                        dealPrices.getDelta1Plan(),
+                        dealPrices.getDelta2Plan(),
+                        deltaFact,
+                        borderParams.getBordersV2());
+                try {
+                    diffFactBr = diffFactBrComputer.compute();
+                } catch (ToWarningLogException e) {
+                    warningLogger.warn(e.toString());
+                    logger.warn(e.toString());
+                }
+            }
+        }
+
+        params.setCumDiffFactBr((params.getCumDiffFactBr().add(diffFactBr)).setScale(2, BigDecimal.ROUND_HALF_UP));
 
         // cum_ast_diff_fact1 = sum(ast_diff_fact1)
         // cum_ast_diff_fact2 = sum(ast_diff_fact2)
@@ -362,7 +389,7 @@ public class ArbitrageService {
                         "diff_fact_v1=%s+%s=%s; " +
                         "diff_fact_v2=%s-%s=%s; " +
                         "cum_diff_fact=%s+%s=%s; " +
-                        "diff_fact_br=%s=%s\n" +
+                        "diff_fact_br=%s\n" +
                         "cum_diff_fact_br=%s; " +
                         "ast_diff_fact1=%s, ast_diff_fact2=%s, ast_diff_fact=%s-%s=%s, " +
                         "cum_ast_diff_fact1=%s, cum_ast_diff_fact2=%s, cum_ast_diff_fact=%s, " +
@@ -377,7 +404,7 @@ public class ArbitrageService {
                 params.getCumDiffFact1().toPlainString(),
                 params.getCumDiffFact2().toPlainString(),
                 params.getCumDiffFact().toPlainString(),
-                diffFactBr.str, diffFactBr.val.toPlainString(),
+                diffFactBr.toPlainString(),
                 params.getCumDiffFactBr().toPlainString(),
                 ast_diff_fact1.toPlainString(), ast_diff_fact2.toPlainString(), ast_delta_fact.toPlainString(), ast_delta.toPlainString(), ast_diff_fact.toPlainString(),
                 params.getCumAstDiffFact1().toPlainString(), params.getCumAstDiffFact2().toPlainString(), params.getCumAstDiffFact().toPlainString(),
@@ -592,6 +619,9 @@ public class ArbitrageService {
             }
 
         } else if (borderParams.getActiveVersion() == Ver.V2) {
+            int currPos = diffFactBrService.getCurrPos(borderParams.getPosMode());
+            dealPrices.setPos_bo(currPos);
+
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(
                     bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS);
 
