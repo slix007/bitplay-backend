@@ -1,5 +1,9 @@
 package com.bitplay.arbitrage;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
+
+import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -9,7 +13,10 @@ import com.bitplay.persistance.domain.borders.BordersV1;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
-
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,14 +28,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Created by Sergey Shurmin on 1/9/18.
@@ -370,9 +369,9 @@ public class BordersServiceTest {
         System.out.println(signal.toString());
 
         System.out.println(signal.borderValueList);
-        final ArbUtils.DiffFactBr deltaFactBr = ArbUtils.getDeltaFactBr(delta2, signal.borderValueList);
-        System.out.println(deltaFactBr.str);
-        System.out.println(deltaFactBr.val);
+        final DiffFactBr deltaFactBr = ArbUtils.getDeltaFactBr(delta2, signal.borderValueList);
+        System.out.println(deltaFactBr.getStr());
+        System.out.println(deltaFactBr.getVal());
     }
 
     /**

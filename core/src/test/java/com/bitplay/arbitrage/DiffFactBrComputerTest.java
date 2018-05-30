@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.exceptions.ToWarningLogException;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
@@ -64,9 +65,11 @@ public class DiffFactBrComputerTest {
                 deltaFact, bordersV2);
 
         try {
-            BigDecimal diffFactBr = diffFactBrComputer.compute();
+            DiffFactBr diffFactBr = diffFactBrComputer.compute();
 
-            Assert.assertEquals("diffFactBr", BigDecimal.valueOf(2.45), diffFactBr);
+//            System.out.println(diffFactBr.getStr());
+            Assert.assertEquals("diffFactBrString", " + [0.17 * 35] + [0.56 * 40] + [0.28 * 45]", diffFactBr.getStr());
+            Assert.assertEquals("diffFactBr", BigDecimal.valueOf(2.05), diffFactBr.getVal());
         } catch (ToWarningLogException e) {
             e.printStackTrace();
             Assert.fail("No errors expected");

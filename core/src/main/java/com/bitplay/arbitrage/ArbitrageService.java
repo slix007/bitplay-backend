@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.DeltaName;
+import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
 import com.bitplay.arbitrage.dto.SignalType;
@@ -344,7 +345,7 @@ public class ArbitrageService {
         // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
 //        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(dealPrices.getBorderList()));
         final BorderParams borderParams = persistenceService.fetchBorders();
-        BigDecimal diffFactBr = BigDecimal.ZERO;
+        DiffFactBr diffFactBr = new DiffFactBr(BigDecimal.ZERO, "none");
         if (borderParams.getActiveVersion() == Ver.V2) {
             final PosMode posMode = borderParams.getPosMode();
             Integer pos_bo = dealPrices.getPos_bo();
@@ -368,7 +369,7 @@ public class ArbitrageService {
             }
         }
 
-        params.setCumDiffFactBr((params.getCumDiffFactBr().add(diffFactBr)).setScale(2, BigDecimal.ROUND_HALF_UP));
+        params.setCumDiffFactBr((params.getCumDiffFactBr().add(diffFactBr.getVal())).setScale(2, BigDecimal.ROUND_HALF_UP));
 
         // cum_ast_diff_fact1 = sum(ast_diff_fact1)
         // cum_ast_diff_fact2 = sum(ast_diff_fact2)
@@ -390,7 +391,7 @@ public class ArbitrageService {
                         "diff_fact_v1=%s+%s=%s; " +
                         "diff_fact_v2=%s-%s=%s; " +
                         "cum_diff_fact=%s+%s=%s; " +
-                        "diff_fact_br=%s\n" +
+                        "diff_fact_br=%s=%s\n" +
                         "cum_diff_fact_br=%s; " +
                         "ast_diff_fact1=%s, ast_diff_fact2=%s, ast_diff_fact=%s-%s=%s, " +
                         "cum_ast_diff_fact1=%s, cum_ast_diff_fact2=%s, cum_ast_diff_fact=%s, " +
@@ -405,7 +406,8 @@ public class ArbitrageService {
                 params.getCumDiffFact1().toPlainString(),
                 params.getCumDiffFact2().toPlainString(),
                 params.getCumDiffFact().toPlainString(),
-                diffFactBr.toPlainString(),
+                diffFactBr.getStr(),
+                diffFactBr.getVal().toPlainString(),
                 params.getCumDiffFactBr().toPlainString(),
                 ast_diff_fact1.toPlainString(), ast_diff_fact2.toPlainString(), ast_delta_fact.toPlainString(), ast_delta.toPlainString(), ast_diff_fact.toPlainString(),
                 params.getCumAstDiffFact1().toPlainString(), params.getCumAstDiffFact2().toPlainString(), params.getCumAstDiffFact().toPlainString(),
