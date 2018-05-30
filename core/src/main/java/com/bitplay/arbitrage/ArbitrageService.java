@@ -12,7 +12,6 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventBus;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import com.bitplay.arbitrage.exceptions.ToWarningLogException;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
@@ -346,7 +345,15 @@ public class ArbitrageService {
 //        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(dealPrices.getBorderList()));
         final BorderParams borderParams = persistenceService.fetchBorders();
         DiffFactBr diffFactBr = new DiffFactBr(BigDecimal.ZERO, "none");
-        if (borderParams.getActiveVersion() == Ver.V2) {
+        if (borderParams.getActiveVersion() == Ver.V1) {
+            BigDecimal wam_br = dealPrices.getDeltaName().equals(DeltaName.B_DELTA)
+                    ? params.getBorder1()
+                    : params.getBorder2();
+
+            diffFactBr = new DiffFactBr(deltaFact.subtract(wam_br),
+                    String.format("v1[%s-%s]", deltaFact.toPlainString(), wam_br.toPlainString()));
+
+        } else if (borderParams.getActiveVersion() == Ver.V2) {
             final PosMode posMode = borderParams.getPosMode();
             Integer pos_bo = dealPrices.getPos_bo();
             Integer pos_ao = dealPrices.getPlan_pos_ao();

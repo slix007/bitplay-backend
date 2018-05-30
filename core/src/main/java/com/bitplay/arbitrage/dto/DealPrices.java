@@ -27,6 +27,10 @@ public class DealPrices {
         this.deltaName = deltaName;
     }
 
+    public synchronized DeltaName getDeltaName() {
+        return deltaName;
+    }
+
     public synchronized void setSecondOpenPrice(BigDecimal secondOpenPrice) {
         final BigDecimal sop = secondOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
         oPriceFact.setOpenPrice(sop);
