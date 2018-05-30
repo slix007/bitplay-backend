@@ -121,14 +121,14 @@ public class ExtrastopService {
     private boolean isOrderBookPricesWrong(OrderBook orderBook) {
         LimitOrder bid1 = Utils.getBestBid(orderBook);
         LimitOrder ask1 = Utils.getBestAsk(orderBook);
-        return bid1.compareTo(ask1) > 0;
+        return bid1.compareTo(ask1) >= 0;
     }
 
     private Date getBitmexOrderBook3BestTimestamp(OrderBook orderBook) {
         return Stream.concat(Utils.getBestBids(orderBook, 3).stream(),
                 Utils.getBestAsks(orderBook, 3).stream())
                 .map(LimitOrder::getTimestamp)
-                .reduce((date, date2) -> date.before(date2) ? date : date2)
+                .reduce((date, date2) -> date.after(date2) ? date : date2) // use the latest date
                 .orElseThrow(() -> new IllegalArgumentException("Can not get bitmex timestamp"));
     }
 
