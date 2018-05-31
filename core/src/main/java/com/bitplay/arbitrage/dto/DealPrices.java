@@ -1,13 +1,16 @@
 package com.bitplay.arbitrage.dto;
 
+import com.bitplay.persistance.domain.borders.BorderParams;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import lombok.ToString;
 
 /**
  * Created by Sergey Shurmin on 5/24/17.
  */
+@ToString
 public class DealPrices {
     private List<BigDecimal> borderList = new ArrayList<>();
     private BigDecimal oBlock = BigDecimal.ZERO;
@@ -22,6 +25,15 @@ public class DealPrices {
     private BestQuotes bestQuotes;
     private Integer pos_bo;
     private Integer plan_pos_ao;
+    private BorderParams borderParamsOnStart;
+
+    public synchronized BorderParams getBorderParamsOnStart() {
+        return borderParamsOnStart;
+    }
+
+    public synchronized void setBorderParamsOnStart(BorderParams borderParamsOnStart) {
+        this.borderParamsOnStart = borderParamsOnStart;
+    }
 
     public synchronized void setDeltaName(DeltaName deltaName) {
         this.deltaName = deltaName;

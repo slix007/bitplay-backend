@@ -4,6 +4,7 @@ import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.BTM_MO
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MODE;
 
 import com.bitplay.arbitrage.dto.DealPrices;
+import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
@@ -34,16 +35,18 @@ public class DiffFactBrService {
         return currPos;
     }
 
-    int calcPlanAfterOrderPos(PosMode pos_mode, DealPrices dealPrices, String deltaName) {
+    synchronized int calcPlanAfterOrderPos(DealPrices dealPrices) {
         int pos_ao = dealPrices.getPos_bo();
-        if (pos_mode == BTM_MODE) {
-            if (deltaName.equals(ArbitrageService.DELTA1)) {
+        final PosMode posMode = dealPrices.getBorderParamsOnStart().getPosMode();
+        final DeltaName deltaName = dealPrices.getDeltaName();
+        if (posMode == BTM_MODE) {
+            if (deltaName == DeltaName.B_DELTA) {
                 pos_ao -= dealPrices.getbBlock().intValue();
             } else {
                 pos_ao += dealPrices.getbBlock().intValue();
             }
-        } else if (pos_mode == OK_MODE) {
-            if (deltaName.equals(ArbitrageService.DELTA1)) {
+        } else if (posMode == OK_MODE) {
+            if (deltaName == DeltaName.O_DELTA) {
                 pos_ao += dealPrices.getoBlock().intValue();
             } else {
                 pos_ao -= dealPrices.getoBlock().intValue();
