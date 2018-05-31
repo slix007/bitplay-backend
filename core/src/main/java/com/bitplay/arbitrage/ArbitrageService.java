@@ -344,7 +344,7 @@ public class ArbitrageService {
         // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
 //        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(dealPrices.getBorderList()));
         final BorderParams borderParams = persistenceService.fetchBorders();
-        DiffFactBr diffFactBr = new DiffFactBr(BigDecimal.ZERO, "none");
+        DiffFactBr diffFactBr = new DiffFactBr(BigDecimal.ZERO, "defaultZero");
         if (borderParams.getActiveVersion() == Ver.V1) {
             BigDecimal wam_br = dealPrices.getDeltaName().equals(DeltaName.B_DELTA)
                     ? params.getBorder1()
