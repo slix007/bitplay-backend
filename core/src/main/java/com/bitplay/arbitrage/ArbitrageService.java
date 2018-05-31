@@ -374,6 +374,10 @@ public class ArbitrageService {
                     logger.warn(e.toString());
                 }
             }
+        } else {
+            String msg = "WARNING: borderParams.activeVersion" + borderParams.getActiveVersion();
+            warningLogger.warn(msg);
+            deltasLogger.warn(msg);
         }
 
         params.setCumDiffFactBr((params.getCumDiffFactBr().add(diffFactBr.getVal())).setScale(2, BigDecimal.ROUND_HALF_UP));
