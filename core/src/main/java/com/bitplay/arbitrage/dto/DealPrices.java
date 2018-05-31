@@ -1,9 +1,12 @@
 package com.bitplay.arbitrage.dto;
 
+import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.BTM_MODE;
+import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MODE;
+
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import lombok.ToString;
 
@@ -12,6 +15,7 @@ import lombok.ToString;
  */
 @ToString
 public class DealPrices {
+
     private List<BigDecimal> borderList = new ArrayList<>();
     private BigDecimal oBlock = BigDecimal.ZERO;
     private BigDecimal bBlock = BigDecimal.ZERO;
@@ -26,13 +30,38 @@ public class DealPrices {
     private Integer pos_bo;
     private Integer plan_pos_ao;
     private BorderParams borderParamsOnStart;
+    private BigDecimal border1;
+    private BigDecimal border2;
+
+    public synchronized BigDecimal getBorder1() {
+        return border1;
+    }
+
+    public void setBorder1(BigDecimal border1) {
+        this.border1 = border1;
+    }
+
+    public synchronized BigDecimal getBorder2() {
+        return border2;
+    }
+
+    public void setBorder2(BigDecimal border2) {
+        this.border2 = border2;
+    }
 
     public synchronized BorderParams getBorderParamsOnStart() {
         return borderParamsOnStart;
     }
 
-    public synchronized void setBorderParamsOnStart(BorderParams borderParamsOnStart) {
+    public void setBorderParamsOnStart(BorderParams borderParamsOnStart) {
         this.borderParamsOnStart = borderParamsOnStart;
+    }
+
+    /**
+     * The following should be set before:<br> BorderParams borderParamsOnStart, int pos_bo, DeltaName deltaName, BigDecimal b_block, BigDecimal o_block
+     */
+    public void calcPlanPosAo() {
+        this.plan_pos_ao = calcPlanAfterOrderPos();
     }
 
     public synchronized void setDeltaName(DeltaName deltaName) {
@@ -90,25 +119,13 @@ public class DealPrices {
         if (deltaName == DeltaName.O_DELTA) {
             final BigDecimal val = oPriceFact.getAvg().subtract(oPricePlan);
             details = new Details(val, String.format("diff_sell_o = avg_price_sell_o(%s) - bid_o[1](%s) = %s",
-                            oPriceFact.getAvg(), oPricePlan, val));
+                    oPriceFact.getAvg(), oPricePlan, val));
         } else {
             final BigDecimal val = oPricePlan.subtract(oPriceFact.getAvg());
             details = new Details(val, String.format("diff_buy_o = ask_o[1](%s) - avg_price_buy_o(%s) = %s",
-                            oPricePlan, oPriceFact.getAvg(), val));
+                    oPricePlan, oPriceFact.getAvg(), val));
         }
         return details;
-    }
-
-    public synchronized void setBorder(BigDecimal border) {
-        this.borderList = Collections.singletonList(border);
-    }
-
-    public synchronized List<BigDecimal> getBorderList() {
-        return borderList;
-    }
-
-    public synchronized void setBorderList(List<BigDecimal> borderList) {
-        this.borderList = Collections.unmodifiableList(borderList);
     }
 
     public synchronized BigDecimal getoBlock() {
@@ -200,6 +217,7 @@ public class DealPrices {
     }
 
     public static class Details {
+
         final public BigDecimal val;
         final public String str;
 
@@ -207,5 +225,24 @@ public class DealPrices {
             this.val = val;
             this.str = str;
         }
+    }
+
+    private int calcPlanAfterOrderPos() {
+        int pos_ao = pos_bo;
+        final PosMode posMode = borderParamsOnStart.getPosMode();
+        if (posMode == BTM_MODE) {
+            if (deltaName == DeltaName.B_DELTA) {
+                pos_ao = pos_bo - bBlock.intValue();
+            } else {
+                pos_ao = pos_bo + bBlock.intValue();
+            }
+        } else if (posMode == OK_MODE) {
+            if (deltaName == DeltaName.O_DELTA) {
+                pos_ao = pos_bo + oBlock.intValue();
+            } else {
+                pos_ao = pos_bo - oBlock.intValue();
+            }
+        }
+        return pos_ao;
     }
 }
