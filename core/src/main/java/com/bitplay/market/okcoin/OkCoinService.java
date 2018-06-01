@@ -7,11 +7,11 @@ import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
-import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -99,7 +99,7 @@ public class OkCoinService extends MarketService {
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
 
     private static final int MAX_ATTEMPTS_STATUS = 50;
-    private static final int MAX_ATTEMPTS_CANCEL = 20;
+    private static final int MAX_ATTEMPTS_CANCEL = 90;
     private static final int MAX_ATTEMPTS_FOR_MOVING = 2;
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
@@ -1166,7 +1166,7 @@ public class OkCoinService extends MarketService {
             attemptCount++;
             try {
                 if (attemptCount > 1) {
-                    Thread.sleep(200 * attemptCount);
+                    Thread.sleep(1000);
                 }
                 final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
                 result = tradeService.cancelOrderWithResult(orderId, CurrencyPair.BTC_USD, FuturesContract.ThisWeek);
@@ -1214,11 +1214,11 @@ public class OkCoinService extends MarketService {
 
         Boolean cancelSucceed = false;
         int attemptCount = 0;
-        while (attemptCount < MAX_ATTEMPTS_CANCEL) {
+        while (attemptCount < MAX_ATTEMPTS_CANCEL) { // 1.5 min
             attemptCount++;
             try {
                 if (attemptCount > 1) {
-                    Thread.sleep(200 * attemptCount);
+                    Thread.sleep(1000);
                 }
 
                 final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
