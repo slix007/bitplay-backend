@@ -891,7 +891,7 @@ public class BitmexService extends MarketService {
 
             int attemptCount = 0;
             int badGatewayCount = 0;
-            while (attemptCount < maxAttempts) {
+            while (attemptCount < maxAttempts && getMarketState() != MarketState.STOPPED) {
                 attemptCount++;
                 try {
                     String orderId;

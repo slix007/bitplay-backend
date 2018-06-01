@@ -668,7 +668,7 @@ public class OkCoinService extends MarketService {
         setMarketState(MarketState.PLACING_ORDER);
 
         BigDecimal amountLeft = amount;
-        for (int attemptCount = 1; attemptCount < maxAttempts; attemptCount++) {
+        for (int attemptCount = 1; attemptCount < maxAttempts && getMarketState() != MarketState.STOPPED; attemptCount++) {
             try {
                 if (attemptCount > 1) {
                     Thread.sleep(1000);
