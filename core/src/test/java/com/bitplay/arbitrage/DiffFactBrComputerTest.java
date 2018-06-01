@@ -68,7 +68,7 @@ public class DiffFactBrComputerTest {
             DiffFactBr diffFactBr = diffFactBrComputer.compute();
 
 //            System.out.println(diffFactBr.getStr());
-            Assert.assertEquals("diffFactBrString", " + [0.17 * 35] + [0.56 * 40] + [0.28 * 45]", diffFactBr.getStr());
+            Assert.assertEquals("diffFactBrString", "43 - ( + [0.17 * 35] + [0.56 * 40] + [0.28 * 45])", diffFactBr.getStr());
             Assert.assertEquals("diffFactBr", BigDecimal.valueOf(2.05), diffFactBr.getVal());
         } catch (ToWarningLogException e) {
             e.printStackTrace();

@@ -237,7 +237,7 @@ public class DealPrices {
                 pos_ao = pos_bo + bBlock.intValue();
             }
         } else if (posMode == OK_MODE) {
-            if (deltaName == DeltaName.O_DELTA) {
+            if (deltaName == DeltaName.B_DELTA) {
                 pos_ao = pos_bo + oBlock.intValue();
             } else {
                 pos_ao = pos_bo - oBlock.intValue();

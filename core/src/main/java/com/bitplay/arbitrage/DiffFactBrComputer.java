@@ -105,6 +105,7 @@ public class DiffFactBrComputer {
         if (delta_plan.doubleValue() >= value0.doubleValue()
                 && pos_bo < br_open.get(0).getPosLongLimit()
                 && pos_ao <= br_open.get(0).getPosLongLimit()) {
+            diffFactBrSb.append("[").append(1).append(" * ").append(value0).append("]");
             wam_br = value0;
         } else {
             int p = pos_bo;
@@ -141,6 +142,7 @@ public class DiffFactBrComputer {
                             && pos_bo > br_open.get(i - 1).getPosLongLimit()
                             && pos_ao > br_open.get(i - 1).getPosLongLimit()
                             && pos_ao < br_open.get(i).getPosLongLimit()) {
+                        diffFactBrSb.append("[").append(1).append(" * ").append(valueI).append("]");
                         wam_br = valueI;
                         break;
                     }
@@ -178,6 +180,7 @@ public class DiffFactBrComputer {
         if (o_delta_plan.doubleValue() >= value0.doubleValue()
                 && -pos_bo < o_br_open.get(0).getPosShortLimit()
                 && -pos_ao <= o_br_open.get(0).getPosShortLimit()) {
+            diffFactBrSb.append("[").append(1).append(" * ").append(value0).append("]");
             wam_br = value0;
         } else {
             int p = -pos_bo;
@@ -199,7 +202,7 @@ public class DiffFactBrComputer {
                         && -pos_ao < o_br_open.get(1).getPosShortLimit()) {
                     BigDecimal amount1 = BigDecimal.valueOf(-pos_ao - p)
                             .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                            .setScale(2, BigDecimal.ROUND_HALF_UP);
+                            .setScale(2, BigDecimal.ROUND_HALF_UP);  //pos-p/vol
                     diffFactBrSb.append(" + [")
                             .append(amount1).append(" * ").append(value1)
                             .append("]");
@@ -215,6 +218,7 @@ public class DiffFactBrComputer {
                             && -pos_bo > o_br_open.get(i - 1).getPosShortLimit()
                             && -pos_ao > o_br_open.get(i - 1).getPosShortLimit()
                             && -pos_ao < o_br_open.get(i).getPosShortLimit()) {
+                        diffFactBrSb.append("[").append(1).append(" * ").append(valueI).append("]");
                         wam_br = valueI;
                         break;
                     }
@@ -255,6 +259,7 @@ public class DiffFactBrComputer {
         if (delta_plan.doubleValue() >= valueK.doubleValue()
                 && pos_bo > br_close.get(k).getPosLongLimit()
                 && pos_ao >= br_close.get(k).getPosLongLimit()) {
+            diffFactBrSb.append("[").append(1).append(" * ").append(valueK).append("]");
             wam_br = valueK;
         } else {
             int l = pos_ao;
@@ -277,6 +282,7 @@ public class DiffFactBrComputer {
                 if (delta_plan.doubleValue() >= valueI.doubleValue()) {
                     if (pos_bo > br_close.get(i).getPosLongLimit() && pos_bo <= br_close.get(i + 1).getPosLongLimit() && pos_ao >= br_close.get(i)
                             .getPosLongLimit()) {
+                        diffFactBrSb.append("[").append(1).append(" * ").append(valueI).append("]");
                         wam_br = valueI;
                         break;
                     }
@@ -315,6 +321,7 @@ public class DiffFactBrComputer {
         if (delta_plan.doubleValue() >= valueK.doubleValue()
                 && -pos_bo > br_close.get(k).getPosShortLimit()
                 && -pos_ao >= br_close.get(k).getPosShortLimit()) {
+            diffFactBrSb.append("[").append(1).append(" * ").append(valueK).append("]");
             wam_br = valueK;
         } else {
             int l = -pos_ao;
@@ -337,6 +344,7 @@ public class DiffFactBrComputer {
                 if (delta_plan.doubleValue() >= valueI.doubleValue()) {
                     if (-pos_bo > br_close.get(i).getPosShortLimit() && -pos_bo <= br_close.get(i + 1).getPosShortLimit() && -pos_ao >= br_close.get(i)
                             .getPosShortLimit()) {
+                        diffFactBrSb.append("[").append(1).append(" * ").append(valueI).append("]");
                         wam_br = valueI;
                         break;
                     }
@@ -397,7 +405,10 @@ public class DiffFactBrComputer {
         }
 
         BigDecimal diff_fact_br = delta_fact.subtract(wam_br);
-        return new DiffFactBr(diff_fact_br, diffFactBrSb.toString());
+        return new DiffFactBr(diff_fact_br,
+                String.format("%s - (%s)",
+                        delta_fact.toPlainString(),
+                        diffFactBrSb.toString()));
     }
 
     private int abs(int v) {

@@ -372,7 +372,7 @@ public class ArbitrageService {
                 } catch (Exception e) {
                     warningLogger.warn(e.toString());
                     deltasLogger.warn("WARNING: " + e.toString());
-                    logger.warn(e.toString());
+                    logger.warn("WARNING", e);
                 }
             }
         } else {
