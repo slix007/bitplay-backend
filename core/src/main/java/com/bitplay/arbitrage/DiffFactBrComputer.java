@@ -253,7 +253,7 @@ public class DiffFactBrComputer {
     private BigDecimal getCloseLong(List<BorderItem> br_close, BigDecimal delta_plan) {
         BigDecimal wam_br;
 
-        int k = BordersTableValidator.find_last_active_row(br_close);
+        int k = BordersTableValidator.find_last_active_row(br_close) - 1;
 
         BigDecimal valueK = br_close.get(k).getValue();
         if (delta_plan.doubleValue() >= valueK.doubleValue()
@@ -314,7 +314,7 @@ public class DiffFactBrComputer {
 
     private BigDecimal getCloseShort(List<BorderItem> br_close, BigDecimal delta_plan) {
 
-        int k = BordersTableValidator.find_last_active_row(br_close);
+        int k = BordersTableValidator.find_last_active_row(br_close) - 1;
 
         BigDecimal wam_br;
         BigDecimal valueK = br_close.get(k).getValue();

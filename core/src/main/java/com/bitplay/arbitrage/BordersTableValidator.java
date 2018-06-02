@@ -37,7 +37,7 @@ class BordersTableValidator {
                 return i;
             }
         }
-        return table.size() - 1;
+        return table.size();
     }
 
 
