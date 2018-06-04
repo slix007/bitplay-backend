@@ -375,6 +375,7 @@ public class ArbitrageService {
                     deltasLogger.warn("WARNING: " + e.toString());
                     logger.warn("WARNING", e);
                     params.setDiffFactBrFailsCount(params.getDiffFactBrFailsCount() + 1);
+                    warningLogger.warn("diff_fact_br_fails_count = " + params.getDiffFactBrFailsCount());
                 }
             }
         } else {
