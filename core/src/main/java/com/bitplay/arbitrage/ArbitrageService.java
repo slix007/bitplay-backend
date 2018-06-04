@@ -392,9 +392,9 @@ public class ArbitrageService {
         BigDecimal ast_diff_fact = ast_delta_fact.subtract(ast_delta);
         params.setCumAstDiffFact(params.getCumAstDiffFact().add(ast_diff_fact));
 
-        // slip = (cum_diff_fact - cum_com) / count1 + count2
+        // slip = (cum_diff_fact_br - cum_com) / count1 + count2
         final BigDecimal cumCom = params.getCumCom1().add(params.getCumCom2());
-        final BigDecimal slip = (params.getCumDiffFact().subtract(cumCom))
+        final BigDecimal slip = (params.getCumDiffFactBr().subtract(cumCom))
                 .divide(BigDecimal.valueOf(params.getCompletedCounter1() + params.getCompletedCounter2()), 8, RoundingMode.HALF_UP);
         params.setSlip(slip);
 
