@@ -58,20 +58,20 @@ class BordersTableValidator {
                     if ((!isOpenTable && item.getValue().compareTo(itemNext.getValue()) < 0)
                             || (isOpenTable && item.getValue().compareTo(itemNext.getValue()) > 0)) {
                         err_cnt++;
-                        err_sb.append(String.format("Error check_br_table: %s.value order. \n", borderTable.getBorderName()));
+                        err_sb.append(String.format("\n - Error check_br_table: %s.value order.", borderTable.getBorderName()));
                     }
                     if (item.getPosLongLimit() > itemNext.getPosLongLimit() || item.getPosShortLimit() > itemNext.getPosShortLimit()) {
                         err_cnt++;
-                        err_sb.append(String.format("Error check_br_table: %s.pos_lim order. \n", borderTable.getBorderName()));
+                        err_sb.append(String.format("\n - Error check_br_table: %s.pos_lim order.", borderTable.getBorderName()));
                     }
                 }
             }
         } catch (Exception e) {
-            throw new ToWarningLogException(String.format("BordersTableValidation error: %s. \n%s", e.toString(), err_sb.toString()));
+            throw new ToWarningLogException(String.format("BordersTableValidation error: %s. %s", e.toString(), err_sb.toString()));
         }
 
         if (err_cnt > 0) {
-            throw new ToWarningLogException(String.format("Errors: %s.\n%s", err_cnt, err_sb.toString()));
+            throw new ToWarningLogException(String.format("Errors: %s. %s", err_cnt, err_sb.toString()));
         }
 
         return err_cnt;
