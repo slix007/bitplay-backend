@@ -7,6 +7,12 @@ ssh.settings {
 }
 
 remotes {
+    host665 {
+        host = bpHost665
+        user = bpUser
+        password = bpPassword
+        port = bpPort as Integer
+    }
     test {
         host = bpHost
         user = bpUser
@@ -32,6 +38,21 @@ def remoteHomeDir = '/home/' + bpUser
 
 task clean << {
     delete project.buildDir
+}
+
+task deployHost665 << {
+    ssh.run {
+        session(remotes.host665) {
+
+            put from: "core/target/bitplay-0.0.1-SNAPSHOT.jar", into: "${remoteHomeDir}/"
+
+            executeSudo "sudo systemctl stop bitplay2", pty: true
+            executeSudo "sudo rm -f ${remoteInstallDir}/bitplay.jar", pty: true
+            executeSudo "sudo cp ${remoteHomeDir}/bitplay-0.0.1-SNAPSHOT.jar ${remoteInstallDir}/bitplay.jar", pty: true
+            executeSudo "sudo systemctl start bitplay2", pty: true
+            executeSudo "sudo systemctl start bitplay2", pty: true
+        }
+    }
 }
 
 task deployTest << {
