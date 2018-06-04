@@ -1299,7 +1299,7 @@ public class BitmexService extends MarketService {
         final BigDecimal equity = accountInfoContracts.geteMark();
         final BigDecimal margin = accountInfoContracts.getMargin();
 
-        final BigDecimal bMrliq = arbitrageService.getParams().getbMrLiq();
+        final BigDecimal bMrliq = arbitrageService.getParams().getBMrLiq();
 
         final BigDecimal m = contractIndex.getIndexPrice();
         final BigDecimal L = position.getLiquidationPrice();
@@ -1379,7 +1379,7 @@ public class BitmexService extends MarketService {
 
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
-        final BigDecimal bDQLOpenMin = arbitrageService.getParams().getbDQLOpenMin();
+        final BigDecimal bDQLOpenMin = arbitrageService.getParams().getBDQLOpenMin();
 
         boolean isOk;
         if (liqInfo.getDqlCurr() == null) {
@@ -1420,7 +1420,7 @@ public class BitmexService extends MarketService {
         final GuiParams params = arbitrageService.getParams();
 
         if (corrParams.getPreliq().hasSpareAttempts()) {
-            final BigDecimal bDQLCloseMin = params.getbDQLCloseMin();
+            final BigDecimal bDQLCloseMin = params.getBDQLCloseMin();
 
             if (liqInfo.getDqlCurr() != null
                     && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero

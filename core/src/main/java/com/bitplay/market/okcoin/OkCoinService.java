@@ -1277,7 +1277,7 @@ public class OkCoinService extends MarketService {
 
     private synchronized void recalcLiqInfo() {
         final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
-        final BigDecimal oMrLiq = arbitrageService.getParams().getoMrLiq();
+        final BigDecimal oMrLiq = arbitrageService.getParams().getOMrLiq();
 
         final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
         final BigDecimal equity = accountInfoContracts.geteLast();
@@ -1407,7 +1407,7 @@ public class OkCoinService extends MarketService {
      */
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
-        final BigDecimal oDQLOpenMin = arbitrageService.getParams().getoDQLOpenMin();
+        final BigDecimal oDQLOpenMin = arbitrageService.getParams().getODQLOpenMin();
 
         boolean isOk;
 
@@ -1449,7 +1449,7 @@ public class OkCoinService extends MarketService {
         final GuiParams params = arbitrageService.getParams();
 
         if (corrParams.getPreliq().hasSpareAttempts()) {
-            final BigDecimal oDQLCloseMin = params.getoDQLCloseMin();
+            final BigDecimal oDQLCloseMin = params.getODQLCloseMin();
             final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
             if (liqInfo.getDqlCurr() != null

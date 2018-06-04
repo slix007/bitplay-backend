@@ -33,5 +33,6 @@ public class DeltalUpdateJson {
     private String fundingRateFee;
     private String slip;
     private Boolean resetAllCumValues;
+    private String diffFactBrFailsCount;
 
 }

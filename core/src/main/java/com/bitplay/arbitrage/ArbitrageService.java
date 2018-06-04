@@ -374,6 +374,7 @@ public class ArbitrageService {
                     warningLogger.warn(e.toString());
                     deltasLogger.warn("WARNING: " + e.toString());
                     logger.warn("WARNING", e);
+                    params.setDiffFactBrFailsCount(params.getDiffFactBrFailsCount() + 1);
                 }
             }
         } else {
@@ -1148,11 +1149,11 @@ public class ArbitrageService {
                 final String bDQLMin;
                 final String oDQLMin;
                 if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
-                    bDQLMin = String.format("b_DQL_close_min=%s", getParams().getbDQLCloseMin());
-                    oDQLMin = String.format("o_DQL_close_min=%s", getParams().getoDQLCloseMin());
+                    bDQLMin = String.format("b_DQL_close_min=%s", getParams().getBDQLCloseMin());
+                    oDQLMin = String.format("o_DQL_close_min=%s", getParams().getODQLCloseMin());
                 } else {
-                    bDQLMin = String.format("b_DQL_open_min=%s", getParams().getbDQLOpenMin());
-                    oDQLMin = String.format("o_DQL_open_min=%s", getParams().getoDQLOpenMin());
+                    bDQLMin = String.format("b_DQL_open_min=%s", getParams().getBDQLOpenMin());
+                    oDQLMin = String.format("o_DQL_open_min=%s", getParams().getODQLOpenMin());
                 }
 
                 deltasLogger.info(String.format("#%s Pos diff: %s", counterName, getPosDiffString()));

@@ -187,6 +187,9 @@ public class CommonUIService {
             arbitrageService.getParams().setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
             arbitrageService.getParams().setCompletedCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
         }
+        if (deltalUpdateJson.getDiffFactBrFailsCount() != null) {
+            arbitrageService.getParams().setDiffFactBrFailsCount(Integer.parseInt(deltalUpdateJson.getDiffFactBrFailsCount()));
+        }
         if (deltalUpdateJson.getCumBitmexMCom() != null) {
             arbitrageService.getParams().setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
             arbitrageService.getParams().setCumAstBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
@@ -234,6 +237,7 @@ public class CommonUIService {
             arbitrageService.getParams().setCounter2(0);
             arbitrageService.getParams().setCompletedCounter1(0);
             arbitrageService.getParams().setCompletedCounter2(0);
+            arbitrageService.getParams().setDiffFactBrFailsCount(0);
         }
         arbitrageService.saveParamsToDb();
 
@@ -268,6 +272,7 @@ public class CommonUIService {
                 String.valueOf(arbitrageService.getParams().getCounter2()),
                 String.valueOf(arbitrageService.getParams().getCompletedCounter1()),
                 String.valueOf(arbitrageService.getParams().getCompletedCounter2()),
+                String.valueOf(arbitrageService.getParams().getDiffFactBrFailsCount()),
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getCumAstBitmexMCom().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
@@ -386,42 +391,42 @@ public class CommonUIService {
 
     public LiqParamsJson getLiqParams() {
         final GuiParams params = arbitrageService.getParams();
-        return new LiqParamsJson(params.getbMrLiq().toPlainString(),
-                params.getoMrLiq().toPlainString(),
-                params.getbDQLOpenMin().toPlainString(),
-                params.getoDQLOpenMin().toPlainString(),
-                params.getbDQLCloseMin().toPlainString(),
-                params.getoDQLCloseMin().toPlainString());
+        return new LiqParamsJson(params.getBMrLiq().toPlainString(),
+                params.getOMrLiq().toPlainString(),
+                params.getBDQLOpenMin().toPlainString(),
+                params.getODQLOpenMin().toPlainString(),
+                params.getBDQLCloseMin().toPlainString(),
+                params.getODQLCloseMin().toPlainString());
     }
 
     public LiqParamsJson updateLiqParams(LiqParamsJson input) {
         if (input.getbMrLiq() != null) {
-            arbitrageService.getParams().setbMrLiq(new BigDecimal(input.getbMrLiq()));
+            arbitrageService.getParams().setBMrLiq(new BigDecimal(input.getbMrLiq()));
         }
         if (input.getoMrLiq() != null) {
-            arbitrageService.getParams().setoMrLiq(new BigDecimal(input.getoMrLiq()));
+            arbitrageService.getParams().setOMrLiq(new BigDecimal(input.getoMrLiq()));
         }
         if (input.getbDQLOpenMin() != null) {
-            arbitrageService.getParams().setbDQLOpenMin(new BigDecimal(input.getbDQLOpenMin()));
+            arbitrageService.getParams().setBDQLOpenMin(new BigDecimal(input.getbDQLOpenMin()));
         }
         if (input.getoDQLOpenMin() != null) {
-            arbitrageService.getParams().setoDQLOpenMin(new BigDecimal(input.getoDQLOpenMin()));
+            arbitrageService.getParams().setODQLOpenMin(new BigDecimal(input.getoDQLOpenMin()));
         }
         if (input.getbDQLCloseMin() != null) {
-            arbitrageService.getParams().setbDQLCloseMin(new BigDecimal(input.getbDQLCloseMin()));
+            arbitrageService.getParams().setBDQLCloseMin(new BigDecimal(input.getbDQLCloseMin()));
         }
         if (input.getoDQLCloseMin() != null) {
-            arbitrageService.getParams().setoDQLCloseMin(new BigDecimal(input.getoDQLCloseMin()));
+            arbitrageService.getParams().setODQLCloseMin(new BigDecimal(input.getoDQLCloseMin()));
         }
 
         arbitrageService.saveParamsToDb();
         final GuiParams params = arbitrageService.getParams();
-        return new LiqParamsJson(params.getbMrLiq().toPlainString(),
-                params.getoMrLiq().toPlainString(),
-                params.getbDQLOpenMin().toPlainString(),
-                params.getoDQLOpenMin().toPlainString(),
-                params.getbDQLCloseMin().toPlainString(),
-                params.getoDQLCloseMin().toPlainString());
+        return new LiqParamsJson(params.getBMrLiq().toPlainString(),
+                params.getOMrLiq().toPlainString(),
+                params.getBDQLOpenMin().toPlainString(),
+                params.getODQLOpenMin().toPlainString(),
+                params.getBDQLCloseMin().toPlainString(),
+                params.getODQLCloseMin().toPlainString());
     }
 
     public DeltasMinMaxJson getDeltaParamsJson() {
