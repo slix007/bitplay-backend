@@ -69,6 +69,7 @@ public class ArbitrageService {
     private static final Object calcLock = new Object();
     private final BigDecimal OKEX_FACTOR = BigDecimal.valueOf(100);
     private final DealPrices dealPrices = new DealPrices();
+    private static final String NA = "NA";
     private boolean firstDeltasAfterStart = true;
     @Autowired
     private BordersService bordersService;
@@ -344,7 +345,7 @@ public class ArbitrageService {
 
         // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
 //        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(dealPrices.getBorderList()));
-        DiffFactBr diffFactBr = new DiffFactBr(BigDecimal.ZERO, "defaultZero");
+        DiffFactBr diffFactBr = new DiffFactBr(BigDecimal.valueOf(-99999999), NA);
         BorderParams borderParams = dealPrices.getBorderParamsOnStart();
         if (borderParams.getActiveVersion() == Ver.V1) {
             BigDecimal wam_br = dealPrices.getDeltaName().equals(DeltaName.B_DELTA)
@@ -379,6 +380,10 @@ public class ArbitrageService {
             String msg = "WARNING: borderParams.activeVersion" + borderParams.getActiveVersion();
             warningLogger.warn(msg);
             deltasLogger.warn(msg);
+        }
+        if (diffFactBr.getStr().equals(NA)) {
+            String msg = "WARNING: diff_fact_br=NA=-99999999";
+            warningLogger.warn(msg);
         }
 
         params.setCumDiffFactBr((params.getCumDiffFactBr().add(diffFactBr.getVal())).setScale(2, BigDecimal.ROUND_HALF_UP));
