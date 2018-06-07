@@ -399,10 +399,11 @@ public class ArbitrageService {
         BigDecimal ast_diff_fact = ast_delta_fact.subtract(ast_delta);
         params.setCumAstDiffFact(params.getCumAstDiffFact().add(ast_diff_fact));
 
-        // slip = (cum_diff_fact_br - cum_com) / count1 + count2
+        // slip = (cum_diff_fact_br - cum_com1 - cum_com2) / (completed counts1 + completed counts2) *2
         final BigDecimal cumCom = params.getCumCom1().add(params.getCumCom2());
         final BigDecimal slip = (params.getCumDiffFactBr().subtract(cumCom))
-                .divide(BigDecimal.valueOf(params.getCompletedCounter1() + params.getCompletedCounter2()), 8, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(params.getCompletedCounter1() + params.getCompletedCounter2()), 8, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(2));
         params.setSlip(slip);
 
         deltasLogger.info(String.format("#%s %s; " +
