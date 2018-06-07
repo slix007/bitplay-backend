@@ -81,11 +81,19 @@ public class SettingsCorrEndpoint {
                     corrParams.getPreliq().setPreliqBlockOkex(uPreliq.getPreliqBlockOkex());
                     persistenceService.saveCorrParams(corrParams);
                 }
+                if (uPreliq.getMaxTotalCount() != null) {
+                    corrParams.getPreliq().setMaxTotalCount(uPreliq.getMaxTotalCount());
+                    persistenceService.saveCorrParams(corrParams);
+                }
             }
             if (anUpdate.getCorr() != null) {
                 final Corr uCorr = anUpdate.getCorr();
                 if (uCorr.getMaxVolCorrOkex() != null) {
                     corrParams.getCorr().setMaxVolCorrOkex(uCorr.getMaxVolCorrOkex());
+                    persistenceService.saveCorrParams(corrParams);
+                }
+                if (uCorr.getMaxTotalCount() != null) {
+                    corrParams.getCorr().setMaxTotalCount(uCorr.getMaxTotalCount());
                     persistenceService.saveCorrParams(corrParams);
                 }
             }

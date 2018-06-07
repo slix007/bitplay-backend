@@ -111,11 +111,7 @@ public class PersistenceService {
     }
 
     public CorrParams fetchCorrParams() {
-        CorrParams first = corrParamsRepository.findFirstByExchangePair(ExchangePair.BITMEX_OKEX);
-        // instead of DB updates
-        first = first == null ? CorrParams.createDefault() : first;
-        first = first.getCorr() == null ? CorrParams.createDefault() : first;
-        return first;
+        return corrParamsRepository.findFirstByExchangePair(ExchangePair.BITMEX_OKEX);
     }
 
     public BorderParams fetchBorders() {

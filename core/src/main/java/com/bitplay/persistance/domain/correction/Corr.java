@@ -21,9 +21,10 @@ public class Corr {
     private Integer failedCount;
     private Integer currErrorCount;
     private Integer maxErrorCount;
+    private Integer maxTotalCount;
 
     public static Corr createDefault() {
-        return new Corr(1, 0, 0, 3, 1);
+        return new Corr(1, 0, 0, 3, 1, 20);
     }
 
     public Integer getMaxVolCorrBitmex() {
@@ -31,7 +32,9 @@ public class Corr {
     }
 
     public boolean hasSpareAttempts() {
-        return currErrorCount < maxErrorCount;
+        boolean hasSpareCurrent = currErrorCount < maxErrorCount;
+        boolean hasSparePermanent = getTotalCount() < maxTotalCount;
+        return hasSpareCurrent && hasSparePermanent;
     }
 
     public Integer getTotalCount() {
@@ -50,8 +53,10 @@ public class Corr {
 
     @Override
     public String toString() {
-        return String.format("Corr attempts(curr/max): %s/%s. Total(success/fail): %s/%s",
+        return String.format("Corr attempts(curr/max): %s/%s. Total(success+fail=total / max): %s+%s=%s / %s",
                 currErrorCount, maxErrorCount,
-                succeedCount, failedCount);
+                succeedCount, failedCount,
+                succeedCount + failedCount,
+                maxTotalCount);
     }
 }
