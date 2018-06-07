@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.dto.DiffFactBr;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -28,14 +29,5 @@ public class ArbUtils {
         }
 
         return new DiffFactBr(dFBr, str.toString());
-    }
-
-    public static class DiffFactBr {
-        final BigDecimal val;
-        final String str;
-        private DiffFactBr(BigDecimal val, String str) {
-            this.val = val;
-            this.str = str;
-        }
     }
 }

@@ -4,6 +4,7 @@ import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.domain.AbstractDocument;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import lombok.ToString;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -20,6 +21,7 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
+@ToString
 public class Settings extends AbstractDocument {
 
     private ArbScheme arbScheme;
@@ -32,6 +34,7 @@ public class Settings extends AbstractDocument {
     private Boolean restartEnabled;
     private FeeSettings feeSettings;
     private Limits limits;
+    private RestartSettings restartSettings;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -42,6 +45,7 @@ public class Settings extends AbstractDocument {
         settings.placingBlocks = PlacingBlocks.createDefault();
         settings.feeSettings = FeeSettings.createDefault();
         settings.limits = Limits.createDefault();
+        settings.restartSettings = RestartSettings.createDefaults();
         settings.setId(1L);
         return settings;
     }
@@ -64,17 +68,4 @@ public class Settings extends AbstractDocument {
         return feeSettings.getoTakerComRate(); // TAKER, HYBRID
     }
 
-    @Override
-    public String toString() {
-        return "Settings{" +
-                "arbScheme=" + arbScheme +
-                ", bitmexSysOverloadArgs=" + bitmexSysOverloadArgs +
-                ", okexSysOverloadArgs=" + okexSysOverloadArgs +
-                ", okexPlacingType=" + okexPlacingType +
-                ", bitmexPrice=" + bitmexPrice +
-                ", placingBlocks=" + placingBlocks +
-                ", restartEnabled=" + restartEnabled +
-                ", feeSettings=" + feeSettings +
-                '}';
-    }
 }

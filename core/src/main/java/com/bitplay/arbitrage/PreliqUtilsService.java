@@ -44,8 +44,8 @@ public class PreliqUtilsService {
             boolean isCorrect = false;
             if (isSucceeded) {
                 // double check
-                final BigDecimal bDQLCloseMin = params.getbDQLCloseMin();
-                final BigDecimal oDQLCloseMin = params.getoDQLCloseMin();
+                final BigDecimal bDQLCloseMin = params.getBDQLCloseMin();
+                final BigDecimal oDQLCloseMin = params.getODQLCloseMin();
                 if (first.getLiqInfo().getDqlCurr().compareTo(bDQLCloseMin) > 0
                         && second.getLiqInfo().getDqlCurr().compareTo(oDQLCloseMin) > 0) {
                     isCorrect = true;

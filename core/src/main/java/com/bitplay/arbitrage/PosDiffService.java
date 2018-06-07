@@ -40,7 +40,7 @@ public class PosDiffService {
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
     private final static Logger debugLogger = LoggerFactory.getLogger("DEBUG_LOG");
-    private static final long MIN_CORR_TIME_AFTER_READY_MS = 15000; // 15 sec
+    private static final long MIN_CORR_TIME_AFTER_READY_MS = 25000; // 25 sec
 
     private final BigDecimal DIFF_FACTOR = BigDecimal.valueOf(100);
 
@@ -94,10 +94,12 @@ public class PosDiffService {
     public void finishCorr(boolean wasOrderSuccess) {
         if (corrInProgress) {
             corrInProgress = false;
+            BigDecimal dc = getPositionsDiffWithHedge();
+
             try {
                 boolean isCorrect = false;
                 if (wasOrderSuccess) {
-                    if (getIsPositionsEqual()) {
+                    if (dc.signum() == 0) {
                         isCorrect = true;
                     } else {
 
@@ -108,7 +110,9 @@ public class PosDiffService {
                         logger.info(infoMsg + "bitmex " + pos1);
                         logger.info(infoMsg + "okex " + pos2);
 
-                        if (getIsPositionsEqual()) {
+                        dc = getPositionsDiffWithHedge();
+
+                        if (dc.signum() == 0) {
                             isCorrect = true;
                         } else {
 
@@ -137,8 +141,7 @@ public class PosDiffService {
                     final CorrParams corrParams = persistenceService.fetchCorrParams();
                     corrParams.getCorr().incFails();
                     persistenceService.saveCorrParams(corrParams);
-                    deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(),
-                            getPositionsDiffWithHedge());
+                    deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(), dc);
                 }
 
             } catch (Exception e) {
@@ -149,8 +152,7 @@ public class PosDiffService {
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
                 corrParams.getCorr().incFails();
                 persistenceService.saveCorrParams(corrParams);
-                deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(),
-                        getPositionsDiffWithHedge());
+                deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(), dc);
             }
         }
     }
@@ -338,52 +340,68 @@ public class PosDiffService {
         }
         stopTimerToImmidiateCorrection(); // avoid double-correction
 
-        final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
+        final BigDecimal dc = getPositionsDiffWithHedge();
         // 1. What we have to correct
         Order.OrderType orderType;
         BigDecimal correctAmount;
-        MarketService marketService;
-        final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
-        final BigDecimal bEquiv = bP.subtract(hedgeAmount);
+        MarketService marketService;                                            // Hedge=-300, dc=-100
+        final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);   // okexPos   100
+        final BigDecimal bEquiv = bP.subtract(hedgeAmount);                     // bitmexPos 100
 
-        if (positionsDiffWithHedge.signum() < 0) {
+        if (dc.signum() < 0) {
             orderType = Order.OrderType.BID;
             if (bEquiv.compareTo(okEquiv) < 0) {
                 // bitmex buy
-                correctAmount = positionsDiffWithHedge.abs();
+                correctAmount = dc.abs();
                 marketService = arbitrageService.getFirstMarketService();
                 if (signalType == SignalType.CORR) {
-                    signalType = SignalType.B_CORR;
+                    if (bP.signum() >= 0) {
+                        signalType = SignalType.B_CORR_INCREASE_POS;
+                    } else {
+                        signalType = SignalType.B_CORR;
+                    }
                 }
             } else {
                 // okcoin buy
-                correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
+                correctAmount = dc.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
                 if (oPS.subtract(correctAmount).signum() < 0) { // orderType==CLOSE_ASK
                     correctAmount = oPS;
                 }
                 marketService = arbitrageService.getSecondMarketService();
                 if (signalType == SignalType.CORR) {
-                    signalType = SignalType.O_CORR;
+                    if ((oPL.subtract(oPS)).signum() >= 0) {
+                        signalType = SignalType.O_CORR_INCREASE_POS;
+                    } else {
+                        signalType = SignalType.O_CORR;
+                    }
                 }
             }
         } else {
             orderType = Order.OrderType.ASK;
             if (bEquiv.compareTo(okEquiv) < 0) {
                 // okcoin sell
-                correctAmount = positionsDiffWithHedge.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
+                correctAmount = dc.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
                 if (oPL.subtract(correctAmount).signum() < 0) { // orderType==CLOSE_BID
                     correctAmount = oPL;
                 }
                 if (signalType == SignalType.CORR) {
-                    signalType = SignalType.O_CORR;
+                    if ((oPL.subtract(oPS)).signum() <= 0) {
+                        signalType = SignalType.O_CORR_INCREASE_POS;
+                    } else {
+                        signalType = SignalType.O_CORR;
+                    }
                 }
                 marketService = arbitrageService.getSecondMarketService();
             } else {
                 // bitmex sell
-                correctAmount = positionsDiffWithHedge.abs();
+                correctAmount = dc.abs();
                 marketService = arbitrageService.getFirstMarketService();
                 if (signalType == SignalType.CORR) {
-                    signalType = SignalType.B_CORR;
+                    if (bP.signum() <= 0) {
+                        signalType = SignalType.B_CORR_INCREASE_POS;
+                    } else {
+                        signalType = SignalType.B_CORR;
+                    }
                 }
             }
         }

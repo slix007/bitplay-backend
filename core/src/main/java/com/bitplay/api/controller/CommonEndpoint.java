@@ -206,6 +206,22 @@ public class CommonEndpoint {
         return commonUIService.resetDeltaParamsJson();
     }
 
+    @RequestMapping(value = "/restart-monitoring-params",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public DeltasMinMaxJson getRestartMonitoringParams() {
+        return commonUIService.geRestartMonitoringParamsJson();
+    }
+
+    @RequestMapping(value = "/restart-monitoring-params",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public DeltasMinMaxJson resetRestartMonitoringParams() {
+        return commonUIService.resetRestartMonitoringParamsJson();
+    }
+
+
     @RequestMapping(value = "/market/borders-timer",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)

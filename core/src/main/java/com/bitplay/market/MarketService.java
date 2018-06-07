@@ -577,7 +577,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 for (Order orderInfo : orders) {
                     orderInfo = orders.iterator().next();
                     if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                        customLogger.error("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
+                        customLogger.info("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
                                 counterName, attemptCount,
                                 logInfoId,
                                 Utils.convertOrderTypeName(orderInfo.getType()),

@@ -18,25 +18,29 @@ import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
+import com.bitplay.persistance.domain.RestartMonitoring;
+import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.repository.RestartMonitoringRepository;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 4/17/17.
  */
 @Service
 public class CommonUIService {
+
+    private final static Logger logger = LoggerFactory.getLogger(CommonUIService.class);
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -55,6 +59,9 @@ public class CommonUIService {
 
     @Autowired
     private PosDiffService posDiffService;
+
+    @Autowired
+    private RestartMonitoringRepository restartMonitoringRepository;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -174,9 +181,14 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCount1() != null) {
             arbitrageService.getParams().setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
+            arbitrageService.getParams().setCompletedCounter1(Integer.parseInt(deltalUpdateJson.getCount2()));
         }
         if (deltalUpdateJson.getCount2() != null) {
             arbitrageService.getParams().setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
+            arbitrageService.getParams().setCompletedCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
+        }
+        if (deltalUpdateJson.getDiffFactBrFailsCount() != null) {
+            arbitrageService.getParams().setDiffFactBrFailsCount(Integer.parseInt(deltalUpdateJson.getDiffFactBrFailsCount()));
         }
         if (deltalUpdateJson.getCumBitmexMCom() != null) {
             arbitrageService.getParams().setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
@@ -223,6 +235,9 @@ public class CommonUIService {
             arbitrageService.getParams().setSlip(BigDecimal.ZERO);
             arbitrageService.getParams().setCounter1(0);
             arbitrageService.getParams().setCounter2(0);
+            arbitrageService.getParams().setCompletedCounter1(0);
+            arbitrageService.getParams().setCompletedCounter2(0);
+            arbitrageService.getParams().setDiffFactBrFailsCount(0);
         }
         arbitrageService.saveParamsToDb();
 
@@ -255,6 +270,9 @@ public class CommonUIService {
                 arbitrageService.getParams().getCumAstCom2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 String.valueOf(arbitrageService.getParams().getCounter1()),
                 String.valueOf(arbitrageService.getParams().getCounter2()),
+                String.valueOf(arbitrageService.getParams().getCompletedCounter1()),
+                String.valueOf(arbitrageService.getParams().getCompletedCounter2()),
+                String.valueOf(arbitrageService.getParams().getDiffFactBrFailsCount()),
                 arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
                 arbitrageService.getParams().getCumAstBitmexMCom().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 arbitrageService.getParams().getReserveBtc1().toPlainString(),
@@ -373,42 +391,42 @@ public class CommonUIService {
 
     public LiqParamsJson getLiqParams() {
         final GuiParams params = arbitrageService.getParams();
-        return new LiqParamsJson(params.getbMrLiq().toPlainString(),
-                params.getoMrLiq().toPlainString(),
-                params.getbDQLOpenMin().toPlainString(),
-                params.getoDQLOpenMin().toPlainString(),
-                params.getbDQLCloseMin().toPlainString(),
-                params.getoDQLCloseMin().toPlainString());
+        return new LiqParamsJson(params.getBMrLiq().toPlainString(),
+                params.getOMrLiq().toPlainString(),
+                params.getBDQLOpenMin().toPlainString(),
+                params.getODQLOpenMin().toPlainString(),
+                params.getBDQLCloseMin().toPlainString(),
+                params.getODQLCloseMin().toPlainString());
     }
 
     public LiqParamsJson updateLiqParams(LiqParamsJson input) {
         if (input.getbMrLiq() != null) {
-            arbitrageService.getParams().setbMrLiq(new BigDecimal(input.getbMrLiq()));
+            arbitrageService.getParams().setBMrLiq(new BigDecimal(input.getbMrLiq()));
         }
         if (input.getoMrLiq() != null) {
-            arbitrageService.getParams().setoMrLiq(new BigDecimal(input.getoMrLiq()));
+            arbitrageService.getParams().setOMrLiq(new BigDecimal(input.getoMrLiq()));
         }
         if (input.getbDQLOpenMin() != null) {
-            arbitrageService.getParams().setbDQLOpenMin(new BigDecimal(input.getbDQLOpenMin()));
+            arbitrageService.getParams().setBDQLOpenMin(new BigDecimal(input.getbDQLOpenMin()));
         }
         if (input.getoDQLOpenMin() != null) {
-            arbitrageService.getParams().setoDQLOpenMin(new BigDecimal(input.getoDQLOpenMin()));
+            arbitrageService.getParams().setODQLOpenMin(new BigDecimal(input.getoDQLOpenMin()));
         }
         if (input.getbDQLCloseMin() != null) {
-            arbitrageService.getParams().setbDQLCloseMin(new BigDecimal(input.getbDQLCloseMin()));
+            arbitrageService.getParams().setBDQLCloseMin(new BigDecimal(input.getbDQLCloseMin()));
         }
         if (input.getoDQLCloseMin() != null) {
-            arbitrageService.getParams().setoDQLCloseMin(new BigDecimal(input.getoDQLCloseMin()));
+            arbitrageService.getParams().setODQLCloseMin(new BigDecimal(input.getoDQLCloseMin()));
         }
 
         arbitrageService.saveParamsToDb();
         final GuiParams params = arbitrageService.getParams();
-        return new LiqParamsJson(params.getbMrLiq().toPlainString(),
-                params.getoMrLiq().toPlainString(),
-                params.getbDQLOpenMin().toPlainString(),
-                params.getoDQLOpenMin().toPlainString(),
-                params.getbDQLCloseMin().toPlainString(),
-                params.getoDQLCloseMin().toPlainString());
+        return new LiqParamsJson(params.getBMrLiq().toPlainString(),
+                params.getOMrLiq().toPlainString(),
+                params.getBDQLOpenMin().toPlainString(),
+                params.getODQLOpenMin().toPlainString(),
+                params.getBDQLCloseMin().toPlainString(),
+                params.getODQLCloseMin().toPlainString());
     }
 
     public DeltasMinMaxJson getDeltaParamsJson() {
@@ -423,6 +441,26 @@ public class CommonUIService {
     public DeltasMinMaxJson resetDeltaParamsJson() {
         arbitrageService.resetDeltaParams();
         return getDeltaParamsJson();
+    }
+
+    public DeltasMinMaxJson geRestartMonitoringParamsJson() {
+        RestartMonitoring restartMonitoring = restartMonitoringRepository.fetchRestartMonitoring();
+        return new DeltasMinMaxJson(
+                "",
+                "",
+                restartMonitoring.getBTimestampDelayMax().toPlainString(),
+                restartMonitoring.getOTimestampDelayMax().toPlainString());
+    }
+
+    public DeltasMinMaxJson resetRestartMonitoringParamsJson() {
+        logger.warn("RESET RestartMonitoring");
+        RestartMonitoring defaults = RestartMonitoring.createDefaults();
+        RestartMonitoring restartMonitoring = restartMonitoringRepository.saveRestartMonitoring(defaults);
+        return new DeltasMinMaxJson(
+                "",
+                "",
+                restartMonitoring.getBTimestampDelayMax().toPlainString(),
+                restartMonitoring.getOTimestampDelayMax().toPlainString());
     }
 
     public ResultJson getUpdateBordersTimerString() {

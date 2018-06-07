@@ -3,6 +3,7 @@ package com.bitplay.api.controller;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import com.bitplay.persistance.domain.settings.RestartSettings;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 
@@ -120,6 +121,13 @@ public class SettingsEndpoint {
             settings.getLimits().setIgnoreLimits(l.getIgnoreLimits() != null ? l.getIgnoreLimits() : settings.getLimits().getIgnoreLimits());
             settings.getLimits().setBitmexLimitPrice(l.getBitmexLimitPrice() != null ? l.getBitmexLimitPrice() : settings.getLimits().getBitmexLimitPrice());
             settings.getLimits().setOkexLimitPrice(l.getOkexLimitPrice() != null ? l.getOkexLimitPrice() : settings.getLimits().getOkexLimitPrice());
+            settingsRepositoryService.saveSettings(settings);
+        }
+
+        if (settingsUpdate.getRestartSettings() != null) {
+            RestartSettings restartSettings = settingsUpdate.getRestartSettings();
+            settings.getRestartSettings().setMaxTimestampDelay(
+                    restartSettings != null ? restartSettings.getMaxTimestampDelay() : settings.getRestartSettings().getMaxTimestampDelay());
             settingsRepositoryService.saveSettings(settings);
         }
 

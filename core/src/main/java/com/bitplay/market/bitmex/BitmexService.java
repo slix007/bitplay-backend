@@ -437,9 +437,7 @@ public class BitmexService extends MarketService {
                                             if (cancelledFplayOrder != null) {
                                                 final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
 
-                                                if (cancelledOrder.getCumulativeAmount() != null && cancelledOrder.getCumulativeAmount().signum() > 0) {
-                                                    arbitrageService.getDealPrices().getbPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
-                                                }
+                                                arbitrageService.getDealPrices().getbPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
 
                                                 final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
                                                         cancelledOrder.getType(),
@@ -457,6 +455,8 @@ public class BitmexService extends MarketService {
                                                 final LimitOrder placedOrder = tradeResponse.getLimitOrder();
                                                 if (placedOrder != null) {
                                                     streamBuilder.add(new FplayOrder(placedOrder, openOrder.getBestQuotes(), openOrder.getPlacingType(), openOrder.getSignalType()));
+                                                    arbitrageService.getDealPrices().getbPriceFact().addPriceItem(placedOrder.getId(),
+                                                            placedOrder.getCumulativeAmount(), placedOrder.getAveragePrice());
                                                 }
 
                                                 // 3. failed on placing
@@ -560,6 +560,7 @@ public class BitmexService extends MarketService {
         try {
             exchange = initExchange(this.key, this.secret);
 
+            logger.info("bitmex connecting public");
             exchange.connect()
                     .doOnError(throwable -> logger.error("doOnError", throwable))
                     .doOnDispose(() -> logger.info("bitmex connect doOnDispose"))
@@ -570,6 +571,7 @@ public class BitmexService extends MarketService {
                     })
                     .blockingAwait();
 
+            logger.info("bitmex connecting private");
             exchange.authenticate().blockingAwait();
 
             // Retry on disconnect.
@@ -889,7 +891,7 @@ public class BitmexService extends MarketService {
 
             int attemptCount = 0;
             int badGatewayCount = 0;
-            while (attemptCount < maxAttempts) {
+            while (attemptCount < maxAttempts && getMarketState() != MarketState.STOPPED) {
                 attemptCount++;
                 try {
                     String orderId;
@@ -911,9 +913,7 @@ public class BitmexService extends MarketService {
                         orderRepositoryService.save(fplayOrder);
                         if (orderId != null && !orderId.equals("0")) {
                             tradeResponse.setLimitOrder(resultOrder);
-                            if (resultOrder.getCumulativeAmount() != null && resultOrder.getCumulativeAmount().signum() > 0) {
-                                arbitrageService.getDealPrices().getbPriceFact().addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice());
-                            }
+                            arbitrageService.getDealPrices().getbPriceFact().addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice());
                         }
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
@@ -940,9 +940,7 @@ public class BitmexService extends MarketService {
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
-                        if (resultOrder.getCumulativeAmount() != null && resultOrder.getCumulativeAmount().signum() > 0) {
-                            arbitrageService.getDealPrices().getbPriceFact().addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice());
-                        }
+                        arbitrageService.getDealPrices().getbPriceFact().addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice());
 
                         // workaround for OO list: set as limit order
                         tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, orderId, new Date(),
@@ -1109,9 +1107,7 @@ public class BitmexService extends MarketService {
                 tradeLogger.info(logString);
                 ordersLogger.info(logString);
 
-                if (updatedOrder.getCumulativeAmount() != null && updatedOrder.getCumulativeAmount().signum() > 0) {
-                    arbitrageService.getDealPrices().getbPriceFact().addPriceItem(updatedOrder.getId(), updatedOrder.getCumulativeAmount(), updatedOrder.getAveragePrice());
-                }
+                arbitrageService.getDealPrices().getbPriceFact().addPriceItem(updatedOrder.getId(), updatedOrder.getCumulativeAmount(), updatedOrder.getAveragePrice());
 
                 if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
                     if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
@@ -1180,9 +1176,7 @@ public class BitmexService extends MarketService {
             }
         }
 
-        if (limitOrder.getCumulativeAmount() != null && limitOrder.getCumulativeAmount().signum() > 0) {
-            arbitrageService.getDealPrices().getbPriceFact().addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), limitOrder.getAveragePrice());
-        }
+        arbitrageService.getDealPrices().getbPriceFact().addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), limitOrder.getAveragePrice());
         return diffWithSignal;
     }
 
@@ -1305,7 +1299,7 @@ public class BitmexService extends MarketService {
         final BigDecimal equity = accountInfoContracts.geteMark();
         final BigDecimal margin = accountInfoContracts.getMargin();
 
-        final BigDecimal bMrliq = arbitrageService.getParams().getbMrLiq();
+        final BigDecimal bMrliq = arbitrageService.getParams().getBMrLiq();
 
         final BigDecimal m = contractIndex.getIndexPrice();
         final BigDecimal L = position.getLiquidationPrice();
@@ -1385,7 +1379,7 @@ public class BitmexService extends MarketService {
 
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
-        final BigDecimal bDQLOpenMin = arbitrageService.getParams().getbDQLOpenMin();
+        final BigDecimal bDQLOpenMin = arbitrageService.getParams().getBDQLOpenMin();
 
         boolean isOk;
         if (liqInfo.getDqlCurr() == null) {
@@ -1426,7 +1420,7 @@ public class BitmexService extends MarketService {
         final GuiParams params = arbitrageService.getParams();
 
         if (corrParams.getPreliq().hasSpareAttempts()) {
-            final BigDecimal bDQLCloseMin = params.getbDQLCloseMin();
+            final BigDecimal bDQLCloseMin = params.getBDQLCloseMin();
 
             if (liqInfo.getDqlCurr() != null
                     && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
