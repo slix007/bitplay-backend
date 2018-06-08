@@ -39,33 +39,22 @@ public class SettingsCorrEndpoint {
         return result;
     }
 
-    @RequestMapping(value = "/corr-reset", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/corr/create-default", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public CorrParams updateSettings() {
         persistenceService.saveCorrParams(CorrParams.createDefault());
         return persistenceService.fetchCorrParams();
     }
 
-    @RequestMapping(value = "/corr-set-max-error", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/corr/reset", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public CorrParams updateCorrError(@RequestBody ChangeRequestJson changeRequestJson) {
         CorrParams corrParams = persistenceService.fetchCorrParams();
         if (changeRequestJson.getCommand() != null) {
             corrParams.getCorr().setSucceedCount(0);
             corrParams.getCorr().setFailedCount(0);
             corrParams.getCorr().setCurrErrorCount(0);
-            corrParams.getCorr().setMaxErrorCount(Integer.valueOf(changeRequestJson.getCommand()));
-            persistenceService.saveCorrParams(corrParams);
-        }
-        return corrParams;
-    }
-
-    @RequestMapping(value = "/corr-set-max-error-preliq", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public CorrParams updatePreliqErros(@RequestBody ChangeRequestJson changeRequestJson) {
-        CorrParams corrParams = persistenceService.fetchCorrParams();
-        if (changeRequestJson.getCommand() != null) {
             corrParams.getPreliq().setSucceedCount(0);
             corrParams.getPreliq().setFailedCount(0);
             corrParams.getPreliq().setCurrErrorCount(0);
-            corrParams.getPreliq().setMaxErrorCount(Integer.valueOf(changeRequestJson.getCommand()));
             persistenceService.saveCorrParams(corrParams);
         }
         return corrParams;
@@ -81,6 +70,10 @@ public class SettingsCorrEndpoint {
                     corrParams.getPreliq().setPreliqBlockOkex(uPreliq.getPreliqBlockOkex());
                     persistenceService.saveCorrParams(corrParams);
                 }
+                if (uPreliq.getMaxErrorCount() != null) {
+                    corrParams.getPreliq().setMaxErrorCount(uPreliq.getMaxErrorCount());
+                    persistenceService.saveCorrParams(corrParams);
+                }
                 if (uPreliq.getMaxTotalCount() != null) {
                     corrParams.getPreliq().setMaxTotalCount(uPreliq.getMaxTotalCount());
                     persistenceService.saveCorrParams(corrParams);
@@ -90,6 +83,10 @@ public class SettingsCorrEndpoint {
                 final Corr uCorr = anUpdate.getCorr();
                 if (uCorr.getMaxVolCorrOkex() != null) {
                     corrParams.getCorr().setMaxVolCorrOkex(uCorr.getMaxVolCorrOkex());
+                    persistenceService.saveCorrParams(corrParams);
+                }
+                if (uCorr.getMaxErrorCount() != null) {
+                    corrParams.getCorr().setMaxErrorCount(uCorr.getMaxErrorCount());
                     persistenceService.saveCorrParams(corrParams);
                 }
                 if (uCorr.getMaxTotalCount() != null) {

@@ -17,14 +17,16 @@ import lombok.Setter;
 public class Corr {
 
     private Integer maxVolCorrOkex;
-    private Integer succeedCount;
-    private Integer failedCount;
+    // attempts - resets after success
     private Integer currErrorCount;
     private Integer maxErrorCount;
+    // all counts
+    private Integer succeedCount;
+    private Integer failedCount;
     private Integer maxTotalCount;
 
     public static Corr createDefault() {
-        return new Corr(1, 0, 0, 3, 1, 20);
+        return new Corr(1, 0, 3, 0, 0, 20);
     }
 
     public Integer getMaxVolCorrBitmex() {

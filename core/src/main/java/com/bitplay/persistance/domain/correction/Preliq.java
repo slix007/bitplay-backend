@@ -16,14 +16,16 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Preliq {
     private Integer preliqBlockOkex;
-    private Integer succeedCount;
-    private Integer failedCount;
+    // attempts - resets after success
     private Integer currErrorCount;
     private Integer maxErrorCount;
+    // all counts
+    private Integer succeedCount;
+    private Integer failedCount;
     private Integer maxTotalCount;
 
     public static Preliq createDefault() {
-        return new Preliq(1, 0, 0, 0, 3, 20);
+        return new Preliq(1, 0, 3, 0, 0, 20);
     }
 
     public Integer getPreliqBlockBitmex() {
