@@ -2,7 +2,6 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.ChangeRequestJson;
-import com.bitplay.api.domain.futureindex.FutureIndexJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.OrderBookJson;
 import com.bitplay.api.domain.OrderJson;
@@ -10,8 +9,9 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.api.domain.futureindex.FutureIndexJson;
 import com.bitplay.api.service.BitplayUIServiceBitmex;
-
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
@@ -20,8 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
-
-import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 4/3/17.
@@ -122,6 +120,17 @@ public class BitmexEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public LiquidationInfoJson resetLiquidationInfo() {
         return this.bitmex.resetLiquidationInfoJson();
+    }
+
+    @RequestMapping(value = "/open-orders/cancel",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson openOrdersCancel(@RequestBody OrderJson orderJson) {
+        final String id = orderJson.getId();
+//        boolean cancelFromUI = this.bitmex.getBusinessService().cancelAllOrders("CancelFromUI");
+        boolean cancelFromUI = this.bitmex.getBusinessService().cancelOrderSync(id, "CancelFromUI");
+        return new ResultJson(String.valueOf(cancelFromUI), "");
     }
 }
 

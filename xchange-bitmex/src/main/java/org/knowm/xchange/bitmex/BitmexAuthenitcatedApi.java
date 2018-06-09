@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -109,6 +110,28 @@ public interface BitmexAuthenitcatedApi {
                       @FormParam("price") Double price,
                       @FormParam("ordType") String ordType,
                       @FormParam("execInst") String execInst
+    ) throws IOException;
+
+    @DELETE
+    @Path("/order")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    List<Order> deleteOrder(@HeaderParam("api-key") String apiKey,
+            @HeaderParam("api-signature") ParamsDigest signer,
+            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @FormParam("orderID") String orderID,
+            @FormParam("clOrdID") String clOrdID,
+            @FormParam("text") String text
+    ) throws IOException;
+
+    @DELETE
+    @Path("/order/all")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    List<Order> deleteAllOrders(@HeaderParam("api-key") String apiKey,
+            @HeaderParam("api-signature") ParamsDigest signer,
+            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @FormParam("symbol") String symbol,
+            @FormParam("filter") String filter,
+            @FormParam("text") String text
     ) throws IOException;
 
     @GET

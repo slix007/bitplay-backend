@@ -163,14 +163,14 @@ public class PosDiffService {
             return;
         }
         if (!hasTimerStarted) {
-            warningLogger.info("Timer for timer-correction has started");
+            warningLogger.info("Timer for timer-state-reset has started");
             hasTimerStarted = true;
         }
 
         final Long periodToCorrection = arbitrageService.getParams().getPeriodToCorrection();
         theTimerToImmidiateCorr = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
                 .doOnComplete(() -> {
-                    final String infoMsg = "Double check before timer-correction: fetchPosition:";
+                    final String infoMsg = "Double check before timer-state-reset: fetchPosition:";
                     if (Thread.interrupted()) return;
                     final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                     if (Thread.interrupted()) return;
@@ -179,11 +179,15 @@ public class PosDiffService {
                     warningLogger.info(infoMsg + "okex "+ pos2);
 
                     if (Thread.interrupted()) return;
-                    doCorrectionImmediate(SignalType.CORR_TIMER);
+//                    doCorrectionImmediate(SignalType.CORR_TIMER); - no correction. StopAllActions instead.
+                    if (getPositionsDiffWithHedge().signum() != 0) {
+                        arbitrageService.getFirstMarketService().stopAllActions();
+                        arbitrageService.getSecondMarketService().stopAllActions();
+                    }
                 })
                 .doOnError(e -> {
-                    warningLogger.error("Correction on timer failed. " + e.getMessage());
-                    logger.error("Correction on timer failed.", e);
+                    warningLogger.error("timer-state-reset failed. " + e.getMessage());
+                    logger.error("timer-state-reset failed.", e);
                 })
                 .retry()
                 .subscribe();

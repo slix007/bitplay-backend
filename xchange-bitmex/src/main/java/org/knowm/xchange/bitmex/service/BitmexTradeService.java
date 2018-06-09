@@ -1,8 +1,16 @@
 package org.knowm.xchange.bitmex.service;
 
+import io.swagger.client.model.Execution;
+import io.swagger.client.model.Instrument;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
@@ -14,15 +22,6 @@ import org.knowm.xchange.service.trade.TradeService;
 import org.knowm.xchange.service.trade.params.TradeHistoryParams;
 import org.knowm.xchange.service.trade.params.orders.OpenOrdersParams;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import io.swagger.client.model.Execution;
-import io.swagger.client.model.Instrument;
-
 /**
  * Created by Sergey Shurmin on 5/18/17.
  */
@@ -33,7 +32,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
     }
 
     @Override
-    public OpenOrders getOpenOrders() throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+    public OpenOrders getOpenOrders() throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException {
         throw new NotYetImplementedForExchangeException();
     }
 
@@ -135,11 +134,39 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
 
     @Override
     public boolean cancelOrder(String orderId) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        throw new NotYetImplementedForExchangeException();
+        final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.deleteOrder(
+                exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
+                orderId,
+                "",
+                "");
+
+        return orders.stream()
+                .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order, true))
+                .allMatch(order -> order.getStatus() == OrderStatus.CANCELED
+                        || order.getStatus() == OrderStatus.PENDING_CANCEL
+                        || order.getStatus() == OrderStatus.FILLED
+                        || order.getStatus() == OrderStatus.REJECTED
+                        || order.getStatus() == OrderStatus.EXPIRED
+                        || order.getStatus() == OrderStatus.STOPPED
+                );
+    }
+
+    public List<LimitOrder> cancelAllOrders() throws ExchangeException, IOException {
+        final String symbol = "XBTUSD";//BitmexAdapters.adaptSymbol(limitOrder.getCurrencyPair());
+
+        final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.deleteAllOrders(
+                exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
+                symbol,
+                "",
+                "");
+
+        return orders.stream()
+                .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order, true))
+                .collect(Collectors.toList());
     }
 
     @Override
-    public UserTrades getTradeHistory(TradeHistoryParams params) throws IOException {
+    public UserTrades getTradeHistory(TradeHistoryParams params) {
         throw new NotYetImplementedForExchangeException();
     }
 

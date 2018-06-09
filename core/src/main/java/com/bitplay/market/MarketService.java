@@ -4,10 +4,10 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
-import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
@@ -19,7 +19,21 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
-
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
@@ -35,27 +49,12 @@ import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
-
 /**
  * Created by Sergey Shurmin on 4/16/17.
  */
 public abstract class MarketService extends MarketServiceOpenOrders {
+
+    protected static final int MAX_ATTEMPTS_CANCEL = 90;
 
     private static final int ORDERBOOK_MAX_SIZE = 20;
     protected BigDecimal bestBid = BigDecimal.ZERO;
@@ -75,6 +74,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     private volatile PlaceOrderArgs placeOrderArgs;
     private volatile MarketState marketState = MarketState.READY;
     private volatile Instant readyTime = Instant.now();
+
+    protected volatile boolean shouldStopPlacing;
 
     private volatile SpecialFlags specialFlags = SpecialFlags.NONE;
     protected EventBus eventBus = new EventBus();
@@ -141,6 +142,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }*/
 
     public abstract boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount);
+
     public abstract Affordable recalcAffordable();
 
     public Affordable getAffordable() {
@@ -303,7 +305,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             setMarketState(marketStateToSet);
 
             // Place order if it was placing
-            if (placeOrderArgs != null) {
+            if (placeOrderArgs != null && !shouldStopPlacing) {
                 placeOrder(PlaceOrderArgs.nextPlacingArgs(placeOrderArgs));
                 placeOrderArgs = null;
             }
@@ -344,9 +346,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected String getCounterName() {
         return getCounterName(getArbitrageService().getCounter());
     }
+
     protected String getCounterNameNext() {
         return getCounterName(getArbitrageService().getCounter() + 1);
     }
+
     private String getCounterName(final int counter) {
         final SignalType signalType = getArbitrageService().getSignalType();
         String value;
@@ -469,7 +473,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     public BigDecimal getTotalPriceOfAmountToBuy(BigDecimal requiredAmountToBuy) {
         BigDecimal totalPrice = BigDecimal.ZERO;
         int index = 1;
-        final LimitOrder limitOrder1 = Utils.getBestAsks(getOrderBook(), index).get(index-1);
+        final LimitOrder limitOrder1 = Utils.getBestAsks(getOrderBook(), index).get(index - 1);
         BigDecimal totalAmountToBuy = limitOrder1.getTradableAmount().compareTo(requiredAmountToBuy) == -1
                 ? limitOrder1.getTradableAmount()
                 : requiredAmountToBuy;
@@ -478,7 +482,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
         while (totalAmountToBuy.compareTo(requiredAmountToBuy) == -1) {
             index++;
-            final LimitOrder lo = Utils.getBestAsks(getOrderBook(), index).get(index-1);
+            final LimitOrder lo = Utils.getBestAsks(getOrderBook(), index).get(index - 1);
             final BigDecimal toBuyLeft = requiredAmountToBuy.subtract(totalAmountToBuy);
             BigDecimal amountToBuyForItem = lo.getTradableAmount().compareTo(toBuyLeft) == -1
                     ? lo.getTradableAmount()
@@ -556,6 +560,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId) {
         return getOrderInfo(orderId, counterName, attemptCount, logInfoId, getTradeLogger());
     }
+
     protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, Logger customLogger) {
         final String[] orderIds = {orderId};
         final Collection<Order> orderInfos = getOrderInfos(orderIds, counterName, attemptCount, logInfoId, customLogger);
@@ -625,6 +630,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     abstract protected void iterateOpenOrdersMove();
+
     abstract protected void onReadyState();
 
     public MoveResponse moveMakerOrderFromGui(String orderId) {
@@ -764,8 +770,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     }
                 }
 
-                if (noSleep) sleep(10);
-                else sleep(2000);
+                if (noSleep) {
+                    sleep(10);
+                } else {
+                    sleep(2000);
+                }
             }
         }).share();
     }
@@ -782,4 +791,39 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }
     }
 
+    public void stopAllActions() {
+        shouldStopPlacing = true;
+
+        if (!hasOpenOrders()) {
+            String msg = String.format("%s: StopAllActions", getName());
+            warningLogger.info(msg);
+            getTradeLogger().info(msg);
+        } else {
+            StringBuilder orderIds = new StringBuilder();
+            synchronized (openOrdersLock) {
+                openOrders.stream()
+                        .map(FplayOrder::getOrder)
+                        .filter(order -> order.getStatus() == Order.OrderStatus.NEW
+                                || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
+                                || order.getStatus() == Order.OrderStatus.PENDING_NEW
+                                || order.getStatus() == Order.OrderStatus.PENDING_CANCEL
+                                || order.getStatus() == Order.OrderStatus.PENDING_REPLACE
+                        ).forEach(order -> orderIds.append(order.getId()).append(","));
+            }
+
+            String msg = String.format("%s: StopAllActions: CancelAllOpenOrders=%s", getName(), orderIds.toString());
+            warningLogger.info(msg);
+            getTradeLogger().info(msg);
+
+            cancelAllOrders("StopAllActions: CancelAllOpenOrders");
+        }
+
+        if (getMarketState() != MarketState.READY) {
+            setMarketState(MarketState.READY);
+        }
+    }
+
+    public boolean cancelAllOrders(String logInfoId) {
+        return false;
+    }
 }

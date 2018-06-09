@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -66,6 +67,7 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.FuturesContract;
+import org.knowm.xchange.okcoin.OkCoinUtils;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPositionResult;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
@@ -99,7 +101,6 @@ public class OkCoinService extends MarketService {
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
 
     private static final int MAX_ATTEMPTS_STATUS = 50;
-    private static final int MAX_ATTEMPTS_CANCEL = 90;
     private static final int MAX_ATTEMPTS_FOR_MOVING = 2;
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
@@ -668,7 +669,8 @@ public class OkCoinService extends MarketService {
         setMarketState(MarketState.PLACING_ORDER);
 
         BigDecimal amountLeft = amount;
-        for (int attemptCount = 1; attemptCount < maxAttempts && getMarketState() != MarketState.STOPPED; attemptCount++) {
+        shouldStopPlacing = false;
+        for (int attemptCount = 1; attemptCount < maxAttempts && getMarketState() != MarketState.STOPPED && !shouldStopPlacing; attemptCount++) {
             try {
                 if (attemptCount > 1) {
                     Thread.sleep(1000);
@@ -1156,6 +1158,68 @@ public class OkCoinService extends MarketService {
         return result;
     }
 
+    @Override
+    public boolean cancelAllOrders(String logInfoId) {
+        List<Boolean> res = new ArrayList<>();
+        final String counterName = getCounterName();
+        synchronized (openOrdersLock) {
+            openOrders.stream()
+                    .map(FplayOrder::getOrder)
+                    .filter(order -> order.getStatus() == Order.OrderStatus.NEW
+                            || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
+                            || order.getStatus() == Order.OrderStatus.PENDING_NEW
+                            || order.getStatus() == Order.OrderStatus.PENDING_CANCEL
+                            || order.getStatus() == Order.OrderStatus.PENDING_REPLACE
+                    ).forEach(order -> {
+
+                final String orderId = order.getId();
+                int attemptCount = 0;
+                while (attemptCount < MAX_ATTEMPTS_CANCEL) {
+                    attemptCount++;
+                    try {
+                        if (attemptCount > 1) {
+                            Thread.sleep(1000);
+                        }
+                        final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
+                        OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId, CurrencyPair.BTC_USD, FuturesContract.ThisWeek);
+
+                        tradeLogger.info("{}/{} {} id={},res={},code={},details={}({})",
+                                counterName, attemptCount,
+                                logInfoId,
+                                orderId,
+                                result.isResult(),
+                                result.getErrorCode(),
+                                result.getDetails(),
+                                getErrorCodeTranslation(result));
+
+                        if (result.isResult() || result.getDetails().contains("20015") /* "Order does not exist"*/) {
+                            order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
+                            break;
+                        }
+                    } catch (Exception e) {
+                        logger.error("{}/{} error cancel maker order", counterName, attemptCount, e);
+                        tradeLogger.error("{}/{} error cancel maker order: {}", counterName, attemptCount, e.toString());
+                    }
+                }
+            });
+        }
+
+        return res.size() > 0 && !res.contains(Boolean.FALSE);
+    }
+
+    private String getErrorCodeTranslation(OkCoinTradeResult result) {
+        String errorCodeTranslation = "";
+        if (result != null && result.getDetails() != null && result.getDetails().startsWith("Code: ")) { // Example: result.getDetails() == "Code: 20015"
+            String errorCode = result.getDetails().substring(6);
+            try {
+                errorCodeTranslation = OkCoinUtils.getErrorMessage(Integer.parseInt(errorCode));
+            } catch (NumberFormatException e) {
+                logger.error("can not translate code " + errorCode);
+            }
+        }
+        return errorCodeTranslation;
+    }
+
     @NotNull
     public OkCoinTradeResult cancelOrderSync(String orderId, String logInfoId) {
         final String counterName = getCounterName();
@@ -1176,14 +1240,15 @@ public class OkCoinService extends MarketService {
                     continue;
                 }
 
-                tradeLogger.info("{}/{} {} id={},res={}({}),code={},details={}",
+                tradeLogger.info("{}/{} {} id={},res={}({}),code={},details={}({})",
                         counterName, attemptCount,
                         logInfoId,
                         orderId,
                         result.isResult(),
                         result.isResult() ? "cancelled" : "probably already filled",
                         result.getErrorCode(),
-                        result.getDetails());
+                        result.getDetails(),
+                        getErrorCodeTranslation(result));
 
                 if (result.isResult()) {
                     break;
@@ -1231,14 +1296,15 @@ public class OkCoinService extends MarketService {
                         continue;
                     }
 
-                    tradeLogger.info("{}/{} {} id={},res={}({}),code={},details={}",
+                    tradeLogger.info("{}/{} {} id={},res={}({}),code={},details={}({})",
                             counterName, attemptCount,
                             logInfoId1,
                             orderId,
                             result.isResult(),
                             result.isResult() ? "cancelled" : "probably already filled",
                             result.getErrorCode(),
-                            result.getDetails());
+                            result.getDetails(),
+                            getErrorCodeTranslation(result));
 
                     if (result.isResult()) {
                         cancelSucceed = true;

@@ -8,11 +8,11 @@ import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
-import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.model.MoveResponse;
@@ -30,14 +30,36 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
-
+import io.reactivex.Completable;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+import io.swagger.client.model.Error;
+import io.swagger.client.model.Execution;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.PreDestroy;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.bitmex.service.BitmexAccountService;
@@ -58,33 +80,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.PreDestroy;
-
-import io.reactivex.Completable;
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
-import io.swagger.client.model.Error;
-import io.swagger.client.model.Execution;
 import si.mazi.rescu.HttpStatusIOException;
 
 /**
@@ -372,8 +367,7 @@ public class BitmexService extends MarketService {
 
         } else {
             movingInProgress = true;
-            scheduledMoveInProgressReset =
-                    scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
+            scheduledMoveInProgressReset = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
         }
 
         synchronized (openOrdersLock) {
@@ -891,7 +885,8 @@ public class BitmexService extends MarketService {
 
             int attemptCount = 0;
             int badGatewayCount = 0;
-            while (attemptCount < maxAttempts && getMarketState() != MarketState.STOPPED) {
+            shouldStopPlacing = false;
+            while (attemptCount < maxAttempts && getMarketState() != MarketState.STOPPED && !shouldStopPlacing) {
                 attemptCount++;
                 try {
                     String orderId;
@@ -1602,5 +1597,64 @@ public class BitmexService extends MarketService {
 
             return this;
         }
+    }
+
+    public boolean cancelOrderSync(String orderId, String logInfoId) {
+        final String counterName = getCounterName();
+
+        int attemptCount = 0;
+        while (attemptCount < MAX_ATTEMPTS_CANCEL) {
+            attemptCount++;
+            try {
+                if (attemptCount > 1) {
+                    Thread.sleep(1000);
+                }
+                BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
+                boolean res = tradeService.cancelOrder(orderId);
+
+                getTradeLogger().info("{}/{} {} cancelled id={}",
+                        counterName, attemptCount,
+                        logInfoId,
+                        orderId);
+
+                return res;
+
+            } catch (Exception e) {
+                logger.error("{}/{} error cancel order id={}", counterName, attemptCount, orderId, e);
+                getTradeLogger().error("{}/{} error cancel order id={}: {}", counterName, attemptCount, orderId, e.toString());
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean cancelAllOrders(String logInfoId) {
+        final String counterName = getCounterName();
+
+        int attemptCount = 0;
+        while (attemptCount < MAX_ATTEMPTS_CANCEL) {
+            attemptCount++;
+            try {
+                if (attemptCount > 1) {
+                    Thread.sleep(1000);
+                }
+                BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
+                List<LimitOrder> limitOrders = tradeService.cancelAllOrders();
+
+                getTradeLogger().info("{}/{} {} cancelled id={}",
+                        counterName, attemptCount,
+                        logInfoId,
+                        limitOrders.stream().map(Order::getId).reduce((acc, item) -> acc + "," + item));
+
+                updateOpenOrders(limitOrders);
+
+                return true;
+
+            } catch (Exception e) {
+                logger.error("{}/{} error cancel orders", counterName, attemptCount, e);
+                getTradeLogger().error("{}/{} error cancel orders: {}", counterName, attemptCount, e.toString());
+            }
+        }
+        return false;
     }
 }
