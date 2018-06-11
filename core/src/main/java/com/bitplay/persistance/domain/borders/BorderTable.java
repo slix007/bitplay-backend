@@ -36,6 +36,14 @@ public class BorderTable {
     }
 
     @Override
+    public String toString() {
+        return "BorderTable{" +
+                "borderName='" + borderName + '\'' +
+                ", borderItemList=" + borderItemList.stream().map(BorderItem::toString).reduce((acc, item) -> acc + ", " + item) +
+                '}';
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(borderName, borderItemList);
     }
