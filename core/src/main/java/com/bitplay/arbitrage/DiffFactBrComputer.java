@@ -7,9 +7,12 @@ import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.exceptions.ToWarningLogException;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
+import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import org.springframework.data.util.Pair;
 
 public class DiffFactBrComputer {
 
@@ -33,9 +36,7 @@ public class DiffFactBrComputer {
         this.bordersV2 = bordersV2;
     }
 
-    private StringBuilder diffFactBrSb = new StringBuilder();
-
-    BigDecimal comp_wam_br_for_ok_open_long() throws ToWarningLogException {
+    WamBr comp_wam_br_for_ok_open_long() {
         List<BorderItem> b_br_open = bordersV2.getBorderTableByName("b_br_open")
                 .get()
                 .getBorderItemList();
@@ -43,7 +44,7 @@ public class DiffFactBrComputer {
         return getOpenLong(b_br_open, b_delta_plan);
     }
 
-    BigDecimal comp_wam_br_for_ok_open_short() throws ToWarningLogException {
+    WamBr comp_wam_br_for_ok_open_short() {
         List<BorderItem> o_br_open = bordersV2.getBorderTableByName("o_br_open")
                 .get()
                 .getBorderItemList();
@@ -51,7 +52,7 @@ public class DiffFactBrComputer {
         return getOpenShort(o_br_open, o_delta_plan);
     }
 
-    BigDecimal comp_wam_br_for_ok_close_long() throws ToWarningLogException {
+    WamBr comp_wam_br_for_ok_close_long() {
         List<BorderItem> o_br_close = bordersV2.getBorderTableByName("o_br_close")
                 .get()
                 .getBorderItemList();
@@ -59,7 +60,7 @@ public class DiffFactBrComputer {
         return getCloseLong(o_br_close, o_delta_plan);
     }
 
-    BigDecimal comp_wam_br_for_ok_close_short() throws ToWarningLogException {
+    WamBr comp_wam_br_for_ok_close_short() {
         List<BorderItem> b_br_close = bordersV2.getBorderTableByName("b_br_close")
                 .get()
                 .getBorderItemList();
@@ -67,7 +68,7 @@ public class DiffFactBrComputer {
         return getCloseShort(b_br_close, b_delta_plan);
     }
 
-    BigDecimal comp_wam_br_for_b_open_long() throws ToWarningLogException {
+    WamBr comp_wam_br_for_b_open_long() {
         List<BorderItem> o_br_open = bordersV2.getBorderTableByName("o_br_open")
                 .get()
                 .getBorderItemList();
@@ -75,7 +76,7 @@ public class DiffFactBrComputer {
         return getOpenLong(o_br_open, o_delta_plan);
     }
 
-    BigDecimal comp_wam_br_for_b_open_short() throws ToWarningLogException {
+    WamBr comp_wam_br_for_b_open_short() {
         List<BorderItem> b_br_open = bordersV2.getBorderTableByName("b_br_open")
                 .get()
                 .getBorderItemList();
@@ -83,7 +84,7 @@ public class DiffFactBrComputer {
         return getOpenShort(b_br_open, b_delta_plan);
     }
 
-    BigDecimal comp_wam_br_for_b_close_long() throws ToWarningLogException {
+    WamBr comp_wam_br_for_b_close_long() {
         List<BorderItem> b_br_close = bordersV2.getBorderTableByName("b_br_close")
                 .get()
                 .getBorderItemList();
@@ -91,7 +92,7 @@ public class DiffFactBrComputer {
         return getCloseLong(b_br_close, b_delta_plan);
     }
 
-    BigDecimal comp_wam_br_for_b_close_short() throws ToWarningLogException {
+    WamBr comp_wam_br_for_b_close_short() {
         List<BorderItem> o_br_close = bordersV2.getBorderTableByName("o_br_close")
                 .get()
                 .getBorderItemList();
@@ -99,17 +100,16 @@ public class DiffFactBrComputer {
         return getCloseShort(o_br_close, o_delta_plan);
     }
 
-    private BigDecimal getOpenLong(List<BorderItem> br_open, BigDecimal delta_plan) throws ToWarningLogException {
-        BigDecimal wam_br;
+    private WamBr getOpenLong(List<BorderItem> br_open, BigDecimal delta_plan) {
+        WamBr wamBr = new WamBr();
+
         BigDecimal value0 = br_open.get(0).getValue();
         if (delta_plan.doubleValue() >= value0.doubleValue()
                 && pos_bo < br_open.get(0).getPosLongLimit()
                 && pos_ao <= br_open.get(0).getPosLongLimit()) {
-            diffFactBrSb.append("[").append(1).append(" * ").append(value0).append("]");
-            wam_br = value0;
+            wamBr.add(BigDecimal.ONE, value0);
         } else {
             int p = pos_bo;
-            wam_br = BigDecimal.ZERO;
             int vol_fact = pos_ao - pos_bo;
             if (delta_plan.doubleValue() >= value0.doubleValue()
                     && pos_bo < br_open.get(0).getPosLongLimit()
@@ -117,10 +117,7 @@ public class DiffFactBrComputer {
                 BigDecimal amount0 = BigDecimal.valueOf(br_open.get(0).getPosLongLimit() - p)
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
-                diffFactBrSb.append("[")
-                        .append(amount0).append(" * ").append(value0)
-                        .append("]");
-                wam_br = wam_br.add(amount0.multiply(value0)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                wamBr.add(amount0, value0);
                 p = br_open.get(0).getPosLongLimit();
                 BigDecimal value1 = br_open.get(1).getValue();
                 if (delta_plan.doubleValue() >= value1.doubleValue()
@@ -128,10 +125,7 @@ public class DiffFactBrComputer {
                     BigDecimal amount1 = BigDecimal.valueOf(pos_ao - p)
                             .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                             .setScale(2, BigDecimal.ROUND_HALF_UP);
-                    diffFactBrSb.append(" + [")
-                            .append(amount1).append(" * ").append(value1)
-                            .append("]");
-                    wam_br = wam_br.add(amount1.multiply(value1)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    wamBr.add(amount1, value1);
                 }
             }
             int b_br_open_cnt = BordersTableValidator.find_last_active_row(br_open);
@@ -142,8 +136,7 @@ public class DiffFactBrComputer {
                             && pos_bo > br_open.get(i - 1).getPosLongLimit()
                             && pos_ao > br_open.get(i - 1).getPosLongLimit()
                             && pos_ao < br_open.get(i).getPosLongLimit()) {
-                        diffFactBrSb.append("[").append(1).append(" * ").append(valueI).append("]");
-                        wam_br = valueI;
+                        wamBr.add(BigDecimal.ONE, valueI);
                         break;
                     }
                     if (pos_bo < br_open.get(i).getPosLongLimit()
@@ -151,10 +144,7 @@ public class DiffFactBrComputer {
                         BigDecimal amountI = BigDecimal.valueOf(br_open.get(i).getPosLongLimit() - p)
                                 .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                                 .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        diffFactBrSb.append(" + [")
-                                .append(amountI).append(" * ").append(valueI)
-                                .append("]");
-                        wam_br = wam_br.add(amountI.multiply(valueI)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        wamBr.add(amountI, valueI);
                         p = br_open.get(i).getPosLongLimit();
                     }
                     if (pos_bo < br_open.get(i - 1).getPosLongLimit()
@@ -163,48 +153,32 @@ public class DiffFactBrComputer {
                         BigDecimal amountI = BigDecimal.valueOf(pos_ao - br_open.get(i - 1).getPosLongLimit())
                                 .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                                 .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        diffFactBrSb.append(" + [")
-                                .append(amountI).append(" * ").append(valueI)
-                                .append("]");
-                        wam_br = wam_br.add(amountI.multiply(valueI)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        wamBr.add(amountI, valueI);
                     }
                 }
             }
         }
 
-        if (wam_br.signum() == 0) {
-            throw new ToWarningLogException(String.format("Error: wam_br=0. pos_bo=%s, pos_ao=%s, pos_mode=%s, delta_plan=%s, bordersTable=%s",
-                    pos_bo, pos_ao, pos_mode,
-                    delta_plan,
-                    br_open.stream().map(BorderItem::toString)
-                            .reduce((acc, item) -> acc + ", " + item)));
-        }
-
-        return wam_br;
+        return wamBr;
     }
 
-    private BigDecimal getOpenShort(List<BorderItem> br_open, BigDecimal delta_plan) throws ToWarningLogException {
-        BigDecimal wam_br;
+    private WamBr getOpenShort(List<BorderItem> br_open, BigDecimal delta_plan) {
+        WamBr wamBr = new WamBr();
         BigDecimal value0 = br_open.get(0).getValue();
         if (delta_plan.doubleValue() >= value0.doubleValue()
                 && -pos_bo < br_open.get(0).getPosShortLimit()
                 && -pos_ao <= br_open.get(0).getPosShortLimit()) {
-            diffFactBrSb.append("[").append(1).append(" * ").append(value0).append("]");
-            wam_br = value0;
+            wamBr.add(BigDecimal.ONE, value0);
         } else {
             int p = -pos_bo;
-            wam_br = BigDecimal.ZERO;
             int vol_fact = pos_bo - pos_ao;
             if (delta_plan.doubleValue() >= value0.doubleValue()
                     && -pos_bo < br_open.get(0).getPosShortLimit()
-                    && -pos_ao > br_open.get(0).getPosShortLimit()) {
+                    && -pos_ao > br_open.get(0).getPosShortLimit()) { // check it ok_open_short
                 BigDecimal amount0 = BigDecimal.valueOf(br_open.get(0).getPosShortLimit() - p)
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
-                diffFactBrSb.append("[")
-                        .append(amount0).append(" * ").append(value0)
-                        .append("]");
-                wam_br = wam_br.add(amount0.multiply(value0)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                wamBr.add(amount0, value0);
                 p = br_open.get(0).getPosShortLimit();
                 BigDecimal value1 = br_open.get(1).getValue();
                 if (delta_plan.doubleValue() >= value1.doubleValue()
@@ -212,10 +186,7 @@ public class DiffFactBrComputer {
                     BigDecimal amount1 = BigDecimal.valueOf(-pos_ao - p)
                             .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                             .setScale(2, BigDecimal.ROUND_HALF_UP);  //pos-p/vol
-                    diffFactBrSb.append(" + [")
-                            .append(amount1).append(" * ").append(value1)
-                            .append("]");
-                    wam_br = wam_br.add(amount1.multiply(value1)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    wamBr.add(amount1, value1);
                 }
             }
 
@@ -227,8 +198,7 @@ public class DiffFactBrComputer {
                             && -pos_bo > br_open.get(i - 1).getPosShortLimit()
                             && -pos_ao > br_open.get(i - 1).getPosShortLimit()
                             && -pos_ao < br_open.get(i).getPosShortLimit()) {
-                        diffFactBrSb.append("[").append(1).append(" * ").append(valueI).append("]");
-                        wam_br = valueI;
+                        wamBr.add(BigDecimal.ONE, valueI);
                         break;
                     }
                     if (-pos_bo < br_open.get(i).getPosShortLimit()
@@ -236,10 +206,7 @@ public class DiffFactBrComputer {
                         BigDecimal amountI = BigDecimal.valueOf(br_open.get(i).getPosShortLimit() - p)
                                 .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                                 .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        diffFactBrSb.append(" + [")
-                                .append(amountI).append(" * ").append(valueI)
-                                .append("]");
-                        wam_br = wam_br.add(amountI.multiply(valueI)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        wamBr.add(amountI, valueI);
                         p = br_open.get(i).getPosShortLimit();
                     }
                     if (-pos_bo < br_open.get(i - 1).getPosShortLimit()
@@ -248,28 +215,17 @@ public class DiffFactBrComputer {
                         BigDecimal amountI = BigDecimal.valueOf(-pos_ao - br_open.get(i - 1).getPosShortLimit())
                                 .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                                 .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        diffFactBrSb.append(" + [")
-                                .append(amountI).append(" * ").append(valueI)
-                                .append("]");
-                        wam_br = wam_br.add(amountI.multiply(valueI)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        wamBr.add(amountI, valueI);
                     }
                 }
             }
         }
 
-        if (wam_br.signum() == 0) {
-            throw new ToWarningLogException(String.format("Error: wam_br=0. pos_bo=%s, pos_ao=%s, pos_mode=%s, delta_plan=%s, bordersTable=%s",
-                    pos_bo, pos_ao, pos_mode,
-                    delta_plan,
-                    br_open.stream().map(BorderItem::toString)
-                            .reduce((acc, item) -> acc + ", " + item)));
-        }
-
-        return wam_br;
+        return wamBr;
     }
 
-    private BigDecimal getCloseLong(List<BorderItem> br_close, BigDecimal delta_plan) throws ToWarningLogException {
-        BigDecimal wam_br;
+    private WamBr getCloseLong(List<BorderItem> br_close, BigDecimal delta_plan) {
+        WamBr wamBr = new WamBr();
 
         int k = BordersTableValidator.find_last_active_row(br_close) - 1;
 
@@ -277,12 +233,10 @@ public class DiffFactBrComputer {
         if (delta_plan.doubleValue() >= valueK.doubleValue()
                 && pos_bo > br_close.get(k).getPosLongLimit()
                 && pos_ao >= br_close.get(k).getPosLongLimit()) {
-            diffFactBrSb.append("[").append(1).append(" * ").append(valueK).append("]");
-            wam_br = valueK;
+            wamBr.add(BigDecimal.ONE, valueK);
         } else {
             int l = pos_ao;
             int p = pos_bo;
-            wam_br = BigDecimal.ZERO;
             int vol_fact = pos_bo - pos_ao;
             if (delta_plan.doubleValue() >= valueK.doubleValue()
                     && pos_bo > br_close.get(k).getPosLongLimit()
@@ -290,28 +244,21 @@ public class DiffFactBrComputer {
                 BigDecimal amountK = BigDecimal.valueOf(p - br_close.get(k).getPosLongLimit())
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
-                diffFactBrSb.append("[")
-                        .append(amountK).append(" * ").append(valueK)
-                        .append("]");
-                wam_br = wam_br.add(amountK.multiply(valueK)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                wamBr.add(amountK, valueK);
             }
             for (int i = 0; i < k; i++) {
                 BigDecimal valueI = br_close.get(i).getValue();
                 if (delta_plan.doubleValue() >= valueI.doubleValue()) {
                     if (pos_bo > br_close.get(i).getPosLongLimit() && pos_bo <= br_close.get(i + 1).getPosLongLimit() && pos_ao >= br_close.get(i)
                             .getPosLongLimit()) {
-                        diffFactBrSb.append("[").append(1).append(" * ").append(valueI).append("]");
-                        wam_br = valueI;
+                        wamBr.add(BigDecimal.ONE, valueI);
                         break;
                     }
                     if (pos_bo >= br_close.get(i + 1).getPosLongLimit() && pos_ao < br_close.get(i + 1).getPosLongLimit()) {
                         BigDecimal amountI1 = BigDecimal.valueOf(br_close.get(i + 1).getPosLongLimit() - l)
                                 .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                                 .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        diffFactBrSb.append(" + [")
-                                .append(amountI1).append(" * ").append(valueI)
-                                .append("]");
-                        wam_br = wam_br.add(amountI1.multiply(valueI)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        wamBr.add(amountI1, valueI);
                         l = br_close.get(i + 1).getPosLongLimit();
                     }
                     if (pos_bo > br_close.get(i).getPosLongLimit() && pos_bo < br_close.get(i + 1).getPosLongLimit() && pos_ao < br_close.get(i)
@@ -319,41 +266,28 @@ public class DiffFactBrComputer {
                         BigDecimal amountI = BigDecimal.valueOf(pos_bo - br_close.get(i).getPosLongLimit())
                                 .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                                 .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        diffFactBrSb.append(" + [")
-                                .append(amountI).append(" * ").append(valueI)
-                                .append("]");
-                        wam_br = wam_br.add(amountI.multiply(valueI)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        wamBr.add(amountI, valueI);
                     }
                 }
             }
         }
 
-        if (wam_br.signum() == 0) {
-            throw new ToWarningLogException(String.format("Error: wam_br=0. pos_bo=%s, pos_ao=%s, pos_mode=%s, delta_plan=%s, bordersTable=%s",
-                    pos_bo, pos_ao, pos_mode,
-                    delta_plan,
-                    br_close.stream().map(BorderItem::toString)
-                            .reduce((acc, item) -> acc + ", " + item)));
-        }
-
-        return wam_br;
+        return wamBr;
     }
 
-    private BigDecimal getCloseShort(List<BorderItem> br_close, BigDecimal delta_plan) throws ToWarningLogException {
+    private WamBr getCloseShort(List<BorderItem> br_close, BigDecimal delta_plan) {
+        WamBr wamBr = new WamBr();
 
         int k = BordersTableValidator.find_last_active_row(br_close) - 1;
 
-        BigDecimal wam_br;
         BigDecimal valueK = br_close.get(k).getValue();
         if (delta_plan.doubleValue() >= valueK.doubleValue()
                 && -pos_bo > br_close.get(k).getPosShortLimit()
                 && -pos_ao >= br_close.get(k).getPosShortLimit()) {
-            diffFactBrSb.append("[").append(1).append(" * ").append(valueK).append("]");
-            wam_br = valueK;
+            wamBr.add(BigDecimal.ONE, valueK);
         } else {
             int l = -pos_ao;
             int p = -pos_bo;
-            wam_br = BigDecimal.ZERO;
             int vol_fact = pos_ao - pos_bo;
             if (delta_plan.doubleValue() >= valueK.doubleValue()
                     && -pos_bo > br_close.get(k).getPosShortLimit()
@@ -361,28 +295,21 @@ public class DiffFactBrComputer {
                 BigDecimal amountK = BigDecimal.valueOf(p - br_close.get(k).getPosShortLimit())
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
-                diffFactBrSb.append(" + [")
-                        .append(amountK).append(" * ").append(valueK)
-                        .append("]");
-                wam_br = wam_br.add(amountK.multiply(valueK)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                wamBr.add(amountK, valueK);
             }
             for (int i = 0; i < k; i++) {
                 BigDecimal valueI = br_close.get(i).getValue();
                 if (delta_plan.doubleValue() >= valueI.doubleValue()) {
                     if (-pos_bo > br_close.get(i).getPosShortLimit() && -pos_bo <= br_close.get(i + 1).getPosShortLimit() && -pos_ao >= br_close.get(i)
                             .getPosShortLimit()) {
-                        diffFactBrSb.append("[").append(1).append(" * ").append(valueI).append("]");
-                        wam_br = valueI;
+                        wamBr.add(BigDecimal.ONE, valueI);
                         break;
                     }
                     if (-pos_bo >= br_close.get(i + 1).getPosShortLimit() && -pos_ao < br_close.get(i + 1).getPosShortLimit()) {
                         BigDecimal amountI1 = BigDecimal.valueOf(br_close.get(i + 1).getPosShortLimit() - l)
                                 .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                                 .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        diffFactBrSb.append(" + [")
-                                .append(amountI1).append(" * ").append(valueI)
-                                .append("]");
-                        wam_br = wam_br.add(amountI1.multiply(valueI)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        wamBr.add(amountI1, valueI);
                         l = br_close.get(i + 1).getPosShortLimit();
                     }
                     if (-pos_bo > br_close.get(i).getPosShortLimit() && -pos_bo < br_close.get(i + 1).getPosShortLimit() && -pos_ao < br_close.get(i)
@@ -390,24 +317,13 @@ public class DiffFactBrComputer {
                         BigDecimal amountI = BigDecimal.valueOf(-pos_bo - br_close.get(i).getPosShortLimit())
                                 .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                                 .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        diffFactBrSb.append(" + [")
-                                .append(amountI).append(" * ").append(valueI)
-                                .append("]");
-                        wam_br = wam_br.add(amountI.multiply(valueI)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        wamBr.add(amountI, valueI);
                     }
                 }
             }
         }
 
-        if (wam_br.signum() == 0) {
-            throw new ToWarningLogException(String.format("Error: wam_br=0. pos_bo=%s, pos_ao=%s, pos_mode=%s, delta_plan=%s, bordersTable=%s",
-                    pos_bo, pos_ao, pos_mode,
-                    delta_plan,
-                    br_close.stream().map(BorderItem::toString)
-                            .reduce((acc, item) -> acc + ", " + item)));
-        }
-
-        return wam_br;
+        return wamBr;
     }
 
     DiffFactBr compute() throws ToWarningLogException {
@@ -415,24 +331,24 @@ public class DiffFactBrComputer {
         BordersTableValidator bordersTableValidator = new BordersTableValidator();
         bordersTableValidator.doCheck(bordersV2);
 
-        BigDecimal wam_br; // weighted average mean border
+        WamBr wamBr;
 
         if (pos_mode == OK_MODE && pos_bo >= 0 && pos_ao > 0 && abs(pos_ao) > abs(pos_bo)) {
-            wam_br = comp_wam_br_for_ok_open_long();
+            wamBr = comp_wam_br_for_ok_open_long();
         } else if (pos_mode == OK_MODE && pos_bo <= 0 && pos_ao < 0 && abs(pos_ao) > abs(pos_bo)) {
-            wam_br = comp_wam_br_for_ok_open_short();
+            wamBr = comp_wam_br_for_ok_open_short();
         } else if (pos_mode == OK_MODE && pos_bo > 0 && abs(pos_ao) < abs(pos_bo)) {
-            wam_br = comp_wam_br_for_ok_close_long();
+            wamBr = comp_wam_br_for_ok_close_long();
         } else if (pos_mode == OK_MODE && pos_bo < 0 && abs(pos_ao) < abs(pos_bo)) {
-            wam_br = comp_wam_br_for_ok_close_short();
+            wamBr = comp_wam_br_for_ok_close_short();
         } else if (pos_mode == BTM_MODE && pos_bo >= 0 && pos_ao > 0 && abs(pos_ao) > abs(pos_bo)) {
-            wam_br = comp_wam_br_for_b_open_long();
+            wamBr = comp_wam_br_for_b_open_long();
         } else if (pos_mode == BTM_MODE && pos_bo <= 0 && pos_ao < 0 && abs(pos_ao) > abs(pos_bo)) {
-            wam_br = comp_wam_br_for_b_open_short();
+            wamBr = comp_wam_br_for_b_open_short();
         } else if (pos_mode == BTM_MODE && pos_bo > 0 && abs(pos_ao) < abs(pos_bo)) {
-            wam_br = comp_wam_br_for_b_close_long();
+            wamBr = comp_wam_br_for_b_close_long();
         } else if (pos_mode == BTM_MODE && pos_bo < 0 && abs(pos_ao) < abs(pos_bo)) {
-            wam_br = comp_wam_br_for_b_close_short();
+            wamBr = comp_wam_br_for_b_close_short();
         } else {
             if (pos_bo == pos_ao) {
                 throw new ToWarningLogException("Error: case undefined: pos_bo == pos_ao");
@@ -440,11 +356,60 @@ public class DiffFactBrComputer {
             throw new ToWarningLogException("Error: case undefined");
         }
 
-        BigDecimal diff_fact_br = delta_fact.subtract(wam_br);
+        final BigDecimal diff_fact_br = delta_fact.subtract(wamBr.getValue());
+        final String diffFactBrString = wamBr.getDiffFactBrString();
+
+        if (diffFactBrString.isEmpty()) {
+            throw new ToWarningLogException(String.format("Error: wam_br=0. pos_bo=%s, pos_ao=%s, pos_mode=%s, "
+                            + "b_delta_plan=%s, o_delta_plan=%s, bordersTable=%s",
+                    pos_bo, pos_ao, pos_mode,
+                    b_delta_plan, o_delta_plan,
+                    bordersV2.getBorderTableList().stream()
+                            .map(BorderTable::toString)
+                            .reduce((acc, item) -> acc + ", " + item)));
+        }
+
         return new DiffFactBr(diff_fact_br,
                 String.format("%s - (%s)",
                         delta_fact.toPlainString(),
-                        diffFactBrSb.toString()));
+                        diffFactBrString));
+    }
+
+    /**
+     * weighted average mean border
+     */
+    private class WamBr {
+
+        List<Pair<BigDecimal, BigDecimal>> wamBrParts = new ArrayList<>(); // amount, value
+
+        void add(BigDecimal amount, BigDecimal value) {
+            wamBrParts.add(Pair.of(amount, value));
+        }
+
+        private BigDecimal getValue() {
+            BigDecimal wamBr = BigDecimal.ZERO;
+            for (Pair<BigDecimal, BigDecimal> wamBrPart : wamBrParts) {
+                final BigDecimal amount = wamBrPart.getFirst();
+                final BigDecimal value = wamBrPart.getSecond();
+                wamBr = wamBr.add(amount.multiply(value)).setScale(2, BigDecimal.ROUND_HALF_UP);
+            }
+            return wamBr;
+        }
+
+        private String getDiffFactBrString() {
+            StringBuilder sb = new StringBuilder();
+            for (Pair<BigDecimal, BigDecimal> wamBrPart : wamBrParts) {
+                if (sb.length() > 0) {
+                    sb.append(" + [");
+                } else {
+                    sb.append("[");
+                }
+                final BigDecimal amount = wamBrPart.getFirst();
+                final BigDecimal value = wamBrPart.getSecond();
+                sb.append(amount).append(" * ").append(value).append("]");
+            }
+            return sb.toString();
+        }
     }
 
     private int abs(int v) {
