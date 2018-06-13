@@ -289,4 +289,80 @@ public class DiffFactBrComputerTest {
             Assert.fail("No errors expected");
         }
     }
+
+
+    private BorderParams createBordersBugWamBr0() {
+        final List<BorderTable> borders = new ArrayList<>();
+        final List<BorderItem> borderBtmClose = new ArrayList<>();
+        borderBtmClose.add(new BorderItem(1, BigDecimal.valueOf(70), 0, 0));
+//        borderBtmClose.add(new BorderItem(2, BigDecimal.valueOf(60), 500, 500));
+//        borderBtmClose.add(new BorderItem(3, BigDecimal.valueOf(50), 1000, 1000));
+//        borderBtmClose.add(new BorderItem(4, BigDecimal.valueOf(40), 1500, 1500));
+        borders.add(new BorderTable("b_br_close", borderBtmClose));
+        final List<BorderItem> borderBtmOpen = new ArrayList<>();
+//        borderBtmOpen.add(new BorderItem(1, BigDecimal.valueOf(30), 10, 10));
+//        borderBtmOpen.add(new BorderItem(2, BigDecimal.valueOf(35), 20, 20));
+//        borderBtmOpen.add(new BorderItem(3, BigDecimal.valueOf(40), 30, 30));
+//        borderBtmOpen.add(new BorderItem(4, BigDecimal.valueOf(45), 40, 40));
+//        borderBtmOpen.add(new BorderItem(5, BigDecimal.valueOf(50), 50, 50));
+        borders.add(new BorderTable("b_br_open", borderBtmOpen));
+        final List<BorderItem> borderOkexClose = new ArrayList<>();
+//        borderOkexClose.add(new BorderItem(1, BigDecimal.valueOf(5), 0, 0));
+//        borderOkexClose.add(new BorderItem(2, BigDecimal.valueOf(0), 10, 10));
+//        borderOkexClose.add(new BorderItem(3, BigDecimal.valueOf(-5), 20, 20));
+//        borderOkexClose.add(new BorderItem(4, BigDecimal.valueOf(-10), 30, 30));
+//        borderOkexClose.add(new BorderItem(5, BigDecimal.valueOf(-15), 40, 40));
+        borders.add(new BorderTable("o_br_close", borderOkexClose));
+        final List<BorderItem> borderOkexOpen = new ArrayList<>();
+        // {id=3,val=24,pLL=30,pSL=30},m=10,b=198;{id=4,val=29,pLL=40,pSL=40},m=20,b=11;{id=5,val=34,pLL=50,pSL=50},m=30,b=10', deltaVal='35.0'} ",
+        borderOkexOpen.add(new BorderItem(1, BigDecimal.valueOf(14), 10, 10));
+        borderOkexOpen.add(new BorderItem(2, BigDecimal.valueOf(19), 20, 20));
+        borderOkexOpen.add(new BorderItem(3, BigDecimal.valueOf(24), 30, 30));
+        borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(29), 40, 40));
+        borderOkexOpen.add(new BorderItem(5, BigDecimal.valueOf(34), 50, 50));
+//        borderOkexOpen.add(new BorderItem(6, BigDecimal.valueOf(25), 6000, 6000));
+        borders.add(new BorderTable("o_br_open", borderOkexOpen));
+
+        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+    }
+
+    @Test
+    public void computeBugWamBr0() {
+        // Error: wam_br=0. pos_bo=-20, pos_ao=-26, pos_mode=OK_MODE,
+        // delta_plan=35.0,
+        // bordersTable=Optional[
+        // {id=1,val=14,pLL=10,pSL=10},
+        // {id=2,val=19,pLL=20,pSL=20},
+        // {id=3,val=24,pLL=30,pSL=30},
+        // {id=4,val=29,pLL=40,pSL=40},
+        // {id=5,val=34,pLL=50,pSL=50},
+        // {id=0,val=null,pLL=60,pSL=60}, {id=0,val=null,pLL=70,pSL=70}, {id=0,val=null,pLL=80,pSL=80}, {id=0,val=null,pLL=90,pSL=90}, {id=0,val=null,pLL=100,pSL=100}, {id=0,val=null,pLL=0,pSL=0}] ",
+
+        int pos_bo = -20; // Delta2, okex sell, block=6
+        int pos_ao = -26; // Pos diff: b(+1300) o(+0-20) = -700, ha=-700, dc=0, mdc=11000
+        BigDecimal b_delta_plan = BigDecimal.ZERO;
+        BigDecimal o_delta_plan = BigDecimal.valueOf(35);
+        BigDecimal deltaFact = BigDecimal.valueOf(32.43);
+
+        BorderParams borderParams = createBordersBugWamBr0();
+        BordersV2 bordersV2 = borderParams.getBordersV2();
+
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+                b_delta_plan,
+                o_delta_plan,
+                deltaFact, bordersV2);
+
+        try {
+            DiffFactBr diffFactBr = diffFactBrComputer.compute();
+
+//            System.out.println(diffFactBr.getStr());
+            Assert.assertEquals("diffFactBrString", "32.43 - ([1.00 * 24])", diffFactBr.getStr());
+            Assert.assertEquals("diffFactBr", BigDecimal.valueOf(8.43), diffFactBr.getVal()); // 9.9
+        } catch (ToWarningLogException e) {
+            e.printStackTrace();
+            Assert.fail("No errors expected");
+        }
+    }
+
+
 }
