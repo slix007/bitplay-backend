@@ -41,7 +41,7 @@ public class DiffFactBrComputer {
                 .get()
                 .getBorderItemList();
 
-        return getOpenLong(b_br_open, b_delta_plan);
+        return calcByOpenTable(b_br_open, b_delta_plan, pos_bo, pos_ao);
     }
 
     WamBr comp_wam_br_for_ok_open_short() {
@@ -49,7 +49,7 @@ public class DiffFactBrComputer {
                 .get()
                 .getBorderItemList();
 
-        return getOpenShort(o_br_open, o_delta_plan);
+        return calcByOpenTable(o_br_open, o_delta_plan, -pos_bo, -pos_ao);
     }
 
     WamBr comp_wam_br_for_ok_close_long() {
@@ -57,7 +57,7 @@ public class DiffFactBrComputer {
                 .get()
                 .getBorderItemList();
 
-        return getCloseLong(o_br_close, o_delta_plan);
+        return calcByCloseTable(o_br_close, o_delta_plan, pos_bo, pos_ao);
     }
 
     WamBr comp_wam_br_for_ok_close_short() {
@@ -65,7 +65,7 @@ public class DiffFactBrComputer {
                 .get()
                 .getBorderItemList();
 
-        return getCloseShort(b_br_close, b_delta_plan);
+        return calcByCloseTable(b_br_close, b_delta_plan, -pos_bo, -pos_ao);
     }
 
     WamBr comp_wam_br_for_b_open_long() {
@@ -73,7 +73,7 @@ public class DiffFactBrComputer {
                 .get()
                 .getBorderItemList();
 
-        return getOpenLong(o_br_open, o_delta_plan);
+        return calcByOpenTable(o_br_open, o_delta_plan, pos_bo, pos_ao);
     }
 
     WamBr comp_wam_br_for_b_open_short() {
@@ -81,7 +81,7 @@ public class DiffFactBrComputer {
                 .get()
                 .getBorderItemList();
 
-        return getOpenShort(b_br_open, b_delta_plan);
+        return calcByOpenTable(b_br_open, b_delta_plan, -pos_bo, -pos_ao);
     }
 
     WamBr comp_wam_br_for_b_close_long() {
@@ -89,7 +89,7 @@ public class DiffFactBrComputer {
                 .get()
                 .getBorderItemList();
 
-        return getCloseLong(b_br_close, b_delta_plan);
+        return calcByCloseTable(b_br_close, b_delta_plan, pos_bo, pos_ao);
     }
 
     WamBr comp_wam_br_for_b_close_short() {
@@ -97,232 +97,77 @@ public class DiffFactBrComputer {
                 .get()
                 .getBorderItemList();
 
-        return getCloseShort(o_br_close, o_delta_plan);
+        return calcByCloseTable(o_br_close, o_delta_plan, -pos_bo, -pos_ao);
     }
 
-    private WamBr getOpenLong(List<BorderItem> br_open, BigDecimal delta_plan) {
+    private WamBr calcByOpenTable(List<BorderItem> br_open, BigDecimal delta_plan, int pos_bo_abs, int pos_ao_abs) {
         WamBr wamBr = new WamBr();
 
-        BigDecimal value0 = br_open.get(0).getValue();
-        if (delta_plan.doubleValue() >= value0.doubleValue()
-                && pos_bo < br_open.get(0).getPosLongLimit()
-                && pos_ao <= br_open.get(0).getPosLongLimit()) {
-            wamBr.add(BigDecimal.ONE, value0);
-        } else {
-            int p = pos_bo;
-            int vol_fact = pos_ao - pos_bo;
-            if (delta_plan.doubleValue() >= value0.doubleValue()
-                    && pos_bo < br_open.get(0).getPosLongLimit()
-                    && pos_ao > br_open.get(0).getPosLongLimit()) {
-                BigDecimal amount0 = BigDecimal.valueOf(br_open.get(0).getPosLongLimit() - p)
+        int vol_fact = pos_ao_abs - pos_bo_abs;
+        int vol_filled = 0;
+        int bottomEdge = pos_bo_abs;
+
+        for (int i = 0; i < br_open.size(); i++) {
+            BigDecimal valueI = br_open.get(i).getValue();
+            if (br_open.get(i).getId() == 0
+                    || delta_plan.doubleValue() < valueI.doubleValue()
+                    || vol_filled >= vol_fact) {
+                break;
+            }
+
+            if (pos_bo_abs < br_open.get(i).getPosShortLimit()) {
+                int topEdge = pos_ao_abs < br_open.get(i).getPosShortLimit() ? pos_ao_abs : br_open.get(i).getPosShortLimit();
+                int amountStep = topEdge - bottomEdge;
+                vol_filled += amountStep; // 1000 - 499 // 1499 - 1000
+                bottomEdge = topEdge;
+
+                BigDecimal amountPortion = BigDecimal.valueOf(amountStep)
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
-                wamBr.add(amount0, value0);
-                p = br_open.get(0).getPosLongLimit();
-                BigDecimal value1 = br_open.get(1).getValue();
-                if (delta_plan.doubleValue() >= value1.doubleValue()
-                        && pos_ao < br_open.get(1).getPosLongLimit()) {
-                    BigDecimal amount1 = BigDecimal.valueOf(pos_ao - p)
-                            .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                            .setScale(2, BigDecimal.ROUND_HALF_UP);
-                    wamBr.add(amount1, value1);
-                }
-            }
-            int b_br_open_cnt = BordersTableValidator.find_last_active_row(br_open);
-            for (int i = 1; i < b_br_open_cnt; i++) {
-                BigDecimal valueI = br_open.get(i).getValue();
-                if (delta_plan.doubleValue() >= valueI.doubleValue()) {
-                    if (pos_bo < br_open.get(i).getPosLongLimit()
-                            && pos_bo > br_open.get(i - 1).getPosLongLimit()
-                            && pos_ao > br_open.get(i - 1).getPosLongLimit()
-                            && pos_ao < br_open.get(i).getPosLongLimit()) {
-                        wamBr.add(BigDecimal.ONE, valueI);
-                        break;
-                    }
-                    if (pos_bo < br_open.get(i).getPosLongLimit()
-                            && pos_ao >= br_open.get(i).getPosLongLimit()) {
-                        BigDecimal amountI = BigDecimal.valueOf(br_open.get(i).getPosLongLimit() - p)
-                                .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                                .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        wamBr.add(amountI, valueI);
-                        p = br_open.get(i).getPosLongLimit();
-                    }
-                    if (pos_bo < br_open.get(i - 1).getPosLongLimit()
-                            && pos_ao > br_open.get(i - 1).getPosLongLimit()
-                            && pos_ao < br_open.get(i).getPosLongLimit()) {
-                        BigDecimal amountI = BigDecimal.valueOf(pos_ao - br_open.get(i - 1).getPosLongLimit())
-                                .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                                .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        wamBr.add(amountI, valueI);
-                    }
-                }
+                wamBr.add(amountPortion, valueI);
             }
         }
-
         return wamBr;
     }
 
-    private WamBr getOpenShort(List<BorderItem> br_open, BigDecimal delta_plan) {
+    private WamBr calcByCloseTable(List<BorderItem> br_close, BigDecimal delta_plan, int pos_bo_abs, int pos_ao_abs) {
         WamBr wamBr = new WamBr();
-        BigDecimal value0 = br_open.get(0).getValue();
-        if (delta_plan.doubleValue() >= value0.doubleValue()
-                && -pos_bo < br_open.get(0).getPosShortLimit()
-                && -pos_ao <= br_open.get(0).getPosShortLimit()) {
-            wamBr.add(BigDecimal.ONE, value0);
-        } else {
-            int p = -pos_bo;
-            int vol_fact = pos_bo - pos_ao;
-            if (delta_plan.doubleValue() >= value0.doubleValue()
-                    && -pos_bo < br_open.get(0).getPosShortLimit()
-                    && -pos_ao > br_open.get(0).getPosShortLimit()) { // check it ok_open_short
-                BigDecimal amount0 = BigDecimal.valueOf(br_open.get(0).getPosShortLimit() - p)
+        // 25 - 0
+        // 25 - 1000
+        // 20 - 2000
+        int vol_fact = pos_bo_abs - pos_ao_abs;
+        int vol_filled = 0;
+        int bottomEdge = pos_ao_abs;
+
+        for (int i = 0; i < br_close.size(); i++) {
+
+            if (vol_filled >= vol_fact || br_close.get(i).getId() == 0) {
+                break;
+            }
+            BigDecimal valueI = br_close.get(i).getValue();
+            if (delta_plan.doubleValue() < valueI.doubleValue()) { // should not be such case
+                valueI = BigDecimal.ZERO;
+            }
+
+            if (i + 1 == br_close.size()
+                    || br_close.get(i + 1).getId() == 0
+                    || pos_ao_abs < br_close.get(i + 1).getPosShortLimit()) { // it's last or less next
+
+                int topEdge = (i + 1 == br_close.size()
+                        || br_close.get(i + 1).getId() == 0
+                        || pos_bo_abs < br_close.get(i + 1).getPosShortLimit()) // the last or the next
+                        ? pos_bo_abs
+                        : br_close.get(i + 1).getPosShortLimit();
+                int amountStep = topEdge - bottomEdge;
+                vol_filled += amountStep;
+                bottomEdge = topEdge;
+
+                BigDecimal amountPortion = BigDecimal.valueOf(amountStep)
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
-                wamBr.add(amount0, value0);
-                p = br_open.get(0).getPosShortLimit();
-                BigDecimal value1 = br_open.get(1).getValue();
-                if (delta_plan.doubleValue() >= value1.doubleValue()
-                        && -pos_ao < br_open.get(1).getPosShortLimit()) {
-                    BigDecimal amount1 = BigDecimal.valueOf(-pos_ao - p)
-                            .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                            .setScale(2, BigDecimal.ROUND_HALF_UP);  //pos-p/vol
-                    wamBr.add(amount1, value1);
-                }
-            }
-
-            int o_br_open_cnt = BordersTableValidator.find_last_active_row(br_open);
-            for (int i = 1; i < o_br_open_cnt; i++) {
-                BigDecimal valueI = br_open.get(i).getValue();
-                if (delta_plan.doubleValue() >= valueI.doubleValue()) {
-                    if (-pos_bo < br_open.get(i).getPosShortLimit()
-                            && -pos_bo > br_open.get(i - 1).getPosShortLimit()
-                            && -pos_ao > br_open.get(i - 1).getPosShortLimit()
-                            && -pos_ao < br_open.get(i).getPosShortLimit()) {
-                        wamBr.add(BigDecimal.ONE, valueI);
-                        break;
-                    }
-                    if (-pos_bo < br_open.get(i).getPosShortLimit()
-                            && -pos_ao >= br_open.get(i).getPosShortLimit()) {
-                        BigDecimal amountI = BigDecimal.valueOf(br_open.get(i).getPosShortLimit() - p)
-                                .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                                .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        wamBr.add(amountI, valueI);
-                        p = br_open.get(i).getPosShortLimit();
-                    }
-                    if (-pos_bo < br_open.get(i - 1).getPosShortLimit()
-                            && -pos_ao > br_open.get(i - 1).getPosShortLimit()
-                            && -pos_ao < br_open.get(i).getPosShortLimit()) {
-                        BigDecimal amountI = BigDecimal.valueOf(-pos_ao - br_open.get(i - 1).getPosShortLimit())
-                                .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                                .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        wamBr.add(amountI, valueI);
-                    }
-                }
+                wamBr.add(amountPortion, valueI);
             }
         }
-
-        return wamBr;
-    }
-
-    private WamBr getCloseLong(List<BorderItem> br_close, BigDecimal delta_plan) {
-        WamBr wamBr = new WamBr();
-
-        int k = BordersTableValidator.find_last_active_row(br_close) - 1;
-
-        BigDecimal valueK = br_close.get(k).getValue();
-        if (delta_plan.doubleValue() >= valueK.doubleValue()
-                && pos_bo > br_close.get(k).getPosLongLimit()
-                && pos_ao >= br_close.get(k).getPosLongLimit()) {
-            wamBr.add(BigDecimal.ONE, valueK);
-        } else {
-            int l = pos_ao;
-            int p = pos_bo;
-            int vol_fact = pos_bo - pos_ao;
-            if (delta_plan.doubleValue() >= valueK.doubleValue()
-                    && pos_bo > br_close.get(k).getPosLongLimit()
-                    && pos_ao <= br_close.get(k).getPosLongLimit()) {
-                BigDecimal amountK = BigDecimal.valueOf(p - br_close.get(k).getPosLongLimit())
-                        .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                        .setScale(2, BigDecimal.ROUND_HALF_UP);
-                wamBr.add(amountK, valueK);
-            }
-            for (int i = 0; i < k; i++) {
-                BigDecimal valueI = br_close.get(i).getValue();
-                if (delta_plan.doubleValue() >= valueI.doubleValue()) {
-                    if (pos_bo > br_close.get(i).getPosLongLimit() && pos_bo <= br_close.get(i + 1).getPosLongLimit() && pos_ao >= br_close.get(i)
-                            .getPosLongLimit()) {
-                        wamBr.add(BigDecimal.ONE, valueI);
-                        break;
-                    }
-                    if (pos_bo >= br_close.get(i + 1).getPosLongLimit() && pos_ao < br_close.get(i + 1).getPosLongLimit()) {
-                        BigDecimal amountI1 = BigDecimal.valueOf(br_close.get(i + 1).getPosLongLimit() - l)
-                                .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                                .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        wamBr.add(amountI1, valueI);
-                        l = br_close.get(i + 1).getPosLongLimit();
-                    }
-                    if (pos_bo > br_close.get(i).getPosLongLimit() && pos_bo < br_close.get(i + 1).getPosLongLimit() && pos_ao < br_close.get(i)
-                            .getPosLongLimit()) {
-                        BigDecimal amountI = BigDecimal.valueOf(pos_bo - br_close.get(i).getPosLongLimit())
-                                .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                                .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        wamBr.add(amountI, valueI);
-                    }
-                }
-            }
-        }
-
-        return wamBr;
-    }
-
-    private WamBr getCloseShort(List<BorderItem> br_close, BigDecimal delta_plan) {
-        WamBr wamBr = new WamBr();
-
-        int k = BordersTableValidator.find_last_active_row(br_close) - 1;
-
-        BigDecimal valueK = br_close.get(k).getValue();
-        if (delta_plan.doubleValue() >= valueK.doubleValue()
-                && -pos_bo > br_close.get(k).getPosShortLimit()
-                && -pos_ao >= br_close.get(k).getPosShortLimit()) {
-            wamBr.add(BigDecimal.ONE, valueK);
-        } else {
-            int l = -pos_ao;
-            int p = -pos_bo;
-            int vol_fact = pos_ao - pos_bo;
-            if (delta_plan.doubleValue() >= valueK.doubleValue()
-                    && -pos_bo > br_close.get(k).getPosShortLimit()
-                    && -pos_ao <= br_close.get(k).getPosShortLimit()) {
-                BigDecimal amountK = BigDecimal.valueOf(p - br_close.get(k).getPosShortLimit())
-                        .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                        .setScale(2, BigDecimal.ROUND_HALF_UP);
-                wamBr.add(amountK, valueK);
-            }
-            for (int i = 0; i < k; i++) {
-                BigDecimal valueI = br_close.get(i).getValue();
-                if (delta_plan.doubleValue() >= valueI.doubleValue()) {
-                    if (-pos_bo > br_close.get(i).getPosShortLimit() && -pos_bo <= br_close.get(i + 1).getPosShortLimit() && -pos_ao >= br_close.get(i)
-                            .getPosShortLimit()) {
-                        wamBr.add(BigDecimal.ONE, valueI);
-                        break;
-                    }
-                    if (-pos_bo >= br_close.get(i + 1).getPosShortLimit() && -pos_ao < br_close.get(i + 1).getPosShortLimit()) {
-                        BigDecimal amountI1 = BigDecimal.valueOf(br_close.get(i + 1).getPosShortLimit() - l)
-                                .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                                .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        wamBr.add(amountI1, valueI);
-                        l = br_close.get(i + 1).getPosShortLimit();
-                    }
-                    if (-pos_bo > br_close.get(i).getPosShortLimit() && -pos_bo < br_close.get(i + 1).getPosShortLimit() && -pos_ao < br_close.get(i)
-                            .getPosShortLimit()) {
-                        BigDecimal amountI = BigDecimal.valueOf(-pos_bo - br_close.get(i).getPosShortLimit())
-                                .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                                .setScale(2, BigDecimal.ROUND_HALF_UP);
-                        wamBr.add(amountI, valueI);
-                    }
-                }
-            }
-        }
-
         return wamBr;
     }
 
@@ -360,7 +205,7 @@ public class DiffFactBrComputer {
         final String diffFactBrString = wamBr.getDiffFactBrString();
 
         if (diffFactBrString.isEmpty()) {
-            throw new ToWarningLogException(String.format("Error: wam_br=0. pos_bo=%s, pos_ao=%s, pos_mode=%s, "
+            throw new ToWarningLogException(String.format("Error: wam_br=0! pos_bo=%s, pos_ao=%s, pos_mode=%s, "
                             + "b_delta_plan=%s, o_delta_plan=%s, bordersTable=%s",
                     pos_bo, pos_ao, pos_mode,
                     b_delta_plan, o_delta_plan,
