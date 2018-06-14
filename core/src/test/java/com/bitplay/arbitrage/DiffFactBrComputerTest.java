@@ -364,5 +364,105 @@ public class DiffFactBrComputerTest {
         }
     }
 
+    private BorderParams createBordersDeltaPlanZero() {
+        // borderName='b_br_close',
+        // borderValue=';{id=2,val=0,pLL=10,pSL=10},m=7,b=101', deltaVal='3.66'} "
+        final List<BorderTable> borders = new ArrayList<>();
+        final List<BorderItem> borderBtmClose = new ArrayList<>();
+        borderBtmClose.add(new BorderItem(1, BigDecimal.valueOf(5), 0, 0));
+        borderBtmClose.add(new BorderItem(2, BigDecimal.valueOf(0), 10, 10));
+        borderBtmClose.add(new BorderItem(3, BigDecimal.valueOf(-5), 20, 20));
+//        borderBtmClose.add(new BorderItem(4, BigDecimal.valueOf(40), 1500, 1500));
+        borders.add(new BorderTable("b_br_close", borderBtmClose));
+        final List<BorderItem> borderBtmOpen = new ArrayList<>();
+//        borderBtmOpen.add(new BorderItem(1, BigDecimal.valueOf(30), 10, 10));
+//        borderBtmOpen.add(new BorderItem(2, BigDecimal.valueOf(35), 20, 20));
+//        borderBtmOpen.add(new BorderItem(3, BigDecimal.valueOf(40), 30, 30));
+//        borderBtmOpen.add(new BorderItem(4, BigDecimal.valueOf(45), 40, 40));
+//        borderBtmOpen.add(new BorderItem(5, BigDecimal.valueOf(50), 50, 50));
+        borders.add(new BorderTable("b_br_open", borderBtmOpen));
+        final List<BorderItem> borderOkexClose = new ArrayList<>();
+//        borderOkexClose.add(new BorderItem(1, BigDecimal.valueOf(5), 0, 0));
+//        borderOkexClose.add(new BorderItem(2, BigDecimal.valueOf(0), 10, 10));
+//        borderOkexClose.add(new BorderItem(3, BigDecimal.valueOf(-5), 20, 20));
+//        borderOkexClose.add(new BorderItem(4, BigDecimal.valueOf(-10), 30, 30));
+//        borderOkexClose.add(new BorderItem(5, BigDecimal.valueOf(-15), 40, 40));
+        borders.add(new BorderTable("o_br_close", borderOkexClose));
+        final List<BorderItem> borderOkexOpen = new ArrayList<>();
+        // {id=3,val=24,pLL=30,pSL=30},m=10,b=198;{id=4,val=29,pLL=40,pSL=40},m=20,b=11;{id=5,val=34,pLL=50,pSL=50},m=30,b=10', deltaVal='35.0'} ",
+//        borderOkexOpen.add(new BorderItem(1, BigDecimal.valueOf(14), 10, 10));
+//        borderOkexOpen.add(new BorderItem(2, BigDecimal.valueOf(19), 20, 20));
+//        borderOkexOpen.add(new BorderItem(3, BigDecimal.valueOf(24), 30, 30));
+//        borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(29), 40, 40));
+//        borderOkexOpen.add(new BorderItem(5, BigDecimal.valueOf(34), 50, 50));
+//        borderOkexOpen.add(new BorderItem(6, BigDecimal.valueOf(25), 6000, 6000));
+        borders.add(new BorderTable("o_br_open", borderOkexOpen));
+
+        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+    }
+
+    @Test
+    public void testDeltaPlanZero() {
+        // 19:35:58.962 #19 delta1=6274.5-6270.84=3.66;
+        // borderV2:TradingSignal{tradeType=DELTA1_B_SELL_O_BUY,
+        // bitmexBlock=700, okexBlock=7, ver=DYNAMIC, posMode=OK_MODE,
+        // borderName='b_br_close',
+        // borderValue=';{id=2,val=0,pLL=10,pSL=10},m=7,b=101', deltaVal='3.66'} "
+        //
+        // "19:35:58.963 #19 Pos diff: b(+1250) o(+0-17) = -450, ha=-450, dc=0, mdc=11000 ",
+        int pos_bo = -17; // Delta2, okex buy, block=7
+        int pos_ao = -10;
+        BigDecimal b_delta_plan = BigDecimal.valueOf(3.36);
+        BigDecimal o_delta_plan = BigDecimal.ZERO;
+        BigDecimal deltaFact = BigDecimal.valueOf(3.16); // delta1_fact=6274.00-6270.84=3.16;
+
+        BorderParams borderParams = createBordersDeltaPlanZero();
+        BordersV2 bordersV2 = borderParams.getBordersV2();
+
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+                b_delta_plan,
+                o_delta_plan,
+                deltaFact, bordersV2);
+
+        try {
+            DiffFactBr diffFactBr = diffFactBrComputer.compute();
+
+//            System.out.println(diffFactBr.getStr());
+            Assert.assertEquals("diffFactBrString", "3.16 - ([1.00 * 0])", diffFactBr.getStr());
+            Assert.assertEquals("diffFactBr", BigDecimal.valueOf(3.16), diffFactBr.getVal()); // 9.9
+        } catch (ToWarningLogException e) {
+            e.printStackTrace();
+            Assert.fail("No errors expected");
+        }
+    }
+
+    @Test
+    public void testDeltaPlanZero1() {
+
+        int pos_bo = -16; // Delta2, okex buy, block=10
+        int pos_ao = -6;
+        BigDecimal b_delta_plan = BigDecimal.valueOf(6.11);
+        BigDecimal o_delta_plan = BigDecimal.ZERO;
+        BigDecimal deltaFact = BigDecimal.valueOf(-17.25);
+
+        BorderParams borderParams = createBordersDeltaPlanZero();
+        BordersV2 bordersV2 = borderParams.getBordersV2();
+
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+                b_delta_plan,
+                o_delta_plan,
+                deltaFact, bordersV2);
+
+        try {
+            DiffFactBr diffFactBr = diffFactBrComputer.compute();
+
+//            System.out.println(diffFactBr.getStr());
+            Assert.assertEquals("diffFactBrString", "-17.25 - ([0.40 * 5] + [0.60 * 0])", diffFactBr.getStr());
+            Assert.assertEquals("diffFactBr", BigDecimal.valueOf(-19.25), diffFactBr.getVal()); // 9.9
+        } catch (ToWarningLogException e) {
+            e.printStackTrace();
+            Assert.fail("No errors expected");
+        }
+    }
 
 }
