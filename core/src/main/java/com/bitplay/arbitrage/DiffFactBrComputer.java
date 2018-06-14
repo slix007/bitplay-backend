@@ -36,7 +36,7 @@ public class DiffFactBrComputer {
         this.bordersV2 = bordersV2;
     }
 
-    WamBr comp_wam_br_for_ok_open_long() {
+    WamBr comp_wam_br_for_ok_open_long() throws ToWarningLogException {
         List<BorderItem> b_br_open = bordersV2.getBorderTableByName("b_br_open")
                 .get()
                 .getBorderItemList();
@@ -44,7 +44,7 @@ public class DiffFactBrComputer {
         return calcByOpenTable(b_br_open, b_delta_plan, pos_bo, pos_ao);
     }
 
-    WamBr comp_wam_br_for_ok_open_short() {
+    WamBr comp_wam_br_for_ok_open_short() throws ToWarningLogException {
         List<BorderItem> o_br_open = bordersV2.getBorderTableByName("o_br_open")
                 .get()
                 .getBorderItemList();
@@ -52,7 +52,7 @@ public class DiffFactBrComputer {
         return calcByOpenTable(o_br_open, o_delta_plan, -pos_bo, -pos_ao);
     }
 
-    WamBr comp_wam_br_for_ok_close_long() {
+    WamBr comp_wam_br_for_ok_close_long() throws ToWarningLogException {
         List<BorderItem> o_br_close = bordersV2.getBorderTableByName("o_br_close")
                 .get()
                 .getBorderItemList();
@@ -60,7 +60,7 @@ public class DiffFactBrComputer {
         return calcByCloseTable(o_br_close, o_delta_plan, pos_bo, pos_ao);
     }
 
-    WamBr comp_wam_br_for_ok_close_short() {
+    WamBr comp_wam_br_for_ok_close_short() throws ToWarningLogException {
         List<BorderItem> b_br_close = bordersV2.getBorderTableByName("b_br_close")
                 .get()
                 .getBorderItemList();
@@ -68,7 +68,7 @@ public class DiffFactBrComputer {
         return calcByCloseTable(b_br_close, b_delta_plan, -pos_bo, -pos_ao);
     }
 
-    WamBr comp_wam_br_for_b_open_long() {
+    WamBr comp_wam_br_for_b_open_long() throws ToWarningLogException {
         List<BorderItem> o_br_open = bordersV2.getBorderTableByName("o_br_open")
                 .get()
                 .getBorderItemList();
@@ -76,7 +76,7 @@ public class DiffFactBrComputer {
         return calcByOpenTable(o_br_open, o_delta_plan, pos_bo, pos_ao);
     }
 
-    WamBr comp_wam_br_for_b_open_short() {
+    WamBr comp_wam_br_for_b_open_short() throws ToWarningLogException {
         List<BorderItem> b_br_open = bordersV2.getBorderTableByName("b_br_open")
                 .get()
                 .getBorderItemList();
@@ -84,7 +84,7 @@ public class DiffFactBrComputer {
         return calcByOpenTable(b_br_open, b_delta_plan, -pos_bo, -pos_ao);
     }
 
-    WamBr comp_wam_br_for_b_close_long() {
+    WamBr comp_wam_br_for_b_close_long() throws ToWarningLogException {
         List<BorderItem> b_br_close = bordersV2.getBorderTableByName("b_br_close")
                 .get()
                 .getBorderItemList();
@@ -92,7 +92,7 @@ public class DiffFactBrComputer {
         return calcByCloseTable(b_br_close, b_delta_plan, pos_bo, pos_ao);
     }
 
-    WamBr comp_wam_br_for_b_close_short() {
+    WamBr comp_wam_br_for_b_close_short() throws ToWarningLogException {
         List<BorderItem> o_br_close = bordersV2.getBorderTableByName("o_br_close")
                 .get()
                 .getBorderItemList();
@@ -100,7 +100,7 @@ public class DiffFactBrComputer {
         return calcByCloseTable(o_br_close, o_delta_plan, -pos_bo, -pos_ao);
     }
 
-    private WamBr calcByOpenTable(List<BorderItem> br_open, BigDecimal delta_plan, int pos_bo_abs, int pos_ao_abs) {
+    private WamBr calcByOpenTable(List<BorderItem> br_open, BigDecimal delta_plan, int pos_bo_abs, int pos_ao_abs) throws ToWarningLogException {
         WamBr wamBr = new WamBr();
 
         int vol_fact = pos_ao_abs - pos_bo_abs;
@@ -110,7 +110,6 @@ public class DiffFactBrComputer {
         for (int i = 0; i < br_open.size(); i++) {
             BigDecimal valueI = br_open.get(i).getValue();
             if (br_open.get(i).getId() == 0
-                    || delta_plan.doubleValue() < valueI.doubleValue()
                     || vol_filled >= vol_fact) {
                 break;
             }
@@ -124,13 +123,15 @@ public class DiffFactBrComputer {
                 BigDecimal amountPortion = BigDecimal.valueOf(amountStep)
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
+
+                checkByDeltaPlan(delta_plan, valueI);
                 wamBr.add(amountPortion, valueI);
             }
         }
         return wamBr;
     }
 
-    private WamBr calcByCloseTable(List<BorderItem> br_close, BigDecimal delta_plan, int pos_bo_abs, int pos_ao_abs) {
+    private WamBr calcByCloseTable(List<BorderItem> br_close, BigDecimal delta_plan, int pos_bo_abs, int pos_ao_abs) throws ToWarningLogException {
         WamBr wamBr = new WamBr();
         // 25 - 0
         // 25 - 1000
@@ -145,9 +146,6 @@ public class DiffFactBrComputer {
                 break;
             }
             BigDecimal valueI = br_close.get(i).getValue();
-            if (delta_plan.doubleValue() < valueI.doubleValue()) { // should not be such case
-                valueI = BigDecimal.ZERO;
-            }
 
             if (i + 1 == br_close.size()
                     || br_close.get(i + 1).getId() == 0
@@ -165,10 +163,18 @@ public class DiffFactBrComputer {
                 BigDecimal amountPortion = BigDecimal.valueOf(amountStep)
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
+
+                checkByDeltaPlan(delta_plan, valueI);
                 wamBr.add(amountPortion, valueI);
             }
         }
         return wamBr;
+    }
+
+    private void checkByDeltaPlan(BigDecimal delta_plan, BigDecimal valueI) throws ToWarningLogException {
+        if (delta_plan.doubleValue() < valueI.doubleValue()) { // should not be such case
+            throw new ToWarningLogException(String.format("delta_plan=%s < value=%s", delta_plan, valueI));
+        }
     }
 
     DiffFactBr compute() throws ToWarningLogException {
