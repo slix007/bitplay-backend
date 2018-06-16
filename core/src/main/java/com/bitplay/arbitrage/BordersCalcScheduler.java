@@ -29,7 +29,7 @@ import io.reactivex.disposables.Disposable;
 @Service
 public class BordersCalcScheduler {
 
-    private static final Logger logger = LoggerFactory.getLogger(BordersService.class);
+//    private static final Logger logger = LoggerFactory.getLogger(BordersService.class);
     //    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 //    private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
 //    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
@@ -39,7 +39,7 @@ public class BordersCalcScheduler {
     private volatile ScheduledFuture<?> scheduledRecalc;
 
     private Instant lastRecalcTime;
-    private Disposable schdeduleUpdateBorders;
+//    private Disposable schdeduleUpdateBorders;
 
     @Autowired
     private BordersRecalcService bordersCalcService;
@@ -68,9 +68,8 @@ public class BordersCalcScheduler {
         if (scheduledRecalc != null && !scheduledRecalc.isDone()) {
             scheduledRecalc.cancel(false);
         }
-        final long periodMs = recalcPeriodSec * 1000;
         scheduledRecalc = scheduler.scheduleWithFixedDelay(this::recalc,
-                periodMs, periodMs, TimeUnit.MILLISECONDS);
+                recalcPeriodSec, recalcPeriodSec, TimeUnit.SECONDS);
     }
 
     private void recalc() {

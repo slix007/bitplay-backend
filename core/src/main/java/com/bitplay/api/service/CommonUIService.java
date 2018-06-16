@@ -13,6 +13,7 @@ import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.BordersRecalcService;
+import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
@@ -46,7 +47,7 @@ public class CommonUIService {
     private ArbitrageService arbitrageService;
 
     @Autowired
-    private BordersRecalcService bordersRecalcService;
+    private DeltasCalcService deltasCalcService;
 
     @Autowired
     private BordersCalcScheduler bordersCalcScheduler;
@@ -245,6 +246,9 @@ public class CommonUIService {
     }
 
     private DeltasJson convertToDeltasJson() {
+        final BorderParams borderParams = persistenceService.fetchBorders();
+        Integer delta_hist_per = borderParams.getBorderDelta().getDeltaCalcPast();
+
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
                 arbitrageService.getDelta2().toPlainString(),
@@ -280,8 +284,12 @@ public class CommonUIService {
                 arbitrageService.getParams().getHedgeAmount().toPlainString(),
                 arbitrageService.getParams().getFundingRateFee().toPlainString(),
                 arbitrageService.getParams().getSlip().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                bordersRecalcService.getB_delta().toPlainString(),
-                bordersRecalcService.getO_delta().toPlainString()
+                deltasCalcService.getBDeltaSma().toPlainString(),
+                deltasCalcService.getODeltaSma().toPlainString(),
+                deltasCalcService.getBDeltaEveryCalc().toPlainString(),
+                deltasCalcService.getODeltaEveryCalc().toPlainString(),
+                deltasCalcService.getDeltaHistPerStartedSec(),
+                deltasCalcService.getDeltaSmaUpdateIn(delta_hist_per)
         );
     }
 

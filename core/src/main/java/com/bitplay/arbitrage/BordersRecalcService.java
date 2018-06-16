@@ -1,16 +1,13 @@
 package com.bitplay.arbitrage;
 
-import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.borders.BorderDelta;
-import com.bitplay.persistance.domain.borders.BorderDelta.DeltaCalcType;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.GuiParams;
-import com.bitplay.persistance.domain.fluent.Delta;
 
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,16 +15,13 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.List;
-import java.util.OptionalDouble;
 
 /**
  * Created by Sergey Shurmin on 2/14/18.
  */
 @Service
+@Getter
 public class BordersRecalcService {
 
     private static final Logger logger = LoggerFactory.getLogger(BordersService.class);
@@ -36,41 +30,30 @@ public class BordersRecalcService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 //    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
-    private BigDecimal b_delta = BigDecimal.ZERO;
-    private BigDecimal o_delta = BigDecimal.ZERO;
-
     @Autowired
     private PersistenceService persistenceService;
 
     @Autowired
-    private DeltaRepositoryService deltaRepositoryService;
+    private DeltasCalcService deltasCalcService;
 
     @Autowired
     private ArbitrageService arbitrageService;
 
-    public BigDecimal getB_delta() {
-        return b_delta;
-    }
-
-    public BigDecimal getO_delta() {
-        return o_delta;
-    }
-
     public void recalc() {
         try {
             final BorderParams borderParams = persistenceService.fetchBorders();
-            final BigDecimal delta1 = arbitrageService.getDelta1();
-            final BigDecimal delta2 = arbitrageService.getDelta2();
+            final BigDecimal instantDelta1 = arbitrageService.getDelta1();
+            final BigDecimal instantDelta2 = arbitrageService.getDelta2();
 
-            b_delta = BigDecimal.valueOf(getDelta1(delta1, borderParams.getBorderDelta())).setScale(2, BigDecimal.ROUND_HALF_UP);
-            o_delta = BigDecimal.valueOf(getDelta2(delta2, borderParams.getBorderDelta())).setScale(2, BigDecimal.ROUND_HALF_UP);
+            BigDecimal b_delta = deltasCalcService.calcDelta1(instantDelta1, borderParams.getBorderDelta());
+            BigDecimal o_delta = deltasCalcService.calcDelta2(instantDelta2, borderParams.getBorderDelta());
 
             if (borderParams.getActiveVersion() == BorderParams.Ver.V1) {
                 final BigDecimal sumDelta = borderParams.getBordersV1().getSumDelta();
-                recalculateBordersV1(sumDelta);
+                recalculateBordersV1(sumDelta, b_delta, o_delta);
             }
             if (borderParams.getActiveVersion() == BorderParams.Ver.V2) {
-                recalculateBordersV2(borderParams);
+                recalculateBordersV2(borderParams, b_delta, o_delta);
             }
         } catch (Exception e) {
             logger.error("on recalc borders: ", e);
@@ -78,7 +61,7 @@ public class BordersRecalcService {
         }
     }
 
-    private void recalculateBordersV1(BigDecimal sumDelta) {
+    private void recalculateBordersV1(BigDecimal sumDelta, BigDecimal b_delta, BigDecimal o_delta) {
 
         final GuiParams params = arbitrageService.getParams();
 
@@ -104,50 +87,7 @@ public class BordersRecalcService {
         }
     }
 
-    private Double getDelta1(BigDecimal defaultDelta1, BorderDelta borderDelta) {
-        if (borderDelta.getDeltaCalcType() == DeltaCalcType.DELTA) {
-            return defaultDelta1.doubleValue();
-        }
-
-        final Date fromDate = Date.from(Instant.now().minus(borderDelta.getDeltaCalcPast(), ChronoUnit.SECONDS));
-
-        final OptionalDouble average = deltaRepositoryService.streamDeltas(fromDate, new Date())
-                .map(Delta::getbDelta)
-                .mapToDouble(BigDecimal::doubleValue)
-//                .peek(val -> logger.info("Delta1Part: " + val))
-                .average();
-
-        if (average.isPresent()) {
-            logger.info("average Delta1=" + average);
-            return average.getAsDouble();
-        }
-
-        logger.warn("Can not calc average Delta1");
-        return defaultDelta1.doubleValue();
-    }
-
-    private Double getDelta2(BigDecimal defaultDelta2, BorderDelta borderDelta) {
-        if (borderDelta.getDeltaCalcType() == DeltaCalcType.DELTA) {
-            return defaultDelta2.doubleValue();
-        }
-
-        final Date fromDate = Date.from(Instant.now().minus(borderDelta.getDeltaCalcPast(), ChronoUnit.SECONDS));
-
-        final OptionalDouble average = deltaRepositoryService.streamDeltas(fromDate, new Date())
-                .map(Delta::getoDelta)
-//                .peek(val -> logger.info("Delta2Part: " + val))
-                .mapToDouble(BigDecimal::doubleValue)
-                .average();
-        if (average.isPresent()) {
-            logger.info("average Delta2=" + average);
-            return average.getAsDouble();
-        }
-
-        logger.warn("Can not calc average Delta2");
-        return defaultDelta2.doubleValue();
-    }
-
-    private void recalculateBordersV2(BorderParams borderParams) {
+        private void recalculateBordersV2(BorderParams borderParams, BigDecimal b_delta, BigDecimal o_delta) {
         final BordersV2 bordersV2 = borderParams.getBordersV2();
 
         if (bordersV2.getAutoBaseLvl()) {

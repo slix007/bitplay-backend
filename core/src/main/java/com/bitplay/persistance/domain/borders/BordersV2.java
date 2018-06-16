@@ -1,15 +1,19 @@
 package com.bitplay.persistance.domain.borders;
 
-import org.springframework.data.annotation.Transient;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Created by Sergey Shurmin on 10/9/17.
  */
+@Getter
+@Setter
+@NoArgsConstructor
 public class BordersV2 {
     private List<BorderTable> borderTableList;
     private Integer maxLvl;
@@ -20,24 +24,8 @@ public class BordersV2 {
     private Integer gapStep; // between tables
     private BigDecimal bAddDelta;
     private BigDecimal okAddDelta;
-    @Transient
-    private int borderTableHashCode;
-
-    /**
-     * in use as json object by API
-     */
-    public BordersV2() {
-    }
 
     public BordersV2(List<BorderTable> borderTableList) {
-        this.borderTableList = borderTableList;
-    }
-
-    public List<BorderTable> getBorderTableList() {
-        return borderTableList;
-    }
-
-    public void setBorderTableList(List<BorderTable> borderTableList) {
         this.borderTableList = borderTableList;
     }
 
@@ -46,54 +34,6 @@ public class BordersV2 {
         return borderTableList.stream()
                 .filter(borderTable -> borderTable.getBorderName().equals(borderName))
                 .findFirst();
-    }
-
-    public Integer getMaxLvl() {
-        return maxLvl;
-    }
-
-    public void setMaxLvl(Integer maxLvl) {
-        this.maxLvl = maxLvl;
-    }
-
-    public Boolean getAutoBaseLvl() {
-        return autoBaseLvl;
-    }
-
-    public void setAutoBaseLvl(Boolean autoBaseLvl) {
-        this.autoBaseLvl = autoBaseLvl;
-    }
-
-    public Integer getBaseLvlCnt() {
-        return baseLvlCnt;
-    }
-
-    public void setBaseLvlCnt(Integer baseLvlCnt) {
-        this.baseLvlCnt = baseLvlCnt;
-    }
-
-    public BaseLvlType getBaseLvlType() {
-        return baseLvlType;
-    }
-
-    public void setBaseLvlType(BaseLvlType baseLvlType) {
-        this.baseLvlType = baseLvlType;
-    }
-
-    public Integer getStep() {
-        return step;
-    }
-
-    public void setStep(Integer step) {
-        this.step = step;
-    }
-
-    public Integer getGapStep() {
-        return gapStep;
-    }
-
-    public void setGapStep(Integer gapStep) {
-        this.gapStep = gapStep;
     }
 
     public BigDecimal getbAddDelta() {

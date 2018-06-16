@@ -16,6 +16,7 @@ public class BorderDelta {
 
     /**
      * delta_past - период времени от настоящего момента в прошлое, в течение которого берем значения дельт (3600 sec)
+     * <p>aka delta_hist_per</p>
      */
     private Integer deltaCalcPast;
 
@@ -51,6 +52,6 @@ public class BorderDelta {
         return borderDelta;
     }
 
-    public enum DeltaCalcType {DELTA, AVG_DELTA}
+    public enum DeltaCalcType {DELTA, AVG_DELTA, AVG_DELTA_EVERY_BORDER_COMP, AVG_DELTA_EVERY_NEW_DELTA}
     public enum DeltaSaveType {DEVIATION, PERIODIC, ALL}
 }

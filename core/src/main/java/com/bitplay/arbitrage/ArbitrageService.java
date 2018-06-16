@@ -85,6 +85,8 @@ public class ArbitrageService {
     private PreliqUtilsService preliqUtilsService;
     @Autowired
     private DiffFactBrService diffFactBrService;
+    @Autowired
+    private DeltasCalcService deltasCalcService;
 //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
 //    private volatile int updateBordersCounter;
@@ -537,6 +539,10 @@ public class ArbitrageService {
 
                 delta1 = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
                 delta2 = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
+
+                deltasCalcService.addBDelta(delta1);
+                deltasCalcService.addODelta(delta2);
+
                 if (delta1.compareTo(deltaParams.getbDeltaMin()) < 0) {
                     deltaParams.setbDeltaMin(delta1);
                 }

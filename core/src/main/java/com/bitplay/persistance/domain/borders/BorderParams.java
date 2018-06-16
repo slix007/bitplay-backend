@@ -2,6 +2,8 @@ package com.bitplay.persistance.domain.borders;
 
 import com.bitplay.persistance.domain.AbstractDocument;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -10,6 +12,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
  */
 @Document(collection = "bordersCollection")
 @TypeAlias("borders")
+@Getter
+@Setter
 public class BorderParams extends AbstractDocument {
 
     private Ver activeVersion;
@@ -25,54 +29,6 @@ public class BorderParams extends AbstractDocument {
         this.posMode = PosMode.OK_MODE;
         this.bordersV1 = bordersV1;
         this.bordersV2 = bordersV2;
-    }
-
-    public Ver getActiveVersion() {
-        return activeVersion;
-    }
-
-    public void setActiveVersion(Ver activeVersion) {
-        this.activeVersion = activeVersion;
-    }
-
-    public PosMode getPosMode() {
-        return posMode;
-    }
-
-    public void setPosMode(PosMode posMode) {
-        this.posMode = posMode;
-    }
-
-    public BordersV1 getBordersV1() {
-        return bordersV1;
-    }
-
-    public void setBordersV1(BordersV1 bordersV1) {
-        this.bordersV1 = bordersV1;
-    }
-
-    public BordersV2 getBordersV2() {
-        return bordersV2;
-    }
-
-    public void setBordersV2(BordersV2 bordersV2) {
-        this.bordersV2 = bordersV2;
-    }
-
-    public Integer getRecalcPeriodSec() {
-        return recalcPeriodSec;
-    }
-
-    public void setRecalcPeriodSec(Integer recalcPeriodSec) {
-        this.recalcPeriodSec = recalcPeriodSec;
-    }
-
-    public BorderDelta getBorderDelta() {
-        return borderDelta;
-    }
-
-    public void setBorderDelta(BorderDelta borderDelta) {
-        this.borderDelta = borderDelta;
     }
 
     public enum Ver {V1, V2, OFF}

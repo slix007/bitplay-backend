@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.arbitrage.BordersCalcScheduler;
+import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderDelta;
@@ -35,6 +36,9 @@ public class BordersEndpoint {
 
     @Autowired
     private DeltaRepositoryService deltaRepositoryService;
+
+    @Autowired
+    private DeltasCalcService deltasCalcService;
 
     @RequestMapping(value = "/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public BorderParams getBorders() {
@@ -157,6 +161,11 @@ public class BordersEndpoint {
                 bP.getBordersV1().setSumDelta(sumDelta);
                 respDetails = bP.getBordersV1().getSumDelta().toPlainString();
             }
+            if (update.doResetDeltaHistPer != null) {
+                Integer delta_hist_per = bP.getBorderDelta().getDeltaCalcPast();
+                deltasCalcService.resetDeltasCache(delta_hist_per);
+                respDetails = "OK";
+            }
 
             if (update.borderDelta != null) {
                 if (update.borderDelta.getDeltaCalcType() != null) {
@@ -195,6 +204,7 @@ public class BordersEndpoint {
         public String posMode;
         public String recalcPeriodSec;
         public String borderV1SumDelta;
+        public String doResetDeltaHistPer;
         public BorderDelta borderDelta;
     }
 

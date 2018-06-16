@@ -44,7 +44,11 @@ public class DeltasJson {
     private String hedgeAmount;
     private String fundingRateFee;
     private String slip;
-    private String delta1Calc;
-    private String delta2Calc;
+    private String delta1Sma;
+    private String delta2Sma;
+    private String delta1EveryCalc;
+    private String delta2EveryCalc;
+    private String deltaHistPerStarted;
+    private String deltaSmaUpdateIn;
 
 }
