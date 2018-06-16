@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.OptionalDouble;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -40,15 +41,36 @@ public class DeltasCalcService {
     private volatile BigDecimal oDeltaSma = BigDecimal.ZERO;
     private volatile BigDecimal bDeltaEveryCalc = BigDecimal.ZERO;
     private volatile BigDecimal oDeltaEveryCalc = BigDecimal.ZERO;
+    private volatile boolean started;
 
     public void resetDeltasCache(Integer delta_hist_per) {
-        begin_delta_hist_per = Instant.now();
-        bDeltaCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
-                .build();
-        oDeltaCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
-                .build();
+        resetDeltasCache(delta_hist_per, true);
+    }
+
+    public void resetDeltasCache(Integer delta_hist_per, boolean clearData) {
+        if (clearData) {
+            begin_delta_hist_per = Instant.now();
+            bDeltaCache = CacheBuilder.newBuilder()
+                    .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
+                    .build();
+            oDeltaCache = CacheBuilder.newBuilder()
+                    .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
+                    .build();
+        } else {
+            ConcurrentMap<Instant, Long> map1 = bDeltaCache.asMap();
+            bDeltaCache = CacheBuilder.newBuilder()
+                    .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
+                    .build();
+            bDeltaCache.putAll(map1);
+            ConcurrentMap<Instant, Long> map2 = oDeltaCache.asMap();
+            oDeltaCache = CacheBuilder.newBuilder()
+                    .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
+                    .build();
+            oDeltaCache.putAll(map2);
+        }
+        if (!started) {
+            started = true;
+        }
     }
 
     public String getDeltaHistPerStartedSec() {

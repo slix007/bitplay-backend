@@ -173,7 +173,12 @@ public class BordersEndpoint {
                     respDetails += update.borderDelta.getDeltaCalcType().toString();
                 }
                 if (update.borderDelta.getDeltaCalcPast() != null) {
-                    bP.getBorderDelta().setDeltaCalcPast(update.borderDelta.getDeltaCalcPast());
+                    Integer histPerPrev = bP.getBorderDelta().getDeltaCalcPast();
+                    Integer histPerUpdate = update.borderDelta.getDeltaCalcPast();
+                    boolean shouldClearData = histPerPrev > histPerUpdate;
+                    bP.getBorderDelta().setDeltaCalcPast(histPerUpdate);
+                    deltasCalcService.resetDeltasCache(histPerUpdate, shouldClearData);
+
                     respDetails += update.borderDelta.getDeltaCalcPast().toString();
                 }
                 if (update.borderDelta.getDeltaSaveType() != null) {

@@ -247,7 +247,8 @@ public class CommonUIService {
 
     private DeltasJson convertToDeltasJson() {
         final BorderParams borderParams = persistenceService.fetchBorders();
-        Integer delta_hist_per = borderParams.getBorderDelta().getDeltaCalcPast();
+        final Integer delta_hist_per = borderParams.getBorderDelta().getDeltaCalcPast();
+        final String deltaSmaUpdateIn = deltasCalcService.getDeltaSmaUpdateIn(delta_hist_per);
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
@@ -289,7 +290,7 @@ public class CommonUIService {
                 deltasCalcService.getBDeltaEveryCalc().toPlainString(),
                 deltasCalcService.getODeltaEveryCalc().toPlainString(),
                 deltasCalcService.getDeltaHistPerStartedSec(),
-                deltasCalcService.getDeltaSmaUpdateIn(delta_hist_per)
+                deltaSmaUpdateIn
         );
     }
 

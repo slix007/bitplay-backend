@@ -540,6 +540,10 @@ public class ArbitrageService {
                 delta1 = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
                 delta2 = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
 
+                if (!deltasCalcService.isStarted()) {
+                    BorderParams borderParams = persistenceService.fetchBorders();
+                    deltasCalcService.resetDeltasCache(borderParams.getBorderDelta().getDeltaCalcPast());
+                }
                 deltasCalcService.addBDelta(delta1);
                 deltasCalcService.addODelta(delta2);
 
