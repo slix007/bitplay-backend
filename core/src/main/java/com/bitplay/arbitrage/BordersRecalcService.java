@@ -1,6 +1,7 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.borders.BorderDelta.DeltaCalcType;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderTable;
@@ -38,6 +39,17 @@ public class BordersRecalcService {
 
     @Autowired
     private ArbitrageService arbitrageService;
+
+    public boolean isRecalcEveryNewDelta() {
+        final BorderParams borderParams = persistenceService.fetchBorders();
+        return borderParams.getBorderDelta().getDeltaCalcType() == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA;
+    }
+
+    public void newDeltaAdded() {
+        if (isRecalcEveryNewDelta()) {
+            recalc();
+        }
+    }
 
     public void recalc() {
         try {

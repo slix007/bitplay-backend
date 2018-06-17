@@ -87,6 +87,8 @@ public class ArbitrageService {
     private DiffFactBrService diffFactBrService;
     @Autowired
     private DeltasCalcService deltasCalcService;
+    @Autowired
+    private BordersRecalcService bordersRecalcService;
 //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
 //    private volatile int updateBordersCounter;
@@ -546,6 +548,7 @@ public class ArbitrageService {
                 }
                 deltasCalcService.addBDelta(delta1);
                 deltasCalcService.addODelta(delta2);
+                bordersRecalcService.newDeltaAdded();
 
                 if (delta1.compareTo(deltaParams.getbDeltaMin()) < 0) {
                     deltaParams.setbDeltaMin(delta1);

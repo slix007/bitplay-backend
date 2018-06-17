@@ -1,13 +1,8 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.borders.BorderDelta.DeltaCalcType;
 import com.bitplay.persistance.domain.borders.BorderParams;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.Executors;
@@ -16,10 +11,9 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.annotation.PostConstruct;
-
-import io.reactivex.disposables.Disposable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Recalculate scheduler and executor of the table bordersV2.
@@ -61,15 +55,18 @@ public class BordersCalcScheduler {
     private void firstInit() {
         final BorderParams borderParams = persistenceService.fetchBorders();
         final Integer recalcPeriodSec = borderParams.getRecalcPeriodSec();
-        resetTimerToRecalc(recalcPeriodSec);
+        boolean isRecalcEveryNewDelta = borderParams.getBorderDelta().getDeltaCalcType() == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA;
+        resetTimerToRecalc(recalcPeriodSec, isRecalcEveryNewDelta);
     }
 
-    public synchronized void resetTimerToRecalc(Integer recalcPeriodSec) {
+    public synchronized void resetTimerToRecalc(Integer recalcPeriodSec, boolean isRecalcEveryNewDelta) {
         if (scheduledRecalc != null && !scheduledRecalc.isDone()) {
             scheduledRecalc.cancel(false);
         }
-        scheduledRecalc = scheduler.scheduleWithFixedDelay(this::recalc,
-                recalcPeriodSec, recalcPeriodSec, TimeUnit.SECONDS);
+        if (!isRecalcEveryNewDelta) {
+            scheduledRecalc = scheduler.scheduleWithFixedDelay(this::recalc,
+                    recalcPeriodSec, recalcPeriodSec, TimeUnit.SECONDS);
+        }
     }
 
     private void recalc() {
@@ -88,6 +85,9 @@ public class BordersCalcScheduler {
         final long nextInSec = scheduledRecalc == null ? -1L
                 : scheduledRecalc.getDelay(TimeUnit.SECONDS);
 
+        if (bordersCalcService.isRecalcEveryNewDelta()) {
+            return "Borders update every new delta";
+        }
         return String.format("Borders updated %s sec ago. Next (%s) in %s sec",
                 lastUpdate,
                 updateBordersCounter.get(),

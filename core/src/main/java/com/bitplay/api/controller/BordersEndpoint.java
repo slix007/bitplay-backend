@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderDelta;
+import com.bitplay.persistance.domain.borders.BorderDelta.DeltaCalcType;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderTable;
@@ -153,7 +154,8 @@ public class BordersEndpoint {
             if (update.recalcPeriodSec != null) {
                 final Integer periodSec = Integer.valueOf(update.recalcPeriodSec);
                 bP.setRecalcPeriodSec(periodSec);
-                bordersCalcScheduler.resetTimerToRecalc(periodSec);
+                boolean isRecalcEveryNewDelta = bP.getBorderDelta().getDeltaCalcType() == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA;
+                bordersCalcScheduler.resetTimerToRecalc(periodSec, isRecalcEveryNewDelta);
                 respDetails = update.recalcPeriodSec;
             }
             if (update.borderV1SumDelta != null) {
@@ -169,7 +171,17 @@ public class BordersEndpoint {
 
             if (update.borderDelta != null) {
                 if (update.borderDelta.getDeltaCalcType() != null) {
-                    bP.getBorderDelta().setDeltaCalcType(update.borderDelta.getDeltaCalcType());
+                    DeltaCalcType before = bP.getBorderDelta().getDeltaCalcType();
+                    DeltaCalcType after = update.borderDelta.getDeltaCalcType();
+                    bP.getBorderDelta().setDeltaCalcType(after);
+
+                    if (before == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA
+                            || after == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA) {
+                        boolean isRecalcEveryNewDelta = bP.getBorderDelta().getDeltaCalcType() == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA;
+
+                        bordersCalcScheduler.resetTimerToRecalc(bP.getRecalcPeriodSec(), isRecalcEveryNewDelta);
+                    }
+
                     respDetails += update.borderDelta.getDeltaCalcType().toString();
                 }
                 if (update.borderDelta.getDeltaCalcPast() != null) {
