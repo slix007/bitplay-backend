@@ -1,11 +1,15 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.DeltaName;
+import com.bitplay.arbitrage.events.DeltaChange;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.domain.borders.BorderDelta;
 import com.bitplay.persistance.domain.fluent.Delta;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
@@ -13,6 +17,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.OptionalDouble;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -32,6 +39,10 @@ public class DeltasCalcService {
 
     @Autowired
     private DeltaRepositoryService deltaRepositoryService;
+    @Autowired
+    private ArbitrageService arbitrageService;
+    @Autowired
+    private BordersRecalcService bordersRecalcService;
 
     private Cache<Instant, Long> bDeltaCache;
     private Cache<Instant, Long> oDeltaCache;
@@ -43,8 +54,40 @@ public class DeltasCalcService {
     private volatile BigDecimal oDeltaEveryCalc = BigDecimal.ZERO;
     private volatile boolean started;
 
-    public void resetDeltasCache(Integer delta_hist_per) {
+    private Disposable deltaChangeSubscriber;
+
+    public void initDeltasCache(Integer delta_hist_per) {
         resetDeltasCache(delta_hist_per, true);
+
+        final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("deltas-calc-%d").build();
+        final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
+
+        deltaChangeSubscriber = arbitrageService.getDeltaChangesPublisher()
+                .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.from(executor))
+                .subscribe(this::deltaChangeListener);
+    }
+
+    private void deltaChangeListener(DeltaChange deltaChange) {
+        long startMs = Instant.now().toEpochMilli();
+
+        if (deltaChange.getBtmDelta() != null) {
+            bDeltaCache.put(Instant.now(), (deltaChange.getBtmDelta().multiply(BigDecimal.valueOf(100))).longValue());
+            bDeltaEveryCalc = calcDeltaSma(bDeltaCache);
+        }
+        if (deltaChange.getOkDelta() != null) {
+            oDeltaCache.put(Instant.now(), (deltaChange.getOkDelta().multiply(BigDecimal.valueOf(100))).longValue());
+            oDeltaEveryCalc = calcDeltaSma(oDeltaCache);
+        }
+
+        bordersRecalcService.newDeltaAdded();
+
+        long endMs = Instant.now().toEpochMilli();
+        arbitrageService.getDeltaMon().setDeltaMs(endMs - startMs);
+        arbitrageService.getDeltaMon().setItmes(bDeltaCache.size(), oDeltaCache.size());
+
+
+//        logger.info("CalcEnded. " + arbitrageService.getDeltaMon());
     }
 
     public void resetDeltasCache(Integer delta_hist_per, boolean clearData) {
@@ -86,16 +129,6 @@ public class DeltasCalcService {
         return String.valueOf(toStart > 0 ? toStart : 0);
     }
 
-    public void addBDelta(BigDecimal bDelta) {
-        bDeltaCache.put(Instant.now(), (bDelta.multiply(BigDecimal.valueOf(100))).longValue());
-        bDeltaEveryCalc = calcDeltaSma(bDeltaCache);
-    }
-
-    public void addODelta(BigDecimal oDelta) {
-        oDeltaCache.put(Instant.now(), (oDelta.multiply(BigDecimal.valueOf(100))).longValue());
-        oDeltaEveryCalc = calcDeltaSma(oDeltaCache);
-    }
-
     private synchronized BigDecimal calcDeltaSma(Cache<Instant, Long> bDeltaCache) {
         long sum = bDeltaCache.asMap().values().stream().mapToLong(Long::longValue).sum();
         return BigDecimal.valueOf(sum / bDeltaCache.size(), 2);
@@ -103,7 +136,7 @@ public class DeltasCalcService {
 
     BigDecimal calcDelta1(BigDecimal instantDelta1, BorderDelta borderDelta) {
         if (bDeltaCache == null) {
-            resetDeltasCache(borderDelta.getDeltaCalcPast());
+            initDeltasCache(borderDelta.getDeltaCalcPast());
         }
 
         switch (borderDelta.getDeltaCalcType()) {

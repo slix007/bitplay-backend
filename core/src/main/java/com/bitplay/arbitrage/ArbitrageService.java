@@ -5,11 +5,13 @@ import com.bitplay.arbitrage.BordersService.TradingSignal;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DealPrices;
+import com.bitplay.arbitrage.dto.DeltaMon;
 import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.events.DeltaChange;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventBus;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -37,6 +39,7 @@ import com.bitplay.utils.Utils;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subjects.PublishSubject;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -107,6 +110,8 @@ public class ArbitrageService {
     private volatile SignalType signalType = SignalType.AUTOMATIC;
     private SignalEventBus signalEventBus = new SignalEventBus();
     private volatile DeltaParams deltaParams = new DeltaParams();
+    private volatile DeltaMon deltaMon = new DeltaMon();
+    private final PublishSubject<DeltaChange> deltaChangesPublisher = PublishSubject.create();
 
     public DealPrices getDealPrices() {
         return dealPrices;
@@ -539,16 +544,23 @@ public class ArbitrageService {
                     warningLogger.info("Started: First delta calculated");
                 }
 
-                delta1 = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
-                delta2 = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
+                BigDecimal delta1Update = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
+                BigDecimal delta2Update = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
+
+                if (delta1Update.compareTo(delta1) != 0 || delta2Update.compareTo(delta2) != 0) {
+                    deltaChangesPublisher.onNext(new DeltaChange(
+                            delta1Update.compareTo(delta1) != 0 ? delta1Update : null,
+                            delta2Update.compareTo(delta2) != 0 ? delta2Update : null));
+                }
 
                 if (!deltasCalcService.isStarted()) {
                     BorderParams borderParams = persistenceService.fetchBorders();
-                    deltasCalcService.resetDeltasCache(borderParams.getBorderDelta().getDeltaCalcPast());
+                    deltasCalcService.initDeltasCache(borderParams.getBorderDelta().getDeltaCalcPast());
                 }
-                deltasCalcService.addBDelta(delta1);
-                deltasCalcService.addODelta(delta2);
-                bordersRecalcService.newDeltaAdded();
+
+
+                delta1 = delta1Update;
+                delta2 = delta2Update;
 
                 if (delta1.compareTo(deltaParams.getbDeltaMin()) < 0) {
                     deltaParams.setbDeltaMin(delta1);
@@ -1318,5 +1330,17 @@ public class ArbitrageService {
 
     public String getSumBalString() {
         return sumBalString;
+    }
+
+    public DeltaMon getDeltaMon() {
+        return deltaMon;
+    }
+
+    public void setDeltaMon(DeltaMon deltaMon) {
+        this.deltaMon = deltaMon;
+    }
+
+    public PublishSubject<DeltaChange> getDeltaChangesPublisher() {
+        return deltaChangesPublisher;
     }
 }

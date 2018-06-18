@@ -165,7 +165,7 @@ public class BordersEndpoint {
             }
             if (update.doResetDeltaHistPer != null) {
                 Integer delta_hist_per = bP.getBorderDelta().getDeltaCalcPast();
-                deltasCalcService.resetDeltasCache(delta_hist_per);
+                deltasCalcService.resetDeltasCache(delta_hist_per, true);
                 respDetails = "OK";
             }
 

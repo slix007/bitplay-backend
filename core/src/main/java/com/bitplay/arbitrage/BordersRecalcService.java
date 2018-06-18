@@ -8,6 +8,7 @@ import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.GuiParams;
 
+import java.time.Instant;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +53,7 @@ public class BordersRecalcService {
     }
 
     public void recalc() {
+        long startMs = Instant.now().toEpochMilli();
         try {
             final BorderParams borderParams = persistenceService.fetchBorders();
             final BigDecimal instantDelta1 = arbitrageService.getDelta1();
@@ -70,6 +72,9 @@ public class BordersRecalcService {
         } catch (Exception e) {
             logger.error("on recalc borders: ", e);
             warningLogger.error("on recalc borders: " + e.getMessage());
+        } finally {
+            long endMs = Instant.now().toEpochMilli();
+            arbitrageService.getDeltaMon().setBorderMs(endMs - startMs);
         }
     }
 
