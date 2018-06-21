@@ -32,7 +32,6 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
-import com.bitplay.persistance.domain.fluent.Delta;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
@@ -544,6 +543,11 @@ public class ArbitrageService {
                     warningLogger.info("Started: First delta calculated");
                 }
 
+                if (!deltasCalcService.isStarted()) {
+                    BorderParams borderParams = persistenceService.fetchBorders();
+                    deltasCalcService.initDeltasCache(borderParams.getBorderDelta());
+                }
+
                 BigDecimal delta1Update = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
                 BigDecimal delta2Update = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
 
@@ -552,12 +556,6 @@ public class ArbitrageService {
                             delta1Update.compareTo(delta1) != 0 ? delta1Update : null,
                             delta2Update.compareTo(delta2) != 0 ? delta2Update : null));
                 }
-
-                if (!deltasCalcService.isStarted()) {
-                    BorderParams borderParams = persistenceService.fetchBorders();
-                    deltasCalcService.initDeltasCache(borderParams.getBorderDelta().getDeltaCalcPast());
-                }
-
 
                 delta1 = delta1Update;
                 delta2 = delta2Update;
@@ -576,14 +574,7 @@ public class ArbitrageService {
                 }
 
                 if (!Thread.interrupted()) {
-                    deltaRepositoryService.add(new Delta(new Date(),
-                            bestQuotes.getAsk1_p(), bestQuotes.getBid1_p(),
-                            bestQuotes.getAsk1_o(), bestQuotes.getBid1_o()));
-
                     persistenceService.storeDeltaParams(deltaParams);
-
-                } else {
-                    return bestQuotes;
                 }
             } else {
                 return bestQuotes;

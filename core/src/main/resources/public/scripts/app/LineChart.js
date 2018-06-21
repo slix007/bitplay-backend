@@ -40,11 +40,13 @@ export default Vue.component('line-chart', {
                     let theData = response.data;
                     console.log(theData);
 
-                    this.chartData.labels = theData.map(item => item.timestamp);
-                    let bDeltaArray = theData.map(item => item.bDelta);
-                    let oDeltaArray = theData.map(item => item.oDelta);
-
-                    this.chartData.datasets.push({
+            this.chartData.labels = theData.map(item = > item.timestamp;
+        )
+            let bDeltaArray = theData.map(item = > item.bDelta;
+        )
+            let oDeltaArray = theData.map(item = > item.oDelta;
+        )
+            this.chartData.datasets.push({
                                                      label: 'b_delta',
                                                      backgroundColor: '#00FF00',
                                                      data: bDeltaArray
@@ -54,30 +56,30 @@ export default Vue.component('line-chart', {
                                                      backgroundColor: '#0000FF',
                                                      data: oDeltaArray
                                                  });
-                    this.chartData.datasets.push({
-                                                     label: 'b_ask',
-                                                     backgroundColor: '#00ffb6',
-                                                     data: theData.map(item => item.bAsk),
-                                                     hidden: true,
-                                                 });
-                    this.chartData.datasets.push({
-                                                     label: 'b_bid',
-                                                     backgroundColor: '#ff4500',
-                                                     data: theData.map(item => item.bBid),
-                                                     hidden: true,
-                                                 });
-                    this.chartData.datasets.push({
-                                                     label: 'o_ask',
-                                                     backgroundColor: '#008eff',
-                                                     data: theData.map(item => item.oAsk),
-                                                     hidden: true,
-                                                 });
-                    this.chartData.datasets.push({
-                                                     label: 'o_bid',
-                                                     backgroundColor: '#ff9805',
-                                                     data: theData.map(item => item.oBid),
-                                                     hidden: true,
-                                                 });
+                    // this.chartData.datasets.push({
+                    //                                  label: 'b_ask',
+                    //                                  backgroundColor: '#00ffb6',
+                    //                                  data: theData.map(item => item.bAsk),
+                    //                                  hidden: true,
+                    //                              });
+                    // this.chartData.datasets.push({
+                    //                                  label: 'b_bid',
+                    //                                  backgroundColor: '#ff4500',
+                    //                                  data: theData.map(item => item.bBid),
+                    //                                  hidden: true,
+                    //                              });
+                    // this.chartData.datasets.push({
+                    //                                  label: 'o_ask',
+                    //                                  backgroundColor: '#008eff',
+                    //                                  data: theData.map(item => item.oAsk),
+                    //                                  hidden: true,
+                    //                              });
+                    // this.chartData.datasets.push({
+                    //                                  label: 'o_bid',
+                    //                                  backgroundColor: '#ff9805',
+                    //                                  data: theData.map(item => item.oBid),
+                    //                                  hidden: true,
+                    //                              });
                     this.renderChart(this.chartData, {responsive: true, maintainAspectRatio: false});
 
                 }).catch(reason => {
@@ -88,7 +90,7 @@ export default Vue.component('line-chart', {
                         labels: [this.error],
                         datasets: [{}]
                     }
-            });
+        })
         }
     }
 });

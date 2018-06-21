@@ -1,25 +1,26 @@
 package com.bitplay.persistance;
 
-import com.bitplay.Config;
+import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.DeltaName;
+import com.bitplay.arbitrage.events.DeltaChange;
 import com.bitplay.persistance.domain.borders.BorderDelta;
 import com.bitplay.persistance.domain.borders.BorderParams;
-import com.bitplay.persistance.domain.fluent.Delta;
-import com.bitplay.persistance.repository.DeltaRepository;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.bitplay.persistance.domain.fluent.Dlt;
+import com.bitplay.persistance.repository.DltRepository;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
-import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.internal.schedulers.ExecutorScheduler;
+import io.reactivex.schedulers.Schedulers;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
@@ -38,21 +39,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class DeltaRepositoryService {
 
-    ObservableEmitter<Delta> emitter;
     private MongoOperations mongoOperation;
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
-    private Scheduler scheduler = new ExecutorScheduler(executor);
     @Autowired
-    private DeltaRepository deltaRepository;
-
+    private DltRepository dltRepository;
     @Autowired
-    private Config config;
-
+    private ArbitrageService arbitrageService;
     @Autowired
     private PersistenceService persistenceService;
 
-    private volatile Delta lastSavedDelta;
+    private volatile Dlt lastBtm;
+    private volatile Dlt lastOk;
     private Disposable savingListener;
+    private Observable<Dlt> dltObservable;
 
     @Autowired
     public DeltaRepositoryService(MongoOperations mongoOperation) {
@@ -67,6 +65,14 @@ public class DeltaRepositoryService {
             mongoOperation.createCollection(deltasSeriesName, options);
         }
 
+        final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("delta-repository-%d").build();
+        final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
+
+        dltObservable = arbitrageService.getDeltaChangesPublisher()
+                .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.from(executor))
+                .flatMap(this::deltaChangeToDlt);
+
         initSettings();
     }
 
@@ -80,6 +86,21 @@ public class DeltaRepositoryService {
         }
 
         recreateSavingListener(borderDelta);
+    }
+
+    private Observable<Dlt> deltaChangeToDlt(DeltaChange deltaChange) {
+        List<Dlt> list = new ArrayList<>();
+        if (deltaChange.getBtmDelta() != null) {
+            Dlt delta = new Dlt(DeltaName.B_DELTA, new Date(), deltaChange.getBtmDelta().multiply(BigDecimal.valueOf(100)).longValue());
+            list.add(delta);
+            lastBtm = delta;
+        }
+        if (deltaChange.getOkDelta() != null) {
+            Dlt delta = new Dlt(DeltaName.O_DELTA, new Date(), deltaChange.getOkDelta().multiply(BigDecimal.valueOf(100)).longValue());
+            list.add(delta);
+            lastOk = delta;
+        }
+        return Observable.fromIterable(list);
     }
 
     public void recreateSavingListener(BorderDelta borderDelta) {
@@ -100,82 +121,84 @@ public class DeltaRepositoryService {
 
     }
 
+    private void createPeriodic(Integer deltaSavePerSec) {
+        if (deltaSavePerSec == 0) {
+            createAllDataSaving();
+        } else {
+            savingListener = dltObservable
+                    .sample(deltaSavePerSec, TimeUnit.SECONDS)
+                    .subscribe(this::saveBoth);
+        }
+    }
+
+    private void saveBoth(Dlt dlt) {
+        if (dlt.getName() == DeltaName.B_DELTA) {
+            dltRepository.save(dlt);
+            dltRepository.save(new Dlt(DeltaName.O_DELTA, dlt.getTimestamp(), lastOk.getValue()));
+        } else {
+            dltRepository.save(new Dlt(DeltaName.B_DELTA, dlt.getTimestamp(), lastBtm.getValue()));
+            dltRepository.save(dlt);
+        }
+    }
+
     private void createAllDataSaving() {
-        savingListener = createObservable()
-                .subscribeOn(scheduler)
-                .subscribe(this::doSave);
+        savingListener = dltObservable
+                .subscribe(dltRepository::save);
     }
 
     private void createDeviation(Integer deltaSaveDev) {
         if (deltaSaveDev == 0) {
             createAllDataSaving();
         } else {
-            savingListener = createObservable()
+            savingListener = dltObservable
                     .filter(delta -> isDeviationOvercome(delta, deltaSaveDev))
-                    .subscribeOn(scheduler)
-                    .subscribe(this::doSave);
+                    .subscribe(dltRepository::save);
         }
     }
 
-    private Delta doSave(Delta delta) {
-        lastSavedDelta = delta;
-        return deltaRepository.save(delta);
-    }
-
-    private boolean isDeviationOvercome(Delta delta, Integer deltaSaveDev) {
-        BigDecimal b_deltaCurr = delta.getbDelta();
-        BigDecimal o_deltaCurr = delta.getoDelta();
-        Delta lastSavedDelta = getLastSavedDelta();
-        BigDecimal b_deltaLast = lastSavedDelta.getbDelta();
-        BigDecimal o_deltaLast = lastSavedDelta.getoDelta();
+    private boolean isDeviationOvercome(Dlt dlt, Integer deltaSaveDev) {
+        BigDecimal deltaCurr = dlt.getDelta();
+        BigDecimal deltaLast = getLastSavedDelta(dlt.getName()).getDelta();
 
         // abs(b_delta2) - abs(b_delta1) > delta_dev,
         // b_delta1 - последняя записанная в БД дельта, b_delta2 - текущая дельта
-        boolean b = (b_deltaCurr.abs().subtract(b_deltaLast.abs())).compareTo(BigDecimal.valueOf(deltaSaveDev)) > 0;
-        boolean o = (o_deltaCurr.abs().subtract(o_deltaLast.abs())).compareTo(BigDecimal.valueOf(deltaSaveDev)) > 0;
-        return b || o;
+        return (deltaCurr.abs().subtract(deltaLast.abs())).compareTo(BigDecimal.valueOf(deltaSaveDev)) > 0;
     }
 
-    private Delta getLastSavedDelta() {
-        if (lastSavedDelta != null) {
-            return lastSavedDelta;
+    private Dlt getLastSavedDelta(DeltaName deltaName) {
+        if (deltaName == DeltaName.B_DELTA && lastBtm != null) {
+            return lastBtm;
         }
-        lastSavedDelta = deltaRepository.findFirstByOrderByTimestampDesc();
-        return lastSavedDelta;
-    }
-
-    private void createPeriodic(Integer deltaSavePerSec) {
-        if (deltaSavePerSec == 0) {
-            createAllDataSaving();
-        } else {
-            savingListener = createObservable()
-                    .sample(deltaSavePerSec, TimeUnit.SECONDS)
-                    .subscribeOn(scheduler)
-                    .subscribe(this::doSave);
+        if (deltaName == DeltaName.O_DELTA && lastOk != null) {
+            return lastOk;
         }
+        return dltRepository.findFirstByNameOrderByTimestampDesc(deltaName);
     }
 
-    private Observable<Delta> createObservable() {
-        return Observable.create(emitter -> this.emitter = emitter);
+    public Stream<Dlt> streamDeltas(DeltaName deltaName, Date from, Date to) {
+        return dltRepository.streamDltByNameAndTimestampBetween(deltaName, from, to);
     }
 
-    public void add(Delta delta) {
-        if (config.isDeltasSeriesEnabled()) {
-            emitter.onNext(delta);
-        }
+    public Stream<Dlt> streamDeltas(Date from, Date to) {
+        return dltRepository.streamDltByTimestampBetween(from, to);
     }
 
-    public Stream<Delta> streamDeltas(Date from, Date to) {
-        return deltaRepository.streamDeltasByTimestampBetween(from, to);
-    }
-
-    public Stream<Delta> streamDeltas(Integer count) {
+    public Stream<Dlt> streamDeltas(DeltaName deltaName, Integer count) {
         Pageable bottomPage = new PageRequest(0, count, Sort.Direction.DESC, "timestamp");
         final Date fromDate = Date.from(Instant.now().minus(1, ChronoUnit.HOURS));
-        Page<Delta> byTimestampIsAfter = deltaRepository.findByTimestampIsAfter(fromDate, bottomPage);
-        List<Delta> content = byTimestampIsAfter.getContent();
+        Page<Dlt> byTimestampIsAfter = dltRepository.findByNameAndTimestampIsAfter(deltaName, fromDate, bottomPage);
+        List<Dlt> content = byTimestampIsAfter.getContent();
 
-        return content.stream().sorted(Comparator.comparing(Delta::getTimestamp));
+        return content.stream().sorted(Comparator.comparing(Dlt::getTimestamp));
+    }
+
+    public Stream<Dlt> streamDeltas(Integer count) {
+        Pageable bottomPage = new PageRequest(0, count, Sort.Direction.DESC, "timestamp");
+        final Date fromDate = Date.from(Instant.now().minus(1, ChronoUnit.HOURS));
+        Page<Dlt> byTimestampIsAfter = dltRepository.findByTimestampIsAfter(fromDate, bottomPage);
+        List<Dlt> content = byTimestampIsAfter.getContent();
+
+        return content.stream().sorted(Comparator.comparing(Dlt::getTimestamp));
     }
 
 }

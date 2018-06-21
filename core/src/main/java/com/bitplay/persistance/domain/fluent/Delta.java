@@ -25,6 +25,12 @@ public class Delta {
     public Delta() {
     }
 
+    public Delta(Date timestamp, BigDecimal bDelta, BigDecimal oDelta) {
+        this.timestamp = timestamp;
+        this.bDelta = bDelta;
+        this.oDelta = oDelta;
+    }
+
     public Delta(Date timestamp, BigDecimal bAsk, BigDecimal bBid, BigDecimal oAsk, BigDecimal oBid) {
         this.timestamp = timestamp;
         this.bAsk = bAsk;

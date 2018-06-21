@@ -52,6 +52,12 @@ public class BorderDelta {
         return borderDelta;
     }
 
-    public enum DeltaCalcType {DELTA, AVG_DELTA, AVG_DELTA_EVERY_BORDER_COMP, AVG_DELTA_EVERY_NEW_DELTA}
+    public enum DeltaCalcType {DELTA,
+        AVG_DELTA, // hidden on UI
+        AVG_DELTA_EVERY_BORDER_COMP,
+        AVG_DELTA_EVERY_NEW_DELTA,
+        AVG_DELTA_EVERY_BORDER_COMP_FROM_DB,
+        AVG_DELTA_EVERY_NEW_DELTA_FROM_DB,
+    }
     public enum DeltaSaveType {DEVIATION, PERIODIC, ALL}
 }

@@ -2,25 +2,17 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.arbitrage.events.DeltaChange;
-import com.bitplay.persistance.DeltaRepositoryService;
+import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderDelta;
-import com.bitplay.persistance.domain.fluent.Delta;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.OptionalDouble;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,21 +23,30 @@ import org.springframework.stereotype.Service;
 @Getter
 public class DeltasCalcService {
 
-    private static final Logger logger = LoggerFactory.getLogger(BordersService.class);
+    private static final Logger logger = LoggerFactory.getLogger(DeltasCalcService.class);
     //    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 //    private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 //    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
     @Autowired
-    private DeltaRepositoryService deltaRepositoryService;
+    private PersistenceService persistenceService;
     @Autowired
     private ArbitrageService arbitrageService;
     @Autowired
     private BordersRecalcService bordersRecalcService;
+    @Autowired
+    private AvgDeltaFromDb avgDeltaFromDb;
+    @Autowired
+    private AvgDeltaInMemory avgDeltaInMemory;
 
-    private Cache<Instant, Long> bDeltaCache;
-    private Cache<Instant, Long> oDeltaCache;
+    /**
+     * local copy of the settings
+     */
+    private BorderDelta borderDelta;
+
+    //    private Cache<Instant, Long> bDeltaCache;
+//    private Cache<Instant, Long> oDeltaCache;
     private Instant begin_delta_hist_per = Instant.now();
 
     private volatile BigDecimal bDeltaSma = BigDecimal.ZERO;
@@ -56,8 +57,8 @@ public class DeltasCalcService {
 
     private Disposable deltaChangeSubscriber;
 
-    public void initDeltasCache(Integer delta_hist_per) {
-        resetDeltasCache(delta_hist_per, true);
+    public void initDeltasCache(BorderDelta borderDelta) {
+        resetDeltasCache(borderDelta, true);
 
         final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("deltas-calc-%d").build();
         final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
@@ -71,46 +72,27 @@ public class DeltasCalcService {
     private void deltaChangeListener(DeltaChange deltaChange) {
         long startMs = Instant.now().toEpochMilli();
 
-        if (deltaChange.getBtmDelta() != null) {
-            bDeltaCache.put(Instant.now(), (deltaChange.getBtmDelta().multiply(BigDecimal.valueOf(100))).longValue());
-            bDeltaEveryCalc = calcDeltaSma(bDeltaCache);
-        }
-        if (deltaChange.getOkDelta() != null) {
-            oDeltaCache.put(Instant.now(), (deltaChange.getOkDelta().multiply(BigDecimal.valueOf(100))).longValue());
-            oDeltaEveryCalc = calcDeltaSma(oDeltaCache);
-        }
+        avgDeltaInMemory.newDeltaEvent(deltaChange);
 
         bordersRecalcService.newDeltaAdded();
 
         long endMs = Instant.now().toEpochMilli();
         arbitrageService.getDeltaMon().setDeltaMs(endMs - startMs);
-        arbitrageService.getDeltaMon().setItmes(bDeltaCache.size(), oDeltaCache.size());
-
 
 //        logger.info("CalcEnded. " + arbitrageService.getDeltaMon());
     }
 
-    public void resetDeltasCache(Integer delta_hist_per, boolean clearData) {
+    public void resetDeltasCache(BorderDelta borderDelta, boolean clearData) {
+        this.borderDelta = borderDelta;
+        Integer delta_hist_per = borderDelta.getDeltaCalcPast();
+
         if (clearData) {
             begin_delta_hist_per = Instant.now();
-            bDeltaCache = CacheBuilder.newBuilder()
-                    .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
-                    .build();
-            oDeltaCache = CacheBuilder.newBuilder()
-                    .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
-                    .build();
-        } else {
-            ConcurrentMap<Instant, Long> map1 = bDeltaCache.asMap();
-            bDeltaCache = CacheBuilder.newBuilder()
-                    .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
-                    .build();
-            bDeltaCache.putAll(map1);
-            ConcurrentMap<Instant, Long> map2 = oDeltaCache.asMap();
-            oDeltaCache = CacheBuilder.newBuilder()
-                    .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
-                    .build();
-            oDeltaCache.putAll(map2);
         }
+
+        // the only impl
+        avgDeltaInMemory.resetDeltasCache(delta_hist_per, clearData);
+
         if (!started) {
             started = true;
         }
@@ -129,89 +111,54 @@ public class DeltasCalcService {
         return String.valueOf(toStart > 0 ? toStart : 0);
     }
 
-    private synchronized BigDecimal calcDeltaSma(Cache<Instant, Long> bDeltaCache) {
-        long sum = bDeltaCache.asMap().values().stream().mapToLong(Long::longValue).sum();
-        return BigDecimal.valueOf(sum / bDeltaCache.size(), 2);
-    }
-
-    BigDecimal calcDelta1(BigDecimal instantDelta1, BorderDelta borderDelta) {
-        if (bDeltaCache == null) {
-            initDeltasCache(borderDelta.getDeltaCalcPast());
+    BigDecimal calcDelta(DeltaName deltaName, BigDecimal instantDelta) {
+        if (borderDelta == null) {
+            borderDelta = persistenceService.fetchBorders().getBorderDelta();
         }
 
         switch (borderDelta.getDeltaCalcType()) {
             case DELTA:
-                return instantDelta1;
+                return instantDelta;
             case AVG_DELTA:
-                return BigDecimal.valueOf(getDeltaAvg1(instantDelta1, borderDelta)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                return avgDeltaFromDb.calcAvgDelta(deltaName, instantDelta, borderDelta);
+            case AVG_DELTA_EVERY_BORDER_COMP_FROM_DB:
+            case AVG_DELTA_EVERY_NEW_DELTA_FROM_DB:
+                return calcAvgDelta(avgDeltaFromDb, deltaName, instantDelta, borderDelta);
             case AVG_DELTA_EVERY_BORDER_COMP:
             case AVG_DELTA_EVERY_NEW_DELTA:
-                bDeltaSma = getEveryNewDelta(DeltaName.B_DELTA, borderDelta);
-                return bDeltaSma;
+                return calcAvgDelta(avgDeltaInMemory, deltaName, instantDelta, borderDelta);
         }
         throw new IllegalArgumentException("Unhandled deltaCalcType " + borderDelta.getDeltaCalcType());
     }
 
-    BigDecimal calcDelta2(BigDecimal defaultDelta2, BorderDelta borderDelta) {
-        switch (borderDelta.getDeltaCalcType()) {
-            case DELTA:
-                return defaultDelta2;
-            case AVG_DELTA:
-                return BigDecimal.valueOf(getDeltaAvg2(defaultDelta2, borderDelta)).setScale(2, BigDecimal.ROUND_HALF_UP);
-            case AVG_DELTA_EVERY_BORDER_COMP:
-            case AVG_DELTA_EVERY_NEW_DELTA:
-                oDeltaSma = getEveryNewDelta(DeltaName.O_DELTA, borderDelta);
-                return oDeltaSma;
+    private BigDecimal calcAvgDelta(AvgDelta avgDeltaService, DeltaName deltaName, BigDecimal instantDelta, BorderDelta borderDelta) {
+        BigDecimal deltaSma = deltaName == DeltaName.B_DELTA ? bDeltaSma : oDeltaSma;
+        if (isReadyForCalc(borderDelta.getDeltaCalcPast())) {
+            if (deltaName == DeltaName.B_DELTA) {
+                deltaSma = avgDeltaService.calcAvgDelta(deltaName, instantDelta, borderDelta);
+            } else {
+                deltaSma = avgDeltaService.calcAvgDelta(deltaName, instantDelta, borderDelta);
+            }
         }
-        throw new IllegalArgumentException("Unhandled deltaCalcType " + borderDelta.getDeltaCalcType());
+        return deltaSma;
     }
+//
+//    private BigDecimal getEveryNewDelta(DeltaName deltaName, BorderDelta borderDelta) {
+//        if (!isReadyForCalc(borderDelta.getDeltaCalcPast())) {
+//            // keep the last
+//            return deltaName == DeltaName.B_DELTA ? bDeltaSma : oDeltaSma;
+//        } else {
+//            return deltaName == DeltaName.B_DELTA ? bDeltaEveryCalc : oDeltaEveryCalc;
+//        }
+//    }
 
-    private BigDecimal getEveryNewDelta(DeltaName deltaName, BorderDelta borderDelta) {
+    private boolean isReadyForCalc(Integer deltaCalcPast) {
         Instant now = Instant.now();
         long pastSeconds = Duration.between(begin_delta_hist_per, now).getSeconds();
-        Integer delta_hist_per = borderDelta.getDeltaCalcPast();
-        if (pastSeconds < delta_hist_per) {
-            // keep the last
-            return deltaName == DeltaName.B_DELTA ? bDeltaSma : oDeltaSma;
-        } else {
-            return deltaName == DeltaName.B_DELTA ? bDeltaEveryCalc : oDeltaEveryCalc;
-        }
+        return pastSeconds > deltaCalcPast;
     }
 
-    private Double getDeltaAvg1(BigDecimal defaultDelta1, BorderDelta borderDelta) {
-        final Date fromDate = Date.from(Instant.now().minus(borderDelta.getDeltaCalcPast(), ChronoUnit.SECONDS));
-
-        final OptionalDouble average = deltaRepositoryService.streamDeltas(fromDate, new Date())
-                .map(Delta::getbDelta)
-                .mapToDouble(BigDecimal::doubleValue)
-//                .peek(val -> logger.info("Delta1Part: " + val))
-                .average();
-
-        if (average.isPresent()) {
-            logger.info("average Delta1=" + average);
-            return average.getAsDouble();
-        }
-
-        logger.warn("Can not calc average Delta1");
-        return defaultDelta1.doubleValue();
+    public void setBorderDelta(BorderDelta borderDelta) {
+        this.borderDelta = borderDelta;
     }
-
-    private Double getDeltaAvg2(BigDecimal defaultDelta2, BorderDelta borderDelta) {
-        final Date fromDate = Date.from(Instant.now().minus(borderDelta.getDeltaCalcPast(), ChronoUnit.SECONDS));
-
-        final OptionalDouble average = deltaRepositoryService.streamDeltas(fromDate, new Date())
-                .map(Delta::getoDelta)
-//                .peek(val -> logger.info("Delta2Part: " + val))
-                .mapToDouble(BigDecimal::doubleValue)
-                .average();
-        if (average.isPresent()) {
-            logger.info("average Delta2=" + average);
-            return average.getAsDouble();
-        }
-
-        logger.warn("Can not calc average Delta2");
-        return defaultDelta2.doubleValue();
-    }
-
-
 }

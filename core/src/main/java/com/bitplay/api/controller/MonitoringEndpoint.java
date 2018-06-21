@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.MonDeltaListJson;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.AvgDeltaInMemory;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.dto.DeltaMon;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,7 @@ public class MonitoringEndpoint {
     @Autowired
     private ArbitrageService arbitrageService;
     @Autowired
-    private DeltasCalcService deltasCalcService;
+    private AvgDeltaInMemory avgDeltaInMemory;
 
     @RequestMapping(value = "/calc-delta", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltaMon getDeltaMon() {
@@ -33,8 +34,8 @@ public class MonitoringEndpoint {
     @RequestMapping(value = "/calc-delta/list", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public MonDeltaListJson getDeltaListForCalc() {
         return new MonDeltaListJson(
-                deltasCalcService.getBDeltaCache().asMap(),
-                deltasCalcService.getODeltaCache().asMap()
+                avgDeltaInMemory.getBDeltaCache().asMap(),
+                avgDeltaInMemory.getODeltaCache().asMap()
         );
     }
 

@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderDelta.DeltaCalcType;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -59,8 +60,8 @@ public class BordersRecalcService {
             final BigDecimal instantDelta1 = arbitrageService.getDelta1();
             final BigDecimal instantDelta2 = arbitrageService.getDelta2();
 
-            BigDecimal b_delta = deltasCalcService.calcDelta1(instantDelta1, borderParams.getBorderDelta());
-            BigDecimal o_delta = deltasCalcService.calcDelta2(instantDelta2, borderParams.getBorderDelta());
+            BigDecimal b_delta = deltasCalcService.calcDelta(DeltaName.B_DELTA, instantDelta1);
+            BigDecimal o_delta = deltasCalcService.calcDelta(DeltaName.O_DELTA ,instantDelta2);
 
             if (borderParams.getActiveVersion() == BorderParams.Ver.V1) {
                 final BigDecimal sumDelta = borderParams.getBordersV1().getSumDelta();

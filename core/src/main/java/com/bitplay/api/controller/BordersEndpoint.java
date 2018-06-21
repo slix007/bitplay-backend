@@ -154,6 +154,7 @@ public class BordersEndpoint {
             if (update.recalcPeriodSec != null) {
                 final Integer periodSec = Integer.valueOf(update.recalcPeriodSec);
                 bP.setRecalcPeriodSec(periodSec);
+                deltasCalcService.setBorderDelta(bP.getBorderDelta());
                 boolean isRecalcEveryNewDelta = bP.getBorderDelta().getDeltaCalcType() == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA;
                 bordersCalcScheduler.resetTimerToRecalc(periodSec, isRecalcEveryNewDelta);
                 respDetails = update.recalcPeriodSec;
@@ -164,8 +165,7 @@ public class BordersEndpoint {
                 respDetails = bP.getBordersV1().getSumDelta().toPlainString();
             }
             if (update.doResetDeltaHistPer != null) {
-                Integer delta_hist_per = bP.getBorderDelta().getDeltaCalcPast();
-                deltasCalcService.resetDeltasCache(delta_hist_per, true);
+                deltasCalcService.resetDeltasCache(bP.getBorderDelta(), true);
                 respDetails = "OK";
             }
 
@@ -189,7 +189,7 @@ public class BordersEndpoint {
                     Integer histPerUpdate = update.borderDelta.getDeltaCalcPast();
                     boolean shouldClearData = histPerPrev > histPerUpdate;
                     bP.getBorderDelta().setDeltaCalcPast(histPerUpdate);
-                    deltasCalcService.resetDeltasCache(histPerUpdate, shouldClearData);
+                    deltasCalcService.resetDeltasCache(bP.getBorderDelta(), shouldClearData);
 
                     respDetails += update.borderDelta.getDeltaCalcPast().toString();
                 }
@@ -205,8 +205,12 @@ public class BordersEndpoint {
                     bP.getBorderDelta().setDeltaSavePerSec(update.borderDelta.getDeltaSavePerSec());
                     respDetails += update.borderDelta.getDeltaSavePerSec().toString();
                 }
+
                 deltaRepositoryService.recreateSavingListener(bP.getBorderDelta());
             }
+
+            deltasCalcService.setBorderDelta(bP.getBorderDelta());
+
         } catch (Exception e) {
             return new ResultJson("Wrong version", e.getMessage());
         }
