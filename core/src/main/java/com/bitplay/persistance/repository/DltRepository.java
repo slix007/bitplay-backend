@@ -17,6 +17,8 @@ public interface DltRepository extends CrudRepository<Dlt, Long> {
 
     Stream<Dlt> streamDltByNameAndTimestampBetween(DeltaName deltaName, Date from, Date to);
 
+    Page<Dlt> findByNameAndTimestampIsBefore(DeltaName deltaName, Date from, Pageable pageable);
+
     Page<Dlt> findByTimestampIsAfter(Date from, Pageable pageable);
 
     Page<Dlt> findByNameAndTimestampIsAfter(DeltaName deltaName, Date from, Pageable pageable);

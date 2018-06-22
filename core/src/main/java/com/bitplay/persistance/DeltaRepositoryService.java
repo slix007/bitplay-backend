@@ -29,6 +29,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.CollectionOptions;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.stereotype.Service;
@@ -165,7 +166,7 @@ public class DeltaRepositoryService {
         return (deltaCurr.abs().subtract(deltaLast.abs())).compareTo(BigDecimal.valueOf(deltaSaveDev)) > 0;
     }
 
-    private Dlt getLastSavedDelta(DeltaName deltaName) {
+    public Dlt getLastSavedDelta(DeltaName deltaName) {
         if (deltaName == DeltaName.B_DELTA && lastBtm != null) {
             return lastBtm;
         }
@@ -201,4 +202,16 @@ public class DeltaRepositoryService {
         return content.stream().sorted(Comparator.comparing(Dlt::getTimestamp));
     }
 
+    public Dlt getIsBefore(DeltaName deltaName, Date timestamp) {
+        Pageable bottomPage = new PageRequest(0, 1, Sort.Direction.DESC, "timestamp");
+        Page<Dlt> byTimestampIsBefore = dltRepository.findByNameAndTimestampIsBefore(deltaName, timestamp, bottomPage);
+        List<Dlt> content = byTimestampIsBefore.getContent();
+        return content.size() > 0 ? content.get(0) : null;
+    }
+    public Dlt getIsAfter(DeltaName deltaName, Date timestamp) {
+        Pageable bottomPage = new PageRequest(0, 1, Direction.ASC, "timestamp");
+        Page<Dlt> pages = dltRepository.findByNameAndTimestampIsAfter(deltaName, timestamp, bottomPage);
+        List<Dlt> content = pages.getContent();
+        return content.size() > 0 ? content.get(0) : null;
+    }
 }

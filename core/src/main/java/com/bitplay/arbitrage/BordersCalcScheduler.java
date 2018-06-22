@@ -55,7 +55,7 @@ public class BordersCalcScheduler {
     private void firstInit() {
         final BorderParams borderParams = persistenceService.fetchBorders();
         final Integer recalcPeriodSec = borderParams.getRecalcPeriodSec();
-        boolean isRecalcEveryNewDelta = borderParams.getBorderDelta().getDeltaCalcType() == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA;
+        boolean isRecalcEveryNewDelta = borderParams.getBorderDelta().getDeltaCalcType().isEveryNewDelta();
         resetTimerToRecalc(recalcPeriodSec, isRecalcEveryNewDelta);
     }
 

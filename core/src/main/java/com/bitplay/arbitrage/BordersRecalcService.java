@@ -1,6 +1,7 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.DeltaName;
+import com.bitplay.arbitrage.exceptions.NotPassedDeltaHistPeriodException;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderDelta.DeltaCalcType;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -44,7 +45,7 @@ public class BordersRecalcService {
 
     public boolean isRecalcEveryNewDelta() {
         final BorderParams borderParams = persistenceService.fetchBorders();
-        return borderParams.getBorderDelta().getDeltaCalcType() == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA;
+        return borderParams.getBorderDelta().getDeltaCalcType().isEveryNewDelta();
     }
 
     public void newDeltaAdded() {
@@ -70,6 +71,9 @@ public class BordersRecalcService {
             if (borderParams.getActiveVersion() == BorderParams.Ver.V2) {
                 recalculateBordersV2(borderParams, b_delta, o_delta);
             }
+        } catch (NotPassedDeltaHistPeriodException e) {
+            logger.error("delta_hist_per is not passed: ", e);
+            warningLogger.error("delta_hist_per is not passed: " + e.getMessage());
         } catch (Exception e) {
             logger.error("on recalc borders: ", e);
             warningLogger.error("on recalc borders: " + e.getMessage());

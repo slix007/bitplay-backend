@@ -56,8 +56,18 @@ public class BorderDelta {
         AVG_DELTA, // hidden on UI
         AVG_DELTA_EVERY_BORDER_COMP,
         AVG_DELTA_EVERY_NEW_DELTA,
-        AVG_DELTA_EVERY_BORDER_COMP_FROM_DB,
-        AVG_DELTA_EVERY_NEW_DELTA_FROM_DB,
+        AVG_DELTA_EVERY_BORDER_COMP_IN_PARTS,
+        AVG_DELTA_EVERY_NEW_DELTA_IN_PARTS,
+        AVG_DELTA_EVERY_BORDER_COMP_AT_ONCE,
+        AVG_DELTA_EVERY_NEW_DELTA_AT_ONCE,
+        ;
+
+        public boolean isEveryNewDelta() {
+            return this == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA_IN_PARTS
+                    || this == AVG_DELTA_EVERY_NEW_DELTA_AT_ONCE;
+        }
     }
     public enum DeltaSaveType {DEVIATION, PERIODIC, ALL}
+
+
 }

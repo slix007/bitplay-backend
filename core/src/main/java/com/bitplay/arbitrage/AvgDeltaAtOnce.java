@@ -15,15 +15,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class AvgDeltaFromDb implements AvgDelta {
+public class AvgDeltaAtOnce implements AvgDelta {
 
-    private static final Logger logger = LoggerFactory.getLogger(AvgDeltaFromDb.class);
+    private static final Logger logger = LoggerFactory.getLogger(AvgDeltaAtOnce.class);
 
     @Autowired
     private DeltaRepositoryService deltaRepositoryService;
 
     @Override
-    public BigDecimal calcAvgDelta(DeltaName deltaName, BigDecimal instantDelta, BorderDelta borderDelta) {
+    public BigDecimal calcAvgDelta(DeltaName deltaName, BigDecimal instantDelta, BorderDelta borderDelta, Instant begin_delta_hist_per) {
         return deltaName == DeltaName.B_DELTA
                 ? BigDecimal.valueOf(getDeltaAvg1(instantDelta, borderDelta)).setScale(2, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.valueOf(getDeltaAvg2(instantDelta, borderDelta)).setScale(2, BigDecimal.ROUND_HALF_UP);

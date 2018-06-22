@@ -2,9 +2,10 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.MonDeltaListJson;
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.AvgDeltaInMemory;
+import com.bitplay.arbitrage.AvgDeltaInParts;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.dto.DeltaMon;
+import com.bitplay.persistance.DeltaRepositoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,7 +19,7 @@ public class MonitoringEndpoint {
     @Autowired
     private ArbitrageService arbitrageService;
     @Autowired
-    private AvgDeltaInMemory avgDeltaInMemory;
+    private DeltasCalcService deltasCalcService;
 
     @RequestMapping(value = "/calc-delta", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltaMon getDeltaMon() {
@@ -31,12 +32,12 @@ public class MonitoringEndpoint {
         return arbitrageService.getDeltaMon();
     }
 
-    @RequestMapping(value = "/calc-delta/list", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public MonDeltaListJson getDeltaListForCalc() {
-        return new MonDeltaListJson(
-                avgDeltaInMemory.getBDeltaCache().asMap(),
-                avgDeltaInMemory.getODeltaCache().asMap()
-        );
-    }
+//    @RequestMapping(value = "/calc-delta/list", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    public MonDeltaListJson getDeltaListForCalc() {
+//        return new MonDeltaListJson(
+//                deltasCalcService.getLastBtmDeltasInCalc(),
+//                deltasCalcService.getLastOkDeltasInCalc()
+//        );
+//    }
 
 }

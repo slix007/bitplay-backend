@@ -2,16 +2,11 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.arbitrage.events.DeltaChange;
-import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.domain.borders.BorderDelta;
-import com.bitplay.persistance.domain.fluent.Delta;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.OptionalDouble;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
@@ -22,9 +17,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Getter
-public class AvgDeltaInMemory implements AvgDelta {
+public class AvgDeltaInMemoryCache implements AvgDelta {
 
-    private static final Logger logger = LoggerFactory.getLogger(AvgDeltaInMemory.class);
+    private static final Logger logger = LoggerFactory.getLogger(AvgDeltaInMemoryCache.class);
 
     private Cache<Instant, Long> bDeltaCache;
     private Cache<Instant, Long> oDeltaCache;
@@ -35,14 +30,14 @@ public class AvgDeltaInMemory implements AvgDelta {
     private ArbitrageService arbitrageService;
 
     @Override
-    public BigDecimal calcAvgDelta(DeltaName deltaName, BigDecimal instantDelta, BorderDelta borderDelta) {
+    public BigDecimal calcAvgDelta(DeltaName deltaName, BigDecimal instantDelta, BorderDelta borderDelta, Instant begin_delta_hist_per) {
         return deltaName == DeltaName.B_DELTA
                 ? bDeltaEveryCalc
                 : oDeltaEveryCalc;
     }
 
     @Override
-    public void newDeltaEvent(DeltaChange deltaChange) {
+    public void newDeltaEvent(DeltaChange deltaChange, Instant begin_delta_hist_per) {
         if (deltaChange.getBtmDelta() != null) {
             bDeltaCache.put(Instant.now(), (deltaChange.getBtmDelta().multiply(BigDecimal.valueOf(100))).longValue());
             bDeltaEveryCalc = calcDeltaSma(bDeltaCache);
@@ -61,7 +56,7 @@ public class AvgDeltaInMemory implements AvgDelta {
 
     @Override
     public void resetDeltasCache(Integer delta_hist_per, boolean clearData) {
-        if (clearData) {
+         if (clearData) {
             bDeltaCache = CacheBuilder.newBuilder()
                     .expireAfterWrite(delta_hist_per, TimeUnit.SECONDS)
                     .build();

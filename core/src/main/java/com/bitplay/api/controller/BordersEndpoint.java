@@ -155,7 +155,7 @@ public class BordersEndpoint {
                 final Integer periodSec = Integer.valueOf(update.recalcPeriodSec);
                 bP.setRecalcPeriodSec(periodSec);
                 deltasCalcService.setBorderDelta(bP.getBorderDelta());
-                boolean isRecalcEveryNewDelta = bP.getBorderDelta().getDeltaCalcType() == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA;
+                boolean isRecalcEveryNewDelta = bP.getBorderDelta().getDeltaCalcType().isEveryNewDelta();
                 bordersCalcScheduler.resetTimerToRecalc(periodSec, isRecalcEveryNewDelta);
                 respDetails = update.recalcPeriodSec;
             }
@@ -175,9 +175,8 @@ public class BordersEndpoint {
                     DeltaCalcType after = update.borderDelta.getDeltaCalcType();
                     bP.getBorderDelta().setDeltaCalcType(after);
 
-                    if (before == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA
-                            || after == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA) {
-                        boolean isRecalcEveryNewDelta = bP.getBorderDelta().getDeltaCalcType() == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA;
+                    if (before.isEveryNewDelta() || after.isEveryNewDelta()) {
+                        boolean isRecalcEveryNewDelta = bP.getBorderDelta().getDeltaCalcType().isEveryNewDelta();
 
                         bordersCalcScheduler.resetTimerToRecalc(bP.getRecalcPeriodSec(), isRecalcEveryNewDelta);
                     }
