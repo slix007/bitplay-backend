@@ -458,7 +458,7 @@ public class BitmexSwapService {
     }
 
     BigDecimal calcFundingCost(final Position position, final BigDecimal fRate) {
-        if (position.getMarkValue() == null || position.getPositionLong() == null) {
+        if (position.getMarkValue() == null || position.getPositionLong() == null || fRate == null) {
             return BigDecimal.ZERO;
         }
 

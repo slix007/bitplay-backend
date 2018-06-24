@@ -1,11 +1,10 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.DeltaName;
-import com.bitplay.arbitrage.events.DeltaChange;
-import com.bitplay.arbitrage.exceptions.NotPassedDeltaHistPeriodException;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderDelta;
+import com.bitplay.persistance.domain.fluent.Dlt;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -61,17 +60,17 @@ public class DeltasCalcService {
         final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("deltas-calc-%d").build();
         final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
 
-        deltaChangeSubscriber = arbitrageService.getDeltaChangesPublisher()
+        deltaChangeSubscriber = deltaRepositoryService.getDltSaveObservable()
                 .subscribeOn(Schedulers.computation())
                 .observeOn(Schedulers.from(executor))
-                .subscribe(this::deltaChangeListener);
+                .subscribe(this::dltChangeListener);
     }
 
-    private void deltaChangeListener(DeltaChange deltaChange) { //TODO move into borderRecalcService
+    private void dltChangeListener(Dlt dlt) { //TODO move into borderRecalcService
         long startMs = Instant.now().toEpochMilli();
 
         // 1. summirize only while _sma_init();
-        avgDeltaInParts.newDeltaEvent(deltaChange, begin_delta_hist_per);
+        avgDeltaInParts.newDeltaEvent(dlt, begin_delta_hist_per);
 
         // 2. check starting border recalc after each delta
         bordersRecalcService.newDeltaAdded();
@@ -109,33 +108,33 @@ public class DeltasCalcService {
         return String.valueOf(toStart > 0 ? toStart : 0);
     }
 
-    BigDecimal calcDelta(DeltaName deltaName, BigDecimal instantDelta) throws NotPassedDeltaHistPeriodException {
+    BigDecimal calcDelta(DeltaName deltaName, BigDecimal instantDelta) {
         if (borderDelta == null) {
             borderDelta = persistenceService.fetchBorders().getBorderDelta();
         }
 
+        Instant currTime = Instant.now();
         switch (borderDelta.getDeltaCalcType()) {
             case DELTA:
                 return instantDelta;
             case AVG_DELTA: // calc every call
-                return avgDeltaAtOnce.calcAvgDelta(deltaName, instantDelta, borderDelta, begin_delta_hist_per);
+                return avgDeltaAtOnce.calcAvgDelta(deltaName, instantDelta, currTime, borderDelta, begin_delta_hist_per);
             case AVG_DELTA_EVERY_BORDER_COMP_AT_ONCE:
             case AVG_DELTA_EVERY_NEW_DELTA_AT_ONCE:
-                return calcIfDeltaHistPeriodIsDone(avgDeltaAtOnce, deltaName, instantDelta, borderDelta);
+                return calcIfDeltaHistPeriodIsDone(avgDeltaAtOnce, deltaName, instantDelta, currTime, borderDelta);
             case AVG_DELTA_EVERY_BORDER_COMP_IN_PARTS:
             case AVG_DELTA_EVERY_NEW_DELTA_IN_PARTS:
-                return calcIfDeltaHistPeriodIsDone(avgDeltaInParts, deltaName, instantDelta, borderDelta);
+                return calcIfDeltaHistPeriodIsDone(avgDeltaInParts, deltaName, instantDelta, currTime, borderDelta);
         }
         throw new IllegalArgumentException("Unhandled deltaCalcType " + borderDelta.getDeltaCalcType());
     }
 
-    private BigDecimal calcIfDeltaHistPeriodIsDone(AvgDelta avgDeltaService, DeltaName deltaName, BigDecimal instantDelta, BorderDelta borderDelta)
-            throws NotPassedDeltaHistPeriodException {
-        Instant currTime = Instant.now();
+    private BigDecimal calcIfDeltaHistPeriodIsDone(AvgDelta avgDeltaService, DeltaName deltaName, BigDecimal instantDelta, Instant currTime,
+            BorderDelta borderDelta) {
         if (!avgDeltaService.isReadyForCalc(currTime, begin_delta_hist_per, borderDelta.getDeltaCalcPast())) {
-            throw new NotPassedDeltaHistPeriodException();
+            return null;
         }
-        return avgDeltaService.calcAvgDelta(deltaName, instantDelta, borderDelta, begin_delta_hist_per);
+        return avgDeltaService.calcAvgDelta(deltaName, instantDelta, currTime, borderDelta, begin_delta_hist_per);
     }
 
     public void setBorderDelta(BorderDelta borderDelta) {

@@ -1,25 +1,21 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.DeltaName;
-import com.bitplay.arbitrage.exceptions.NotPassedDeltaHistPeriodException;
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.borders.BorderDelta.DeltaCalcType;
+import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
-import com.bitplay.persistance.domain.GuiParams;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.List;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 2/14/18.
@@ -64,16 +60,17 @@ public class BordersRecalcService {
             BigDecimal b_delta = deltasCalcService.calcDelta(DeltaName.B_DELTA, instantDelta1);
             BigDecimal o_delta = deltasCalcService.calcDelta(DeltaName.O_DELTA ,instantDelta2);
 
-            if (borderParams.getActiveVersion() == BorderParams.Ver.V1) {
-                final BigDecimal sumDelta = borderParams.getBordersV1().getSumDelta();
-                recalculateBordersV1(sumDelta, b_delta, o_delta);
+            if (b_delta == null || o_delta == null) {
+                // Not initialized (or Error?) -> Do Nothing!
+            } else {
+                if (borderParams.getActiveVersion() == BorderParams.Ver.V1) {
+                    final BigDecimal sumDelta = borderParams.getBordersV1().getSumDelta();
+                    recalculateBordersV1(sumDelta, b_delta, o_delta);
+                }
+                if (borderParams.getActiveVersion() == BorderParams.Ver.V2) {
+                    recalculateBordersV2(borderParams, b_delta, o_delta);
+                }
             }
-            if (borderParams.getActiveVersion() == BorderParams.Ver.V2) {
-                recalculateBordersV2(borderParams, b_delta, o_delta);
-            }
-        } catch (NotPassedDeltaHistPeriodException e) {
-            logger.error("delta_hist_per is not passed: ", e);
-            warningLogger.error("delta_hist_per is not passed: " + e.getMessage());
         } catch (Exception e) {
             logger.error("on recalc borders: ", e);
             warningLogger.error("on recalc borders: " + e.getMessage());

@@ -23,7 +23,8 @@ public class AvgDeltaAtOnce implements AvgDelta {
     private DeltaRepositoryService deltaRepositoryService;
 
     @Override
-    public BigDecimal calcAvgDelta(DeltaName deltaName, BigDecimal instantDelta, BorderDelta borderDelta, Instant begin_delta_hist_per) {
+    public BigDecimal calcAvgDelta(DeltaName deltaName, BigDecimal instantDelta, Instant currTime, BorderDelta borderDelta,
+            Instant begin_delta_hist_per) {
         return deltaName == DeltaName.B_DELTA
                 ? BigDecimal.valueOf(getDeltaAvg1(instantDelta, borderDelta)).setScale(2, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.valueOf(getDeltaAvg2(instantDelta, borderDelta)).setScale(2, BigDecimal.ROUND_HALF_UP);

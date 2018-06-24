@@ -14,6 +14,7 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -158,7 +159,14 @@ public class CommonEndpoint {
 
     @RequestMapping(value = "/market/pos-diff", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson getPositionEquality() {
-        return commonUIService.getPosDiff();
+        ResultJson posDiff;
+        try {
+            posDiff = commonUIService.getPosDiff();
+        } catch (NotYetInitializedException e) {
+            // do nothing
+            posDiff = new ResultJson("NotInitialized", "position is not yet initialized");
+        }
+        return posDiff;
     }
 
     @RequestMapping(value = "/market/pos-corr",

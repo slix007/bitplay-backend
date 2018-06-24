@@ -9,6 +9,7 @@ import com.bitplay.persistance.domain.fluent.Dlt;
 import com.bitplay.persistance.repository.DltRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import java.math.BigDecimal;
@@ -51,7 +52,9 @@ public class DeltaRepositoryService {
     private volatile Dlt lastBtm;
     private volatile Dlt lastOk;
     private Disposable savingListener;
-    private Observable<Dlt> dltObservable;
+    private Observable<Dlt> allDltObservable;
+    private ObservableEmitter<Dlt> dltSavedEmitter;
+    private Observable<Dlt> dltSaveObservable = Observable.create(e -> this.dltSavedEmitter = e);
 
     @Autowired
     public DeltaRepositoryService(MongoOperations mongoOperation) {
@@ -69,7 +72,7 @@ public class DeltaRepositoryService {
         final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("delta-repository-%d").build();
         final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
 
-        dltObservable = arbitrageService.getDeltaChangesPublisher()
+        allDltObservable = arbitrageService.getDeltaChangesPublisher()
                 .subscribeOn(Schedulers.computation())
                 .observeOn(Schedulers.from(executor))
                 .flatMap(this::deltaChangeToDlt);
@@ -126,7 +129,7 @@ public class DeltaRepositoryService {
         if (deltaSavePerSec == 0) {
             createAllDataSaving();
         } else {
-            savingListener = dltObservable
+            savingListener = allDltObservable
                     .sample(deltaSavePerSec, TimeUnit.SECONDS)
                     .subscribe(this::saveBoth);
         }
@@ -135,25 +138,36 @@ public class DeltaRepositoryService {
     private void saveBoth(Dlt dlt) {
         if (dlt.getName() == DeltaName.B_DELTA) {
             dltRepository.save(dlt);
-            dltRepository.save(new Dlt(DeltaName.O_DELTA, dlt.getTimestamp(), lastOk.getValue()));
+            dltSavedEmitter.onNext(dlt);
+            Dlt okDlt = new Dlt(DeltaName.O_DELTA, dlt.getTimestamp(), lastOk.getValue());
+            dltRepository.save(okDlt);
+            dltSavedEmitter.onNext(okDlt);
         } else {
-            dltRepository.save(new Dlt(DeltaName.B_DELTA, dlt.getTimestamp(), lastBtm.getValue()));
+            Dlt btmDlt = new Dlt(DeltaName.B_DELTA, dlt.getTimestamp(), lastBtm.getValue());
+            dltRepository.save(btmDlt);
+            dltSavedEmitter.onNext(btmDlt);
             dltRepository.save(dlt);
+            dltSavedEmitter.onNext(dlt);
         }
     }
 
+    private void saveOne(Dlt dlt) {
+        dltRepository.save(dlt);
+        dltSavedEmitter.onNext(dlt);
+    }
+
     private void createAllDataSaving() {
-        savingListener = dltObservable
-                .subscribe(dltRepository::save);
+        savingListener = allDltObservable
+                .subscribe(this::saveOne);
     }
 
     private void createDeviation(Integer deltaSaveDev) {
         if (deltaSaveDev == 0) {
             createAllDataSaving();
         } else {
-            savingListener = dltObservable
+            savingListener = allDltObservable
                     .filter(delta -> isDeviationOvercome(delta, deltaSaveDev))
-                    .subscribe(dltRepository::save);
+                    .subscribe(this::saveOne);
         }
     }
 
@@ -174,6 +188,10 @@ public class DeltaRepositoryService {
             return lastOk;
         }
         return dltRepository.findFirstByNameOrderByTimestampDesc(deltaName);
+    }
+
+    public Observable<Dlt> getDltSaveObservable() {
+        return dltSaveObservable;
     }
 
     public Stream<Dlt> streamDeltas(DeltaName deltaName, Date from, Date to) {

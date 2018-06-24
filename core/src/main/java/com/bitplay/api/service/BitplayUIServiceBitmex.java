@@ -8,6 +8,7 @@ import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.domain.futureindex.FutureIndexJson;
 import com.bitplay.api.domain.futureindex.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
@@ -140,7 +141,8 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         }
 
         if (bitmexService.getPosition() == null || bitmexService.getPosition().getPositionLong() == null) {
-            throw new IllegalStateException("Position is not yet defined");
+            return new FutureIndexJson("", "", null);
+//            throw new NotYetInitializedException("Position is not yet defined");
         }
         final String position = bitmexService.getPosition().getPositionLong().toPlainString();
 

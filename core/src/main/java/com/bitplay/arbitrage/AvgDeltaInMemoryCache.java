@@ -30,13 +30,14 @@ public class AvgDeltaInMemoryCache implements AvgDelta {
     private ArbitrageService arbitrageService;
 
     @Override
-    public BigDecimal calcAvgDelta(DeltaName deltaName, BigDecimal instantDelta, BorderDelta borderDelta, Instant begin_delta_hist_per) {
+    public BigDecimal calcAvgDelta(DeltaName deltaName, BigDecimal instantDelta, Instant currTime, BorderDelta borderDelta,
+            Instant begin_delta_hist_per) {
         return deltaName == DeltaName.B_DELTA
                 ? bDeltaEveryCalc
                 : oDeltaEveryCalc;
     }
 
-    @Override
+//    @Override
     public void newDeltaEvent(DeltaChange deltaChange, Instant begin_delta_hist_per) {
         if (deltaChange.getBtmDelta() != null) {
             bDeltaCache.put(Instant.now(), (deltaChange.getBtmDelta().multiply(BigDecimal.valueOf(100))).longValue());
