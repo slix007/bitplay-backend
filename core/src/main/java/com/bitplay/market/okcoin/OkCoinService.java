@@ -91,6 +91,7 @@ public class OkCoinService extends MarketService {
 
     public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
+    private static final Logger debugLog = LoggerFactory.getLogger(OkCoinService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
     private static final Logger ordersLogger = LoggerFactory.getLogger("OKCOIN_ORDERS_LOG");
 
@@ -862,11 +863,11 @@ public class OkCoinService extends MarketService {
                             orderId,
                             status);
 
-                    debugLog.info("placeOrder1 " + msg);
+                    debugLog.debug("placeOrder1 " + msg);
 
                     synchronized (openOrdersLock) {
 
-                        debugLog.info("placeOrder2 " + msg);
+                        debugLog.debug("placeOrder2 " + msg);
 
                         tradeLogger.info(msg);
                         openOrders.replaceAll(exists -> {
@@ -877,7 +878,7 @@ public class OkCoinService extends MarketService {
                         });
 
                         if (openOrders.stream().noneMatch(o -> o.getOrderId().equals(fplayOrder.getOrderId()))) {
-                            debugLog.warn("placeOrder2 Order was missed " + msg);
+                            debugLog.debug("placeOrder2 Order was missed " + msg);
                             logger.warn("placeOrder2 Order was missed " + msg);
                             tradeLogger.warn("placeOrder2 Order was missed " + msg);
 
@@ -885,7 +886,7 @@ public class OkCoinService extends MarketService {
                         }
                     }
 
-                    debugLog.info("placeOrder3 " + msg);
+                    debugLog.debug("placeOrder3 " + msg);
                 }
 
                 arbitrageService.getDealPrices().setSecondOpenPrice(thePrice);
@@ -1497,7 +1498,7 @@ public class OkCoinService extends MarketService {
             }
         }
 
-        debugLog.info(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
+        debugLog.debug(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
                 position.getPositionLong().subtract(position.getPositionShort()),
                 liqInfo.getDqlCurr(),
                 oDQLOpenMin));

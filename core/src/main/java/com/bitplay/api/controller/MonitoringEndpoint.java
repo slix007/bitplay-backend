@@ -32,12 +32,12 @@ public class MonitoringEndpoint {
         return arbitrageService.getDeltaMon();
     }
 
-//    @RequestMapping(value = "/calc-delta/list", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-//    public MonDeltaListJson getDeltaListForCalc() {
-//        return new MonDeltaListJson(
-//                deltasCalcService.getLastBtmDeltasInCalc(),
-//                deltasCalcService.getLastOkDeltasInCalc()
-//        );
-//    }
+    @RequestMapping(value = "/calc-delta/list", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public MonDeltaListJson getDeltaListForCalc() {
+        return new MonDeltaListJson(
+                deltasCalcService.getCurrBtmDeltasInCalc(),
+                deltasCalcService.getCurrOkDeltasInCalc()
+        );
+    }
 
 }

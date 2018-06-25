@@ -729,9 +729,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                     && bestPrice.compareTo(limitOrder.getLimitPrice()) > 0)
                     ) {
 //            } else if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
-                debugLog.info("{} Try to move maker order {} {}, from {} to {}",
-                        getName(), limitOrder.getId(), limitOrder.getType(),
-                        limitOrder.getLimitPrice(), bestPrice);
+//                debugLog.info("{} Try to move maker order {} {}, from {} to {}",
+//                        getName(), limitOrder.getId(), limitOrder.getType(),
+//                        limitOrder.getLimitPrice(), bestPrice);
                 response = moveMakerOrder(fplayOrder, bestPrice);
             } else {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");

@@ -64,7 +64,6 @@ public class ArbitrageService {
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
-    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
     public static final String DELTA1 = "delta1";
     public static final String DELTA2 = "delta2";
@@ -590,7 +589,7 @@ public class ArbitrageService {
             // do nothing
 
         } else if (!isReadyForTheArbitrage) {
-            debugLog.info("isReadyForTheArbitrage=false");
+            // debugLog.info("isReadyForTheArbitrage=false");
         } else {
             if (Thread.holdsLock(calcLock)) {
                 logger.warn("calcLock is in progress");

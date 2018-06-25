@@ -11,6 +11,7 @@ import io.reactivex.schedulers.Schedulers;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -28,7 +29,6 @@ public class DeltasCalcService {
     //    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 //    private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
-//    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
     @Autowired
     private PersistenceService persistenceService;
@@ -156,5 +156,13 @@ public class DeltasCalcService {
 
     public BigDecimal getODeltaSma() {
         return avgDeltaInParts.getO_delta_sma().getSecond();
+    }
+
+    public Map<Instant, BigDecimal> getCurrBtmDeltasInCalc() {
+        return avgDeltaInParts.getB_delta_sma_map();
+    }
+
+    public Map<Instant, BigDecimal> getCurrOkDeltasInCalc() {
+        return avgDeltaInParts.getO_delta_sma_map();
     }
 }

@@ -1,5 +1,6 @@
 package com.bitplay.api.domain;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -13,6 +14,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class MonDeltaListJson {
 
-    private Map<Instant, Long> btmDeltas;
-    private Map<Instant, Long> okDeltas;
+    private Map<Instant, BigDecimal> btmDeltas;
+    private Map<Instant, BigDecimal> okDeltas;
 }

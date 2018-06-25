@@ -29,7 +29,6 @@ import java.util.stream.Stream;
  */
 public abstract class MarketServiceOpenOrders {
 
-    protected final static Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
     protected final static Logger logger = LoggerFactory.getLogger(MarketServiceOpenOrders.class);
     protected static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 

@@ -12,8 +12,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class ScheduledTask {
 
-    private final static Logger logger = LoggerFactory.getLogger("DEBUG_LOG");
-
     @Autowired
     PoloniexService poloniexService;
 

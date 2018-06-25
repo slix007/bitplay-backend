@@ -28,7 +28,6 @@ public class BordersRecalcService {
     //    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 //    private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
-//    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
     @Autowired
     private PersistenceService persistenceService;

@@ -9,7 +9,10 @@ import com.bitplay.persistance.domain.fluent.Dlt;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -28,6 +31,8 @@ import org.springframework.stereotype.Service;
 public class AvgDeltaInParts implements AvgDelta {
 
     private static final Logger logger = LoggerFactory.getLogger(AvgDeltaInParts.class);
+//    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_DELTA_AVG");
+    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
     private long num_sma_btm;     // сумма значений дельт в промежутке delta_hist_per
     private long den_sma_btm;     // количество дельт в промежутке delta_hist_per
@@ -38,6 +43,10 @@ public class AvgDeltaInParts implements AvgDelta {
     // 10 min cache
 //    private Cache<Instant, BigDecimal> b_delta_sma = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
 //    private Cache<Instant, BigDecimal> o_delta_sma = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
+
+    private Map<Instant, BigDecimal> b_delta_sma_map = new HashMap<>();
+    private Map<Instant, Dlt> b_delta_sma_map_addtime = new HashMap<>();
+    private Map<Instant, BigDecimal> o_delta_sma_map = new HashMap<>();
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -54,7 +63,7 @@ public class AvgDeltaInParts implements AvgDelta {
     private Dlt first_left_ok = null;
 
     @Override
-    public void resetDeltasCache(Integer delta_hist_per, boolean clearData) {
+    public synchronized void resetDeltasCache(Integer delta_hist_per, boolean clearData) {
         num_sma_btm = 0;
         den_sma_btm = 0;
         num_sma_ok = 0;
@@ -64,13 +73,19 @@ public class AvgDeltaInParts implements AvgDelta {
         pre_time_ok = currTime;
         // take current delta
 //        Long btm = deltaRepositoryService.getLastSavedDelta(DeltaName.B_DELTA).getValue();
+        b_delta_sma_map.clear();
+        b_delta_sma_map_addtime.clear();
         if (last_saved_btm != null) {
+            b_delta_sma_map.put(last_saved_btm.getTimestamp().toInstant(), last_saved_btm.getDelta());
+            b_delta_sma_map_addtime.put(currTime, last_saved_btm);
             num_sma_btm = last_saved_btm.getValue();
             den_sma_btm = 1;
             first_left_btm = last_saved_btm;
         }
 //        Long ok = deltaRepositoryService.getLastSavedDelta(DeltaName.B_DELTA).getValue();
+        o_delta_sma_map.clear();
         if (last_saved_ok != null) {
+            o_delta_sma_map.put(last_saved_ok.getTimestamp().toInstant(), last_saved_ok.getDelta());
             num_sma_ok = last_saved_ok.getValue();
             den_sma_ok = 1;
             first_left_ok = last_saved_ok;
@@ -87,19 +102,19 @@ public class AvgDeltaInParts implements AvgDelta {
         Instant currTime = Instant.now();
         if (!isReadyForCalc(currTime, begin_delta_hist_per, delta_hist_per)) {
             if (dlt.getName() == DeltaName.B_DELTA) {
-                num_sma_btm += dlt.getValue();
-                den_sma_btm++;
+                addBtmDlt(dlt);
                 if (first_left_btm == null) {
                     first_left_btm = dlt;
                 }
-//                pre_time_btm = currTime;
+                pre_time_btm = currTime;
             } else if (dlt.getName() == DeltaName.O_DELTA) {
+                o_delta_sma_map.put(dlt.getTimestamp().toInstant(), dlt.getDelta());
                 num_sma_ok += dlt.getValue();
                 den_sma_ok++;
                 if (first_left_ok == null) {
                     first_left_ok = dlt;
                 }
-//                pre_time_ok = currTime;
+                pre_time_ok = currTime;
             }
         }
         // keep summarizing only while sma_init.
@@ -117,56 +132,61 @@ public class AvgDeltaInParts implements AvgDelta {
             Instant begin_delta_hist_per) {
         Integer delta_hist_per = borderDelta.getDeltaCalcPast();
 
-        return deltaName == DeltaName.B_DELTA
+        BigDecimal result = deltaName == DeltaName.B_DELTA
                 ? doTheCalcBtm(currTime, delta_hist_per, begin_delta_hist_per)
                 : doTheCalcOk(currTime, delta_hist_per, begin_delta_hist_per);
+
+        validateBtm();
+        return result;
     }
 
     private BigDecimal doTheCalcBtm(Instant currTime, Integer delta_hist_per, Instant begin_delta_hist_per) {
         // comp_b_border_sma_event();
 
-        // 1. select to remove ple --> le  ----------->  pre_time_{===pre} --> currTime{=== re}
+        // 1. select to add pre ----> re
+        Date pre_btm = Date.from(pre_time_btm);
+        Date re = Date.from(currTime);
+
+        List<Dlt> btm_add = deltaRepositoryService.streamDeltas(DeltaName.B_DELTA, pre_btm, re).collect(Collectors.toList());
+        if (btm_add.size() > 0) {
+            if (first_left_btm == null && den_sma_btm == 0) {
+                first_left_btm = btm_add.get(0);
+            }
+            for (Dlt dlt: btm_add) {
+                addBtmDlt(dlt);
+            }
+            debugLog.info("Added {} at pre={}, re={}", btm_add.size(), pre_btm.toInstant().toString(), re.toInstant().toString());
+        }
+
+        // 2. select to remove --- ple ----> le  ----------->  pre_time_{===pre} --> currTime{=== re}
         Date ple_btm = Date.from(pre_time_btm.minusSeconds(delta_hist_per));
         Date le = Date.from(currTime.minusSeconds(delta_hist_per));
 
-        if (den_sma_btm != 0 && first_left_btm != null) { // subtract the last
+        // 2.1. subtract the last, but not if it's the only
+        if (den_sma_btm > 1 && first_left_btm != null) {
 //            Dlt before_ple_btm_sub = deltaRepositoryService.getIsBefore(DeltaName.B_DELTA, ple_btm);
             Dlt before_ple_btm_sub = first_left_btm.getTimestamp().before(ple_btm) ? first_left_btm : null;
             if (before_ple_btm_sub != null) {
-                num_sma_btm -= before_ple_btm_sub.getValue();
-                den_sma_btm--;
+                removeBtmDlt(before_ple_btm_sub);
                 first_left_btm = null;
             }
         }
-        if (den_sma_btm != 0) { // subtract all from latest period
+        // 2.2. subtract all from latest period, but not if it's the only
+        if (den_sma_btm > 1) {
             List<Dlt> btm_sub = deltaRepositoryService.streamDeltas(DeltaName.B_DELTA, ple_btm, le).collect(Collectors.toList());
             int size = btm_sub.size();
             if (size > 0) {
                 int btmLastInd = size - 2; // without last
                 if (btmLastInd > 0) {
-                    for (int i = 0; i < btmLastInd; i++) {
-                        num_sma_btm -= btm_sub.get(i).getValue();
-                        den_sma_btm--;
+                    for (int i = 0; i < btmLastInd && den_sma_btm > 1; i++) {
+                        removeBtmDlt(btm_sub.get(i));
                     }
                 }
                 first_left_btm = btm_sub.get(size - 1); // the last is not subtracted (it's the first in calc array now)
             }
         }
 
-        // 2. select to add pre ----> re
-        Date pre_btm = Date.from(pre_time_btm);
-        Date re = Date.from(currTime);
-
-        List<Dlt> btm_add = deltaRepositoryService.streamDeltas(DeltaName.B_DELTA, pre_btm, re).collect(Collectors.toList());
-        if (first_left_btm == null && den_sma_btm == 0 && btm_add.size() > 0) {
-            first_left_btm = btm_add.get(0);
-        }
-        for (Dlt dlt: btm_add) {
-            num_sma_btm += dlt.getValue();
-            den_sma_btm++;
-        }
-
-        pre_time_btm = currTime;
+        pre_time_btm = currTime; // new right edge is registered only on adding deltas(1 or more)
 
         if (den_sma_btm == 0) {
             return null;
@@ -177,52 +197,69 @@ public class AvgDeltaInParts implements AvgDelta {
         return b_delta_sma_value;
     }
 
+    private void validateBtm() {
+        BigDecimal currSmaBtmDelta = getCurrSmaBtmDelta();
+        BigDecimal sum = BigDecimal.ZERO;
+        int count = 0;
+        for (BigDecimal value: b_delta_sma_map.values()) {
+            count++;
+            sum = sum.add(value);
+        }
+        BigDecimal validVal = sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
+
+        if (validVal.compareTo(currSmaBtmDelta) != 0) {
+            debugLog.error("ERROR validation: valid={}, but found={}", validVal, currSmaBtmDelta);
+        }
+    }
+
     private BigDecimal doTheCalcOk(Instant currTime, Integer delta_hist_per, Instant begin_delta_hist_per) {
         // comp_b_border_sma_event();
 
-        // 1. select to remove ple --> le  ----------->  pre_time_{===pre} --> now{=== re}
+        // 1. select to add pre ----> re
+        Date pre_ok = Date.from(pre_time_ok);
+        Date re = Date.from(currTime);
+
+        List<Dlt> ok_add = deltaRepositoryService.streamDeltas(DeltaName.O_DELTA, pre_ok, re).collect(Collectors.toList());
+        if (ok_add.size() > 0) {
+            if (first_left_ok == null && den_sma_ok == 0) {
+                first_left_ok = ok_add.get(0);
+            }
+            for (Dlt dlt: ok_add) {
+                addOkDlt(dlt);
+            }
+            debugLog.info("Added {} at pre={}, re={}", ok_add.size(), pre_ok.toInstant().toString(), re.toInstant().toString());
+        }
+
+        // 2. select to remove ple --> le  ----------->  pre_time_{===pre} --> now{=== re}
         Date ple_ok = Date.from(pre_time_ok.minusSeconds(delta_hist_per));
         Date le = Date.from(currTime.minusSeconds(delta_hist_per));
 
+        // 2.1. subtract the last, but not if it's the only
         if (den_sma_ok != 0 && first_left_ok != null) {
 //        Dlt before_ple_ok_sub = deltaRepositoryService.getIsBefore(DeltaName.O_DELTA, ple_ok);
             Dlt before_ple_ok_sub = first_left_ok.getTimestamp().before(ple_ok) ? first_left_ok : null;
             if (before_ple_ok_sub != null) {
-                num_sma_ok -= before_ple_ok_sub.getValue();
-                den_sma_ok--;
+                removeOkDlt(before_ple_ok_sub);
                 first_left_ok = null;
             }
         }
 
-        if (den_sma_ok != 0) {
+        // 2.2. subtract all from latest period, but not if it's the only
+        if (den_sma_ok > 1) {
             List<Dlt> ok_sub = deltaRepositoryService.streamDeltas(DeltaName.O_DELTA, ple_ok, le).collect(Collectors.toList());
             int size = ok_sub.size();
             if (size > 0) {
                 int okLastInd = size - 2; // without last
                 if (okLastInd > 0) {
-                    for (int i = 0; i < okLastInd; i++) {
-                        num_sma_ok -= ok_sub.get(i).getValue();
-                        den_sma_ok--;
+                    for (int i = 0; i < okLastInd && den_sma_btm > 1; i++) {
+                        removeOkDlt(ok_sub.get(i));
                     }
                 }
                 first_left_ok = ok_sub.get(size - 1);
             }
         }
 
-        // 2. select to add pre ----> re
-        Date pre_ok = Date.from(pre_time_ok);
-        Date re = Date.from(currTime);
-
-        List<Dlt> ok_add = deltaRepositoryService.streamDeltas(DeltaName.O_DELTA, pre_ok, re).collect(Collectors.toList());
-        if (first_left_ok == null && den_sma_ok == 0 && ok_add.size() > 0) {
-            first_left_ok = ok_add.get(0);
-        }
-        for (Dlt dlt: ok_add) {
-            num_sma_ok += dlt.getValue();
-            den_sma_ok++;
-        }
-
-        pre_time_ok = currTime;
+        pre_time_ok = currTime; // new right edge is registered only on adding deltas(1 or more)
 
         if (den_sma_ok == 0) {
             return null;
@@ -231,6 +268,51 @@ public class AvgDeltaInParts implements AvgDelta {
         BigDecimal o_delta_sma_value = BigDecimal.valueOf(num_sma_ok / den_sma_ok, 2);
         o_delta_sma = Pair.of(currTime, o_delta_sma_value);
         return o_delta_sma_value;
+    }
+
+    private synchronized void addBtmDlt(Dlt dlt) {
+        if (b_delta_sma_map.containsKey(dlt.getTimestamp().toInstant())) {
+            logger.warn("Double add of " + dlt.toString());
+            debugLog.warn("Double add of " + dlt.toString());
+        }
+        b_delta_sma_map.put(dlt.getTimestamp().toInstant(), dlt.getDelta());
+        b_delta_sma_map_addtime.put(Instant.now(), dlt);
+        num_sma_btm += dlt.getValue();
+        den_sma_btm++;
+        debugLog.info("Added {}", dlt.toString());
+    }
+
+    private synchronized void removeBtmDlt(Dlt before_ple_btm_sub) {
+
+        Instant keyToRemove = null;
+        for (Entry<Instant, Dlt> instantDltEntry: b_delta_sma_map_addtime.entrySet()) {
+            if (instantDltEntry.getValue().getTimestamp().equals(before_ple_btm_sub.getTimestamp())) {
+                keyToRemove = instantDltEntry.getKey();
+                break;
+            }
+        }
+        if (keyToRemove != null) {
+            b_delta_sma_map_addtime.remove(keyToRemove);
+        }
+
+        b_delta_sma_map.remove(before_ple_btm_sub.getTimestamp().toInstant());
+        num_sma_btm -= before_ple_btm_sub.getValue();
+        den_sma_btm--;
+        debugLog.info("Removed {}", before_ple_btm_sub.toString());
+    }
+
+    private synchronized void addOkDlt(Dlt dlt) {
+        o_delta_sma_map.put(dlt.getTimestamp().toInstant(), dlt.getDelta());
+        num_sma_ok += dlt.getValue();
+        den_sma_ok++;
+        debugLog.info("Added {}", dlt.toString());
+    }
+
+    private synchronized void removeOkDlt(Dlt before_ple_ok_sub) {
+        o_delta_sma_map.remove(before_ple_ok_sub.getTimestamp().toInstant());
+        num_sma_ok -= before_ple_ok_sub.getValue();
+        den_sma_ok--;
+        debugLog.info("Removed {}", before_ple_ok_sub.toString());
     }
 
     public BigDecimal getCurrSmaBtmDelta() {

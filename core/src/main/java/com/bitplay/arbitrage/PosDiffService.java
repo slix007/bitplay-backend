@@ -39,7 +39,6 @@ public class PosDiffService {
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
-    private final static Logger debugLogger = LoggerFactory.getLogger("DEBUG_LOG");
     private static final long MIN_CORR_TIME_AFTER_READY_MS = 25000; // 25 sec
 
     private final BigDecimal DIFF_FACTOR = BigDecimal.valueOf(100);

@@ -1397,11 +1397,6 @@ public class BitmexService extends MarketService {
             }
         }
 
-        debugLog.info(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
-                position.getPositionLong().subtract(position.getPositionShort()),
-                liqInfo.getDqlCurr(),
-                bDQLOpenMin));
-
         return isOk;
     }
 

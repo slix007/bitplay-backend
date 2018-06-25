@@ -13,7 +13,6 @@ import io.reactivex.subjects.Subject;
 public class SignalEventBus {
 
     private static final Logger logger = LoggerFactory.getLogger(SignalEventBus.class);
-//    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
     private final Subject<SignalEvent> _bus = PublishSubject.create();
 
