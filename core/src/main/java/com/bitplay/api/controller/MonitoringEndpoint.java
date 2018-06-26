@@ -2,10 +2,11 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.MonDeltaListJson;
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.AvgDeltaInParts;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.dto.DeltaMon;
-import com.bitplay.persistance.DeltaRepositoryService;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,4 +41,13 @@ public class MonitoringEndpoint {
         );
     }
 
+    @RequestMapping(value = "/calc-delta/list/bitmex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<Instant, BigDecimal> getBtmDeltaListForCalc() {
+        return deltasCalcService.getCurrBtmDeltasInCalc();
+    }
+
+    @RequestMapping(value = "/calc-delta/list/okex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<Instant, BigDecimal> getOkDeltaListForCalc() {
+        return deltasCalcService.getCurrOkDeltasInCalc();
+    }
 }

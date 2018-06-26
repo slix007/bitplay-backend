@@ -78,6 +78,12 @@ public class DeltasCalcService {
         long endMs = Instant.now().toEpochMilli();
         arbitrageService.getDeltaMon().setDeltaMs(endMs - startMs);
 
+        arbitrageService.getDeltaMon().setBorderMs(endMs - startMs);
+
+        arbitrageService.getDeltaMon().setItmes(
+                (long) avgDeltaInParts.getB_delta_sma_map().size(),
+                (long) avgDeltaInParts.getO_delta_sma_map().size());
+
 //        logger.info("CalcEnded. " + arbitrageService.getDeltaMon());
     }
 

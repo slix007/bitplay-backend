@@ -8,11 +8,14 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.fluent.Dlt;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -54,6 +57,8 @@ public class AvgDeltaInParts implements AvgDelta {
     private DeltaRepositoryService deltaRepositoryService;
     @Autowired
     private PersistenceService persistenceService;
+    //    @Autowired
+//    private AvgDeltaAtOnce avgDeltaAtOnce;
     private static BigDecimal NONE_VALUE = BigDecimal.valueOf(-9999);
     private Pair<Instant, BigDecimal> b_delta_sma = Pair.of(Instant.now(), NONE_VALUE);
     private Pair<Instant, BigDecimal> o_delta_sma = Pair.of(Instant.now(), NONE_VALUE);
@@ -133,14 +138,75 @@ public class AvgDeltaInParts implements AvgDelta {
         Integer delta_hist_per = borderDelta.getDeltaCalcPast();
 
         BigDecimal result = deltaName == DeltaName.B_DELTA
-                ? doTheCalcBtm(currTime, delta_hist_per, begin_delta_hist_per)
-                : doTheCalcOk(currTime, delta_hist_per, begin_delta_hist_per);
+                ? doTheCalcBtm(currTime, delta_hist_per)
+                : doTheCalcOk(currTime, delta_hist_per);
 
-        validateBtm();
+        boolean debugAlgorithm = true;
+        if (debugAlgorithm) {
+            validateBtm();
+            validateOk();
+
+//            validateBtm2(instantDelta, currTime, borderDelta, begin_delta_hist_per);
+
+//            validateOk2(instantDelta, currTime, borderDelta, begin_delta_hist_per);
+        }
+
         return result;
     }
 
-    private BigDecimal doTheCalcBtm(Instant currTime, Integer delta_hist_per, Instant begin_delta_hist_per) {
+    private void validateBtm2(BigDecimal instantDelta, Instant currTime, BorderDelta borderDelta, Instant begin_delta_hist_per) {
+        BigDecimal currSmaBtmDelta = getCurrSmaBtmDelta();
+        final Date fromDate = Date.from(currTime.minus(borderDelta.getDeltaCalcPast(), ChronoUnit.SECONDS));
+
+        List<Dlt> collect = deltaRepositoryService.streamDeltas(DeltaName.B_DELTA, fromDate, new Date())
+                .collect(Collectors.toList());
+        final OptionalDouble average = collect.stream()
+                .mapToLong(Dlt::getValue)
+//                .mapToDouble(BigDecimal::doubleValue)
+//                .peek(val -> logger.info("Delta1Part: " + val))
+                .average();
+
+        BigDecimal validValBtm = BigDecimal.valueOf(
+                average.isPresent() ? average.getAsDouble() : 0)
+                .divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+
+        if (validValBtm.compareTo(currSmaBtmDelta) != 0) {
+            debugLog.error("ERROR btm validation2: valid={}, but found={}. "
+                            + "\n{}\n{}",
+                    validValBtm,
+                    currSmaBtmDelta,
+                    Arrays.toString(collect.toArray()),
+                    Arrays.toString(b_delta_sma_map.values().toArray()));
+        }
+    }
+
+    private void validateOk2(BigDecimal instantDelta, Instant currTime, BorderDelta borderDelta, Instant begin_delta_hist_per) {
+        BigDecimal currSmaOkDelta = getCurrSmaOkDelta();
+//        BigDecimal validValOk = avgDeltaAtOnce.calcAvgDelta(DeltaName.O_DELTA, instantDelta, currTime, borderDelta, begin_delta_hist_per);
+        final Date fromDate = Date.from(currTime.minus(borderDelta.getDeltaCalcPast(), ChronoUnit.SECONDS));
+
+        List<Dlt> collect = deltaRepositoryService.streamDeltas(DeltaName.O_DELTA, fromDate, new Date())
+                .collect(Collectors.toList());
+        final OptionalDouble average = collect.stream()
+                .mapToLong(Dlt::getValue)
+//                .mapToDouble(BigDecimal::doubleValue)
+//                .peek(val -> logger.info("Delta1Part: " + val))
+                .average();
+
+        BigDecimal validValOk = BigDecimal.valueOf(
+                average.isPresent() ? average.getAsDouble() : 0);
+//
+//        if (validValOk.compareTo(currSmaOkDelta) != 0) {
+//            debugLog.error("ERROR ok validation2: valid={}, but found={}. "
+//                            + "Size={}, but found {}",
+//                    validValOk,
+//                    currSmaOkDelta,
+//                    collect.size(),
+//                    o_delta_sma_map.size());
+//        }
+    }
+
+    private BigDecimal doTheCalcBtm(Instant currTime, Integer delta_hist_per) {
         // comp_b_border_sma_event();
 
         // 1. select to add pre ----> re
@@ -197,22 +263,7 @@ public class AvgDeltaInParts implements AvgDelta {
         return b_delta_sma_value;
     }
 
-    private void validateBtm() {
-        BigDecimal currSmaBtmDelta = getCurrSmaBtmDelta();
-        BigDecimal sum = BigDecimal.ZERO;
-        int count = 0;
-        for (BigDecimal value: b_delta_sma_map.values()) {
-            count++;
-            sum = sum.add(value);
-        }
-        BigDecimal validVal = sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
-
-        if (validVal.compareTo(currSmaBtmDelta) != 0) {
-            debugLog.error("ERROR validation: valid={}, but found={}", validVal, currSmaBtmDelta);
-        }
-    }
-
-    private BigDecimal doTheCalcOk(Instant currTime, Integer delta_hist_per, Instant begin_delta_hist_per) {
+    private BigDecimal doTheCalcOk(Instant currTime, Integer delta_hist_per) {
         // comp_b_border_sma_event();
 
         // 1. select to add pre ----> re
@@ -268,6 +319,36 @@ public class AvgDeltaInParts implements AvgDelta {
         BigDecimal o_delta_sma_value = BigDecimal.valueOf(num_sma_ok / den_sma_ok, 2);
         o_delta_sma = Pair.of(currTime, o_delta_sma_value);
         return o_delta_sma_value;
+    }
+
+    private void validateBtm() {
+        BigDecimal currSmaBtmDelta = getCurrSmaBtmDelta();
+        BigDecimal sum = BigDecimal.ZERO;
+        int count = 0;
+        for (BigDecimal value: b_delta_sma_map.values()) {
+            count++;
+            sum = sum.add(value);
+        }
+        BigDecimal validVal = sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
+
+        if (validVal.compareTo(currSmaBtmDelta) != 0) {
+            debugLog.error("ERROR btm validation: valid={}, but found={}", validVal, currSmaBtmDelta);
+        }
+    }
+
+    private void validateOk() {
+        BigDecimal currSmaOkDelta = getCurrSmaOkDelta();
+        BigDecimal sum = BigDecimal.ZERO;
+        int count = 0;
+        for (BigDecimal value: o_delta_sma_map.values()) {
+            count++;
+            sum = sum.add(value);
+        }
+        BigDecimal validVal = sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
+
+        if (validVal.compareTo(currSmaOkDelta) != 0) {
+            debugLog.error("ERROR ok validation: valid={}, but found={}", validVal, currSmaOkDelta);
+        }
     }
 
     private synchronized void addBtmDlt(Dlt dlt) {
