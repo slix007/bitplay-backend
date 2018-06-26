@@ -40,23 +40,22 @@ export default Vue.component('line-chart', {
                     let theData = response.data;
                     console.log(theData);
 
-            this.chartData.labels = theData.map(item = > item.timestamp;
-        )
-            let bDeltaArray = theData.map(item = > item.bDelta;
-        )
-            let oDeltaArray = theData.map(item = > item.oDelta;
-        )
+            this.chartData.labels = theData.map(item => item.timestamp);
+            let bDeltaArray = theData.map(item => item.bDelta);
+            let oDeltaArray = theData.map(item => item.oDelta);
+
             this.chartData.datasets.push({
-                                                     label: 'b_delta',
-                                                     backgroundColor: '#00FF00',
-                                                     data: bDeltaArray
-                                                 });
-                    this.chartData.datasets.push({
-                                                     label: 'o_delta',
-                                                     backgroundColor: '#0000FF',
-                                                     data: oDeltaArray
-                                                 });
-                    // this.chartData.datasets.push({
+                label: 'b_delta',
+                backgroundColor: '#00FF00',
+                data: bDeltaArray
+            });
+            this.chartData.datasets.push({
+                label: 'o_delta',
+                backgroundColor: '#0000FF',
+                data: oDeltaArray
+            });
+
+            // this.chartData.datasets.push({
                     //                                  label: 'b_ask',
                     //                                  backgroundColor: '#00ffb6',
                     //                                  data: theData.map(item => item.bAsk),
