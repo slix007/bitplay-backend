@@ -9,6 +9,8 @@
 <div id="app">
     {{ message }}
     <!--<single-file-component></single-file-component>-->
+    <line-chart-bitmex></line-chart-bitmex>
+    <line-chart-okex></line-chart-okex>
     <line-chart></line-chart>
     <!--<simple-fetch></simple-fetch>-->
 </div>
@@ -20,9 +22,11 @@
 <script src="scripts/vue-chartjs.full.min.js"></script>
 <script src="scripts/axios.min.js"></script>
 
-<script type="module" src="scripts/app/SimpleFetch.js"></script>
+<!--<script type="module" src="scripts/app/SimpleFetch.js"></script>-->
 <script type="module" src="scripts/app/LineChart.js"></script>
-<script type="module" src="scripts/app/SingleFileComponent.js"></script>
+<script type="module" src="scripts/app/BitmexChart.js"></script>
+<script type="module" src="scripts/app/OkexChart.js"></script>
+<!--<script type="module" src="scripts/app/SingleFileComponent.js"></script>-->
 <script type="module" src="scripts/main.js"></script>
 
 <!--<script type="text/babel" src="scripts/main.js"></script>-->

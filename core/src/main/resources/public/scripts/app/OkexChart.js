@@ -1,4 +1,4 @@
-export default Vue.component('line-chart', {
+export default Vue.component('line-chart-okex', {
     extends: VueChartJs.Line,
     data() {
         return {
@@ -33,7 +33,7 @@ export default Vue.component('line-chart', {
             let params = (new URL(document.location)).searchParams;
             let hoursCount = params.get("hours") !== null ? params.get("hours") : 2;
 
-            axios.get('http://' + hostname + ':4031/deltas?lastHours=' + hoursCount)
+            axios.get('http://' + hostname + ':4031/deltas/O_DELTA?lastHours=' + hoursCount)
                 .then(response => {
                     this.loading = false;
                     // let theData = response.data.slice(Math.max(response.data.length - 120, 1));
@@ -41,14 +41,8 @@ export default Vue.component('line-chart', {
                     console.log(theData);
 
             this.chartData.labels = theData.map(item => item.timestamp);
-            let bDeltaArray = theData.map(item => item.bDelta);
-            let oDeltaArray = theData.map(item => item.oDelta);
+            let oDeltaArray = theData.map(item => item.delta);
 
-            this.chartData.datasets.push({
-                label: 'b_delta',
-                backgroundColor: '#00FF00',
-                data: bDeltaArray
-            });
             this.chartData.datasets.push({
                 label: 'o_delta',
                 backgroundColor: '#0000FF',
