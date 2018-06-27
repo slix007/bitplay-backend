@@ -59,7 +59,7 @@ public class AvgDeltaInParts implements AvgDelta {
     private PersistenceService persistenceService;
     //    @Autowired
 //    private AvgDeltaAtOnce avgDeltaAtOnce;
-    private static BigDecimal NONE_VALUE = BigDecimal.valueOf(-9999);
+    private static BigDecimal NONE_VALUE = BigDecimal.valueOf(99999);
     private Pair<Instant, BigDecimal> b_delta_sma = Pair.of(Instant.now(), NONE_VALUE);
     private Pair<Instant, BigDecimal> o_delta_sma = Pair.of(Instant.now(), NONE_VALUE);
     private Dlt last_saved_btm = null; // последняя сохраненная дельта, для использования при reset

@@ -147,12 +147,18 @@ public class DeltasCalcService {
         this.borderDelta = borderDelta;
     }
 
-    public BigDecimal getBDeltaEveryCalc() {
-        return avgDeltaInParts.getCurrSmaBtmDelta();
+    public String getBDeltaEveryCalc() {
+        return String.format("%s / %s / 100 = %s",
+                avgDeltaInParts.getNum_sma_btm(),
+                avgDeltaInParts.getDen_sma_btm(),
+                avgDeltaInParts.getCurrSmaBtmDelta());
     }
 
-    public BigDecimal getODeltaEveryCalc() {
-        return avgDeltaInParts.getCurrSmaOkDelta();
+    public String getODeltaEveryCalc() {
+        return String.format("%s / %s / 100 = %s",
+                avgDeltaInParts.getNum_sma_ok(),
+                avgDeltaInParts.getDen_sma_ok(),
+                avgDeltaInParts.getCurrSmaOkDelta());
     }
 
 

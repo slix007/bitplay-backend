@@ -287,8 +287,8 @@ public class CommonUIService {
                 arbitrageService.getParams().getSlip().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 deltasCalcService.getBDeltaSma().toPlainString(),
                 deltasCalcService.getODeltaSma().toPlainString(),
-                deltasCalcService.getBDeltaEveryCalc().toPlainString(),
-                deltasCalcService.getODeltaEveryCalc().toPlainString(),
+                deltasCalcService.getBDeltaEveryCalc(),
+                deltasCalcService.getODeltaEveryCalc(),
                 deltasCalcService.getDeltaHistPerStartedSec(),
                 deltaSmaUpdateIn
         );
