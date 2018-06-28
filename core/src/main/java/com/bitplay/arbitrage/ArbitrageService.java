@@ -559,17 +559,17 @@ public class ArbitrageService {
                 delta1 = delta1Update;
                 delta2 = delta2Update;
 
-                if (delta1.compareTo(deltaParams.getbDeltaMin()) < 0) {
-                    deltaParams.setbDeltaMin(delta1);
+                if (delta1.compareTo(deltaParams.getBDeltaMin()) < 0) {
+                    deltaParams.setBDeltaMin(delta1);
                 }
-                if (delta1.compareTo(deltaParams.getbDeltaMax()) > 0) {
-                    deltaParams.setbDeltaMax(delta1);
+                if (delta1.compareTo(deltaParams.getBDeltaMax()) > 0) {
+                    deltaParams.setBDeltaMax(delta1);
                 }
-                if (delta2.compareTo(deltaParams.getoDeltaMin()) < 0) {
-                    deltaParams.setoDeltaMin(delta2);
+                if (delta2.compareTo(deltaParams.getODeltaMin()) < 0) {
+                    deltaParams.setODeltaMin(delta2);
                 }
-                if (delta2.compareTo(deltaParams.getoDeltaMax()) > 0) {
-                    deltaParams.setoDeltaMax(delta2);
+                if (delta2.compareTo(deltaParams.getODeltaMax()) > 0) {
+                    deltaParams.setODeltaMax(delta2);
                 }
 
                 if (!Thread.interrupted()) {
@@ -1288,10 +1288,10 @@ public class ArbitrageService {
     }
 
     public void resetDeltaParams() {
-        deltaParams.setbDeltaMin(delta1);
-        deltaParams.setbDeltaMax(delta1);
-        deltaParams.setoDeltaMin(delta2);
-        deltaParams.setoDeltaMax(delta2);
+        deltaParams.setBDeltaMin(delta1);
+        deltaParams.setBDeltaMax(delta1);
+        deltaParams.setODeltaMin(delta2);
+        deltaParams.setODeltaMax(delta2);
     }
 
     public GuiParams getParams() {

@@ -12,7 +12,6 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
-import com.bitplay.arbitrage.BordersRecalcService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.MarketState;
@@ -441,10 +440,12 @@ public class CommonUIService {
     public DeltasMinMaxJson getDeltaParamsJson() {
         final DeltaParams deltaParams = arbitrageService.getDeltaParams();
         return new DeltasMinMaxJson(
-                deltaParams.getbDeltaMin().toPlainString(),
-                deltaParams.getoDeltaMin().toPlainString(),
-                deltaParams.getbDeltaMax().toPlainString(),
-                deltaParams.getoDeltaMax().toPlainString());
+                deltaParams.getBDeltaMin().toPlainString(),
+                deltaParams.getODeltaMin().toPlainString(),
+                deltaParams.getBDeltaMax().toPlainString(),
+                deltaParams.getODeltaMax().toPlainString(),
+                deltaParams.getBLastRise(),
+                deltaParams.getOLastRise());
     }
 
     public DeltasMinMaxJson resetDeltaParamsJson() {
