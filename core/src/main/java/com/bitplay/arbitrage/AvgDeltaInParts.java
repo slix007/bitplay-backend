@@ -65,8 +65,7 @@ public class AvgDeltaInParts implements AvgDelta {
     private Dlt last_saved_btm = null; // последняя сохраненная дельта, для использования при reset
     private Dlt last_saved_ok = null;
 
-    @Override
-    public synchronized void resetDeltasCache(Integer delta_hist_per, boolean clearData) {
+    public synchronized void resetDeltasCache() {
         num_sma_btm = 0;
         den_sma_btm = 0;
         num_sma_ok = 0;

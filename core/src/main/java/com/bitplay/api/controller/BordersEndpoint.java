@@ -184,9 +184,8 @@ public class BordersEndpoint {
                     respDetails += update.borderDelta.getDeltaCalcType().toString();
                 }
                 if (update.borderDelta.getDeltaCalcPast() != null) {
-                    Integer histPerPrev = bP.getBorderDelta().getDeltaCalcPast();
-                    Integer histPerUpdate = update.borderDelta.getDeltaCalcPast();
-                    boolean shouldClearData = histPerPrev > histPerUpdate;
+                    final Integer histPerUpdate = update.borderDelta.getDeltaCalcPast();
+                    final boolean shouldClearData = deltasCalcService.isDataResetNeeded(histPerUpdate);
                     bP.getBorderDelta().setDeltaCalcPast(histPerUpdate);
                     deltasCalcService.resetDeltasCache(bP.getBorderDelta(), shouldClearData);
 

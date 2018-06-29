@@ -14,10 +14,6 @@ public interface AvgDelta {
     default void newDeltaEvent(Dlt dltJustAddedToDb, Instant begin_delta_hist_per) {
     }
 
-    default void resetDeltasCache(Integer delta_hist_per, boolean clearData) {
-
-    }
-
     default boolean isReadyForCalc(Instant currTime, Instant begin_delta_hist_per, Integer delta_hist_per) {
         return currTime.minusSeconds(delta_hist_per).isAfter(begin_delta_hist_per);
     }

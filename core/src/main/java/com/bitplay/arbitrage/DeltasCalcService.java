@@ -94,12 +94,23 @@ public class DeltasCalcService {
 
         if (clearData) {
             begin_delta_hist_per = Instant.now();
-            avgDeltaInParts.resetDeltasCache(delta_hist_per, clearData);
+            avgDeltaInParts.resetDeltasCache();
+        } else {
+
         }
 
         if (!started) {
             started = true;
         }
+    }
+
+    public boolean isDataResetNeeded(Integer histPerUpdate) {
+        Instant now = Instant.now();
+        long pastSeconds = Duration.between(begin_delta_hist_per, now).getSeconds();
+
+        boolean shouldClearData = pastSeconds >= histPerUpdate;
+
+        return shouldClearData;
     }
 
     public String getDeltaHistPerStartedSec() {
