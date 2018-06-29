@@ -79,6 +79,11 @@ public class CommonEndpoint {
         return commonUIService.getWarningLog(date);
     }
 
+    @RequestMapping(value = "/market/debug-log", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public TradeLogJson getDebugLog(@RequestParam(value = "date", required = false) String date) {
+        return commonUIService.getDebugLog(date);
+    }
+
     @RequestMapping(value = "/market/deltas", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltasJson deltas() {
         return commonUIService.getDeltas();

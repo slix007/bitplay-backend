@@ -50,4 +50,14 @@ public class MonitoringEndpoint {
     public Map<Instant, BigDecimal> getOkDeltaListForCalc() {
         return deltasCalcService.getCurrOkDeltasInCalc();
     }
+
+    @RequestMapping(value = "/calc-delta/list/bitmex-all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<Instant, BigDecimal> getBtmDeltaList() {
+        return deltasCalcService.getCurrBtmDeltas();
+    }
+
+    @RequestMapping(value = "/calc-delta/list/okex-all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<Instant, BigDecimal> getOkDeltaList() {
+        return deltasCalcService.getCurrOkDeltas();
+    }
 }

@@ -97,6 +97,17 @@ public class CommonUIService {
         return getTradeLogJson(logName);
     }
 
+    public TradeLogJson getDebugLog(String date) {
+        String logName;
+        if (date == null || date.trim().length() == 0) {
+            logName = "./logs/debug.log";
+        } else {
+            logName = String.format("./logs/debug.%s.log", date);
+        }
+        return getTradeLogJson(logName);
+    }
+
+
     private TradeLogJson getTradeLogJson(String fileName) {
         TradeLogJson tradeLogJson = null;
         try {

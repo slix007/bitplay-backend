@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -171,10 +172,31 @@ public class DeltasCalcService {
     }
 
     public Map<Instant, BigDecimal> getCurrBtmDeltasInCalc() {
-        return avgDeltaInParts.getB_delta_sma_map();
+        return new TreeMap<>(avgDeltaInParts.getB_delta_sma_map());
     }
 
     public Map<Instant, BigDecimal> getCurrOkDeltasInCalc() {
-        return avgDeltaInParts.getO_delta_sma_map();
+        return new TreeMap<>(avgDeltaInParts.getO_delta_sma_map());
     }
+
+    public Map<Instant, BigDecimal> getCurrBtmDeltas() {
+
+        TreeMap<Instant, BigDecimal> map = new TreeMap<>();
+        for (Dlt dlt: avgDeltaInParts.getB_delta()) {
+            map.put(dlt.getTimestamp().toInstant(), dlt.getDelta());
+        }
+
+        return map;
+    }
+
+    public Map<Instant, BigDecimal> getCurrOkDeltas() {
+
+        TreeMap<Instant, BigDecimal> map = new TreeMap<>();
+        for (Dlt dlt: avgDeltaInParts.getO_delta()) {
+            map.put(dlt.getTimestamp().toInstant(), dlt.getDelta());
+        }
+
+        return map;
+    }
+
 }
