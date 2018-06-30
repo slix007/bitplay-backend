@@ -62,9 +62,12 @@ public class DeltasCalcService {
         final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
 
         deltaChangeSubscriber = deltaRepositoryService.getDltSaveObservable()
-                .subscribeOn(Schedulers.computation())
                 .observeOn(Schedulers.from(executor))
-                .subscribe(this::dltChangeListener);
+                .subscribeOn(Schedulers.from(executor))
+                .doOnError(e -> logger.error("Error in observer on delta change", e))
+                .retry()
+                .subscribe(this::dltChangeListener,
+                        e -> logger.error("Error in subscriber on delta change", e));
     }
 
     private void dltChangeListener(Dlt dlt) { //TODO move into borderRecalcService

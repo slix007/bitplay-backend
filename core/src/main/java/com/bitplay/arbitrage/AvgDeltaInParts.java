@@ -292,7 +292,8 @@ public class AvgDeltaInParts implements AvgDelta {
             count++;
             sum = sum.add(value);
         }
-        BigDecimal validVal = sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
+        BigDecimal validVal = count == 0 ? BigDecimal.ZERO
+                : sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
 
         if (validVal.compareTo(currSmaBtmDelta) != 0) {
             debugLog.error("ERROR btm validation: valid={}, but found={}", validVal, currSmaBtmDelta);
@@ -308,7 +309,8 @@ public class AvgDeltaInParts implements AvgDelta {
             count++;
             sum = sum.add(value);
         }
-        BigDecimal validVal = sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
+        BigDecimal validVal = count == 0 ? BigDecimal.ZERO
+                : sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
 
         if (validVal.compareTo(currSmaOkDelta) != 0) {
             debugLog.error("ERROR ok validation: valid={}, but found={}", validVal, currSmaOkDelta);
