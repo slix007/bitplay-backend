@@ -177,8 +177,8 @@ public class AvgDeltaInParts implements AvgDelta {
     }
 
     private BigDecimal doTheCalcBtm(Instant currTime, Integer delta_hist_per) {
-        reBtm = b_delta.size() - 1;
         // comp_b_border_sma_event();
+        reBtm = b_delta.size() - 1;
 
         // 1. select to add pre ----> re
         if (b_delta.size() > 0 && preBtm < reBtm) {
@@ -226,6 +226,7 @@ public class AvgDeltaInParts implements AvgDelta {
 
     private BigDecimal doTheCalcOk(Instant currTime, Integer delta_hist_per) {
         // comp_b_border_sma_event();
+        reOk = o_delta.size() - 1;
 
         // 1. select to add pre ----> re
         if (o_delta.size() > 0 && preOk < reOk) {
