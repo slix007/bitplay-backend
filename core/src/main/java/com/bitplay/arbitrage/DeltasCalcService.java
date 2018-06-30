@@ -84,19 +84,14 @@ public class DeltasCalcService {
         arbitrageService.getDeltaMon().setItmes(
                 (long) avgDeltaInParts.getB_delta_sma_map().size(),
                 (long) avgDeltaInParts.getO_delta_sma_map().size());
-
-//        logger.info("CalcEnded. " + arbitrageService.getDeltaMon());
     }
 
     public void resetDeltasCache(BorderDelta borderDelta, boolean clearData) {
         this.borderDelta = borderDelta; //sets new settings of 'delta_hist_per'
-        Integer delta_hist_per = borderDelta.getDeltaCalcPast();
 
         if (clearData) {
             begin_delta_hist_per = Instant.now();
             avgDeltaInParts.resetDeltasCache();
-        } else {
-
         }
 
         if (!started) {
@@ -160,14 +155,16 @@ public class DeltasCalcService {
     }
 
     public String getBDeltaEveryCalc() {
-        return String.format("%s / %s / 100 = %s",
-                avgDeltaInParts.getNum_sma_btm(),
-                avgDeltaInParts.getDen_sma_btm(),
+       return String.format("<span style=\"color: %s;\">%s / %s / 100 = %s</span>",
+               avgDeltaInParts.isHasErrorsBtm() ? "red" : "black",
+               avgDeltaInParts.getNum_sma_btm(),
+               avgDeltaInParts.getDen_sma_btm(),
                 avgDeltaInParts.getCurrSmaBtmDelta());
     }
 
     public String getODeltaEveryCalc() {
-        return String.format("%s / %s / 100 = %s",
+        return String.format("<span style=\"color: %s;\">%s / %s / 100 = %s</span>",
+                avgDeltaInParts.isHasErrorsOk() ? "red" : "black",
                 avgDeltaInParts.getNum_sma_ok(),
                 avgDeltaInParts.getDen_sma_ok(),
                 avgDeltaInParts.getCurrSmaOkDelta());

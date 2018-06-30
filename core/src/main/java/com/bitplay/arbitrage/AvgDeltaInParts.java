@@ -43,6 +43,9 @@ public class AvgDeltaInParts implements AvgDelta {
     private List<Dlt> b_delta = new ArrayList<>();
     private List<Dlt> o_delta = new ArrayList<>();
 
+    private boolean hasErrorsBtm = false;
+    private boolean hasErrorsOk = false;
+
     final static int BLOCK_TO_CLEAR_OLD = 100;
     int reBtm = 0;                 // right edge, номер последней дельты в delta_hist_per
     int leBtm = 0;                 // left edge, первый номер дельты в delta_hist_per
@@ -90,6 +93,10 @@ public class AvgDeltaInParts implements AvgDelta {
         if (last_saved_ok != null) {
             addOkDlt(last_saved_ok);
         }
+
+        hasErrorsBtm = false;
+        hasErrorsOk = false;
+
         debugLog.info("RESET");
 
     }
@@ -124,6 +131,11 @@ public class AvgDeltaInParts implements AvgDelta {
             if (dltTimestamp.minusSeconds(delta_hist_per).isAfter(begin_delta_hist_per)) {
                 // проверка
                 debugLog.error("error comp_b_border_sma_init");
+                if (dlt.getName() == DeltaName.B_DELTA) {
+                    hasErrorsBtm = true;
+                } else {
+                    hasErrorsOk = true;
+                }
             }
 
         }
@@ -284,6 +296,7 @@ public class AvgDeltaInParts implements AvgDelta {
 
         if (validVal.compareTo(currSmaBtmDelta) != 0) {
             debugLog.error("ERROR btm validation: valid={}, but found={}", validVal, currSmaBtmDelta);
+            hasErrorsBtm = true;
         }
     }
 
@@ -299,6 +312,7 @@ public class AvgDeltaInParts implements AvgDelta {
 
         if (validVal.compareTo(currSmaOkDelta) != 0) {
             debugLog.error("ERROR ok validation: valid={}, but found={}", validVal, currSmaOkDelta);
+            hasErrorsOk = true;
         }
     }
 
