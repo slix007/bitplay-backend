@@ -406,9 +406,14 @@ public class ArbitrageService {
         BigDecimal ast_diff_fact = ast_delta_fact.subtract(ast_delta);
         params.setCumAstDiffFact(params.getCumAstDiffFact().add(ast_diff_fact));
 
-        // slip = (cum_diff_fact_br - cum_com1 - cum_com2) / (completed counts1 + completed counts2) *2
+        // slip_br = (cum_diff_fact_br - cum_com1 - cum_com2) / (completed counts1 + completed counts2) *2
+        // slip    = (cum_diff_fact - cum_com1 - cum_com2) / (completed counts1 + completed counts2) *2
         final BigDecimal cumCom = params.getCumCom1().add(params.getCumCom2());
-        final BigDecimal slip = (params.getCumDiffFactBr().subtract(cumCom))
+        final BigDecimal slipBr = (params.getCumDiffFactBr().subtract(cumCom))
+                .divide(BigDecimal.valueOf(params.getCompletedCounter1() + params.getCompletedCounter2()), 8, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(2));
+        params.setSlipBr(slipBr);
+        final BigDecimal slip = (params.getCumDiffFact().subtract(cumCom))
                 .divide(BigDecimal.valueOf(params.getCompletedCounter1() + params.getCompletedCounter2()), 8, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(2));
         params.setSlip(slip);
@@ -422,7 +427,7 @@ public class ArbitrageService {
                         "cum_diff_fact_br=%s; " +
                         "ast_diff_fact1=%s, ast_diff_fact2=%s, ast_diff_fact=%s-%s=%s, " +
                         "cum_ast_diff_fact1=%s, cum_ast_diff_fact2=%s, cum_ast_diff_fact=%s, " +
-                        "slip=%s",
+                        "slipBr=%s, slip=%s",
                 getCounter(),
                 deltaFactString,
                 params.getCumDeltaFact().toPlainString(),
@@ -438,7 +443,7 @@ public class ArbitrageService {
                 params.getCumDiffFactBr().toPlainString(),
                 ast_diff_fact1.toPlainString(), ast_diff_fact2.toPlainString(), ast_delta_fact.toPlainString(), ast_delta.toPlainString(), ast_diff_fact.toPlainString(),
                 params.getCumAstDiffFact1().toPlainString(), params.getCumAstDiffFact2().toPlainString(), params.getCumAstDiffFact().toPlainString(),
-                slip.toPlainString()
+                slipBr.toPlainString(), slip.toPlainString()
         ));
     }
 

@@ -56,6 +56,7 @@ public class GuiParams extends AbstractDocument {
     private BigDecimal astBitmexMCom = BigDecimal.ZERO;
     private BigDecimal cumAstBitmexMCom = BigDecimal.ZERO;
     private BigDecimal slip = BigDecimal.ZERO;
+    private BigDecimal slipBr = BigDecimal.ZERO;
 
     private int diffFactBrFailsCount = 0;
     private int counter1 = 0;

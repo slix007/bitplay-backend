@@ -219,6 +219,7 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getSlip() != null) {
             arbitrageService.getParams().setSlip(new BigDecimal(deltalUpdateJson.getSlip()));
+            arbitrageService.getParams().setSlipBr(new BigDecimal(deltalUpdateJson.getSlip()));
         }
         if (deltalUpdateJson.getResetAllCumValues() != null && deltalUpdateJson.getResetAllCumValues()) {
             arbitrageService.getParams().setCumDelta(BigDecimal.ZERO);
@@ -243,6 +244,7 @@ public class CommonUIService {
             arbitrageService.getParams().setCumAstCom2(BigDecimal.ZERO);
             arbitrageService.getParams().setCumBitmexMCom(BigDecimal.ZERO);
             arbitrageService.getParams().setCumAstBitmexMCom(BigDecimal.ZERO);
+            arbitrageService.getParams().setSlipBr(BigDecimal.ZERO);
             arbitrageService.getParams().setSlip(BigDecimal.ZERO);
             arbitrageService.getParams().setCounter1(0);
             arbitrageService.getParams().setCounter2(0);
@@ -294,6 +296,7 @@ public class CommonUIService {
                 arbitrageService.getParams().getReserveBtc2().toPlainString(),
                 arbitrageService.getParams().getHedgeAmount().toPlainString(),
                 arbitrageService.getParams().getFundingRateFee().toPlainString(),
+                arbitrageService.getParams().getSlipBr().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 arbitrageService.getParams().getSlip().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 deltasCalcService.getBDeltaSma().toPlainString(),
                 deltasCalcService.getODeltaSma().toPlainString(),

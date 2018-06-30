@@ -43,6 +43,7 @@ public class DeltasJson {
     private String reserveBtc2;
     private String hedgeAmount;
     private String fundingRateFee;
+    private String slipBr;
     private String slip;
     private String delta1Sma;
     private String delta2Sma;
