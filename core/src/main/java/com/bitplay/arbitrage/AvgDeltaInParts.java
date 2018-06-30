@@ -43,7 +43,7 @@ public class AvgDeltaInParts implements AvgDelta {
     private List<Dlt> b_delta = new ArrayList<>();
     private List<Dlt> o_delta = new ArrayList<>();
 
-    final static int BLOCK_TO_CLEAR_OLD = 10;
+    final static int BLOCK_TO_CLEAR_OLD = 100;
     int reBtm = 0;                 // right edge, номер последней дельты в delta_hist_per
     int leBtm = 0;                 // left edge, первый номер дельты в delta_hist_per
     int preBtm = 0;                // после наступления события border_comp_per passed предыдущий re
@@ -71,15 +71,14 @@ public class AvgDeltaInParts implements AvgDelta {
         num_sma_ok = 0;
         den_sma_ok = 0;
         b_delta_sma_map.clear();
+        b_delta.clear();
 
         pleBtm = 0;
         leBtm = 0;
         preBtm = 0;
         reBtm = 0;
         if (last_saved_btm != null) {
-            b_delta_sma_map.put(last_saved_btm.getTimestamp().toInstant(), last_saved_btm.getDelta());
-            num_sma_btm = last_saved_btm.getValue();
-            den_sma_btm = 1;
+            addBtmDlt(last_saved_btm);
         }
 
         pleOk = 0;
@@ -87,11 +86,11 @@ public class AvgDeltaInParts implements AvgDelta {
         preOk = 0;
         reOk = 0;
         o_delta_sma_map.clear();
+        o_delta.clear();
         if (last_saved_ok != null) {
-            o_delta_sma_map.put(last_saved_ok.getTimestamp().toInstant(), last_saved_ok.getDelta());
-            num_sma_ok = last_saved_ok.getValue();
-            den_sma_ok = 1;
+            addOkDlt(last_saved_ok);
         }
+        debugLog.info("RESET");
 
     }
 
@@ -161,6 +160,7 @@ public class AvgDeltaInParts implements AvgDelta {
             leBtm -= BLOCK_TO_CLEAR_OLD;
             preBtm -= BLOCK_TO_CLEAR_OLD;
             reBtm -= BLOCK_TO_CLEAR_OLD;
+            debugLog.info("btmx cleared " + BLOCK_TO_CLEAR_OLD);
         }
     }
 
@@ -172,6 +172,7 @@ public class AvgDeltaInParts implements AvgDelta {
             leOk -= BLOCK_TO_CLEAR_OLD;
             preOk -= BLOCK_TO_CLEAR_OLD;
             reOk -= BLOCK_TO_CLEAR_OLD;
+            debugLog.info("okex cleared " + BLOCK_TO_CLEAR_OLD);
         }
     }
 
