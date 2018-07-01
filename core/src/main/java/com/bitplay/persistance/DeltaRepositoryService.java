@@ -51,6 +51,8 @@ public class DeltaRepositoryService {
 
     private volatile Dlt lastBtm;
     private volatile Dlt lastOk;
+    private volatile Dlt lastSavedBtm;
+    private volatile Dlt lastSavedOk;
     private Disposable savingListener;
     private Observable<Dlt> allDltObservable;
     private ObservableEmitter<Dlt> dltSavedEmitter;
@@ -142,18 +144,27 @@ public class DeltaRepositoryService {
             Dlt okDlt = new Dlt(DeltaName.O_DELTA, dlt.getTimestamp(), lastOk.getValue());
             dltRepository.save(okDlt);
             dltSavedEmitter.onNext(okDlt);
+            lastSavedBtm = dlt;
+            lastSavedOk = okDlt;
         } else {
             Dlt btmDlt = new Dlt(DeltaName.B_DELTA, dlt.getTimestamp(), lastBtm.getValue());
             dltRepository.save(btmDlt);
             dltSavedEmitter.onNext(btmDlt);
             dltRepository.save(dlt);
             dltSavedEmitter.onNext(dlt);
+            lastSavedBtm = btmDlt;
+            lastSavedOk = dlt;
         }
     }
 
     private void saveOne(Dlt dlt) {
         dltRepository.save(dlt);
         dltSavedEmitter.onNext(dlt);
+        if (dlt.getName() == DeltaName.B_DELTA) {
+            lastSavedBtm = dlt;
+        } else {
+            lastSavedOk = dlt;
+        }
     }
 
     private void createAllDataSaving() {
@@ -181,11 +192,11 @@ public class DeltaRepositoryService {
     }
 
     public Dlt getLastSavedDelta(DeltaName deltaName) {
-        if (deltaName == DeltaName.B_DELTA && lastBtm != null) {
-            return lastBtm;
+        if (deltaName == DeltaName.B_DELTA && lastSavedBtm != null) {
+            return lastSavedBtm;
         }
-        if (deltaName == DeltaName.O_DELTA && lastOk != null) {
-            return lastOk;
+        if (deltaName == DeltaName.O_DELTA && lastSavedOk != null) {
+            return lastSavedOk;
         }
         return dltRepository.findFirstByNameOrderByTimestampDesc(deltaName);
     }
