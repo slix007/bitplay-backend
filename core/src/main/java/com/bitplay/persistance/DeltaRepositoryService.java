@@ -138,22 +138,25 @@ public class DeltaRepositoryService {
     }
 
     private void saveBoth(Dlt dlt) {
+        Date currTime = new Date();
         if (dlt.getName() == DeltaName.B_DELTA) {
-            dltRepository.save(dlt);
-            dltSavedEmitter.onNext(dlt);
-            Dlt okDlt = new Dlt(DeltaName.O_DELTA, dlt.getTimestamp(), lastOk.getValue());
-            dltRepository.save(okDlt);
-            dltSavedEmitter.onNext(okDlt);
-            lastSavedBtm = dlt;
-            lastSavedOk = okDlt;
-        } else {
-            Dlt btmDlt = new Dlt(DeltaName.B_DELTA, dlt.getTimestamp(), lastBtm.getValue());
+            Dlt btmDlt = new Dlt(DeltaName.B_DELTA, currTime, dlt.getValue());
             dltRepository.save(btmDlt);
             dltSavedEmitter.onNext(btmDlt);
-            dltRepository.save(dlt);
-            dltSavedEmitter.onNext(dlt);
+            Dlt okDlt = new Dlt(DeltaName.O_DELTA, currTime, lastOk.getValue());
+            dltRepository.save(okDlt);
+            dltSavedEmitter.onNext(okDlt);
             lastSavedBtm = btmDlt;
-            lastSavedOk = dlt;
+            lastSavedOk = okDlt;
+        } else {
+            Dlt btmDlt = new Dlt(DeltaName.B_DELTA, currTime, lastBtm.getValue());
+            dltRepository.save(btmDlt);
+            dltSavedEmitter.onNext(btmDlt);
+            lastSavedBtm = btmDlt;
+            Dlt okDlt = new Dlt(DeltaName.O_DELTA, currTime, dlt.getValue());
+            dltRepository.save(okDlt);
+            dltSavedEmitter.onNext(okDlt);
+            lastSavedOk = okDlt;
         }
     }
 
