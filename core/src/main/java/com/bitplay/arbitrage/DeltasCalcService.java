@@ -71,22 +71,26 @@ public class DeltasCalcService {
     }
 
     private void dltChangeListener(Dlt dlt) { //TODO move into borderRecalcService
-        long startMs = Instant.now().toEpochMilli();
+        try {
+            long startMs = Instant.now().toEpochMilli();
 
-        // 1. summirize only while _sma_init();
-        avgDeltaInParts.newDeltaEvent(dlt, begin_delta_hist_per);
+            // 1. summirize only while _sma_init();
+            avgDeltaInParts.newDeltaEvent(dlt, begin_delta_hist_per);
 
-        // 2. check starting border recalc after each delta
-        bordersRecalcService.newDeltaAdded();
+            // 2. check starting border recalc after each delta
+            bordersRecalcService.newDeltaAdded();
 
-        long endMs = Instant.now().toEpochMilli();
-        arbitrageService.getDeltaMon().setDeltaMs(endMs - startMs);
+            long endMs = Instant.now().toEpochMilli();
+            arbitrageService.getDeltaMon().setDeltaMs(endMs - startMs);
 
-        arbitrageService.getDeltaMon().setBorderMs(endMs - startMs);
+            arbitrageService.getDeltaMon().setBorderMs(endMs - startMs);
 
-        arbitrageService.getDeltaMon().setItmes(
-                (long) avgDeltaInParts.getB_delta_sma_map().size(),
-                (long) avgDeltaInParts.getO_delta_sma_map().size());
+            arbitrageService.getDeltaMon().setItmes(
+                    (long) avgDeltaInParts.getB_delta_sma_map().size(),
+                    (long) avgDeltaInParts.getO_delta_sma_map().size());
+        } catch (Exception e) {
+            logger.error("ERROR in dltChangeListener", e);
+        }
     }
 
     public void resetDeltasCache(BorderDelta borderDelta, boolean clearData) {
@@ -162,7 +166,7 @@ public class DeltasCalcService {
                avgDeltaInParts.isHasErrorsBtm() ? "red" : "black",
                avgDeltaInParts.getNum_sma_btm(),
                avgDeltaInParts.getDen_sma_btm(),
-                avgDeltaInParts.getCurrSmaBtmDelta());
+               avgDeltaInParts.getCurrSmaBtmDelta());
     }
 
     public String getODeltaEveryCalc() {

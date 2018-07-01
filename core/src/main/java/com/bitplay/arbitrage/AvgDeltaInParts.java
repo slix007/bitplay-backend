@@ -1,7 +1,6 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.DeltaName;
-import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderDelta;
 import com.bitplay.persistance.domain.borders.BorderParams;
@@ -9,10 +8,9 @@ import com.bitplay.persistance.domain.fluent.Dlt;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import lombok.Getter;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,20 +23,19 @@ import org.springframework.stereotype.Service;
  * The other one {@link AvgDeltaAtOnce} uses whole deltas select.
  */
 @Service
-@Getter
 public class AvgDeltaInParts implements AvgDelta {
 
     private static final Logger logger = LoggerFactory.getLogger(AvgDeltaInParts.class);
 //    private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_DELTA_AVG");
     private static final Logger debugLog = LoggerFactory.getLogger("DEBUG_LOG");
 
-    private long num_sma_btm;     // сумма значений дельт в промежутке delta_hist_per
-    private long den_sma_btm;     // количество дельт в промежутке delta_hist_per
-    private long num_sma_ok;     // сумма значений дельт в промежутке delta_hist_per
-    private long den_sma_ok;     // количество дельт в промежутке delta_hist_per
+    private volatile long num_sma_btm;     // сумма значений дельт в промежутке delta_hist_per
+    private volatile long den_sma_btm;     // количество дельт в промежутке delta_hist_per
+    private volatile long num_sma_ok;     // сумма значений дельт в промежутке delta_hist_per
+    private volatile long den_sma_ok;     // количество дельт в промежутке delta_hist_per
 
-    private Map<Instant, BigDecimal> b_delta_sma_map = new HashMap<>();
-    private Map<Instant, BigDecimal> o_delta_sma_map = new HashMap<>();
+    private Map<Instant, BigDecimal> b_delta_sma_map = new ConcurrentHashMap<>();
+    private Map<Instant, BigDecimal> o_delta_sma_map = new ConcurrentHashMap<>();
 
     private List<Dlt> b_delta = new ArrayList<>();
     private List<Dlt> o_delta = new ArrayList<>();
@@ -46,20 +43,16 @@ public class AvgDeltaInParts implements AvgDelta {
     private boolean hasErrorsBtm = false;
     private boolean hasErrorsOk = false;
 
-    final static int BLOCK_TO_CLEAR_OLD = 100;
-    int reBtm = 0;                 // right edge, номер последней дельты в delta_hist_per
-    int leBtm = 0;                 // left edge, первый номер дельты в delta_hist_per
-    int preBtm = 0;                // после наступления события border_comp_per passed предыдущий re
-    int pleBtm = 0;                // после наступления события border_comp_per passed предыдущий le
-    int reOk = 0;                 // right edge, номер последней дельты в delta_hist_per
-    int leOk = 0;                 // left edge, первый номер дельты в delta_hist_per
-    int preOk = 0;                // после наступления события border_comp_per passed предыдущий re
-    int pleOk = 0;                // после наступления события border_comp_per passed предыдущий le
+    private final static int BLOCK_TO_CLEAR_OLD = 100;
+    private int reBtm = -1;                 // right edge, номер последней дельты в delta_hist_per
+    private int leBtm = 0;                 // left edge, первый номер дельты в delta_hist_per
+    private int preBtm = -1;                // после наступления события border_comp_per passed предыдущий re
+    private int pleBtm = 0;                // после наступления события border_comp_per passed предыдущий le
+    private int reOk = -1;                 // right edge, номер последней дельты в delta_hist_per
+    private int leOk = 0;                 // left edge, первый номер дельты в delta_hist_per
+    private int preOk = -1;                // после наступления события border_comp_per passed предыдущий re
+    private int pleOk = 0;                // после наступления события border_comp_per passed предыдущий le
 
-    @Autowired
-    private ArbitrageService arbitrageService;
-    @Autowired
-    private DeltaRepositoryService deltaRepositoryService;
     @Autowired
     private PersistenceService persistenceService;
     private static BigDecimal NONE_VALUE = BigDecimal.valueOf(99999);
@@ -68,7 +61,11 @@ public class AvgDeltaInParts implements AvgDelta {
     private Dlt last_saved_btm = null; // последняя сохраненная дельта, для использования при reset
     private Dlt last_saved_ok = null;
 
-    public synchronized void resetDeltasCache() {
+    private volatile boolean btm_started = false;
+    private volatile boolean ok_started = false;
+
+
+    synchronized void resetDeltasCache() {
         num_sma_btm = 0;
         den_sma_btm = 0;
         num_sma_ok = 0;
@@ -78,24 +75,31 @@ public class AvgDeltaInParts implements AvgDelta {
 
         pleBtm = 0;
         leBtm = 0;
-        preBtm = 0;
-        reBtm = 0;
+        preBtm = -1;
+        reBtm = -1;
         if (last_saved_btm != null) {
             addBtmDlt(last_saved_btm);
+            b_delta.add(last_saved_btm);
+            preBtm = 0;
         }
 
         pleOk = 0;
         leOk = 0;
-        preOk = 0;
-        reOk = 0;
+        preOk = -1;
+        reOk = -1;
         o_delta_sma_map.clear();
         o_delta.clear();
         if (last_saved_ok != null) {
             addOkDlt(last_saved_ok);
+            o_delta.add(last_saved_ok);
+            preOk = 0;
         }
 
         hasErrorsBtm = false;
         hasErrorsOk = false;
+
+        btm_started = false;
+        ok_started = false;
 
         debugLog.info("RESET");
 
@@ -119,11 +123,12 @@ public class AvgDeltaInParts implements AvgDelta {
         // 2. comp_b_border_sma_init(); - just save num_sma and den_sma
         Instant dltTimestamp = dlt.getTimestamp().toInstant();
         if (!isReadyForCalc(dltTimestamp, begin_delta_hist_per, delta_hist_per)) {
-            if (dlt.getName() == DeltaName.B_DELTA) {
+            if (!btm_started && dlt.getName() == DeltaName.B_DELTA) {
                 addBtmDlt(dlt);
                 preBtm = b_delta.size() - 1;
 
-            } else if (dlt.getName() == DeltaName.O_DELTA) {
+            }
+            if (!ok_started && dlt.getName() == DeltaName.O_DELTA) {
                 addOkDlt(dlt);
                 preOk = o_delta.size() - 1;
             }
@@ -154,8 +159,8 @@ public class AvgDeltaInParts implements AvgDelta {
 
         boolean debugAlgorithm = true;
         if (debugAlgorithm) {
-            validateBtm();
-            validateOk();
+            validateBtm(result);
+            validateOk(result);
         }
 
         clearOldBtm();
@@ -189,13 +194,17 @@ public class AvgDeltaInParts implements AvgDelta {
     }
 
     private BigDecimal doTheCalcBtm(Instant currTime, Integer delta_hist_per) {
+        btm_started = true;
         // comp_b_border_sma_event();
         reBtm = b_delta.size() - 1;
+        if (reBtm == -1) {
+            return null;
+        }
 
         // 1. select to add pre ----> re
         if (b_delta.size() > 0 && preBtm < reBtm) {
             int added = 0;
-            for (int i = preBtm + 1; i <= reBtm; i++) {
+            for (int i = preBtm + 1; i <= reBtm; i++) { // include rightEdge element
                 addBtmDlt(b_delta.get(i));
                 added++;
             }
@@ -215,7 +224,7 @@ public class AvgDeltaInParts implements AvgDelta {
                 }
             }
             int removed = 0;
-            for (int i = pleBtm; i < leBtm; i++) {
+            for (int i = pleBtm; i < leBtm; i++) { // don't remove leftEdge element
                 if (b_delta.get(i).getTimestamp().toInstant().isAfter(le_time)) {
                     debugLog.info("btmx ERROR removing with wrong time.");
                 }
@@ -223,7 +232,8 @@ public class AvgDeltaInParts implements AvgDelta {
                 removeBtmDlt(b_delta.get(i));
                 removed++;
             }
-            debugLog.info("btmx Removed {} at ple={}, le={}", removed, pleBtm, leBtm);
+            debugLog.info("btmx Removed {} at ple={}, le={}, num_sma_btm={}, den_sma_btm={}",
+                    removed, pleBtm, leBtm, num_sma_btm, den_sma_btm);
             pleBtm = leBtm;
         }
 
@@ -237,8 +247,12 @@ public class AvgDeltaInParts implements AvgDelta {
     }
 
     private BigDecimal doTheCalcOk(Instant currTime, Integer delta_hist_per) {
+        ok_started = true;
         // comp_b_border_sma_event();
         reOk = o_delta.size() - 1;
+        if (reOk == -1) {
+            return null;
+        }
 
         // 1. select to add pre ----> re
         if (o_delta.size() > 0 && preOk < reOk) {
@@ -271,7 +285,8 @@ public class AvgDeltaInParts implements AvgDelta {
                 removeOkDlt(o_delta.get(i));
                 removed++;
             }
-            debugLog.info("okex Removed {} at ple={}, le={}", removed, pleOk, leOk);
+            debugLog.info("okex Removed {} at ple={}, le={}, num_sma_ok={}, den_sma_ok={}",
+                    removed, pleOk, leOk, num_sma_ok, den_sma_ok);
             pleOk = leOk;
         }
 
@@ -284,7 +299,7 @@ public class AvgDeltaInParts implements AvgDelta {
         return o_delta_sma_value;
     }
 
-    private void validateBtm() {
+    private void validateBtm(BigDecimal result) {
         BigDecimal currSmaBtmDelta = getCurrSmaBtmDelta();
         BigDecimal sum = BigDecimal.ZERO;
         int count = 0;
@@ -296,12 +311,13 @@ public class AvgDeltaInParts implements AvgDelta {
                 : sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
 
         if (validVal.compareTo(currSmaBtmDelta) != 0) {
-            debugLog.error("ERROR btm validation: valid={}, but found={}", validVal, currSmaBtmDelta);
+            debugLog.error("ERROR btm validation: valid={}, but found={}, firstResult={}",
+                    validVal, currSmaBtmDelta, result);
             hasErrorsBtm = true;
         }
     }
 
-    private void validateOk() {
+    private void validateOk(BigDecimal result) {
         BigDecimal currSmaOkDelta = getCurrSmaOkDelta();
         BigDecimal sum = BigDecimal.ZERO;
         int count = 0;
@@ -313,7 +329,8 @@ public class AvgDeltaInParts implements AvgDelta {
                 : sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
 
         if (validVal.compareTo(currSmaOkDelta) != 0) {
-            debugLog.error("ERROR ok validation: valid={}, but found={}", validVal, currSmaOkDelta);
+            debugLog.error("ERROR ok validation: valid={}, but found={}, firstResult={}",
+                    validVal, currSmaOkDelta, result);
             hasErrorsOk = true;
         }
     }
@@ -354,17 +371,65 @@ public class AvgDeltaInParts implements AvgDelta {
         debugLog.info("okex Removed {}", dlt.toString());
     }
 
-    public BigDecimal getCurrSmaBtmDelta() {
+    public synchronized BigDecimal getCurrSmaBtmDelta() {
         BigDecimal b_delta_sma_value = den_sma_btm == 0
                 ? NONE_VALUE
                 : BigDecimal.valueOf(num_sma_btm / den_sma_btm, 2);
         return b_delta_sma_value;
     }
 
-    public BigDecimal getCurrSmaOkDelta() {
+    public synchronized BigDecimal getCurrSmaOkDelta() {
         BigDecimal o_delta_sma_value = den_sma_ok == 0
                 ? NONE_VALUE
                 : BigDecimal.valueOf(num_sma_ok / den_sma_ok, 2);
         return o_delta_sma_value;
+    }
+
+    public synchronized Map<Instant, BigDecimal> getB_delta_sma_map() {
+        return b_delta_sma_map;
+    }
+
+    public synchronized Map<Instant, BigDecimal> getO_delta_sma_map() {
+        return o_delta_sma_map;
+    }
+
+    public synchronized long getNum_sma_btm() {
+        return num_sma_btm;
+    }
+
+    public synchronized long getDen_sma_btm() {
+        return den_sma_btm;
+    }
+
+    public synchronized long getNum_sma_ok() {
+        return num_sma_ok;
+    }
+
+    public synchronized long getDen_sma_ok() {
+        return den_sma_ok;
+    }
+
+    public synchronized boolean isHasErrorsBtm() {
+        return hasErrorsBtm;
+    }
+
+    public synchronized boolean isHasErrorsOk() {
+        return hasErrorsOk;
+    }
+
+    public synchronized Pair<Instant, BigDecimal> getB_delta_sma() {
+        return b_delta_sma;
+    }
+
+    public synchronized Pair<Instant, BigDecimal> getO_delta_sma() {
+        return o_delta_sma;
+    }
+
+    public synchronized List<Dlt> getB_delta() {
+        return b_delta;
+    }
+
+    public synchronized List<Dlt> getO_delta() {
+        return o_delta;
     }
 }
