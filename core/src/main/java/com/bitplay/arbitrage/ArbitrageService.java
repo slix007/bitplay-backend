@@ -35,7 +35,9 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
+import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
@@ -44,6 +46,9 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
@@ -110,6 +115,7 @@ public class ArbitrageService {
     private volatile DeltaParams deltaParams = new DeltaParams();
     private volatile DeltaMon deltaMon = new DeltaMon();
     private final PublishSubject<DeltaChange> deltaChangesPublisher = PublishSubject.create();
+    private volatile boolean arbInProgress = false;
 
     public DealPrices getDealPrices() {
         return dealPrices;
@@ -166,16 +172,26 @@ public class ArbitrageService {
     }
 
     private void initArbitrageStateListener() {
-        gotFreeListener(firstMarketService.getEventBus());
-        gotFreeListener(secondMarketService.getEventBus());
+        final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("arb-done-thread-%d").build();
+        final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
+        final Scheduler scheduler = Schedulers.from(executor);
+
+        gotFreeListener(firstMarketService.getEventBus(), scheduler);
+        gotFreeListener(secondMarketService.getEventBus(), scheduler);
     }
 
-    private void gotFreeListener(EventBus eventBus) {
+    private void gotFreeListener(EventBus eventBus, Scheduler scheduler) {
         eventBus.toObserverable()
+                .subscribeOn(scheduler)
+                .observeOn(scheduler)
                 .subscribe(btsEvent -> {
                     try {
                         if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
-                            if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
+                            if (arbInProgress
+                                    && !firstMarketService.isBusy()
+                                    && !secondMarketService.isBusy()) {
+
+                                arbInProgress = false;
 
                                 writeLogArbitrageIsDone();
 
@@ -791,6 +807,7 @@ public class ArbitrageService {
             setSignalType(signalType);
             firstMarketService.setBusy();
             secondMarketService.setBusy();
+            arbInProgress = true;
             params.setLastDelta(DELTA1);
             // Market specific params
             params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
@@ -866,6 +883,7 @@ public class ArbitrageService {
             setSignalType(signalType);
             firstMarketService.setBusy();
             secondMarketService.setBusy();
+            arbInProgress = true;
             params.setLastDelta(DELTA2);
             // Market specific params
             params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));

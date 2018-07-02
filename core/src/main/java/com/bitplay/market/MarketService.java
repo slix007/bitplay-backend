@@ -175,8 +175,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                         setFree("CHECKER");
                     } else if (btsEvent == BtsEvent.MARKET_FREE) {
                         setFree();
-                    } else if (btsEvent == BtsEvent.MARKET_BUSY) {
-                        setBusy();
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }
