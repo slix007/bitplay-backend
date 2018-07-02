@@ -300,6 +300,9 @@ public class AvgDeltaInParts implements AvgDelta {
     }
 
     private void validateBtm(BigDecimal result) {
+        if (den_sma_btm == 0 && b_delta_sma_map.size() == 0) {
+            return;
+        }
         BigDecimal currSmaBtmDelta = getCurrSmaBtmDelta();
         BigDecimal sum = BigDecimal.ZERO;
         int count = 0;
@@ -318,6 +321,9 @@ public class AvgDeltaInParts implements AvgDelta {
     }
 
     private void validateOk(BigDecimal result) {
+        if (den_sma_ok == 0 && o_delta_sma_map.size() == 0) {
+            return;
+        }
         BigDecimal currSmaOkDelta = getCurrSmaOkDelta();
         BigDecimal sum = BigDecimal.ZERO;
         int count = 0;

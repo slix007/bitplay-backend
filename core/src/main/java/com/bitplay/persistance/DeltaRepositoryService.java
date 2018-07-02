@@ -197,12 +197,14 @@ public class DeltaRepositoryService {
     }
 
     private boolean isDeviationOvercome(Dlt dlt, Integer deltaSaveDev) {
-        BigDecimal deltaCurr = dlt.getDelta();
-        BigDecimal deltaLast = getLastSavedDelta(dlt.getName()).getDelta();
+        final Long deltaCurr = dlt.getValue();
+        final Long deltaLast = getLastSavedDelta(dlt.getName()).getValue();
 
-        // abs(b_delta2) - abs(b_delta1) > delta_dev,
+        // abs(b_delta2 - b_delta1) > delta_dev;
         // b_delta1 - последняя записанная в БД дельта, b_delta2 - текущая дельта
-        return (deltaCurr.abs().subtract(deltaLast.abs())).compareTo(BigDecimal.valueOf(deltaSaveDev)) > 0;
+        final Long currDev = Math.abs(deltaCurr - deltaLast);
+        final Long minDev = deltaSaveDev * 100L;
+        return currDev >= minDev;
     }
 
     public Dlt getLastSavedDelta(DeltaName deltaName) {
