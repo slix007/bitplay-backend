@@ -25,6 +25,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +43,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class DeltaRepositoryService {
 
+    private final Logger logger = LoggerFactory.getLogger(DeltaRepositoryService.class);
+
     private MongoOperations mongoOperation;
     @Autowired
     private DltRepository dltRepository;
@@ -54,6 +58,7 @@ public class DeltaRepositoryService {
     private volatile Dlt lastSavedBtm;
     private volatile Dlt lastSavedOk;
     private Disposable savingListener;
+    private Disposable savingListenerAdditionalForPeriodic;
     private Observable<Dlt> allDltObservable;
     private ObservableEmitter<Dlt> dltSavedEmitter;
     private Observable<Dlt> dltSaveObservable = Observable.create(e -> this.dltSavedEmitter = e);
@@ -75,8 +80,8 @@ public class DeltaRepositoryService {
         final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
 
         allDltObservable = arbitrageService.getDeltaChangesPublisher()
-                .subscribeOn(Schedulers.computation())
                 .observeOn(Schedulers.from(executor))
+                .subscribeOn(Schedulers.from(executor))
                 .flatMap(this::deltaChangeToDlt);
 
         initSettings();
@@ -113,6 +118,10 @@ public class DeltaRepositoryService {
         if (savingListener != null && !savingListener.isDisposed()) {
             savingListener.dispose();
         }
+        if (savingListenerAdditionalForPeriodic != null && !savingListenerAdditionalForPeriodic.isDisposed()) {
+            savingListenerAdditionalForPeriodic.dispose();
+        }
+
         switch (borderDelta.getDeltaSaveType()) {
             case DEVIATION:
                 createDeviation(borderDelta.getDeltaSaveDev());
@@ -131,32 +140,34 @@ public class DeltaRepositoryService {
         if (deltaSavePerSec == 0) {
             createAllDataSaving();
         } else {
-            savingListener = allDltObservable
-                    .sample(deltaSavePerSec, TimeUnit.SECONDS)
+            // Save nothing.
+            // Just make work the chain of actions above.
+            savingListener = allDltObservable.subscribe();
+
+            // Save periodically
+            savingListenerAdditionalForPeriodic = Observable
+                    .interval(deltaSavePerSec, TimeUnit.SECONDS)
                     .subscribe(this::saveBoth);
         }
     }
 
-    private void saveBoth(Dlt dlt) {
-        Date currTime = new Date();
-        if (dlt.getName() == DeltaName.B_DELTA) {
-            Dlt btmDlt = new Dlt(DeltaName.B_DELTA, currTime, dlt.getValue());
-            dltRepository.save(btmDlt);
-            dltSavedEmitter.onNext(btmDlt);
-            Dlt okDlt = new Dlt(DeltaName.O_DELTA, currTime, lastOk.getValue());
-            dltRepository.save(okDlt);
-            dltSavedEmitter.onNext(okDlt);
-            lastSavedBtm = btmDlt;
-            lastSavedOk = okDlt;
-        } else {
-            Dlt btmDlt = new Dlt(DeltaName.B_DELTA, currTime, lastBtm.getValue());
-            dltRepository.save(btmDlt);
-            dltSavedEmitter.onNext(btmDlt);
-            lastSavedBtm = btmDlt;
-            Dlt okDlt = new Dlt(DeltaName.O_DELTA, currTime, dlt.getValue());
-            dltRepository.save(okDlt);
-            dltSavedEmitter.onNext(okDlt);
-            lastSavedOk = okDlt;
+    private void saveBoth(Long aLong) {
+        try {
+            if (lastBtm != null && lastOk != null) {
+                Date currTime = new Date();
+                Dlt btmDlt = new Dlt(DeltaName.B_DELTA, currTime, lastBtm.getValue());
+                dltRepository.save(btmDlt);
+                dltSavedEmitter.onNext(btmDlt);
+                Dlt okDlt = new Dlt(DeltaName.O_DELTA, currTime, lastOk.getValue());
+                dltRepository.save(okDlt);
+                dltSavedEmitter.onNext(okDlt);
+                lastSavedBtm = btmDlt;
+                lastSavedOk = okDlt;
+            } else {
+                logger.error("Uninitialised lastDelta. lastBtm={}, lastOk={}", lastBtm, lastOk);
+            }
+        } catch (Exception e) {
+            logger.error("Save both error", e);
         }
     }
 
