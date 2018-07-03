@@ -159,8 +159,11 @@ public class AvgDeltaInParts implements AvgDelta {
 
         boolean debugAlgorithm = true;
         if (debugAlgorithm) {
-            validateBtm(result);
-            validateOk(result);
+            if (deltaName == DeltaName.B_DELTA) {
+                validateBtm(result);
+            } else {
+                validateOk(result);
+            }
         }
 
         clearOldBtm();
@@ -193,7 +196,7 @@ public class AvgDeltaInParts implements AvgDelta {
         }
     }
 
-    private BigDecimal doTheCalcBtm(Instant currTime, Integer delta_hist_per) {
+    private synchronized BigDecimal doTheCalcBtm(Instant currTime, Integer delta_hist_per) {
         btm_started = true;
         // comp_b_border_sma_event();
         reBtm = b_delta.size() - 1;
@@ -246,7 +249,7 @@ public class AvgDeltaInParts implements AvgDelta {
         return b_delta_sma_value;
     }
 
-    private BigDecimal doTheCalcOk(Instant currTime, Integer delta_hist_per) {
+    private synchronized BigDecimal doTheCalcOk(Instant currTime, Integer delta_hist_per) {
         ok_started = true;
         // comp_b_border_sma_event();
         reOk = o_delta.size() - 1;
@@ -299,7 +302,7 @@ public class AvgDeltaInParts implements AvgDelta {
         return o_delta_sma_value;
     }
 
-    private void validateBtm(BigDecimal result) {
+    private synchronized void validateBtm(BigDecimal result) {
         if (den_sma_btm == 0 && b_delta_sma_map.size() == 0) {
             return;
         }
@@ -320,7 +323,7 @@ public class AvgDeltaInParts implements AvgDelta {
         }
     }
 
-    private void validateOk(BigDecimal result) {
+    private synchronized void validateOk(BigDecimal result) {
         if (den_sma_ok == 0 && o_delta_sma_map.size() == 0) {
             return;
         }
