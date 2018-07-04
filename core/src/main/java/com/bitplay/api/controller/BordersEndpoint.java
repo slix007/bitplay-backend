@@ -67,7 +67,7 @@ public class BordersEndpoint {
         return persistenceService.fetchBorders();
     }
 
-    private BorderParams createDefaultBorders() {
+    public static BorderParams createDefaultBorders() {
         final List<BorderTable> borders = new ArrayList<>();
         final List<BorderItem> borderBtmClose = new ArrayList<>();
         borderBtmClose.add(new BorderItem(1, BigDecimal.valueOf(-21), 500, 500));
@@ -98,7 +98,7 @@ public class BordersEndpoint {
         return borderParams;
     }
 
-    private void createDefaultParams2(final BorderParams borderParams) {
+    private static void createDefaultParams2(final BorderParams borderParams) {
         borderParams.setRecalcPeriodSec(3600);
         final BordersV2 bordersV2 = borderParams.getBordersV2();
         bordersV2.setMaxLvl(7);
