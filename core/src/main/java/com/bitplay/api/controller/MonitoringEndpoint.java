@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,6 +29,7 @@ public class MonitoringEndpoint {
     }
 
     @RequestMapping(value = "/calc-delta/reset", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public DeltaMon getDeltaMonReset() {
         arbitrageService.setDeltaMon(new DeltaMon());
         return arbitrageService.getDeltaMon();

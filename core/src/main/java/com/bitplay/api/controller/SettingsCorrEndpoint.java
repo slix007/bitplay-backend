@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -40,12 +41,14 @@ public class SettingsCorrEndpoint {
     }
 
     @RequestMapping(value = "/corr/create-default", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public CorrParams updateSettings() {
         persistenceService.saveCorrParams(CorrParams.createDefault());
         return persistenceService.fetchCorrParams();
     }
 
     @RequestMapping(value = "/corr/reset", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public CorrParams updateCorrError(@RequestBody ChangeRequestJson changeRequestJson) {
         CorrParams corrParams = persistenceService.fetchCorrParams();
         if (changeRequestJson.getCommand() != null) {
@@ -61,6 +64,7 @@ public class SettingsCorrEndpoint {
     }
 
     @RequestMapping(value = "/corr", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public CorrParams updatePreliq(@RequestBody CorrParams anUpdate) {
         CorrParams corrParams = persistenceService.fetchCorrParams();
         if (anUpdate != null) {

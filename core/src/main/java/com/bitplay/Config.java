@@ -1,5 +1,6 @@
 package com.bitplay;
 
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Component;
  * Created by Sergey Shurmin on 4/29/17.
  */
 @Component
+@Getter
 public class Config {
 
     @Value("${market.first}")
@@ -26,35 +28,7 @@ public class Config {
     @Value("${deltas-series.enabled}")
     private Boolean deltasSeriesEnabled;
 
-    public String getFirstMarketName() {
-        return firstMarketName;
-    }
+    @Value("${e_best_min}")
+    private Integer eBestMin;
 
-    public String getFirstMarketKey() {
-        return firstMarketKey;
-    }
-
-    public String getFirstMarketSecret() {
-        return firstMarketSecret;
-    }
-
-    public String getSecondMarketName() {
-        return secondMarketName;
-    }
-
-    public String getSecondMarketKey() {
-        return secondMarketKey;
-    }
-
-    public String getSecondMarketSecret() {
-        return secondMarketSecret;
-    }
-
-    public boolean isDeltasSeriesEnabled() {
-        return deltasSeriesEnabled != null && deltasSeriesEnabled;
-    }
-
-    public void setDeltasSeriesEnabled(Boolean deltasSeriesEnabled) {
-        this.deltasSeriesEnabled = deltasSeriesEnabled;
-    }
 }

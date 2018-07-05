@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -113,6 +114,7 @@ public class BordersEndpoint {
 
     @RequestMapping(value = "/tables", method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson saveBorders(@RequestBody List<BorderTable> borderTableList) {
         if (borderTableList == null || borderTableList.size() == 0) {
             return new ResultJson("Wrong request", "Request body should have borderTables. " + borderTableList);
@@ -138,6 +140,7 @@ public class BordersEndpoint {
 
     @RequestMapping(value = "/settings", method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson updateBordersSettings(@RequestBody BordersSettings update) {
         final BorderParams bP = persistenceService.fetchBorders();
 
@@ -229,6 +232,7 @@ public class BordersEndpoint {
 
     @RequestMapping(value = "/settingsV2", method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson updateBordersSettingsV2(@RequestBody BordersV2 update) {
         final BorderParams bP = persistenceService.fetchBorders();
         final BordersV2 bordersV2 = bP.getBordersV2();

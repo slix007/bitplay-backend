@@ -13,10 +13,10 @@ import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
-
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -114,6 +114,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public MarketFlagsJson updateMovingStop() {
         return commonUIService.toggleStopMoving();
     }
@@ -124,6 +125,7 @@ public class CommonEndpoint {
     }
 
     @RequestMapping(value = "/market/states", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public MarketStatesJson setMarketsState(@RequestBody MarketStatesJson marketStatesJson) {
         return commonUIService.setMarketsStates(marketStatesJson);
     }
@@ -132,6 +134,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public MarketFlagsJson freeStates() {
         return commonUIService.freeMarketsStates();
     }
@@ -153,6 +156,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson printSumBal() {
         return commonUIService.printSumBal();
     }
@@ -178,6 +182,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public PosCorrJson updatePosCorr(@RequestBody PosCorrJson posCorrJson) {
         return commonUIService.updatePosCorr(posCorrJson);
     }
@@ -200,6 +205,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public LiqParamsJson updateLiqParams(@RequestBody LiqParamsJson liqParamsJson) {
         return commonUIService.updateLiqParams(liqParamsJson);
     }
@@ -215,6 +221,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public DeltasMinMaxJson resetDeltaParams() {
         return commonUIService.resetDeltaParamsJson();
     }
@@ -230,6 +237,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public DeltasMinMaxJson resetRestartMonitoringParams() {
         return commonUIService.resetRestartMonitoringParamsJson();
     }

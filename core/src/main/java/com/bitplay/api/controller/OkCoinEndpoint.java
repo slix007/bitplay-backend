@@ -15,6 +15,7 @@ import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -47,6 +48,7 @@ public class OkCoinEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public TradeResponseJson placeMarketOrder(@RequestBody TradeRequestJson tradeRequestJson) {
         return this.okCoin.doTrade(tradeRequestJson);
     }
@@ -65,6 +67,7 @@ public class OkCoinEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrdersMove(@RequestBody OrderJson orderJson) {
         return this.okCoin.moveOpenOrder(orderJson);
     }
@@ -73,6 +76,7 @@ public class OkCoinEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrdersCancel(@RequestBody OrderJson orderJson) {
         final String id = orderJson.getId();
         final OkCoinTradeResult cancelResult = this.okCoin.getBusinessService().cancelOrderSync(id, "CancelFromUI");
@@ -93,6 +97,7 @@ public class OkCoinEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public LiquidationInfoJson resetLiquidationInfo() {
         return this.okCoin.resetLiquidationInfoJson();
     }

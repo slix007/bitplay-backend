@@ -11,11 +11,11 @@ import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.domain.futureindex.FutureIndexJson;
 import com.bitplay.api.service.BitplayUIServiceBitmex;
-import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -59,6 +59,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public TradeResponseJson placeMarketOrder(@RequestBody TradeRequestJson tradeRequestJson) {
         return this.bitmex.doTrade(tradeRequestJson);
     }
@@ -77,6 +78,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrders(@RequestBody OrderJson orderJson) {
         return this.bitmex.moveOpenOrder(orderJson);
     }
@@ -90,6 +92,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson setCustomSwapTime(@RequestBody ChangeRequestJson changeRequestJson) {
         return this.bitmex.setCustomSwapTime(changeRequestJson);
     }
@@ -98,6 +101,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson resetTimeCompare() {
         return this.bitmex.resetTimeCompare();
     }
@@ -106,6 +110,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson updateTimeCompareUpdating(@RequestBody ChangeRequestJson changeRequestJson) {
         return this.bitmex.updateTimeCompareUpdating(changeRequestJson);
     }
@@ -119,6 +124,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public LiquidationInfoJson resetLiquidationInfo() {
         return this.bitmex.resetLiquidationInfoJson();
     }
@@ -127,6 +133,7 @@ public class BitmexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrdersCancel(@RequestBody OrderJson orderJson) {
         final String id = orderJson.getId();
 //        boolean cancelFromUI = this.bitmex.getBusinessService().cancelAllOrders("CancelFromUI");
