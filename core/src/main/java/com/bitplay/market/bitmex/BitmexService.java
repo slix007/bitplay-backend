@@ -1502,7 +1502,6 @@ public class BitmexService extends MarketService {
                                 itemMap.get(orderId).getAmount(),
                                 Arrays.toString(orderParts.toArray())
                         ));
-                        success = false;
                     }
                 } catch (Exception e) {
                     logger.info(String.format("%s updateAvgPriceError.", logMsg), e);
