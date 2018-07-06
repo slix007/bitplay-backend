@@ -34,6 +34,7 @@ import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
@@ -94,7 +95,7 @@ public class ArbitrageService {
     @Autowired
     private DeltasCalcService deltasCalcService;
     @Autowired
-    private BordersRecalcService bordersRecalcService;
+    private TraderPermissionsService traderPermissionsService;
 //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
 //    private volatile int updateBordersCounter;
@@ -1090,6 +1091,11 @@ public class ArbitrageService {
                     sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumM.toPlainString(), sumM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
+
+            if (!traderPermissionsService.isEBestMinOk()) {
+                firstMarketService.setMarketState(MarketState.FORBIDDEN);
+                secondMarketService.setMarketState(MarketState.FORBIDDEN);
+            }
         }
     }
 

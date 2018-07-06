@@ -157,8 +157,8 @@ public class PosDiffService {
     }
 
     private void startTimerToImmidiateCorrection() {
-        if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
-                || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
+        if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
+                || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
             return;
         }
         if (!hasTimerStarted) {
@@ -201,8 +201,8 @@ public class PosDiffService {
     private void checkMDCJob() {
         arbitrageService.getParams().setLastMDCCheck(new Date());
 
-        if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
-                || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
+        if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
+                || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
             return;
         }
         if (!hasMDCStarted) {
@@ -318,8 +318,8 @@ public class PosDiffService {
     }
 
     private void doCorrectionImmediate(SignalType signalType) {
-        if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
-                || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
+        if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
+                || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
             return;
         }
 
@@ -337,8 +337,8 @@ public class PosDiffService {
     }
 
     private synchronized void doCorrection(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount, SignalType signalType) {
-        if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.STOPPED
-                || arbitrageService.getSecondMarketService().getMarketState() == MarketState.STOPPED) {
+        if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
+                || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
             return;
         }
         stopTimerToImmidiateCorrection(); // avoid double-correction

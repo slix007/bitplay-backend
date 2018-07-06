@@ -176,7 +176,7 @@ public class BitmexService extends MarketService {
 
     @Override
     public boolean isMarketStopped() {
-        return getMarketState() == MarketState.STOPPED || bitmexLimitsService.outsideLimits();
+        return getMarketState().isStopped() || bitmexLimitsService.outsideLimits();
     }
 
     @Override
@@ -886,7 +886,7 @@ public class BitmexService extends MarketService {
             int attemptCount = 0;
             int badGatewayCount = 0;
             shouldStopPlacing = false;
-            while (attemptCount < maxAttempts && getMarketState() != MarketState.STOPPED && !shouldStopPlacing) {
+            while (attemptCount < maxAttempts && !getMarketState().isStopped() && !shouldStopPlacing) {
                 attemptCount++;
                 try {
                     String orderId;

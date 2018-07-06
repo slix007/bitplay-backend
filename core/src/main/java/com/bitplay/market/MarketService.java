@@ -207,8 +207,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             case MOVING:
             case PLACING_ORDER:
             case STOPPED:
+            case FORBIDDEN:
                 if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
-                    logger.info("reset STOPPED from UI");
+                    logger.info("reset {} from UI", marketState);
                     setMarketState(MarketState.READY);
                 }
                 break;
@@ -371,7 +372,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public boolean isReadyForMoving() {
-        return marketState != MarketState.SYSTEM_OVERLOADED && marketState != MarketState.STOPPED;
+        return marketState != MarketState.SYSTEM_OVERLOADED && !marketState.isStopped();
     }
 
     public EventBus getEventBus() {

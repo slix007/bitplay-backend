@@ -164,7 +164,7 @@ public class OkCoinService extends MarketService {
 
     @Override
     public boolean isMarketStopped() {
-        return getMarketState() == MarketState.STOPPED || okexLimitsService.outsideLimits();
+        return getMarketState().isStopped() || okexLimitsService.outsideLimits();
     }
 
     @Override
@@ -671,7 +671,7 @@ public class OkCoinService extends MarketService {
 
         BigDecimal amountLeft = amount;
         shouldStopPlacing = false;
-        for (int attemptCount = 1; attemptCount < maxAttempts && getMarketState() != MarketState.STOPPED && !shouldStopPlacing; attemptCount++) {
+        for (int attemptCount = 1; attemptCount < maxAttempts && !getMarketState().isStopped() && !shouldStopPlacing; attemptCount++) {
             try {
                 if (attemptCount > 1) {
                     Thread.sleep(1000);
