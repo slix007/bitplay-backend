@@ -28,9 +28,10 @@ public class TraderPermissionsService {
                 return true;
             }
 
-//            log.info("e_best_min=" + eBestMin + ", sumEBestUsd=" + sumEBestUsd);
+            log.info("e_best_min=" + eBestMin + ", sumEBestUsd=" + sumEBestUsd);
             if (sumEBestUsd.signum() < 0) { // not initialized yet
-                return false;
+                log.warn("WARNING: sum_e_best_usd is not yet initialized");
+                return true;
             }
             if (sumEBestUsd.compareTo(BigDecimal.valueOf(eBestMin)) < 0) {
                 log.warn("WARNING: e_best_min=" + eBestMin + ", sumEBestUsd=" + sumEBestUsd);

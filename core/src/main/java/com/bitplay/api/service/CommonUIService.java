@@ -1,5 +1,6 @@
 package com.bitplay.api.service;
 
+import com.bitplay.Config;
 import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
@@ -9,6 +10,7 @@ import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketStatesJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
+import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
@@ -44,6 +46,9 @@ public class CommonUIService {
 
     @Autowired
     private ArbitrageService arbitrageService;
+
+    @Autowired
+    private Config config;
 
     @Autowired
     private DeltasCalcService deltasCalcService;
@@ -381,9 +386,11 @@ public class CommonUIService {
         return new ResultJson("OK", "");
     }
 
-    public ResultJson getSumBal() {
+    public SumBalJson getSumBal() {
         final String sumBalString = arbitrageService.getSumBalString();
-        return new ResultJson(sumBalString, "");
+        final String sumEBest = arbitrageService.getSumEBestUsd().toPlainString();
+        final String sumEBestMin = config.getEBestMin().toString();
+        return new SumBalJson(sumBalString, sumEBest, sumEBestMin);
     }
 
     public ResultJson getPosDiff() {

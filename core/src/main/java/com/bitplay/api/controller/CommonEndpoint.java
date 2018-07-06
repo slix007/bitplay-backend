@@ -11,6 +11,7 @@ import com.bitplay.api.domain.MarketList;
 import com.bitplay.api.domain.MarketStatesJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
+import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -162,7 +163,7 @@ public class CommonEndpoint {
     }
 
     @RequestMapping(value = "/market/sum-bal", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson getSumBal() {
+    public SumBalJson getSumBal() {
         return commonUIService.getSumBal();
     }
 
