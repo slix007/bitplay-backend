@@ -40,20 +40,17 @@ public class Config {
     @Value("${deltas-series.enabled}")
     private Boolean deltasSeriesEnabled;
 
-//    @Value("${e_best_min}")
-//    private Integer eBestMin;
+    @Value("${e_best_min}")
+    private Integer defaultEBestMin;
 
-    @Autowired
-    private StandardEnvironment environment;
+    //    @Value("${e_best_min}")
+    private Integer eBestMin;
 
     @Scheduled(fixedRate = 2000)
     public void reload() {
-        MutablePropertySources propertySources = environment.getPropertySources();
         Properties properties = reloadPropertyFile();
-
-        replace(propertySources, properties, "applicationConfig: [classpath:/application.properties]");
-        // workaround for local development:
-        replace(propertySources, properties, "devtools-local");
+        String e_best_min = properties.getProperty("e_best_min");
+        eBestMin = e_best_min == null ? null : Integer.valueOf(e_best_min);
     }
 
     private Properties reloadPropertyFile() {
@@ -61,7 +58,11 @@ public class Config {
         try {
             File jarPath = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
             String propertiesPath = jarPath.getParentFile().getAbsolutePath();
-
+            if (propertiesPath.contains("file:")) {
+                // /opt/bitplay/bitmex-okcoin/file:/opt/bitplay/bitmex-okcoin/bitplay.jar!/BOOT-INF
+                int i = propertiesPath.indexOf("file:");
+                propertiesPath = propertiesPath.substring(0, i - 1);
+            }
             FileInputStream inStream;
             try {
                 inStream = new FileInputStream(propertiesPath + "/application.properties");
@@ -78,18 +79,11 @@ public class Config {
         return prop;
     }
 
-    private void replace(MutablePropertySources sourceList, Properties newProperties, String sourceName) {
-        PropertiesPropertySource newPropertySource = new PropertiesPropertySource(sourceName, newProperties);
-        if (sourceList.get(sourceName) == null) {
-            sourceList.addLast(newPropertySource);
-        } else {
-            sourceList.replace(sourceName, newPropertySource);
-        }
-    }
-
     public Integer getEBestMin() {
-        String e_best_min = environment.getProperty("e_best_min");
-        return e_best_min == null ? null : Integer.valueOf(e_best_min);
+        if (eBestMin != null) {
+            return eBestMin;
+        }
+        return defaultEBestMin;
     }
 
 }
