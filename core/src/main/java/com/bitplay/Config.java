@@ -7,12 +7,7 @@ import java.io.IOException;
 import java.util.Properties;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.MutablePropertySources;
-import org.springframework.core.env.PropertiesPropertySource;
-import org.springframework.core.env.StandardEnvironment;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
@@ -46,11 +41,12 @@ public class Config {
     //    @Value("${e_best_min}")
     private Integer eBestMin;
 
-    @Scheduled(fixedRate = 2000)
     public void reload() {
         Properties properties = reloadPropertyFile();
         String e_best_min = properties.getProperty("e_best_min");
         eBestMin = e_best_min == null ? null : Integer.valueOf(e_best_min);
+
+        log.info("Reload e_best_min=" + eBestMin);
     }
 
     private Properties reloadPropertyFile() {
@@ -59,6 +55,7 @@ public class Config {
             File jarPath = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
             String propertiesPath = jarPath.getParentFile().getAbsolutePath();
             if (propertiesPath.contains("file:")) {
+                // workaround1:
                 // /opt/bitplay/bitmex-okcoin/file:/opt/bitplay/bitmex-okcoin/bitplay.jar!/BOOT-INF
                 int i = propertiesPath.indexOf("file:");
                 propertiesPath = propertiesPath.substring(0, i - 1);
@@ -68,7 +65,12 @@ public class Config {
                 inStream = new FileInputStream(propertiesPath + "/application.properties");
             } catch (FileNotFoundException e) {
                 // workaround for local development:
-                inStream = new FileInputStream(propertiesPath + "/classes/application.properties");
+                try {
+                    inStream = new FileInputStream(propertiesPath + "/classes/application.properties");
+                } catch (FileNotFoundException e1) {
+                    // workaround if others does not work
+                    inStream = new FileInputStream("/opt/bitplay/bitmex-okcoin/application.properties");
+                }
             }
             prop.load(inStream);
             log.info(" propertiesPath-" + propertiesPath + ": " + prop.toString());

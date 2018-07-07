@@ -1,12 +1,13 @@
 package com.bitplay.api.controller;
 
+import com.bitplay.Config;
+import com.bitplay.api.domain.ResultJson;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.RestartSettings;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,22 @@ public class SettingsEndpoint {
     private final static Logger logger = LoggerFactory.getLogger(SettingsEndpoint.class);
 
     @Autowired
+    private Config config;
+
+    @Autowired
     SettingsRepositoryService settingsRepositoryService;
+
+    /**
+     * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+     */
+    @RequestMapping(value = "/reload-e-best-min",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson reloadSumEBestMin() {
+        config.reload();
+        return new ResultJson(config.getEBestMin().toString(), "");
+    }
 
     @RequestMapping(value = "/all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public Settings getSettings() {
