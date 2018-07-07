@@ -1369,4 +1369,9 @@ public class ArbitrageService {
     public BigDecimal getSumEBestUsd() {
         return sumEBestUsd;
     }
+
+    public boolean isArbForbidden() {
+        return firstMarketService.getMarketState() == MarketState.FORBIDDEN
+                || secondMarketService.getMarketState() == MarketState.FORBIDDEN;
+    }
 }

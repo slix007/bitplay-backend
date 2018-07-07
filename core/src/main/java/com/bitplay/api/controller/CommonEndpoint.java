@@ -15,6 +15,7 @@ import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.security.TraderPermissionsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,6 +38,9 @@ public class CommonEndpoint {
 
     @Autowired
     private TwoMarketStarter twoMarketStarter;
+
+    @Autowired
+    private TraderPermissionsService traderPermissionsService;
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public String help() {
@@ -135,8 +139,11 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public MarketFlagsJson freeStates() {
+        // forbidden when eBestMinViolates, but ok with market states FORBIDDEN
+        if (!traderPermissionsService.isEBestMinOk()) {
+            return new MarketFlagsJson(false, false);
+        }
         return commonUIService.freeMarketsStates();
     }
 

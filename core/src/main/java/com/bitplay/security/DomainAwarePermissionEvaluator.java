@@ -32,7 +32,7 @@ class DomainAwarePermissionEvaluator implements PermissionEvaluator {
 //        }
         if ("e_best_min-check".equals(permission)) {
 //            log.info("check permission '{}' for user '{}'", permission, authentication.getName());
-            return traderPermissionsService.isEBestMinOk();
+            return traderPermissionsService.hasPermissionByEBestMin();
         }
 
         return true;
