@@ -9,7 +9,6 @@ import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.util.List;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -50,7 +49,7 @@ public class BordersRecalcService {
     }
 
     public void recalc() {
-        long startMs = Instant.now().toEpochMilli();
+        long startMs = System.nanoTime();
         try {
             final BorderParams borderParams = persistenceService.fetchBorders();
             final BigDecimal instantDelta1 = arbitrageService.getDelta1();
@@ -74,8 +73,8 @@ public class BordersRecalcService {
             logger.error("on recalc borders: ", e);
             warningLogger.error("on recalc borders: " + e.getMessage());
         } finally {
-            long endMs = Instant.now().toEpochMilli();
-            arbitrageService.getDeltaMon().setBorderMs(endMs - startMs);
+            long endMs = System.nanoTime();
+            arbitrageService.getDeltaMon().setBorderMs((endMs - startMs) / 1000);
         }
     }
 

@@ -54,6 +54,8 @@ public class AvgDeltaInParts implements AvgDelta {
     private int pleOk = 0;                // после наступления события border_comp_per passed предыдущий le
 
     @Autowired
+    private ArbitrageService arbitrageService;
+    @Autowired
     private PersistenceService persistenceService;
     private static BigDecimal NONE_VALUE = BigDecimal.valueOf(99999);
     private Pair<Instant, BigDecimal> b_delta_sma = Pair.of(Instant.now(), NONE_VALUE);
@@ -153,16 +155,32 @@ public class AvgDeltaInParts implements AvgDelta {
             Instant begin_delta_hist_per) {
         Integer delta_hist_per = borderDelta.getDeltaCalcPast();
 
-        BigDecimal result = deltaName == DeltaName.B_DELTA
-                ? doTheCalcBtm(currTime, delta_hist_per)
-                : doTheCalcOk(currTime, delta_hist_per);
+        BigDecimal result;
+
+        if (deltaName == DeltaName.B_DELTA) {
+            long startMs = System.nanoTime();
+            result = doTheCalcBtm(currTime, delta_hist_per);
+            long endMs = System.nanoTime();
+            arbitrageService.getDeltaMon().setBtmDeltaMs((endMs - startMs) / 1000);
+        } else {
+            long startMs = System.nanoTime();
+            result = doTheCalcOk(currTime, delta_hist_per);
+            long endMs = System.nanoTime();
+            arbitrageService.getDeltaMon().setOkDeltaMs((endMs - startMs) / 1000);
+        }
 
         boolean debugAlgorithm = true;
         if (debugAlgorithm) {
             if (deltaName == DeltaName.B_DELTA) {
+                long sMs = System.nanoTime();
                 validateBtm(result);
+                long eMs = System.nanoTime();
+                arbitrageService.getDeltaMon().setBtmValidateDeltaMs((eMs - sMs) / 1000);
             } else {
+                long sMs = System.nanoTime();
                 validateOk(result);
+                long eMs = System.nanoTime();
+                arbitrageService.getDeltaMon().setOkValidateDeltaMs((eMs - sMs) / 1000);
             }
         }
 

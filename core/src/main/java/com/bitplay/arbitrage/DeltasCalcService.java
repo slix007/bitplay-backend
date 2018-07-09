@@ -72,7 +72,7 @@ public class DeltasCalcService {
 
     private void dltChangeListener(Dlt dlt) { //TODO move into borderRecalcService
         try {
-            long startMs = Instant.now().toEpochMilli();
+            long startMs = System.nanoTime();
 
             // 1. summirize only while _sma_init();
             avgDeltaInParts.newDeltaEvent(dlt, begin_delta_hist_per);
@@ -80,10 +80,8 @@ public class DeltasCalcService {
             // 2. check starting border recalc after each delta
             bordersRecalcService.newDeltaAdded();
 
-            long endMs = Instant.now().toEpochMilli();
-            arbitrageService.getDeltaMon().setDeltaMs(endMs - startMs);
-
-            arbitrageService.getDeltaMon().setBorderMs(endMs - startMs);
+            long endMs = System.nanoTime();
+            arbitrageService.getDeltaMon().setAddNewDeltaMs((endMs - startMs) / 1000);
 
             arbitrageService.getDeltaMon().setItmes(
                     (long) avgDeltaInParts.getB_delta_sma_map().size(),
