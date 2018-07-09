@@ -1,33 +1,26 @@
 package com.bitplay.arbitrage.dto;
 
 import java.math.BigDecimal;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * Created by Sergey Shurmin on 1/31/18.
  */
+@Getter
+@AllArgsConstructor
 public class AvgPriceItem {
 
-    BigDecimal price;
     BigDecimal amount;
-
-    public AvgPriceItem(BigDecimal amount, BigDecimal price) {
-        this.amount = amount;
-        this.price = price;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
+    BigDecimal price;
+    String ordStatus;
 
     @Override
     public String toString() {
-        return "AvgPriceItem{" +
-                "price=" + price +
-                ", amount=" + amount +
+        return "{" +
+                "a=" + amount +
+                ",p=" + price +
+                ",s='" + ordStatus + '\'' +
                 '}';
     }
 }

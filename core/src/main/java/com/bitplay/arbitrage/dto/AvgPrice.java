@@ -1,17 +1,16 @@
 package com.bitplay.arbitrage.dto;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import org.knowm.xchange.dto.Order.OrderStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Sergey Shurmin on 1/31/18.
@@ -39,11 +38,16 @@ public class AvgPrice {
         this.openPrice = openPrice;
     }
 
-    public synchronized void addPriceItem(String orderId, BigDecimal amount, BigDecimal price) {
+    public synchronized void addPriceItem(String orderId, BigDecimal amount, BigDecimal price, OrderStatus orderStatus) {
+        String ordStatus = orderStatus == null ? "" : orderStatus.toString();
+        addPriceItem(orderId, amount, price, ordStatus);
+    }
+
+    public synchronized void addPriceItem(String orderId, BigDecimal amount, BigDecimal price, String ordStatus) {
         if (orderId != null) {
-            pItems.put(orderId, new AvgPriceItem(amount, price));
+            pItems.put(orderId, new AvgPriceItem(amount, price, ordStatus));
         } else {
-            logger.info("failed addPriceItem: orderId=" + orderId + ", amount=" + amount + ", price" + price);
+            logger.info("failed addPriceItem: orderId=null, amount=" + amount + ", price" + price);
         }
     }
 

@@ -425,7 +425,9 @@ public class OkCoinService extends MarketService {
                                     .filter(orderInfo -> openOrders.stream()
                                             .filter(o -> o.getOrderId().equals(orderInfo.getId())).noneMatch(o -> o.getOrder().getStatus() == Order.OrderStatus.FILLED))
                                     .forEach(orderInfo -> {
-                                        arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                                        arbitrageService.getDealPrices().getoPriceFact()
+                                                .addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(),
+                                                        orderInfo.getStatus());
                                         writeAvgPriceLog();
                                     });
                         }
@@ -516,7 +518,8 @@ public class OkCoinService extends MarketService {
             updateOpenOrders(Collections.singletonList((LimitOrder) orderInfo));
 
             arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
-            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+            arbitrageService.getDealPrices().getoPriceFact()
+                    .addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(), orderInfo.getStatus());
 
             if (orderInfo.getStatus() == OrderStatus.NEW) { // 1. Try cancel then
                 Pair<Boolean, Order> orderPair = cancelOrderWithCheck(orderId, "Taker:Cancel_maker:", "Taker:Cancel_makerStatus:");
@@ -890,7 +893,8 @@ public class OkCoinService extends MarketService {
                 }
 
                 arbitrageService.getDealPrices().setSecondOpenPrice(thePrice);
-                arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderId, limitOrderWithId.getCumulativeAmount(), limitOrderWithId.getAveragePrice());
+                arbitrageService.getDealPrices().getoPriceFact()
+                        .addPriceItem(orderId, limitOrderWithId.getCumulativeAmount(), limitOrderWithId.getAveragePrice(), limitOrderWithId.getStatus());
 
                 orderIdToSignalInfo.put(orderId, bestQuotes);
 
@@ -1018,7 +1022,7 @@ public class OkCoinService extends MarketService {
             orderRepositoryService.update(cancelledLimitOrder);
 
             arbitrageService.getDealPrices().getoPriceFact().addPriceItem(cancelledLimitOrder.getId(), cancelledLimitOrder.getCumulativeAmount(),
-                    cancelledLimitOrder.getAveragePrice());
+                    cancelledLimitOrder.getAveragePrice(), cancelledLimitOrder.getStatus());
 
             // 3. Already closed?
             final String counterName = getCounterName();
@@ -1625,11 +1629,15 @@ public class OkCoinService extends MarketService {
 
                                         if (newOrder != null) {
                                             final Order orderInfo = newOrder.getOrder();
-                                            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                                            arbitrageService.getDealPrices().getoPriceFact()
+                                                    .addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(),
+                                                            orderInfo.getStatus());
                                         }
                                         if (cancelledOrder != null) {
                                             final Order orderInfo = cancelledOrder.getOrder();
-                                            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice());
+                                            arbitrageService.getDealPrices().getoPriceFact()
+                                                    .addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(),
+                                                            orderInfo.getStatus());
                                             if (cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
                                                 writeAvgPriceLog();
                                             }
@@ -1717,6 +1725,6 @@ public class OkCoinService extends MarketService {
             }
         }
 
-        orderInfos.forEach(order -> avgPrice.addPriceItem(order.getId(), order.getCumulativeAmount(), order.getAveragePrice()));
+        orderInfos.forEach(order -> avgPrice.addPriceItem(order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus()));
     }
 }

@@ -204,11 +204,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 exchange.getNonceFactory(),
                 filter
         );
-        final List<Execution> collect = executionList.stream()
-                .filter(ord -> ord.getOrdStatus().equals("PartiallyFilled") || ord.getOrdStatus().equals("Filled"))
-//                .map(BitmexAdapters::adaptOrder)
-                .collect(Collectors.toList());
-        return collect;
+        return executionList;
     }
 
     public List<Instrument> getFunding() throws IOException {

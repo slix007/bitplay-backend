@@ -66,6 +66,7 @@ import org.knowm.xchange.bitmex.service.BitmexAccountService;
 import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -414,7 +415,9 @@ public class BitmexService extends MarketService {
                                         if (cancelledFplayOrder != null) {
                                             orderStream = Stream.of(cancelledFplayOrder);
                                             final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
-                                            arbitrageService.getDealPrices().getbPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
+                                            arbitrageService.getDealPrices().getbPriceFact()
+                                                    .addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(),
+                                                            cancelledOrder.getAveragePrice(), cancelledOrder.getStatus());
                                         }
 
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
@@ -431,7 +434,9 @@ public class BitmexService extends MarketService {
                                             if (cancelledFplayOrder != null) {
                                                 final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
 
-                                                arbitrageService.getDealPrices().getbPriceFact().addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(), cancelledOrder.getAveragePrice());
+                                                arbitrageService.getDealPrices().getbPriceFact()
+                                                        .addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(),
+                                                                cancelledOrder.getAveragePrice(), cancelledOrder.getStatus());
 
                                                 final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
                                                         cancelledOrder.getType(),
@@ -450,7 +455,8 @@ public class BitmexService extends MarketService {
                                                 if (placedOrder != null) {
                                                     streamBuilder.add(new FplayOrder(placedOrder, openOrder.getBestQuotes(), openOrder.getPlacingType(), openOrder.getSignalType()));
                                                     arbitrageService.getDealPrices().getbPriceFact().addPriceItem(placedOrder.getId(),
-                                                            placedOrder.getCumulativeAmount(), placedOrder.getAveragePrice());
+                                                            placedOrder.getCumulativeAmount(), placedOrder.getAveragePrice(),
+                                                            placedOrder.getStatus());
                                                 }
 
                                                 // 3. failed on placing
@@ -908,7 +914,9 @@ public class BitmexService extends MarketService {
                         orderRepositoryService.save(fplayOrder);
                         if (orderId != null && !orderId.equals("0")) {
                             tradeResponse.setLimitOrder(resultOrder);
-                            arbitrageService.getDealPrices().getbPriceFact().addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice());
+                            arbitrageService.getDealPrices().getbPriceFact()
+                                    .addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(),
+                                            resultOrder.getStatus());
                         }
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
@@ -935,7 +943,8 @@ public class BitmexService extends MarketService {
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
-                        arbitrageService.getDealPrices().getbPriceFact().addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice());
+                        arbitrageService.getDealPrices().getbPriceFact()
+                                .addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(), resultOrder.getStatus());
 
                         // workaround for OO list: set as limit order
                         tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, orderId, new Date(),
@@ -1102,7 +1111,8 @@ public class BitmexService extends MarketService {
                 tradeLogger.info(logString);
                 ordersLogger.info(logString);
 
-                arbitrageService.getDealPrices().getbPriceFact().addPriceItem(updatedOrder.getId(), updatedOrder.getCumulativeAmount(), updatedOrder.getAveragePrice());
+                arbitrageService.getDealPrices().getbPriceFact()
+                        .addPriceItem(updatedOrder.getId(), updatedOrder.getCumulativeAmount(), updatedOrder.getAveragePrice(), updatedOrder.getStatus());
 
                 if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
                     if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
@@ -1171,7 +1181,8 @@ public class BitmexService extends MarketService {
             }
         }
 
-        arbitrageService.getDealPrices().getbPriceFact().addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), limitOrder.getAveragePrice());
+        arbitrageService.getDealPrices().getbPriceFact()
+                .addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), limitOrder.getAveragePrice(), limitOrder.getStatus());
         return diffWithSignal;
     }
 
@@ -1472,37 +1483,62 @@ public class BitmexService extends MarketService {
     public void updateAvgPrice(AvgPrice avgPrice) {
         final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
         boolean success = false;
+        final String counterName = getCounterName();
         for (String orderId : itemMap.keySet()) {
-            final String logMsg = String.format("%s AvgPrice update of orderId=%s.", getCounterName(), orderId);
-            int MAX_ATTEMPTS = 3;
+            AvgPriceItem theItem = itemMap.get(orderId);
+            final String logMsg = String.format("%s AvgPrice update of orderId=%s.", counterName, orderId);
+            int MAX_ATTEMPTS = 50;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 try {
                     final Collection<Execution> orderParts = ((BitmexTradeService) getTradeService()).getOrderParts(orderId);
 
-                    BigDecimal multiplySum = BigDecimal.ZERO;
-                    BigDecimal amountSum = BigDecimal.ZERO;
-                    for (Execution orderPart : orderParts) {
-                        final BigDecimal lastPx = BigDecimal.valueOf(orderPart.getLastPx());
-                        final BigDecimal lastQty = orderPart.getLastQty();
-
-                        multiplySum = multiplySum.add(lastPx.multiply(lastQty));
-                        amountSum = amountSum.add(lastQty);
-                    }
-
-                    if (amountSum.signum() > 0) {
-                        final BigDecimal price = multiplySum.divide(amountSum, 2, RoundingMode.HALF_UP);
-                        avgPrice.addPriceItem(orderId, amountSum, price);
-                        tradeLogger.info(String.format("%s p=%s, a=%s.", logMsg, price, amountSum));
-                        success = true;
-                        break;
+                    if (orderParts.size() == 0) {
+                        // Try to Update a whole order info.
+                        Collection<Order> orders = getTradeService().getOrder(orderId);
+                        if (orders.size() == 0) {
+                            tradeLogger.info(String.format("%s WARNING: no order parts. Can not update order.", logMsg));
+                        } else {
+                            Order order = orders.iterator().next();
+                            if (order.getStatus() != null && order.getStatus() == OrderStatus.CANCELED) {
+                                tradeLogger.info(String.format("%s WARNING: no order parts. Order is CANCELLED: %s", logMsg, Arrays.toString(orders.toArray())));
+                                break;
+                            } else {
+                                tradeLogger.info(String.format("%s WARNING: no order parts. UpdatedOrderInfo:%s", logMsg, Arrays.toString(orders.toArray())));
+                                avgPrice.addPriceItem(orderId, order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus());
+                            }
+                        }
                     } else {
-                        tradeLogger.info(String.format("%s price=0. Use old p=%s, a=%s. %s",
-                                logMsg,
-                                itemMap.get(orderId).getPrice(),
-                                itemMap.get(orderId).getAmount(),
-                                Arrays.toString(orderParts.toArray())
-                        ));
+                        BigDecimal multiplySum = BigDecimal.ZERO;
+                        BigDecimal amountSum = BigDecimal.ZERO;
+                        String ordStatus = "";
+
+                        for (Execution orderPart : orderParts) {
+                            final BigDecimal lastPx = BigDecimal.valueOf(orderPart.getLastPx());
+                            final BigDecimal lastQty = orderPart.getLastQty();
+
+                            multiplySum = multiplySum.add(lastPx.multiply(lastQty));
+                            amountSum = amountSum.add(lastQty);
+                            ordStatus = orderPart.getOrdStatus();
+                        }
+
+                        if (amountSum.signum() > 0) {
+                            final BigDecimal price = multiplySum.divide(amountSum, 2, RoundingMode.HALF_UP);
+                            avgPrice.addPriceItem(orderId, amountSum, price, ordStatus);
+                            tradeLogger.info(String.format("%s p=%s, a=%s. ordStatus=%s", logMsg, price, amountSum, ordStatus));
+                            success = true;
+                            break;
+                        } else {
+                            tradeLogger.info(String.format("%s price=0. Use 'order history' price p=%s, a=%s, ordStatus=%s. %s",
+                                    logMsg,
+                                    theItem.getPrice(),
+                                    theItem.getAmount(),
+                                    ordStatus,
+                                    Arrays.toString(orderParts.toArray())
+                            ));
+                        }
                     }
+
+
                 } catch (Exception e) {
                     logger.info(String.format("%s updateAvgPriceError.", logMsg), e);
                     tradeLogger.info(String.format("%s updateAvgPriceError %s", logMsg, e.getMessage()));
@@ -1510,17 +1546,21 @@ public class BitmexService extends MarketService {
                 }
 
                 try {
-                    Thread.sleep(attempt * 200);
+                    Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     logger.info(String.format("%s Sleep Error.", logMsg), e);
                 }
             }
         }
-        if (!success) {
-            tradeLogger.info("{} Use old price! {}", getCounterName(), arbitrageService.getDealPrices().getDiffB().str);
-        }
+//        if (!success) {
+        tradeLogger.info("{} AvgPrice by {} orders({}) is {}", counterName,
+                itemMap.size(),
+                Arrays.toString(itemMap.keySet().toArray()),
+                avgPrice.getAvg());
 
-        tradeLogger.info("{} {}", getCounterName(), arbitrageService.getDealPrices().getDiffB().str);
+//        }
+
+        tradeLogger.info("{} {}", counterName, arbitrageService.getDealPrices().getDiffB().str);
     }
 
     private class HttpStatusIOExceptionHandler {
