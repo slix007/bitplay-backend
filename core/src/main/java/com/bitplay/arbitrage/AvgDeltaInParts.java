@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -367,6 +366,7 @@ public class AvgDeltaInParts implements AvgDelta {
         if (b_delta_sma_map.containsKey(dlt.getTimestamp().toInstant())) {
             logger.warn("btmx Double add of " + dlt.toString());
             debugLog.warn("btmx Double add of " + dlt.toString());
+            return;
         }
         b_delta_sma_map.put(dlt.getTimestamp().toInstant(), dlt.getDelta());
         num_sma_btm += dlt.getValue();
@@ -385,6 +385,7 @@ public class AvgDeltaInParts implements AvgDelta {
         if (o_delta_sma_map.containsKey(dlt.getTimestamp().toInstant())) {
             logger.warn("okex Double add of " + dlt.toString());
             debugLog.warn("okex Double add of " + dlt.toString());
+            return;
         }
         o_delta_sma_map.put(dlt.getTimestamp().toInstant(), dlt.getDelta());
         num_sma_ok += dlt.getValue();
