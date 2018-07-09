@@ -8,6 +8,7 @@ import com.bitplay.persistance.domain.fluent.Dlt;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,8 +35,8 @@ public class AvgDeltaInParts implements AvgDelta {
     private volatile long num_sma_ok;     // сумма значений дельт в промежутке delta_hist_per
     private volatile long den_sma_ok;     // количество дельт в промежутке delta_hist_per
 
-    private Map<Instant, BigDecimal> b_delta_sma_map = new ConcurrentHashMap<>();
-    private Map<Instant, BigDecimal> o_delta_sma_map = new ConcurrentHashMap<>();
+    private Map<Instant, BigDecimal> b_delta_sma_map = new HashMap<>();
+    private Map<Instant, BigDecimal> o_delta_sma_map = new HashMap<>();
 
     private List<Dlt> b_delta = new ArrayList<>();
     private List<Dlt> o_delta = new ArrayList<>();
