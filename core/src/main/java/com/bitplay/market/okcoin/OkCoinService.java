@@ -776,6 +776,7 @@ public class OkCoinService extends MarketService {
         } else {
             String message = exception.getMessage();
             if (message.contains("connect timed out") // SocketTimeoutException
+                    || message.contains("Read timed out") // SocketTimeoutException
                     || message.contains("Signature does not match")) { // ExchangeException
                 return NextStep.CONTINUE;
             }
