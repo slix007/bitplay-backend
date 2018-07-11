@@ -149,6 +149,10 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
         }
 
+        if (settingsUpdate.getSignalDelayMs() != null) {
+            settings.setSignalDelayMs(settingsUpdate.getSignalDelayMs());
+            settingsRepositoryService.saveSettings(settings);
+        }
         return settings;
     }
 }

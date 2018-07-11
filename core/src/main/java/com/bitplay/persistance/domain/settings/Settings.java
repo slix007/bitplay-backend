@@ -35,6 +35,7 @@ public class Settings extends AbstractDocument {
     private FeeSettings feeSettings;
     private Limits limits;
     private RestartSettings restartSettings;
+    private Integer signalDelayMs;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -46,6 +47,7 @@ public class Settings extends AbstractDocument {
         settings.feeSettings = FeeSettings.createDefault();
         settings.limits = Limits.createDefault();
         settings.restartSettings = RestartSettings.createDefaults();
+        settings.signalDelayMs = 1000;
         settings.setId(1L);
         return settings;
     }
