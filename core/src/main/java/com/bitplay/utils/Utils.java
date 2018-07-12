@@ -112,6 +112,16 @@ public class Utils {
         return thePrice;
     }
 
+    public static BigDecimal calcQuAvg(OrderBook orderBook) {
+        if (orderBook.getAsks().size() == 0 || orderBook.getBids().size() == 0) {
+            return BigDecimal.ZERO;
+        }
+//        qu_avg = (b_bid[1] + b_ask[1]) / 2;
+        final BigDecimal bB = Utils.getBestBid(orderBook).getLimitPrice();
+        final BigDecimal bA = Utils.getBestAsk(orderBook).getLimitPrice();
+        return (bB.add(bA)).divide(BigDecimal.valueOf(2), 2, BigDecimal.ROUND_HALF_UP);
+    }
+
     public static BigDecimal calcQuAvg(OrderBook orderBookFirst, OrderBook orderBookSecond) {
         if (orderBookFirst.getBids().size() == 0|| orderBookSecond.getBids().size() == 0) {
             return BigDecimal.ZERO;

@@ -1155,7 +1155,10 @@ public class ArbitrageService {
             final BigDecimal quAvg = Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
 
             final BigDecimal sumEBestUsdCurr = sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
-            sumEBestUsd = (bEbest.add(oEbest)).multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
+
+            final BigDecimal btmQu = Utils.calcQuAvg(firstMarketService.getOrderBook());
+            sumEBestUsd = (bEbest.add(oEbest)).multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
+
             sumBalString = String.format("s_bal=w%s_%s, s_e_%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
                     sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1258,7 +1261,10 @@ public class ArbitrageService {
                 final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
 
                 final BigDecimal sumEBestUsdCurr = sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
-                sumEBestUsd = (bEbest.add(oEbest)).multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
+
+                final BigDecimal btmQu = Utils.calcQuAvg(firstMarketService.getOrderBook());
+                sumEBestUsd = (bEbest.add(oEbest)).multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
+
                 final String sBalStr = String.format("#%s s_bal=w%s_%s, s_e%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
                         counterName,
                         sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
