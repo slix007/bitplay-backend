@@ -153,6 +153,10 @@ public class SettingsEndpoint {
             settings.setSignalDelayMs(settingsUpdate.getSignalDelayMs());
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getColdStorageBtc() != null) {
+            settings.setColdStorageBtc(settingsUpdate.getColdStorageBtc());
+            settingsRepositoryService.saveSettings(settings);
+        }
         return settings;
     }
 }

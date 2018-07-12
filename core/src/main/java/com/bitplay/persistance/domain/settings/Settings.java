@@ -36,6 +36,7 @@ public class Settings extends AbstractDocument {
     private Limits limits;
     private RestartSettings restartSettings;
     private Integer signalDelayMs;
+    private BigDecimal coldStorageBtc;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();

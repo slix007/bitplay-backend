@@ -1143,21 +1143,23 @@ public class ArbitrageService {
             if (bW == null || oW == null) {
                 throw new IllegalStateException(String.format("Balance is not yet defined. bW=%s, oW=%s", bW, oW));
             }
-            final BigDecimal sumW = bW.add(oW).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumE = bEMark.add(oELast).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumEBest = bEbest.add(oEbest).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumEAvg = bEAvg.add(oEAvg).setScale(8, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
+            final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal sumE = bEMark.add(oELast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal sumEBest = bEbest.add(oEbest).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal sumEAvg = bEAvg.add(oEAvg).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumUpl = bU.add(oU).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
 
             final BigDecimal quAvg = Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
 
-            sumEBestUsd = sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal sumEBestUsdCurr = sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
+            sumEBestUsd = (bEbest.add(oEbest)).multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
             sumBalString = String.format("s_bal=w%s_%s, s_e_%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
                     sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumEBest.toPlainString(), sumEBestUsd,
+                    sumEBest.toPlainString(), sumEBestUsdCurr,
                     sumEAvg.toPlainString(), sumEAvg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumM.toPlainString(), sumM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1246,20 +1248,22 @@ public class ArbitrageService {
                         oBestBid
                 ));
 
-                final BigDecimal sumW = bW.add(oW).setScale(8, BigDecimal.ROUND_HALF_UP);
-                final BigDecimal sumE = bEmark.add(oElast).setScale(8, BigDecimal.ROUND_HALF_UP);
-                final BigDecimal sumEBest = bEbest.add(oEbest).setScale(8, BigDecimal.ROUND_HALF_UP);
-                final BigDecimal sumEavg = bEavg.add(oEavg).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
+                final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumE = bEmark.add(oElast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumEBest = bEbest.add(oEbest).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumEavg = bEavg.add(oEavg).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumUpl = bU.add(oU).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
 
-                sumEBestUsd = sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumEBestUsdCurr = sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
+                sumEBestUsd = (bEbest.add(oEbest)).multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
                 final String sBalStr = String.format("#%s s_bal=w%s_%s, s_e%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
                         counterName,
                         sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                         sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        sumEBest.toPlainString(), sumEBestUsd,
+                        sumEBest.toPlainString(), sumEBestUsdCurr,
                         sumEavg.toPlainString(), sumEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                         sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
                         sumM.toPlainString(), sumM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
