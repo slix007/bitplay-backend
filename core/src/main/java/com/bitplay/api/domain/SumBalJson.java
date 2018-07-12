@@ -16,5 +16,6 @@ public class SumBalJson {
     private String result;
     private String s_e_best;
     private String s_e_best_min;
+    private String cold_storage;
 
 }

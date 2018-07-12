@@ -390,7 +390,8 @@ public class CommonUIService {
         final String sumBalString = arbitrageService.getSumBalString();
         final String sumEBest = arbitrageService.getSumEBestUsd().toPlainString();
         final String sumEBestMin = config.getEBestMin().toString();
-        return new SumBalJson(sumBalString, sumEBest, sumEBestMin);
+        final String coldStorage = settingsRepositoryService.getSettings().getColdStorageBtc().toPlainString();
+        return new SumBalJson(sumBalString, sumEBest, sumEBestMin, coldStorage);
     }
 
     public ResultJson getPosDiff() {
