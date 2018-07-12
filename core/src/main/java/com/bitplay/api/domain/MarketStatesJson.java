@@ -1,16 +1,22 @@
 package com.bitplay.api.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * Created by Sergey Shurmin on 6/1/17.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@AllArgsConstructor
+@Getter
 public class MarketStatesJson {
     String firstMarket;
     String secondMarket;
     String firstTimeToReset;
     String secondTimeToReset;
+    String signalDelay;
+    String timeToSignal;
 
     public MarketStatesJson() {
     }
@@ -20,37 +26,5 @@ public class MarketStatesJson {
         this.secondMarket = secondMarket;
         this.firstTimeToReset = firstTimeToReset;
         this.secondTimeToReset = secondTimeToReset;
-    }
-
-    public void setFirstMarket(String firstMarket) {
-        this.firstMarket = firstMarket;
-    }
-
-    public void setSecondMarket(String secondMarket) {
-        this.secondMarket = secondMarket;
-    }
-
-    public void setFirstTimeToReset(String firstTimeToReset) {
-        this.firstTimeToReset = firstTimeToReset;
-    }
-
-    public void setSecondTimeToReset(String secondTimeToReset) {
-        this.secondTimeToReset = secondTimeToReset;
-    }
-
-    public String getFirstMarket() {
-        return firstMarket;
-    }
-
-    public String getSecondMarket() {
-        return secondMarket;
-    }
-
-    public String getFirstTimeToReset() {
-        return firstTimeToReset;
-    }
-
-    public String getSecondTimeToReset() {
-        return secondTimeToReset;
     }
 }

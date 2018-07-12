@@ -826,6 +826,14 @@ public class ArbitrageService {
         }, signalDelayMs, TimeUnit.MILLISECONDS);
     }
 
+    public String getTimeToSignal() {
+        if (futureSignal != null && !futureSignal.isDone()) {
+            long delay = futureSignal.getDelay(TimeUnit.MILLISECONDS);
+            return String.valueOf(delay);
+        }
+        return "_";
+    }
+
     private void stopSignalDelay() {
         signalDelayActivateTime = null;
         if (futureSignal != null && !futureSignal.isDone()) {

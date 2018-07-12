@@ -333,7 +333,10 @@ public class CommonUIService {
                 arbitrageService.getFirstMarketService().getMarketState().name(),
                 arbitrageService.getSecondMarketService().getMarketState().name(),
                 arbitrageService.getFirstMarketService().getTimeToReset(),
-                arbitrageService.getSecondMarketService().getTimeToReset()
+                arbitrageService.getSecondMarketService().getTimeToReset(),
+                String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
+                arbitrageService.getTimeToSignal()
+
         );
     }
 

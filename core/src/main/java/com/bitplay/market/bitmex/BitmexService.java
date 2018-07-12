@@ -1487,7 +1487,7 @@ public class BitmexService extends MarketService {
         for (String orderId : itemMap.keySet()) {
             AvgPriceItem theItem = itemMap.get(orderId);
             final String logMsg = String.format("%s AvgPrice update of orderId=%s.", counterName, orderId);
-            int MAX_ATTEMPTS = 50;
+            int MAX_ATTEMPTS = 5;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 try {
                     final Collection<Execution> orderParts = ((BitmexTradeService) getTradeService()).getOrderParts(orderId);
