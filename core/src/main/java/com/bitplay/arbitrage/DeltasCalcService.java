@@ -160,17 +160,17 @@ public class DeltasCalcService {
     }
 
     public String getBDeltaEveryCalc() {
-       return String.format("<span style=\"color: %s;\">%s / %s / 100 = %s</span>",
+       return String.format("<span style=\"color: %s;\">%s / %s = %s</span>",
                avgDeltaInParts.isHasErrorsBtm() ? "red" : "black",
-               avgDeltaInParts.getNum_sma_btm(),
+               BigDecimal.valueOf(avgDeltaInParts.getNum_sma_btm()).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).toPlainString(),
                avgDeltaInParts.getDen_sma_btm(),
                avgDeltaInParts.getCurrSmaBtmDelta());
     }
 
     public String getODeltaEveryCalc() {
-        return String.format("<span style=\"color: %s;\">%s / %s / 100 = %s</span>",
+        return String.format("<span style=\"color: %s;\">%s / %s = %s</span>",
                 avgDeltaInParts.isHasErrorsOk() ? "red" : "black",
-                avgDeltaInParts.getNum_sma_ok(),
+                BigDecimal.valueOf(avgDeltaInParts.getNum_sma_ok()).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 avgDeltaInParts.getDen_sma_ok(),
                 avgDeltaInParts.getCurrSmaOkDelta());
     }
