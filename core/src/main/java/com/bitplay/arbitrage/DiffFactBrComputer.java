@@ -124,7 +124,7 @@ public class DiffFactBrComputer {
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
 
-                checkByDeltaPlan(delta_plan, valueI);
+                checkByDeltaPlan(delta_plan, br_open.get(i));
                 wamBr.add(amountPortion, valueI);
             }
         }
@@ -164,16 +164,17 @@ public class DiffFactBrComputer {
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
 
-                checkByDeltaPlan(delta_plan, valueI);
+                checkByDeltaPlan(delta_plan, br_close.get(i));
                 wamBr.add(amountPortion, valueI);
             }
         }
         return wamBr;
     }
 
-    private void checkByDeltaPlan(BigDecimal delta_plan, BigDecimal valueI) throws ToWarningLogException {
+    private void checkByDeltaPlan(BigDecimal delta_plan, BorderItem borderItem) throws ToWarningLogException {
+        BigDecimal valueI = borderItem.getValue();
         if (delta_plan.doubleValue() < valueI.doubleValue()) { // should not be such case
-            throw new ToWarningLogException(String.format("delta_plan=%s < value=%s", delta_plan, valueI));
+            throw new ToWarningLogException(String.format("delta_plan=%s < value=%s. BorderItem=%s", delta_plan, valueI, borderItem.toString()));
         }
     }
 
