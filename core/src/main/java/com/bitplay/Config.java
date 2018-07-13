@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Properties;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -37,16 +38,20 @@ public class Config {
 
     @Value("${e_best_min}")
     private Integer defaultEBestMin;
+    @Value("${cold_storage}")
+    private BigDecimal defaultColdStorage;
 
-    //    @Value("${e_best_min}")
     private Integer eBestMin;
+    private BigDecimal coldStorage;
 
     public void reload() {
         Properties properties = reloadPropertyFile();
-        String e_best_min = properties.getProperty("e_best_min");
+        final String e_best_min = properties.getProperty("e_best_min");
+        final String cold_storage = properties.getProperty("cold_storage");
         eBestMin = e_best_min == null ? null : Integer.valueOf(e_best_min);
+        coldStorage = cold_storage == null ? null : new BigDecimal(cold_storage);
 
-        log.info("Reload e_best_min=" + eBestMin);
+        log.info("Reload e_best_min=" + eBestMin + ", cold_storage=" + coldStorage);
     }
 
     private Properties reloadPropertyFile() {
@@ -82,10 +87,10 @@ public class Config {
     }
 
     public Integer getEBestMin() {
-        if (eBestMin != null) {
-            return eBestMin;
-        }
-        return defaultEBestMin;
+        return eBestMin != null ? eBestMin : defaultEBestMin;
     }
 
+    public BigDecimal getColdStorage() {
+        return coldStorage != null ? coldStorage : defaultColdStorage;
+    }
 }

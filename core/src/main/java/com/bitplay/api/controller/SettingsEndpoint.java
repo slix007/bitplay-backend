@@ -2,6 +2,8 @@ package com.bitplay.api.controller;
 
 import com.bitplay.Config;
 import com.bitplay.api.domain.ResultJson;
+import com.bitplay.api.domain.SumBalJson;
+import com.bitplay.api.service.CommonUIService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
@@ -33,6 +35,9 @@ public class SettingsEndpoint {
     @Autowired
     SettingsRepositoryService settingsRepositoryService;
 
+    @Autowired
+    private CommonUIService commonUIService;
+
     /**
      * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
      */
@@ -40,9 +45,11 @@ public class SettingsEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson reloadSumEBestMin() {
+    public SumBalJson reloadSumEBestMin() {
         config.reload();
-        return new ResultJson(config.getEBestMin().toString(), "");
+        final String sumEBestMin = config.getEBestMin().toString();
+        final String coldStorage = config.getColdStorage().toPlainString();
+        return new SumBalJson("", "", sumEBestMin, coldStorage);
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -153,10 +160,10 @@ public class SettingsEndpoint {
             settings.setSignalDelayMs(settingsUpdate.getSignalDelayMs());
             settingsRepositoryService.saveSettings(settings);
         }
-        if (settingsUpdate.getColdStorageBtc() != null) {
-            settings.setColdStorageBtc(settingsUpdate.getColdStorageBtc());
-            settingsRepositoryService.saveSettings(settings);
-        }
+//        if (settingsUpdate.getColdStorageBtc() != null) {
+//            settings.setColdStorageBtc(settingsUpdate.getColdStorageBtc());
+//            settingsRepositoryService.saveSettings(settings);
+//        }
         return settings;
     }
 }

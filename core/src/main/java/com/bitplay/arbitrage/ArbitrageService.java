@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.Config;
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.BordersService.TradingSignal;
 import com.bitplay.arbitrage.dto.AvgPrice;
@@ -98,6 +99,9 @@ public class ArbitrageService {
     private DeltasCalcService deltasCalcService;
     @Autowired
     private TraderPermissionsService traderPermissionsService;
+    @Autowired
+    private Config config;
+
 //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
 //    private volatile int updateBordersCounter;
@@ -1151,7 +1155,7 @@ public class ArbitrageService {
             if (bW == null || oW == null) {
                 throw new IllegalStateException(String.format("Balance is not yet defined. bW=%s, oW=%s", bW, oW));
             }
-            final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
+            final BigDecimal coldStorageBtc = config.getColdStorage();
             final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumE = bEMark.add(oELast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumEBest = bEbest.add(oEbest).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
@@ -1165,7 +1169,7 @@ public class ArbitrageService {
             final BigDecimal sumEBestUsdCurr = sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
 
             final BigDecimal btmQu = Utils.calcQuAvg(firstMarketService.getOrderBook());
-            sumEBestUsd = (bEbest.add(oEbest)).multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
+            sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
             sumBalString = String.format("s_bal=w%s_%s, s_e_%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
                     sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1259,7 +1263,7 @@ public class ArbitrageService {
                         oBestBid
                 ));
 
-                final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
+                final BigDecimal coldStorageBtc = config.getColdStorage();
                 final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumE = bEmark.add(oElast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumEBest = bEbest.add(oEbest).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
@@ -1271,7 +1275,7 @@ public class ArbitrageService {
                 final BigDecimal sumEBestUsdCurr = sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
 
                 final BigDecimal btmQu = Utils.calcQuAvg(firstMarketService.getOrderBook());
-                sumEBestUsd = (bEbest.add(oEbest)).multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
+                sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
                 final String sBalStr = String.format("#%s s_bal=w%s_%s, s_e%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
                         counterName,

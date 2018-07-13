@@ -393,7 +393,7 @@ public class CommonUIService {
         final String sumBalString = arbitrageService.getSumBalString();
         final String sumEBest = arbitrageService.getSumEBestUsd().toPlainString();
         final String sumEBestMin = config.getEBestMin().toString();
-        final String coldStorage = settingsRepositoryService.getSettings().getColdStorageBtc().toPlainString();
+        final String coldStorage = config.getColdStorage().toPlainString();
         return new SumBalJson(sumBalString, sumEBest, sumEBestMin, coldStorage);
     }
 
