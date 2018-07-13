@@ -314,6 +314,7 @@ public class BitmexService extends MarketService {
                 Thread.holdsLock(openOrdersLock));
     }
 
+    @Scheduled(fixedRate = 1000)
     @Override
     public String fetchPosition() throws Exception {
         final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
