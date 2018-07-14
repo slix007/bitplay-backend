@@ -37,6 +37,7 @@ public class Settings extends AbstractDocument {
     private RestartSettings restartSettings;
     private Integer signalDelayMs;
     private BigDecimal coldStorageBtc;
+    private UsdQuoteType usdQuoteType;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();

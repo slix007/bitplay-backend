@@ -1,7 +1,6 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.Config;
-import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.service.CommonUIService;
 import com.bitplay.persistance.SettingsRepositoryService;
@@ -164,6 +163,10 @@ public class SettingsEndpoint {
 //            settings.setColdStorageBtc(settingsUpdate.getColdStorageBtc());
 //            settingsRepositoryService.saveSettings(settings);
 //        }
+        if (settingsUpdate.getUsdQuoteType() != null) {
+            settings.setUsdQuoteType(settingsUpdate.getUsdQuoteType());
+            settingsRepositoryService.saveSettings(settings);
+        }
         return settings;
     }
 }
