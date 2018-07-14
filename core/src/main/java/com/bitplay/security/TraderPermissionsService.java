@@ -63,7 +63,7 @@ public class TraderPermissionsService {
             violateTimeSec = null;
         }
 
-        final Long VIOLATE_TIME_SEC = 5L;
+        final Long VIOLATE_TIME_SEC = 7L;
         if (violateTimeSec != null
                 && Instant.now().getEpochSecond() - violateTimeSec > VIOLATE_TIME_SEC) {
             return false;
