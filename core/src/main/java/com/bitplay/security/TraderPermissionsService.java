@@ -46,7 +46,6 @@ public class TraderPermissionsService {
             }
             if (sumEBestUsd.compareTo(BigDecimal.valueOf(eBestMin)) < 0) {
                 log.warn("WARNING: sumEBestUsd({}) < e_best_min({})", sumEBestUsd, eBestMin);
-                warningLogger.warn("WARNING: sumEBestUsd({}) < e_best_min({})", sumEBestUsd, eBestMin);
                 return isValidWithDelay(false);
             }
         } catch (Exception e) {

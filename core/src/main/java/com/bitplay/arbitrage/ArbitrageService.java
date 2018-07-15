@@ -1233,6 +1233,9 @@ public class ArbitrageService {
                     sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
 
             if (!traderPermissionsService.isEBestMinOk()) {
+                Integer eBestMin = config.getEBestMin();
+                warningLogger.warn("WARNING: sumEBestUsd({}) < e_best_min({})", sumEBestUsd, eBestMin);
+
                 firstMarketService.setMarketState(MarketState.FORBIDDEN);
                 secondMarketService.setMarketState(MarketState.FORBIDDEN);
             }
