@@ -242,29 +242,8 @@ public class ArbitrageService {
             final BigDecimal ok_bid = dealPrices.getBestQuotes().getBid1_o();
             final BigDecimal ok_ask = dealPrices.getBestQuotes().getAsk1_o();
 
-            // workaround. Bitmex sends wrong avgPrice. Fetch detailed history for each order and calc avgPrice.
-            final Instant start = Instant.now();
-            ((BitmexService) getFirstMarketService()).updateAvgPrice(dealPrices.getbPriceFact());
-            ((OkCoinService) getSecondMarketService()).writeAvgPriceLog();
-            final Instant end = Instant.now();
-            logger.info("workaround: Bitmex updateAvgPrice. Time: " + Duration.between(start, end).toString());
-
-            BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg(true);
-            BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
-            if (ok_price_fact.signum() == 0) {
-                deltasLogger.info("Wait 200mc for avgPrice");
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    logger.error("Error on Wait 200mc for avgPrice");
-                }
-
-                ((OkCoinService) getSecondMarketService()).updateAvgPrice(dealPrices.getoPriceFact());
-                ((OkCoinService) getSecondMarketService()).writeAvgPriceLog();
-
-                b_price_fact = dealPrices.getbPriceFact().getAvg(true);
-                ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
-            }
+            BigDecimal b_price_fact = fetchBtmFactPrice();
+            BigDecimal ok_price_fact = fetchOkFactPrice();
 
             deltasLogger.info(String.format("#%s Params for calc: con=%s, b_bid=%s, b_ask=%s, ok_bid=%s, ok_ask=%s, b_price_fact=%s, ok_price_fact=%s",
                     getCounter(), con, b_bid, b_ask, ok_bid, ok_ask, b_price_fact, ok_price_fact));
@@ -364,6 +343,79 @@ public class ArbitrageService {
             saveParamsToDb();
         }
 
+    }
+
+    private BigDecimal fetchBtmFactPrice() throws RoundIsNotDoneException {
+        // workaround. Bitmex sends wrong avgPrice. Fetch detailed history for each order and calc avgPrice.
+        final Instant start = Instant.now();
+
+        BigDecimal b_price_fact = BigDecimal.ZERO;
+        int attempt = 0;
+        int maxAttempts = 5;
+        while (attempt < maxAttempts) {
+            attempt++;
+
+            try {
+
+                ((BitmexService) getFirstMarketService()).updateAvgPrice(dealPrices.getbPriceFact());
+                b_price_fact = dealPrices.getbPriceFact().getAvg(true);
+                break;
+
+            } catch (RoundIsNotDoneException e) {
+                // logs are written in AvgPrice.getAvgPrice(true);
+                if (attempt == maxAttempts) {
+                    throw e;
+                }
+
+                try {
+                    deltasLogger.info("Wait 200mc for avgPrice");
+                    Thread.sleep(200);
+                } catch (InterruptedException e1) {
+                    logger.error("Error on Wait 200mc for avgPrice", e1);
+                }
+
+            }
+        }
+
+        final Instant end = Instant.now();
+        logger.info(String.format("workaround: Bitmex updateAvgPrice. Attempt=%s. Time: %s",
+                attempt, Duration.between(start, end).toString()));
+
+        return b_price_fact;
+    }
+
+    private BigDecimal fetchOkFactPrice() throws RoundIsNotDoneException {
+
+        BigDecimal ok_price_fact = BigDecimal.ZERO;
+        int attempt = 0;
+        int maxAttempts = 5;
+        while (attempt < maxAttempts) {
+            attempt++;
+
+            try {
+                ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
+
+                ((OkCoinService) getSecondMarketService()).writeAvgPriceLog();
+                break;
+
+            } catch (RoundIsNotDoneException e) {
+                // logs are written in AvgPrice.getAvgPrice(true);
+                if (attempt == maxAttempts) {
+                    throw e;
+                }
+
+                try {
+//                    deltasLogger.info("Wait 200mc for avgPrice");
+                    Thread.sleep(200);
+                } catch (InterruptedException e1) {
+                    logger.error("Error on Wait 200mc for avgPrice", e1);
+                }
+
+                ((OkCoinService) getSecondMarketService()).updateAvgPrice(dealPrices.getoPriceFact());
+            }
+        }
+
+        return ok_price_fact;
     }
 
     private void printP3DeltaFact(BigDecimal deltaFact, String deltaFactString, BigDecimal ast_diff_fact1, BigDecimal ast_diff_fact2, BigDecimal ast_delta, BigDecimal ast_delta_fact, BigDecimal delta) {

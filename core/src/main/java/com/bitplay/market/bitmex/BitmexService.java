@@ -1500,8 +1500,10 @@ public class BitmexService extends MarketService {
                             tradeLogger.info(String.format("%s WARNING: no order parts. Can not update order.", logMsg));
                         } else {
                             Order order = orders.iterator().next();
-                            if (order.getStatus() != null && order.getStatus() == OrderStatus.CANCELED) {
-                                tradeLogger.info(String.format("%s WARNING: no order parts. Order is CANCELLED: %s", logMsg, Arrays.toString(orders.toArray())));
+                            if (order.getStatus() != null &&
+                                    (order.getStatus() == OrderStatus.CANCELED || order.getStatus() == OrderStatus.REJECTED)) {
+                                tradeLogger.info(String.format("%s WARNING: no order parts. Order is %s: %s", logMsg,
+                                        order.getStatus(), Arrays.toString(orders.toArray())));
                                 break;
                             } else {
                                 tradeLogger.info(String.format("%s WARNING: no order parts. UpdatedOrderInfo:%s", logMsg, Arrays.toString(orders.toArray())));

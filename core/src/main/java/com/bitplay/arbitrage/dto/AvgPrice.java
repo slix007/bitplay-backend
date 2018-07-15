@@ -20,13 +20,13 @@ public class AvgPrice {
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     private final Map<String, AvgPriceItem> pItems = new LinkedHashMap<>();
-    private final BigDecimal maxAmount;
+    private final BigDecimal fullAmount;
     private final String marketName;
 
     private BigDecimal openPrice;
 
-    public AvgPrice(BigDecimal maxAmount, String marketName) {
-        this.maxAmount = maxAmount;
+    public AvgPrice(BigDecimal fullAmount, String marketName) {
+        this.fullAmount = fullAmount;
         this.marketName = marketName;
     }
 
@@ -56,40 +56,51 @@ public class AvgPrice {
     }
 
     public synchronized BigDecimal getAvg() {
-        return getAvg(false);
+        try {
+            return getAvg(false);
+        } catch (Exception e) {
+            logger.error("Error on Avg", e);
+        }
+        return BigDecimal.ZERO;
     }
 
-    public synchronized BigDecimal getAvg(boolean withLogs) {
-        BigDecimal avgPrice = BigDecimal.ZERO;
-        try {
-            List<AvgPriceItem> notNullItems = pItems.values().stream()
-                    .filter(Objects::nonNull)
-                    .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
-                    .collect(Collectors.toList());
+    public synchronized BigDecimal getAvg(boolean withLogs) throws RoundIsNotDoneException {
+        BigDecimal avgPrice;
+        List<AvgPriceItem> notNullItems = pItems.values().stream()
+                .filter(Objects::nonNull)
+                .filter(avgPriceItem -> avgPriceItem.getAmount() != null && avgPriceItem.getPrice() != null)
+                .collect(Collectors.toList());
 
-            if (notNullItems.isEmpty()) {
-                if (withLogs) {
-                    logger.warn(marketName + " WARNING avg price. Use openPrice: " + this);
-                    deltasLogger.info(marketName + "AvgPrice by openPrice: " + openPrice);
-                }
-                return openPrice; // may be null
+        if (notNullItems.isEmpty()) {
+            if (withLogs) {
+                String msg = String.format("%s WARNING: this is only openPrice. %s", marketName, this);
+                logger.warn(msg);
+                deltasLogger.info(msg);
+                throw new RoundIsNotDoneException(msg);
             }
+            return openPrice; // may be null
+        }
 
-            StringBuilder sb = new StringBuilder();
-            //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
-            BigDecimal sumNumerator = notNullItems.stream()
-                    .peek(avgPriceItem -> sb.append(String.format("(%s*%s)", avgPriceItem.amount, avgPriceItem.price)))
-                    .reduce(BigDecimal.ZERO,
-                            (accumulated, item) -> accumulated.add(item.getAmount().multiply(item.getPrice())),
-                            BigDecimal::add);
-            BigDecimal sumDenominator = notNullItems.stream()
-                    .reduce(BigDecimal.ZERO,
-                            (accumulated, item) -> accumulated.add(item.getAmount()),
-                            BigDecimal::add);
+        StringBuilder sb = new StringBuilder();
+        //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
+        BigDecimal sumNumerator = notNullItems.stream()
+                .peek(avgPriceItem -> sb.append(String.format("(%s*%s)", avgPriceItem.amount, avgPriceItem.price)))
+                .reduce(BigDecimal.ZERO,
+                        (accumulated, item) -> accumulated.add(item.getAmount().multiply(item.getPrice())),
+                        BigDecimal::add);
+        BigDecimal sumDenominator = notNullItems.stream()
+                .reduce(BigDecimal.ZERO,
+                        (accumulated, item) -> accumulated.add(item.getAmount()),
+                        BigDecimal::add);
 
-            if (maxAmount.compareTo(sumDenominator) != 0) {
-                logger.warn(marketName + " WARNING avg price calc: " + this.toString() + " NiceFormat: " + sb.toString());
-//                final BigDecimal left = maxAmount.subtract(sumDenominator);
+        if (fullAmount.compareTo(sumDenominator) != 0) {
+            String msg = String.format("%s WARNING avg price calc: %s NiceFormat: %s", marketName, this, sb.toString());
+            logger.warn(msg);
+            if (withLogs) {
+                deltasLogger.info(msg);
+                throw new RoundIsNotDoneException(msg);
+            }
+//                final BigDecimal left = fullAmount.subtract(sumDenominator);
 //                if (openPrice != null) {
 //                    sumNumerator = sumNumerator.add(left.multiply(openPrice));
 //                } else {
@@ -97,17 +108,15 @@ public class AvgPrice {
 //                    final AvgPriceItem lastItem = (AvgPriceItem) pItems.entrySet().toArray()[pItems.size() - 1];
 //                    sumNumerator = sumNumerator.add(left.multiply(lastItem.getPrice()));
 //                }
-//                sumDenominator = maxAmount;
-            }
-
-            avgPrice = sumDenominator.signum() == 0 ? BigDecimal.ZERO : sumNumerator.divide(sumDenominator, 2, RoundingMode.HALF_UP);
-
-            if (withLogs) {
-                deltasLogger.info(marketName + "AvgPrice: " + sb.toString() + " = " + avgPrice);
-            }
-        } catch (Exception e) {
-            logger.error("Error on Avg", e);
+//                sumDenominator = fullAmount;
         }
+
+        avgPrice = sumDenominator.signum() == 0 ? BigDecimal.ZERO : sumNumerator.divide(sumDenominator, 2, RoundingMode.HALF_UP);
+
+        if (withLogs) {
+            deltasLogger.info(marketName + "AvgPrice: " + sb.toString() + " = " + avgPrice);
+        }
+
         return avgPrice;
     }
 
@@ -123,7 +132,7 @@ public class AvgPrice {
     public String toString() {
         return "AvgPrice{" +
                 "pItems=" + pItems +
-                ", maxAmount=" + maxAmount +
+                ", fullAmount=" + fullAmount +
                 ", openPrice=" + openPrice +
                 ", marketName='" + marketName + '\'' +
                 '}';
