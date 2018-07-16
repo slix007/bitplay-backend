@@ -4,6 +4,9 @@ import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.domain.AbstractDocument;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -22,6 +25,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @ToString
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(toBuilder=true)
 public class Settings extends AbstractDocument {
 
     private ArbScheme arbScheme;
