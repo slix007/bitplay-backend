@@ -200,7 +200,7 @@ public class AfterArbTask implements Runnable {
             try {
 
                 bitmexService.updateAvgPrice(dealPrices.getbPriceFact());
-                b_price_fact = dealPrices.getbPriceFact().getAvg(true);
+                b_price_fact = dealPrices.getbPriceFact().getAvg(true, String.valueOf(counter));
                 break;
 
             } catch (RoundIsNotDoneException e) {
@@ -235,7 +235,7 @@ public class AfterArbTask implements Runnable {
             attempt++;
 
             try {
-                ok_price_fact = dealPrices.getoPriceFact().getAvg(true);
+                ok_price_fact = dealPrices.getoPriceFact().getAvg(true, String.valueOf(counter));
 
                 okCoinService.writeAvgPriceLog();
                 break;

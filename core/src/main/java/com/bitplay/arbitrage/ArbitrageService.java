@@ -213,8 +213,10 @@ public class ArbitrageService {
             if (arbInProgress.getAndSet(false)) {
 
                 // start writeLogArbitrageIsDone();
-                // use snapshot of Params
                 final int counterSnap = getCounter();
+                deltasLogger.info("#{} is done ---", counterSnap);
+
+                // use snapshot of Params
                 final DealPrices dealPricesSnap = new DealPrices();
                 BeanUtils.copyProperties(dealPrices, dealPricesSnap);
                 final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
@@ -655,6 +657,7 @@ public class ArbitrageService {
         }
 
         arbInProgress.set(true);
+        deltasLogger.info("#{} is started ---", getCounter());
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType, predefinedPlacingType);
         signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.ASK, b_block, bestQuotes, signalType, predefinedPlacingType);
@@ -744,6 +747,7 @@ public class ArbitrageService {
         }
 
         arbInProgress.set(true);
+        deltasLogger.info("#{} is started ---", getCounter());
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType, predefinedPlacingType);
         signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.BID, b_block, bestQuotes, signalType, predefinedPlacingType);
