@@ -195,7 +195,7 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getCount1() != null) {
             guiParams.setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
-            cumParams.setCompletedCounter1(Integer.parseInt(deltalUpdateJson.getCount2()));
+            cumParams.setCompletedCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
         }
         if (deltalUpdateJson.getCount2() != null) {
             guiParams.setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
