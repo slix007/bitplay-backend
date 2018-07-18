@@ -17,6 +17,7 @@ public class MarketStatesJson {
     String secondTimeToReset;
     String signalDelay;
     String timeToSignal;
+    String arbState;
 
     public MarketStatesJson() {
     }

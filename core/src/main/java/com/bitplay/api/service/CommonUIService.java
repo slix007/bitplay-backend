@@ -16,6 +16,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.market.ArbState;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.persistance.PersistenceService;
@@ -327,14 +328,18 @@ public class CommonUIService {
     }
 
     public MarketStatesJson getMarketsStates() {
+        String arbState = arbitrageService.getArbInProgress().get()
+                ? ArbState.IN_PROGRESS.toString()
+                : ArbState.READY.toString();
+
         return new MarketStatesJson(
                 arbitrageService.getFirstMarketService().getMarketState().name(),
                 arbitrageService.getSecondMarketService().getMarketState().name(),
                 arbitrageService.getFirstMarketService().getTimeToReset(),
                 arbitrageService.getSecondMarketService().getTimeToReset(),
                 String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
-                arbitrageService.getTimeToSignal()
-
+                arbitrageService.getTimeToSignal(),
+                arbState
         );
     }
 
@@ -357,6 +362,7 @@ public class CommonUIService {
     public MarketFlagsJson freeMarketsStates() {
         arbitrageService.getFirstMarketService().getEventBus().send(BtsEvent.MARKET_FREE_FROM_UI);
         arbitrageService.getSecondMarketService().getEventBus().send(BtsEvent.MARKET_FREE_FROM_UI);
+//        arbitrageService.getArbInProgress().set(false);
         return new MarketFlagsJson(
                 arbitrageService.getFirstMarketService().isReadyForArbitrage(),
                 arbitrageService.getSecondMarketService().isReadyForArbitrage()
