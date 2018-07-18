@@ -22,7 +22,6 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
@@ -562,7 +561,7 @@ public class BitmexService extends MarketService {
 
             logger.info("bitmex connecting public");
             exchange.connect()
-                    .doOnError(throwable -> logger.error("doOnError", throwable))
+                    .doOnError(throwable -> logger.error("doOnError", throwable)) //TODO: looks like no repeat here
                     .doOnDispose(() -> logger.info("bitmex connect doOnDispose"))
                     .retryWhen(e -> e.delay(5, TimeUnit.SECONDS))
                     .doOnTerminate(() -> {
@@ -1305,7 +1304,7 @@ public class BitmexService extends MarketService {
         final BigDecimal equity = accountInfoContracts.geteMark();
         final BigDecimal margin = accountInfoContracts.getMargin();
 
-        final BigDecimal bMrliq = arbitrageService.getParams().getBMrLiq();
+        final BigDecimal bMrliq = persistenceService.fetchGuiLiqParams().getBMrLiq();
 
         final BigDecimal m = contractIndex.getIndexPrice();
         final BigDecimal L = position.getLiquidationPrice();
@@ -1385,7 +1384,7 @@ public class BitmexService extends MarketService {
 
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
-        final BigDecimal bDQLOpenMin = arbitrageService.getParams().getBDQLOpenMin();
+        final BigDecimal bDQLOpenMin = persistenceService.fetchGuiLiqParams().getBDQLOpenMin();
 
         boolean isOk;
         if (liqInfo.getDqlCurr() == null) {
@@ -1418,10 +1417,9 @@ public class BitmexService extends MarketService {
         }
 
         final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-        final GuiParams params = arbitrageService.getParams();
 
         if (corrParams.getPreliq().hasSpareAttempts()) {
-            final BigDecimal bDQLCloseMin = params.getBDQLCloseMin();
+            final BigDecimal bDQLCloseMin = getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
 
             if (liqInfo.getDqlCurr() != null
                     && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero

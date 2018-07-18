@@ -20,7 +20,9 @@ import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
+import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.RestartMonitoring;
 import com.bitplay.persistance.domain.borders.BorderParams;
@@ -147,116 +149,112 @@ public class CommonUIService {
 
     //TODO move some params from Deltas to separate Data Object
     public DeltasJson updateMakerDelta(DeltalUpdateJson deltalUpdateJson) {
-        if (deltalUpdateJson.getMakerDelta() != null) {
-            arbitrageService.getParams().setMakerDelta(new BigDecimal(deltalUpdateJson.getMakerDelta()));
-        }
-        if (deltalUpdateJson.getBuValue() != null) {
-            arbitrageService.getParams().setBuValue(new BigDecimal(deltalUpdateJson.getBuValue()));
-        }
+        GuiParams guiParams = arbitrageService.getParams();
+        CumParams cumParams = persistenceService.fetchCumParams();
         if (deltalUpdateJson.getCumDelta() != null) {
-            arbitrageService.getParams().setCumDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
-            arbitrageService.getParams().setCumAstDelta1(new BigDecimal(deltalUpdateJson.getCumDelta()));
-            arbitrageService.getParams().setCumAstDelta2(new BigDecimal(deltalUpdateJson.getCumDelta()));
+            cumParams.setCumDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
+            cumParams.setCumAstDelta1(new BigDecimal(deltalUpdateJson.getCumDelta()));
+            cumParams.setCumAstDelta2(new BigDecimal(deltalUpdateJson.getCumDelta()));
         }
         if (deltalUpdateJson.getLastDelta() != null) {
-            arbitrageService.getParams().setLastDelta(deltalUpdateJson.getLastDelta());
+            guiParams.setLastDelta(deltalUpdateJson.getLastDelta());
         }
         if (deltalUpdateJson.getCumDeltaFact() != null) {
-            arbitrageService.getParams().setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
-            arbitrageService.getParams().setCumAstDeltaFact1(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
-            arbitrageService.getParams().setCumAstDeltaFact2(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
+            cumParams.setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
+            cumParams.setCumAstDeltaFact1(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
+            cumParams.setCumAstDeltaFact2(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
         }
         if (deltalUpdateJson.getCumDiffFactBr() != null) {
-            arbitrageService.getParams().setCumDiffFactBr(new BigDecimal(deltalUpdateJson.getCumDiffFactBr()));
+            cumParams.setCumDiffFactBr(new BigDecimal(deltalUpdateJson.getCumDiffFactBr()));
         }
         if (deltalUpdateJson.getCumDiffFact1() != null) {
-            arbitrageService.getParams().setCumDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
-            arbitrageService.getParams().setCumAstDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
-
+            cumParams.setCumDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
+            cumParams.setCumAstDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
         }
         if (deltalUpdateJson.getCumDiffFact2() != null) {
-            arbitrageService.getParams().setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
-            arbitrageService.getParams().setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
+            cumParams.setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
+            cumParams.setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
         }
         if (deltalUpdateJson.getCumDiffFact() != null) {
-            arbitrageService.getParams().setCumDiffFact(new BigDecimal(deltalUpdateJson.getCumDiffFact()));
-            arbitrageService.getParams().setCumAstDiffFact(new BigDecimal(deltalUpdateJson.getCumDiffFact()));
+            cumParams.setCumDiffFact(new BigDecimal(deltalUpdateJson.getCumDiffFact()));
+            cumParams.setCumAstDiffFact(new BigDecimal(deltalUpdateJson.getCumDiffFact()));
         }
         if (deltalUpdateJson.getCumAstDiffFact() != null) {
-            arbitrageService.getParams().setCumAstDiffFact1(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
-            arbitrageService.getParams().setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
-            arbitrageService.getParams().setCumAstDiffFact(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
+            cumParams.setCumAstDiffFact1(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
+            cumParams.setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
+            cumParams.setCumAstDiffFact(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
         }
         if (deltalUpdateJson.getCumCom1() != null) {
-            arbitrageService.getParams().setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
-            arbitrageService.getParams().setCumAstCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
+            cumParams.setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
+            cumParams.setCumAstCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
         }
         if (deltalUpdateJson.getCumCom2() != null) {
-            arbitrageService.getParams().setCumCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
-            arbitrageService.getParams().setCumAstCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
+            cumParams.setCumCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
+            cumParams.setCumAstCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
         }
         if (deltalUpdateJson.getCount1() != null) {
-            arbitrageService.getParams().setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
-            arbitrageService.getParams().setCompletedCounter1(Integer.parseInt(deltalUpdateJson.getCount2()));
+            guiParams.setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
+            cumParams.setCompletedCounter1(Integer.parseInt(deltalUpdateJson.getCount2()));
         }
         if (deltalUpdateJson.getCount2() != null) {
-            arbitrageService.getParams().setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
-            arbitrageService.getParams().setCompletedCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
+            guiParams.setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
+            cumParams.setCompletedCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
         }
         if (deltalUpdateJson.getDiffFactBrFailsCount() != null) {
-            arbitrageService.getParams().setDiffFactBrFailsCount(Integer.parseInt(deltalUpdateJson.getDiffFactBrFailsCount()));
+            cumParams.setDiffFactBrFailsCount(Integer.parseInt(deltalUpdateJson.getDiffFactBrFailsCount()));
         }
         if (deltalUpdateJson.getCumBitmexMCom() != null) {
-            arbitrageService.getParams().setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
-            arbitrageService.getParams().setCumAstBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
+            cumParams.setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
+            cumParams.setCumAstBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
         }
         if (deltalUpdateJson.getReserveBtc1() != null) {
-            arbitrageService.getParams().setReserveBtc1(new BigDecimal(deltalUpdateJson.getReserveBtc1()));
+            guiParams.setReserveBtc1(new BigDecimal(deltalUpdateJson.getReserveBtc1()));
         }
         if (deltalUpdateJson.getReserveBtc2() != null) {
-            arbitrageService.getParams().setReserveBtc2(new BigDecimal(deltalUpdateJson.getReserveBtc2()));
+            guiParams.setReserveBtc2(new BigDecimal(deltalUpdateJson.getReserveBtc2()));
         }
         if (deltalUpdateJson.getHedgeAmount() != null) {
-            arbitrageService.getParams().setHedgeAmount(new BigDecimal(deltalUpdateJson.getHedgeAmount()));
+            guiParams.setHedgeAmount(new BigDecimal(deltalUpdateJson.getHedgeAmount()));
         }
         if (deltalUpdateJson.getFundingRateFee() != null) {
-            arbitrageService.getParams().setFundingRateFee(new BigDecimal(deltalUpdateJson.getFundingRateFee()));
+            guiParams.setFundingRateFee(new BigDecimal(deltalUpdateJson.getFundingRateFee()));
         }
         if (deltalUpdateJson.getSlip() != null) {
-            arbitrageService.getParams().setSlip(new BigDecimal(deltalUpdateJson.getSlip()));
-            arbitrageService.getParams().setSlipBr(new BigDecimal(deltalUpdateJson.getSlip()));
+            cumParams.setSlip(new BigDecimal(deltalUpdateJson.getSlip()));
+            cumParams.setSlipBr(new BigDecimal(deltalUpdateJson.getSlip()));
         }
         if (deltalUpdateJson.getResetAllCumValues() != null && deltalUpdateJson.getResetAllCumValues()) {
-            arbitrageService.getParams().setCumDelta(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstDelta1(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstDelta2(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumDeltaFact(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstDeltaFact1(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstDeltaFact2(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumDiffFactBr(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumDiffFact1(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstDiffFact1(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumDiffFact2(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstDiffFact2(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumDiffFact(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstDiffFact(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstDiffFact1(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstDiffFact2(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstDiffFact(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumCom1(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstCom1(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumCom2(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstCom2(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumBitmexMCom(BigDecimal.ZERO);
-            arbitrageService.getParams().setCumAstBitmexMCom(BigDecimal.ZERO);
-            arbitrageService.getParams().setSlipBr(BigDecimal.ZERO);
-            arbitrageService.getParams().setSlip(BigDecimal.ZERO);
-            arbitrageService.getParams().setCounter1(0);
-            arbitrageService.getParams().setCounter2(0);
-            arbitrageService.getParams().setCompletedCounter1(0);
-            arbitrageService.getParams().setCompletedCounter2(0);
-            arbitrageService.getParams().setDiffFactBrFailsCount(0);
+            cumParams.setCumDelta(BigDecimal.ZERO);
+            cumParams.setCumAstDelta1(BigDecimal.ZERO);
+            cumParams.setCumAstDelta2(BigDecimal.ZERO);
+            cumParams.setCumDeltaFact(BigDecimal.ZERO);
+            cumParams.setCumAstDeltaFact1(BigDecimal.ZERO);
+            cumParams.setCumAstDeltaFact2(BigDecimal.ZERO);
+            cumParams.setCumDiffFactBr(BigDecimal.ZERO);
+            cumParams.setCumDiffFact1(BigDecimal.ZERO);
+            cumParams.setCumAstDiffFact1(BigDecimal.ZERO);
+            cumParams.setCumDiffFact2(BigDecimal.ZERO);
+            cumParams.setCumAstDiffFact2(BigDecimal.ZERO);
+            cumParams.setCumDiffFact(BigDecimal.ZERO);
+            cumParams.setCumAstDiffFact(BigDecimal.ZERO);
+            cumParams.setCumAstDiffFact1(BigDecimal.ZERO);
+            cumParams.setCumAstDiffFact2(BigDecimal.ZERO);
+            cumParams.setCumAstDiffFact(BigDecimal.ZERO);
+            cumParams.setCumCom1(BigDecimal.ZERO);
+            cumParams.setCumAstCom1(BigDecimal.ZERO);
+            cumParams.setCumCom2(BigDecimal.ZERO);
+            cumParams.setCumAstCom2(BigDecimal.ZERO);
+            cumParams.setCumBitmexMCom(BigDecimal.ZERO);
+            cumParams.setCumAstBitmexMCom(BigDecimal.ZERO);
+            cumParams.setSlipBr(BigDecimal.ZERO);
+            cumParams.setSlip(BigDecimal.ZERO);
+            guiParams.setCounter1(0);
+            guiParams.setCounter2(0);
+            cumParams.setCompletedCounter1(0);
+            cumParams.setCompletedCounter2(0);
+            cumParams.setDiffFactBrFailsCount(0);
         }
+        persistenceService.saveCumParams(cumParams);
         arbitrageService.saveParamsToDb();
 
         return convertToDeltasJson();
@@ -266,43 +264,43 @@ public class CommonUIService {
         final BorderParams borderParams = persistenceService.fetchBorders();
         final Integer delta_hist_per = borderParams.getBorderDelta().getDeltaCalcPast();
         final String deltaSmaUpdateIn = deltasCalcService.getDeltaSmaUpdateIn(delta_hist_per);
+        final CumParams cumParams = persistenceService.fetchCumParams();
+        GuiParams guiParams = arbitrageService.getParams();
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
                 arbitrageService.getDelta2().toPlainString(),
-                arbitrageService.getParams().getBorder1().toPlainString(),
-                arbitrageService.getParams().getBorder2().toPlainString(),
-                arbitrageService.getParams().getMakerDelta().toPlainString(),
-                arbitrageService.getParams().getBuValue().toPlainString(),
-                arbitrageService.getParams().getCumDelta().toPlainString(),
-                arbitrageService.getParams().getCumAstDelta1().add(arbitrageService.getParams().getCumAstDelta2()).setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getLastDelta(),
-                arbitrageService.getParams().getCumDeltaFact().toPlainString(),
-                arbitrageService.getParams().getCumAstDeltaFact1().add(arbitrageService.getParams().getCumAstDeltaFact2()).setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getCumDiffFactBr().toPlainString(),
-                arbitrageService.getParams().getCumDiffFact1().toPlainString(),
-                arbitrageService.getParams().getCumDiffFact2().toPlainString(),
-                arbitrageService.getParams().getCumDiffFact().toPlainString(),
-                arbitrageService.getParams().getCumAstDiffFact1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getCumAstDiffFact2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getCumAstDiffFact().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getCumCom1().toPlainString(),
-                arbitrageService.getParams().getCumCom2().toPlainString(),
-                arbitrageService.getParams().getCumAstCom1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getCumAstCom2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                String.valueOf(arbitrageService.getParams().getCounter1()),
-                String.valueOf(arbitrageService.getParams().getCounter2()),
-                String.valueOf(arbitrageService.getParams().getCompletedCounter1()),
-                String.valueOf(arbitrageService.getParams().getCompletedCounter2()),
-                String.valueOf(arbitrageService.getParams().getDiffFactBrFailsCount()),
-                arbitrageService.getParams().getCumBitmexMCom().toPlainString(),
-                arbitrageService.getParams().getCumAstBitmexMCom().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getReserveBtc1().toPlainString(),
-                arbitrageService.getParams().getReserveBtc2().toPlainString(),
-                arbitrageService.getParams().getHedgeAmount().toPlainString(),
-                arbitrageService.getParams().getFundingRateFee().toPlainString(),
-                arbitrageService.getParams().getSlipBr().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                arbitrageService.getParams().getSlip().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                guiParams.getBorder1().toPlainString(),
+                guiParams.getBorder2().toPlainString(),
+                cumParams.getCumDelta().toPlainString(),
+                cumParams.getCumAstDelta1().add(cumParams.getCumAstDelta2()).setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                guiParams.getLastDelta(),
+                cumParams.getCumDeltaFact().toPlainString(),
+                cumParams.getCumAstDeltaFact1().add(cumParams.getCumAstDeltaFact2()).setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                cumParams.getCumDiffFactBr().toPlainString(),
+                cumParams.getCumDiffFact1().toPlainString(),
+                cumParams.getCumDiffFact2().toPlainString(),
+                cumParams.getCumDiffFact().toPlainString(),
+                cumParams.getCumAstDiffFact1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                cumParams.getCumAstDiffFact2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                cumParams.getCumAstDiffFact().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                cumParams.getCumCom1().toPlainString(),
+                cumParams.getCumCom2().toPlainString(),
+                cumParams.getCumAstCom1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                cumParams.getCumAstCom2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                String.valueOf(guiParams.getCounter1()),
+                String.valueOf(guiParams.getCounter2()),
+                String.valueOf(cumParams.getCompletedCounter1()),
+                String.valueOf(cumParams.getCompletedCounter2()),
+                String.valueOf(cumParams.getDiffFactBrFailsCount()),
+                cumParams.getCumBitmexMCom().toPlainString(),
+                cumParams.getCumAstBitmexMCom().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                guiParams.getReserveBtc1().toPlainString(),
+                guiParams.getReserveBtc2().toPlainString(),
+                guiParams.getHedgeAmount().toPlainString(),
+                guiParams.getFundingRateFee().toPlainString(),
+                cumParams.getSlipBr().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                cumParams.getSlip().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 deltasCalcService.getBDeltaSma().toPlainString(),
                 deltasCalcService.getODeltaSma().toPlainString(),
                 deltasCalcService.getBDeltaEveryCalc(),
@@ -423,7 +421,7 @@ public class CommonUIService {
     }
 
     public LiqParamsJson getLiqParams() {
-        final GuiParams params = arbitrageService.getParams();
+        final GuiLiqParams params = persistenceService.fetchGuiLiqParams();
         return new LiqParamsJson(params.getBMrLiq().toPlainString(),
                 params.getOMrLiq().toPlainString(),
                 params.getBDQLOpenMin().toPlainString(),
@@ -433,33 +431,36 @@ public class CommonUIService {
     }
 
     public LiqParamsJson updateLiqParams(LiqParamsJson input) {
+        final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
         if (input.getbMrLiq() != null) {
-            arbitrageService.getParams().setBMrLiq(new BigDecimal(input.getbMrLiq()));
+            guiLiqParams.setBMrLiq(new BigDecimal(input.getbMrLiq()));
         }
         if (input.getoMrLiq() != null) {
-            arbitrageService.getParams().setOMrLiq(new BigDecimal(input.getoMrLiq()));
+            guiLiqParams.setOMrLiq(new BigDecimal(input.getoMrLiq()));
         }
         if (input.getbDQLOpenMin() != null) {
-            arbitrageService.getParams().setBDQLOpenMin(new BigDecimal(input.getbDQLOpenMin()));
+            guiLiqParams.setBDQLOpenMin(new BigDecimal(input.getbDQLOpenMin()));
         }
         if (input.getoDQLOpenMin() != null) {
-            arbitrageService.getParams().setODQLOpenMin(new BigDecimal(input.getoDQLOpenMin()));
+            guiLiqParams.setODQLOpenMin(new BigDecimal(input.getoDQLOpenMin()));
         }
         if (input.getbDQLCloseMin() != null) {
-            arbitrageService.getParams().setBDQLCloseMin(new BigDecimal(input.getbDQLCloseMin()));
+            guiLiqParams.setBDQLCloseMin(new BigDecimal(input.getbDQLCloseMin()));
         }
         if (input.getoDQLCloseMin() != null) {
-            arbitrageService.getParams().setODQLCloseMin(new BigDecimal(input.getoDQLCloseMin()));
+            guiLiqParams.setODQLCloseMin(new BigDecimal(input.getoDQLCloseMin()));
         }
 
-        arbitrageService.saveParamsToDb();
-        final GuiParams params = arbitrageService.getParams();
-        return new LiqParamsJson(params.getBMrLiq().toPlainString(),
-                params.getOMrLiq().toPlainString(),
-                params.getBDQLOpenMin().toPlainString(),
-                params.getODQLOpenMin().toPlainString(),
-                params.getBDQLCloseMin().toPlainString(),
-                params.getODQLCloseMin().toPlainString());
+        persistenceService.saveGuiLiqParams(guiLiqParams);
+
+        final GuiLiqParams saved = persistenceService.fetchGuiLiqParams();
+
+        return new LiqParamsJson(saved.getBMrLiq().toPlainString(),
+                saved.getOMrLiq().toPlainString(),
+                saved.getBDQLOpenMin().toPlainString(),
+                saved.getODQLOpenMin().toPlainString(),
+                saved.getBDQLCloseMin().toPlainString(),
+                saved.getODQLCloseMin().toPlainString());
     }
 
     public DeltasMinMaxJson getDeltaParamsJson() {

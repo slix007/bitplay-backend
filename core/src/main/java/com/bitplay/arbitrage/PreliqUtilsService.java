@@ -3,15 +3,13 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketService;
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
-
+import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
 
 /**
  * Created by Sergey Shurmin on 3/24/18.
@@ -26,7 +24,7 @@ public class PreliqUtilsService {
     private PersistenceService persistenceService;
 
 
-    public void preliqCountersOnRoundDone(boolean isSucceeded, GuiParams params, SignalType signalType,
+    public void preliqCountersOnRoundDone(boolean isSucceeded, GuiLiqParams params, SignalType signalType,
                                           MarketService first, MarketService second) {
         if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
             // Preliq done: O_DQL > O_DQL_close_min && B_DQL > B_DQL_close_min

@@ -14,8 +14,6 @@ public class DeltasJson {
     private String delta2;
     private String border1;
     private String border2;
-    private String makerDelta;
-    private String buValue;
     private String cumDelta;
     private String cumAstDelta;
     private String lastDelta;

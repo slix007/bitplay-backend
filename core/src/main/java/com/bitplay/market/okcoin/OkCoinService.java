@@ -1349,7 +1349,7 @@ public class OkCoinService extends MarketService {
 
     private synchronized void recalcLiqInfo() {
         final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
-        final BigDecimal oMrLiq = arbitrageService.getParams().getOMrLiq();
+        final BigDecimal oMrLiq = persistenceService.fetchGuiLiqParams().getOMrLiq();
 
         final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
         final BigDecimal equity = accountInfoContracts.geteLast();
@@ -1479,7 +1479,7 @@ public class OkCoinService extends MarketService {
      */
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
-        final BigDecimal oDQLOpenMin = arbitrageService.getParams().getODQLOpenMin();
+        final BigDecimal oDQLOpenMin = persistenceService.fetchGuiLiqParams().getODQLOpenMin();
 
         boolean isOk;
 
@@ -1518,10 +1518,9 @@ public class OkCoinService extends MarketService {
         }
 
         final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-        final GuiParams params = arbitrageService.getParams();
 
         if (corrParams.getPreliq().hasSpareAttempts()) {
-            final BigDecimal oDQLCloseMin = params.getODQLCloseMin();
+            final BigDecimal oDQLCloseMin = persistenceService.fetchGuiLiqParams().getODQLCloseMin();
             final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
             if (liqInfo.getDqlCurr() != null
@@ -1581,9 +1580,6 @@ public class OkCoinService extends MarketService {
         try {
             synchronized (openOrdersLock) {
                 if (hasOpenOrders()) {
-
-                    final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
-                    final Integer maxAttempts = sysOverloadArgs.getMovingErrorsForOverload();
 
                     openOrders = openOrders.stream()
                             .flatMap(openOrder -> {

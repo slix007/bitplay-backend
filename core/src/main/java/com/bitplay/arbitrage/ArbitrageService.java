@@ -9,7 +9,6 @@ import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.DeltaMon;
 import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.arbitrage.dto.PlBlocks;
-import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.DeltaChange;
 import com.bitplay.arbitrage.events.SignalEvent;
@@ -26,7 +25,9 @@ import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
+import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
@@ -43,7 +44,6 @@ import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
@@ -92,8 +92,6 @@ public class ArbitrageService {
     @Autowired
     private SignalService signalService;
     @Autowired
-    private PreliqUtilsService preliqUtilsService;
-    @Autowired
     private DiffFactBrService diffFactBrService;
     @Autowired
     private DeltasCalcService deltasCalcService;
@@ -101,6 +99,10 @@ public class ArbitrageService {
     private TraderPermissionsService traderPermissionsService;
     @Autowired
     private Config config;
+    @Autowired
+    private AfterArbService afterArbService;
+    @Autowired
+    private PreliqUtilsService preliqUtilsService;
 
 //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
@@ -113,7 +115,6 @@ public class ArbitrageService {
     private BigDecimal delta2 = BigDecimal.ZERO;
     private GuiParams params = new GuiParams();
     private BigDecimal sumEBestUsd = BigDecimal.valueOf(-1);
-    private Instant previousEmitTime = Instant.now();
     private String sumBalString = "";
     private volatile Boolean isReadyForTheArbitrage = true;
     private Disposable theTimer;
@@ -146,29 +147,28 @@ public class ArbitrageService {
         initSignalEventBus();
     }
 
-    private void initSignalEventBus() {
-        signalEventBus.toObserverable()
+    private Disposable initSignalEventBus() {
+        return signalEventBus.toObserverable()
                 .sample(100, TimeUnit.MILLISECONDS)
                 .subscribe(signalEvent -> {
                     try {
                         if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
                                 || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
 
-                            final OrderBook firstOrderBook = firstMarketService.getOrderBook();
-                            final OrderBook secondOrderBook = secondMarketService.getOrderBook();
+                            if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
+                                    && posDiffService.isPositionsEqual()) {
 
-                            final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
-                            params.setLastOBChange(new Date());
+                                if (!arbInProgress.get()) {
 
-                            doComparison(bestQuotes, firstOrderBook, secondOrderBook);
+                                    final OrderBook firstOrderBook = firstMarketService.getOrderBook();
+                                    final OrderBook secondOrderBook = secondMarketService.getOrderBook();
 
-                            // Logging not often then 5 sec
-                            if (Duration.between(previousEmitTime, Instant.now()).getSeconds() > 5
-                                    && bestQuotes != null
-                                    && bestQuotes.getArbitrageEvent() != BestQuotes.ArbitrageEvent.NONE) {
+                                    final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
+                                    params.setLastOBChange(new Date());
 
-                                previousEmitTime = Instant.now();
-                                signalLogger.info(bestQuotes.toString());
+                                    doComparison(bestQuotes, firstOrderBook, secondOrderBook);
+
+                                }
                             }
                         }
                     } catch (NotYetInitializedException e) {
@@ -187,75 +187,64 @@ public class ArbitrageService {
     }
 
     private void initArbitrageStateListener() {
-        final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("arb-done-thread-%d").build();
+        final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("arb-done-starter-%d").build();
         final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
-        final Scheduler scheduler = Schedulers.from(executor);
+        final Scheduler schedulerStarter = Schedulers.from(executor);
 
-        gotFreeListener(firstMarketService.getEventBus(), scheduler);
-        gotFreeListener(secondMarketService.getEventBus(), scheduler);
+        Disposable btmFreeListener = gotFreeListener(firstMarketService.getEventBus(), schedulerStarter);
+        Disposable okFreeListener = gotFreeListener(secondMarketService.getEventBus(), schedulerStarter);
     }
 
-    private void gotFreeListener(EventBus eventBus, Scheduler scheduler) {
-        eventBus.toObserverable()
+    private Disposable gotFreeListener(EventBus eventBus, Scheduler scheduler) {
+        return eventBus.toObserverable()
                 .subscribeOn(scheduler)
                 .observeOn(scheduler)
                 .subscribe(btsEvent -> {
-                    try {
-                        if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
-                            if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
-                                if (arbInProgress.getAndSet(false)) {
-
-                                    // start writeLogArbitrageIsDone();
-                                    // use snapshot of Params
-                                    int counterSnap = getCounter();
-                                    DealPrices dealPricesSnap = new DealPrices();
-                                    BeanUtils.copyProperties(dealPrices, dealPricesSnap);
-                                    SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
-                                    // todo separate startSignalParams with endSignalParams (cumParams)
-                                    GuiParams guiParamsSnap = params.toBuilder().build();
-                                    Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
-                                            .toBuilder().build();
-                                    Position okexPosititon = secondMarketService.getPosition();
-
-                                    ArterArbTask arterArbTask = new ArterArbTask(dealPricesSnap,
-                                            signalTypeSnap,
-                                            guiParamsSnap,
-                                            counterSnap,
-                                            settings,
-                                            okexPosititon,
-                                            (BitmexService) getFirstMarketService(),
-                                            (OkCoinService) getSecondMarketService()
-                                    );
-
-                                    boolean isFinished = arterArbTask.finishArbitrage();
-
-                                    if (isFinished) {
-                                        // todo calcFull balance ???
-                                        printSumBal(false);
-
-                                        deltasLogger.info("#{} Round completed", counterSnap);
-
-                                        saveParamsToDb(arterArbTask.getParams());
-                                        // end of writeLogArbitrageIsDone();
-                                    }
-
-                                    preliqUtilsService.preliqCountersOnRoundDone(true, params, signalType,
-                                            firstMarketService, secondMarketService);
-                                }
-                            }
-                        }
-                    } catch (RoundIsNotDoneException e) {
-                        deltasLogger.info("Round is not done. Error: " + e.getMessage());
-                        logger.error("Round is not done", e);
-                        preliqUtilsService.preliqCountersOnRoundDone(false, params, signalType,
-                                firstMarketService, secondMarketService);
-                    } catch (Exception e) {
-                        deltasLogger.info("Round is not done. Write logs error: " + e.getMessage());
-                        logger.error("Round is not done. Write logs error", e);
-                        preliqUtilsService.preliqCountersOnRoundDone(false, params, signalType,
-                                firstMarketService, secondMarketService);
+                    if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
+                        onArbDone();
                     }
                 }, throwable -> logger.error("On event handling", throwable));
+    }
+
+    private void onArbDone() {
+
+        if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
+
+            if (arbInProgress.getAndSet(false)) {
+
+                // start writeLogArbitrageIsDone();
+                // use snapshot of Params
+                final int counterSnap = getCounter();
+                final DealPrices dealPricesSnap = new DealPrices();
+                BeanUtils.copyProperties(dealPrices, dealPricesSnap);
+                final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
+                // todo separate startSignalParams with endSignalParams (cumParams)
+                final CumParams cumParamsSnap = persistenceService.fetchCumParams();
+                final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
+                final DeltaName deltaName = params.getLastDelta().equals(DELTA1) ? DeltaName.B_DELTA : DeltaName.O_DELTA;
+                final Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
+                        .toBuilder().build();
+                final Position okexPosition = secondMarketService.getPosition();
+
+                AfterArbTask afterArbTask = new AfterArbTask(dealPricesSnap,
+                        signalTypeSnap,
+                        cumParamsSnap,
+                        guiLiqParams,
+                        deltaName,
+                        counterSnap,
+                        settings,
+                        okexPosition,
+                        (BitmexService) getFirstMarketService(),
+                        (OkCoinService) getSecondMarketService(),
+                        preliqUtilsService,
+                        persistenceService,
+                        this
+                );
+
+                afterArbService.addTask(afterArbTask);
+
+            }
+        }
     }
 
 
@@ -572,11 +561,11 @@ public class ArbitrageService {
             final BigDecimal o_block, final TradingSignal tradingSignal, String dynamicDeltaLogs, PlacingType predefinedPlacingType, boolean isImmediate) {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
-        if (checkBalanceBorder1(DeltaName.B_DELTA, b_block, o_block) //) {
+        if (checkBalanceBorder1(DeltaName.B_DELTA, b_block, o_block)
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
                 && !firstMarketService.isMarketStopped() && !secondMarketService.isMarketStopped()
-                &&
+                && // liqEdge violation only with non-AUTOMATIC signals(corr,preliq,etc)
                 (signalType != SignalType.AUTOMATIC ||
                         (firstMarketService.checkLiquidationEdge(Order.OrderType.ASK)
                                 && secondMarketService.checkLiquidationEdge(Order.OrderType.BID))
@@ -655,19 +644,17 @@ public class ArbitrageService {
 
         bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
         setSignalType(signalType);
+        params.setLastDelta(DELTA1);
+
         firstMarketService.setBusy();
         secondMarketService.setBusy();
-        arbInProgress.set(true);
-        params.setLastDelta(DELTA1);
-        // Market specific params
-        params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
-        params.setVolPlan(b_block); // buy
 
         writeLogDelta1(ask1_o, bid1_p, tradingSignal);
         if (dynamicDeltaLogs != null) {
             deltasLogger.info(String.format("#%s %s", getCounter(), dynamicDeltaLogs));
         }
 
+        arbInProgress.set(true);
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType, predefinedPlacingType);
         signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.ASK, b_block, bestQuotes, signalType, predefinedPlacingType);
@@ -691,13 +678,14 @@ public class ArbitrageService {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
-        if (checkBalanceBorder1(DeltaName.O_DELTA, b_block, o_block) //) {
+        if (checkBalanceBorder1(DeltaName.O_DELTA, b_block, o_block)
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.isPositionsEqual()
-                &&
+                && !firstMarketService.isMarketStopped() && !secondMarketService.isMarketStopped()
+                && // liqEdge violation only with non-AUTOMATIC signals(corr,preliq,etc)
                 (signalType != SignalType.AUTOMATIC ||
-                        (firstMarketService.checkLiquidationEdge(Order.OrderType.BID)
-                                && secondMarketService.checkLiquidationEdge(Order.OrderType.ASK))
+                        (firstMarketService.checkLiquidationEdge(Order.OrderType.ASK)
+                                && secondMarketService.checkLiquidationEdge(Order.OrderType.BID))
                 )) {
 
             if (isImmediate) {
@@ -745,19 +733,17 @@ public class ArbitrageService {
 
         bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
         setSignalType(signalType);
+        params.setLastDelta(DELTA2);
+
         firstMarketService.setBusy();
         secondMarketService.setBusy();
-        arbInProgress.set(true);
-        params.setLastDelta(DELTA2);
-        // Market specific params
-        params.setPosBefore(new BigDecimal(firstMarketService.getPositionAsString()));
-        params.setVolPlan(b_block.negate());//sell
 
         writeLogDelta2(ask1_p, bid1_o, tradingSignal);
         if (dynamicDeltaLogs != null) {
             deltasLogger.info(String.format("#%s %s", getCounter(), dynamicDeltaLogs));
         }
 
+        arbInProgress.set(true);
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType, predefinedPlacingType);
         signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.BID, b_block, bestQuotes, signalType, predefinedPlacingType);
@@ -983,12 +969,13 @@ public class ArbitrageService {
 
                 final String bDQLMin;
                 final String oDQLMin;
+                GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
                 if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
-                    bDQLMin = String.format("b_DQL_close_min=%s", getParams().getBDQLCloseMin());
-                    oDQLMin = String.format("o_DQL_close_min=%s", getParams().getODQLCloseMin());
+                    bDQLMin = String.format("b_DQL_close_min=%s", guiLiqParams.getBDQLCloseMin());
+                    oDQLMin = String.format("o_DQL_close_min=%s", guiLiqParams.getODQLCloseMin());
                 } else {
-                    bDQLMin = String.format("b_DQL_open_min=%s", getParams().getBDQLOpenMin());
-                    oDQLMin = String.format("o_DQL_open_min=%s", getParams().getODQLOpenMin());
+                    bDQLMin = String.format("b_DQL_open_min=%s", guiLiqParams.getBDQLOpenMin());
+                    oDQLMin = String.format("o_DQL_open_min=%s", guiLiqParams.getODQLOpenMin());
                 }
 
                 deltasLogger.info(String.format("#%s Pos diff: %s", counterName, getPosDiffString()));
@@ -1102,10 +1089,6 @@ public class ArbitrageService {
     }
 
     public void saveParamsToDb() {
-        saveParamsToDb(params);
-    }
-
-    public void saveParamsToDb(GuiParams params) {
         persistenceService.saveGuiParams(params);
     }
 
@@ -1132,7 +1115,7 @@ public class ArbitrageService {
         return signalType;
     }
 
-    public synchronized void setSignalType(SignalType signalType) {
+    public void setSignalType(SignalType signalType) {
         this.signalType = signalType != null ? signalType : SignalType.AUTOMATIC;
     }
 

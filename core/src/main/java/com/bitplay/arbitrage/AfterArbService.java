@@ -1,15 +1,39 @@
 package com.bitplay.arbitrage;
 
-import com.bitplay.persistance.PersistenceService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class AfterArbService {
 
-    @Autowired
-    private PersistenceService persistenceService;
 
+    private final ExecutorService executor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryBuilder().setNameFormat("arb-after-worker-%d").build()
+    );
+    private static final long SHUTDOWN_TIME_SEC = 60;
 
+    public void addTask(AfterArbTask afterArbTask) {
 
+        Future<?> submit = executor.submit(afterArbTask);
+
+    }
+
+    //TODO shutdown gracefully
+//    private void init() {
+//        Runtime.getRuntime().addShutdownHook(new Thread() {
+//            public void run() {
+//                executor.shutdown();
+//                if (!executor.awaitTermination(SHUTDOWN_TIME_SEC, TimeUnit.SECONDS)) { //optional *
+//                    log.warn("Executor did not terminate in the specified time."); //optional *
+//                    List<Runnable> droppedTasks = executor.shutdownNow(); //optional **
+//                    log.warn("Executor was abruptly shut down. " + droppedTasks.size() + " tasks will not be executed."); //optional **
+//                }
+//            }
+//        });
+//    }
 }

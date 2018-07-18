@@ -1,25 +1,25 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.ExchangePair;
+import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.MarketDocument;
 import com.bitplay.persistance.domain.SwapParams;
+import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.repository.BorderParamsRepository;
 import com.bitplay.persistance.repository.CorrParamsRepository;
 import com.bitplay.persistance.repository.DeltaParamsRepository;
-import com.bitplay.persistance.repository.GuiParamsRepository;
 import com.bitplay.persistance.repository.LiqParamsRepository;
-import com.bitplay.persistance.repository.OrderRepository;
 import com.bitplay.persistance.repository.SwapParamsRepository;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -29,9 +29,6 @@ import org.springframework.stereotype.Service;
 public class PersistenceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
-
-    @Autowired
-    private GuiParamsRepository guiParamsRepository;
 
     @Autowired
     private LiqParamsRepository liqParamsRepository;
@@ -52,19 +49,39 @@ public class PersistenceService {
     private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
     private OrderRepositoryService orderRepositoryService;
 
-    public void saveGuiParams(GuiParams deltas) {
-        deltas.setId(1L);
-        guiParamsRepository.save(deltas);
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
+    public void saveGuiParams(GuiParams guiParams) {
+        mongoTemplate.save(guiParams);
     }
 
     public GuiParams fetchGuiParams() {
-        return guiParamsRepository.findFirstByDocumentId(1L);
+        GuiParams guiParams = mongoTemplate.findById(1L, GuiParams.class);
+
+        return guiParams;
     }
+
+    public void saveCumParams(CumParams cumParams) {
+        mongoTemplate.save(cumParams);
+    }
+
+    public CumParams fetchCumParams() {
+        CumParams cumParams = mongoTemplate.findById(2L, CumParams.class);
+        return cumParams;
+    }
+
+    public void saveGuiLiqParams(GuiLiqParams guiLiqParams) {
+        mongoTemplate.save(guiLiqParams);
+    }
+
+    public GuiLiqParams fetchGuiLiqParams() {
+        GuiLiqParams guiLiqParams = mongoTemplate.findById(3L, GuiLiqParams.class);
+        return guiLiqParams;
+    }
+
 
     public void saveLiqParams(LiqParams liqParams, String marketName) {
         setMarketDocumentName(liqParams, marketName);

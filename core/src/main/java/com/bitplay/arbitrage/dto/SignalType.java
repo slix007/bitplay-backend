@@ -37,4 +37,8 @@ public enum SignalType {
         return this == CORR || this == CORR_MDC || this == CORR_TIMER || this == B_CORR || this == O_CORR || this == B_CORR_INCREASE_POS
                 || this == O_CORR_INCREASE_POS;
     }
+
+    public boolean isDoubleTradingSignal() {
+        return this == AUTOMATIC || this == B_PRE_LIQ || this == O_PRE_LIQ;
+    }
 }

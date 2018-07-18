@@ -12,8 +12,6 @@ import lombok.Setter;
 @Setter
 public class DeltalUpdateJson {
 
-    private String makerDelta;
-    private String buValue;
     private String cumDelta;
     private String lastDelta;
     private String cumDeltaFact;
