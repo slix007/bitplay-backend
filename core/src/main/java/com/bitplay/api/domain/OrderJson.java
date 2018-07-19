@@ -1,12 +1,22 @@
 package com.bitplay.api.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Created by Sergey Shurmin on 4/22/17.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrderJson {
+
+    String arbId;
     String id;
     String status;
     String currency;
@@ -15,70 +25,6 @@ public class OrderJson {
     String orderType;
     String timestamp;
     String amountInBtc;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public String getPrice() {
-        return price;
-    }
-
-    public void setPrice(String price) {
-        this.price = price;
-    }
-
-    public String getAmount() {
-        return amount;
-    }
-
-    public void setAmount(String amount) {
-        this.amount = amount;
-    }
-
-    public String getOrderType() {
-        return orderType;
-    }
-
-    public void setOrderType(String orderType) {
-        this.orderType = orderType;
-    }
-
-    public String getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public String getAmountInBtc() {
-        return amountInBtc;
-    }
-
-    public void setAmountInBtc(String amountInBtc) {
-        this.amountInBtc = amountInBtc;
-    }
 
     @Override
     public boolean equals(Object o) {

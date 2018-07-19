@@ -50,12 +50,14 @@ public class OrderRepositoryService {
         });
     }
 
-    public synchronized void update(LimitOrder update) {
+    public synchronized void update(LimitOrder update, FplayOrder stabOrderForNew) {
         executor.submit(() -> {
 
             final String orderId = update.getId();
             FplayOrder one = orderRepository.findOne(orderId);
-
+            if (one == null) {
+                one = stabOrderForNew;
+            }
             one = FplayOrderUtils.updateFplayOrder(one, update);
 
             orderRepository.save(one);

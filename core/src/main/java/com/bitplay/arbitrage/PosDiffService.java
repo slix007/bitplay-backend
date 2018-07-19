@@ -437,8 +437,9 @@ public class PosDiffService {
                 // do nothing
             } else {
                 // Market specific params
+                String counterName = marketService.getCounterName(signalType);
                 marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
-                        PlacingType.TAKER, signalType, 1));
+                        PlacingType.TAKER, signalType, 1, counterName));
             }
         } else {
             warningLogger.warn("No correction: correctAmount={}, isAffordable=", correctAmount, isAffordable);

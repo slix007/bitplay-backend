@@ -19,13 +19,15 @@ public class AvgPrice {
     private static final Logger logger = LoggerFactory.getLogger(AvgPrice.class);
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
+    private final String counterName;
     private final Map<String, AvgPriceItem> pItems = new LinkedHashMap<>();
     private final BigDecimal fullAmount;
     private final String marketName;
 
     private BigDecimal openPrice;
 
-    public AvgPrice(BigDecimal fullAmount, String marketName) {
+    public AvgPrice(String counterName, BigDecimal fullAmount, String marketName) {
+        this.counterName = counterName;
         this.fullAmount = fullAmount;
         this.marketName = marketName;
     }
@@ -38,12 +40,21 @@ public class AvgPrice {
         this.openPrice = openPrice;
     }
 
-    public synchronized void addPriceItem(String orderId, BigDecimal amount, BigDecimal price, OrderStatus orderStatus) {
+    public synchronized void addPriceItem(String counterName, String orderId, BigDecimal amount, BigDecimal price, OrderStatus orderStatus) {
         String ordStatus = orderStatus == null ? "" : orderStatus.toString();
-        addPriceItem(orderId, amount, price, ordStatus);
+        addPriceItem(counterName, orderId, amount, price, ordStatus);
     }
 
-    public synchronized void addPriceItem(String orderId, BigDecimal amount, BigDecimal price, String ordStatus) {
+    public synchronized void addPriceItem(String counterName, String orderId, BigDecimal amount, BigDecimal price, String ordStatus) {
+        if (counterName != null && counterName.equals(this.counterName)) {
+            addPriceItem(orderId, amount, price, ordStatus);
+        }
+    }
+
+    /**
+     * WARNING: no check with counterName.
+     */
+    private void addPriceItem(String orderId, BigDecimal amount, BigDecimal price, String ordStatus) {
         if (orderId != null) {
             pItems.put(orderId, new AvgPriceItem(amount, price, ordStatus));
         } else {

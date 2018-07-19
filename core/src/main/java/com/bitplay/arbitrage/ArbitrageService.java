@@ -213,8 +213,8 @@ public class ArbitrageService {
             if (arbInProgress.getAndSet(false)) {
 
                 // start writeLogArbitrageIsDone();
-                final int counterSnap = getCounter();
-                deltasLogger.info("#{} is done ---", counterSnap);
+                final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
+                deltasLogger.info("#{} is done ---", counterNameSnap);
 
                 // use snapshot of Params
                 final DealPrices dealPricesSnap = new DealPrices();
@@ -233,7 +233,7 @@ public class ArbitrageService {
                         cumParamsSnap,
                         guiLiqParams,
                         deltaName,
-                        counterSnap,
+                        counterNameSnap,
                         settings,
                         okexPosition,
                         (BitmexService) getFirstMarketService(),
@@ -619,6 +619,23 @@ public class ArbitrageService {
     private void startTradingOnDelta1(BorderParams borderParams, SignalType signalType, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, PlacingType predefinedPlacingType, BigDecimal ask1_o, BigDecimal bid1_p) {
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
+
+        bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
+        setSignalType(signalType);
+        params.setLastDelta(DELTA1);
+
+        firstMarketService.setBusy();
+        secondMarketService.setBusy();
+
+        writeLogDelta1(ask1_o, bid1_p, tradingSignal); // sets counter here
+
+        final int counter = getCounter();
+        final String counterName = firstMarketService.getCounterName();
+
+        if (dynamicDeltaLogs != null) {
+            deltasLogger.info(String.format("#%s %s", counterName, dynamicDeltaLogs));
+        }
+
         synchronized (dealPrices) {
             dealPrices.setBorder1(params.getBorder1());
             dealPrices.setBorder2(params.getBorder2());
@@ -631,8 +648,8 @@ public class ArbitrageService {
             dealPrices.setDeltaName(DeltaName.B_DELTA);
             dealPrices.setBestQuotes(bestQuotes);
 
-            dealPrices.setbPriceFact(new AvgPrice(b_block, "bitmex"));
-            dealPrices.setoPriceFact(new AvgPrice(o_block, "okex"));
+            dealPrices.setbPriceFact(new AvgPrice(counterName, b_block, "bitmex"));
+            dealPrices.setoPriceFact(new AvgPrice(counterName, o_block, "okex"));
 
             dealPrices.setBorderParamsOnStart(borderParams);
             dealPrices.setPos_bo(pos_bo);
@@ -644,23 +661,11 @@ public class ArbitrageService {
             }
         }
 
-        bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
-        setSignalType(signalType);
-        params.setLastDelta(DELTA1);
-
-        firstMarketService.setBusy();
-        secondMarketService.setBusy();
-
-        writeLogDelta1(ask1_o, bid1_p, tradingSignal);
-        if (dynamicDeltaLogs != null) {
-            deltasLogger.info(String.format("#%s %s", getCounter(), dynamicDeltaLogs));
-        }
-
         arbInProgress.set(true);
-        deltasLogger.info("#{} is started ---", getCounter());
+        deltasLogger.info("#{} is started ---", counterName);
         // in scheme MT2 Okex should be the first
-        signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType, predefinedPlacingType);
-        signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.ASK, b_block, bestQuotes, signalType, predefinedPlacingType);
+        signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType, predefinedPlacingType, counterName);
+        signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.ASK, b_block, bestQuotes, signalType, predefinedPlacingType, counterName);
 
         setTimeoutAfterStartTrading();
 
@@ -709,6 +714,21 @@ public class ArbitrageService {
     private void startTradingOnDelta2(BorderParams borderParams, SignalType signalType, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, PlacingType predefinedPlacingType, BigDecimal ask1_p, BigDecimal bid1_o) {
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
+
+        bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
+        setSignalType(signalType);
+        params.setLastDelta(DELTA2);
+
+        firstMarketService.setBusy();
+        secondMarketService.setBusy();
+
+        writeLogDelta2(ask1_p, bid1_o, tradingSignal); // sets counter here
+
+        final String counterName = firstMarketService.getCounterName();
+        if (dynamicDeltaLogs != null) {
+            deltasLogger.info(String.format("#%s %s", counterName, dynamicDeltaLogs));
+        }
+
         synchronized (dealPrices) {
             dealPrices.setBorder1(params.getBorder1());
             dealPrices.setBorder2(params.getBorder2());
@@ -721,8 +741,8 @@ public class ArbitrageService {
             dealPrices.setDeltaName(DeltaName.O_DELTA);
             dealPrices.setBestQuotes(bestQuotes);
 
-            dealPrices.setbPriceFact(new AvgPrice(b_block, "bitmex"));
-            dealPrices.setoPriceFact(new AvgPrice(o_block, "okex"));
+            dealPrices.setbPriceFact(new AvgPrice(counterName, b_block, "bitmex"));
+            dealPrices.setoPriceFact(new AvgPrice(counterName, o_block, "okex"));
 
             dealPrices.setBorderParamsOnStart(borderParams);
             dealPrices.setPos_bo(pos_bo);
@@ -734,23 +754,11 @@ public class ArbitrageService {
             }
         }
 
-        bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
-        setSignalType(signalType);
-        params.setLastDelta(DELTA2);
-
-        firstMarketService.setBusy();
-        secondMarketService.setBusy();
-
-        writeLogDelta2(ask1_p, bid1_o, tradingSignal);
-        if (dynamicDeltaLogs != null) {
-            deltasLogger.info(String.format("#%s %s", getCounter(), dynamicDeltaLogs));
-        }
-
         arbInProgress.set(true);
-        deltasLogger.info("#{} is started ---", getCounter());
+        deltasLogger.info("#{} is started ---", counterName);
         // in scheme MT2 Okex should be the first
-        signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType, predefinedPlacingType);
-        signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.BID, b_block, bestQuotes, signalType, predefinedPlacingType);
+        signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType, predefinedPlacingType, counterName);
+        signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.BID, b_block, bestQuotes, signalType, predefinedPlacingType, counterName);
 
         setTimeoutAfterStartTrading();
 

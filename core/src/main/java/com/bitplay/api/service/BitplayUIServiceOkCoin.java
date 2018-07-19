@@ -6,7 +6,6 @@ import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.domain.futureindex.FutureIndexJson;
 import com.bitplay.api.domain.futureindex.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
@@ -80,7 +79,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
 
             final PlacingType placingSubType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
             TradeResponse tradeResponse = service.placeOrder(new PlaceOrderArgs(orderType, amount, null, placingSubType,
-                    signalType, 0));
+                    signalType, 0, signalType.getCounterName()));
             orderId = tradeResponse.getOrderId();
             details = tradeResponse.getErrorCode();
 

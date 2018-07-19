@@ -415,7 +415,8 @@ public class BitmexService extends MarketService {
                                             orderStream = Stream.of(cancelledFplayOrder);
                                             final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
                                             arbitrageService.getDealPrices().getbPriceFact()
-                                                    .addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(),
+                                                    .addPriceItem(cancelledFplayOrder.getCounterName(), cancelledOrder.getId(),
+                                                            cancelledOrder.getCumulativeAmount(),
                                                             cancelledOrder.getAveragePrice(), cancelledOrder.getStatus());
                                         }
 
@@ -434,7 +435,8 @@ public class BitmexService extends MarketService {
                                                 final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
 
                                                 arbitrageService.getDealPrices().getbPriceFact()
-                                                        .addPriceItem(cancelledOrder.getId(), cancelledOrder.getCumulativeAmount(),
+                                                        .addPriceItem(cancelledFplayOrder.getCounterName(), cancelledOrder.getId(),
+                                                                cancelledOrder.getCumulativeAmount(),
                                                                 cancelledOrder.getAveragePrice(), cancelledOrder.getStatus());
 
                                                 final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
@@ -443,7 +445,8 @@ public class BitmexService extends MarketService {
                                                         openOrder.getBestQuotes(),
                                                         openOrder.getPlacingType(),
                                                         openOrder.getSignalType(),
-                                                        1));
+                                                        1,
+                                                        cancelledFplayOrder.getCounterName()));
 
                                                 final Stream.Builder<FplayOrder> streamBuilder = Stream.builder();
                                                 // 1. old order
@@ -452,8 +455,10 @@ public class BitmexService extends MarketService {
                                                 // 2. new order
                                                 final LimitOrder placedOrder = tradeResponse.getLimitOrder();
                                                 if (placedOrder != null) {
-                                                    streamBuilder.add(new FplayOrder(placedOrder, openOrder.getBestQuotes(), openOrder.getPlacingType(), openOrder.getSignalType()));
-                                                    arbitrageService.getDealPrices().getbPriceFact().addPriceItem(placedOrder.getId(),
+                                                    streamBuilder.add(new FplayOrder(openOrder.getCounterName(), placedOrder, openOrder.getBestQuotes(),
+                                                            openOrder.getPlacingType(), openOrder.getSignalType()));
+                                                    arbitrageService.getDealPrices().getbPriceFact()
+                                                            .addPriceItem(openOrder.getCounterName(), placedOrder.getId(),
                                                             placedOrder.getCumulativeAmount(), placedOrder.getAveragePrice(),
                                                             placedOrder.getStatus());
                                                 }
@@ -461,7 +466,8 @@ public class BitmexService extends MarketService {
                                                 // 3. failed on placing
                                                 tradeResponse.getCancelledOrders()
                                                         .forEach(limitOrder -> streamBuilder.add(
-                                                                new FplayOrder(limitOrder, openOrder.getBestQuotes(), openOrder.getPlacingType(), openOrder.getSignalType())));
+                                                                new FplayOrder(openOrder.getCounterName(), limitOrder, openOrder.getBestQuotes(),
+                                                                        openOrder.getPlacingType(), openOrder.getSignalType())));
                                                 orderStream = streamBuilder.build();
 
                                             }
@@ -718,14 +724,18 @@ public class BitmexService extends MarketService {
                             updateOfOpenOrders.getOpenOrders()
                                     .forEach(update -> {
                                         LimitOrder limitOrder = update;
+                                        String counterName = getCounterName();
 
                                         for (FplayOrder ord : openOrders) {
                                             if (update.getId().equals(ord.getOrderId())) {
                                                 final FplayOrder fplayOrder = FplayOrderUtils.updateFplayOrder(ord, update);
                                                 limitOrder = (LimitOrder) fplayOrder.getOrder();
+                                                counterName = fplayOrder.getCounterName();
+                                                break;
                                             }
                                         }
-                                        setQuotesForArbLogs(limitOrder, limitOrder.getAveragePrice(), false);
+
+                                        setQuotesForArbLogs(counterName, limitOrder, limitOrder.getAveragePrice(), false);
                                     });
 
                             updateOpenOrders(updateOfOpenOrders.getOpenOrders()); // all there: add/update/remove -> free Market -> write logs
@@ -812,22 +822,20 @@ public class BitmexService extends MarketService {
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
                                             SignalType signalType) {
-        final Settings settings = settingsRepositoryService.getSettings();
-        PlacingType placingType = settings.getBitmexPlacingType();
-        return placeOrderToOpenOrders(orderType, amountInContracts, bestQuotes, placingType, signalType);
+        throw new IllegalArgumentException("Use placeOrderToOpenOrders instead");
     }
 
     public TradeResponse makerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
-        return placeOrderToOpenOrders(orderType, amountInContracts, bestQuotes, PlacingType.MAKER, signalType);
+        return placeOrderToOpenOrders(getCounterName(signalType), orderType, amountInContracts, bestQuotes, PlacingType.MAKER, signalType);
     }
 
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
-        return placeOrderToOpenOrders(orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType);
+        return placeOrderToOpenOrders(getCounterName(signalType), orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType);
     }
 
-    public TradeResponse placeOrderToOpenOrders(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
+    public TradeResponse placeOrderToOpenOrders(String counterName, Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
                                                  PlacingType placingType, SignalType signalType) {
-        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1);
+        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1, counterName);
 
         final TradeResponse tradeResponse = placeOrder(placeOrderArgs);
 
@@ -841,7 +849,8 @@ public class BitmexService extends MarketService {
             String orderId = tradeResponse.getOrderId() != null ? tradeResponse.getOrderId() : "0";
             limitOrder = new LimitOrder(orderType, amount, CurrencyPair.BTC_USD, orderId, new Date(), BigDecimal.ZERO);
         }
-        final FplayOrder stub = new FplayOrder(limitOrder, placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType());
+        final FplayOrder stub = new FplayOrder(counterName, limitOrder, placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(),
+                placeOrderArgs.getSignalType());
 
         updateOpenOrders(updates, stub);
 
@@ -873,6 +882,7 @@ public class BitmexService extends MarketService {
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
         PlacingType placingType = placeOrderArgs.getPlacingType();
         final SignalType signalType = placeOrderArgs.getSignalType();
+        final String counterName = placeOrderArgs.getCounterName();
 
         if (placingType == null) {
             tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs);
@@ -881,7 +891,6 @@ public class BitmexService extends MarketService {
 
         MarketState nextMarketState = getMarketState();
         arbitrageService.setSignalType(signalType);
-        final String counterName = getCounterName();
 
         try {
             setMarketState(MarketState.PLACING_ORDER);
@@ -909,12 +918,12 @@ public class BitmexService extends MarketService {
                         final LimitOrder requestOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, "0", new Date(), thePrice);
                         final LimitOrder resultOrder = bitmexTradeService.placeLimitOrderBitmex(requestOrder);
                         orderId = resultOrder.getId();
-                        final FplayOrder fplayOrder = new FplayOrder(resultOrder, bestQuotes, placingType, signalType);
+                        final FplayOrder fplayOrder = new FplayOrder(counterName, resultOrder, bestQuotes, placingType, signalType);
                         orderRepositoryService.save(fplayOrder);
                         if (orderId != null && !orderId.equals("0")) {
                             tradeResponse.setLimitOrder(resultOrder);
                             arbitrageService.getDealPrices().getbPriceFact()
-                                    .addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(),
+                                    .addPriceItem(counterName, orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(),
                                             resultOrder.getStatus());
                         }
 
@@ -941,9 +950,11 @@ public class BitmexService extends MarketService {
                         final MarketOrder resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder);
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
+                        final FplayOrder fplayOrder = new FplayOrder(counterName, resultOrder, bestQuotes, placingType, signalType);
+                        orderRepositoryService.save(fplayOrder);
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
                         arbitrageService.getDealPrices().getbPriceFact()
-                                .addPriceItem(orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(), resultOrder.getStatus());
+                                .addPriceItem(counterName, orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(), resultOrder.getStatus());
 
                         // workaround for OO list: set as limit order
                         tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, orderId, new Date(),
@@ -1069,6 +1080,7 @@ public class BitmexService extends MarketService {
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving. Order was placed as taker.");
         }
 
+        final String counterName = fplayOrder.getCounterName();
         try {
             BigDecimal bestMakerPrice = newPrice.setScale(1, BigDecimal.ROUND_HALF_UP);
 
@@ -1091,10 +1103,10 @@ public class BitmexService extends MarketService {
 
                 final LimitOrder updatedOrder = (LimitOrder)updated.getOrder();
 
-                String diffWithSignal = setQuotesForArbLogs(limitOrder, bestMakerPrice, showDiff);
+                String diffWithSignal = setQuotesForArbLogs(updated.getCounterName(), limitOrder, bestMakerPrice, showDiff);
 
                 final String logString = String.format("%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s. %s.",
-                        getCounterName(),
+                        counterName,
                         limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                         limitOrder.getLimitPrice(),
                         bestMakerPrice.toPlainString(),
@@ -1111,7 +1123,8 @@ public class BitmexService extends MarketService {
                 ordersLogger.info(logString);
 
                 arbitrageService.getDealPrices().getbPriceFact()
-                        .addPriceItem(updatedOrder.getId(), updatedOrder.getCumulativeAmount(), updatedOrder.getAveragePrice(), updatedOrder.getStatus());
+                        .addPriceItem(counterName, updatedOrder.getId(), updatedOrder.getCumulativeAmount(), updatedOrder.getAveragePrice(),
+                                updatedOrder.getStatus());
 
                 if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
                     if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
@@ -1136,7 +1149,7 @@ public class BitmexService extends MarketService {
             moveResponse = handler.getMoveResponse();
             // double check  "Invalid ordStatus"
             if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), getCounterName(), 1, "Moving:CheckInvOrdStatus:");
+                final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), counterName, 1, "Moving:CheckInvOrdStatus:");
                 if (orderInfo.isPresent()) {
                     final Order doubleChecked = orderInfo.get();
                     final FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, (LimitOrder) doubleChecked);
@@ -1152,7 +1165,7 @@ public class BitmexService extends MarketService {
         } catch (Exception e) {
 
             final String message = e.getMessage();
-            final String logString = String.format("%s/%s MovingError id=%s: %s", getCounterName(), movingErrorsOverloaded.get(), limitOrder.getId(), message);
+            final String logString = String.format("%s/%s MovingError id=%s: %s", counterName, movingErrorsOverloaded.get(), limitOrder.getId(), message);
             logger.error(logString, e);
             tradeLogger.error(logString);
             warningLogger.error(logString);
@@ -1170,7 +1183,7 @@ public class BitmexService extends MarketService {
         return moveResponse;
     }
 
-    private String setQuotesForArbLogs(LimitOrder limitOrder, BigDecimal openPrice, boolean showDiff) {
+    private String setQuotesForArbLogs(String counterName, LimitOrder limitOrder, BigDecimal openPrice, boolean showDiff) {
         String diffWithSignal = "";
         if (openPrice != null) {
             arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(openPrice);
@@ -1181,7 +1194,7 @@ public class BitmexService extends MarketService {
         }
 
         arbitrageService.getDealPrices().getbPriceFact()
-                .addPriceItem(limitOrder.getId(), limitOrder.getCumulativeAmount(), limitOrder.getAveragePrice(), limitOrder.getStatus());
+                .addPriceItem(counterName, limitOrder.getId(), limitOrder.getCumulativeAmount(), limitOrder.getAveragePrice(), limitOrder.getStatus());
         return diffWithSignal;
     }
 
@@ -1478,10 +1491,8 @@ public class BitmexService extends MarketService {
      *
      * @param avgPrice the object to be updated.
      */
-    public void updateAvgPrice(AvgPrice avgPrice) {
+    public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
         final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
-        boolean success = false;
-        final String counterName = getCounterName();
         for (String orderId : itemMap.keySet()) {
             AvgPriceItem theItem = itemMap.get(orderId);
             final String logMsg = String.format("%s AvgPrice update of orderId=%s.", counterName, orderId);
@@ -1504,7 +1515,7 @@ public class BitmexService extends MarketService {
                                 break;
                             } else {
                                 tradeLogger.info(String.format("%s WARNING: no order parts. UpdatedOrderInfo:%s", logMsg, Arrays.toString(orders.toArray())));
-                                avgPrice.addPriceItem(orderId, order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus());
+                                avgPrice.addPriceItem(counterName, orderId, order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus());
                             }
                         }
                     } else {
@@ -1523,9 +1534,8 @@ public class BitmexService extends MarketService {
 
                         if (amountSum.signum() > 0) {
                             final BigDecimal price = multiplySum.divide(amountSum, 2, RoundingMode.HALF_UP);
-                            avgPrice.addPriceItem(orderId, amountSum, price, ordStatus);
+                            avgPrice.addPriceItem(counterName, orderId, amountSum, price, ordStatus);
                             tradeLogger.info(String.format("%s p=%s, a=%s. ordStatus=%s", logMsg, price, amountSum, ordStatus));
-                            success = true;
                             break;
                         } else {
                             tradeLogger.info(String.format("%s price=0. Use 'order history' price p=%s, a=%s, ordStatus=%s. %s",
@@ -1552,13 +1562,10 @@ public class BitmexService extends MarketService {
                 }
             }
         }
-//        if (!success) {
         tradeLogger.info("{} AvgPrice by {} orders({}) is {}", counterName,
                 itemMap.size(),
                 Arrays.toString(itemMap.keySet().toArray()),
                 avgPrice.getAvg());
-
-//        }
 
         tradeLogger.info("{} {}", counterName, arbitrageService.getDealPrices().getDiffB().str);
     }

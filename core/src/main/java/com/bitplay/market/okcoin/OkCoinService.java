@@ -20,13 +20,11 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
@@ -421,15 +419,20 @@ public class OkCoinService extends MarketService {
 
                         synchronized (openOrdersLock) {
                             // do not repeat for already 'FILLED' orders.
-                            privateData.getTrades().stream()
-                                    .filter(orderInfo -> openOrders.stream()
-                                            .filter(o -> o.getOrderId().equals(orderInfo.getId())).noneMatch(o -> o.getOrder().getStatus() == Order.OrderStatus.FILLED))
-                                    .forEach(orderInfo -> {
-                                        arbitrageService.getDealPrices().getoPriceFact()
-                                                .addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(),
-                                                        orderInfo.getStatus());
-                                        writeAvgPriceLog();
-                                    });
+                            privateData.getTrades()
+                                    .forEach(update -> openOrders.stream()
+                                            .filter(o -> o.getOrderId().equals(update.getId()))
+                                            .filter(o -> o.getOrder().getStatus() != Order.OrderStatus.FILLED)
+                                            .forEach(o -> {
+                                                arbitrageService.getDealPrices().getoPriceFact()
+                                                        .addPriceItem(o.getCounterName(),
+                                                                update.getId(),
+                                                                update.getCumulativeAmount(),
+                                                                update.getAveragePrice(),
+                                                                update.getStatus());
+                                                writeAvgPriceLog();
+                                            })
+                                    );
                         }
 
                         updateOpenOrders(privateData.getTrades());
@@ -519,7 +522,7 @@ public class OkCoinService extends MarketService {
 
             arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
             arbitrageService.getDealPrices().getoPriceFact()
-                    .addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(), orderInfo.getStatus());
+                    .addPriceItem(counterName, orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(), orderInfo.getStatus());
 
             if (orderInfo.getStatus() == OrderStatus.NEW) { // 1. Try cancel then
                 Pair<Boolean, Order> orderPair = cancelOrderWithCheck(orderId, "Taker:Cancel_maker:", "Taker:Cancel_makerStatus:");
@@ -535,7 +538,7 @@ public class OkCoinService extends MarketService {
             if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
                 tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
                 tradeResponse.addCancelledOrder((LimitOrder) orderInfo);
-                warningLogger.warn("{} Order was cancelled. orderId={}", getCounterName(), orderId);
+                warningLogger.warn("{} Order was cancelled. orderId={}", counterName, orderId);
             } else { //FILLED by any (orderInfo or cancelledOrder)
 
                 writeLogPlaceOrder(orderType, amount, "taker",
@@ -816,7 +819,8 @@ public class OkCoinService extends MarketService {
 
         BigDecimal thePrice;
 
-        final String message = Utils.getTenAskBid(getOrderBook(), signalType.getCounterName(), String.format("Before %s placing", placingSubType));
+        String counterName = getCounterName();
+        final String message = Utils.getTenAskBid(getOrderBook(), counterName, String.format("Before %s placing", placingSubType));
         logger.info(message);
         tradeLogger.info(message);
 
@@ -850,7 +854,7 @@ public class OkCoinService extends MarketService {
 
                 final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(), thePrice);
                 tradeResponse.setLimitOrder(limitOrderWithId);
-                final FplayOrder fplayOrder = new FplayOrder(limitOrderWithId, bestQuotes, placingSubType, signalType);
+                final FplayOrder fplayOrder = new FplayOrder(counterName, limitOrderWithId, bestQuotes, placingSubType, signalType);
                 orderRepositoryService.save(fplayOrder);
 
                 String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType;
@@ -859,7 +863,7 @@ public class OkCoinService extends MarketService {
 
                     final Order.OrderStatus status = limitOrderWithId.getStatus();
                     final String msg = String.format("%s: %s %s amount=%s, quote=%s, orderId=%s, status=%s",
-                            getCounterName(),
+                            counterName,
                             placingTypeString,
                             Utils.convertOrderTypeName(orderType),
                             tradeableAmount.toPlainString(),
@@ -895,7 +899,8 @@ public class OkCoinService extends MarketService {
 
                 arbitrageService.getDealPrices().setSecondOpenPrice(thePrice);
                 arbitrageService.getDealPrices().getoPriceFact()
-                        .addPriceItem(orderId, limitOrderWithId.getCumulativeAmount(), limitOrderWithId.getAveragePrice(), limitOrderWithId.getStatus());
+                        .addPriceItem(counterName, orderId, limitOrderWithId.getCumulativeAmount(), limitOrderWithId.getAveragePrice(),
+                                limitOrderWithId.getStatus());
 
                 orderIdToSignalInfo.put(orderId, bestQuotes);
 
@@ -990,8 +995,9 @@ public class OkCoinService extends MarketService {
         final LimitOrder limitOrder = LimitOrder.Builder.from(fOrderToCancel.getOrder()).build();
         final SignalType signalType = fOrderToCancel.getSignalType() != null ? fOrderToCancel.getSignalType() : getArbitrageService().getSignalType();
 
+        final String counterName = fOrderToCancel.getCounterName();
         if (limitOrder.getStatus() == Order.OrderStatus.CANCELED || limitOrder.getStatus() == Order.OrderStatus.FILLED) {
-            tradeLogger.error("{} do not move ALREADY_CLOSED order", getCounterName());
+            tradeLogger.error("{} do not move ALREADY_CLOSED order", counterName);
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null,null, fOrderToCancel);
         }
         if (getMarketState() == MarketState.PLACING_ORDER) { // !arbitrageService.getParams().getOkCoinOrderType().equals("maker")
@@ -1020,13 +1026,12 @@ public class OkCoinService extends MarketService {
 
             final FplayOrder cancelledFplayOrd = FplayOrderUtils.updateFplayOrder(fOrderToCancel, cancelledOrder);
             final LimitOrder cancelledLimitOrder = (LimitOrder) cancelledFplayOrd.getOrder();
-            orderRepositoryService.update(cancelledLimitOrder);
+            orderRepositoryService.update(cancelledLimitOrder, cancelledFplayOrd);
 
-            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(cancelledLimitOrder.getId(), cancelledLimitOrder.getCumulativeAmount(),
+            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(counterName, cancelledLimitOrder.getId(), cancelledLimitOrder.getCumulativeAmount(),
                     cancelledLimitOrder.getAveragePrice(), cancelledLimitOrder.getStatus());
 
             // 3. Already closed?
-            final String counterName = getCounterName();
             if (!cancelSucceed // WORKAROUND: CANCELLED, but was cancelled/placedNew on a previous moving-iteration
                     || cancelledLimitOrder.getStatus() == Order.OrderStatus.FILLED) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null,
@@ -1055,13 +1060,13 @@ public class OkCoinService extends MarketService {
 
                 if (tradeResponse.getLimitOrder() != null) {
                     final LimitOrder newOrder = tradeResponse.getLimitOrder();
-                    final FplayOrder newFplayOrder = new FplayOrder(newOrder, cancelledFplayOrd.getBestQuotes(),
+                    final FplayOrder newFplayOrder = new FplayOrder(counterName, newOrder, cancelledFplayOrd.getBestQuotes(),
                             cancelledFplayOrd.getPlacingType(), cancelledFplayOrd.getSignalType());
                     response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(),
                             newOrder, newFplayOrder, cancelledFplayOrd);
                 } else {
                     warningLogger.info(String.format("%s Can not move orderId=%s, ONLY_CANCEL!!!",
-                            getCounterName(), limitOrder.getId()));
+                            counterName, limitOrder.getId()));
                     response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, tradeResponse.getOrderId(),
                             null, null, cancelledFplayOrd);
                 }
@@ -1627,13 +1632,13 @@ public class OkCoinService extends MarketService {
                                         if (newOrder != null) {
                                             final Order orderInfo = newOrder.getOrder();
                                             arbitrageService.getDealPrices().getoPriceFact()
-                                                    .addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(),
+                                                    .addPriceItem(newOrder.getCounterName(), orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(),
                                                             orderInfo.getStatus());
                                         }
                                         if (cancelledOrder != null) {
                                             final Order orderInfo = cancelledOrder.getOrder();
                                             arbitrageService.getDealPrices().getoPriceFact()
-                                                    .addPriceItem(orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(),
+                                                    .addPriceItem(cancelledOrder.getCounterName(), orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(),
                                                             orderInfo.getStatus());
                                             if (cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
                                                 writeAvgPriceLog();
@@ -1699,7 +1704,7 @@ public class OkCoinService extends MarketService {
      *
      * @param avgPrice the object to be updated.
      */
-    public void updateAvgPrice(AvgPrice avgPrice) {
+    public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
         final Set<String> orderIds = avgPrice.getpItems().keySet();
         Collection<Order> orderInfos = new ArrayList<>();
 
@@ -1722,6 +1727,6 @@ public class OkCoinService extends MarketService {
             }
         }
 
-        orderInfos.forEach(order -> avgPrice.addPriceItem(order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus()));
+        orderInfos.forEach(order -> avgPrice.addPriceItem(counterName, order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus()));
     }
 }

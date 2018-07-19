@@ -96,7 +96,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
             }
 
             tradeResponse = poloniexService.placeOrder(new PlaceOrderArgs(orderType, amount, null,
-                    null, signalType, 1));
+                    null, signalType, 1, signalType.getCounterName()));
         }
 
         final PoloniexTradeResponse poloniexTradeResponse = tradeResponse.getSpecificResponse() != null

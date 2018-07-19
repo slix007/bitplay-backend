@@ -10,16 +10,19 @@ public class FplayOrderUtils {
 
     public static FplayOrder updateFplayOrder(FplayOrder fplayOrder, LimitOrder update) {
         final FplayOrder updated;
+        if (fplayOrder == null) {
+            throw new IllegalArgumentException("FplayOrder stub for update is null");
+        }
 
-        if (fplayOrder != null) {
+        if (fplayOrder.getOrderId() != null) {
             LimitOrder existing = (LimitOrder) fplayOrder.getOrder();
 
             final LimitOrder limitOrder = updateLimitOrder(existing, update);
 
-            updated = new FplayOrder(limitOrder,
+            updated = new FplayOrder(fplayOrder.getCounterName(), limitOrder,
                     fplayOrder.getBestQuotes(), fplayOrder.getPlacingType(), fplayOrder.getSignalType());
         } else {
-            updated = new FplayOrder(update, null, null, null);
+            updated = new FplayOrder(fplayOrder.getCounterName(), update, null, null, null);
         }
         return updated;
     }
@@ -33,7 +36,7 @@ public class FplayOrderUtils {
 
             final LimitOrder limitOrder = updateLimitOrder(existingLimit, updateLimit);
 
-            updated = new FplayOrder(limitOrder,
+            updated = new FplayOrder(exists.getCounterName(), limitOrder,
                     exists.getBestQuotes() != null ? exists.getBestQuotes() : update.getBestQuotes(),
                     exists.getPlacingType() != null ? exists.getPlacingType() : update.getPlacingType(),
                     exists.getSignalType() != null ? exists.getSignalType() : update.getSignalType());

@@ -342,16 +342,21 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return res;
     }
 
-    protected String getCounterName() {
-        return getCounterName(getArbitrageService().getCounter());
+    public String getCounterName() {
+        final SignalType signalType = getArbitrageService().getSignalType();
+        return getCounterName(getArbitrageService().getCounter(), signalType);
+    }
+
+    public String getCounterName(SignalType signalType) {
+        return getCounterName(getArbitrageService().getCounter(), signalType);
     }
 
     protected String getCounterNameNext() {
-        return getCounterName(getArbitrageService().getCounter() + 1);
+        final SignalType signalType = getArbitrageService().getSignalType();
+        return getCounterName(getArbitrageService().getCounter() + 1, signalType);
     }
 
-    private String getCounterName(final int counter) {
-        final SignalType signalType = getArbitrageService().getSignalType();
+    private String getCounterName(final int counter, SignalType signalType) {
         String value;
         if (signalType == SignalType.AUTOMATIC) {
             value = String.valueOf(counter);
@@ -364,7 +369,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         } else {
             value = signalType.getCounterName();
         }
-        return "#" + value;
+        return value;
     }
 
     public boolean isBusy() {
@@ -521,8 +526,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                         this.openOrders.stream()
                                                 .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
                                                 .findAny()
-                                                .map(fOrd -> new FplayOrder(limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(), fOrd.getSignalType()))
-                                                .orElseGet(() -> new FplayOrder((limitOrder), null, null, null)))
+                                                .map(fOrd -> new FplayOrder(fOrd.getCounterName(), limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(),
+                                                        fOrd.getSignalType()))
+                                                .orElseGet(() -> new FplayOrder(getCounterName(), (limitOrder), null, null, null)))
                                 .collect(Collectors.toList());
                     }
 

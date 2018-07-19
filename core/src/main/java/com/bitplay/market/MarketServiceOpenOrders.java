@@ -44,18 +44,16 @@ public abstract class MarketServiceOpenOrders {
 
     public abstract PersistenceService getPersistenceService();
 
-    public List<LimitOrder> getAllOpenOrders() {
-        List<LimitOrder> limitOrders;
+    public List<FplayOrder> getAllOpenOrders() {
+        List<FplayOrder> orders;
         synchronized (openOrdersLock) {
-            limitOrders = openOrders == null
+            orders = openOrders == null
                     ? new ArrayList<>()
                     : openOrders.stream()
-                    .map(FplayOrder::getOrder)
-                    .map(LimitOrder.class::cast)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
         }
-        return limitOrders;
+        return orders;
     }
 
     public List<LimitOrder> getOnlyOpenOrders() {
@@ -143,7 +141,7 @@ public abstract class MarketServiceOpenOrders {
     }
 
     protected void updateOpenOrders(List<LimitOrder> trades) {
-        updateOpenOrders(trades, null);
+        updateOpenOrders(trades, new FplayOrder(getCounterName()));
     }
 
     protected void updateOpenOrders(List<LimitOrder> trades, FplayOrder stabOrderForNew) {
@@ -152,7 +150,7 @@ public abstract class MarketServiceOpenOrders {
             return;
         }
 
-        trades.forEach(getPersistenceService().getOrderRepositoryService()::update);
+        trades.forEach(o -> getPersistenceService().getOrderRepositoryService().update(o, stabOrderForNew));
 
         synchronized (openOrdersLock) {
 
@@ -167,14 +165,15 @@ public abstract class MarketServiceOpenOrders {
             this.openOrders = trades.stream()
                     .flatMap(update -> {
 
+                        String counterName = getCounterName();
                         logger.info("{} Order update:id={},status={},amount={},filled={},time={}",
-                                getCounterName(),
+                                counterName,
                                 update.getId(), update.getStatus(), update.getTradableAmount(),
                                 update.getCumulativeAmount(),
                                 update.getTimestamp().toString());
 
                         if (update.getStatus() == Order.OrderStatus.FILLED) {
-                            getTradeLogger().info("{} Order {} FILLED", getCounterName(), update.getId());
+                            getTradeLogger().info("{} Order {} FILLED", counterName, update.getId());
                         }
 
                         final FplayOrder fplayOrder = updateOpenOrder(update, stabOrderForNew); // exist or null
@@ -297,7 +296,7 @@ public abstract class MarketServiceOpenOrders {
         }
 
         final FplayOrder updatedOrder = FplayOrderUtils.updateFplayOrder(fplayOrder, limitOrder);
-        getPersistenceService().getOrderRepositoryService().update(limitOrder);
+        getPersistenceService().getOrderRepositoryService().update(limitOrder, updatedOrder);
 
         return updatedOrder;
     }
