@@ -185,7 +185,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }
         if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (!isBusy()) {
-                getTradeLogger().info("{} {}: busy, {}", getCounterNameNext(), getName(), getPosDiffString());
+                getTradeLogger().info("#{} {}: busy, {}", getCounterNameNext(), getName(), getPosDiffString());
             }
             this.marketState = MarketState.ARBITRAGE;
         }
@@ -257,7 +257,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             return;
         }
 
-        final String changeStat = String.format("%s change status from %s to %s",
+        final String changeStat = String.format("#%s change status from %s to %s",
                 getCounterName(),
                 currMarketState,
                 MarketState.SYSTEM_OVERLOADED);
@@ -293,7 +293,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                         : MarketState.READY;
             }
 
-            final String backWarn = String.format("%s change status from %s to %s",
+            final String backWarn = String.format("#%s change status from %s to %s",
                     getCounterName(),
                     MarketState.SYSTEM_OVERLOADED,
                     marketStateToSet);
@@ -393,7 +393,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public void setMarketState(MarketState newState, String counterName) {
-        getTradeLogger().info("{} {} marketState: {} {}", counterName, getName(), newState, getPosDiffString());
+        getTradeLogger().info("#{} {} marketState: {} {}", counterName, getName(), newState, getPosDiffString());
         this.marketState = newState;
         if (newState == MarketState.READY) {
             this.readyTime = Instant.now();
@@ -578,7 +578,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         try {
             orders = tradeService.getOrder(orderIds);
             if (orders.isEmpty()) {
-                final String message = String.format("%s/%s %s orderIds=%s, error: %s",
+                final String message = String.format("#%s/%s %s orderIds=%s, error: %s",
                         counterName, attemptCount,
                         logInfoId,
                         Arrays.toString(orderIds), "Market did not return info by orderIds");
@@ -587,7 +587,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 for (Order orderInfo : orders) {
                     orderInfo = orders.iterator().next();
                     if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                        customLogger.info("{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
+                        customLogger.info("#{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
                                 counterName, attemptCount,
                                 logInfoId,
                                 Utils.convertOrderTypeName(orderInfo.getType()),
@@ -600,7 +600,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 }
             }
         } catch (Exception e) {
-            final String message = String.format("%s/%s %s orderIds=%s, error: %s",
+            final String message = String.format("#%s/%s %s orderIds=%s, error: %s",
                     counterName, attemptCount,
                     logInfoId,
                     Arrays.toString(orderIds), e.toString());

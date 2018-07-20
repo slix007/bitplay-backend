@@ -4,12 +4,6 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
-
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.trade.LimitOrder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -23,6 +17,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.trade.LimitOrder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Sergey Shurmin on 12/24/17.
@@ -166,20 +164,20 @@ public abstract class MarketServiceOpenOrders {
                     .flatMap(update -> {
 
                         String counterName = getCounterName();
-                        logger.info("{} Order update:id={},status={},amount={},filled={},time={}",
+                        logger.info("#{} Order update:id={},status={},amount={},filled={},time={}",
                                 counterName,
                                 update.getId(), update.getStatus(), update.getTradableAmount(),
                                 update.getCumulativeAmount(),
                                 update.getTimestamp().toString());
 
                         if (update.getStatus() == Order.OrderStatus.FILLED) {
-                            getTradeLogger().info("{} Order {} FILLED", counterName, update.getId());
+                            getTradeLogger().info("#{} Order {} FILLED", counterName, update.getId());
                         }
 
                         final FplayOrder fplayOrder = updateOpenOrder(update, stabOrderForNew); // exist or null
 
                         if (fplayOrder.getOrderId().equals("0")) {
-                            getTradeLogger().warn("WARNING: update of fplayOrder with id=0: " + fplayOrder);
+                            getTradeLogger().warn("#{} WARNING: update of fplayOrder with id=0: {}", counterName, fplayOrder);
                         }
 
                         return removeOpenOrderByTime(fplayOrder);
@@ -291,8 +289,8 @@ public abstract class MarketServiceOpenOrders {
         final LimitOrder limitOrder = (LimitOrder) orderInfo;
 
         if (fplayOrder.getOrder().getStatus() != Order.OrderStatus.FILLED && limitOrder.getStatus() == Order.OrderStatus.FILLED) {
-            getTradeLogger().info("#{} updateOOStatus got FILLED orderId={}", getCounterName(), limitOrder.getId());
-            logger.info("updateOOStatus got FILLED order: " + limitOrder.toString());
+            getTradeLogger().info("#{} updateOOStatus got FILLED orderId={}", counterName, limitOrder.getId());
+            logger.info("#{} updateOOStatus got FILLED order: {}", counterName, limitOrder.toString());
         }
 
         final FplayOrder updatedOrder = FplayOrderUtils.updateFplayOrder(fplayOrder, limitOrder);

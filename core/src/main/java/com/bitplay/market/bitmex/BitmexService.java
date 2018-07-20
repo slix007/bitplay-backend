@@ -361,7 +361,7 @@ public class BitmexService extends MarketService {
         if (movingInProgress) {
 
             // Should not happen ever, because 'synch' on method
-            final String logString = String.format("%s No moving. Too often requests.", getCounterName());
+            final String logString = String.format("#%s No moving. Too often requests.", getCounterName());
             logger.error(logString);
             return;
 
@@ -744,7 +744,7 @@ public class BitmexService extends MarketService {
                             updateOfOpenOrders.getOpenOrders()
                                     .forEach(update -> {
                                         if (update.getStatus() == Order.OrderStatus.FILLED) {
-                                            logger.info("{} Order {} FILLED", getCounterName(), update.getId());
+                                            logger.info("#{} Order {} FILLED", getCounterName(), update.getId());
                                             getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
                                         }
                                     });
@@ -865,7 +865,7 @@ public class BitmexService extends MarketService {
         final Settings settings = settingsRepositoryService.getSettings();
         final Integer maxAttempts = settings.getBitmexSysOverloadArgs().getPlaceAttempts();
         if (placeOrderArgs.getAttempt() == maxAttempts) {
-            final String logString = String.format("%s Bitmex Warning placing: too many attempt(%s) when SYSTEM_OVERLOADED. Do nothing.",
+            final String logString = String.format("#%s Bitmex Warning placing: too many attempt(%s) when SYSTEM_OVERLOADED. Do nothing.",
                     getCounterName(),
                     maxAttempts);
 
@@ -932,7 +932,7 @@ public class BitmexService extends MarketService {
                             tradeResponse.addCancelledOrder(requestOrder);
                             tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
                             tradeResponse.setLimitOrder(null);
-                            tradeLogger.info("{} {} {} CANCELED amount={}, filled={}, quote={}, orderId={}",
+                            tradeLogger.info("#{} {} {} CANCELED amount={}, filled={}, quote={}, orderId={}",
                                     counterName,
                                     placingType,
                                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
@@ -968,7 +968,7 @@ public class BitmexService extends MarketService {
                         orderIdToSignalInfo.put(orderId, bestQuotes);
                     }
 
-                    final String message = String.format("%s %s %s amount=%s with quote=%s was placed.orderId=%s. pos=%s",
+                    final String message = String.format("#%s %s %s amount=%s with quote=%s was placed.orderId=%s. pos=%s",
                             counterName,
                             placingType,
                             orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
@@ -1021,7 +1021,7 @@ public class BitmexService extends MarketService {
                     final String message = e.getMessage();
                     tradeResponse.setErrorCode(message);
 
-                    final String logString = String.format("%s/%s PlaceOrderError: %s", counterName, attemptCount, message);
+                    final String logString = String.format("#%s/%s PlaceOrderError: %s", counterName, attemptCount, message);
                     logger.error(logString, e);
                     tradeLogger.error(logString);
                     warningLogger.error(logString);
@@ -1105,7 +1105,7 @@ public class BitmexService extends MarketService {
 
                 String diffWithSignal = setQuotesForArbLogs(updated.getCounterName(), limitOrder, bestMakerPrice, showDiff);
 
-                final String logString = String.format("%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s. %s.",
+                final String logString = String.format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s. %s.",
                         counterName,
                         limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                         limitOrder.getLimitPrice(),
@@ -1165,7 +1165,7 @@ public class BitmexService extends MarketService {
         } catch (Exception e) {
 
             final String message = e.getMessage();
-            final String logString = String.format("%s/%s MovingError id=%s: %s", counterName, movingErrorsOverloaded.get(), limitOrder.getId(), message);
+            final String logString = String.format("#%s/%s MovingError id=%s: %s", counterName, movingErrorsOverloaded.get(), limitOrder.getId(), message);
             logger.error(logString, e);
             tradeLogger.error(logString);
             warningLogger.error(logString);
@@ -1443,7 +1443,7 @@ public class BitmexService extends MarketService {
                         arbitrageService.getFirstMarketService().getOrderBook());
 
                 if (position.getPositionLong().signum() > 0) {
-                    tradeLogger.info(String.format("%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+                    tradeLogger.info(String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
                             getCounterName(),
                             position.getPositionLong().toPlainString(),
                             liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
@@ -1451,7 +1451,7 @@ public class BitmexService extends MarketService {
                     arbitrageService.startPreliqOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
 
                 } else if (position.getPositionLong().signum() < 0) {
-                    tradeLogger.info(String.format("%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+                    tradeLogger.info(String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
                             getCounterName(),
                             position.getPositionLong().toPlainString(),
                             liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
@@ -1495,7 +1495,7 @@ public class BitmexService extends MarketService {
         final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
         for (String orderId : itemMap.keySet()) {
             AvgPriceItem theItem = itemMap.get(orderId);
-            final String logMsg = String.format("%s AvgPrice update of orderId=%s.", counterName, orderId);
+            final String logMsg = String.format("#%s AvgPrice update of orderId=%s.", counterName, orderId);
             int MAX_ATTEMPTS = 5;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 try {
@@ -1562,12 +1562,12 @@ public class BitmexService extends MarketService {
                 }
             }
         }
-        tradeLogger.info("{} AvgPrice by {} orders({}) is {}", counterName,
+        tradeLogger.info("#{} AvgPrice by {} orders({}) is {}", counterName,
                 itemMap.size(),
                 Arrays.toString(itemMap.keySet().toArray()),
                 avgPrice.getAvg());
 
-        tradeLogger.info("{} {}", counterName, arbitrageService.getDealPrices().getDiffB().str);
+        tradeLogger.info("#{} {}", counterName, arbitrageService.getDealPrices().getDiffB().str);
     }
 
     private class HttpStatusIOExceptionHandler {
@@ -1613,8 +1613,8 @@ public class BitmexService extends MarketService {
                     marketResponseMessage = new ObjectMapper().readValue(httpBody, Error.class).getError().getMessage();
                 }
 
-                String fullMessage = String.format("%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, httpBody, rateLimitStr);
-                String shortMessage = String.format("%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, marketResponseMessage, rateLimitStr);
+                String fullMessage = String.format("#%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, httpBody, rateLimitStr);
+                String shortMessage = String.format("#%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, marketResponseMessage, rateLimitStr);
 
                 tradeLogger.error(shortMessage);
 
@@ -1653,7 +1653,7 @@ public class BitmexService extends MarketService {
                 BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
                 boolean res = tradeService.cancelOrder(orderId);
 
-                getTradeLogger().info("{}/{} {} cancelled id={}",
+                getTradeLogger().info("#{}/{} {} cancelled id={}",
                         counterName, attemptCount,
                         logInfoId,
                         orderId);
@@ -1661,8 +1661,8 @@ public class BitmexService extends MarketService {
                 return res;
 
             } catch (Exception e) {
-                logger.error("{}/{} error cancel order id={}", counterName, attemptCount, orderId, e);
-                getTradeLogger().error("{}/{} error cancel order id={}: {}", counterName, attemptCount, orderId, e.toString());
+                logger.error("#{}/{} error cancel order id={}", counterName, attemptCount, orderId, e);
+                getTradeLogger().error("#{}/{} error cancel order id={}: {}", counterName, attemptCount, orderId, e.toString());
             }
         }
         return false;
@@ -1682,7 +1682,7 @@ public class BitmexService extends MarketService {
                 BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
                 List<LimitOrder> limitOrders = tradeService.cancelAllOrders();
 
-                getTradeLogger().info("{}/{} {} cancelled id={}",
+                getTradeLogger().info("#{}/{} {} cancelled id={}",
                         counterName, attemptCount,
                         logInfoId,
                         limitOrders.stream().map(Order::getId).reduce((acc, item) -> acc + "," + item));
@@ -1692,8 +1692,8 @@ public class BitmexService extends MarketService {
                 return true;
 
             } catch (Exception e) {
-                logger.error("{}/{} error cancel orders", counterName, attemptCount, e);
-                getTradeLogger().error("{}/{} error cancel orders: {}", counterName, attemptCount, e.toString());
+                logger.error("#{}/{} error cancel orders", counterName, attemptCount, e);
+                getTradeLogger().error("#{}/{} error cancel orders: {}", counterName, attemptCount, e.toString());
             }
         }
         return false;
