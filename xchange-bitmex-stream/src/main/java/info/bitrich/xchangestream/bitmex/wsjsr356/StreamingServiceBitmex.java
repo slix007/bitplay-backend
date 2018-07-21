@@ -3,27 +3,22 @@ package info.bitrich.xchangestream.bitmex.wsjsr356;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import info.bitrich.xchangestream.bitmex.dto.AuthenticateRequest;
 import info.bitrich.xchangestream.bitmex.dto.WebSocketMessage;
 import info.bitrich.xchangestream.service.exception.NotAuthorizedException;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
-
-import org.knowm.xchange.bitmex.service.BitmexDigest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.reactivex.Completable;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-
-import io.reactivex.Completable;
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
+import org.knowm.xchange.bitmex.service.BitmexDigest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamingServiceBitmex {
 
@@ -95,29 +90,38 @@ public class StreamingServiceBitmex {
 
     public Completable onDisconnect() {
         return Completable.create(completable -> {
+
+            // Sending 'ping' just to keep the connection alive.
             pingDisposable = Observable.interval(1, 1, TimeUnit.MINUTES)
                     .subscribe(aLong -> {
 
-                        final boolean pongSuccessfully = Completable.create(e -> {
-                            msgHandler.setPingCompleteEmitter(e);
+                        int attempt = 0;
+                        boolean sendPingSuccessfully = false;
+                        while (attempt < 5 && !sendPingSuccessfully) { // 5*2sec=10sec < 1 min(repeat interval)
+                            attempt++;
 
-                            if (!clientEndPoint.isOpen()) {
-                                completable.onComplete();
-                            } else {
-                                log.debug("Send: ping");
-                                clientEndPoint.sendMessage("ping");
-                            }
+                            sendPingSuccessfully = Completable.create(e -> {
+                                msgHandler.setPingCompleteEmitter(e);
 
-                        }).blockingAwait(2000, TimeUnit.MILLISECONDS);
+                                if (!clientEndPoint.isOpen()) {
+                                    log.error("Ping failed: clientEndPoint is not open");
+                                    completable.onComplete();
+                                } else {
+                                    log.debug("Send: ping");
+                                    clientEndPoint.sendMessage("ping");
+                                }
 
-                        if (!pongSuccessfully) {
+                            }).blockingAwait(2, TimeUnit.SECONDS);
+
+                        }
+                        if (!sendPingSuccessfully) {
                             completable.onError(new Exception("Ping failed. Timeout on waiting 'pong'."));
-                            log.error("ping failed");
+                            log.error("Ping failed");
                         }
 
                     }, throwable -> {
-                        log.error("ping failed", throwable);
-                        completable.onError(new Exception("Ping failed", throwable));
+                        log.error("Ping failed exception", throwable);
+                        completable.onError(new Exception("Ping failed exception", throwable));
                         completable.onComplete();
                     });
         });
