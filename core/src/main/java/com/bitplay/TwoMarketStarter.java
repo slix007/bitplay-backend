@@ -1,5 +1,6 @@
 package com.bitplay;
 
+import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.MarketService;
@@ -31,6 +32,7 @@ public class TwoMarketStarter {
     private PosDiffService posDiffService;
 
     private ArbitrageService arbitrageService;
+    private RestartService restartService;
     public TwoMarketStarter(ApplicationContext context,
                             Config config) {
         this.context = context;
@@ -42,8 +44,16 @@ public class TwoMarketStarter {
         this.arbitrageService = arbitrageService;
     }
 
+    @Autowired
+    public void setRestartService(RestartService restartService) {
+        this.restartService = restartService;
+    }
+
     @PostConstruct
     private void init() {
+
+        restartService.scheduleCheckForFullStart();
+
         try {
             final String firstMarketName = config.getFirstMarketName();
             firstMarketService = (MarketService) context.getBean(firstMarketName);

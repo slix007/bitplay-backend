@@ -80,7 +80,7 @@ public class ArbitrageService {
     public static final BigDecimal OKEX_FACTOR = BigDecimal.valueOf(100);
     private static final Object calcLock = new Object();
     private final DealPrices dealPrices = new DealPrices();
-    private boolean firstDeltasAfterStart = true;
+    private boolean firstDeltasCalculated = false;
     @Autowired
     private BordersService bordersService;
     @Autowired
@@ -339,8 +339,9 @@ public class ArbitrageService {
             // 1. Calc deltas
             bestQuotes = Utils.createBestQuotes(okCoinOrderBook, bitmexOrderBook);
             if (!bestQuotes.hasEmpty()) {
-                if (firstDeltasAfterStart) {
-                    firstDeltasAfterStart = false;
+                if (!firstDeltasCalculated) {
+                    firstDeltasCalculated = true;
+                    logger.info("Started: First delta calculated");
                     warningLogger.info("Started: First delta calculated");
                 }
 
@@ -1162,5 +1163,9 @@ public class ArbitrageService {
 
     public AtomicBoolean getArbInProgress() {
         return arbInProgress;
+    }
+
+    public boolean isFirstDeltasCalculated() {
+        return firstDeltasCalculated;
     }
 }
