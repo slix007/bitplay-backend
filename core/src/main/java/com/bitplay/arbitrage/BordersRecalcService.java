@@ -1,5 +1,7 @@
 package com.bitplay.arbitrage;
 
+import static com.bitplay.arbitrage.DeltasCalcService.NONE_VALUE;
+
 import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.GuiParams;
@@ -37,6 +39,10 @@ public class BordersRecalcService {
     @Autowired
     private ArbitrageService arbitrageService;
 
+
+    private volatile BigDecimal b_delta_sma = NONE_VALUE;
+    private volatile BigDecimal o_delta_sma = NONE_VALUE;
+
     public boolean isRecalcEveryNewDelta() {
         final BorderParams borderParams = persistenceService.fetchBorders();
         return borderParams.getBorderDelta().getDeltaCalcType().isEveryNewDelta();
@@ -55,18 +61,21 @@ public class BordersRecalcService {
             final BigDecimal instantDelta1 = arbitrageService.getDelta1();
             final BigDecimal instantDelta2 = arbitrageService.getDelta2();
 
-            BigDecimal b_delta = deltasCalcService.calcDelta(DeltaName.B_DELTA, instantDelta1);
-            BigDecimal o_delta = deltasCalcService.calcDelta(DeltaName.O_DELTA ,instantDelta2);
+            b_delta_sma = deltasCalcService.calcDelta(DeltaName.B_DELTA, instantDelta1);
+            o_delta_sma = deltasCalcService.calcDelta(DeltaName.O_DELTA, instantDelta2);
 
-            if (b_delta == null || o_delta == null) {
+            if (b_delta_sma == null || o_delta_sma == null
+                    || b_delta_sma.equals(NONE_VALUE) || o_delta_sma.equals(NONE_VALUE)) {
                 // Not initialized (or Error?) -> Do Nothing!
+                b_delta_sma = NONE_VALUE;
+                o_delta_sma = NONE_VALUE;
             } else {
                 if (borderParams.getActiveVersion() == BorderParams.Ver.V1) {
                     final BigDecimal sumDelta = borderParams.getBordersV1().getSumDelta();
-                    recalculateBordersV1(sumDelta, b_delta, o_delta);
+                    recalculateBordersV1(sumDelta, b_delta_sma, o_delta_sma);
                 }
                 if (borderParams.getActiveVersion() == BorderParams.Ver.V2) {
-                    recalculateBordersV2(borderParams, b_delta, o_delta);
+                    recalculateBordersV2(borderParams, b_delta_sma, o_delta_sma);
                 }
             }
         } catch (Exception e) {

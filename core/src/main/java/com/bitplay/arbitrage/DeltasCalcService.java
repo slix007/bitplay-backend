@@ -31,6 +31,8 @@ public class DeltasCalcService {
 //    private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
+    public static final BigDecimal NONE_VALUE = BigDecimal.valueOf(99999);
+
     @Autowired
     private PersistenceService persistenceService;
     @Autowired
@@ -173,15 +175,6 @@ public class DeltasCalcService {
                 BigDecimal.valueOf(avgDeltaInParts.getNum_sma_ok()).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 avgDeltaInParts.getDen_sma_ok(),
                 avgDeltaInParts.getCurrSmaOkDelta());
-    }
-
-
-    public BigDecimal getBDeltaSma() {
-        return avgDeltaInParts.getB_delta_sma().getSecond();
-    }
-
-    public BigDecimal getODeltaSma() {
-        return avgDeltaInParts.getO_delta_sma().getSecond();
     }
 
     public Map<Instant, BigDecimal> getCurrBtmDeltasInCalc() {

@@ -1,5 +1,7 @@
 package com.bitplay.arbitrage;
 
+import static com.bitplay.arbitrage.DeltasCalcService.NONE_VALUE;
+
 import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderDelta;
@@ -57,7 +59,6 @@ public class AvgDeltaInParts implements AvgDelta {
     private ArbitrageService arbitrageService;
     @Autowired
     private PersistenceService persistenceService;
-    private static BigDecimal NONE_VALUE = BigDecimal.valueOf(99999);
     private Pair<Instant, BigDecimal> b_delta_sma = Pair.of(Instant.now(), NONE_VALUE);
     private Pair<Instant, BigDecimal> o_delta_sma = Pair.of(Instant.now(), NONE_VALUE);
     private Dlt last_saved_btm = null; // последняя сохраненная дельта, для использования при reset
@@ -444,14 +445,6 @@ public class AvgDeltaInParts implements AvgDelta {
 
     public synchronized boolean isHasErrorsOk() {
         return hasErrorsOk;
-    }
-
-    public synchronized Pair<Instant, BigDecimal> getB_delta_sma() {
-        return b_delta_sma;
-    }
-
-    public synchronized Pair<Instant, BigDecimal> getO_delta_sma() {
-        return o_delta_sma;
     }
 
     public synchronized List<Dlt> getB_delta() {

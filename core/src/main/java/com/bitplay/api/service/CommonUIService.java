@@ -14,6 +14,7 @@ import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
+import com.bitplay.arbitrage.BordersRecalcService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.ArbState;
@@ -58,6 +59,9 @@ public class CommonUIService {
 
     @Autowired
     private BordersCalcScheduler bordersCalcScheduler;
+
+    @Autowired
+    private BordersRecalcService bordersRecalcService;
 
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
@@ -266,7 +270,9 @@ public class CommonUIService {
         final Integer delta_hist_per = borderParams.getBorderDelta().getDeltaCalcPast();
         final String deltaSmaUpdateIn = deltasCalcService.getDeltaSmaUpdateIn(delta_hist_per);
         final CumParams cumParams = persistenceService.fetchCumParams();
-        GuiParams guiParams = arbitrageService.getParams();
+        final GuiParams guiParams = arbitrageService.getParams();
+        final String delta1Sma = bordersRecalcService.getB_delta_sma().toPlainString();
+        final String delta2Sma = bordersRecalcService.getO_delta_sma().toPlainString();
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
@@ -302,8 +308,8 @@ public class CommonUIService {
                 guiParams.getFundingRateFee().toPlainString(),
                 cumParams.getSlipBr().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 cumParams.getSlip().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                deltasCalcService.getBDeltaSma().toPlainString(),
-                deltasCalcService.getODeltaSma().toPlainString(),
+                delta1Sma,
+                delta2Sma,
                 deltasCalcService.getBDeltaEveryCalc(),
                 deltasCalcService.getODeltaEveryCalc(),
                 deltasCalcService.getDeltaHistPerStartedSec(),
