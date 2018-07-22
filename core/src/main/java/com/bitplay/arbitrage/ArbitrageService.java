@@ -628,7 +628,7 @@ public class ArbitrageService {
         firstMarketService.setBusy();
         secondMarketService.setBusy();
 
-        writeLogDelta1(ask1_o, bid1_p, tradingSignal); // sets counter here
+        writeLogOnStartTrade(ask1_o, bid1_p, tradingSignal, params.getBorder1(), delta1, "1");
 
         final int counter = getCounter();
         final String counterName = firstMarketService.getCounterName();
@@ -723,7 +723,7 @@ public class ArbitrageService {
         firstMarketService.setBusy();
         secondMarketService.setBusy();
 
-        writeLogDelta2(ask1_p, bid1_o, tradingSignal); // sets counter here
+        writeLogOnStartTrade(ask1_p, bid1_o, tradingSignal, params.getBorder2(), delta2, "2");
 
         final String counterName = firstMarketService.getCounterName();
         if (dynamicDeltaLogs != null) {
@@ -766,59 +766,46 @@ public class ArbitrageService {
         saveParamsToDb();
     }
 
-    private void writeLogDelta1(BigDecimal ask1_o, BigDecimal bid1_p, final BordersService.TradingSignal tradingSignal) {
+    private void writeLogOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final BordersService.TradingSignal tradingSignal,
+            final BigDecimal borderX, final BigDecimal deltaX, final String deltaNumber) {
         deltasLogger.info("------------------------------------------");
 
         Integer counter1 = params.getCounter1();
         Integer counter2 = params.getCounter2();
-        BigDecimal border1 = params.getBorder1();
 
-        counter1 += 1;
-        params.setCounter1(counter1);
+        final CumParams cumParams = persistenceService.fetchCumParams();
+        final Integer cc1 = cumParams.getCompletedCounter1();
+        final Integer cc2 = cumParams.getCompletedCounter2();
+
+        if (deltaNumber.equals("1")) {
+            counter1 += 1;
+            params.setCounter1(counter1);
+        } else {
+            counter2 += 1;
+            params.setCounter2(counter2);
+        }
 
         String iterationMarker = "";
         if (counter1.equals(counter2)) {
             iterationMarker = "whole iteration";
         }
-        deltasLogger.info(String.format("#%s count=%s+%s=%s %s", counter1 + counter2, counter1, counter2, counter1 + counter2, iterationMarker));
+        deltasLogger.info(String.format("#%s count=%s+%s=%s(completed=%s+%s=%s) %s", counter1 + counter2,
+                counter1, counter2, counter1 + counter2,
+                cc1, cc2, cc1 + cc2,
+                iterationMarker));
 
-        deltasLogger.info(String.format("#%s delta1=%s-%s=%s; %s",
+        deltasLogger.info(String.format("#%s delta%s=%s-%s=%s; %s",
                 //usdP=%s; btcO=%s; usdO=%s; w=%s; ",
-                getCounter(),
-                bid1_p.toPlainString(), ask1_o.toPlainString(),
-                delta1.toPlainString(),
-                tradingSignal == null ? ("b1=" + border1.toPlainString()) : ("borderV2:" + tradingSignal.toString())
+                getCounter(), deltaNumber,
+                bid1_X.toPlainString(), ask1_X.toPlainString(),
+                deltaX.toPlainString(),
+                tradingSignal == null
+                        ? (String.format("b%s=%s", deltaNumber, borderX.toPlainString()))
+                        : ("borderV2:" + tradingSignal.toString())
         ));
 
         printSumBal(false);
     }
-
-    private void writeLogDelta2(BigDecimal ask1_p, BigDecimal bid1_o, final BordersService.TradingSignal tradingSignal) {
-        deltasLogger.info("------------------------------------------");
-
-        Integer counter1 = params.getCounter1();
-        Integer counter2 = params.getCounter2();
-        BigDecimal border2 = params.getBorder2();
-
-        counter2 += 1;
-        params.setCounter2(counter2);
-
-        String iterationMarker = "";
-        if (counter1.equals(counter2)) {
-            iterationMarker = "whole iteration";
-        }
-        deltasLogger.info(String.format("#%s count=%s+%s=%s %s", getCounter(), counter1, counter2, counter1 + counter2, iterationMarker));
-
-        deltasLogger.info(String.format("#%s delta2=%s-%s=%s; %s",
-                getCounter(),
-                bid1_o.toPlainString(), ask1_p.toPlainString(),
-                delta2.toPlainString(),
-                tradingSignal == null ? ("b2=" + border2.toPlainString()) : ("borderV2:" + tradingSignal.toString())
-        ));
-
-        printSumBal(false);
-    }
-
 
     @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)
     public void calcSumBalForGui() {
