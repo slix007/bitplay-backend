@@ -158,7 +158,7 @@ public class ArbitrageService {
                             if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                                     && posDiffService.isPositionsEqual()) {
 
-//                                if (!arbInProgress.get()) {
+                                if (!arbInProgress.get()) {
 
                                     final OrderBook firstOrderBook = firstMarketService.getOrderBook();
                                     final OrderBook secondOrderBook = secondMarketService.getOrderBook();
@@ -168,7 +168,7 @@ public class ArbitrageService {
 
                                     doComparison(bestQuotes, firstOrderBook, secondOrderBook);
 
-//                                }
+                                }
                             }
                         }
                     } catch (NotYetInitializedException e) {

@@ -5,6 +5,8 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -163,12 +165,13 @@ public abstract class MarketServiceOpenOrders {
             this.openOrders = trades.stream()
                     .flatMap(update -> {
 
+                        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
                         String counterName = getCounterName();
                         logger.info("#{} Order update:id={},status={},amount={},filled={},time={}",
                                 counterName,
                                 update.getId(), update.getStatus(), update.getTradableAmount(),
                                 update.getCumulativeAmount(),
-                                update.getTimestamp().toString());
+                                df.format(update.getTimestamp()));
 
                         if (update.getStatus() == Order.OrderStatus.FILLED) {
                             getTradeLogger().info("#{} Order {} FILLED", counterName, update.getId());

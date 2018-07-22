@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,9 +45,10 @@ import org.springframework.stereotype.Service;
  * Created by Sergey Shurmin on 4/17/17.
  */
 @Service
+@Slf4j
 public class CommonUIService {
 
-    private final static Logger logger = LoggerFactory.getLogger(CommonUIService.class);
+    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -368,7 +370,9 @@ public class CommonUIService {
     public MarketFlagsJson freeMarketsStates() {
         arbitrageService.getFirstMarketService().getEventBus().send(BtsEvent.MARKET_FREE_FROM_UI);
         arbitrageService.getSecondMarketService().getEventBus().send(BtsEvent.MARKET_FREE_FROM_UI);
-//        arbitrageService.getArbInProgress().set(false);
+        arbitrageService.getArbInProgress().set(false);
+        log.info("Free markets states");
+        deltasLogger.info("Free markets states");
         return new MarketFlagsJson(
                 arbitrageService.getFirstMarketService().isReadyForArbitrage(),
                 arbitrageService.getSecondMarketService().isReadyForArbitrage()
@@ -501,7 +505,7 @@ public class CommonUIService {
     }
 
     public DeltasMinMaxJson resetRestartMonitoringParamsJson() {
-        logger.warn("RESET RestartMonitoring");
+        log.warn("RESET RestartMonitoring");
         RestartMonitoring defaults = RestartMonitoring.createDefaults();
         RestartMonitoring restartMonitoring = restartMonitoringRepository.saveRestartMonitoring(defaults);
         return new DeltasMinMaxJson(

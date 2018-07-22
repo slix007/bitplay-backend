@@ -220,8 +220,8 @@ public class AfterArbTask implements Runnable {
         }
 
         final Instant end = Instant.now();
-        log.info(String.format("workaround: Bitmex updateAvgPrice. Attempt=%s. Time: %s",
-                attempt, Duration.between(start, end).toString()));
+        log.info(String.format("#%s workaround: Bitmex updateAvgPrice. Attempt=%s. Time: %s",
+                counterName, attempt, Duration.between(start, end).toString()));
 
         return b_price_fact;
     }
