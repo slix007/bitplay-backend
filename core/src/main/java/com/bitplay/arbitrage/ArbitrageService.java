@@ -114,6 +114,8 @@ public class ArbitrageService {
     private BigDecimal delta1 = BigDecimal.ZERO;
     private BigDecimal delta2 = BigDecimal.ZERO;
     private GuiParams params = new GuiParams();
+    private BigDecimal bEbest = BigDecimal.ZERO;
+    private BigDecimal oEbest = BigDecimal.ZERO;
     private BigDecimal sumEBestUsd = BigDecimal.valueOf(-1);
     private String sumBalString = "";
     private volatile Boolean isReadyForTheArbitrage = true;
@@ -819,7 +821,7 @@ public class ArbitrageService {
         if (firstAccount != null && secondAccount != null) {
             final BigDecimal bW = firstAccount.getWallet();
             final BigDecimal bEMark = firstAccount.geteMark() != null ? firstAccount.geteMark() : BigDecimal.ZERO;
-            final BigDecimal bEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
+            bEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
             final BigDecimal bEAvg = firstAccount.geteAvg() != null ? firstAccount.geteAvg() : BigDecimal.ZERO;
             final BigDecimal bU = firstAccount.getUpl();
             final BigDecimal bM = firstAccount.getMargin();
@@ -827,7 +829,7 @@ public class ArbitrageService {
 
             final BigDecimal oW = secondAccount.getWallet();
             final BigDecimal oELast = secondAccount.geteLast() != null ? secondAccount.geteLast() : BigDecimal.ZERO;
-            final BigDecimal oEbest = secondAccount.geteBest() != null ? secondAccount.geteBest() : BigDecimal.ZERO;
+            oEbest = secondAccount.geteBest() != null ? secondAccount.geteBest() : BigDecimal.ZERO;
             final BigDecimal oEAvg = secondAccount.geteAvg() != null ? secondAccount.geteAvg() : BigDecimal.ZERO;
             final BigDecimal oM = secondAccount.getMargin();
             final BigDecimal oU = secondAccount.getUpl();
@@ -885,7 +887,7 @@ public class ArbitrageService {
             if (firstAccount != null && secondAccount != null) {
                 final BigDecimal bW = firstAccount.getWallet();
                 final BigDecimal bEmark = firstAccount.geteMark() != null ? firstAccount.geteMark() : BigDecimal.ZERO;
-                final BigDecimal bEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
+                bEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
                 final BigDecimal bEavg = firstAccount.geteAvg() != null ? firstAccount.geteAvg() : BigDecimal.ZERO;
                 final BigDecimal bU = firstAccount.getUpl();
                 final BigDecimal bM = firstAccount.getMargin();
@@ -917,7 +919,7 @@ public class ArbitrageService {
 
                 final BigDecimal oW = secondAccount.getWallet();
                 final BigDecimal oElast = secondAccount.geteLast() != null ? secondAccount.geteLast() : BigDecimal.ZERO;
-                final BigDecimal oEbest = secondAccount.geteBest() != null ? secondAccount.geteBest() : BigDecimal.ZERO;
+                oEbest = secondAccount.geteBest() != null ? secondAccount.geteBest() : BigDecimal.ZERO;
                 final BigDecimal oEavg = secondAccount.geteAvg() != null ? secondAccount.geteAvg() : BigDecimal.ZERO;
                 final BigDecimal oM = secondAccount.getMargin();
                 final BigDecimal oU = secondAccount.getUpl();
@@ -1142,6 +1144,14 @@ public class ArbitrageService {
 
     public PublishSubject<DeltaChange> getDeltaChangesPublisher() {
         return deltaChangesPublisher;
+    }
+
+    public BigDecimal getbEbest() {
+        return bEbest;
+    }
+
+    public BigDecimal getoEbest() {
+        return oEbest;
     }
 
     public BigDecimal getSumEBestUsd() {

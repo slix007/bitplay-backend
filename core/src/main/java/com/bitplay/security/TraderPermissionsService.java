@@ -32,43 +32,50 @@ public class TraderPermissionsService {
 
         try {
             final BigDecimal sumEBestUsd = arbitrageService.getSumEBestUsd();
+            BigDecimal bEbest = arbitrageService.getbEbest();
+            BigDecimal oEbest = arbitrageService.getoEbest();
             final Integer eBestMin = config.getEBestMin();
 
             if (eBestMin == null) {
                 log.warn("WARNING: e_best_min is not set");
-                return isValidWithDelay(true);
+                return isValidWithDelay(true, bEbest, oEbest);
             }
 
 //            log.info("e_best_min=" + eBestMin + ", sumEBestUsd=" + sumEBestUsd);
             if (sumEBestUsd.signum() < 0) { // not initialized yet
                 log.warn("WARNING: sum_e_best_usd is not yet initialized");
-                return isValidWithDelay(true);
+                return isValidWithDelay(true, bEbest, oEbest);
             }
             if (sumEBestUsd.compareTo(BigDecimal.valueOf(eBestMin)) < 0) {
                 log.warn("WARNING: sumEBestUsd({}) < e_best_min({})", sumEBestUsd, eBestMin);
-                return isValidWithDelay(false);
+                return isValidWithDelay(false, bEbest, oEbest);
             }
         } catch (Exception e) {
             log.error("Check e_best_min permission exception ", e);
             warningLogger.error("Check e_best_min permission exception ", e);
-            return isValidWithDelay(false);
+            return isValidWithDelay(false, null, null);
         }
 
-        return isValidWithDelay(true); // all validations completed
+        return isValidWithDelay(true, null, null); // all validations completed
     }
 
-    private boolean isValidWithDelay(boolean isValid) {
+    private boolean isValidWithDelay(boolean isValid, BigDecimal bEbest, BigDecimal oEbest) {
         if (isValid) {
             violateTimeSec = null;
+            return true;
         }
 
-        final Long VIOLATE_TIME_SEC = 7L;
+        Long VIOLATE_TIME_SEC = 10L;
+        if ((bEbest != null && bEbest.signum() == 0) || (oEbest != null && oEbest.signum() == 0)) {
+            VIOLATE_TIME_SEC = 60L;
+        }
+
         if (violateTimeSec != null
                 && Instant.now().getEpochSecond() - violateTimeSec > VIOLATE_TIME_SEC) {
             return false;
         }
 
-        if (violateTimeSec == null && !isValid) {
+        if (violateTimeSec == null) {
             violateTimeSec = Instant.now().getEpochSecond();
         }
 
