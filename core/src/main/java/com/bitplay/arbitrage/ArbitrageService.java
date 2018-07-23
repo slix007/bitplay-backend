@@ -53,13 +53,13 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.commons.lang3.SerializationUtils;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -200,8 +200,14 @@ public class ArbitrageService {
                 .subscribeOn(scheduler)
                 .observeOn(scheduler)
                 .subscribe(btsEvent -> {
-                    if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
-                        onArbDone();
+                    try {
+                        if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
+                            onArbDone();
+                        }
+                    } catch (Exception e) {
+                        logger.error("On arb-done handling", e);
+                        deltasLogger.error("ERROR on arb-done handling" + e.toString());
+                        warningLogger.error("ERROR on arb-done handling" + e.toString());
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }
@@ -217,8 +223,10 @@ public class ArbitrageService {
                 deltasLogger.info("#{} is done ---", counterNameSnap);
 
                 // use snapshot of Params
-                final DealPrices dealPricesSnap = new DealPrices();
-                BeanUtils.copyProperties(dealPrices, dealPricesSnap);
+                DealPrices dealPricesSnap;
+                synchronized (dealPrices) {
+                    dealPricesSnap = SerializationUtils.clone(dealPrices);
+                }
                 final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
                 // todo separate startSignalParams with endSignalParams (cumParams)
                 final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();

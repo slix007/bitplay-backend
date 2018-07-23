@@ -1,5 +1,6 @@
 package com.bitplay.persistance.domain.borders;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,7 +10,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class BordersV1 {
+public class BordersV1 implements Serializable {
 
     private BigDecimal sumDelta = new BigDecimal(20);
 }

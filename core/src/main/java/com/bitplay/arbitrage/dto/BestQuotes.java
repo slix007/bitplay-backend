@@ -1,11 +1,12 @@
 package com.bitplay.arbitrage.dto;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
  * Created by Sergey Shurmin on 4/27/17.
  */
-public class BestQuotes {
+public class BestQuotes implements Serializable {
 
     private BigDecimal ask1_o = BigDecimal.ZERO;
     private BigDecimal ask1_p = BigDecimal.ZERO;

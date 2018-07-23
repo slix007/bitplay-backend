@@ -1,11 +1,12 @@
 package com.bitplay.persistance.domain;
 
+import java.io.Serializable;
 import org.springframework.data.annotation.Id;
 
 /**
  * Created by Sergey Shurmin on 6/17/17.
  */
-public class AbstractDocument {
+public class AbstractDocument implements Serializable {
 
     @Id
     private Long documentId;

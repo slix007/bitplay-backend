@@ -14,6 +14,7 @@ import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
+import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.account.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 
 @Slf4j
 @Getter
@@ -302,6 +304,8 @@ public class AfterArbTask implements Runnable {
             Integer pos_bo = dealPrices.getPos_bo();
             Integer pos_ao = dealPrices.getPlan_pos_ao();
             if (pos_bo != null) {
+                BordersV2 bordersV2 = new BordersV2();
+                BeanUtils.copyProperties(borderParams.getBordersV2(), bordersV2);
                 DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(
                         posMode,
                         pos_bo,
@@ -309,7 +313,7 @@ public class AfterArbTask implements Runnable {
                         dealPrices.getDelta1Plan(),
                         dealPrices.getDelta2Plan(),
                         deltaFact,
-                        borderParams.getBordersV2());
+                        bordersV2);
                 try {
                     diffFactBr = diffFactBrComputer.compute();
                 } catch (Exception e) {

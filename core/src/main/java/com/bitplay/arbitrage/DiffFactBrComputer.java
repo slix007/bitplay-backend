@@ -109,9 +109,11 @@ public class DiffFactBrComputer {
 
         for (int i = 0; i < br_open.size(); i++) {
             BigDecimal valueI = br_open.get(i).getValue();
-            if (br_open.get(i).getId() == 0
-                    || vol_filled >= vol_fact) {
+            if (vol_filled >= vol_fact) {
                 break;
+            }
+            if (br_open.get(i).getId() == 0) {
+                continue;
             }
 
             if (pos_bo_abs < br_open.get(i).getPosShortLimit()) {
@@ -124,7 +126,7 @@ public class DiffFactBrComputer {
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
 
-                checkByDeltaPlan(delta_plan, br_open.get(i));
+//                checkByDeltaPlan(delta_plan, br_open.get(i));
                 wamBr.add(amountPortion, valueI);
             }
         }
@@ -142,9 +144,13 @@ public class DiffFactBrComputer {
 
         for (int i = 0; i < br_close.size(); i++) {
 
-            if (vol_filled >= vol_fact || br_close.get(i).getId() == 0) {
+            if (vol_filled >= vol_fact) {
                 break;
             }
+            if (br_close.get(i).getId() == 0) {
+                continue;
+            }
+
             BigDecimal valueI = br_close.get(i).getValue();
 
             if (i + 1 == br_close.size()
@@ -164,18 +170,11 @@ public class DiffFactBrComputer {
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
 
-                checkByDeltaPlan(delta_plan, br_close.get(i));
+//                checkByDeltaPlan(delta_plan, br_close.get(i));
                 wamBr.add(amountPortion, valueI);
             }
         }
         return wamBr;
-    }
-
-    private void checkByDeltaPlan(BigDecimal delta_plan, BorderItem borderItem) throws ToWarningLogException {
-        BigDecimal valueI = borderItem.getValue();
-        if (delta_plan.doubleValue() < valueI.doubleValue()) { // should not be such case
-            throw new ToWarningLogException(String.format("delta_plan=%s < value=%s. BorderItem=%s", delta_plan, valueI, borderItem.toString()));
-        }
     }
 
     DiffFactBr compute() throws ToWarningLogException {

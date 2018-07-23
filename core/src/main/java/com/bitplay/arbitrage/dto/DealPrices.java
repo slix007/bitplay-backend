@@ -5,6 +5,7 @@ import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MOD
 
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +15,7 @@ import lombok.ToString;
  * Created by Sergey Shurmin on 5/24/17.
  */
 @ToString
-public class DealPrices {
+public class DealPrices implements Serializable {
 
     private List<BigDecimal> borderList = new ArrayList<>();
     private BigDecimal oBlock = BigDecimal.ZERO;

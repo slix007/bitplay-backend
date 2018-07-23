@@ -1,12 +1,13 @@
 package com.bitplay.persistance.domain.borders;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
  * Created by Sergey Shurmin on 10/5/17.
  */
-public class BorderItem {
+public class BorderItem implements Serializable {
 
     private int id;
     private BigDecimal value;

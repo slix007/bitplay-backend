@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage.dto;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +10,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public class AvgPriceItem {
+public class AvgPriceItem implements Serializable {
 
     BigDecimal amount;
     BigDecimal price;

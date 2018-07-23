@@ -1,5 +1,6 @@
 package com.bitplay.persistance.domain.borders;
 
+import java.io.Serializable;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class BorderDelta {
+public class BorderDelta implements Serializable {
 
     private DeltaCalcType deltaCalcType;
 

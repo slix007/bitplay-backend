@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage.dto;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
@@ -15,7 +16,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Created by Sergey Shurmin on 1/31/18.
  */
-public class AvgPrice {
+public class AvgPrice implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(AvgPrice.class);
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 

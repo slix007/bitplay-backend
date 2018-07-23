@@ -1,12 +1,13 @@
 package com.bitplay.persistance.domain.borders;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Created by Sergey Shurmin on 10/9/17.
  */
-public class BorderTable {
+public class BorderTable implements Serializable {
 
     private String borderName;
     private List<BorderItem> borderItemList;

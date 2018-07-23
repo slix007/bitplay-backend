@@ -1,5 +1,6 @@
 package com.bitplay.persistance.domain.borders;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
@@ -14,7 +15,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class BordersV2 {
+public class BordersV2 implements Serializable {
     private List<BorderTable> borderTableList;
     private Integer maxLvl;
     private Boolean autoBaseLvl;
