@@ -347,12 +347,13 @@ public class OkCoinService extends MarketService {
                         ""
                 );
             } else {
+                final BigDecimal forceLiquPrice = convertLiqPrice(restUpdate.getForceLiquPrice());
                 final OkCoinPosition okCoinPosition = restUpdate.getPositions()[0];
                 position = new Position(
                         okCoinPosition.getBuyAmount(),
                         okCoinPosition.getSellAmount(),
                         okCoinPosition.getRate(),
-                        BigDecimal.ZERO,
+                        forceLiquPrice,
                         BigDecimal.ZERO,
                         okCoinPosition.getBuyPriceAvg(),
                         okCoinPosition.getSellPriceAvg(),
@@ -367,6 +368,17 @@ public class OkCoinService extends MarketService {
                     websocketUpdate.getRaw());
         }
 
+    }
+
+    private BigDecimal convertLiqPrice(String forceLiquPrice) {
+        BigDecimal res = BigDecimal.ZERO;
+        try {   // Example: "6,988.95"
+            String thePrice = forceLiquPrice.replaceAll(",", "");
+            res = new BigDecimal(thePrice);
+        } catch (Exception e) {
+            logger.error("Can not convert forceLiquPrice=" + forceLiquPrice);
+        }
+        return res;
     }
 
     private Disposable startAccountInfoSubscription() {
@@ -1373,7 +1385,9 @@ public class OkCoinService extends MarketService {
                 ).setScale(8, BigDecimal.ROUND_HALF_UP);
 
                 if (margin.signum() > 0 && equity.signum() > 0 && d.signum() > 0 && n.signum() > 0) {
-                    final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
+                    final BigDecimal L = (position.getLiquidationPrice() != null && position.getLiquidationPrice().signum() != 0)
+                            ? position.getLiquidationPrice()
+                            : n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
                     final BigDecimal subtract = (BigDecimal.ONE.divide(m, 15, BigDecimal.ROUND_HALF_UP))
                             .subtract(BigDecimal.ONE.divide(L, 15, BigDecimal.ROUND_HALF_UP));
                     final BigDecimal eqLiq = equity.add(subtract.multiply(n));
@@ -1407,7 +1421,9 @@ public class OkCoinService extends MarketService {
 
                 if (d.signum() > 0) {
                     if (margin.signum() > 0 && equity.signum() > 0 && n.signum() > 0) {
-                        final BigDecimal L = n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
+                        final BigDecimal L = (position.getLiquidationPrice() != null && position.getLiquidationPrice().signum() != 0)
+                                ? position.getLiquidationPrice()
+                                : n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
                         final BigDecimal substract = (BigDecimal.ONE.divide(L, 15, BigDecimal.ROUND_HALF_UP))
                                 .subtract(BigDecimal.ONE.divide(m, 15, BigDecimal.ROUND_HALF_UP));
                         final BigDecimal eqLiq = equity.add(substract.multiply(n));
