@@ -38,7 +38,6 @@ public class AfterArbTask implements Runnable {
 
     private final DealPrices dealPrices;
     private final SignalType signalType;
-    private final CumParams cumParams;
     private final GuiLiqParams guiLiqParams;
     private final DeltaName deltaName;
     private final String counterName;
@@ -58,19 +57,21 @@ public class AfterArbTask implements Runnable {
         }
 
         try {
+            final CumParams cumParams = persistenceService.fetchCumParams();
+
             BigDecimal b_price_fact = fetchBtmFactPrice();
             BigDecimal ok_price_fact = fetchOkFactPrice();
 
             validateAvgPrice(dealPrices.getbPriceFact());
             validateAvgPrice(dealPrices.getoPriceFact());
 
-            calcCumAndPrintLogs(b_price_fact, ok_price_fact);
+            calcCumAndPrintLogs(b_price_fact, ok_price_fact, cumParams);
 
             arbitrageService.printSumBal(false); // TODO calcFull balance ???
 
-            deltasLogger.info("#{} Round completed", counterName);
-
             persistenceService.saveCumParams(cumParams);
+
+            deltasLogger.info("#{} Round completed", counterName);
 
             preliqUtilsService.preliqCountersOnRoundDone(true, guiLiqParams, signalType,
                     bitmexService, okCoinService);
@@ -88,7 +89,7 @@ public class AfterArbTask implements Runnable {
         }
     }
 
-    private void calcCumAndPrintLogs(BigDecimal b_price_fact, BigDecimal ok_price_fact) {
+    private void calcCumAndPrintLogs(BigDecimal b_price_fact, BigDecimal ok_price_fact, CumParams cumParams) {
 
         final BigDecimal con = dealPrices.getbBlock();
         final BigDecimal b_bid = dealPrices.getBestQuotes().getBid1_p();
@@ -119,10 +120,10 @@ public class AfterArbTask implements Runnable {
             cumParams.setAstDeltaFact1(ast_delta1_fact);
             cumParams.setCumAstDeltaFact1((cumParams.getCumAstDeltaFact1().add(cumParams.getAstDeltaFact1())).setScale(8, BigDecimal.ROUND_HALF_UP));
 
-            printCumDelta();
-            printCom(dealPrices);
+            printCumDelta(cumParams.getCumDelta());
+            printCom(cumParams, dealPrices);
             printAstDeltaLogs(ast_delta1, cumParams.getCumAstDelta1(), ast_delta1_fact, cumParams.getCumAstDeltaFact1());
-            printP2CumBitmexMCom();
+            printP2CumBitmexMCom(cumParams);
 
             // this should be after
             final String deltaFactStr = String.format("delta1_fact=%s-%s=%s",
@@ -137,7 +138,7 @@ public class AfterArbTask implements Runnable {
             final BigDecimal ast_diff_fact2 = ((con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_ask, 16, RoundingMode.HALF_UP)))
                     .setScale(8, RoundingMode.HALF_UP);
 
-            printP3DeltaFact(dealPrices.getDelta1Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
+            printP3DeltaFact(cumParams, dealPrices.getDelta1Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
                     cumParams.getAstDelta1(), cumParams.getAstDeltaFact1(), dealPrices.getDelta1Plan());
 
             printOAvgPrice();
@@ -160,10 +161,10 @@ public class AfterArbTask implements Runnable {
             cumParams.setAstDeltaFact2(ast_delta2_fact);
             cumParams.setCumAstDeltaFact2((cumParams.getCumAstDeltaFact2().add(cumParams.getAstDeltaFact2())).setScale(8, BigDecimal.ROUND_HALF_UP));
 
-            printCumDelta();
-            printCom(dealPrices);
+            printCumDelta(cumParams.getCumDelta());
+            printCom(cumParams, dealPrices);
             printAstDeltaLogs(ast_delta2, cumParams.getCumAstDelta2(), ast_delta2_fact, cumParams.getCumAstDeltaFact2());
-            printP2CumBitmexMCom();
+            printP2CumBitmexMCom(cumParams);
 
             final String deltaFactStr = String.format("delta2_fact=%s-%s=%s",
                     ok_price_fact.toPlainString(),
@@ -179,7 +180,7 @@ public class AfterArbTask implements Runnable {
                     .setScale(8, RoundingMode.HALF_UP);
             final BigDecimal ast_diff_fact2 = ((con.divide(ok_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)))
                     .setScale(8, RoundingMode.HALF_UP);
-            printP3DeltaFact(dealPrices.getDelta2Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
+            printP3DeltaFact(cumParams, dealPrices.getDelta2Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
                     cumParams.getAstDelta2(), cumParams.getAstDeltaFact2(), dealPrices.getDelta2Plan());
 
             printOAvgPrice();
@@ -267,7 +268,8 @@ public class AfterArbTask implements Runnable {
         }
     }
 
-    private void printP3DeltaFact(BigDecimal deltaFact, String deltaFactString, BigDecimal ast_diff_fact1, BigDecimal ast_diff_fact2, BigDecimal ast_delta,
+    private void printP3DeltaFact(CumParams cumParams,
+            BigDecimal deltaFact, String deltaFactString, BigDecimal ast_diff_fact1, BigDecimal ast_diff_fact2, BigDecimal ast_delta,
             BigDecimal ast_delta_fact, BigDecimal delta) {
 
         cumParams.setCumDeltaFact(cumParams.getCumDeltaFact().add(deltaFact));
@@ -387,8 +389,8 @@ public class AfterArbTask implements Runnable {
                 okPosition.getPriceAvgShort()));
     }
 
-    private void printCumDelta() {
-        deltasLogger.info(String.format("#%s cum_delta=%s", counterName, cumParams.getCumDelta().toPlainString()));
+    private void printCumDelta(BigDecimal cumDelta) {
+        deltasLogger.info(String.format("#%s cum_delta=%s", counterName, cumDelta.toPlainString()));
     }
 
     private void printAstDeltaLogs(BigDecimal ast_delta, BigDecimal cum_ast_delta, BigDecimal ast_delta_fact, BigDecimal cum_ast_delta_fact) {
@@ -399,7 +401,7 @@ public class AfterArbTask implements Runnable {
                 ast_delta_fact.toPlainString(), cum_ast_delta_fact.toPlainString()));
     }
 
-    private void printCom(DealPrices dealPrices) {
+    private void printCom(CumParams cumParams, DealPrices dealPrices) {
         final BigDecimal bFee = settings.getBFee();
         final BigDecimal oFee = settings.getOFee();
 
@@ -445,7 +447,7 @@ public class AfterArbTask implements Runnable {
         ));
     }
 
-    private void printP2CumBitmexMCom() {
+    private void printP2CumBitmexMCom(CumParams cumParams) {
 
         final BigDecimal con = dealPrices.getbBlock();
         final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();

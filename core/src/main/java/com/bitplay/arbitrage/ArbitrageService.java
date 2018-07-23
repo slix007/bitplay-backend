@@ -221,7 +221,6 @@ public class ArbitrageService {
                 BeanUtils.copyProperties(dealPrices, dealPricesSnap);
                 final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
                 // todo separate startSignalParams with endSignalParams (cumParams)
-                final CumParams cumParamsSnap = persistenceService.fetchCumParams();
                 final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
                 final DeltaName deltaName = params.getLastDelta().equals(DELTA1) ? DeltaName.B_DELTA : DeltaName.O_DELTA;
                 final Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
@@ -230,7 +229,6 @@ public class ArbitrageService {
 
                 AfterArbTask afterArbTask = new AfterArbTask(dealPricesSnap,
                         signalTypeSnap,
-                        cumParamsSnap,
                         guiLiqParams,
                         deltaName,
                         counterNameSnap,
@@ -630,7 +628,6 @@ public class ArbitrageService {
 
         writeLogOnStartTrade(ask1_o, bid1_p, tradingSignal, params.getBorder1(), delta1, "1");
 
-        final int counter = getCounter();
         final String counterName = firstMarketService.getCounterName();
 
         if (dynamicDeltaLogs != null) {
