@@ -85,8 +85,8 @@ public class PosDiffService {
         try {
             checkPosDiff(false);
         } catch (Exception e) {
-            warningLogger.error("Correction failed. " + e.getMessage());
-            logger.error("Correction failed.", e);
+            warningLogger.error("Check correction: is failed. " + e.getMessage());
+            logger.error("Check correction: is failed.", e);
         }
     }
 
@@ -151,7 +151,7 @@ public class PosDiffService {
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
                 corrParams.getCorr().incFails();
                 persistenceService.saveCorrParams(corrParams);
-                deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(), dc);
+                deltasLogger.info("Error on finishCorr. {}. dc={}", corrParams.getCorr().toString(), dc);
             }
         }
     }
@@ -464,8 +464,8 @@ public class PosDiffService {
             try {
                 checkPosDiff(false);
             } catch (Exception e) {
-                warningLogger.error("Correction failed(check before signal). " + e.getMessage());
-                logger.error("Correction failed(check before signal).", e);
+                warningLogger.error("Check correction: is failed(check before signal). " + e.getMessage());
+                logger.error("Check correction: is failed(check before signal).", e);
             }
         });
 
