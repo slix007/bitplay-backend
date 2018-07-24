@@ -23,6 +23,7 @@ public class TraderPermissionsService {
     private ArbitrageService arbitrageService;
 
     private Long violateTimeSec;
+    private Long maxViolateTimeSec = 10L;
 
     public boolean hasPermissionByEBestMin() {
         return isEBestMinOk() && !arbitrageService.isArbForbidden();
@@ -65,13 +66,13 @@ public class TraderPermissionsService {
             return true;
         }
 
-        Long VIOLATE_TIME_SEC = 10L;
+        maxViolateTimeSec = 10L;
         if ((bEbest != null && bEbest.signum() == 0) || (oEbest != null && oEbest.signum() == 0)) {
-            VIOLATE_TIME_SEC = 60L;
+            maxViolateTimeSec = 60L;
         }
 
         if (violateTimeSec != null
-                && Instant.now().getEpochSecond() - violateTimeSec > VIOLATE_TIME_SEC) {
+                && Instant.now().getEpochSecond() - violateTimeSec > maxViolateTimeSec) {
             return false;
         }
 
@@ -80,5 +81,14 @@ public class TraderPermissionsService {
         }
 
         return true;
+    }
+
+    public String getTimeToForbidden() {
+        String str = "_";
+        if (violateTimeSec != null) {
+            long secToForbidden = maxViolateTimeSec - (Instant.now().getEpochSecond() - violateTimeSec);
+            str = secToForbidden >= 0 ? String.valueOf(secToForbidden) : "0";
+        }
+        return str;
     }
 }

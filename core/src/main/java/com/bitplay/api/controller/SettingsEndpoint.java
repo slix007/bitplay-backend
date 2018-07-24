@@ -9,6 +9,7 @@ import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.RestartSettings;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
+import com.bitplay.security.TraderPermissionsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,9 @@ public class SettingsEndpoint {
     @Autowired
     private ArbitrageService arbitrageService;
 
+    @Autowired
+    private TraderPermissionsService traderPermissionsService;
+
     /**
      * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
      */
@@ -48,7 +52,8 @@ public class SettingsEndpoint {
         config.reload();
         final String sumEBestMin = config.getEBestMin().toString();
         final String coldStorage = config.getColdStorage().toPlainString();
-        return new SumBalJson("", "", sumEBestMin, coldStorage);
+        final String timeToForbidden = traderPermissionsService.getTimeToForbidden();
+        return new SumBalJson("", "", sumEBestMin, timeToForbidden, coldStorage);
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

@@ -29,6 +29,7 @@ import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.RestartMonitoring;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.repository.RestartMonitoringRepository;
+import com.bitplay.security.TraderPermissionsService;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -55,6 +56,9 @@ public class CommonUIService {
 
     @Autowired
     private Config config;
+
+    @Autowired
+    private TraderPermissionsService traderPermissionsService;
 
     @Autowired
     private DeltasCalcService deltasCalcService;
@@ -407,8 +411,9 @@ public class CommonUIService {
         final String sumBalString = arbitrageService.getSumBalString();
         final String sumEBest = arbitrageService.getSumEBestUsd().toPlainString();
         final String sumEBestMin = config.getEBestMin().toString();
+        final String timeToForbidden = traderPermissionsService.getTimeToForbidden();
         final String coldStorage = config.getColdStorage().toPlainString();
-        return new SumBalJson(sumBalString, sumEBest, sumEBestMin, coldStorage);
+        return new SumBalJson(sumBalString, sumEBest, sumEBestMin, timeToForbidden, coldStorage);
     }
 
     public ResultJson getPosDiff() {
