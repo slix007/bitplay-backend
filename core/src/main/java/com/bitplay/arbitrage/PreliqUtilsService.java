@@ -38,7 +38,6 @@ public class PreliqUtilsService {
                 e.printStackTrace();
             }
 
-            final CorrParams corrParams = persistenceService.fetchCorrParams();
             boolean isCorrect = false;
             if (isSucceeded) {
                 // double check
@@ -51,14 +50,17 @@ public class PreliqUtilsService {
             }
 
             if (isCorrect) {
+                final CorrParams corrParams = persistenceService.fetchCorrParams();
                 corrParams.getPreliq().incSuccesses();
+                persistenceService.saveCorrParams(corrParams);
                 deltasLogger.info("Preliq succeed. " + corrParams.getPreliq().toString());
             } else {
+                final CorrParams corrParams = persistenceService.fetchCorrParams();
                 corrParams.getPreliq().incFails();
+                persistenceService.saveCorrParams(corrParams);
                 deltasLogger.info("Preliq failed. " + corrParams.getPreliq().toString());
             }
 
-            persistenceService.saveCorrParams(corrParams);
         }
 
     }
