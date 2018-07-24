@@ -383,7 +383,7 @@ public class BitmexService extends MarketService {
                             Stream<FplayOrder> orderStream = Stream.of(openOrder); // default - the same
 
                             if (openOrder == null || openOrder.getOrderId() == null || openOrder.getOrderId().equals("0")) {
-                                warningLogger.warn("OO is null.");
+                                warningLogger.warn("OO is null. " + openOrder);
                                 orderStream = Stream.empty();
                             } else if (openOrder.getOrder().getType() == null) {
                                 warningLogger.warn("OO type is null. " + openOrder.toString());
