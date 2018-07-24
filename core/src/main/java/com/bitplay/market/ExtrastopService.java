@@ -10,9 +10,8 @@ import com.bitplay.persistance.repository.RestartMonitoringRepository;
 import com.bitplay.utils.Utils;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.stream.Stream;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -64,8 +63,8 @@ public class ExtrastopService {
             final Date oT = oOB.getTimeStamp();
             details = "";
 
-            int bDiffSec = getDiffSec(bT, "Bitmex");
-            int oDiffSec = getDiffSec(oT, "Okex");
+            long bDiffSec = getDiffSec(bT, "Bitmex");
+            long oDiffSec = getDiffSec(oT, "Okex");
             restartMonitoring.addBTimestampDelay(BigDecimal.valueOf(bDiffSec));
             restartMonitoring.addOTimestampDelay(BigDecimal.valueOf(oDiffSec));
             restartMonitoringRepository.saveRestartMonitoring(restartMonitoring);
@@ -88,11 +87,14 @@ public class ExtrastopService {
                 restartService.doDeferredRestart(details);
             }
         } catch (IllegalArgumentException e) {
+            logger.error("on check times", e);
+            warningLogger.error("ERROR on check times", e);
             bitmexService.setMarketState(MarketState.STOPPED);
             okCoinService.setMarketState(MarketState.STOPPED);
             restartService.doDeferredRestart(e.getMessage());
         } catch (Exception e) {
             logger.error("on check times", e);
+            warningLogger.error("ERROR on check times", e);
         }
     }
 
@@ -132,28 +134,9 @@ public class ExtrastopService {
                 .orElseThrow(() -> new IllegalArgumentException("Can not get bitmex timestamp"));
     }
 
-    private int getDiffSec(Date marketUpdateTime, String name) {
-        final LocalTime now = LocalTime.now();
-        final int nM = now.getMinute();
-        final int nS = now.getSecond();
-        final LocalDateTime localBT = LocalDateTime.ofInstant(marketUpdateTime.toInstant(), ZoneId.systemDefault());
-        final int bM = localBT.getMinute();
-        final int bS = localBT.getSecond();
-
-        final int nowSec = nM * 60 + nS;
-        final int marketSec = bM * 60 + bS;
-        int diffSec = nowSec - marketSec;
-
-        if (nowSec == marketSec) {
-            // all is good
-        } else if (nowSec > marketSec) { // 58:23 ---> 59:49
-            diffSec = nowSec - marketSec;
-        } else { // 59:40 ---> 00:10
-            diffSec = ((nM + 60) * 60 + nS) - marketSec;
-        }
+    private long getDiffSec(Date marketUpdateTime, String name) {
+        long diffSec = Duration.between(marketUpdateTime.toInstant(), Instant.now()).abs().getSeconds();
         details += (name + " diff: " + diffSec + " sec. ");
-//        System.out.println(name + " diff: " + diffSec);
-//        System.out.println(name + " diff: " + diffSec);
         return diffSec;
     }
 }

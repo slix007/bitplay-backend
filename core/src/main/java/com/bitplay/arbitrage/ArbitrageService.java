@@ -129,8 +129,8 @@ public class ArbitrageService {
     private volatile AtomicBoolean arbInProgress = new AtomicBoolean();
 
     // Signal delay
-    private Long signalDelayActivateTime;
-    private ScheduledFuture<?> futureSignal;
+    private volatile Long signalDelayActivateTime;
+    private volatile ScheduledFuture<?> futureSignal;
     private final ScheduledExecutorService signalDelayScheduler = Executors.newScheduledThreadPool(1,
             new ThreadFactoryBuilder().setNameFormat("signal-delay-thread-%d").build());
     // Signal delay end
@@ -586,7 +586,7 @@ public class ArbitrageService {
                 startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType, ask1_o,
                         bid1_p);
             } else if (signalDelayActivateTime == null) {
-                startSignalDelay();
+                startSignalDelay(0);
             } else if (isSignalDelayExceeded()) {
                 startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType, ask1_o,
                         bid1_p);
@@ -597,12 +597,26 @@ public class ArbitrageService {
         }
     }
 
-    private void startSignalDelay() {
-        signalDelayActivateTime = Instant.now().toEpochMilli();
-        final Integer signalDelayMs = persistenceService.getSettingsRepositoryService().getSettings().getSignalDelayMs();
-        futureSignal = signalDelayScheduler.schedule(() -> {
+    public void restartSignalDelay() {
+        if (signalDelayActivateTime != null && futureSignal != null && !futureSignal.isDone()) {
+//            long remainingDelay = futureSignal.getDelay(TimeUnit.MILLISECONDS);
+            long passedDelay = Instant.now().toEpochMilli() - signalDelayActivateTime;
+            stopSignalDelay();
+            startSignalDelay(passedDelay);
+        }
+    }
+
+    private void startSignalDelay(long passedDelayMs) {
+        signalDelayActivateTime = Instant.now().toEpochMilli() - passedDelayMs;
+        final long signalDelayMs = persistenceService.getSettingsRepositoryService().getSettings().getSignalDelayMs() - passedDelayMs;
+        if (signalDelayMs > 0) {
+            futureSignal = signalDelayScheduler.schedule(() -> {
+                signalEventBus.send(SignalEvent.B_ORDERBOOK_CHANGED); // to make sure that it will happen in the 'signalDeltayMs period'
+            }, signalDelayMs, TimeUnit.MILLISECONDS);
+        } else {
+            futureSignal = null;
             signalEventBus.send(SignalEvent.B_ORDERBOOK_CHANGED); // to make sure that it will happen in the 'signalDeltayMs period'
-        }, signalDelayMs, TimeUnit.MILLISECONDS);
+        }
     }
 
     public String getTimeToSignal() {
@@ -708,7 +722,7 @@ public class ArbitrageService {
                 startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType, ask1_p,
                         bid1_o);
             } else if (signalDelayActivateTime == null) {
-                startSignalDelay();
+                startSignalDelay(0);
             } else if (isSignalDelayExceeded()) {
                 startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType, ask1_p,
                         bid1_o);

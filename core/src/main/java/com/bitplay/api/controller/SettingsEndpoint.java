@@ -2,7 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.Config;
 import com.bitplay.api.domain.SumBalJson;
-import com.bitplay.api.service.CommonUIService;
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
@@ -35,7 +35,7 @@ public class SettingsEndpoint {
     SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
-    private CommonUIService commonUIService;
+    private ArbitrageService arbitrageService;
 
     /**
      * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
@@ -158,6 +158,7 @@ public class SettingsEndpoint {
         if (settingsUpdate.getSignalDelayMs() != null) {
             settings.setSignalDelayMs(settingsUpdate.getSignalDelayMs());
             settingsRepositoryService.saveSettings(settings);
+            arbitrageService.restartSignalDelay();
         }
 //        if (settingsUpdate.getColdStorageBtc() != null) {
 //            settings.setColdStorageBtc(settingsUpdate.getColdStorageBtc());
