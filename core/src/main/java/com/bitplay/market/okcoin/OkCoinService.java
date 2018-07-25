@@ -1609,7 +1609,7 @@ public class OkCoinService extends MarketService {
                                 Stream<FplayOrder> optionalOrder = Stream.of(openOrder); // default -> keep the order
 
                                 if (openOrder == null) {
-                                    warningLogger.warn("OO is null.");
+                                    warningLogger.warn("OO is null. " + openOrder);
                                     optionalOrder = Stream.empty();
                                 } else if (openOrder.getOrder().getType() == null) {
                                     warningLogger.warn("OO type is null. " + openOrder.toString());
