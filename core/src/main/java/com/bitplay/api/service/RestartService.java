@@ -43,7 +43,7 @@ public class RestartService {
             if (!arbitrageService.isFirstDeltasCalculated()) {
                 log.info("FullStart-check failed");
                 try {
-                    doFullRestart("No firstDeltaCalculated after 1 min");
+                    doFullRestart("No firstDeltaCalculated after 2 min");
                 } catch (IOException e) {
                     log.error("Error on FullStart-check by firstDeltaCalculated ", e);
                 }
