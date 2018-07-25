@@ -176,7 +176,8 @@ public class ArbitrageService {
                     } catch (NotYetInitializedException e) {
                         // do nothing
                     } catch (Exception e) {
-                        logger.error("signalEventBus errorOnEvent", e);
+                        logger.error("ERROR: signalEventBus errorOnEvent", e);
+                        warningLogger.error("ERROR: signalEventBus errorOnEvent. Signals may not work at all.", e);
                     }
                 }, throwable -> {
                     logger.error("signalEventBus errorOnEvent", throwable);
