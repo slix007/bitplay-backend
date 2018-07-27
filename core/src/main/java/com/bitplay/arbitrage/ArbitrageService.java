@@ -157,17 +157,17 @@ public class ArbitrageService {
                         if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
                                 || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
 
+                            final OrderBook firstOrderBook = firstMarketService.getOrderBook();
+                            final OrderBook secondOrderBook = secondMarketService.getOrderBook();
+
+                            final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
+                            params.setLastOBChange(new Date());
+
                             if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                                     && posDiffService.isPositionsEqual()) {
 
                                 synchronized (arbInProgress) {
                                     if (!arbInProgress.get()) {
-
-                                        final OrderBook firstOrderBook = firstMarketService.getOrderBook();
-                                        final OrderBook secondOrderBook = secondMarketService.getOrderBook();
-
-                                        final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
-                                        params.setLastOBChange(new Date());
 
                                         doComparison(bestQuotes, firstOrderBook, secondOrderBook);
 
