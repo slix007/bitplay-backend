@@ -153,15 +153,23 @@ public class DiffFactBrComputer {
 
             BigDecimal valueI = br_close.get(i).getValue();
 
-            if (i + 1 == br_close.size()
-                    || br_close.get(i + 1).getId() == 0
-                    || pos_ao_abs < br_close.get(i + 1).getPosShortLimit()) { // it's last or less next
+            int nextIndex = i + 1;
+            BorderItem nextItem = br_close.get(nextIndex);
+            while (nextItem.getId() == 0 && nextIndex < br_close.size()) {
+                nextIndex++;
+                nextItem = br_close.get(nextIndex);
+            }
 
-                int topEdge = (i + 1 == br_close.size()
-                        || br_close.get(i + 1).getId() == 0
-                        || pos_bo_abs < br_close.get(i + 1).getPosShortLimit()) // the last or the next
+            if (nextIndex == br_close.size()
+                    || nextItem.getId() == 0
+                    || pos_ao_abs < nextItem.getPosShortLimit()) { // it's last or less next
+
+                int topEdge = (nextIndex == br_close.size()
+                        || nextItem.getId() == 0
+                        || pos_bo_abs < nextItem.getPosShortLimit()) // the last or the next
                         ? pos_bo_abs
-                        : br_close.get(i + 1).getPosShortLimit();
+                        : nextItem.getPosShortLimit();
+
                 int amountStep = topEdge - bottomEdge;
                 vol_filled += amountStep;
                 bottomEdge = topEdge;
