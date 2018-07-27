@@ -26,7 +26,7 @@ public class PreliqUtilsService {
 
     public void preliqCountersOnRoundDone(boolean isSucceeded, GuiLiqParams params, SignalType signalType,
                                           MarketService first, MarketService second) {
-        if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
+        if (signalType.isPreliq()) {
             // Preliq done: O_DQL > O_DQL_close_min && B_DQL > B_DQL_close_min
 
             try {

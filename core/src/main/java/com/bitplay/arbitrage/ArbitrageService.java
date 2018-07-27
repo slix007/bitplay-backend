@@ -126,7 +126,7 @@ public class ArbitrageService {
     private volatile DeltaParams deltaParams = new DeltaParams();
     private volatile DeltaMon deltaMon = new DeltaMon();
     private final PublishSubject<DeltaChange> deltaChangesPublisher = PublishSubject.create();
-    private volatile AtomicBoolean arbInProgress = new AtomicBoolean();
+    private final AtomicBoolean arbInProgress = new AtomicBoolean();
 
     // Signal delay
     private volatile Long signalDelayActivateTime;
@@ -160,16 +160,18 @@ public class ArbitrageService {
                             if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                                     && posDiffService.isPositionsEqual()) {
 
-                                if (!arbInProgress.get()) {
+                                synchronized (arbInProgress) {
+                                    if (!arbInProgress.get()) {
 
-                                    final OrderBook firstOrderBook = firstMarketService.getOrderBook();
-                                    final OrderBook secondOrderBook = secondMarketService.getOrderBook();
+                                        final OrderBook firstOrderBook = firstMarketService.getOrderBook();
+                                        final OrderBook secondOrderBook = secondMarketService.getOrderBook();
 
-                                    final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
-                                    params.setLastOBChange(new Date());
+                                        final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
+                                        params.setLastOBChange(new Date());
 
-                                    doComparison(bestQuotes, firstOrderBook, secondOrderBook);
+                                        doComparison(bestQuotes, firstOrderBook, secondOrderBook);
 
+                                    }
                                 }
                             }
                         }
@@ -177,7 +179,7 @@ public class ArbitrageService {
                         // do nothing
                     } catch (Exception e) {
                         logger.error("ERROR: signalEventBus errorOnEvent", e);
-                        warningLogger.error("ERROR: signalEventBus errorOnEvent. Signals may not work at all.", e);
+                        warningLogger.error("ERROR: signalEventBus errorOnEvent. Signals may not work at all." + e.toString());
                     }
                 }, throwable -> {
                     logger.error("signalEventBus errorOnEvent", throwable);
@@ -220,40 +222,46 @@ public class ArbitrageService {
         if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
 
             if (arbInProgress.getAndSet(false)) {
+                synchronized (arbInProgress) {
 
-                // start writeLogArbitrageIsDone();
-                final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
-                deltasLogger.info("#{} is done ---", counterNameSnap);
+                    // start writeLogArbitrageIsDone();
+                    final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
+                    deltasLogger.info("#{} is done ---", counterNameSnap);
 
-                // use snapshot of Params
-                DealPrices dealPricesSnap;
-                synchronized (dealPrices) {
-                    dealPricesSnap = SerializationUtils.clone(dealPrices);
+                    // use snapshot of Params
+                    DealPrices dealPricesSnap;
+                    synchronized (dealPrices) {
+                        dealPricesSnap = SerializationUtils.clone(dealPrices);
+                    }
+                    final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
+                    // todo separate startSignalParams with endSignalParams (cumParams)
+                    final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
+                    final DeltaName deltaName = params.getLastDelta().equals(DELTA1) ? DeltaName.B_DELTA : DeltaName.O_DELTA;
+                    final Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
+                            .toBuilder().build();
+                    final Position okexPosition = secondMarketService.getPosition();
+
+                    AfterArbTask afterArbTask = new AfterArbTask(dealPricesSnap,
+                            signalTypeSnap,
+                            guiLiqParams,
+                            deltaName,
+                            counterNameSnap,
+                            settings,
+                            okexPosition,
+                            (BitmexService) getFirstMarketService(),
+                            (OkCoinService) getSecondMarketService(),
+                            preliqUtilsService,
+                            persistenceService,
+                            this
+                    );
+
+                    if (signalTypeSnap.isPreliq()) { // sync ending
+                        afterArbTask.run();
+                    } else {
+                        afterArbService.addTask(afterArbTask); // async ending
+                    }
+
                 }
-                final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
-                // todo separate startSignalParams with endSignalParams (cumParams)
-                final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
-                final DeltaName deltaName = params.getLastDelta().equals(DELTA1) ? DeltaName.B_DELTA : DeltaName.O_DELTA;
-                final Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
-                        .toBuilder().build();
-                final Position okexPosition = secondMarketService.getPosition();
-
-                AfterArbTask afterArbTask = new AfterArbTask(dealPricesSnap,
-                        signalTypeSnap,
-                        guiLiqParams,
-                        deltaName,
-                        counterNameSnap,
-                        settings,
-                        okexPosition,
-                        (BitmexService) getFirstMarketService(),
-                        (OkCoinService) getSecondMarketService(),
-                        preliqUtilsService,
-                        persistenceService,
-                        this
-                );
-
-                afterArbService.addTask(afterArbTask);
-
             }
         }
     }

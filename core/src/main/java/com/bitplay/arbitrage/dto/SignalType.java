@@ -39,6 +39,11 @@ public enum SignalType {
     }
 
     public boolean isDoubleTradingSignal() {
-        return this == AUTOMATIC || this == B_PRE_LIQ || this == O_PRE_LIQ;
+        return this == AUTOMATIC || isPreliq();
+    }
+
+    public boolean isPreliq() {
+        return this == SignalType.B_PRE_LIQ || this == SignalType.O_PRE_LIQ;
+
     }
 }
