@@ -69,11 +69,29 @@ public class AfterArbTask implements Runnable {
 
             calcCumAndPrintLogs(b_price_fact, ok_price_fact, cumParams);
 
-            arbitrageService.printSumBal(false); // TODO calcFull balance ???
+            arbitrageService.printSumBal(counterName); // TODO calcFull balance ???
 
             persistenceService.saveCumParams(cumParams);
 
             deltasLogger.info("#{} Round completed", counterName);
+
+        } catch (RoundIsNotDoneException e) {
+            deltasLogger.info("Round is not done. Error: " + e.getMessage());
+            log.error("Round is not done", e);
+        } catch (Exception e) {
+            deltasLogger.info("Round is not done. Write logs error: " + e.getMessage());
+            log.error("Round is not done. Write logs error", e);
+        }
+    }
+
+    public void preliqIsDone() {
+        if (!signalType.isPreliq()) {
+            return;
+        }
+
+        try {
+            validateAvgPrice(dealPrices.getbPriceFact());
+            validateAvgPrice(dealPrices.getoPriceFact());
 
             preliqUtilsService.preliqCountersOnRoundDone(true, guiLiqParams, signalType,
                     bitmexService, okCoinService);

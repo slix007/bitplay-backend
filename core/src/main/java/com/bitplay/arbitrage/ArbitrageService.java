@@ -255,11 +255,11 @@ public class ArbitrageService {
                             this
                     );
 
-                    if (signalTypeSnap.isPreliq()) { // sync ending
-                        afterArbTask.run();
-                    } else {
-                        afterArbService.addTask(afterArbTask); // async ending
+                    if (signalTypeSnap.isPreliq()) {
+                        afterArbTask.preliqIsDone(); // sync ending
                     }
+
+                    afterArbService.addTask(afterArbTask); // async ending
 
                 }
             }
@@ -571,8 +571,34 @@ public class ArbitrageService {
     public void startPreliqOnDelta1(SignalType signalType, BestQuotes bestQuotes) {
         // border V1
         final CorrParams corrParams = persistenceService.fetchCorrParams();
-        final BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
-        final BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
+        BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
+        BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
+
+        // bitmex sell, okex buy
+        final BigDecimal btmPos = firstMarketService.getPosition().getPositionLong();
+        if (btmPos.signum() == 0) {
+            String posDetails = String.format("Bitmex %s; Okex %s", firstMarketService.getPosition(), secondMarketService.getPosition());
+            logger.error("WARNING: Preliq was not started, because Bitmex pos=0. Details:" + posDetails);
+            warningLogger.error("WARNING: Preliq was not started, because Bitmex pos=0. Details:" + posDetails);
+            return;
+        }
+        if (btmPos.signum() > 0 && btmPos.compareTo(b_block) < 0) {
+            b_block = btmPos;
+            o_block = b_block.divide(OKEX_FACTOR, 0, RoundingMode.HALF_UP);
+        }
+        final BigDecimal okLong = secondMarketService.getPosition().getPositionLong();
+        final BigDecimal okShort = secondMarketService.getPosition().getPositionShort();
+        if (okLong.signum() == 0 && okShort.signum() == 0) {
+            String posDetails = String.format("Bitmex %s; Okex %s", firstMarketService.getPosition(), secondMarketService.getPosition());
+            logger.error("WARNING: Preliq was not started, because Okex pos=0. Details:" + posDetails);
+            warningLogger.error("WARNING: Preliq was not started, because Okex pos=0. Details:" + posDetails);
+            return;
+        }
+        if (okShort.compareTo(o_block) < 0) {
+            o_block = okShort;
+            b_block = o_block.multiply(OKEX_FACTOR);
+        }
+
         final BorderParams borderParams = persistenceService.fetchBorders();
         checkAndStartTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, null, null, PlacingType.TAKER, true);
     }
@@ -705,8 +731,34 @@ public class ArbitrageService {
 
     public void startPerliqOnDelta2(SignalType signalType, BestQuotes bestQuotes) {
         final CorrParams corrParams = persistenceService.fetchCorrParams();
-        final BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
-        final BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
+        BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
+        BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
+
+        // bitmex buy, okex sell
+        final BigDecimal btmPos = firstMarketService.getPosition().getPositionLong();
+        if (btmPos.signum() == 0) {
+            String posDetails = String.format("Bitmex %s; Okex %s", firstMarketService.getPosition(), secondMarketService.getPosition());
+            logger.error("WARNING: Preliq was not started, because Bitmex pos=0. Details:" + posDetails);
+            warningLogger.error("WARNING: Preliq was not started, because Bitmex pos=0. Details:" + posDetails);
+            return;
+        }
+        if (btmPos.signum() < 0 && btmPos.abs().compareTo(b_block) < 0) {
+            b_block = btmPos.abs();
+            o_block = b_block.divide(OKEX_FACTOR, 0, RoundingMode.HALF_UP);
+        }
+        final BigDecimal okLong = secondMarketService.getPosition().getPositionLong();
+        final BigDecimal okShort = secondMarketService.getPosition().getPositionShort();
+        if (okLong.signum() == 0 && okShort.signum() == 0) {
+            String posDetails = String.format("Bitmex %s; Okex %s", firstMarketService.getPosition(), secondMarketService.getPosition());
+            logger.error("WARNING: Preliq was not started, because Okex pos=0. Details:" + posDetails);
+            warningLogger.error("WARNING: Preliq was not started, because Okex pos=0. Details:" + posDetails);
+            return;
+        }
+        if (okLong.compareTo(o_block) < 0) {
+            o_block = okLong;
+            b_block = o_block.multiply(OKEX_FACTOR);
+        }
+
         final BorderParams borderParams = persistenceService.fetchBorders();
         checkAndStartTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, null, null, PlacingType.TAKER, true);
     }
@@ -819,14 +871,23 @@ public class ArbitrageService {
         if (counter1.equals(counter2)) {
             iterationMarker = "whole iteration";
         }
-        deltasLogger.info(String.format("#%s count=%s+%s=%s(completed=%s+%s=%s) %s", counter1 + counter2,
+
+        String counterName = String.valueOf(counter1 + counter2);
+        if (signalType.isPreliq()) {
+            CorrParams corrParams = persistenceService.fetchCorrParams();
+            corrParams.getPreliq().incTotalCount();
+            persistenceService.saveCorrParams(corrParams);
+            counterName = firstMarketService.getCounterName();
+        }
+
+        deltasLogger.info(String.format("#%s count=%s+%s=%s(completed=%s+%s=%s) %s", counterName,
                 counter1, counter2, counter1 + counter2,
                 cc1, cc2, cc1 + cc2,
                 iterationMarker));
 
         deltasLogger.info(String.format("#%s delta%s=%s-%s=%s; %s",
                 //usdP=%s; btcO=%s; usdO=%s; w=%s; ",
-                getCounter(), deltaNumber,
+                counterName, deltaNumber,
                 bid1_X.toPlainString(), ask1_X.toPlainString(),
                 deltaX.toPlainString(),
                 tradingSignal == null
@@ -834,7 +895,7 @@ public class ArbitrageService {
                         : ("borderV2:" + tradingSignal.toString())
         ));
 
-        printSumBal(false);
+        printSumBal(counterName);
     }
 
     @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)
@@ -896,15 +957,8 @@ public class ArbitrageService {
         }
     }
 
-    public void printSumBal(boolean isGuiButton) {
+    public void printSumBal(String counterName) {
         try {
-            String counterName = String.valueOf(getCounter());
-            if (isGuiButton) {
-                counterName = "button";
-            } else if (signalType != SignalType.AUTOMATIC) {
-                counterName = signalType.getCounterName();
-            }
-
             final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
             final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();
             if (firstAccount != null && secondAccount != null) {

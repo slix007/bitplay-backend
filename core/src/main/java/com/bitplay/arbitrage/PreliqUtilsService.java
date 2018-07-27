@@ -43,8 +43,8 @@ public class PreliqUtilsService {
                 // double check
                 final BigDecimal bDQLCloseMin = params.getBDQLCloseMin();
                 final BigDecimal oDQLCloseMin = params.getODQLCloseMin();
-                if (first.getLiqInfo().getDqlCurr().compareTo(bDQLCloseMin) > 0
-                        && second.getLiqInfo().getDqlCurr().compareTo(oDQLCloseMin) > 0) {
+                if ((first.getLiqInfo().getDqlCurr() == null || first.getLiqInfo().getDqlCurr().compareTo(bDQLCloseMin) > 0)
+                        && (second.getLiqInfo().getDqlCurr() == null || second.getLiqInfo().getDqlCurr().compareTo(oDQLCloseMin) > 0)) {
                     isCorrect = true;
                 }
             }

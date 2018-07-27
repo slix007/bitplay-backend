@@ -403,7 +403,7 @@ public class CommonUIService {
 //    }
 
     public ResultJson printSumBal() {
-        arbitrageService.printSumBal(true);
+        arbitrageService.printSumBal("button");
         return new ResultJson("OK", "");
     }
 

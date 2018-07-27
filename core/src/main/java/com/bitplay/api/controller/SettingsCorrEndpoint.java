@@ -56,6 +56,7 @@ public class SettingsCorrEndpoint {
             corrParams.getCorr().setFailedCount(0);
             corrParams.getCorr().setCurrErrorCount(0);
             corrParams.getPreliq().setSucceedCount(0);
+            corrParams.getPreliq().setTotalCount(0);
             corrParams.getPreliq().setFailedCount(0);
             corrParams.getPreliq().setCurrErrorCount(0);
             persistenceService.saveCorrParams(corrParams);

@@ -322,6 +322,14 @@ public class OkCoinService extends MarketService {
     }
 
     @Scheduled(fixedRate = 1000)
+    public void fetchPositionScheduled() {
+        try {
+            fetchPosition();
+        } catch (Exception e) {
+            logger.error("On fetchPositionScheduled", e);
+        }
+    }
+
     @Override
     public String fetchPosition() throws Exception {
         final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);

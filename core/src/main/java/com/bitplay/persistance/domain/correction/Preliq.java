@@ -20,12 +20,13 @@ public class Preliq {
     private Integer currErrorCount;
     private Integer maxErrorCount;
     // all counts
+    private Integer totalCount;
     private Integer succeedCount;
     private Integer failedCount;
     private Integer maxTotalCount;
 
     public static Preliq createDefault() {
-        return new Preliq(1, 0, 3, 0, 0, 20);
+        return new Preliq(1, 0, 3, 0, 0, 0, 20);
     }
 
     public Integer getPreliqBlockBitmex() {
@@ -34,12 +35,12 @@ public class Preliq {
 
     public boolean hasSpareAttempts() {
         boolean hasSpareCurrent = currErrorCount < maxErrorCount;
-        boolean hasSparePermanent = getTotalCount() < maxTotalCount;
+        boolean hasSparePermanent = totalCount < maxTotalCount;
         return hasSpareCurrent && hasSparePermanent;
     }
 
-    public Integer getTotalCount() {
-        return succeedCount + failedCount;
+    public void incTotalCount() {
+        this.totalCount++;
     }
 
     public void incSuccesses() {
@@ -54,10 +55,11 @@ public class Preliq {
 
     @Override
     public String toString() {
-        return String.format("Preliq attempts(curr/max): %s/%s. Total(success+fail=total / max): %s+%s=%s / %s",
+        return String.format("Preliq attempts(curr/max): %s/%s. Total(totalStarted / completed=success+fail / max): %s / %s=%s+%s / %s",
                 currErrorCount, maxErrorCount,
-                succeedCount, failedCount,
+                totalCount,
                 succeedCount + failedCount,
+                succeedCount, failedCount,
                 maxTotalCount);
     }
 }
