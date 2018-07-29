@@ -308,45 +308,50 @@ public class AfterArbTask implements Runnable {
         // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
 //        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(dealPrices.getBorderList()));
         DiffFactBr diffFactBr = new DiffFactBr(BigDecimal.valueOf(-99999999), NA);
-        BorderParams borderParams = dealPrices.getBorderParamsOnStart();
-        if (borderParams.getActiveVersion() == Ver.V1) {
-            BigDecimal wam_br = dealPrices.getDeltaName().equals(DeltaName.B_DELTA)
-                    ? dealPrices.getBorder1()
-                    : dealPrices.getBorder2();
-
-            diffFactBr = new DiffFactBr(deltaFact.subtract(wam_br),
-                    String.format("v1[%s-%s]", deltaFact.toPlainString(), wam_br.toPlainString()));
-
-        } else if (borderParams.getActiveVersion() == Ver.V2) {
-            final PosMode posMode = borderParams.getPosMode();
-            Integer pos_bo = dealPrices.getPos_bo();
-            Integer pos_ao = dealPrices.getPlan_pos_ao();
-            if (pos_bo != null) {
-                BordersV2 bordersV2 = new BordersV2();
-                BeanUtils.copyProperties(borderParams.getBordersV2(), bordersV2);
-                DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(
-                        posMode,
-                        pos_bo,
-                        pos_ao,
-                        dealPrices.getDelta1Plan(),
-                        dealPrices.getDelta2Plan(),
-                        deltaFact,
-                        bordersV2);
-                try {
-                    diffFactBr = diffFactBrComputer.compute();
-                } catch (Exception e) {
-                    warningLogger.warn(e.toString());
-                    deltasLogger.warn("WARNING: " + e.toString());
-                    log.warn("WARNING", e);
-                    cumParams.setDiffFactBrFailsCount(cumParams.getDiffFactBrFailsCount() + 1);
-                    warningLogger.warn("diff_fact_br_fails_count = " + cumParams.getDiffFactBrFailsCount());
-                }
-            }
+        if (signalType.isPreliq()) {
+            diffFactBr = new DiffFactBr(diff_fact_v2, String.format("diff_fact_v2[%s]", diff_fact_v2));
         } else {
-            String msg = "WARNING: borderParams.activeVersion" + borderParams.getActiveVersion();
-            warningLogger.warn(msg);
-            deltasLogger.warn(msg);
+            BorderParams borderParams = dealPrices.getBorderParamsOnStart();
+            if (borderParams.getActiveVersion() == Ver.V1) {
+                BigDecimal wam_br = dealPrices.getDeltaName().equals(DeltaName.B_DELTA)
+                        ? dealPrices.getBorder1()
+                        : dealPrices.getBorder2();
+
+                diffFactBr = new DiffFactBr(deltaFact.subtract(wam_br),
+                        String.format("v1[%s-%s]", deltaFact.toPlainString(), wam_br.toPlainString()));
+
+            } else if (borderParams.getActiveVersion() == Ver.V2) {
+                final PosMode posMode = borderParams.getPosMode();
+                Integer pos_bo = dealPrices.getPos_bo();
+                Integer pos_ao = dealPrices.getPlan_pos_ao();
+                if (pos_bo != null) {
+                    BordersV2 bordersV2 = new BordersV2();
+                    BeanUtils.copyProperties(borderParams.getBordersV2(), bordersV2);
+                    DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(
+                            posMode,
+                            pos_bo,
+                            pos_ao,
+                            dealPrices.getDelta1Plan(),
+                            dealPrices.getDelta2Plan(),
+                            deltaFact,
+                            bordersV2);
+                    try {
+                        diffFactBr = diffFactBrComputer.compute();
+                    } catch (Exception e) {
+                        warningLogger.warn(e.toString());
+                        deltasLogger.warn("WARNING: " + e.toString());
+                        log.warn("WARNING", e);
+                        cumParams.setDiffFactBrFailsCount(cumParams.getDiffFactBrFailsCount() + 1);
+                        warningLogger.warn("diff_fact_br_fails_count = " + cumParams.getDiffFactBrFailsCount());
+                    }
+                }
+            } else {
+                String msg = "WARNING: borderParams.activeVersion" + borderParams.getActiveVersion();
+                warningLogger.warn(msg);
+                deltasLogger.warn(msg);
+            }
         }
+
         if (diffFactBr.getStr().equals(NA)) {
             String msg = "WARNING: diff_fact_br=NA=-99999999";
             warningLogger.warn(msg);
