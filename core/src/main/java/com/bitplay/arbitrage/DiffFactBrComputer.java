@@ -154,10 +154,13 @@ public class DiffFactBrComputer {
             BigDecimal valueI = br_close.get(i).getValue();
 
             int nextIndex = i + 1;
-            BorderItem nextItem = br_close.get(nextIndex);
-            while (nextItem.getId() == 0 && nextIndex < br_close.size()) {
-                nextIndex++;
+            BorderItem nextItem = br_close.get(i); // currItem
+            if (nextIndex != br_close.size()) {
                 nextItem = br_close.get(nextIndex);
+                while (nextItem.getId() == 0 && nextIndex < br_close.size() - 1) {
+                    nextIndex++;
+                    nextItem = br_close.get(nextIndex);
+                }
             }
 
             if (nextIndex == br_close.size()
