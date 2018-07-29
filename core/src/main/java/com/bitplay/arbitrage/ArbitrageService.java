@@ -571,7 +571,7 @@ public class ArbitrageService {
     public void startPreliqOnDelta1(SignalType signalType, BestQuotes bestQuotes) {
         // border V1
         PreliqBlocks preliqBlocks = new PreliqBlocks().getPreliqBlocks(DeltaName.B_DELTA);
-        if (preliqBlocks.hasZeroPosition()) {
+        if (preliqBlocks.isForbidden()) {
             return;
         }
         final BigDecimal b_block = preliqBlocks.getB_block();
@@ -715,7 +715,7 @@ public class ArbitrageService {
 
     public void startPerliqOnDelta2(SignalType signalType, BestQuotes bestQuotes) {
         PreliqBlocks preliqBlocks = new PreliqBlocks().getPreliqBlocks(DeltaName.O_DELTA);
-        if (preliqBlocks.hasZeroPosition()) {
+        if (preliqBlocks.isForbidden()) {
             return;
         }
         final BigDecimal b_block = preliqBlocks.getB_block();
@@ -1218,12 +1218,12 @@ public class ArbitrageService {
 
     private class PreliqBlocks {
 
-        private boolean hasZeroPosition;
+        private boolean forbidden;
         private BigDecimal b_block;
         private BigDecimal o_block;
 
-        boolean hasZeroPosition() {
-            return hasZeroPosition;
+        boolean isForbidden() {
+            return forbidden;
         }
 
         public BigDecimal getB_block() {
@@ -1244,7 +1244,7 @@ public class ArbitrageService {
                 String posDetails = String.format("Bitmex %s; Okex %s", firstMarketService.getPosition(), secondMarketService.getPosition());
                 logger.error("WARNING: Preliq was not started, because Bitmex pos=0. Details:" + posDetails);
                 warningLogger.error("WARNING: Preliq was not started, because Bitmex pos=0. Details:" + posDetails);
-                hasZeroPosition = true;
+                forbidden = true;
                 return this;
             }
             if ((deltaName == DeltaName.B_DELTA && btmPos.signum() > 0 && btmPos.compareTo(b_block) < 0)
@@ -1258,7 +1258,7 @@ public class ArbitrageService {
                 String posDetails = String.format("Bitmex %s; Okex %s", firstMarketService.getPosition(), secondMarketService.getPosition());
                 logger.error("WARNING: Preliq was not started, because Okex pos=0. Details:" + posDetails);
                 warningLogger.error("WARNING: Preliq was not started, because Okex pos=0. Details:" + posDetails);
-                hasZeroPosition = true;
+                forbidden = true;
                 return this;
             }
             BigDecimal okMeaningPos = deltaName == DeltaName.B_DELTA ? okShort : okLong;
@@ -1266,7 +1266,29 @@ public class ArbitrageService {
                 o_block = okMeaningPos;
                 b_block = o_block.multiply(OKEX_FACTOR);
             }
-            hasZeroPosition = false;
+
+            // increasing position on any market is forbidden
+            if (deltaName == DeltaName.B_DELTA) {
+                // bitmex sell, okex buy
+                if (btmPos.signum() < 0 || okLong.subtract(okShort).signum() > 0) {
+                    String posDetails = String.format("Bitmex %s; Okex %s", firstMarketService.getPosition(), secondMarketService.getPosition());
+                    logger.error("WARNING: Preliq by delta1 was not started. Can not increase position. Details:" + posDetails);
+                    warningLogger.error("WARNING: Preliq by delta1 was not started. Can not increase position. Details:" + posDetails);
+                    forbidden = true;
+                    return this;
+                }
+            } else {
+                // bitmex buy, okex sell
+                if (btmPos.signum() > 0 || okLong.subtract(okShort).signum() < 0) {
+                    String posDetails = String.format("Bitmex %s; Okex %s", firstMarketService.getPosition(), secondMarketService.getPosition());
+                    logger.error("WARNING: Preliq by delta2 was not started. Can not increase position. Details:" + posDetails);
+                    warningLogger.error("WARNING: Preliq  by delta2 was not started. Can not increase position. Details:" + posDetails);
+                    forbidden = true;
+                    return this;
+                }
+            }
+
+            forbidden = false;
             return this;
         }
     }
