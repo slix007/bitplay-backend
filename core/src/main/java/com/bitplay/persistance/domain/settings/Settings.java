@@ -60,19 +60,17 @@ public class Settings extends AbstractDocument {
         return settings;
     }
 
-    public BigDecimal getBFee() {
+    public BigDecimal getBFee(PlacingType placingType) {
         final FeeSettings feeSettings = getFeeSettings();
-        final PlacingType bitmexPlacingType = getBitmexPlacingType();
-        if (bitmexPlacingType == PlacingType.MAKER) {
+        if (placingType == PlacingType.MAKER) {
             return feeSettings.getbMakerComRate();
         }
         return feeSettings.getbTakerComRate();
     }
 
-    public BigDecimal getOFee() {
+    public BigDecimal getOFee(PlacingType placingType) {
         final FeeSettings feeSettings = getFeeSettings();
-        final PlacingType okexPlacingType = getOkexPlacingType();
-        if (okexPlacingType == PlacingType.MAKER) {
+        if (placingType == PlacingType.MAKER) {
             return feeSettings.getoMakerComRate();
         }
         return feeSettings.getoTakerComRate(); // TAKER, HYBRID

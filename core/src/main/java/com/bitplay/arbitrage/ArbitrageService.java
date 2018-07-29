@@ -671,7 +671,13 @@ public class ArbitrageService {
             deltasLogger.info(String.format("#%s %s", counterName, dynamicDeltaLogs));
         }
 
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        final PlacingType okexPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getOkexPlacingType();
+        final PlacingType btmPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
+
         synchronized (dealPrices) {
+            dealPrices.setBtmPlacingType(btmPlacingType);
+            dealPrices.setOkexPlacingType(okexPlacingType);
             dealPrices.setBorder1(params.getBorder1());
             dealPrices.setBorder2(params.getBorder2());
             dealPrices.setoBlock(o_block);
@@ -699,8 +705,8 @@ public class ArbitrageService {
         arbInProgress.set(true);
         deltasLogger.info("#{} is started ---", counterName);
         // in scheme MT2 Okex should be the first
-        signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType, predefinedPlacingType, counterName);
-        signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.ASK, b_block, bestQuotes, signalType, predefinedPlacingType, counterName);
+        signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType, okexPlacingType, counterName);
+        signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.ASK, b_block, bestQuotes, signalType, btmPlacingType, counterName);
 
         setTimeoutAfterStartTrading();
 
@@ -768,7 +774,13 @@ public class ArbitrageService {
             deltasLogger.info(String.format("#%s %s", counterName, dynamicDeltaLogs));
         }
 
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        final PlacingType okexPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getOkexPlacingType();
+        final PlacingType btmPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
+
         synchronized (dealPrices) {
+            dealPrices.setBtmPlacingType(btmPlacingType);
+            dealPrices.setOkexPlacingType(okexPlacingType);
             dealPrices.setBorder1(params.getBorder1());
             dealPrices.setBorder2(params.getBorder2());
             dealPrices.setoBlock(o_block);
@@ -796,8 +808,8 @@ public class ArbitrageService {
         arbInProgress.set(true);
         deltasLogger.info("#{} is started ---", counterName);
         // in scheme MT2 Okex should be the first
-        signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType, predefinedPlacingType, counterName);
-        signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.BID, b_block, bestQuotes, signalType, predefinedPlacingType, counterName);
+        signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType, okexPlacingType, counterName);
+        signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.BID, b_block, bestQuotes, signalType, btmPlacingType, counterName);
 
         setTimeoutAfterStartTrading();
 

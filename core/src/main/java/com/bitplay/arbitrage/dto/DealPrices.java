@@ -3,17 +3,22 @@ package com.bitplay.arbitrage.dto;
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.BTM_MODE;
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MODE;
 
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 /**
  * Created by Sergey Shurmin on 5/24/17.
  */
+@Getter
+@Setter
 @ToString
 public class DealPrices implements Serializable {
 
@@ -33,6 +38,8 @@ public class DealPrices implements Serializable {
     private BorderParams borderParamsOnStart;
     private BigDecimal border1;
     private BigDecimal border2;
+    private PlacingType okexPlacingType;
+    private PlacingType btmPlacingType;
 
     public synchronized BigDecimal getBorder1() {
         return border1;

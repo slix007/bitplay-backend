@@ -34,11 +34,10 @@ public class SignalService {
     private SettingsRepositoryService settingsRepositoryService;
 
     public void placeOkexOrderOnSignal(MarketService okexService, Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-                                       SignalType signalType, PlacingType predefinedPlacingType, String counterName) {
+                                       SignalType signalType, PlacingType placingType, String counterName) {
         final Settings settings = settingsRepositoryService.getSettings();
-        final PlacingType okexPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getOkexPlacingType();
         final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
-                okexPlacingType,
+                placingType,
                 signalType, 1, counterName);
 
         if (settings.getArbScheme() == ArbScheme.CON_B_O) {
@@ -61,11 +60,9 @@ public class SignalService {
     }
 
     public void placeBitmexOrderOnSignal(MarketService bitmexService, Order.OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-                                         SignalType signalType, PlacingType predefinedPlacingType, String counterName) {
+                                         SignalType signalType, PlacingType placingType, String counterName) {
         executorService.submit(() -> {
             try {
-                final Settings settings = settingsRepositoryService.getSettings();
-                PlacingType placingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
                 ((BitmexService) bitmexService).placeOrderToOpenOrders(counterName, orderType, b_block, bestQuotes, placingType, signalType);
             } catch (Exception e) {
                 logger.error("Error on placeOrderOnSignal", e);

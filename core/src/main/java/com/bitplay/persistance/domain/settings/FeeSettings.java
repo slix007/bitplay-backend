@@ -1,10 +1,12 @@
 package com.bitplay.persistance.domain.settings;
 
 import java.math.BigDecimal;
+import lombok.ToString;
 
 /**
  * Created by Sergey Shurmin on 2/28/18.
  */
+@ToString
 public class FeeSettings {
 
     //b_taker_com_rate - размер taker комиссии у Битмекса в % (сейчас 0.075)
@@ -56,15 +58,5 @@ public class FeeSettings {
 
     public void setoMakerComRate(BigDecimal oMakerComRate) {
         this.oMakerComRate = oMakerComRate;
-    }
-
-    @Override
-    public String toString() {
-        return "FeeSettings{" +
-                "bTakerComRate=" + bTakerComRate +
-                ", bMakerComRate=" + bMakerComRate +
-                ", oTakerComRate=" + oTakerComRate +
-                ", oMakerComRate=" + oMakerComRate +
-                '}';
     }
 }

@@ -424,8 +424,8 @@ public class AfterArbTask implements Runnable {
     }
 
     private void printCom(CumParams cumParams, DealPrices dealPrices) {
-        final BigDecimal bFee = settings.getBFee();
-        final BigDecimal oFee = settings.getOFee();
+        final BigDecimal bFee = settings.getBFee(dealPrices.getBtmPlacingType());
+        final BigDecimal oFee = settings.getOFee(dealPrices.getOkexPlacingType());
 
         final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
         final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
