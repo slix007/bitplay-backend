@@ -55,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.SerializationUtils;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -591,8 +592,8 @@ public class ArbitrageService {
                 && !firstMarketService.isMarketStopped() && !secondMarketService.isMarketStopped()
                 && // liqEdge violation only with non-AUTOMATIC signals(corr,preliq,etc)
                 (signalType != SignalType.AUTOMATIC ||
-                        (firstMarketService.checkLiquidationEdge(Order.OrderType.ASK)
-                                && secondMarketService.checkLiquidationEdge(Order.OrderType.BID))
+                        (firstMarketService.checkLiquidationEdge(OrderType.ASK)
+                                && secondMarketService.checkLiquidationEdge(OrderType.BID))
                 )) {
 
             if (isImmediate) {
@@ -737,8 +738,8 @@ public class ArbitrageService {
                 && !firstMarketService.isMarketStopped() && !secondMarketService.isMarketStopped()
                 && // liqEdge violation only with non-AUTOMATIC signals(corr,preliq,etc)
                 (signalType != SignalType.AUTOMATIC ||
-                        (firstMarketService.checkLiquidationEdge(Order.OrderType.ASK)
-                                && secondMarketService.checkLiquidationEdge(Order.OrderType.BID))
+                        (firstMarketService.checkLiquidationEdge(OrderType.BID)
+                                && secondMarketService.checkLiquidationEdge(OrderType.ASK))
                 )) {
 
             if (isImmediate) {
