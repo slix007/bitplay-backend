@@ -16,6 +16,7 @@ import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
@@ -476,8 +477,7 @@ public class BitmexService extends MarketService {
                                                     MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
                                         }
 
-                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED
-                                            || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY) {
+                                    } else if (response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 
                                         if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
                                             setOverloaded(null);
@@ -487,7 +487,10 @@ public class BitmexService extends MarketService {
                                                     MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
                                         }
 
-                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION) {
+                                    } else if (response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION
+                                            || response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY
+                                            || response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION_NONCE
+                                    ) {
                                         tradeLogger.warn("MovingException: " + response.getDescription());
                                         logger.warn("MovingException: " + response.getDescription());
                                     }
@@ -1005,7 +1008,8 @@ public class BitmexService extends MarketService {
                             tradeResponse.setErrorCode(e.getMessage());
                             break;
                         }
-                    } else if (MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus) {
+                    } else if (MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY == placeOrderStatus
+                            || MoveOrderStatus.EXCEPTION_NONCE == placeOrderStatus) {
                         badGatewayCount++;
                         if (badGatewayCount < 3) {
                             Thread.sleep(200);
@@ -1626,6 +1630,9 @@ public class BitmexService extends MarketService {
                     logger.error(fullMessage);
                 } else if (marketResponseMessage.startsWith(BAD_GATEWAY)) {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY, marketResponseMessage);
+                    logger.error(fullMessage);
+                } else if (marketResponseMessage.contains("Nonce is not increasing")) {
+                    moveResponse = new MoveResponse(MoveOrderStatus.EXCEPTION_NONCE, marketResponseMessage);
                     logger.error(fullMessage);
                 } else {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, httpBody);

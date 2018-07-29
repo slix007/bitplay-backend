@@ -22,6 +22,7 @@ public class MoveResponse {
         EXCEPTION,
         EXCEPTION_SYSTEM_OVERLOADED,
         EXCEPTION_502_BAD_GATEWAY,
+        EXCEPTION_NONCE,
         WAITING_TIMEOUT,
         MOVED_WITH_NEW_ID,
         ONLY_CANCEL
