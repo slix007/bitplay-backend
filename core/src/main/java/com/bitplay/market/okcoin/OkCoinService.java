@@ -1408,6 +1408,7 @@ public class OkCoinService extends MarketService {
                         dqlString = String.format("o_DQL = m%s - L%s = %s", m, L, dql);
                     } else {
                         dqlString = "o_DQL = na";
+                        dql = DQL_WRONG;
                         warningLogger.info(String.format("Warning. mrl is wrong: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, eqLiq=%s, mrl=%s, oMrLiq=%s",
                                 pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
                                 position.getPriceAvgLong(), position.getPriceAvgShort(),
@@ -1415,6 +1416,7 @@ public class OkCoinService extends MarketService {
                     }
                 } else {
                     dqlString = "o_DQL = na";
+                    dql = DQL_WRONG;
                     warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, n=%s, d=%s",
                             pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
                             position.getPriceAvgLong(), position.getPriceAvgShort(),
@@ -1445,6 +1447,7 @@ public class OkCoinService extends MarketService {
                             dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
                         } else {
                             dqlString = "o_DQL = na";
+                            dql = DQL_WRONG;
                             warningLogger.info(String.format("Warning. mrl is wrong: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, eqLiq=%s, mrl=%s, oMrLiq=%s",
                                     pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
                                     position.getPriceAvgLong(), position.getPriceAvgShort(),
@@ -1452,6 +1455,7 @@ public class OkCoinService extends MarketService {
                         }
                     } else {
                         dqlString = "o_DQL = na";
+                        dql = DQL_WRONG;
                         warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, n=%s",
                                 pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
                                 position.getPriceAvgLong(), position.getPriceAvgShort(),
@@ -1478,21 +1482,21 @@ public class OkCoinService extends MarketService {
                 dmrlString = "o_DMRL = na";
             }
 
-            if (dql != null) {
-                if (liqInfo.getLiqParams().getDqlMax().compareTo(dql) == -1) {
+            if (dql != null && dql.compareTo(DQL_WRONG) != 0) {
+                if (liqInfo.getLiqParams().getDqlMax().compareTo(dql) < 0) {
                     liqInfo.getLiqParams().setDqlMax(dql);
                 }
-                if (liqInfo.getLiqParams().getDqlMin().compareTo(dql) == 1) {
+                if (liqInfo.getLiqParams().getDqlMin().compareTo(dql) > 0) {
                     liqInfo.getLiqParams().setDqlMin(dql);
                 }
             }
             liqInfo.setDqlCurr(dql);
 
             if (dmrl != null) {
-                if (liqInfo.getLiqParams().getDmrlMax().compareTo(dmrl) == -1) {
+                if (liqInfo.getLiqParams().getDmrlMax().compareTo(dmrl) < 0) {
                     liqInfo.getLiqParams().setDmrlMax(dmrl);
                 }
-                if (liqInfo.getLiqParams().getDmrlMin().compareTo(dmrl) == 1) {
+                if (liqInfo.getLiqParams().getDmrlMin().compareTo(dmrl) > 0) {
                     liqInfo.getLiqParams().setDmrlMin(dmrl);
                 }
             }
@@ -1519,13 +1523,13 @@ public class OkCoinService extends MarketService {
         } else {
             if (orderType.equals(Order.OrderType.BID)) { // LONG
                 if ((position.getPositionLong().subtract(position.getPositionShort())).signum() > 0) {
-                    isOk = liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1;
+                    isOk = liqInfo.getDqlCurr().compareTo(oDQLOpenMin) >= 0;
                 } else {
                     isOk = true;
                 }
             } else if (orderType.equals(Order.OrderType.ASK)) {
                 if ((position.getPositionLong().subtract(position.getPositionShort()).signum() < 0)) {
-                    isOk = liqInfo.getDqlCurr().compareTo(oDQLOpenMin) != -1;
+                    isOk = liqInfo.getDqlCurr().compareTo(oDQLOpenMin) >= 0;
                 } else {
                     isOk = true;
                 }

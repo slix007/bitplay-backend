@@ -55,6 +55,7 @@ import org.slf4j.Logger;
 public abstract class MarketService extends MarketServiceOpenOrders {
 
     protected static final int MAX_ATTEMPTS_CANCEL = 90;
+    protected static final BigDecimal DQL_WRONG = BigDecimal.ZERO;
 
     private static final int ORDERBOOK_MAX_SIZE = 20;
     protected BigDecimal bestBid = BigDecimal.ZERO;
@@ -462,10 +463,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public void resetLiqInfo() {
-        liqInfo.getLiqParams().setDqlMin(liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr() : BigDecimal.valueOf(-10000));
-        liqInfo.getLiqParams().setDqlMax(liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr() : BigDecimal.valueOf(10000));
-        liqInfo.getLiqParams().setDmrlMin(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(-10000));
-        liqInfo.getLiqParams().setDmrlMax(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(10000));
+        liqInfo.getLiqParams().setDqlMin(BigDecimal.valueOf(10000));
+        liqInfo.getLiqParams().setDqlMax(BigDecimal.valueOf(-10000));
+        liqInfo.getLiqParams().setDmrlMin(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(10000));
+        liqInfo.getLiqParams().setDmrlMax(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(-10000));
 
         storeLiqParams();
     }
