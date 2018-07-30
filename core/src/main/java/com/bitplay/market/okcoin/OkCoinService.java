@@ -1407,7 +1407,7 @@ public class OkCoinService extends MarketService {
                         dql = m.subtract(L);
                         dqlString = String.format("o_DQL = m%s - L%s = %s", m, L, dql);
                     } else {
-                        dqlString = "o_DQL = na";
+                        dqlString = String.format("o_DQL = na(pos=%s, mrl=%s, oMrLiq=%s)", pos, mrl, oMrLiq);
                         dql = DQL_WRONG;
                         warningLogger.info(String.format("Warning. mrl is wrong: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, eqLiq=%s, mrl=%s, oMrLiq=%s",
                                 pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
@@ -1415,7 +1415,7 @@ public class OkCoinService extends MarketService {
                                 eqLiq.toPlainString(), mrl.toPlainString(), oMrLiq.toPlainString()));
                     }
                 } else {
-                    dqlString = "o_DQL = na";
+                    dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s, d=%s, n=%s)", pos, margin, equity, d, n);
                     dql = DQL_WRONG;
                     warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, n=%s, d=%s",
                             pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
@@ -1446,7 +1446,7 @@ public class OkCoinService extends MarketService {
                             dql = L.subtract(m);
                             dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
                         } else {
-                            dqlString = "o_DQL = na";
+                            dqlString = String.format("o_DQL = na(pos=%s, mrl=%s, oMrLiq=%s)", pos, mrl, oMrLiq);
                             dql = DQL_WRONG;
                             warningLogger.info(String.format("Warning. mrl is wrong: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, eqLiq=%s, mrl=%s, oMrLiq=%s",
                                     pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
@@ -1454,7 +1454,7 @@ public class OkCoinService extends MarketService {
                                     eqLiq.toPlainString(), mrl.toPlainString(), oMrLiq.toPlainString()));
                         }
                     } else {
-                        dqlString = "o_DQL = na";
+                        dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s, n=%s)", pos, margin, equity, n);
                         dql = DQL_WRONG;
                         warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s, n=%s",
                                 pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
@@ -1463,12 +1463,12 @@ public class OkCoinService extends MarketService {
                     }
 
                 } else {
-                    dqlString = "o_DQL = na";
+                    dqlString = String.format("o_DQL = na(d<=0, %s)", d);
                     // ordinary situation
                 }
 
             } else {
-                dqlString = "o_DQL = na";
+                dqlString = "o_DQL = na(pos=0)";
             }
 
             BigDecimal dmrl = null;
