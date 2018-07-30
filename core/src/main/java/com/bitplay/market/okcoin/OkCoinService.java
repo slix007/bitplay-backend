@@ -392,7 +392,13 @@ public class OkCoinService extends MarketService {
     private Disposable startAccountInfoSubscription() {
         return exchange.getStreamingAccountInfoService()
                 .accountInfoObservable()
-                .doOnError(throwable -> logger.error("Error on AccountInfo.Websocket observing", throwable))
+                .doOnError(throwable -> {
+                    if (throwable.getMessage().contains("Request timeout,Please try again later")) {
+                        logger.error("Error on AccountInfo.Websocket observing: " + throwable);
+                    } else {
+                        logger.error("Error on AccountInfo.Websocket observing", throwable);
+                    }
+                })
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(newInfo -> {
