@@ -278,7 +278,11 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     public LiquidationInfoJson getLiquidationInfoJson() {
         final LiqInfo liqInfo = getBusinessService().getLiqInfo();
         final LiqParams liqParams = liqInfo.getLiqParams();
-        return new LiquidationInfoJson(liqInfo.getDqlString(),
+        String dqlString = liqInfo.getDqlString();
+        if (dqlString.startsWith("o_DQL = na")) {
+            dqlString = "o_DQL = na";
+        }
+        return new LiquidationInfoJson(dqlString,
                 liqInfo.getDmrlString(),
                 String.format("DQL: %s ... %s", liqParams.getDqlMin(), liqParams.getDqlMax()),
                 String.format("DMRL: %s ... %s", liqParams.getDmrlMin(), liqParams.getDmrlMax())
