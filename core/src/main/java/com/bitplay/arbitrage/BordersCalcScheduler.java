@@ -1,7 +1,6 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.borders.BorderDelta.DeltaCalcType;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import java.time.Duration;
 import java.time.Instant;
@@ -62,7 +61,7 @@ public class BordersCalcScheduler {
         if (scheduledRecalc != null && !scheduledRecalc.isDone()) {
             scheduledRecalc.cancel(false);
         }
-        if (!isRecalcEveryNewDelta) {
+        if (!isRecalcEveryNewDelta && recalcPeriodSec > 0) {
             scheduledRecalc = scheduler.scheduleWithFixedDelay(this::recalc,
                     recalcPeriodSec, recalcPeriodSec, TimeUnit.SECONDS);
         }
@@ -81,7 +80,8 @@ public class BordersCalcScheduler {
             lastUpdate = String.valueOf(Duration.between(lastRecalcTime, Instant.now())
                     .getSeconds());
         }
-        final long nextInSec = scheduledRecalc == null ? -1L
+        long nextInSec = (scheduledRecalc == null || scheduledRecalc.getDelay(TimeUnit.SECONDS) < 0)
+                ? -1L
                 : scheduledRecalc.getDelay(TimeUnit.SECONDS);
 
         if (bordersCalcService.isRecalcEveryNewDelta()) {
