@@ -73,6 +73,10 @@ public class DeltasCalcService {
     }
 
     private void dltChangeListener(Dlt dlt) { //TODO move into borderRecalcService
+        if (borderDelta != null && borderDelta.getDeltaSmaCalcOn() != null && !borderDelta.getDeltaSmaCalcOn()) {
+            return;
+        }
+
         try {
             long startMs = System.nanoTime();
 
@@ -116,12 +120,20 @@ public class DeltasCalcService {
     }
 
     public String getDeltaHistPerStartedSec() {
+        if (borderDelta != null && borderDelta.getDeltaSmaCalcOn() != null && !borderDelta.getDeltaSmaCalcOn()) {
+            return "";
+        }
+
         Instant now = Instant.now();
         long pastSeconds = Duration.between(begin_delta_hist_per, now).getSeconds();
         return String.valueOf(pastSeconds);
     }
 
     public String getDeltaSmaUpdateIn(Integer delta_hist_per) {
+        if (borderDelta != null && borderDelta.getDeltaSmaCalcOn() != null && !borderDelta.getDeltaSmaCalcOn()) {
+            return "";
+        }
+
         Instant now = Instant.now();
         long pastSeconds = Duration.between(begin_delta_hist_per, now).getSeconds();
         long toStart = delta_hist_per - pastSeconds;
@@ -138,12 +150,21 @@ public class DeltasCalcService {
             case DELTA:
                 return instantDelta;
             case AVG_DELTA: // calc every call
+                if (borderDelta.getDeltaSmaCalcOn() != null && !borderDelta.getDeltaSmaCalcOn()) {
+                    return NONE_VALUE;
+                }
                 return avgDeltaAtOnce.calcAvgDelta(deltaName, instantDelta, currTime, borderDelta, begin_delta_hist_per);
             case AVG_DELTA_EVERY_BORDER_COMP_AT_ONCE:
             case AVG_DELTA_EVERY_NEW_DELTA_AT_ONCE:
+                if (borderDelta.getDeltaSmaCalcOn() != null && !borderDelta.getDeltaSmaCalcOn()) {
+                    return NONE_VALUE;
+                }
                 return calcIfDeltaHistPeriodIsDone(avgDeltaAtOnce, deltaName, instantDelta, currTime, borderDelta);
             case AVG_DELTA_EVERY_BORDER_COMP_IN_PARTS:
             case AVG_DELTA_EVERY_NEW_DELTA_IN_PARTS:
+                if (borderDelta.getDeltaSmaCalcOn() != null && !borderDelta.getDeltaSmaCalcOn()) {
+                    return NONE_VALUE;
+                }
                 return calcIfDeltaHistPeriodIsDone(avgDeltaInParts, deltaName, instantDelta, currTime, borderDelta);
         }
         throw new IllegalArgumentException("Unhandled deltaCalcType " + borderDelta.getDeltaCalcType());

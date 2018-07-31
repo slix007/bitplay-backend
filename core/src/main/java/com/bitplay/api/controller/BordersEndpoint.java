@@ -173,6 +173,12 @@ public class BordersEndpoint {
             }
 
             if (update.borderDelta != null) {
+                if (update.borderDelta.getDeltaSmaCalcOn() != null) {
+                    bP.getBorderDelta().setDeltaSmaCalcOn(update.borderDelta.getDeltaSmaCalcOn());
+                    respDetails = bP.getBorderDelta().getDeltaSmaCalcOn().toString();
+                    deltasCalcService.resetDeltasCache(bP.getBorderDelta(), true);
+                }
+
                 if (update.borderDelta.getDeltaCalcType() != null) {
                     DeltaCalcType before = bP.getBorderDelta().getDeltaCalcType();
                     DeltaCalcType after = update.borderDelta.getDeltaCalcType();

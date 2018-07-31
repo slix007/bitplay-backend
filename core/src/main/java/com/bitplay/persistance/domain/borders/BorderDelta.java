@@ -13,6 +13,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class BorderDelta implements Serializable {
 
+    private Boolean deltaSmaCalcOn;
+
     private DeltaCalcType deltaCalcType;
 
     /**
