@@ -1350,19 +1350,27 @@ public class OkCoinService extends MarketService {
 
                 // 2. Status check
                 final Collection<Order> order = tradeService.getOrder(orderId);
-                Order cancelledOrder = order.iterator().next();
-                tradeLogger.info("#{}/{} {} id={}, status={}, filled={}",
-                        counterName,
-                        attemptCount,
-                        logInfoId2,
-                        cancelledOrder.getId(),
-                        cancelledOrder.getStatus(),
-                        cancelledOrder.getCumulativeAmount());
+                if (order.size() == 0) {
+                    tradeLogger.info("#{}/{} {} id={} no orders in response",
+                            counterName,
+                            attemptCount,
+                            logInfoId2,
+                            orderId);
+                } else {
+                    Order cancelledOrder = order.iterator().next();
+                    tradeLogger.info("#{}/{} {} id={}, status={}, filled={}",
+                            counterName,
+                            attemptCount,
+                            logInfoId2,
+                            cancelledOrder.getId(),
+                            cancelledOrder.getStatus(),
+                            cancelledOrder.getCumulativeAmount());
 
-                if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED
-                        || cancelledOrder.getStatus() == Order.OrderStatus.FILLED) {
-                    resOrder = cancelledOrder;
-                    break;
+                    if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED
+                            || cancelledOrder.getStatus() == Order.OrderStatus.FILLED) {
+                        resOrder = cancelledOrder;
+                        break;
+                    }
                 }
 
             } catch (Exception e) {
