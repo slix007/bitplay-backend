@@ -28,6 +28,7 @@ public class StreamingServiceBitmex {
     private WSClientEndpoint clientEndPoint;
     private WSMessageHandler msgHandler;
     private Disposable pingDisposable;
+    private boolean checkReconnect = true;
 
     public StreamingServiceBitmex(String apiUrl) {
         this.apiUrl = apiUrl;
@@ -69,7 +70,9 @@ public class StreamingServiceBitmex {
                 e.onError(throwable);
             }
         }).doOnDispose(() -> {
-            clientEndPoint.sendMessage(getUnsubscribeMessage(subscriptionSubject));
+            if (clientEndPoint.isOpen()) {
+                clientEndPoint.sendMessage(getUnsubscribeMessage(subscriptionSubject));
+            }
             msgHandler.getChannels().remove(channel);
         });
     }
@@ -101,6 +104,11 @@ public class StreamingServiceBitmex {
                             attempt++;
 
                             sendPingSuccessfully = Completable.create(e -> {
+//                                if (checkReconnect) {
+//                                    log.error("CHECK RECONNECT ACTION: DO CLOSE");
+//                                    checkReconnect = false;
+//                                    clientEndPoint.doClose();
+//                                }
                                 msgHandler.setPingCompleteEmitter(e);
 
                                 if (!clientEndPoint.isOpen()) {
@@ -133,8 +141,9 @@ public class StreamingServiceBitmex {
                 log.info("disconnect");
                 pingDisposable.dispose();
                 clientEndPoint.doClose();
-                completableEmitter.onComplete();
                 msgHandler.getChannels().clear();
+
+                completableEmitter.onComplete();
 
             } catch (Exception e) {
                 completableEmitter.onError(e);

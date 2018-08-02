@@ -5,23 +5,22 @@ import com.bitplay.persistance.domain.TimeCompareParams;
 import com.bitplay.persistance.domain.TimeCompareRange;
 import com.bitplay.persistance.repository.TimeCompareParamsRepository;
 import com.bitplay.persistance.repository.TimeCompareRangeRepository;
-
-import org.knowm.xchange.bitmex.dto.BitmexInfoDto;
-import org.knowm.xchange.bitmex.service.BitmexMarketDataService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.knowm.xchange.bitmex.dto.BitmexInfoDto;
+import org.knowm.xchange.bitmex.service.BitmexMarketDataService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 10/26/17.
@@ -67,10 +66,13 @@ public class BitmexTimeService {
         final Date startTime = new Date();
 
         final BitmexInfoDto bitmexInfoDto;
+        long start = Instant.now().getEpochSecond();
         try {
             bitmexInfoDto = marketDataService.getBitmexInfoDto();
         } catch (IOException e) {
-            logger.error("can not get BitmexInfo", e);
+            long end = Instant.now().getEpochSecond();
+            final String time = String.valueOf(end - start);
+            logger.error("can not get BitmexInfo. Timeout=" + time, e);
             return;
         }
 

@@ -44,8 +44,8 @@ public class BitmexLimitsService {
         final Limits limits = settingsRepositoryService.getSettings().getLimits();
         final BigDecimal bitmexLimitPrice = limits.getBitmexLimitPrice();
         final OrderBook ob = bitmexService.getOrderBook();
-        final BigDecimal limitBid = ob.getBids().get(0).getLimitPrice();
-        final BigDecimal limitAsk = ob.getAsks().get(0).getLimitPrice();
+        final BigDecimal limitBid = ob.getBids().size() > 0 ? ob.getBids().get(0).getLimitPrice() : BigDecimal.ZERO;
+        final BigDecimal limitAsk = ob.getAsks().size() > 0 ? ob.getAsks().get(0).getLimitPrice() : BigDecimal.ZERO;
 //        Max price = Index (1 + Limit price, %)
 //        Min price = Index (1 - Limit price, %)
         final BigDecimal lp = bitmexLimitPrice.divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);

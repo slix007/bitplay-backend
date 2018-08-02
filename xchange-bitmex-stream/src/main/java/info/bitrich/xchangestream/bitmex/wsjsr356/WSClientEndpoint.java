@@ -1,21 +1,17 @@
 package info.bitrich.xchangestream.bitmex.wsjsr356;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.URI;
-
 import javax.websocket.ClientEndpoint;
 import javax.websocket.CloseReason;
 import javax.websocket.ContainerProvider;
 import javax.websocket.OnClose;
-import javax.websocket.OnError;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.WebSocketContainer;
-import javax.websocket.server.PathParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Sergey Shurmin on 5/16/17.
@@ -52,9 +48,13 @@ public class WSClientEndpoint {
     }
     public void doClose() throws IOException {
         log.info("doClose:" + userSession);
-        this.userSession.close();
-        this.userSession = null;
-        this.open = false;
+        if (this.open && userSession != null) {
+            this.userSession.close();
+            this.userSession = null;
+        }
+        if (this.open) {
+            this.open = false;
+        }
     }
 
 
