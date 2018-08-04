@@ -3,7 +3,6 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -23,6 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +64,11 @@ public class PosDiffService {
     private OkexLimitsService okexLimitsService;
 
     private ScheduledExecutorService posDiffExecutor;
+
+    @PreDestroy
+    public void preDestory() {
+        posDiffExecutor.shutdown();
+    }
 
     @PostConstruct
     private void init() {

@@ -164,17 +164,8 @@ public class ArbitrageService {
                             final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
                             params.setLastOBChange(new Date());
 
-                            if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
-                                    && posDiffService.isPositionsEqual()) {
+                            doComparison(bestQuotes, firstOrderBook, secondOrderBook);
 
-                                synchronized (arbInProgress) {
-                                    if (!arbInProgress.get()) {
-
-                                        doComparison(bestQuotes, firstOrderBook, secondOrderBook);
-
-                                    }
-                                }
-                            }
                         }
                     } catch (NotYetInitializedException e) {
                         // do nothing
@@ -444,10 +435,13 @@ public class ArbitrageService {
             BigDecimal border2 = params.getBorder2();
 
             if (delta1.compareTo(border1) >= 0) {
+                if (signalDelayActivateTime == null) {
+                    startSignalDelay(0);
+                }
+
                 PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border1,
                         PlacingBlocks.DeltaBase.B_DELTA, oPL, oPS);
                 if (plBlocks.getBlockOkex().signum() == 0) {
-                    stopSignalDelay();
                     return bestQuotes;
                 }
                 String dynDeltaLogs = null;
@@ -462,12 +456,14 @@ public class ArbitrageService {
                             null, dynDeltaLogs, null, false);
                     return bestQuotes;
                 }
-            }
-            if (delta2.compareTo(border2) >= 0) {
+            } else if (delta2.compareTo(border2) >= 0) {
+                if (signalDelayActivateTime == null) {
+                    startSignalDelay(0);
+                }
+
                 PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border2,
                         PlacingBlocks.DeltaBase.O_DELTA, oPL, oPS);
                 if (plBlocks.getBlockOkex().signum() == 0) {
-                    stopSignalDelay();
                     return bestQuotes;
                 }
                 String dynDeltaLogs = null;
@@ -481,12 +477,16 @@ public class ArbitrageService {
                             null, dynDeltaLogs, null, false);
                     return bestQuotes;
                 }
+            } else {
+                stopSignalDelay();
             }
 
         } else if (borderParams.getActiveVersion() == Ver.V2) {
 
+            boolean withWarningLogs = firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage() && posDiffService.isPositionsEqual();
+
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(
-                    bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS);
+                    bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs);
 
             if (tradingSignal.okexBlock == 0) {
                 stopSignalDelay();
@@ -495,7 +495,9 @@ public class ArbitrageService {
 
             if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY
                     || tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
-
+                if (signalDelayActivateTime == null) {
+                    startSignalDelay(0);
+                }
 
                 if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
                     if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
@@ -548,10 +550,10 @@ public class ArbitrageService {
                         return bestQuotes;
                     }
                 }
+            } else {
+                stopSignalDelay();
             }
         }
-
-        stopSignalDelay();
 
         return bestQuotes;
     }
@@ -596,14 +598,21 @@ public class ArbitrageService {
                                 && secondMarketService.checkLiquidationEdge(OrderType.BID))
                 )) {
 
-            if (isImmediate) {
-                startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType, ask1_o,
-                        bid1_p);
-            } else if (signalDelayActivateTime == null) {
-                startSignalDelay(0);
-            } else if (isSignalDelayExceeded()) {
-                startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType, ask1_o,
-                        bid1_p);
+            synchronized (arbInProgress) {
+                if (!arbInProgress.get()) {
+
+                    if (isImmediate) {
+                        startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
+                                ask1_o,
+                                bid1_p);
+                    } else if (signalDelayActivateTime == null) {
+                        startSignalDelay(0);
+                    } else if (isSignalDelayExceeded()) {
+                        startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
+                                ask1_o,
+                                bid1_p);
+                    }
+                }
             }
 
         } else {
@@ -634,11 +643,15 @@ public class ArbitrageService {
     }
 
     public String getTimeToSignal() {
-        if (futureSignal != null && !futureSignal.isDone()) {
-            long delay = futureSignal.getDelay(TimeUnit.MILLISECONDS);
-            return String.valueOf(delay);
+        if (futureSignal != null && signalDelayActivateTime != null) {
+            if(!futureSignal.isDone()) {
+                long delay = futureSignal.getDelay(TimeUnit.MILLISECONDS);
+                return String.valueOf(delay);
+            } else {
+                return "_ready_";
+            }
         }
-        return "_";
+        return "_none_";
     }
 
     private void stopSignalDelay() {
@@ -649,6 +662,9 @@ public class ArbitrageService {
     }
 
     private boolean isSignalDelayExceeded() {
+        if (signalDelayActivateTime == null) {
+            return false;
+        }
         final Integer signalDelayMs = persistenceService.getSettingsRepositoryService().getSettings().getSignalDelayMs();
         return Instant.now().toEpochMilli() - signalDelayActivateTime > signalDelayMs;
     }
@@ -742,14 +758,21 @@ public class ArbitrageService {
                                 && secondMarketService.checkLiquidationEdge(OrderType.ASK))
                 )) {
 
-            if (isImmediate) {
-                startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType, ask1_p,
-                        bid1_o);
-            } else if (signalDelayActivateTime == null) {
-                startSignalDelay(0);
-            } else if (isSignalDelayExceeded()) {
-                startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType, ask1_p,
-                        bid1_o);
+            synchronized (arbInProgress) {
+                if (!arbInProgress.get()) {
+
+                    if (isImmediate) {
+                        startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
+                                ask1_p,
+                                bid1_o);
+                    } else if (signalDelayActivateTime == null) {
+                        startSignalDelay(0);
+                    } else if (isSignalDelayExceeded()) {
+                        startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
+                                ask1_p,
+                                bid1_o);
+                    }
+                }
             }
 
         } else {
