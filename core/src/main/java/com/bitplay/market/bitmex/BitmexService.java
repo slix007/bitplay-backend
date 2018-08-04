@@ -30,18 +30,14 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
-import io.reactivex.Completable;
 import io.reactivex.Observable;
-import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
 import io.swagger.client.model.Error;
 import io.swagger.client.model.Execution;
 import java.io.IOException;
@@ -56,8 +52,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -102,9 +96,6 @@ public class BitmexService extends MarketService {
     private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
     private BitmexStreamingExchange exchange;
-
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("BitmexSubscribersThread-%d").build());
-    private final Scheduler subScheduler = Schedulers.from(executorService);
 
     private volatile Instant firstReconnectTime;
     private static final int MAX_SEC_TO_COUNT_RECONNECTS = 60; // 1 min
@@ -242,51 +233,34 @@ public class BitmexService extends MarketService {
 
         initWebSocketConnection();
 
-        Completable.timer(1000, TimeUnit.MILLISECONDS)
-                .doOnComplete(this::startAllListeners)
-                .subscribe();
-
-//        Observable.interval(60, TimeUnit.SECONDS)
-//                .doOnEach(throwable -> logger.warn("RESTART BITMEX FOR TESTING"))
-//                .doOnEach(throwable -> warningLogger.warn("RESTART BITMEX FOR TESTING"))
-//                .subscribe(aLong -> checkForRestart());
+        startAllListeners();
 
     }
 
     private void startAllListeners() {
 
+        logger.info("startAllListeners");
         orderBookSubscription = startOrderBookListener();
+        accountInfoSubscription = startAccountInfoListener();
+        openOrdersSubscription = startOpenOrderListener();
+        positionSubscription = startPositionListener();
+        futureIndexSubscription = startFutureIndexListener();
+
+//        Completable.timer(1000, TimeUnit.MILLISECONDS)
+//                .doOnComplete(() -> accountInfoSubscription = startAccountInfoListener())
+//                .subscribe();
 //
-//        if (!orderBookSubscription.isDisposed()) {
-////            Thread.sleep(1000);
-//            accountInfoSubscription = startAccountInfoListener();
-//            if (!accountInfoSubscription.isDisposed()) {
-//                openOrdersSubscription = startOpenOrderListener();
-//                if (!openOrdersSubscription.isDisposed()) {
-//                    positionSubscription = startPositionListener();
-//                    if (!positionSubscription.isDisposed()) {
-//                        futureIndexSubscription = startFutureIndexListener();
+//        Completable.timer(1000, TimeUnit.MILLISECONDS)
+//                .doOnComplete(() -> openOrdersSubscription = startOpenOrderListener())
+//                .subscribe();
 //
-////                        listenersStartTimeEpochSecond = Instant.now().getEpochSecond();
-//                    }
-//                }
-//            }
-//        }
-
-        Completable.timer(1000, TimeUnit.MILLISECONDS)
-                .doOnComplete(() -> accountInfoSubscription = startAccountInfoListener())
-                .subscribe();
-        Completable.timer(2000, TimeUnit.MILLISECONDS)
-                .doOnComplete(() -> openOrdersSubscription = startOpenOrderListener())
-                .subscribe();
-
-        Completable.timer(3000, TimeUnit.MILLISECONDS)
-                .doOnComplete(() -> positionSubscription = startPositionListener())
-                .subscribe();
-
-        Completable.timer(5000, TimeUnit.MILLISECONDS)
-                .doOnComplete(() -> futureIndexSubscription = startFutureIndexListener())
-                .subscribe();
+//        Completable.timer(1000, TimeUnit.MILLISECONDS)
+//                .doOnComplete(() -> positionSubscription = startPositionListener())
+//                .subscribe();
+//
+//        Completable.timer(1000, TimeUnit.MILLISECONDS)
+//                .doOnComplete(() -> futureIndexSubscription = startFutureIndexListener())
+//                .subscribe();
 
     }
 
@@ -749,7 +723,7 @@ public class BitmexService extends MarketService {
         }
     }
 
-    private OrderBook mergeOrderBook(BitmexOrderBook bitmexOrderBook) {
+    private OrderBook convertOrderBook(BitmexOrderBook bitmexOrderBook) {
 
         OrderBook orderBook = getFullOrderBook();
         if (bitmexOrderBook.getAction().equals("partial")) {
@@ -769,12 +743,11 @@ public class BitmexService extends MarketService {
     private Disposable startOrderBookListener() {
         Observable<OrderBook> orderBookObservable = ((BitmexStreamingMarketDataService)exchange.getStreamingMarketDataService())
                 .getOrderBookL2(CurrencyPair.BTC_USD, 20)
-                .subscribeOn(subScheduler) //use the scheduler(thread) for all operations: BEFORE and AFTER
                 .doOnError(throwable -> {
                     logger.error("can not get orderBook", throwable);
                     checkForRestart();
                 })
-                .map(this::mergeOrderBook)
+                .map(this::convertOrderBook)
                 .doOnError(throwable -> logger.error("can not merge orderBook", throwable))
                 .doOnDispose(() -> {
                     logger.info("bitmex subscription doOnDispose");
@@ -785,7 +758,6 @@ public class BitmexService extends MarketService {
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
 
         return orderBookObservable
-//                .observeOn(Schedulers.computation()) //use the scheduler(thread) for all operations AFTER
                 .subscribe(orderBook -> {
                     try {
 
@@ -827,7 +799,6 @@ public class BitmexService extends MarketService {
     private Disposable startOpenOrderListener() {
         return exchange.getStreamingTradingService()
                 .getOpenOrdersObservable()
-                .subscribeOn(subScheduler)
                 .doOnDispose(() -> {
                     logger.info("bitmex subscription doOnDispose");
                     checkForRestart();
@@ -838,7 +809,6 @@ public class BitmexService extends MarketService {
                     checkForRestart();
                 })
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
-                .observeOn(Schedulers.computation())
                 .subscribe(updateOfOpenOrders -> {
                     try {
 
@@ -1337,7 +1307,6 @@ public class BitmexService extends MarketService {
     private Disposable startAccountInfoListener() {
         Observable<AccountInfoContracts> accountInfoObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
                 .getAccountInfoContractsObservable()
-                .subscribeOn(subScheduler)
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                 .doOnError(throwable -> logger.error("Account fetch error", throwable))
@@ -1380,7 +1349,6 @@ public class BitmexService extends MarketService {
     private Disposable startPositionListener() {
         Observable<Position> positionObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
                 .getPositionObservable()
-                .subscribeOn(subScheduler)
                 .doOnError(throwable -> logger.error("Position fetch error", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
 
@@ -1407,8 +1375,6 @@ public class BitmexService extends MarketService {
     private Disposable startFutureIndexListener() {
         Observable<BitmexContractIndex> indexObservable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getContractIndexObservable()
-                .subscribeOn(subScheduler)
-                .observeOn(subScheduler)
                 .doOnError(throwable -> logger.error("Index fetch error", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
 

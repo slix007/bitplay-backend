@@ -3,26 +3,22 @@ package info.bitrich.xchangestream.bitmex;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
-
+import io.reactivex.Observable;
+import io.swagger.client.model.Instrument;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.Date;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
-
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.Date;
-
-import io.reactivex.Observable;
-import io.swagger.client.model.Instrument;
 
 public class BitmexStreamingMarketDataService implements StreamingMarketDataService {
     private final StreamingServiceBitmex service;

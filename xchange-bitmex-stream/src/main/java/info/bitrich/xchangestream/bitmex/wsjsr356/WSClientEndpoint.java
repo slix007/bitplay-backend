@@ -70,7 +70,7 @@ public class WSClientEndpoint {
         messageHandler = msgHandler;
     }
 
-    public void sendMessage(final String message) {
+    public synchronized void sendMessage(final String message) {
         userSession.getAsyncRemote().sendText(message);
     }
 
