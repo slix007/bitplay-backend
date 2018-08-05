@@ -621,8 +621,7 @@ public class ArbitrageService {
     }
 
     public void restartSignalDelay() {
-        if (signalDelayActivateTime != null && futureSignal != null && !futureSignal.isDone()) {
-//            long remainingDelay = futureSignal.getDelay(TimeUnit.MILLISECONDS);
+        if (signalDelayActivateTime != null) {
             long passedDelay = Instant.now().toEpochMilli() - signalDelayActivateTime;
             stopSignalDelay();
             startSignalDelay(passedDelay);
