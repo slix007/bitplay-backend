@@ -57,6 +57,8 @@ public class StreamingServiceBitmex {
         return Observable.<JsonNode>create(e -> {
             if (clientEndPoint == null || !clientEndPoint.isOpen()) {
                 e.onError(new NotConnectedException());
+                e.onComplete();
+                return;
             }
 
             if (!msgHandler.isAuthenticated()) {
@@ -122,6 +124,13 @@ public class StreamingServiceBitmex {
                             }).blockingAwait(2, TimeUnit.SECONDS);
 
                         }
+//                        if (checkReconnect) {
+//                            log.error("CHECK RECONNECT ACTION: DO CLOSE");
+//                            checkReconnect = false;
+////                            clientEndPoint.doClose();
+//                            sendPingSuccessfully = false;
+//                        }
+
                         if (!sendPingSuccessfully) {
                             completable.onError(new Exception("Ping failed. Timeout on waiting 'pong'."));
                             log.error("Ping failed");
