@@ -1697,6 +1697,9 @@ public class BitmexService extends MarketService {
                             || getMarketState() == MarketState.SYSTEM_OVERLOADED) {
                         sleepIfFails = LONG_SLEEP;
                     }
+                    if (e.getMessage().contains("HTTP status code was not OK: 403")) {// banned, no repeats
+                        break;
+                    }
 
                 } catch (Exception e) {
                     logger.info(String.format("%s updateAvgPriceError.", logMsg), e);
