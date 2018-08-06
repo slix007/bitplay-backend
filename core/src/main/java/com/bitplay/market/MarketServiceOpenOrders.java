@@ -11,12 +11,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.knowm.xchange.dto.Order;
@@ -95,14 +93,21 @@ public abstract class MarketServiceOpenOrders {
     }
 
     protected void distinctOpenOrders() {
-        Set<String> ordIdSet = new HashSet<>();
-        openOrders = openOrders.stream().flatMap(fplayOrder -> {
-            if (ordIdSet.add(fplayOrder.getOrderId())) {
-                return Stream.of(fplayOrder);
+        Map<String, FplayOrder> map = new HashMap<>();
+        openOrders.forEach(fplayOrder -> {
+            String key = fplayOrder.getOrderId();
+            if (map.containsKey(key)) {
+                FplayOrder first = map.get(key);
+                FplayOrder merged = FplayOrderUtils.updateFplayOrder(first, fplayOrder);
+                logger.warn("OO is repeated first " + first.toString());
+                logger.warn("OO is repeated second " + fplayOrder.toString());
+                logger.warn("OO is repeated merged " + merged.toString());
+                map.put(key, merged);
+            } else {
+                map.put(key, fplayOrder);
             }
-            logger.warn("OO is repeated " + fplayOrder.toString());
-            return Stream.empty();
-        }).collect(Collectors.toList());
+        });
+        openOrders = new ArrayList<>(map.values());
     }
 
     private boolean validateOpenOrders() {

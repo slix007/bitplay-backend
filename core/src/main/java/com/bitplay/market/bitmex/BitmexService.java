@@ -1005,7 +1005,16 @@ public class BitmexService extends MarketService {
                         }
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
-                            if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
+                            int cancelledCount = cancelledInRow.incrementAndGet();
+                            if (cancelledCount == 5) {
+                                tradeLogger.info("CANCELED more 4 in a row");
+                            }
+                            if (cancelledCount == 50) {
+                                tradeLogger.info("CANCELED more 50 in a row. Do reconnect.");
+                                reconnect();
+                                Thread.sleep(5 * 1000);
+                            }
+
                             tradeResponse.addCancelledOrder(requestOrder);
                             tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
                             tradeResponse.setLimitOrder(null);
@@ -1205,7 +1214,15 @@ public class BitmexService extends MarketService {
                                 updatedOrder.getStatus());
 
                 if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
-                    if (cancelledInRow.incrementAndGet() > 4) tradeLogger.info("CANCELED more 4 in a row");
+                    int cancelledCount = cancelledInRow.incrementAndGet();
+                    if (cancelledCount == 5) {
+                        tradeLogger.info("CANCELED more 4 in a row");
+                    }
+                    if (cancelledCount == 50) {
+                        tradeLogger.info("CANCELED more 50 in a row. Do reconnect.");
+                        reconnect();
+                        Thread.sleep(5 * 1000);
+                    }
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
                 } else {
                     cancelledInRow.set(0);
@@ -1591,12 +1608,18 @@ public class BitmexService extends MarketService {
      * @param avgPrice the object to be updated.
      */
     public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
+        final int LONG_SLEEP = 10000;
+        final int SHORT_SLEEP = 1000;
         final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
         for (String orderId : itemMap.keySet()) {
             AvgPriceItem theItem = itemMap.get(orderId);
+//            if (theItem.getAmount().signum() == 0 && theItem.getOrdStatus().equals("CANCELED")) {
+//                continue;
+//            }
             final String logMsg = String.format("#%s AvgPrice update of orderId=%s.", counterName, orderId);
             int MAX_ATTEMPTS = 5;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+                int sleepIfFails = SHORT_SLEEP;
                 try {
                     final Collection<Execution> orderParts = ((BitmexTradeService) getTradeService()).getOrderParts(orderId);
 
@@ -1647,6 +1670,33 @@ public class BitmexService extends MarketService {
                         }
                     }
 
+                } catch (HttpStatusIOException e) {
+                    final Map<String, List<String>> responseHeaders = e.getResponseHeaders();
+                    final List<String> rateLimitValues = responseHeaders.get("X-RateLimit-Remaining");
+                    if (rateLimitValues != null && rateLimitValues.size() > 0) {
+                        xRateLimit = new BitmexXRateLimit(
+                                Integer.valueOf(rateLimitValues.get(0)),
+                                new Date()
+                        );
+                    }
+
+                    final String rateLimitStr = String.format(" X-RateLimit-Remaining=%s ", xRateLimit.getxRateLimit());
+
+                    logger.info(String.format("%s %s updateAvgPriceError.", rateLimitStr, logMsg), e);
+                    tradeLogger.info(String.format("%s %s updateAvgPriceError %s", rateLimitStr, logMsg, e.getMessage()));
+                    warningLogger.info(String.format("%s %s updateAvgPriceError %s", rateLimitStr, logMsg, e.getMessage()));
+
+                    if (xRateLimit.getxRateLimit() <= 0) {
+                        logger.info("xRateLimit=0. Stop!");
+                        tradeLogger.info("xRateLimit=0. Stop!");
+                        warningLogger.info("xRateLimit=0. Stop!");
+                        setOverloaded(null);
+                    }
+
+                    if (e.getMessage().contains("HTTP status code was not OK: 429")
+                            || getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+                        sleepIfFails = LONG_SLEEP;
+                    }
 
                 } catch (Exception e) {
                     logger.info(String.format("%s updateAvgPriceError.", logMsg), e);
@@ -1655,7 +1705,11 @@ public class BitmexService extends MarketService {
                 }
 
                 try {
-                    Thread.sleep(1000);
+                    if (sleepIfFails != LONG_SLEEP && getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+                        sleepIfFails = LONG_SLEEP;
+                    }
+
+                    Thread.sleep(sleepIfFails);
                 } catch (InterruptedException e) {
                     logger.info(String.format("%s Sleep Error.", logMsg), e);
                 }
