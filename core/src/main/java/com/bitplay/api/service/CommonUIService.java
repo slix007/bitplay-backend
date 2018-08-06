@@ -5,6 +5,7 @@ import com.bitplay.api.domain.BorderUpdateJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltasMinMaxJson;
+import com.bitplay.api.domain.DeltasMinMaxJson.MinMaxData;
 import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketStatesJson;
@@ -15,6 +16,7 @@ import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.BordersRecalcService;
+import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.ArbState;
@@ -74,6 +76,9 @@ public class CommonUIService {
 
     @Autowired
     private PersistenceService persistenceService;
+
+    @Autowired
+    private DeltaMinService deltaMinService;
 
     @Autowired
     private PosDiffService posDiffService;
@@ -279,6 +284,10 @@ public class CommonUIService {
         final GuiParams guiParams = arbitrageService.getParams();
         final String delta1Sma = bordersRecalcService.getB_delta_sma().toPlainString();
         final String delta2Sma = bordersRecalcService.getO_delta_sma().toPlainString();
+        final String delta1MinInstant = deltaMinService.getBtmDeltaMinInstant().toPlainString();
+        final String delta2MinInstant = deltaMinService.getOkDeltaMinInstant().toPlainString();
+        final String delta1MinFixed = deltaMinService.getBtmDeltaMinFixed().toPlainString();
+        final String delta2MinFixed = deltaMinService.getOkDeltaMinFixed().toPlainString();
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
@@ -316,6 +325,10 @@ public class CommonUIService {
                 cumParams.getSlip().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 delta1Sma,
                 delta2Sma,
+                delta1MinInstant,
+                delta2MinInstant,
+                delta1MinFixed,
+                delta2MinFixed,
                 deltasCalcService.getBDeltaEveryCalc(),
                 deltasCalcService.getODeltaEveryCalc(),
                 deltasCalcService.getDeltaHistPerStartedSec(),
@@ -486,13 +499,23 @@ public class CommonUIService {
 
     public DeltasMinMaxJson getDeltaParamsJson() {
         final DeltaParams deltaParams = arbitrageService.getDeltaParams();
-        return new DeltasMinMaxJson(
+        MinMaxData instanDelta = new MinMaxData(
                 deltaParams.getBDeltaMin().toPlainString(),
                 deltaParams.getODeltaMin().toPlainString(),
                 deltaParams.getBDeltaMax().toPlainString(),
                 deltaParams.getODeltaMax().toPlainString(),
                 deltaParams.getBLastRise(),
                 deltaParams.getOLastRise());
+
+        DeltaParams minParams = deltaMinService.fetchDeltaMinParams();
+        MinMaxData deltaMin = new MinMaxData(
+                minParams.getBDeltaMin().toPlainString(),
+                minParams.getODeltaMin().toPlainString(),
+                minParams.getBDeltaMax().toPlainString(),
+                minParams.getODeltaMax().toPlainString(),
+                minParams.getBLastRise(),
+                minParams.getOLastRise());
+        return new DeltasMinMaxJson(instanDelta, deltaMin);
     }
 
     public DeltasMinMaxJson resetDeltaParamsJson() {
@@ -500,24 +523,34 @@ public class CommonUIService {
         return getDeltaParamsJson();
     }
 
-    public DeltasMinMaxJson geRestartMonitoringParamsJson() {
+    public DeltasMinMaxJson resetDeltaMinParamsJson() {
+        deltaMinService.resetDeltaMinParams();
+        return getDeltaParamsJson();
+    }
+
+    public DeltasMinMaxJson restartMonitoringParamsJson() {
         RestartMonitoring restartMonitoring = restartMonitoringRepository.fetchRestartMonitoring();
-        return new DeltasMinMaxJson(
+        return new DeltasMinMaxJson(new MinMaxData(
                 "",
                 "",
                 restartMonitoring.getBTimestampDelayMax().toPlainString(),
-                restartMonitoring.getOTimestampDelayMax().toPlainString());
+                restartMonitoring.getOTimestampDelayMax().toPlainString()), null);
     }
 
     public DeltasMinMaxJson resetRestartMonitoringParamsJson() {
         log.warn("RESET RestartMonitoring");
         RestartMonitoring defaults = RestartMonitoring.createDefaults();
         RestartMonitoring restartMonitoring = restartMonitoringRepository.saveRestartMonitoring(defaults);
-        return new DeltasMinMaxJson(
+        return new DeltasMinMaxJson(new MinMaxData(
                 "",
                 "",
                 restartMonitoring.getBTimestampDelayMax().toPlainString(),
-                restartMonitoring.getOTimestampDelayMax().toPlainString());
+                restartMonitoring.getOTimestampDelayMax().toPlainString()), null);
+    }
+
+    public ResultJson getDeltaMinTimerString() {
+        String timerString = deltaMinService.getTimerString();
+        return new ResultJson(timerString, "");
     }
 
     public ResultJson getUpdateBordersTimerString() {

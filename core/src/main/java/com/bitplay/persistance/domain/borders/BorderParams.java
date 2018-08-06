@@ -21,6 +21,7 @@ public class BorderParams extends AbstractDocument {
     private BordersV1 bordersV1;
     private BordersV2 bordersV2;
     private Integer recalcPeriodSec;
+    private Integer deltaMinFixPeriodSec;
     private BorderDelta borderDelta;
 
     public BorderParams(Ver activeVersion, BordersV1 bordersV1, BordersV2 bordersV2) {

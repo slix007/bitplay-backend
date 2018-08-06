@@ -124,7 +124,7 @@ public class ArbitrageService {
     private Disposable theCheckBusyTimer;
     private volatile SignalType signalType = SignalType.AUTOMATIC;
     private SignalEventBus signalEventBus = new SignalEventBus();
-    private volatile DeltaParams deltaParams = new DeltaParams();
+    private volatile DeltaParams deltaParams = DeltaParams.createDefault();
     private volatile DeltaMon deltaMon = new DeltaMon();
     private final PublishSubject<DeltaChange> deltaChangesPublisher = PublishSubject.create();
     private final AtomicBoolean arbInProgress = new AtomicBoolean();
@@ -1159,7 +1159,7 @@ public class ArbitrageService {
         if (deltaParams != null) {
             this.deltaParams = deltaParams;
         } else {
-            this.deltaParams = new DeltaParams();
+            this.deltaParams = DeltaParams.createDefault();
         }
     }
 

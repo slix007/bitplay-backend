@@ -234,11 +234,20 @@ public class CommonEndpoint {
         return commonUIService.resetDeltaParamsJson();
     }
 
+    @RequestMapping(value = "/delta-params-min",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public DeltasMinMaxJson resetDeltaMinParams() {
+        return commonUIService.resetDeltaMinParamsJson();
+    }
+
     @RequestMapping(value = "/restart-monitoring-params",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltasMinMaxJson getRestartMonitoringParams() {
-        return commonUIService.geRestartMonitoringParamsJson();
+        return commonUIService.restartMonitoringParamsJson();
     }
 
     @RequestMapping(value = "/restart-monitoring-params",
@@ -248,6 +257,13 @@ public class CommonEndpoint {
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public DeltasMinMaxJson resetRestartMonitoringParams() {
         return commonUIService.resetRestartMonitoringParamsJson();
+    }
+
+    @RequestMapping(value = "/market/delta-min-timer",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson deltaMinTimer() {
+        return commonUIService.getDeltaMinTimerString();
     }
 
 

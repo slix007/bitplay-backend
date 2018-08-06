@@ -45,6 +45,10 @@ public class DeltasJson {
     private String slip;
     private String delta1Sma;
     private String delta2Sma;
+    private String delta1MinInstant;
+    private String delta2MinInstant;
+    private String delta1MinFixed;
+    private String delta2MinFixed;
     private String delta1EveryCalc;
     private String delta2EveryCalc;
     private String deltaHistPerStarted;

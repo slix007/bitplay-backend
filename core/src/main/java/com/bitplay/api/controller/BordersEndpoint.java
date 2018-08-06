@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.arbitrage.BordersCalcScheduler;
+import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
@@ -41,6 +42,9 @@ public class BordersEndpoint {
 
     @Autowired
     private DeltasCalcService deltasCalcService;
+
+    @Autowired
+    private DeltaMinService deltaMinService;
 
     @RequestMapping(value = "/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public BorderParams getBorders() {
@@ -101,6 +105,7 @@ public class BordersEndpoint {
 
     private static void createDefaultParams2(final BorderParams borderParams) {
         borderParams.setRecalcPeriodSec(3600);
+        borderParams.setDeltaMinFixPeriodSec(30);
         final BordersV2 bordersV2 = borderParams.getBordersV2();
         bordersV2.setMaxLvl(7);
         bordersV2.setAutoBaseLvl(false);
@@ -161,6 +166,13 @@ public class BordersEndpoint {
                 boolean isRecalcEveryNewDelta = bP.getBorderDelta().getDeltaCalcType().isEveryNewDelta();
                 bordersCalcScheduler.resetTimerToRecalc(periodSec, isRecalcEveryNewDelta);
                 respDetails = update.recalcPeriodSec;
+            }
+            if (update.deltaMinFixPeriodSec != null) {
+                final Integer periodSec = Integer.valueOf(update.deltaMinFixPeriodSec);
+                bP.setDeltaMinFixPeriodSec(periodSec);
+
+                deltaMinService.restartScheduler(periodSec);
+                respDetails = update.deltaMinFixPeriodSec;
             }
             if (update.borderV1SumDelta != null) {
                 final BigDecimal sumDelta = new BigDecimal(update.borderV1SumDelta);
@@ -231,6 +243,7 @@ public class BordersEndpoint {
         public String version;
         public String posMode;
         public String recalcPeriodSec;
+        public String deltaMinFixPeriodSec;
         public String borderV1SumDelta;
         public String doResetDeltaHistPer;
         public BorderDelta borderDelta;

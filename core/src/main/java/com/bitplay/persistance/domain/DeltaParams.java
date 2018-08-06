@@ -1,12 +1,11 @@
 package com.bitplay.persistance.domain;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.math.BigDecimal;
 
 /**
  * Created by Sergey Shurmin on 7/18/17.
@@ -16,13 +15,24 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 public class DeltaParams extends AbstractDocument {
-    private BigDecimal bDeltaMin = BigDecimal.valueOf(-10000);
-    private BigDecimal oDeltaMin = BigDecimal.valueOf(-10000);
-    private BigDecimal bDeltaMax = BigDecimal.valueOf(10000);
-    private BigDecimal oDeltaMax = BigDecimal.valueOf(10000);
+
+    private String name;
+    private BigDecimal bDeltaMin;
+    private BigDecimal oDeltaMin;
+    private BigDecimal bDeltaMax;
+    private BigDecimal oDeltaMax;
 
     private Instant bLastRise;
     private Instant oLastRise;
+
+    public static DeltaParams createDefault() {
+        DeltaParams deltaParams = new DeltaParams();
+        deltaParams.bDeltaMax = BigDecimal.valueOf(-10000);
+        deltaParams.oDeltaMax = BigDecimal.valueOf(-10000);
+        deltaParams.bDeltaMin = BigDecimal.valueOf(10000);
+        deltaParams.oDeltaMin = BigDecimal.valueOf(10000);
+        return deltaParams;
+    }
 
     public DeltaParams() {
     }

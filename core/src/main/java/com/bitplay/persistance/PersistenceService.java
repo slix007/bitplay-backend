@@ -94,6 +94,7 @@ public class PersistenceService {
 
     public void storeDeltaParams(DeltaParams deltaParams) {
         deltaParams.setId(1L);
+        deltaParams.setName("InstantDelta");
         deltaParamsRepository.save(deltaParams);
     }
 

@@ -3,18 +3,15 @@ package com.bitplay.persistance.domain.settings;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.domain.AbstractDocument;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.math.BigDecimal;
-
-import lombok.Getter;
-import lombok.Setter;
 
 /**
  * Created by Sergey Shurmin on 11/27/17.
