@@ -330,7 +330,7 @@ public class BitmexService extends MarketService {
     }
 
     private String getSubscribersStatuses() {
-        return String.format("isDisposed: orderBookSub=%s, accountInfoSub=%s," +
+        return String.format(" Check for isDisposed: orderBookSub=%s, accountInfoSub=%s," +
                         "openOrdersSub=%s," +
                         "posSub=%s," +
                         "futureIndexSub=%s." +
@@ -629,11 +629,17 @@ public class BitmexService extends MarketService {
                 });
     }
 
+    private synchronized void clearOrdebBookAndReconnect() {
+        orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+        reconnect();
+    }
+
     private synchronized void reconnect() {
 
-        tradeLogger.info("Warning: Bitmex reconnect " + getSubscribersStatuses());
-        warningLogger.info("Warning: Bitmex reconnect " + getSubscribersStatuses());
-        logger.info("Warning: Bitmex reconnect " + getSubscribersStatuses());
+        String startMsg = "Warning: Bitmex reconnect is starting. " + getSubscribersStatuses();
+        tradeLogger.info(startMsg);
+        warningLogger.info(startMsg);
+        logger.info(startMsg);
 
         try {
             destroyAction(1);
@@ -642,6 +648,17 @@ public class BitmexService extends MarketService {
 
             startAllListeners();
 
+            String finishMsg = "Warning: Bitmex reconnect finished. " + getSubscribersStatuses();
+            tradeLogger.info(finishMsg);
+            warningLogger.info(finishMsg);
+            logger.info(finishMsg);
+
+        } catch (Exception e) {
+            String msg = "Warning: Bitmex reconnect error: " + e.getMessage() + getSubscribersStatuses();
+            tradeLogger.info(msg);
+            warningLogger.info(msg);
+            logger.info(msg);
+            throw e;
         } finally {
             reconnectInProgress = false;
         }
@@ -1011,7 +1028,7 @@ public class BitmexService extends MarketService {
                             }
                             if (cancelledCount == 50) {
                                 tradeLogger.info("CANCELED more 50 in a row. Do reconnect.");
-                                reconnect();
+                                clearOrdebBookAndReconnect();
                                 Thread.sleep(5 * 1000);
                             }
 
@@ -1220,7 +1237,7 @@ public class BitmexService extends MarketService {
                     }
                     if (cancelledCount == 50) {
                         tradeLogger.info("CANCELED more 50 in a row. Do reconnect.");
-                        reconnect();
+                        clearOrdebBookAndReconnect();
                         Thread.sleep(5 * 1000);
                     }
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);

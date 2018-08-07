@@ -677,6 +677,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }
         if (thePrice.signum() == 0) {
             getTradeLogger().info("WARNING: PRICE IS 0");
+            warningLogger.warn(getName() + " WARNING: PRICE IS 0");
         }
 
         return thePrice;
