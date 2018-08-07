@@ -608,18 +608,22 @@ public class BitmexService extends MarketService {
     private void exchangeConnect() {
         logger.info("bitmex connecting public");
         exchange.connect()
-                .doOnError(throwable -> logger.error("doOnError", throwable)) //TODO: looks like no repeat here
+                .doOnError(throwable -> logger.error("doOnError", throwable))
                 .doOnDispose(() -> logger.info("bitmex connect doOnDispose"))
                 .retryWhen(e -> e.delay(5, TimeUnit.SECONDS))
                 .blockingAwait();
 
-        logger.info("bitmex connecting private");
-        exchange.authenticate().blockingAwait();
+        logger.info("bitmex authenticate");
+        exchange.authenticate()
+                .doOnError(throwable -> logger.error("doOnError authenticate", throwable))
+                .doOnDispose(() -> logger.info("bitmex authenticate doOnDispose"))
+                .retryWhen(e -> e.delay(5, TimeUnit.SECONDS))
+                .blockingAwait();
 
         // Retry on disconnect.
         onDisconnectSubscription = exchange.onDisconnect()
                 .subscribe(() -> {
-                    logger.warn("onClientDisconnect BitmexService");
+                            logger.warn("onClientDisconnect BitmexService");
                             reconnect();
                 },
                 throwable -> {
@@ -655,6 +659,9 @@ public class BitmexService extends MarketService {
             tradeLogger.info(msg);
             warningLogger.info(msg);
             logger.info(msg);
+
+            doRestart();
+
             throw e;
         } finally {
             reconnectInProgress = false;
