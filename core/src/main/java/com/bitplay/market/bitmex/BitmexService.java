@@ -620,18 +620,13 @@ public class BitmexService extends MarketService {
         onDisconnectSubscription = exchange.onDisconnect()
                 .subscribe(() -> {
                     logger.warn("onClientDisconnect BitmexService");
-                    reconnect();
+                            reconnect();
                 },
                 throwable -> {
                     String msg = "BitmexService onDisconnect exception. ";
                     warningLogger.error(msg + throwable);
                     handleSubscriptionError(throwable, msg);
                 });
-    }
-
-    private synchronized void clearOrdebBookAndReconnect() {
-        orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-        reconnect();
     }
 
     private synchronized void reconnect() {
@@ -643,6 +638,8 @@ public class BitmexService extends MarketService {
 
         try {
             destroyAction(1);
+
+            orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
 
             exchangeConnect();
 
@@ -1028,7 +1025,7 @@ public class BitmexService extends MarketService {
                             }
                             if (cancelledCount == 50) {
                                 tradeLogger.info("CANCELED more 50 in a row. Do reconnect.");
-                                clearOrdebBookAndReconnect();
+                                reconnect();
                                 Thread.sleep(5 * 1000);
                             }
 
@@ -1237,7 +1234,7 @@ public class BitmexService extends MarketService {
                     }
                     if (cancelledCount == 50) {
                         tradeLogger.info("CANCELED more 50 in a row. Do reconnect.");
-                        clearOrdebBookAndReconnect();
+                        reconnect();
                         Thread.sleep(5 * 1000);
                     }
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
