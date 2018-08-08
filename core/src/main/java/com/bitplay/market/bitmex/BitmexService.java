@@ -1678,6 +1678,10 @@ public class BitmexService extends MarketService {
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 int sleepIfFails = SHORT_SLEEP;
                 try {
+                    if (marketState.isStopped()) {
+                        tradeLogger.info(String.format("%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState));
+                        return;
+                    }
                     final Collection<Execution> orderParts = ((BitmexTradeService) getTradeService()).getOrderParts(orderId);
 
                     if (orderParts.size() == 0) {
