@@ -298,7 +298,7 @@ public class OkCoinService extends MarketService {
         closeAllSubscibers().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
-    @Scheduled(initialDelay = 5 * 1000, fixedRate = 1000)
+    @Scheduled(initialDelay = 5 * 1000, fixedRate = 2000)
     public void requestAccountInfo() {
         try {
             exchange.getStreamingAccountInfoService().requestAccountInfo();
