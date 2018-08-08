@@ -1660,6 +1660,11 @@ public class BitmexService extends MarketService {
      * @param avgPrice the object to be updated.
      */
     public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
+        final MarketState marketState = getMarketState();
+        if (marketState.isStopped()) {
+            tradeLogger.info(String.format("%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState));
+            return;
+        }
         final int LONG_SLEEP = 10000;
         final int SHORT_SLEEP = 1000;
         final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
@@ -1746,7 +1751,7 @@ public class BitmexService extends MarketService {
                     }
 
                     if (e.getMessage().contains("HTTP status code was not OK: 429")
-                            || getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+                            || marketState == MarketState.SYSTEM_OVERLOADED) {
                         sleepIfFails = LONG_SLEEP;
                     }
                     if (e.getMessage().contains("HTTP status code was not OK: 403")) {// banned, no repeats
@@ -1760,7 +1765,7 @@ public class BitmexService extends MarketService {
                 }
 
                 try {
-                    if (sleepIfFails != LONG_SLEEP && getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+                    if (sleepIfFails != LONG_SLEEP && marketState == MarketState.SYSTEM_OVERLOADED) {
                         sleepIfFails = LONG_SLEEP;
                     }
 
