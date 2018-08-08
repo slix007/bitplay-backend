@@ -51,6 +51,9 @@ public class ExtrastopService {
     @Scheduled(initialDelay = 60 * 1000, fixedDelay = 10 * 1000)
     public void checkOrderBooks() {
         try {
+            if (bitmexService.isReconnectInProgress()) {
+                return;
+            }
             Settings settings = settingsRepositoryService.getSettings();
             Integer maxGap = settings.getRestartSettings().getMaxTimestampDelay();
 

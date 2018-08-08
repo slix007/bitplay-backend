@@ -205,6 +205,10 @@ public class BitmexService extends MarketService {
         }
     }
 
+    public boolean isReconnectInProgress() {
+        return reconnectInProgress;
+    }
+
     @Scheduled(fixedRate = 30000)
     public void dobleCheckAvailableBalance() {
         if (accountInfoContracts == null) {
@@ -295,10 +299,13 @@ public class BitmexService extends MarketService {
 
             if (needReconnect) {
                 reconnectInProgress = true;
-                reconnectOrRestart();
-//                restartTimer = Completable.timer(10, TimeUnit.MILLISECONDS)
-//                        .onErrorComplete()
-//                        .subscribe(this::reconnectOrRestart);
+
+                try {
+                    reconnectOrRestart();
+                } finally {
+                    reconnectInProgress = false;
+                }
+
             }
 
         }
@@ -317,12 +324,14 @@ public class BitmexService extends MarketService {
             final String msg = String
                     .format("Warning: Bitmex reconnect attempt=%s. Do restart. %s", reconnectCount, getSubscribersStatuses());
             warningLogger.info(msg);
+            tradeLogger.info(msg);
             logger.info(msg);
 
             doRestart();
         } else {
             final String msg = String.format("Warning: Bitmex reconnect attempt=%s. %s", reconnectCount, getSubscribersStatuses());
             warningLogger.info(msg);
+            tradeLogger.info(msg);
             logger.info(msg);
 
             if (firstReconnectTime == null) {
@@ -658,15 +667,28 @@ public class BitmexService extends MarketService {
                 Thread.sleep(1000);
             }
 
-            String finishMsg = String.format("Warning: Bitmex reconnect finished. OrderBook asks=%s, bids=%s, timestamp=%s. %s",
-                    orderBook.getAsks().size(),
-                    orderBook.getBids().size(),
-                    orderBook.getTimeStamp(),
-                    getSubscribersStatuses());
+            if (orderBook.getAsks().size() == 0 || orderBook.getBids().size() == 0) {
+                String msg = String.format("Warning: Bitmex reconnect error: OrderBook is empty: asks=%s, bids=%s, timestamp=%s. %s",
+                        orderBook.getAsks().size(),
+                        orderBook.getBids().size(),
+                        orderBook.getTimeStamp(),
+                        getSubscribersStatuses());
+                tradeLogger.info(msg);
+                warningLogger.info(msg);
+                logger.info(msg);
 
-            tradeLogger.info(finishMsg);
-            warningLogger.info(finishMsg);
-            logger.info(finishMsg);
+                doRestart();
+            } else {
+                String finishMsg = String.format("Warning: Bitmex reconnect finished. OrderBook asks=%s, bids=%s, timestamp=%s. %s",
+                        orderBook.getAsks().size(),
+                        orderBook.getBids().size(),
+                        orderBook.getTimeStamp(),
+                        getSubscribersStatuses());
+
+                tradeLogger.info(finishMsg);
+                warningLogger.info(finishMsg);
+                logger.info(finishMsg);
+            }
 
         } catch (Exception e) {
             String msg = "Warning: Bitmex reconnect error: " + e.getMessage() + getSubscribersStatuses();
@@ -677,8 +699,6 @@ public class BitmexService extends MarketService {
             doRestart();
 
             throw new RuntimeException(e);
-        } finally {
-            reconnectInProgress = false;
         }
     }
 
