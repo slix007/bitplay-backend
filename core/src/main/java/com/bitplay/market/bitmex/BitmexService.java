@@ -37,7 +37,6 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
-import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.swagger.client.model.Error;
@@ -266,36 +265,40 @@ public class BitmexService extends MarketService {
     }
 
     private void checkForRestart() {
-        scheduleReconnect(false);
+        logger.info("checkForRestart reconnectInProgress={}. {}", reconnectInProgress, getSubscribersStatuses());
+        requestReconnect(false);
     }
 
-    private synchronized void scheduleReconnect(boolean isForceReconnect) {
+    private void requestReconnect(boolean isForceReconnect) {
         if (isDestroyed) {
             return;
         }
 
-        logger.info("checkForRestart reconnectInProgress={}. {}", reconnectInProgress, getSubscribersStatuses());
+        logger.info("requestReconnect(Restart) reconnectInProgress={}. {}", reconnectInProgress, getSubscribersStatuses());
 
         if (!reconnectInProgress) {
             boolean needReconnect = isForceReconnect;
 
-            if (orderBookSubscription != null && accountInfoSubscription != null && openOrdersSubscription != null && positionSubscription != null
-                    && futureIndexSubscription != null) {
-                if (orderBookSubscription.isDisposed() || accountInfoSubscription.isDisposed() || openOrdersSubscription.isDisposed() || positionSubscription
-                        .isDisposed() || futureIndexSubscription.isDisposed()) {
+            if (!needReconnect) {
+                if (orderBookSubscription != null && accountInfoSubscription != null && openOrdersSubscription != null && positionSubscription != null
+                        && futureIndexSubscription != null) {
+                    if (orderBookSubscription.isDisposed() || accountInfoSubscription.isDisposed() || openOrdersSubscription.isDisposed() || positionSubscription
+                            .isDisposed() || futureIndexSubscription.isDisposed()) {
 
-                    needReconnect = true;
+                        needReconnect = true;
 
-                } else {
-                    logger.info("no Restart: everything looks ok " + getSubscribersStatuses());
+                    } else {
+                        logger.info("no Restart: everything looks ok " + getSubscribersStatuses());
+                    }
                 }
             }
 
             if (needReconnect) {
                 reconnectInProgress = true;
-                restartTimer = Completable.timer(10, TimeUnit.SECONDS)
-                        .onErrorComplete()
-                        .subscribe(this::reconnectOrRestart);
+                reconnectOrRestart();
+//                restartTimer = Completable.timer(10, TimeUnit.MILLISECONDS)
+//                        .onErrorComplete()
+//                        .subscribe(this::reconnectOrRestart);
             }
 
         }
@@ -312,13 +315,13 @@ public class BitmexService extends MarketService {
         reconnectCount++;
         if (reconnectCount >= MAX_RECONNECTS_BEFORE_RESTART) {
             final String msg = String
-                    .format("Warning: Bitmex hanged. Reconnect attempt=%s. Do restart. %s", reconnectCount, getSubscribersStatuses());
+                    .format("Warning: Bitmex reconnect attempt=%s. Do restart. %s", reconnectCount, getSubscribersStatuses());
             warningLogger.info(msg);
             logger.info(msg);
 
             doRestart();
         } else {
-            final String msg = String.format("Warning: Bitmex hanged. Reconnect attempt=%s. %s", reconnectCount, getSubscribersStatuses());
+            final String msg = String.format("Warning: Bitmex reconnect attempt=%s. %s", reconnectCount, getSubscribersStatuses());
             warningLogger.info(msg);
             logger.info(msg);
 
@@ -624,16 +627,16 @@ public class BitmexService extends MarketService {
         onDisconnectSubscription = exchange.onDisconnect()
                 .subscribe(() -> {
                             logger.warn("onClientDisconnect BitmexService");
-                            reconnect();
+                            requestReconnect(true);
                 },
                 throwable -> {
                     String msg = "BitmexService onDisconnect exception. ";
-                    warningLogger.error(msg + throwable);
-                    handleSubscriptionError(throwable, msg);
+                    logger.error(msg + throwable);
+                    requestReconnect(true);
                 });
     }
 
-    private synchronized void reconnect() {
+    private void reconnect() {
 
         String startMsg = "Warning: Bitmex reconnect is starting. " + getSubscribersStatuses();
         tradeLogger.info(startMsg);
@@ -649,7 +652,18 @@ public class BitmexService extends MarketService {
 
             startAllListeners();
 
-            String finishMsg = "Warning: Bitmex reconnect finished. " + getSubscribersStatuses();
+            int attempts = 0;
+            while (attempts < 5 && orderBook.getAsks().size() == 0 && orderBook.getBids().size() == 0) {
+                attempts++;
+                Thread.sleep(1000);
+            }
+
+            String finishMsg = String.format("Warning: Bitmex reconnect finished. OrderBook asks=%s, bids=%s, timestamp=%s. %s",
+                    orderBook.getAsks().size(),
+                    orderBook.getBids().size(),
+                    orderBook.getTimeStamp(),
+                    getSubscribersStatuses());
+
             tradeLogger.info(finishMsg);
             warningLogger.info(finishMsg);
             logger.info(finishMsg);
@@ -662,7 +676,7 @@ public class BitmexService extends MarketService {
 
             doRestart();
 
-            throw e;
+            throw new RuntimeException(e);
         } finally {
             reconnectInProgress = false;
         }
@@ -767,7 +781,7 @@ public class BitmexService extends MarketService {
                 .subscribe(orderBook -> {
                     try {
 
-                        mergeOrderBook(orderBook);
+                        afterOrderBookChanged(orderBook);
 
                     } catch (Exception e) {
                         logger.error("Can not merge OrderBook", e);
@@ -779,7 +793,7 @@ public class BitmexService extends MarketService {
                 });
     }
 
-    private void mergeOrderBook(OrderBook orderBook) {
+    private void afterOrderBookChanged(OrderBook orderBook) {
         if (orderBook != null && orderBook.getBids().size() > 0 && orderBook.getAsks().size() > 0) {
             final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
             final LimitOrder bestBid = Utils.getBestBid(orderBook);
@@ -1030,10 +1044,9 @@ public class BitmexService extends MarketService {
                             if (cancelledCount == 5) {
                                 tradeLogger.info("CANCELED more 4 in a row");
                             }
-                            if (cancelledCount == 50) {
-                                tradeLogger.info("CANCELED more 50 in a row. Do reconnect.");
-                                reconnect();
-                                Thread.sleep(5 * 1000);
+                            if (cancelledCount == 20) {
+                                tradeLogger.info("CANCELED more 20 in a row. Do reconnect.");
+                                requestReconnect(true);
                             }
 
                             tradeResponse.addCancelledOrder(requestOrder);
@@ -1241,8 +1254,7 @@ public class BitmexService extends MarketService {
                     }
                     if (cancelledCount == 50) {
                         tradeLogger.info("CANCELED more 50 in a row. Do reconnect.");
-                        reconnect();
-                        Thread.sleep(5 * 1000);
+                        requestReconnect(true);
                     }
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
                 } else {
@@ -1346,10 +1358,9 @@ public class BitmexService extends MarketService {
     private void handleSubscriptionError(Throwable throwable, String errorMessage) {
         if (throwable instanceof NotConnectedException) {
             logger.error(errorMessage + ". " + throwable.getMessage());
-            scheduleReconnect(true);
         } else {
             logger.error(errorMessage, throwable);
-            scheduleReconnect(true);
+            requestReconnect(true);
         }
     }
 
@@ -1634,9 +1645,9 @@ public class BitmexService extends MarketService {
         final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
         for (String orderId : itemMap.keySet()) {
             AvgPriceItem theItem = itemMap.get(orderId);
-//            if (theItem.getAmount().signum() == 0 && theItem.getOrdStatus().equals("CANCELED")) {
-//                continue;
-//            }
+            if (theItem.getAmount().signum() == 0 && theItem.getOrdStatus().equals("CANCELED")) {
+                continue;
+            }
             final String logMsg = String.format("#%s AvgPrice update of orderId=%s.", counterName, orderId);
             int MAX_ATTEMPTS = 5;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {

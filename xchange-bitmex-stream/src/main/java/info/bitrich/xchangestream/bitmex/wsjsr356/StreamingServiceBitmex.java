@@ -97,7 +97,7 @@ public class StreamingServiceBitmex {
         return Completable.create(completable -> {
 
             // Sending 'ping' just to keep the connection alive.
-            pingDisposable = Observable.interval(1, 1, TimeUnit.MINUTES)
+            pingDisposable = Observable.interval(20, 60, TimeUnit.SECONDS)
                     .subscribe(aLong -> {
 
                         int attempt = 0;
@@ -127,7 +127,6 @@ public class StreamingServiceBitmex {
 //                        if (checkReconnect) {
 //                            log.error("CHECK RECONNECT ACTION: DO CLOSE");
 //                            checkReconnect = false;
-////                            clientEndPoint.doClose();
 //                            sendPingSuccessfully = false;
 //                        }
 
