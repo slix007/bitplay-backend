@@ -47,6 +47,7 @@ public class DeltaMinService {
     private volatile BigDecimal okDeltaMinFixed = DEFAULT_VALUE;
 
     private volatile Instant lastFix;
+    private volatile int lastRateInSec = 99999;
     private volatile long fixCounter = 0;
 
     private ScheduledFuture<?> scheduledFuture;
@@ -103,6 +104,16 @@ public class DeltaMinService {
         if (scheduledFuture != null && !scheduledFuture.isDone()) {
             scheduledFuture.cancel(false);
         }
+
+        btmDeltaMinFixed = DEFAULT_VALUE;
+        okDeltaMinFixed = DEFAULT_VALUE;
+
+        if (rateInSec < lastRateInSec) {
+            btmDeltaMinInstant = DEFAULT_VALUE;
+            okDeltaMinInstant = DEFAULT_VALUE;
+        }
+        this.lastRateInSec = rateInSec;
+
         scheduledFuture = scheduler.scheduleAtFixedRate(this::fixDeltaMin,
                 rateInSec, rateInSec, TimeUnit.SECONDS);
     }
