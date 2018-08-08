@@ -55,10 +55,12 @@ public class BorderDelta implements Serializable {
         return borderDelta;
     }
 
-    public enum DeltaCalcType {DELTA,
+    public enum DeltaCalcType {
+        DELTA,
         AVG_DELTA, // hidden on UI
-        AVG_DELTA_EVERY_BORDER_COMP,
-        AVG_DELTA_EVERY_NEW_DELTA,
+        DELTA_MIN,
+        AVG_DELTA_EVERY_BORDER_COMP, // removed
+        AVG_DELTA_EVERY_NEW_DELTA, // removed
         AVG_DELTA_EVERY_BORDER_COMP_IN_PARTS,
         AVG_DELTA_EVERY_NEW_DELTA_IN_PARTS,
         AVG_DELTA_EVERY_BORDER_COMP_AT_ONCE,
@@ -69,6 +71,16 @@ public class BorderDelta implements Serializable {
             return this == DeltaCalcType.AVG_DELTA_EVERY_NEW_DELTA_IN_PARTS
                     || this == AVG_DELTA_EVERY_NEW_DELTA_AT_ONCE;
         }
+
+        public boolean isSMA() {
+            return this == DeltaCalcType.AVG_DELTA
+                    || this == AVG_DELTA_EVERY_BORDER_COMP_IN_PARTS
+                    || this == AVG_DELTA_EVERY_NEW_DELTA_IN_PARTS
+                    || this == AVG_DELTA_EVERY_BORDER_COMP_AT_ONCE
+                    || this == AVG_DELTA_EVERY_NEW_DELTA_AT_ONCE
+                    ;
+        }
+
     }
     public enum DeltaSaveType {DEVIATION, PERIODIC, ALL}
 

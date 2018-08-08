@@ -32,6 +32,8 @@ public class DeltasCalcService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     public static final BigDecimal NONE_VALUE = BigDecimal.valueOf(99999);
+    private volatile BigDecimal b_delta_sma = NONE_VALUE;
+    private volatile BigDecimal o_delta_sma = NONE_VALUE;
 
     @Autowired
     private PersistenceService persistenceService;
@@ -45,6 +47,8 @@ public class DeltasCalcService {
     private AvgDeltaAtOnce avgDeltaAtOnce;
     @Autowired
     private AvgDeltaInParts avgDeltaInParts;
+    @Autowired
+    private DeltaMinService deltaMinService;
 
     /**
      * local copy of the settings
@@ -145,20 +149,36 @@ public class DeltasCalcService {
             borderDelta = persistenceService.fetchBorders().getBorderDelta();
         }
 
+        BigDecimal theDelta = getDelta(deltaName, instantDelta);
+
+        if (borderDelta.getDeltaCalcType().isSMA()) {
+            if (theDelta == null || theDelta.equals(NONE_VALUE) ) {
+                // Not initialized (or Error?) -> Do Nothing!
+                b_delta_sma = NONE_VALUE;
+                b_delta_sma = NONE_VALUE;
+                theDelta = NONE_VALUE;
+            }
+            if (deltaName == DeltaName.B_DELTA) {
+                b_delta_sma = theDelta;
+            } else {
+                o_delta_sma = theDelta;
+            }
+        }
+
+        return theDelta;
+    }
+
+    private BigDecimal getDelta(DeltaName deltaName, BigDecimal instantDelta) {
         Instant currTime = Instant.now();
         switch (borderDelta.getDeltaCalcType()) {
             case DELTA:
                 return instantDelta;
             case AVG_DELTA: // calc every call
-                if (borderDelta.getDeltaSmaCalcOn() != null && !borderDelta.getDeltaSmaCalcOn()) {
-                    return NONE_VALUE;
-                }
                 return avgDeltaAtOnce.calcAvgDelta(deltaName, instantDelta, currTime, borderDelta, begin_delta_hist_per);
+            case DELTA_MIN:
+                return deltaMinService.getDeltaMinFixed(deltaName);
             case AVG_DELTA_EVERY_BORDER_COMP_AT_ONCE:
             case AVG_DELTA_EVERY_NEW_DELTA_AT_ONCE:
-                if (borderDelta.getDeltaSmaCalcOn() != null && !borderDelta.getDeltaSmaCalcOn()) {
-                    return NONE_VALUE;
-                }
                 return calcIfDeltaHistPeriodIsDone(avgDeltaAtOnce, deltaName, instantDelta, currTime, borderDelta);
             case AVG_DELTA_EVERY_BORDER_COMP_IN_PARTS:
             case AVG_DELTA_EVERY_NEW_DELTA_IN_PARTS:

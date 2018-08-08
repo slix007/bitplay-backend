@@ -3,7 +3,6 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.fluent.Dlt;
 import com.bitplay.persistance.repository.DeltaParamsRepository;
@@ -167,6 +166,10 @@ public class DeltaMinService {
         deltaParams.setODeltaMax(okDeltaMinFixed);
         deltaParams.setODeltaMin(okDeltaMinFixed);
         deltaParamsRepository.save(deltaParams);
+    }
+
+    public BigDecimal getDeltaMinFixed(DeltaName deltaName) {
+        return deltaName == DeltaName.B_DELTA ? btmDeltaMinFixed : okDeltaMinFixed;
     }
 
 }

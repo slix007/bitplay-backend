@@ -62,6 +62,8 @@ public class DeltaRepositoryService {
     private Observable<Dlt> allDltObservable;
     private ObservableEmitter<Dlt> dltSavedEmitter;
     private Observable<Dlt> dltSaveObservable = Observable.create(e -> this.dltSavedEmitter = e);
+    private Observable<Dlt> sharedDltSaveObservable = dltSaveObservable.share();
+
 
     @Autowired
     public DeltaRepositoryService(MongoOperations mongoOperation) {
@@ -218,7 +220,7 @@ public class DeltaRepositoryService {
     }
 
     public Observable<Dlt> getDltSaveObservable() {
-        return dltSaveObservable;
+        return sharedDltSaveObservable;
     }
 
     public Stream<Dlt> streamDeltas(DeltaName deltaName, Date from, Date to) {

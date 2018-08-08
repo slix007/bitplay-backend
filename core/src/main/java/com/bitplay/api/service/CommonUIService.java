@@ -282,8 +282,8 @@ public class CommonUIService {
         final String deltaSmaUpdateIn = deltasCalcService.getDeltaSmaUpdateIn(delta_hist_per);
         final CumParams cumParams = persistenceService.fetchCumParams();
         final GuiParams guiParams = arbitrageService.getParams();
-        final String delta1Sma = bordersRecalcService.getB_delta_sma().toPlainString();
-        final String delta2Sma = bordersRecalcService.getO_delta_sma().toPlainString();
+        final String delta1Sma = deltasCalcService.getB_delta_sma().toPlainString();
+        final String delta2Sma = deltasCalcService.getO_delta_sma().toPlainString();
         final String delta1MinInstant = deltaMinService.getBtmDeltaMinInstant().toPlainString();
         final String delta2MinInstant = deltaMinService.getOkDeltaMinInstant().toPlainString();
         final String delta1MinFixed = deltaMinService.getBtmDeltaMinFixed().toPlainString();
