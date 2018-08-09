@@ -163,7 +163,7 @@ public class DeltaMinService {
             if (okDeltaMin.compareTo(deltaParams.getODeltaMax()) > 0) {
                 deltaParams.setODeltaMax(okDeltaMin);
             }
-            if (btmDeltaMin.compareTo(deltaParams.getODeltaMin()) < 0) {
+            if (okDeltaMin.compareTo(deltaParams.getODeltaMin()) < 0) {
                 deltaParams.setODeltaMin(okDeltaMin);
             }
         }
