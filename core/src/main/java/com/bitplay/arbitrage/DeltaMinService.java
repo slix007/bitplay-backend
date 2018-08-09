@@ -151,17 +151,21 @@ public class DeltaMinService {
 
     private synchronized void storeDeltaMinParams(BigDecimal btmDeltaMin, BigDecimal okDeltaMin) {
         DeltaParams deltaParams = fetchDeltaMinParams();
-        if (btmDeltaMin.compareTo(deltaParams.getBDeltaMax()) > 0) {
-            deltaParams.setBDeltaMax(btmDeltaMin);
+        if (btmDeltaMin.compareTo(DEFAULT_VALUE) != 0) {
+            if (btmDeltaMin.compareTo(deltaParams.getBDeltaMax()) > 0) {
+                deltaParams.setBDeltaMax(btmDeltaMin);
+            }
+            if (btmDeltaMin.compareTo(deltaParams.getBDeltaMin()) < 0) {
+                deltaParams.setBDeltaMin(btmDeltaMin);
+            }
         }
-        if (btmDeltaMin.compareTo(deltaParams.getBDeltaMin()) < 0) {
-            deltaParams.setBDeltaMin(btmDeltaMin);
-        }
-        if (okDeltaMin.compareTo(deltaParams.getODeltaMax()) > 0) {
-            deltaParams.setODeltaMax(okDeltaMin);
-        }
-        if (btmDeltaMin.compareTo(deltaParams.getODeltaMin()) < 0) {
-            deltaParams.setODeltaMin(okDeltaMin);
+        if (okDeltaMin.compareTo(DEFAULT_VALUE) != 0) {
+            if (okDeltaMin.compareTo(deltaParams.getODeltaMax()) > 0) {
+                deltaParams.setODeltaMax(okDeltaMin);
+            }
+            if (btmDeltaMin.compareTo(deltaParams.getODeltaMin()) < 0) {
+                deltaParams.setODeltaMin(okDeltaMin);
+            }
         }
         deltaParamsRepository.save(deltaParams);
     }
