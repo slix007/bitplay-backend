@@ -1026,6 +1026,13 @@ public class BitmexService extends MarketService {
                 try {
                     String orderId;
                     BigDecimal thePrice;
+                    if (reconnectInProgress) {
+                        tradeLogger.warn("placeOrder waiting for reconnect.");
+                        while (reconnectInProgress) {
+                            Thread.sleep(200);
+                        }
+                    }
+
                     if (placingType == PlacingType.MAKER) {
 
                         final BigDecimal bitmexPrice = settings.getBitmexPrice();

@@ -19,7 +19,7 @@ public class SignalTimeService {
     public synchronized void addSignalTime(BigDecimal update) {
         SignalTimeParams signalTimeParams = fetchSignalTimeParams();
         if (update.compareTo(DEFAULT_VALUE) != 0) {
-            if (signalTimeParams.getSignalTimeMax(). compareTo(DEFAULT_VALUE) == 0
+            if (signalTimeParams.getSignalTimeMax().compareTo(DEFAULT_VALUE) == 0
                     || update.compareTo(signalTimeParams.getSignalTimeMax()) > 0) {
                 signalTimeParams.setSignalTimeMax(update);
             }

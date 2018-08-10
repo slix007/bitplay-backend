@@ -18,6 +18,7 @@ public class MarketStatesJson {
     String signalDelay;
     String timeToSignal;
     String arbState;
+    String bitmexReconnectState;
 
     public MarketStatesJson() {
     }

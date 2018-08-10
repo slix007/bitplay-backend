@@ -23,6 +23,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalTimeService;
 import com.bitplay.market.ArbState;
 import com.bitplay.market.MarketState;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
@@ -359,6 +360,8 @@ public class CommonUIService {
         String arbState = arbitrageService.getArbInProgress().get()
                 ? ArbState.IN_PROGRESS.toString()
                 : ArbState.READY.toString();
+        boolean reconnectInProgress = ((BitmexService) arbitrageService.getFirstMarketService()).isReconnectInProgress();
+        String btmReconnectState = reconnectInProgress ? "IN_PROGRESS" : "NONE";
 
         return new MarketStatesJson(
                 arbitrageService.getFirstMarketService().getMarketState().name(),
@@ -367,7 +370,8 @@ public class CommonUIService {
                 arbitrageService.getSecondMarketService().getTimeToReset(),
                 String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
                 arbitrageService.getTimeToSignal(),
-                arbState
+                arbState,
+                btmReconnectState
         );
     }
 
