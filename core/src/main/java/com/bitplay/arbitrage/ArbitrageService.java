@@ -44,6 +44,7 @@ import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
@@ -104,6 +105,8 @@ public class ArbitrageService {
     private AfterArbService afterArbService;
     @Autowired
     private PreliqUtilsService preliqUtilsService;
+    @Autowired
+    private SignalTimeService signalTimeService;
 
 //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
@@ -128,6 +131,7 @@ public class ArbitrageService {
     private volatile DeltaMon deltaMon = new DeltaMon();
     private final PublishSubject<DeltaChange> deltaChangesPublisher = PublishSubject.create();
     private final AtomicBoolean arbInProgress = new AtomicBoolean();
+    private volatile Instant startSignalTime = null;
 
     // Signal delay
     private volatile Long signalDelayActivateTime;
@@ -213,12 +217,17 @@ public class ArbitrageService {
 
         if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
 
+            long signalTimeSec = startSignalTime == null ? -1 : Duration.between(startSignalTime, Instant.now()).getSeconds();
+
             if (arbInProgress.getAndSet(false)) {
                 synchronized (arbInProgress) {
+                    if (signalTimeSec > 0) {
+                        signalTimeService.addSignalTime(BigDecimal.valueOf(signalTimeSec));
+                    }
 
                     // start writeLogArbitrageIsDone();
                     final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
-                    deltasLogger.info("#{} is done ---", counterNameSnap);
+                    deltasLogger.info("#{} is done. SignalTime=%s sec ---", counterNameSnap, signalTimeSec);
 
                     // use snapshot of Params
                     DealPrices dealPricesSnap;
@@ -719,6 +728,8 @@ public class ArbitrageService {
         }
 
         arbInProgress.set(true);
+        startSignalTime = Instant.now();
+
         deltasLogger.info("#{} is started ---", counterName);
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType, okexPlacingType, counterName);
@@ -829,6 +840,8 @@ public class ArbitrageService {
         }
 
         arbInProgress.set(true);
+        startSignalTime = Instant.now();
+
         deltasLogger.info("#{} is started ---", counterName);
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType, okexPlacingType, counterName);
@@ -1237,6 +1250,14 @@ public class ArbitrageService {
 
     public boolean isFirstDeltasCalculated() {
         return firstDeltasCalculated;
+    }
+
+    public String getStartSignalTimer() {
+        String res = "_";
+        if (startSignalTime != null && arbInProgress.get()) {
+            res = String.valueOf(Duration.between(startSignalTime, Instant.now()).getSeconds());
+        }
+        return String.format("Signal started %s sec ago", res);
     }
 
     private class PreliqBlocks {

@@ -40,7 +40,7 @@ public class AvgDeltaAtOnce implements AvgDelta {
                 .average();
 
         if (average.isPresent()) {
-            logger.info("average Delta1=" + average);
+            logger.debug("average Delta1=" + average);
             return average.getAsDouble() / 100;
         }
 
@@ -58,7 +58,7 @@ public class AvgDeltaAtOnce implements AvgDelta {
 //                .mapToDouble(BigDecimal::doubleValue)
                 .average();
         if (average.isPresent()) {
-            logger.info("average Delta2=" + average);
+            logger.debug("average Delta2=" + average);
             return average.getAsDouble() / 100;
         }
 

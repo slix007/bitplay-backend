@@ -15,6 +15,7 @@ public class DeltasMinMaxJson {
 
     private MinMaxData instantDelta;
     private MinMaxData deltaMin;
+    private SignalData signalData;
 
     public enum Color {
         BLACK,
@@ -23,6 +24,7 @@ public class DeltasMinMaxJson {
 
     @Getter
     public static class MinMaxData {
+
         private String btmDeltaMin;
         private String okDeltaMin;
         private String btmDeltaMax;
@@ -47,6 +49,25 @@ public class DeltasMinMaxJson {
                     ? Color.ORANGE
                     : Color.BLACK;
             this.okMaxColor = oLastRise == null || oLastRise.plusSeconds(120).isAfter(currTime)
+                    ? Color.ORANGE
+                    : Color.BLACK;
+        }
+    }
+
+    @Getter
+    public static class SignalData {
+
+        private String signalTimeMin;
+        private String signalTimeMax;
+        private String signalTimeAvg;
+        private Color maxColor;
+
+        public SignalData(String signalTimeMin, String signalTimeMax, String signalTimeAvg, Instant maxLastRise) {
+            this.signalTimeMin = signalTimeMin;
+            this.signalTimeMax = signalTimeMax;
+            this.signalTimeAvg = signalTimeAvg;
+            Instant currTime = Instant.now();
+            this.maxColor = maxLastRise == null || maxLastRise.plusSeconds(120).isAfter(currTime)
                     ? Color.ORANGE
                     : Color.BLACK;
         }

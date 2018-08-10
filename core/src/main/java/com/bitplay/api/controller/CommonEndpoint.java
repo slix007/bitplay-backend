@@ -12,6 +12,7 @@ import com.bitplay.api.domain.MarketStatesJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
+import com.bitplay.api.domain.TimersJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -225,7 +226,7 @@ public class CommonEndpoint {
         return commonUIService.getDeltaParamsJson();
     }
 
-    @RequestMapping(value = "/delta-params",
+    @RequestMapping(value = "/reset-delta-params",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -234,7 +235,7 @@ public class CommonEndpoint {
         return commonUIService.resetDeltaParamsJson();
     }
 
-    @RequestMapping(value = "/delta-params-min",
+    @RequestMapping(value = "/reset-delta-params-min",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -243,11 +244,20 @@ public class CommonEndpoint {
         return commonUIService.resetDeltaMinParamsJson();
     }
 
+    @RequestMapping(value = "/reset-signal-time-params",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public DeltasMinMaxJson resetSignalTimeParams() {
+        return commonUIService.resetSignalTimeParams();
+    }
+
     @RequestMapping(value = "/restart-monitoring-params",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltasMinMaxJson getRestartMonitoringParams() {
-        return commonUIService.restartMonitoringParamsJson();
+        return commonUIService.getRestartMonitoringParamsJson();
     }
 
     @RequestMapping(value = "/restart-monitoring-params",
@@ -258,20 +268,11 @@ public class CommonEndpoint {
     public DeltasMinMaxJson resetRestartMonitoringParams() {
         return commonUIService.resetRestartMonitoringParamsJson();
     }
-
-    @RequestMapping(value = "/market/delta-min-timer",
+    @RequestMapping(value = "/market/timers",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson deltaMinTimer() {
-        return commonUIService.getDeltaMinTimerString();
-    }
-
-
-    @RequestMapping(value = "/market/borders-timer",
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson bordersTimer() {
-        return commonUIService.getUpdateBordersTimerString();
+    public TimersJson timers() {
+        return commonUIService.getTimersJson();
     }
 
 }

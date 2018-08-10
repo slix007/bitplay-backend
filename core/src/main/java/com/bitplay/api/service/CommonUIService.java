@@ -6,19 +6,21 @@ import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltasMinMaxJson;
 import com.bitplay.api.domain.DeltasMinMaxJson.MinMaxData;
+import com.bitplay.api.domain.DeltasMinMaxJson.SignalData;
 import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketStatesJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
+import com.bitplay.api.domain.TimersJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
-import com.bitplay.arbitrage.BordersRecalcService;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.SignalTimeService;
 import com.bitplay.market.ArbState;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
@@ -29,6 +31,7 @@ import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.RestartMonitoring;
+import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.repository.RestartMonitoringRepository;
 import com.bitplay.security.TraderPermissionsService;
@@ -69,9 +72,6 @@ public class CommonUIService {
     private BordersCalcScheduler bordersCalcScheduler;
 
     @Autowired
-    private BordersRecalcService bordersRecalcService;
-
-    @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
@@ -85,6 +85,9 @@ public class CommonUIService {
 
     @Autowired
     private RestartMonitoringRepository restartMonitoringRepository;
+
+    @Autowired
+    private SignalTimeService signalTimeService;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -515,7 +518,16 @@ public class CommonUIService {
                 minParams.getODeltaMax().toPlainString(),
                 minParams.getBLastRise(),
                 minParams.getOLastRise());
-        return new DeltasMinMaxJson(instanDelta, deltaMin);
+
+        SignalTimeParams signalTimeParams = signalTimeService.fetchSignalTimeParams();
+        SignalData signalData = new SignalData(
+                signalTimeParams.getSignalTimeMin().toPlainString(),
+                signalTimeParams.getSignalTimeMax().toPlainString(),
+                signalTimeParams.getSignalTimeAvg().toPlainString(),
+                signalTimeParams.getMaxLastRise()
+        );
+
+        return new DeltasMinMaxJson(instanDelta, deltaMin, signalData);
     }
 
     public DeltasMinMaxJson resetDeltaParamsJson() {
@@ -528,13 +540,18 @@ public class CommonUIService {
         return getDeltaParamsJson();
     }
 
-    public DeltasMinMaxJson restartMonitoringParamsJson() {
+    public DeltasMinMaxJson resetSignalTimeParams() {
+        signalTimeService.resetSignalTimeParams();
+        return getDeltaParamsJson();
+    }
+
+    public DeltasMinMaxJson getRestartMonitoringParamsJson() {
         RestartMonitoring restartMonitoring = restartMonitoringRepository.fetchRestartMonitoring();
         return new DeltasMinMaxJson(new MinMaxData(
                 "",
                 "",
                 restartMonitoring.getBTimestampDelayMax().toPlainString(),
-                restartMonitoring.getOTimestampDelayMax().toPlainString()), null);
+                restartMonitoring.getOTimestampDelayMax().toPlainString()), null, null);
     }
 
     public DeltasMinMaxJson resetRestartMonitoringParamsJson() {
@@ -545,7 +562,7 @@ public class CommonUIService {
                 "",
                 "",
                 restartMonitoring.getBTimestampDelayMax().toPlainString(),
-                restartMonitoring.getOTimestampDelayMax().toPlainString()), null);
+                restartMonitoring.getOTimestampDelayMax().toPlainString()), null, null);
     }
 
     public ResultJson getDeltaMinTimerString() {
@@ -560,4 +577,16 @@ public class CommonUIService {
 
         return new ResultJson(updateBordersTimerString, String.valueOf(tableHashCode));
     }
+
+    public TimersJson getTimersJson() {
+        final String startSignalTimerStr = arbitrageService.getStartSignalTimer();
+        final String deltaMinTimerStr = deltaMinService.getTimerString();
+
+        final String bordersTimerStr = bordersCalcScheduler.getUpdateBordersTimerString();
+        final BorderParams borderParams = persistenceService.fetchBorders();
+        final int bordersTableHashCode = borderParams.getBordersV2().getBorderTableHashCode();
+
+        return new TimersJson(startSignalTimerStr, deltaMinTimerStr, bordersTimerStr, String.valueOf(bordersTableHashCode));
+    }
+
 }
