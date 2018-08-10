@@ -29,6 +29,7 @@ import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
@@ -1257,7 +1258,9 @@ public class ArbitrageService {
         if (startSignalTime != null && arbInProgress.get()) {
             res = String.valueOf(Duration.between(startSignalTime, Instant.now()).getSeconds());
         }
-        return String.format("Signal started %s sec ago", res);
+        SignalTimeParams signalTimeParams = signalTimeService.getSignalTimeParams();
+        int count = signalTimeParams.getAvgDen().intValue();
+        return String.format("Signal(%s) started %s sec ago", count, res);
     }
 
     private class PreliqBlocks {

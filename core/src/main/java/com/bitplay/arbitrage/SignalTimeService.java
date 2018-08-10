@@ -16,6 +16,12 @@ public class SignalTimeService {
 
     public static final BigDecimal DEFAULT_VALUE = BigDecimal.valueOf(9999);
 
+    private SignalTimeParams signalTimeParams;
+
+    public SignalTimeParams getSignalTimeParams() {
+        return signalTimeParams;
+    }
+
     public synchronized void addSignalTime(BigDecimal update) {
         SignalTimeParams signalTimeParams = fetchSignalTimeParams();
         if (update.compareTo(DEFAULT_VALUE) != 0) {
@@ -36,7 +42,8 @@ public class SignalTimeService {
     }
 
     public SignalTimeParams fetchSignalTimeParams() {
-        return mongoTemplate.findById(3L, SignalTimeParams.class);
+        signalTimeParams = mongoTemplate.findById(3L, SignalTimeParams.class);
+        return signalTimeParams;
     }
 
     public synchronized void resetSignalTimeParams() {
