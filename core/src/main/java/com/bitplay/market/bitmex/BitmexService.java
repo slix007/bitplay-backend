@@ -1031,6 +1031,7 @@ public class BitmexService extends MarketService {
                         while (reconnectInProgress) {
                             Thread.sleep(200);
                         }
+                        tradeLogger.warn("placeOrder end waiting for reconnect.");
                     }
 
                     if (placingType == PlacingType.MAKER) {

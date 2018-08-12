@@ -415,14 +415,13 @@ public class PosDiffService {
         }
 
         // 2. limit by maxVolCorr
+        CorrParams corrParams = persistenceService.fetchCorrParams();
         if (marketService.getName().equals(OkCoinService.NAME)) {
-            CorrParams corrParams = persistenceService.fetchCorrParams();
             BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
             if (correctAmount.compareTo(okMax) > 0) {
                 correctAmount = okMax;
             }
         } else {
-            CorrParams corrParams = persistenceService.fetchCorrParams();
             BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
             if (correctAmount.compareTo(bMax) > 0) {
                 correctAmount = bMax;
@@ -447,7 +446,15 @@ public class PosDiffService {
                         PlacingType.TAKER, signalType, 1, counterName));
             }
         } else {
-            warningLogger.warn("No correction: correctAmount={}, isAffordable=", correctAmount, isAffordable);
+            Integer maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
+            Integer maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
+            warningLogger.warn("No correction: correctAmount={}, isAffordable={}, maxBtm={}, maxOk={}, dc={}, btmPos={}, okPos={}, hedge={}",
+                    correctAmount, isAffordable,
+                    maxBtm, maxOkex, dc.toPlainString(),
+                    arbitrageService.getFirstMarketService().getPosition().toString(),
+                    arbitrageService.getSecondMarketService().getPosition().toString(),
+                    getHedgeAmount().toPlainString()
+            );
         }
     }
 
