@@ -352,13 +352,37 @@ public class BitmexService extends MarketService {
 
     @Override
     public String fetchPosition() throws Exception {
-        final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
-        final Position pUpdate = accountService.fetchPositionInfo();
+        if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+            logger.warn("WARNING: no position fetch: SYSTEM_OVERLOADED");
+            warningLogger.warn("WARNING: no position fetch: SYSTEM_OVERLOADED");
+            return BitmexUtils.positionToString(position);
+        }
+        final Position pUpdate;
+        try {
+            final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
+            pUpdate = accountService.fetchPositionInfo();
 
-        mergePosition(pUpdate);
+            mergePosition(pUpdate);
 
-        recalcAffordableContracts();
-        recalcLiqInfo();
+            recalcAffordableContracts();
+            recalcLiqInfo();
+        } catch (HttpStatusIOException e) {
+            updateXRateLimit(e);
+
+            overloadByXRateLimit();
+
+            if (e.getMessage().contains("HTTP status code was not OK: 429")) {
+                logger.warn("WARNING:" + e.getMessage());
+                warningLogger.warn("WARNING:" + e.getMessage());
+                setOverloaded(null);
+            }
+            if (e.getMessage().contains("HTTP status code was not OK: 403")) {// banned, no repeats
+                logger.warn("Banned:" + e.getMessage());
+                warningLogger.warn("Banned:" + e.getMessage());
+                setOverloaded(null);
+            }
+            throw e;
+        }
         return BitmexUtils.positionToString(pUpdate);
     }
 
@@ -440,10 +464,7 @@ public class BitmexService extends MarketService {
                                     final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
 
                                     //TODO keep an eye on 'hang open orders'
-                                    if (xRateLimit.getxRateLimit() <= 0) {
-                                        logger.info("xRateLimit=0. Stop!");
-                                        tradeLogger.info("xRateLimit=0. Stop!");
-                                        setOverloaded(null);
+                                    if (overloadByXRateLimit()) {
                                         movingErrorsOverloaded.set(0);
                                     } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
                                         // update the status
@@ -1123,10 +1144,7 @@ public class BitmexService extends MarketService {
 
                     HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "PlaceOrderError", attemptCount).invoke();
 
-                    if (xRateLimit.getxRateLimit() <= 0) {
-                        logger.info("xRateLimit=0. Stop!");
-                        tradeLogger.info("xRateLimit=0. Stop!");
-                        setOverloaded(null);
+                    if (overloadByXRateLimit()) {
                         nextMarketState = MarketState.SYSTEM_OVERLOADED;
                         tradeResponse.setErrorCode(e.getMessage());
                         break;
@@ -1729,14 +1747,7 @@ public class BitmexService extends MarketService {
                     }
 
                 } catch (HttpStatusIOException e) {
-                    final Map<String, List<String>> responseHeaders = e.getResponseHeaders();
-                    final List<String> rateLimitValues = responseHeaders.get("X-RateLimit-Remaining");
-                    if (rateLimitValues != null && rateLimitValues.size() > 0) {
-                        xRateLimit = new BitmexXRateLimit(
-                                Integer.valueOf(rateLimitValues.get(0)),
-                                new Date()
-                        );
-                    }
+                    updateXRateLimit(e);
 
                     final String rateLimitStr = String.format(" X-RateLimit-Remaining=%s ", xRateLimit.getxRateLimit());
 
@@ -1744,12 +1755,7 @@ public class BitmexService extends MarketService {
                     tradeLogger.info(String.format("%s %s updateAvgPriceError %s", rateLimitStr, logMsg, e.getMessage()));
                     warningLogger.info(String.format("%s %s updateAvgPriceError %s", rateLimitStr, logMsg, e.getMessage()));
 
-                    if (xRateLimit.getxRateLimit() <= 0) {
-                        logger.info("xRateLimit=0. Stop!");
-                        tradeLogger.info("xRateLimit=0. Stop!");
-                        warningLogger.info("xRateLimit=0. Stop!");
-                        setOverloaded(null);
-                    }
+                    overloadByXRateLimit();
 
                     if (e.getMessage().contains("HTTP status code was not OK: 429")
                             || marketState == MarketState.SYSTEM_OVERLOADED) {
@@ -1784,6 +1790,29 @@ public class BitmexService extends MarketService {
         tradeLogger.info("#{} {}", counterName, arbitrageService.getDealPrices().getDiffB().str);
     }
 
+    private void updateXRateLimit(HttpStatusIOException e) {
+        final Map<String, List<String>> responseHeaders = e.getResponseHeaders();
+        final List<String> rateLimitValues = responseHeaders.get("X-RateLimit-Remaining");
+        if (rateLimitValues != null && rateLimitValues.size() > 0) {
+            xRateLimit = new BitmexXRateLimit(
+                    Integer.valueOf(rateLimitValues.get(0)),
+                    new Date()
+            );
+        }
+    }
+
+    private boolean overloadByXRateLimit() {
+        boolean isExceeded = xRateLimit.getxRateLimit() <= 0;
+        if (isExceeded) {
+            String msg = String.format("xRateLimit=%s(updated=%s). Stop!", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
+            logger.info(msg);
+            tradeLogger.info(msg);
+            warningLogger.info(msg);
+            setOverloaded(null);
+        }
+        return isExceeded;
+    }
+
     private class HttpStatusIOExceptionHandler {
         private MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
 
@@ -1807,14 +1836,7 @@ public class BitmexService extends MarketService {
         public HttpStatusIOExceptionHandler invoke() {
             try {
 
-                final Map<String, List<String>> responseHeaders = e.getResponseHeaders();
-                final List<String> rateLimitValues = responseHeaders.get("X-RateLimit-Remaining");
-                if (rateLimitValues != null && rateLimitValues.size() > 0) {
-                    xRateLimit = new BitmexXRateLimit(
-                            Integer.valueOf(rateLimitValues.get(0)),
-                            new Date()
-                    );
-                }
+                updateXRateLimit(e);
 
                 final String rateLimitStr = String.format(" X-RateLimit-Remaining=%s ", xRateLimit.getxRateLimit());
 
