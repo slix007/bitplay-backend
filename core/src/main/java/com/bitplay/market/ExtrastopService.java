@@ -52,6 +52,7 @@ public class ExtrastopService {
     public void checkOrderBooks() {
         try {
             if (bitmexService.isReconnectInProgress()) {
+                logger.warn("skip checkOrderBooks: bitmex reconnect IN_PROGRESS");
                 return;
             }
             Settings settings = settingsRepositoryService.getSettings();
