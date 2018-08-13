@@ -228,7 +228,7 @@ public class ArbitrageService {
 
                     // start writeLogArbitrageIsDone();
                     final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
-                    deltasLogger.info("#{} is done. SignalTime=%s sec ---", counterNameSnap, signalTimeSec);
+                    deltasLogger.info("#{} is done. SignalTime={} sec ---", counterNameSnap, signalTimeSec);
 
                     // use snapshot of Params
                     DealPrices dealPricesSnap;

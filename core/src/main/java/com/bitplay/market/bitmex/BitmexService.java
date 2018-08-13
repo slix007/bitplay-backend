@@ -1685,7 +1685,11 @@ public class BitmexService extends MarketService {
         final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
         for (String orderId : itemMap.keySet()) {
             AvgPriceItem theItem = itemMap.get(orderId);
-            if (theItem.getAmount().signum() == 0 && theItem.getOrdStatus().equals("CANCELED")) {
+            if (theItem == null || theItem.getAmount() == null || theItem.getOrdStatus() == null
+                    || (theItem.getAmount().signum() == 0 && theItem.getOrdStatus().equals("CANCELED"))) {
+                String msg = String.format("%s WARNING: no updateAvgPrice for orderId=%s. theItem=%s", counterName, orderId, theItem);
+                tradeLogger.info(msg);
+                logger.warn(msg);
                 continue;
             }
             final String logMsg = String.format("#%s AvgPrice update of orderId=%s.", counterName, orderId);
