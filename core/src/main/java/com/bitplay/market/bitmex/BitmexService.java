@@ -1883,7 +1883,7 @@ public class BitmexService extends MarketService {
         final String counterName = getCounterName();
 
         int attemptCount = 0;
-        while (attemptCount < MAX_ATTEMPTS_CANCEL) {
+        while (attemptCount < MAX_ATTEMPTS_CANCEL && getMarketState() != MarketState.SYSTEM_OVERLOADED) {
             attemptCount++;
             try {
                 if (attemptCount > 1) {
@@ -1899,6 +1899,12 @@ public class BitmexService extends MarketService {
 
                 return res;
 
+            } catch (HttpStatusIOException e) {
+                updateXRateLimit(e);
+                overloadByXRateLimit();
+
+                logger.error("#{}/{} error cancel order id={}", counterName, attemptCount, orderId, e);
+                getTradeLogger().error("#{}/{} error cancel order id={}: {}", counterName, attemptCount, orderId, e.toString());
             } catch (Exception e) {
                 logger.error("#{}/{} error cancel order id={}", counterName, attemptCount, orderId, e);
                 getTradeLogger().error("#{}/{} error cancel order id={}: {}", counterName, attemptCount, orderId, e.toString());
@@ -1912,7 +1918,7 @@ public class BitmexService extends MarketService {
         final String counterName = getCounterName();
 
         int attemptCount = 0;
-        while (attemptCount < MAX_ATTEMPTS_CANCEL) {
+        while (attemptCount < MAX_ATTEMPTS_CANCEL && getMarketState() != MarketState.SYSTEM_OVERLOADED) {
             attemptCount++;
             try {
                 if (attemptCount > 1) {
@@ -1930,6 +1936,12 @@ public class BitmexService extends MarketService {
 
                 return true;
 
+            } catch (HttpStatusIOException e) {
+                updateXRateLimit(e);
+                overloadByXRateLimit();
+
+                logger.error("#{}/{} error cancel orders", counterName, attemptCount, e);
+                getTradeLogger().error("#{}/{} error cancel orders: {}", counterName, attemptCount, e.toString());
             } catch (Exception e) {
                 logger.error("#{}/{} error cancel orders", counterName, attemptCount, e);
                 getTradeLogger().error("#{}/{} error cancel orders: {}", counterName, attemptCount, e.toString());
