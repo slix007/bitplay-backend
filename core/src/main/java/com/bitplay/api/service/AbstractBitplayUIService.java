@@ -140,7 +140,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final BigDecimal wallet = accountInfoContracts.getWallet();
         final BigDecimal margin = accountInfoContracts.getMargin();
         final BigDecimal upl = accountInfoContracts.getUpl();
-        final BigDecimal quAvg = getBusinessService().getArbitrageService().calcQuAvg();
+        final BigDecimal quAvg = getBusinessService().getArbitrageService().getUsdQuote();
         final BigDecimal liqPrice = getBusinessService().getPosition().getLiquidationPrice();
         final BigDecimal eMark = accountInfoContracts.geteMark();
         final BigDecimal eLast = accountInfoContracts.geteLast();
@@ -187,7 +187,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final BigDecimal wallet = accountInfoContracts.getWallet();
         final BigDecimal margin = accountInfoContracts.getMargin();
         final BigDecimal upl = accountInfoContracts.getUpl();
-        final BigDecimal quAvg = getBusinessService().getArbitrageService().calcQuAvg();
+        final BigDecimal quAvg = getBusinessService().getArbitrageService().getUsdQuote();
         final BigDecimal liqPrice = position.getLiquidationPrice();
         final BigDecimal eMark = accountInfoContracts.geteMark();
         final BigDecimal eLast = accountInfoContracts.geteLast();

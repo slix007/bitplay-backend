@@ -35,6 +35,7 @@ import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.persistance.domain.settings.UsdQuoteType;
 import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -936,21 +937,22 @@ public class ArbitrageService {
             final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
 
-            final BigDecimal quAvg = Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
+            final BigDecimal usdQuote = getUsdQuote();
 
-            final BigDecimal sumEBestUsdCurr = sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
             final BigDecimal btmQu = Utils.calcQuAvg(firstMarketService.getOrderBook());
             sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-            sumBalString = String.format("s_bal=w%s_%s, s_e_%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
-                    sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+            sumBalString = String.format("s_bal=w%s_%s, s_e_%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, usd_qu%s",
+                    sumW.toPlainString(), sumW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    sumE.toPlainString(), sumE.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                     sumEBest.toPlainString(), sumEBestUsdCurr,
-                    sumEAvg.toPlainString(), sumEAvg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumM.toPlainString(), sumM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                    sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
+                    sumEAvg.toPlainString(), sumEAvg.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    sumUpl.toPlainString(), sumUpl.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    sumM.toPlainString(), sumM.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    sumA.toPlainString(), sumA.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                    usdQuote.toPlainString());
 
             if (!traderPermissionsService.isEBestMinOk()) {
                 Integer eBestMin = config.getEBestMin();
@@ -978,25 +980,26 @@ public class ArbitrageService {
                 final BigDecimal bLv = firstMarketService.getPosition().getLeverage();
                 final BigDecimal bAL = firstMarketService.getAffordable().getForLong();
                 final BigDecimal bAS = firstMarketService.getAffordable().getForShort();
-                final BigDecimal quAvg = Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
+                final BigDecimal usdQuote = getUsdQuote();
                 final OrderBook bOrderBook = firstMarketService.getOrderBook();
                 final BigDecimal bBestAsk = Utils.getBestAsks(bOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal bBestBid = Utils.getBestBids(bOrderBook, 1).get(0).getLimitPrice();
-                deltasLogger.info(String.format("#%s b_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s",
+                deltasLogger.info(String.format("#%s b_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
-                        bW.toPlainString(), bW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        bEmark.toPlainString(), bEmark.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        bEbest.toPlainString(), bEbest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        bEavg.toPlainString(), bEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        bU.toPlainString(), bU.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        bM.toPlainString(), bM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        bA.toPlainString(), bA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bW.toPlainString(), bW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bEmark.toPlainString(), bEmark.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bEbest.toPlainString(), bEbest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bEavg.toPlainString(), bEavg.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bU.toPlainString(), bU.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bM.toPlainString(), bM.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bA.toPlainString(), bA.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         Utils.withSign(bP),
                         bLv.toPlainString(),
                         Utils.withSign(bAL),
                         Utils.withSign(bAS),
                         bBestAsk,
-                        bBestBid
+                        bBestBid,
+                        usdQuote.toPlainString()
                 ));
 
                 final BigDecimal oW = secondAccount.getWallet();
@@ -1014,21 +1017,22 @@ public class ArbitrageService {
                 final OrderBook oOrderBook = secondMarketService.getOrderBook();
                 final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
-                deltasLogger.info(String.format("#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s",
+                deltasLogger.info(String.format("#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
-                        oW.toPlainString(), oW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        oElast.toPlainString(), oElast.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        oEbest.toPlainString(), oEbest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        oEavg.toPlainString(), oEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        oU.toPlainString(), oU.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        oM.toPlainString(), oM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        oA.toPlainString(), oA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oW.toPlainString(), oW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oElast.toPlainString(), oElast.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oEbest.toPlainString(), oEbest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oEavg.toPlainString(), oEavg.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oU.toPlainString(), oU.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oM.toPlainString(), oM.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oA.toPlainString(), oA.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         oPL, oPS,
                         oLv.toPlainString(),
                         Utils.withSign(oAL),
                         Utils.withSign(oAS),
                         oBestAsk,
-                        oBestBid
+                        oBestBid,
+                        usdQuote.toPlainString()
                 ));
 
                 final BigDecimal coldStorageBtc = config.getColdStorage();
@@ -1040,20 +1044,21 @@ public class ArbitrageService {
                 final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
 
-                final BigDecimal sumEBestUsdCurr = sumEBest.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
                 final BigDecimal btmQu = Utils.calcQuAvg(firstMarketService.getOrderBook());
                 sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-                final String sBalStr = String.format("#%s s_bal=w%s_%s, s_e%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s",
+                final String sBalStr = String.format("#%s s_bal=w%s_%s, s_e%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, usd_qu%s",
                         counterName,
-                        sumW.toPlainString(), sumW.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        sumE.toPlainString(), sumE.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumW.toPlainString(), sumW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumE.toPlainString(), sumE.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         sumEBest.toPlainString(), sumEBestUsdCurr,
-                        sumEavg.toPlainString(), sumEavg.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        sumUpl.toPlainString(), sumUpl.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        sumM.toPlainString(), sumM.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        sumA.toPlainString(), sumA.multiply(quAvg).setScale(2, BigDecimal.ROUND_HALF_UP));
+                        sumEavg.toPlainString(), sumEavg.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumUpl.toPlainString(), sumUpl.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumM.toPlainString(), sumM.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        sumA.toPlainString(), sumA.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        usdQuote.toPlainString());
                 deltasLogger.info(sBalStr);
 
                 final String bDQLMin;
@@ -1077,6 +1082,34 @@ public class ArbitrageService {
             deltasLogger.info("Error on printSumBal");
             logger.error("Error on printSumBal", e);
         }
+    }
+
+    public BigDecimal getUsdQuote() {
+        UsdQuoteType usdQuoteType = persistenceService.getSettingsRepositoryService().getSettings().getUsdQuoteType();
+        BigDecimal usdQuote;
+        switch (usdQuoteType) {
+            case BITMEX:
+                usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBook());
+                break;
+            case OKEX:
+                usdQuote = Utils.calcQuAvg(secondMarketService.getOrderBook());
+                break;
+            case INDEX_BITMEX:
+                usdQuote = firstMarketService.getContractIndex() != null && firstMarketService.getContractIndex().getIndexPrice() != null
+                        ? firstMarketService.getContractIndex().getIndexPrice()
+                        : BigDecimal.ZERO;
+                break;
+            case INDEX_OKEX:
+                usdQuote = secondMarketService.getContractIndex() != null && secondMarketService.getContractIndex().getIndexPrice() != null
+                        ? secondMarketService.getContractIndex().getIndexPrice()
+                        : BigDecimal.ZERO;
+                break;
+            case AVG:
+            default:
+                usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
+                break;
+        }
+        return usdQuote;
     }
 
     public String getPosDiffString() {
@@ -1147,10 +1180,6 @@ public class ArbitrageService {
         }
 
         return affordable;
-    }
-
-    public BigDecimal calcQuAvg() {
-        return Utils.calcQuAvg(firstMarketService.getOrderBook(), secondMarketService.getOrderBook());
     }
 
     public BigDecimal getDelta1() {
@@ -1259,7 +1288,7 @@ public class ArbitrageService {
             res = String.valueOf(Duration.between(startSignalTime, Instant.now()).getSeconds());
         }
         SignalTimeParams signalTimeParams = signalTimeService.getSignalTimeParams();
-        int count = signalTimeParams.getAvgDen().intValue();
+        int count = signalTimeParams != null ? signalTimeParams.getAvgDen().intValue() : 0;
         return String.format("Signal(%s) started %s sec ago", count, res);
     }
 
