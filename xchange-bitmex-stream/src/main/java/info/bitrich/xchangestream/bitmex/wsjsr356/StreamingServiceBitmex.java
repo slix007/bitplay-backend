@@ -38,10 +38,11 @@ public class StreamingServiceBitmex {
         return Completable.create(completable -> {
             try {
                 //TODO how to utilize WS objects on serveral 'connect' calls?
+                log.info("connecting to " + apiUrl);
                 clientEndPoint = new WSClientEndpoint(new URI(apiUrl));
 
                 msgHandler = new WSMessageHandler();
-                clientEndPoint.addMessageHandler(msgHandler);
+                clientEndPoint.setMessageHandler(msgHandler);
 
                 completable.onComplete();
 
@@ -94,7 +95,9 @@ public class StreamingServiceBitmex {
     }
 
     public Completable onDisconnect() {
-        return Completable.create(completable -> {
+        return Completable.create(onDisconnectEmitter -> {
+
+            msgHandler.setOnDisconnectEmitter(onDisconnectEmitter);
 
             // Sending 'ping' just to keep the connection alive.
             pingDisposable = Observable.interval(20, 60, TimeUnit.SECONDS)
@@ -115,7 +118,7 @@ public class StreamingServiceBitmex {
 
                                 if (!clientEndPoint.isOpen()) {
                                     log.error("Ping failed: clientEndPoint is not open");
-                                    completable.onComplete();
+                                    onDisconnectEmitter.onComplete();
                                 } else {
                                     log.debug("Send: ping");
                                     clientEndPoint.sendMessage("ping");
@@ -131,15 +134,14 @@ public class StreamingServiceBitmex {
 //                        }
 
                         if (!sendPingSuccessfully) {
-                            completable.onError(new Exception("Ping failed. Timeout on waiting 'pong'."));
-                            log.error("Ping failed");
+                            log.error("Ping failed. Timeout on waiting 'pong'.");
+                            onDisconnectEmitter.onComplete();
                         }
 
                     }, throwable -> {
                         log.error("Ping failed exception", throwable);
-                        completable.onError(new Exception("Ping failed exception", throwable));
-                        completable.onComplete();
-                    });
+                        onDisconnectEmitter.onComplete();
+                    }, () -> log.info("pingDisposable onComplete()"));
         });
     }
 

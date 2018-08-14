@@ -7,6 +7,7 @@ import com.bitplay.persistance.repository.TimeCompareParamsRepository;
 import com.bitplay.persistance.repository.TimeCompareRangeRepository;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.SocketTimeoutException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Date;
@@ -69,6 +70,11 @@ public class BitmexTimeService {
         long start = Instant.now().getEpochSecond();
         try {
             bitmexInfoDto = marketDataService.getBitmexInfoDto();
+        } catch (SocketTimeoutException e) {
+            long end = Instant.now().getEpochSecond();
+            final String time = String.valueOf(end - start);
+            logger.error("can not get BitmexInfo. Timeout=" + time + ". " + e.getMessage());
+            return;
         } catch (IOException e) {
             long end = Instant.now().getEpochSecond();
             final String time = String.valueOf(end - start);

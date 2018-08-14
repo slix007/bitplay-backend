@@ -3,18 +3,14 @@ package info.bitrich.xchangestream.bitmex.wsjsr356;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
-
 import info.bitrich.xchangestream.service.exception.NotAuthorizedException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.reactivex.CompletableEmitter;
+import io.reactivex.ObservableEmitter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import io.reactivex.CompletableEmitter;
-import io.reactivex.ObservableEmitter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Sergey Shurmin on 5/16/17.
@@ -27,12 +23,18 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     private boolean isAuthenticated = false;
     private CompletableEmitter authCompleteEmitter;
     private CompletableEmitter pingCompleteEmitter;
+    private CompletableEmitter onDisconnectEmitter;
 
     @Override
     public void handleMessage(String message) {
 
         parseAndProcessJsonMessage(message);
 
+    }
+
+    @Override
+    public void onCloseTrigger() {
+        onDisconnectEmitter.onComplete();
     }
 
     public synchronized Map<String, ObservableEmitter<JsonNode>> getChannels() {
@@ -74,7 +76,7 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     }
 
     private void handleJsonMessage(JsonNode jsonMessage) {
-        if (authCompleteEmitter != null && !authCompleteEmitter.isDisposed()) {
+        if (!isAuthenticated && authCompleteEmitter != null && !authCompleteEmitter.isDisposed()) {
             checkIfAuthenticationResponse(jsonMessage);
         }
 
@@ -136,4 +138,9 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     public void setPingCompleteEmitter(CompletableEmitter pingCompleteEmitter) {
         this.pingCompleteEmitter = pingCompleteEmitter;
     }
+
+    public void setOnDisconnectEmitter(CompletableEmitter onDisconnectEmitter) {
+        this.onDisconnectEmitter = onDisconnectEmitter;
+    }
+
 }

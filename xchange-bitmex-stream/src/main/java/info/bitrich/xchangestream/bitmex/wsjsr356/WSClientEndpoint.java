@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URI;
 import javax.websocket.ClientEndpoint;
 import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.ContainerProvider;
 import javax.websocket.OnClose;
 import javax.websocket.OnMessage;
@@ -27,6 +28,8 @@ public class WSClientEndpoint {
     public WSClientEndpoint(final URI endpointURI) {
         try {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+            container.setAsyncSendTimeout(15000);
+            log.info("DefaultAsyncSendTimeout=" + container.getDefaultAsyncSendTimeout());
             container.connectToServer(this, endpointURI);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -37,36 +40,49 @@ public class WSClientEndpoint {
     public void onOpen(final Session userSession) {
         this.userSession = userSession;
         this.open = true;
-        log.info("onOpen:" + userSession);
+        log.info("onOpen userSession=" + userSession.getId());
+        /// check onClose
+//        Observable.timer(20, TimeUnit.SECONDS).subscribe(aLong -> {
+//            userSession.close(new CloseReason(CloseCodes.NO_STATUS_CODE, "TEST close"));
+//        });
     }
 
     @OnClose
     public void onClose(final Session userSession, final CloseReason reason) {
-        this.userSession = null;
+//        this.userSession = null;
         this.open = false;
-        log.info("onClose {} : {}", userSession, reason);
+        if (userSession != null) {
+            log.info("onClose userSession={}, openSessions={}, URI={} : {}", userSession.getId(), userSession.getOpenSessions(),
+                    userSession.getRequestURI(),
+                    reason);
+        } else {
+            log.info("onClose userSession=null: {}", reason);
+        }
+        messageHandler.onCloseTrigger();
     }
     public void doClose() throws IOException {
-        log.info("doClose:" + userSession);
+        log.info("doClose userSession=" + (userSession == null ? "null" : userSession.getId()));
         if (this.open && userSession != null) {
-            this.userSession.close();
-            this.userSession = null;
+            this.userSession.close(new CloseReason(CloseCodes.NO_STATUS_CODE, "Manual doClose"));
+//            this.userSession = null;
         }
         if (this.open) {
             this.open = false;
         }
     }
 
-
     @OnMessage(maxMessageSize = 8192 * 1000)
     public void onMessage(final String message) {
+        if (userSession == null || !userSession.isOpen()) {
+            return;
+        }
+
         if (messageHandler != null) {
             messageHandler.handleMessage(message);
         }
-        log.debug("onMessage:" + userSession + ":" + message);
     }
 
-    public void addMessageHandler(final MessageHandler msgHandler) {
+    public void setMessageHandler(final MessageHandler msgHandler) {
         messageHandler = msgHandler;
     }
 
@@ -84,6 +100,8 @@ public class WSClientEndpoint {
 
     public interface MessageHandler {
         void handleMessage(String message);
+
+        void onCloseTrigger();
     }
 
     public MessageHandler getMessageHandler() {

@@ -637,19 +637,22 @@ public class BitmexService extends MarketService {
         logger.info("bitmex connecting public");
         exchange.connect()
                 .doOnError(throwable -> logger.error("doOnError", throwable))
-                .doOnDispose(() -> logger.info("bitmex connect doOnDispose"))
-                .retryWhen(e -> e.delay(5, TimeUnit.SECONDS))
+//                .retryWhen(e -> e.delay(5, TimeUnit.SECONDS))
+//                .retryWhen(e -> e.flatMap(throwable -> Flowable.timer(5, TimeUnit.SECONDS)))
+                .retry()
+                .doOnComplete(() -> logger.info("bitmex connecting public completed"))
                 .blockingAwait();
 
         logger.info("bitmex authenticate");
         exchange.authenticate()
                 .doOnError(throwable -> logger.error("doOnError authenticate", throwable))
-                .doOnDispose(() -> logger.info("bitmex authenticate doOnDispose"))
                 .retryWhen(e -> e.delay(5, TimeUnit.SECONDS))
+                .doOnComplete(() -> logger.info("bitmex authenticate completed"))
                 .blockingAwait();
 
         // Retry on disconnect.
         onDisconnectSubscription = exchange.onDisconnect()
+                .onErrorComplete()
                 .subscribe(() -> {
                             logger.warn("onClientDisconnect BitmexService");
                             requestReconnect(true);
@@ -1082,7 +1085,7 @@ public class BitmexService extends MarketService {
                             if (cancelledCount == 5) {
                                 tradeLogger.info("CANCELED more 4 in a row");
                             }
-                            if (cancelledCount == 20) {
+                            if (cancelledCount % 20 == 0) {
                                 tradeLogger.info("CANCELED more 20 in a row. Do reconnect.");
                                 requestReconnect(true);
                             }
@@ -1287,8 +1290,8 @@ public class BitmexService extends MarketService {
                     if (cancelledCount == 5) {
                         tradeLogger.info("CANCELED more 4 in a row");
                     }
-                    if (cancelledCount == 50) {
-                        tradeLogger.info("CANCELED more 50 in a row. Do reconnect.");
+                    if (cancelledCount % 20 == 0) {
+                        tradeLogger.info("CANCELED more 20 in a row. Do reconnect.");
                         requestReconnect(true);
                     }
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
@@ -1677,7 +1680,7 @@ public class BitmexService extends MarketService {
     public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
         final MarketState marketState = getMarketState();
         if (marketState.isStopped()) {
-            tradeLogger.info(String.format("%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState));
+            tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState));
             return;
         }
         final int LONG_SLEEP = 10000;
@@ -1687,7 +1690,7 @@ public class BitmexService extends MarketService {
             AvgPriceItem theItem = itemMap.get(orderId);
             if (theItem == null || theItem.getAmount() == null || theItem.getOrdStatus() == null
                     || (theItem.getAmount().signum() == 0 && theItem.getOrdStatus().equals("CANCELED"))) {
-                String msg = String.format("%s WARNING: no updateAvgPrice for orderId=%s. theItem=%s", counterName, orderId, theItem);
+                String msg = String.format("#%s WARNING: no updateAvgPrice for orderId=%s. theItem=%s", counterName, orderId, theItem);
                 tradeLogger.info(msg);
                 logger.warn(msg);
                 continue;
@@ -1698,7 +1701,7 @@ public class BitmexService extends MarketService {
                 int sleepIfFails = SHORT_SLEEP;
                 try {
                     if (marketState.isStopped()) {
-                        tradeLogger.info(String.format("%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState));
+                        tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState));
                         return;
                     }
                     final Collection<Execution> orderParts = ((BitmexTradeService) getTradeService()).getOrderParts(orderId);
@@ -1755,9 +1758,9 @@ public class BitmexService extends MarketService {
 
                     final String rateLimitStr = String.format(" X-RateLimit-Remaining=%s ", xRateLimit.getxRateLimit());
 
-                    logger.info(String.format("%s %s updateAvgPriceError.", rateLimitStr, logMsg), e);
-                    tradeLogger.info(String.format("%s %s updateAvgPriceError %s", rateLimitStr, logMsg, e.getMessage()));
-                    warningLogger.info(String.format("%s %s updateAvgPriceError %s", rateLimitStr, logMsg, e.getMessage()));
+                    logger.info(String.format("%s %s updateAvgPriceError.", logMsg, rateLimitStr), e);
+                    tradeLogger.info(String.format("%s %s updateAvgPriceError %s", logMsg, rateLimitStr, e.getMessage()));
+                    warningLogger.info(String.format("%s %s updateAvgPriceError %s", logMsg, rateLimitStr, e.getMessage()));
 
                     overloadByXRateLimit();
 
