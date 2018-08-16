@@ -16,6 +16,7 @@ import com.bitplay.api.domain.TimersJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.market.MarketService;
 import com.bitplay.security.TraderPermissionsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -55,9 +56,13 @@ public class CommonEndpoint {
 
     @RequestMapping(value = "/market/list", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public MarketList getMarkets() {
-        final String first = twoMarketStarter.getFirstMarketService().getName();
-        final String second = twoMarketStarter.getSecondMarketService().getName();
-        return new MarketList(first, second);
+        final MarketService first = twoMarketStarter.getFirstMarketService();
+        final String firstName = first.getName();
+        final String firstFuturesContractName = first.getFuturesContractName();
+        final MarketService second = twoMarketStarter.getSecondMarketService();
+        final String secondName = second.getName();
+        final String secondFuturesContract = second.getFuturesContractName();
+        return new MarketList(firstName, secondName, firstFuturesContractName, secondFuturesContract);
     }
 
     @RequestMapping(value = "/market/trade-log/poloniex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

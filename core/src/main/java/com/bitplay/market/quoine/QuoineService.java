@@ -13,6 +13,7 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 
+import com.bitplay.persistance.domain.settings.ContractType;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.UserTrades;
@@ -66,7 +67,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public void initializeMarket(String key, String secret) {
+    public void initializeMarket(String key, String secret, ContractType contractType) {
 
     }
 

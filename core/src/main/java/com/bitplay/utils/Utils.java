@@ -2,7 +2,9 @@ package com.bitplay.utils;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 
+import info.bitrich.xchangestream.okex.dto.Tool;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
@@ -88,9 +90,9 @@ public class Utils {
         return new BestQuotes(ask1_o, ask1_p, bid1_o, bid1_p);
     }
 
-    public static BigDecimal createPriceForTaker(OrderBook orderBook, Order.OrderType orderType) {
+    public static BigDecimal createPriceForTaker(OrderBook orderBook, OrderType orderType, Tool baseTool) {
         BigDecimal thePrice = BigDecimal.ZERO;
-        BigDecimal extraPrice = BigDecimal.valueOf(50);
+        BigDecimal extraPrice = baseTool == Tool.BTC ? BigDecimal.valueOf(50) : BigDecimal.valueOf(5);
 
         if (orderType == Order.OrderType.ASK
                 || orderType == Order.OrderType.EXIT_BID) {

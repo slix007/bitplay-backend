@@ -12,6 +12,7 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.utils.Utils;
 
 import info.bitrich.xchangestream.core.StreamingExchange;
@@ -158,7 +159,7 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    public void initializeMarket(String key, String secret) {
+    public void initializeMarket(String key, String secret, ContractType contractType) {
         exchange = initExchange(key, secret);
 //        fetchOrderBook();
         initWebSocketConnection();

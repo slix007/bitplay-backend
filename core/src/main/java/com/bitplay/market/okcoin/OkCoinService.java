@@ -24,6 +24,8 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.settings.ArbScheme;
+import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
@@ -54,7 +56,6 @@ import javax.validation.constraints.NotNull;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
-import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -64,7 +65,7 @@ import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
-import org.knowm.xchange.okcoin.FuturesContract;
+import org.knowm.xchange.okcoin.OkCoinAdapters;
 import org.knowm.xchange.okcoin.OkCoinUtils;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPositionResult;
@@ -93,7 +94,6 @@ public class OkCoinService extends MarketService {
     private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
     private static final Logger ordersLogger = LoggerFactory.getLogger("OKCOIN_ORDERS_LOG");
 
-    private final static CurrencyPair CURRENCY_PAIR_BTC_USD = new CurrencyPair("BTC", "USD");
     public final static String NAME = "okcoin";
     ArbitrageService arbitrageService;
 
@@ -134,6 +134,7 @@ public class OkCoinService extends MarketService {
     private Disposable futureIndexSubscription;
     private Disposable tickerSubscription;
     private Observable<OrderBook> orderBookObservable;
+    private OkexContractType okexContractType = OkexContractType.BTC_ThisWeek;
 
     @Override
     public PosDiffService getPosDiffService() {
@@ -171,13 +172,22 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
+    public String getFuturesContractName() {
+        return okexContractType.toString();
+    }
+
+    @Override
     protected Exchange getExchange() {
         return exchange;
     }
 
     @Override
-    public void initializeMarket(String key, String secret) {
+    public void initializeMarket(String key, String secret, ContractType contractType) {
         this.usdInContract = 100;
+        okexContractType = (OkexContractType) contractType;
+        logger.info("Starting okex with " + okexContractType);
+        tradeLogger.info("Starting okex with " + okexContractType);
+
         exchange = initExchange(key, secret);
         loadLiqParams();
 
@@ -223,9 +233,8 @@ public class OkCoinService extends MarketService {
 
     private void createOrderBookObservable() {
         orderBookObservable = ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
-                .getOrderBook(CurrencyPair.BTC_USD,
-                        OkExStreamingMarketDataService.Tool.BTC,
-                        FuturesContract.ThisWeek,
+                .getOrderBook(okexContractType.getCurrencyPair(),
+                        okexContractType.getFuturesContract(),
                         OkExStreamingMarketDataService.Depth.DEPTH_20)
                 .doOnDispose(() -> logger.info("okcoin subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("okcoin subscription doOnTerminate"))
@@ -241,7 +250,7 @@ public class OkCoinService extends MarketService {
 
         spec.setExchangeSpecificParametersItem("Use_Intl", true);
         spec.setExchangeSpecificParametersItem("Use_Futures", true);
-        spec.setExchangeSpecificParametersItem("Futures_Contract", FuturesContract.ThisWeek);
+        spec.setExchangeSpecificParametersItem("Futures_Contract", okexContractType.getFuturesContract());
         spec.setExchangeSpecificParametersItem("Futures_Leverage", "20");
 
         return (OkExStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
@@ -332,7 +341,10 @@ public class OkCoinService extends MarketService {
 
     @Override
     public String fetchPosition() throws Exception {
-        final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService()).getFuturesPosition("btc_usd", FuturesContract.ThisWeek);
+        final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService())
+                .getFuturesPosition(
+                        OkCoinAdapters.adaptSymbol(okexContractType.getCurrencyPair()), //"btc_usd",
+                        okexContractType.getFuturesContract());
         mergePosition(positionResult, null);
 
         recalcAffordableContracts();
@@ -391,7 +403,7 @@ public class OkCoinService extends MarketService {
 
     private Disposable startAccountInfoSubscription() {
         return exchange.getStreamingAccountInfoService()
-                .accountInfoObservable()
+                .accountInfoObservable(okexContractType.getBaseTool())
                 .doOnError(throwable -> {
                     if (throwable.getMessage().contains("Request timeout,Please try again later")) {
                         logger.error("Error on AccountInfo.Websocket observing: " + throwable);
@@ -425,8 +437,9 @@ public class OkCoinService extends MarketService {
     }
 
     private Disposable startPrivateDataListener() {
+        String baseTool = okexContractType.getCurrencyPair().base.getCurrencyCode().toLowerCase();
         return exchange.getStreamingPrivateDataService()
-                .getAllPrivateDataObservable()
+                .getAllPrivateDataObservable(baseTool)
                 .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
@@ -470,7 +483,7 @@ public class OkCoinService extends MarketService {
 
     private Disposable startFutureIndexListener() {
         return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
-                .getFutureIndex()
+                .getFutureIndex(okexContractType.getCurrencyPair())
                 .doOnError(throwable -> logger.error("Error on FutureIndex observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
@@ -485,7 +498,7 @@ public class OkCoinService extends MarketService {
 
     private Disposable startTickerListener() {
         return exchange.getStreamingMarketDataService()
-                .getTicker(CURRENCY_PAIR_BTC_USD)
+                .getTicker(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract())
                 .doOnError(throwable -> logger.error("Error on Ticker observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
@@ -532,9 +545,9 @@ public class OkCoinService extends MarketService {
 //            final String orderId = tradeService.placeMarketOrder(marketOrder);
 
             // Option 2: FAKE LIMIT ORDER
-            BigDecimal thePrice = Utils.createPriceForTaker(getOrderBook(), orderType);
+            BigDecimal thePrice = Utils.createPriceForTaker(getOrderBook(), orderType, okexContractType.getBaseTool());
             getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
-            final LimitOrder limitOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
+            final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), "123", new Date(), thePrice);
             String orderId = tradeService.placeLimitOrder(limitOrder);
 
             final String counterName = getCounterName();
@@ -874,11 +887,12 @@ public class OkCoinService extends MarketService {
                 tradeResponse.setErrorCode("The new price is 0 ");
             } else {
 
-                final LimitOrder limitOrder = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, "123", new Date(), thePrice);
+                final LimitOrder limitOrder = new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), "123", new Date(), thePrice);
                 String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
                 tradeResponse.setOrderId(orderId);
 
-                final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, CURRENCY_PAIR_BTC_USD, orderId, new Date(), thePrice);
+                final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
+                        thePrice);
                 tradeResponse.setLimitOrder(limitOrderWithId);
                 final FplayOrder fplayOrder = new FplayOrder(counterName, limitOrderWithId, bestQuotes, placingSubType, signalType);
                 orderRepositoryService.save(fplayOrder);
@@ -1001,7 +1015,7 @@ public class OkCoinService extends MarketService {
         try {
             tradeHistory = exchange.getTradeService()
                     .getTradeHistory(new OkCoinTradeService.OkCoinTradeHistoryParams(
-                            10, 1, CURRENCY_PAIR_BTC_USD));
+                            10, 1, okexContractType.getCurrencyPair()));
         } catch (Exception e) {
             logger.info("Exception on fetchMyTradeHistory", e);
         }
@@ -1218,7 +1232,9 @@ public class OkCoinService extends MarketService {
                             Thread.sleep(1000);
                         }
                         final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
-                        OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId, CurrencyPair.BTC_USD, FuturesContract.ThisWeek);
+                        OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId,
+                                okexContractType.getCurrencyPair(),
+                                okexContractType.getFuturesContract());
 
                         tradeLogger.info("#{}/{} {} id={},res={},code={},details={}({})",
                                 counterName, attemptCount,
@@ -1270,7 +1286,9 @@ public class OkCoinService extends MarketService {
                     Thread.sleep(1000);
                 }
                 final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
-                result = tradeService.cancelOrderWithResult(orderId, CurrencyPair.BTC_USD, FuturesContract.ThisWeek);
+                result = tradeService.cancelOrderWithResult(orderId,
+                        okexContractType.getCurrencyPair(),
+                        okexContractType.getFuturesContract());
 
                 if (result == null) {
                     tradeLogger.info("#{}/{} {} id={}, no response", counterName, attemptCount, logInfoId, orderId);
@@ -1312,7 +1330,7 @@ public class OkCoinService extends MarketService {
 
     private Pair<Boolean, Order> cancelOrderWithCheck(String orderId, String logInfoId1, String logInfoId2) {
         final String counterName = getCounterName();
-        Order resOrder = new LimitOrder.Builder(OrderType.ASK, CURRENCY_PAIR_BTC_USD).id("empty").build(); //workaround
+        Order resOrder = new LimitOrder.Builder(OrderType.ASK, okexContractType.getCurrencyPair()).id("empty").build(); //workaround
 
         Boolean cancelSucceed = false;
         int attemptCount = 0;
@@ -1326,7 +1344,9 @@ public class OkCoinService extends MarketService {
                 final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
                 // 1. Cancel request
                 if (!cancelSucceed) {
-                    final OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId, CurrencyPair.BTC_USD, FuturesContract.ThisWeek);
+                    final OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId,
+                            okexContractType.getCurrencyPair(),
+                            okexContractType.getFuturesContract());
 
                     if (result == null) {
                         tradeLogger.info("#{}/{} {} id={}, no response", counterName, attemptCount, logInfoId1, orderId);

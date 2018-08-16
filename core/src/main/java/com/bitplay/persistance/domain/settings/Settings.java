@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -41,6 +42,9 @@ public class Settings extends AbstractDocument {
     private Integer signalDelayMs;
     private BigDecimal coldStorageBtc;
     private UsdQuoteType usdQuoteType;
+    private OkexContractType okexContractType;
+    @Transient
+    private String okexContractTypeCurrent; // only for UI
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -53,6 +57,7 @@ public class Settings extends AbstractDocument {
         settings.limits = Limits.createDefault();
         settings.restartSettings = RestartSettings.createDefaults();
         settings.signalDelayMs = 1000;
+        settings.okexContractType = OkexContractType.BTC_ThisWeek;
         settings.setId(1L);
         return settings;
     }

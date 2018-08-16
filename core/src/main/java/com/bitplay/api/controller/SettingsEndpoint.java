@@ -3,6 +3,7 @@ package com.bitplay.api.controller;
 import com.bitplay.Config;
 import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
@@ -39,6 +40,9 @@ public class SettingsEndpoint {
     private ArbitrageService arbitrageService;
 
     @Autowired
+    private OkCoinService okCoinService;
+
+    @Autowired
     private TraderPermissionsService traderPermissionsService;
 
     /**
@@ -58,14 +62,15 @@ public class SettingsEndpoint {
 
     @RequestMapping(value = "/all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public Settings getSettings() {
-        Settings result = new Settings();
+        Settings settings = new Settings();
         try {
-            result = settingsRepositoryService.getSettings();
+            settings = settingsRepositoryService.getSettings();
+            settings.setOkexContractTypeCurrent(okCoinService.getFuturesContractName());
         } catch (Exception e) {
             final String error = String.format("Failed to get settings %s", e.toString());
             logger.error(error, e);
         }
-        return result;
+        return settings;
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -172,6 +177,12 @@ public class SettingsEndpoint {
         if (settingsUpdate.getUsdQuoteType() != null) {
             settings.setUsdQuoteType(settingsUpdate.getUsdQuoteType());
             settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getOkexContractType() != null) {
+            settings.setOkexContractType(settingsUpdate.getOkexContractType());
+            settingsRepositoryService.saveSettings(settings);
+
+            settings.setOkexContractTypeCurrent(okCoinService.getFuturesContractName());
         }
         return settings;
     }

@@ -17,6 +17,7 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import io.reactivex.Observable;
@@ -84,13 +85,13 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     Disposable openOrdersMovingSubscription;
 
-    public void init(String key, String secret) {
+    public void init(String key, String secret, ContractType contractType) {
         initEventBus();
         initOpenOrdersMovingSubscription();
-        initializeMarket(key, secret);
+        initializeMarket(key, secret, contractType);
     }
 
-    protected abstract void initializeMarket(String key, String secret);
+    protected abstract void initializeMarket(String key, String secret, ContractType contractType);
 
     public abstract UserTrades fetchMyTradeHistory();
 
@@ -413,6 +414,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public abstract String getName();
+
+    public String getFuturesContractName() {
+        return "";
+    }
 
     public abstract ArbitrageService getArbitrageService();
 
