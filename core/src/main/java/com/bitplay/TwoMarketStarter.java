@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
@@ -62,11 +63,12 @@ public class TwoMarketStarter {
 
         final Settings settings = settingsRepositoryService.getSettings();
         final OkexContractType okexContractType = settings.getOkexContractType();
+        final BitmexContractType bitmexContractType = settings.getBitmexContractType();
 
         try {
             final String firstMarketName = config.getFirstMarketName();
             firstMarketService = (MarketService) context.getBean(firstMarketName);
-            firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret(), null);
+            firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret(), bitmexContractType);
             logger.info("MARKET1: " + firstMarketService);
         } catch (Exception e) {
             logger.error("Initialization error", e);

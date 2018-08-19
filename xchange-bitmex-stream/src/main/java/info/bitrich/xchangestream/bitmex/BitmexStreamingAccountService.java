@@ -4,19 +4,16 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingAccountService;
-
+import io.reactivex.Observable;
+import io.swagger.client.model.Margin;
+import io.swagger.client.model.Position;
 import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.exceptions.NotAvailableFromExchangeException;
-
-import io.reactivex.Observable;
-import io.swagger.client.model.Margin;
-import io.swagger.client.model.Position;
 
 public class BitmexStreamingAccountService implements StreamingAccountService {
 
@@ -44,7 +41,7 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
                 }).share();
     }
 
-    public Observable<org.knowm.xchange.dto.account.Position> getPositionObservable() {
+    public Observable<org.knowm.xchange.dto.account.Position> getPositionObservable(String symbol) {
         return service.subscribeChannel("position", "position")
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
@@ -55,10 +52,15 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
                     Position position = null;
                     final JsonNode dataNode = s.get("data");
                     if (dataNode != null && dataNode.size() > 0) {
-                        position = mapper.treeToValue(dataNode.get(0), Position.class);
+                        for (JsonNode posNode : dataNode) {
+                            position = mapper.treeToValue(posNode, Position.class);
+                            if (position != null && position.getSymbol() != null && position.getSymbol().equals(symbol)) {
+                                break;
+                            }
+                        }
                     }
 
-                    return BitmexAdapters.adaptBitmexPosition(position);
+                    return BitmexAdapters.adaptBitmexPosition(position, symbol);
                 });
     }
 }

@@ -6,7 +6,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
+import io.swagger.client.model.Margin;
+import io.swagger.client.model.OrderBookL2;
+import io.swagger.client.model.Position;
+import io.swagger.client.model.Wallet;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
@@ -16,17 +24,6 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import io.swagger.client.model.Margin;
-import io.swagger.client.model.OrderBookL2;
-import io.swagger.client.model.Position;
-import io.swagger.client.model.Wallet;
 
 /**
  * Created by Sergey Shurmin on 5/3/17.
@@ -104,8 +101,8 @@ public class BitmexAdapters {
         return currencyPair.base.getSymbol().toUpperCase() + currencyPair.counter.getSymbol().toUpperCase();
     }
 
-    public static org.knowm.xchange.dto.account.Position adaptBitmexPosition(Position position) {
-        if (position == null) {
+    public static org.knowm.xchange.dto.account.Position adaptBitmexPosition(Position position, String symbol) {
+        if (position == null || position.getSymbol() == null || !position.getSymbol().equals(symbol)) {
             return new org.knowm.xchange.dto.account.Position(
                     BigDecimal.ZERO,
                     BigDecimal.ZERO,

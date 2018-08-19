@@ -3,6 +3,7 @@ package com.bitplay.api.controller;
 import com.bitplay.Config;
 import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
@@ -43,6 +44,9 @@ public class SettingsEndpoint {
     private OkCoinService okCoinService;
 
     @Autowired
+    private BitmexService bitmexService;
+
+    @Autowired
     private TraderPermissionsService traderPermissionsService;
 
     /**
@@ -65,6 +69,7 @@ public class SettingsEndpoint {
         Settings settings = new Settings();
         try {
             settings = settingsRepositoryService.getSettings();
+            settings.setBitmexContractTypeCurrent(bitmexService.getFuturesContractName());
             settings.setOkexContractTypeCurrent(okCoinService.getFuturesContractName());
         } catch (Exception e) {
             final String error = String.format("Failed to get settings %s", e.toString());
@@ -183,6 +188,12 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
 
             settings.setOkexContractTypeCurrent(okCoinService.getFuturesContractName());
+        }
+        if (settingsUpdate.getBitmexContractType() != null) {
+            settings.setBitmexContractType(settingsUpdate.getBitmexContractType());
+            settingsRepositoryService.saveSettings(settings);
+
+            settings.setBitmexContractTypeCurrent(bitmexService.getFuturesContractName());
         }
         return settings;
     }

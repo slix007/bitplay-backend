@@ -27,6 +27,7 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
@@ -95,7 +96,6 @@ public class BitmexService extends MarketService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     public static final String NAME = "bitmex";
-    private static final CurrencyPair CURRENCY_PAIR_XBTUSD = new CurrencyPair("XBT", "USD");
 
     private BitmexStreamingExchange exchange;
 
@@ -144,6 +144,7 @@ public class BitmexService extends MarketService {
     private String key;
     private String secret;
     private Disposable restartTimer;
+    private BitmexContractType bitmexContractType;
     private AtomicInteger cancelledInRow = new AtomicInteger();
     private volatile boolean reconnectInProgress = false;
 
@@ -196,6 +197,11 @@ public class BitmexService extends MarketService {
         return exchange;
     }
 
+    @Override
+    public String getFuturesContractName() {
+        return bitmexContractType.getSymbol();
+    }
+
     @Scheduled(fixedDelay = 2000)
     public void openOrdersCleaner() {
         if (openOrders.size() > 0) {
@@ -219,6 +225,8 @@ public class BitmexService extends MarketService {
 
     @Override
     public void initializeMarket(String key, String secret, ContractType contractType) {
+        bitmexContractType = (BitmexContractType) contractType;
+
         scheduledMoveInProgressReset = scheduler.scheduleAtFixedRate(
                 DebugEndpoints::detectDeadlock,
                 5,
@@ -361,7 +369,7 @@ public class BitmexService extends MarketService {
         final Position pUpdate;
         try {
             final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
-            pUpdate = accountService.fetchPositionInfo();
+            pUpdate = accountService.fetchPositionInfo(bitmexContractType.getSymbol());
 
             mergePosition(pUpdate);
 
@@ -581,6 +589,7 @@ public class BitmexService extends MarketService {
         ExchangeSpecification spec = new ExchangeSpecification(BitmexStreamingExchange.class);
         spec.setApiKey(key);
         spec.setSecretKey(secret);
+        spec.setExchangeSpecificParametersItem("Symbol", bitmexContractType.getSymbol());
 
         //ExchangeFactory.INSTANCE.createExchange(spec); - class cast exception, because
         // bitmex-* implementations should be moved into libraries.
@@ -788,13 +797,13 @@ public class BitmexService extends MarketService {
 
         OrderBook orderBook = getFullOrderBook();
         if (bitmexOrderBook.getAction().equals("partial")) {
-            orderBook = BitmexStreamAdapters.adaptBitmexOrderBook(bitmexOrderBook, CURRENCY_PAIR_XBTUSD);
+            orderBook = BitmexStreamAdapters.adaptBitmexOrderBook(bitmexOrderBook, bitmexContractType.getCurrencyPair());
         } else if (bitmexOrderBook.getAction().equals("delete")) {
             orderBook = BitmexStreamAdapters.delete(orderBook, bitmexOrderBook);
         } else if (bitmexOrderBook.getAction().equals("update")) {
-            orderBook = BitmexStreamAdapters.update(orderBook, bitmexOrderBook, new Date(), CURRENCY_PAIR_XBTUSD);
+            orderBook = BitmexStreamAdapters.update(orderBook, bitmexOrderBook, new Date(), bitmexContractType.getCurrencyPair());
         } else if (bitmexOrderBook.getAction().equals("insert")) {
-            orderBook = BitmexStreamAdapters.insert(orderBook, bitmexOrderBook, new Date(), CURRENCY_PAIR_XBTUSD);
+            orderBook = BitmexStreamAdapters.insert(orderBook, bitmexOrderBook, new Date(), bitmexContractType.getCurrencyPair());
         }
         this.orderBook = orderBook;
 
@@ -803,7 +812,7 @@ public class BitmexService extends MarketService {
 
     private Disposable startOrderBookListener() {
         Observable<OrderBook> orderBookObservable = ((BitmexStreamingMarketDataService)exchange.getStreamingMarketDataService())
-                .getOrderBookL2(CurrencyPair.BTC_USD, 20)
+                .getOrderBookL2(bitmexContractType.getSymbol())
                 .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBook"))
                 .map(this::convertOrderBook)
                 .doOnError(throwable -> logger.error("can not convert orderBook", throwable))
@@ -1069,7 +1078,7 @@ public class BitmexService extends MarketService {
                         }
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
 
-                        final LimitOrder requestOrder = new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, "0", new Date(), thePrice);
+                        final LimitOrder requestOrder = new LimitOrder(orderType, amount, bitmexContractType.getCurrencyPair(), "0", new Date(), thePrice);
                         final LimitOrder resultOrder = bitmexTradeService.placeLimitOrderBitmex(requestOrder);
                         orderId = resultOrder.getId();
                         final FplayOrder fplayOrder = new FplayOrder(counterName, resultOrder, bestQuotes, placingType, signalType);
@@ -1108,7 +1117,7 @@ public class BitmexService extends MarketService {
                         nextMarketState = MarketState.ARBITRAGE;
 
                     } else {
-                        final MarketOrder marketOrder = new MarketOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, new Date());
+                        final MarketOrder marketOrder = new MarketOrder(orderType, amount, bitmexContractType.getCurrencyPair(), new Date());
                         final MarketOrder resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder);
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
@@ -1119,7 +1128,7 @@ public class BitmexService extends MarketService {
                                 .addPriceItem(counterName, orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(), resultOrder.getStatus());
 
                         // workaround for OO list: set as limit order
-                        tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, CURRENCY_PAIR_XBTUSD, orderId, new Date(),
+                        tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, bitmexContractType.getCurrencyPair(), orderId, new Date(),
                                 thePrice, thePrice, resultOrder.getCumulativeAmount(), resultOrder.getStatus()));
                     }
 
@@ -1420,7 +1429,7 @@ public class BitmexService extends MarketService {
 
     private Disposable startPositionListener() {
         Observable<Position> positionObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
-                .getPositionObservable()
+                .getPositionObservable(bitmexContractType.getSymbol())
                 .doOnError(throwable -> handleSubscriptionError(throwable, "Position fetch error"))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
 
@@ -1443,7 +1452,7 @@ public class BitmexService extends MarketService {
 
     private Disposable startFutureIndexListener() {
         Observable<BitmexContractIndex> indexObservable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
-                .getContractIndexObservable()
+                .getContractIndexObservable(bitmexContractType.getSymbol())
                 .doOnError(throwable -> handleSubscriptionError(throwable, "Index fetch error"))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
 

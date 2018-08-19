@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
-import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
-import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import io.reactivex.Observable;
@@ -29,23 +27,15 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
 
     /**
      * Wanring: this method will response once in 5 sec after 8 Oct 2017.
-     * Use {@link #getOrderBookL2(CurrencyPair, Object...)} instead
+     * Use {@link #getOrderBookL2(String)} instead
      */
     @Override
     public Observable<OrderBook> getOrderBook(CurrencyPair currencyPair, Object... args) {
-        return service.subscribeChannel("orderBook10", "orderBook10:XBTUSD")
-                .map(s -> {
-                    ObjectMapper mapper = new ObjectMapper();
-                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-                    BitmexDepth bitmexDepth = mapper.treeToValue(s.get("data").get(0), BitmexDepth.class);
-
-                    return BitmexStreamAdapters.adaptBitmexOrderBook(bitmexDepth, currencyPair);
-                });
+        throw new IllegalArgumentException("Deprecated. Use {@link #getOrderBookL2(String)} instead.");
     }
 
-    public Observable<BitmexOrderBook> getOrderBookL2(CurrencyPair currencyPair, Object... args) {
-        return service.subscribeChannel("orderBookL2", "orderBookL2:XBTUSD")
+    public Observable<BitmexOrderBook> getOrderBookL2(String symbol) {
+        return service.subscribeChannel("orderBookL2", "orderBookL2:" + symbol)
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -68,8 +58,8 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
         throw new NotYetImplementedForExchangeException();
     }
 
-    public Observable<BitmexContractIndex> getContractIndexObservable() {
-        return service.subscribeChannel("instrument", "instrument:XBTUSD")
+    public Observable<BitmexContractIndex> getContractIndexObservable(String symbol) {
+        return service.subscribeChannel("instrument", "instrument:" + symbol) //instrument:XBTUSD
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

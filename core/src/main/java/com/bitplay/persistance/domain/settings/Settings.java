@@ -43,8 +43,11 @@ public class Settings extends AbstractDocument {
     private BigDecimal coldStorageBtc;
     private UsdQuoteType usdQuoteType;
     private OkexContractType okexContractType;
+    private BitmexContractType bitmexContractType;
     @Transient
     private String okexContractTypeCurrent; // only for UI
+    @Transient
+    private String bitmexContractTypeCurrent; // only for UI
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -58,6 +61,7 @@ public class Settings extends AbstractDocument {
         settings.restartSettings = RestartSettings.createDefaults();
         settings.signalDelayMs = 1000;
         settings.okexContractType = OkexContractType.BTC_ThisWeek;
+        settings.bitmexContractType = BitmexContractType.XBTUSD;
         settings.setId(1L);
         return settings;
     }
