@@ -1462,29 +1462,29 @@ public class BitmexService extends MarketService {
                 });
     }
 
-    private synchronized void mergeContractIndex(BitmexContractIndex contractIndex1) {
+    private synchronized void mergeContractIndex(BitmexContractIndex update) {
         // merge contractIndex
-        final BigDecimal indexPrice = contractIndex1.getIndexPrice() != null
-                ? contractIndex1.getIndexPrice()
+        final BigDecimal indexPrice = update.getIndexPrice() != null
+                ? update.getIndexPrice()
                 : contractIndex.getIndexPrice();
-        final BigDecimal markPrice = contractIndex1.getMarkPrice() != null
-                ? contractIndex1.getMarkPrice()
+        final BigDecimal markPrice = update.getMarkPrice() != null
+                ? update.getMarkPrice()
                 : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getMarkPrice() : BigDecimal.ZERO);
         final BigDecimal fundingRate;
         final OffsetDateTime fundingTimestamp;
         if (contractIndex instanceof BitmexContractIndex) {
-            fundingRate = contractIndex1.getFundingRate() != null
-                    ? contractIndex1.getFundingRate()
+            fundingRate = update.getFundingRate() != null
+                    ? update.getFundingRate()
                     : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getFundingRate() : BigDecimal.ZERO);
-            fundingTimestamp = contractIndex1.getSwapTime() != null
-                    ? contractIndex1.getSwapTime()
+            fundingTimestamp = update.getSwapTime() != null
+                    ? update.getSwapTime()
                     : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getSwapTime()
                             : OffsetDateTime.now().minusHours(10));
         } else {
-            fundingRate = contractIndex1.getFundingRate();
-            fundingTimestamp = contractIndex1.getSwapTime();
+            fundingRate = update.getFundingRate();
+            fundingTimestamp = update.getSwapTime();
         }
-        final Date timestamp = contractIndex1.getTimestamp();
+        final Date timestamp = update.getTimestamp();
 
         this.contractIndex = new BitmexContractIndex(indexPrice, markPrice, timestamp, fundingRate, fundingTimestamp);
     }
@@ -1503,7 +1503,9 @@ public class BitmexService extends MarketService {
 
         final BigDecimal bMrliq = persistenceService.fetchGuiLiqParams().getBMrLiq();
 
-        final BigDecimal m = contractIndex.getIndexPrice();
+        final BigDecimal m = (contractIndex instanceof BitmexContractIndex)
+                ? ((BitmexContractIndex) contractIndex).getMarkPrice()
+                : contractIndex.getIndexPrice();
         final BigDecimal L = position.getLiquidationPrice();
 
         if (equity != null && margin != null
