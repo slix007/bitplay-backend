@@ -62,6 +62,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+    protected volatile OrderBook orderBookForPrice = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+    protected final static Object orderBookLock = new Object();
+    protected final static Object orderBookForPriceLock = new Object();
     protected volatile AccountInfo accountInfo = null;
     protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
     protected volatile Position position = new Position(null, null, null, null, "");
@@ -95,23 +98,49 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public abstract UserTrades fetchMyTradeHistory();
 
-    public synchronized OrderBook getOrderBook() {
-        List<LimitOrder> asks = this.orderBook.getAsks().size() > ORDERBOOK_MAX_SIZE
-                ? this.orderBook.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).collect(Collectors.toList())
-                : this.orderBook.getAsks();
-        List<LimitOrder> bids = this.orderBook.getBids().size() > ORDERBOOK_MAX_SIZE
-                ? this.orderBook.getBids().stream().limit(ORDERBOOK_MAX_SIZE).collect(Collectors.toList())
-                : this.orderBook.getBids();
+    public OrderBook getOrderBookForPrice() {
+        return getOrderBook();
+    }
 
-        return new OrderBook(this.orderBook.getTimeStamp(),
+    public OrderBook getOrderBook() {
+        OrderBook orderBook;
+        synchronized (orderBookLock) {
+            orderBook = getShortOrderBook(this.orderBook);
+        }
+        return orderBook;
+    }
+
+    protected OrderBook getShortOrderBook(OrderBook orderBook) {
+        List<LimitOrder> asks = orderBook.getAsks().size() > ORDERBOOK_MAX_SIZE
+                ? orderBook.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).collect(Collectors.toList())
+                : orderBook.getAsks();
+        List<LimitOrder> bids = orderBook.getBids().size() > ORDERBOOK_MAX_SIZE
+                ? orderBook.getBids().stream().limit(ORDERBOOK_MAX_SIZE).collect(Collectors.toList())
+                : orderBook.getBids();
+
+        return new OrderBook(orderBook.getTimeStamp(),
                 new ArrayList<>(asks),
                 new ArrayList<>(bids));
     }
 
-    protected synchronized OrderBook getFullOrderBook() {
-        return new OrderBook(this.orderBook.getTimeStamp(),
-                new ArrayList<>(this.orderBook.getAsks()),
-                new ArrayList<>(this.orderBook.getBids()));
+    protected OrderBook getFullOrderBook() {
+        OrderBook orderBook;
+        synchronized (orderBookLock) {
+            orderBook = new OrderBook(this.orderBook.getTimeStamp(),
+                    new ArrayList<>(this.orderBook.getAsks()),
+                    new ArrayList<>(this.orderBook.getBids()));
+        }
+        return orderBook;
+    }
+
+    protected OrderBook getFullOrderBookForPrice() {
+        OrderBook orderBook;
+        synchronized (orderBookForPriceLock) {
+            orderBook = new OrderBook(this.orderBookForPrice.getTimeStamp(),
+                    new ArrayList<>(this.orderBookForPrice.getAsks()),
+                    new ArrayList<>(this.orderBookForPrice.getBids()));
+        }
+        return orderBook;
     }
 
     public abstract String fetchPosition() throws Exception;
@@ -427,7 +456,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return accountInfo;
     }
 
-    public synchronized void setAccountInfo(AccountInfo accountInfo) {
+    public void setAccountInfo(AccountInfo accountInfo) {
         this.accountInfo = accountInfo;
     }
 

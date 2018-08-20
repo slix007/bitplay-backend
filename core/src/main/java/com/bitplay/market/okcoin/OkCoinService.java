@@ -129,12 +129,14 @@ public class OkCoinService extends MarketService {
 
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
+    private Disposable orderBookForPriceSubscription;
     private Disposable privateDataSubscription;
     private Disposable accountInfoSubscription;
     private Disposable futureIndexSubscription;
     private Disposable tickerSubscription;
     private Observable<OrderBook> orderBookObservable;
-    private OkexContractType okexContractType = OkexContractType.BTC_ThisWeek;
+    private OkexContractType okexContractType;
+    private OkexContractType okexContractTypeForPrice = OkexContractType.BTC_ThisWeek;
 
     @Override
     public PosDiffService getPosDiffService() {
@@ -210,6 +212,9 @@ public class OkCoinService extends MarketService {
 
         createOrderBookObservable();
         subscribeOnOrderBook();
+        if (okexContractType != okexContractTypeForPrice) {
+            subscribeOnOrderBookForPrice();
+        }
 
         privateDataSubscription = startPrivateDataListener();
         accountInfoSubscription = startAccountInfoSubscription();
@@ -222,6 +227,9 @@ public class OkCoinService extends MarketService {
     private Completable closeAllSubscibers() {
         // Unsubscribe from data order book.
         orderBookSubscription.dispose();
+        if (orderBookForPriceSubscription != null) {
+            orderBookForPriceSubscription.dispose();
+        }
 //        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
         privateDataSubscription.dispose();
         accountInfoSubscription.dispose();
@@ -294,6 +302,29 @@ public class OkCoinService extends MarketService {
                     getArbitrageService().getSignalEventBus().send(SignalEvent.O_ORDERBOOK_CHANGED);
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
+    }
+
+    private void subscribeOnOrderBookForPrice() {
+        orderBookForPriceSubscription = ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                .getOrderBook(okexContractTypeForPrice.getCurrencyPair(),
+                        okexContractTypeForPrice.getFuturesContract(),
+                        OkExStreamingMarketDataService.Depth.DEPTH_20)
+                .doOnDispose(() -> logger.info("orderBookForPrice doOnDispose"))
+                .doOnTerminate(() -> logger.info("orderBookForPrice doOnTerminate"))
+                .doOnError(throwable -> logger.error("okcoin onError orderBookForPrice", throwable))
+                .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.io())
+                .subscribe(orderBook -> {
+                    this.orderBookForPrice = orderBook;
+                }, throwable -> logger.error("ERROR of getting orderBookForPrice: ", throwable));
+    }
+
+    @Override
+    public OrderBook getOrderBookForPrice() {
+        if (okexContractType == okexContractTypeForPrice) {
+            return getShortOrderBook(this.orderBook);
+        }
+        return getShortOrderBook(this.orderBookForPrice);
     }
 
     @Override

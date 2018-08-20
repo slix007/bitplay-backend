@@ -35,7 +35,8 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
     }
 
     public Observable<BitmexOrderBook> getOrderBookL2(String symbol) {
-        return service.subscribeChannel("orderBookL2", "orderBookL2:" + symbol)
+        String channel = "orderBookL2:" + symbol;
+        return service.subscribeChannel(channel, channel)
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

@@ -53,8 +53,8 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
                     final JsonNode dataNode = s.get("data");
                     if (dataNode != null && dataNode.size() > 0) {
                         for (JsonNode posNode : dataNode) {
-                            position = mapper.treeToValue(posNode, Position.class);
-                            if (position != null && position.getSymbol() != null && position.getSymbol().equals(symbol)) {
+                            if (posNode.get("symbol") != null && posNode.get("symbol").asText().equals(symbol)) {
+                                position = mapper.treeToValue(posNode, Position.class);
                                 break;
                             }
                         }

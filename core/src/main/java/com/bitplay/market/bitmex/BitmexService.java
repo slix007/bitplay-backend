@@ -42,6 +42,7 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import io.swagger.client.model.Error;
 import io.swagger.client.model.Execution;
 import java.io.IOException;
@@ -114,6 +115,7 @@ public class BitmexService extends MarketService {
     private volatile BigDecimal prevCumulativeAmount;
 
     private volatile Disposable orderBookSubscription;
+    private volatile Disposable orderBookForPriceSubscription;
     private volatile Disposable openOrdersSubscription;
     private volatile Disposable accountInfoSubscription;
     private volatile Disposable positionSubscription;
@@ -145,6 +147,7 @@ public class BitmexService extends MarketService {
     private String secret;
     private Disposable restartTimer;
     private BitmexContractType bitmexContractType;
+    private BitmexContractType bitmexContractTypeForPrice = BitmexContractType.XBTUSD;
     private AtomicInteger cancelledInRow = new AtomicInteger();
     private volatile boolean reconnectInProgress = false;
 
@@ -251,6 +254,9 @@ public class BitmexService extends MarketService {
 
         logger.info("startAllListeners");
         orderBookSubscription = startOrderBookListener();
+        if (bitmexContractType != bitmexContractTypeForPrice) {
+            orderBookForPriceSubscription = startOrderBookForPriceListener();
+        }
         accountInfoSubscription = startAccountInfoListener();
         openOrdersSubscription = startOpenOrderListener();
         positionSubscription = startPositionListener();
@@ -290,10 +296,17 @@ public class BitmexService extends MarketService {
             boolean needReconnect = isForceReconnect;
 
             if (!needReconnect) {
-                if (orderBookSubscription != null && accountInfoSubscription != null && openOrdersSubscription != null && positionSubscription != null
+                if (orderBookSubscription != null
+                        && accountInfoSubscription != null
+                        && openOrdersSubscription != null
+                        && positionSubscription != null
                         && futureIndexSubscription != null) {
-                    if (orderBookSubscription.isDisposed() || accountInfoSubscription.isDisposed() || openOrdersSubscription.isDisposed() || positionSubscription
-                            .isDisposed() || futureIndexSubscription.isDisposed()) {
+                    if (orderBookSubscription.isDisposed()
+                            || accountInfoSubscription.isDisposed()
+                            || openOrdersSubscription.isDisposed()
+                            || positionSubscription.isDisposed()
+                            || futureIndexSubscription.isDisposed()
+                            || (orderBookForPriceSubscription != null && orderBookForPriceSubscription.isDisposed())) {
 
                         needReconnect = true;
 
@@ -346,11 +359,12 @@ public class BitmexService extends MarketService {
     }
 
     private String getSubscribersStatuses() {
-        return String.format(" Check for isDisposed: orderBookSub=%s, accountInfoSub=%s," +
+        return String.format(" Check for isDisposed: orderBookForPriceSub=%s, orderBookSub=%s, accountInfoSub=%s," +
                         "openOrdersSub=%s," +
                         "posSub=%s," +
                         "futureIndexSub=%s." +
                         " isLocked: openOrdersLock=%s",
+                orderBookForPriceSubscription == null ? null : orderBookForPriceSubscription.isDisposed(),
                 orderBookSubscription == null ? null : orderBookSubscription.isDisposed(),
                 accountInfoSubscription == null ? null : accountInfoSubscription.isDisposed(),
                 openOrdersSubscription == null ? null : openOrdersSubscription.isDisposed(),
@@ -685,6 +699,7 @@ public class BitmexService extends MarketService {
             destroyAction(1);
 
             orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            orderBookForPrice = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
 
             exchangeConnect();
 
@@ -696,8 +711,14 @@ public class BitmexService extends MarketService {
                 Thread.sleep(1000);
             }
 
-            if (orderBook.getAsks().size() < 10 || orderBook.getBids().size() < 10) {
-                String msg = String.format("OrderBook is not full: asks=%s, bids=%s, timestamp=%s. %s",
+            if (orderBook.getAsks().size() < 10 || orderBook.getBids().size() < 10
+                    || (orderBookForPrice != null && orderBookForPrice.getAsks().size() < 10)
+                    || (orderBookForPrice != null && orderBookForPrice.getBids().size() < 10)) {
+                String msg = orderBookForPrice == null ? "" : String.format("OrderBookForPrice is not full: asks=%s, bids=%s, timestamp=%s. ",
+                        orderBookForPrice.getAsks().size(),
+                        orderBookForPrice.getBids().size(),
+                        orderBookForPrice.getTimeStamp());
+                msg += String.format("OrderBook is not full: asks=%s, bids=%s, timestamp=%s. %s",
                         orderBook.getAsks().size(),
                         orderBook.getBids().size(),
                         orderBook.getTimeStamp(),
@@ -749,6 +770,9 @@ public class BitmexService extends MarketService {
             if (orderBookSubscription != null) {
                 orderBookSubscription.dispose();
             }
+            if (orderBookForPriceSubscription != null) {
+                orderBookForPriceSubscription.dispose();
+            }
             if (accountInfoSubscription != null) {
                 accountInfoSubscription.dispose();
             }
@@ -771,16 +795,11 @@ public class BitmexService extends MarketService {
 //                    .blockingAwait();
 
             if (attempt < 5 &&
-                    (orderBookSubscription == null ||
-                            !orderBookSubscription.isDisposed()
-                            || accountInfoSubscription == null
-                            || !accountInfoSubscription.isDisposed()
-                            || openOrdersSubscription == null
-                            || !openOrdersSubscription.isDisposed()
-                            || positionSubscription == null
-                            || !positionSubscription.isDisposed()
-                            || futureIndexSubscription == null
-                            || !futureIndexSubscription.isDisposed()
+                    (orderBookSubscription == null || !orderBookSubscription.isDisposed()
+                            || accountInfoSubscription == null || !accountInfoSubscription.isDisposed()
+                            || openOrdersSubscription == null || !openOrdersSubscription.isDisposed()
+                            || positionSubscription == null || !positionSubscription.isDisposed()
+                            || futureIndexSubscription == null || !futureIndexSubscription.isDisposed()
                     )) {
                 logger.warn("Warning: destroy loop " + getSubscribersStatuses());
                 attempt++;
@@ -793,35 +812,35 @@ public class BitmexService extends MarketService {
         }
     }
 
-    private OrderBook convertOrderBook(BitmexOrderBook bitmexOrderBook) {
-
-        OrderBook orderBook = getFullOrderBook();
+    private OrderBook convertOrderBook(OrderBook fullOB, BitmexOrderBook bitmexOrderBook, CurrencyPair currencyPair) {
         if (bitmexOrderBook.getAction().equals("partial")) {
-            orderBook = BitmexStreamAdapters.adaptBitmexOrderBook(bitmexOrderBook, bitmexContractType.getCurrencyPair());
+            fullOB = BitmexStreamAdapters.adaptBitmexOrderBook(bitmexOrderBook, currencyPair);
         } else if (bitmexOrderBook.getAction().equals("delete")) {
-            orderBook = BitmexStreamAdapters.delete(orderBook, bitmexOrderBook);
+            fullOB = BitmexStreamAdapters.delete(fullOB, bitmexOrderBook);
         } else if (bitmexOrderBook.getAction().equals("update")) {
-            orderBook = BitmexStreamAdapters.update(orderBook, bitmexOrderBook, new Date(), bitmexContractType.getCurrencyPair());
+            fullOB = BitmexStreamAdapters.update(fullOB, bitmexOrderBook, new Date(), currencyPair);
         } else if (bitmexOrderBook.getAction().equals("insert")) {
-            orderBook = BitmexStreamAdapters.insert(orderBook, bitmexOrderBook, new Date(), bitmexContractType.getCurrencyPair());
+            fullOB = BitmexStreamAdapters.insert(fullOB, bitmexOrderBook, new Date(), currencyPair);
         }
-        this.orderBook = orderBook;
-
-        return this.orderBook;
+        return fullOB;
     }
 
     private Disposable startOrderBookListener() {
         Observable<OrderBook> orderBookObservable = ((BitmexStreamingMarketDataService)exchange.getStreamingMarketDataService())
                 .getOrderBookL2(bitmexContractType.getSymbol())
                 .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBook"))
-                .map(this::convertOrderBook)
+                .map(ob -> convertOrderBook(getFullOrderBook(), ob, bitmexContractType.getCurrencyPair()))
                 .doOnError(throwable -> logger.error("can not convert orderBook", throwable))
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
 
         return orderBookObservable
+                .subscribeOn(Schedulers.io())
                 .subscribe(orderBook -> {
+
+                    this.orderBook = orderBook;
+
                     try {
 
                         afterOrderBookChanged(orderBook);
@@ -857,6 +876,40 @@ public class BitmexService extends MarketService {
 
             getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
         }
+    }
+
+    private Disposable startOrderBookForPriceListener() {
+        Observable<OrderBook> orderBookObservable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                .getOrderBookL2(bitmexContractTypeForPrice.getSymbol())
+                .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBookForPrice"))
+                .map(ob -> convertOrderBook(getFullOrderBookForPrice(), ob, bitmexContractTypeForPrice.getCurrencyPair()))
+                .doOnError(throwable -> logger.error("can not convert orderBookForPrice", throwable))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
+
+        return orderBookObservable
+                .subscribeOn(Schedulers.io())
+                .subscribe(
+                        orderBook -> this.orderBookForPrice = orderBook,
+                        throwable -> {
+                            logger.error("Can not merge OrderBookForPrice exception", throwable);
+                            checkForRestart();
+                        });
+    }
+
+    @Override
+    public OrderBook getOrderBookForPrice() {
+        OrderBook orderBook;
+        if (bitmexContractType == bitmexContractTypeForPrice) {
+            synchronized (orderBookLock) {
+                orderBook = getShortOrderBook(this.orderBook);
+            }
+        } else {
+            synchronized (orderBookForPriceLock) {
+                orderBook = getShortOrderBook(this.orderBookForPrice);
+            }
+        }
+
+        return orderBook;
     }
 
     private Disposable startOpenOrderListener() {
