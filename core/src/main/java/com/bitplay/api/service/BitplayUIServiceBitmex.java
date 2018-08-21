@@ -8,23 +8,12 @@ import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.domain.futureindex.FutureIndexJson;
 import com.bitplay.api.domain.futureindex.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.TradeResponse;
-
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
-
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.Position;
-import org.knowm.xchange.dto.trade.UserTrades;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -32,6 +21,13 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.Position;
+import org.knowm.xchange.dto.trade.UserTrades;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.

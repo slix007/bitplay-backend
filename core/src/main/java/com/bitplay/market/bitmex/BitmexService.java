@@ -386,9 +386,9 @@ public class BitmexService extends MarketService {
             pUpdate = accountService.fetchPositionInfo(bitmexContractType.getSymbol());
 
             mergePosition(pUpdate);
-
             recalcAffordableContracts();
             recalcLiqInfo();
+
         } catch (HttpStatusIOException e) {
             updateXRateLimit(e);
 
@@ -410,6 +410,17 @@ public class BitmexService extends MarketService {
     }
 
     private synchronized void mergePosition(Position pUpdate) {
+        if (pUpdate.getPositionLong() == null) {
+            if (this.position.getPositionLong() != null) {
+                return; // no update when null
+            }
+
+            // use 0 when no pos yet
+            pUpdate = new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                    "position is empty"
+            );
+
+        }
         BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
         BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
         BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.position.getMarkValue();

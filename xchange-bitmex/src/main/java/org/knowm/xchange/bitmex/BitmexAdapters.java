@@ -104,13 +104,13 @@ public class BitmexAdapters {
     public static org.knowm.xchange.dto.account.Position adaptBitmexPosition(Position position, String symbol) {
         if (position == null || position.getSymbol() == null || !position.getSymbol().equals(symbol)) {
             return new org.knowm.xchange.dto.account.Position(
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     "position is null"
             );
         }

@@ -439,7 +439,7 @@ public class BitmexSwapService {
         final BigDecimal maxFRate = bitmexService.getArbitrageService().getParams().getFundingRateFee(); //BitmexFunding.MAX_F_RATE;
         bitmexFunding.setUpdatingTime(OffsetDateTime.now());
 
-        if (pos != null) {
+        if (fRate != null && pos != null) {
             if (pos.signum() > 0) {
                 if (fRate.signum() > 0 && fRate.compareTo(maxFRate) > 0) {
                     bitmexFunding.setSignalType(SignalType.SWAP_CLOSE_LONG);
@@ -455,6 +455,8 @@ public class BitmexSwapService {
             } else {// pos = 0
                 bitmexFunding.setSignalType(SignalType.SWAP_NONE);
             }
+        } else {
+            bitmexFunding.setSignalType(SignalType.SWAP_NONE);
         }
     }
 
