@@ -1624,6 +1624,7 @@ public class OkCoinService extends MarketService {
             final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
             if (liqInfo.getDqlCurr() != null
+                    && liqInfo.getDqlCurr().compareTo(DQL_WRONG) != 0
                     && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
                     && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) < 0
                     && pos.signum() != 0) {
