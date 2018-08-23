@@ -136,6 +136,11 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
+    protected ContractType getContractType() {
+        return null;
+    }
+
+    @Override
     protected void iterateOpenOrdersMove() {
 
     }

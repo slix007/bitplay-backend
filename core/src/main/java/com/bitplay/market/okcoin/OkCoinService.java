@@ -753,17 +753,15 @@ public class OkCoinService extends MarketService {
                     Thread.sleep(1000);
                 }
 
-                if (placingType == PlacingType.MAKER || placingType == PlacingType.HYBRID) {
-                    tradeResponse = placeMakerOrder(orderType, amountLeft, bestQuotes, false, signalType, placingType);
-                } else if (placingType == PlacingType.TAKER) {
+                if (placingType != PlacingType.TAKER) {
+                    tradeResponse = placeNonTakerOrder(orderType, amountLeft, bestQuotes, false, signalType, placingType);
+                } else {
                     tradeResponse = takerOrder(orderType, amountLeft, bestQuotes, signalType);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
                         final BigDecimal filled = tradeResponse.getCancelledOrders().get(0).getCumulativeAmount();
                         amountLeft = amountLeft.subtract(filled);
                         continue;
                     }
-                } else {
-                    throw new IllegalStateException("unhandled placing type");
                 }
                 break;
 
@@ -804,10 +802,10 @@ public class OkCoinService extends MarketService {
             }
         } finally {
             // RESET STATE
-            if (placingType == PlacingType.MAKER || placingType == PlacingType.HYBRID) {
+            if (placingType != PlacingType.TAKER) {
                 ooHangedCheckerService.startChecker();
                 setMarketState(MarketState.ARBITRAGE, counterName);
-            } else if (placingType == PlacingType.TAKER) {
+            } else {
                 setMarketState(nextState, counterName); // should be READY
                 if (tradeResponse.getOrderId() != null) {
                     setFree(); // ARBGITRAGE->READY and iterateOOToMove
@@ -883,7 +881,7 @@ public class OkCoinService extends MarketService {
         throw new IllegalArgumentException("Use placeOrder instead");
     }
 
-    private TradeResponse placeMakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
+    private TradeResponse placeNonTakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
                                           boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType) throws IOException {
         final TradeResponse tradeResponse = new TradeResponse();
 
@@ -902,17 +900,11 @@ public class OkCoinService extends MarketService {
             // USING REST API
             orderType = adjustOrderType(orderType, tradeableAmount);
 
-            if (placingSubType == PlacingType.MAKER) {
-                thePrice = createBestMakerPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-            } else {
-                // the best Taker price(even for Hybrid)
-                thePrice = createBestHybridPrice(orderType).setScale(2, BigDecimal.ROUND_HALF_UP);
-
-                if (placingSubType == null || placingSubType == PlacingType.TAKER) {
-                    tradeLogger.warn("placing maker, but subType is " + placingSubType);
-                    warningLogger.warn("placing maker, but subType is " + placingSubType);
-                }
+            if (placingSubType == null || placingSubType == PlacingType.TAKER) {
+                tradeLogger.warn("placing maker, but subType is " + placingSubType);
+                warningLogger.warn("placing maker, but subType is " + placingSubType);
             }
+            thePrice = createNonTakerPrice(orderType, placingSubType).setScale(2, BigDecimal.ROUND_HALF_UP);
 
             if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
                 tradeResponse.setErrorCode("The new price is 0 ");
@@ -1172,7 +1164,7 @@ public class OkCoinService extends MarketService {
                     placingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
                 }
 
-                tradeResponse = placeMakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType);
+                tradeResponse = placeNonTakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType);
 
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info("#{}/{} Moving3:Failed {} amount={},quote={},id={},attempt={}. Error: {}",
@@ -1660,6 +1652,11 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
+    protected ContractType getContractType() {
+        return okexContractType;
+    }
+
+    @Override
     protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED
                 || getMarketState() == MarketState.PLACING_ORDER
@@ -1704,7 +1701,7 @@ public class OkCoinService extends MarketService {
                                         if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
                                                 || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL // do nothing on such exception
                                                 || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION // do nothing on such exception
-                                                ) {
+                                        ) {
                                             // update the status
                                             final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
                                             if (cancelledFplayOrder != null) optionalOrder = Stream.of(cancelledFplayOrder);

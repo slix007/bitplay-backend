@@ -13,6 +13,7 @@ import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
@@ -673,6 +675,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     abstract protected void onReadyState();
 
+    abstract protected ContractType getContractType();
+
     public MoveResponse moveMakerOrderFromGui(String orderId) {
         MoveResponse response;
 
@@ -700,24 +704,80 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public abstract MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice);
 
+    protected BigDecimal createNonTakerPrice(Order.OrderType orderType, PlacingType placingType) {
+        final ContractType contractType = getContractType();
+        BigDecimal tickSize = contractType.getTickSize();
+        BigDecimal thePrice;
+        if (placingType == PlacingType.MAKER) {
+            thePrice = createBestMakerPrice(orderType);
+        } else if (placingType == PlacingType.MAKER_TICK) {
+            thePrice = createBestMakerTickPrice(orderType, tickSize);
+        } else if (placingType == PlacingType.HYBRID_TICK) {
+            thePrice = createBestHybridTickPrice(orderType, tickSize);
+        } else if (placingType == PlacingType.HYBRID) {
+            thePrice = createBestHybridPrice(orderType);
+        } else { // placingType == null???
+            String msg = String.format("%s PlacingType==%s, use MAKER", getName(), placingType);
+            warningLogger.warn(msg);
+            logger.warn(msg);
+            thePrice = createBestMakerPrice(orderType);
+        }
+        return thePrice;
+    }
+
     protected BigDecimal createBestMakerPrice(Order.OrderType orderType) {
         BigDecimal thePrice = BigDecimal.ZERO;
-        if (orderType == Order.OrderType.BID
-                || orderType == Order.OrderType.EXIT_ASK) {
+        if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
             thePrice = Utils.getBestBid(getOrderBook()).getLimitPrice();
-        } else if (orderType == Order.OrderType.ASK
-                || orderType == Order.OrderType.EXIT_BID) {
+        } else if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
             thePrice = Utils.getBestAsk(getOrderBook()).getLimitPrice();
         }
         if (thePrice.signum() == 0) {
             getTradeLogger().info("WARNING: PRICE IS 0");
             warningLogger.warn(getName() + " WARNING: PRICE IS 0");
+            logger.warn(getName() + " WARNING: PRICE IS 0");
+        }
+        return thePrice;
+    }
+
+    private BigDecimal createBestMakerTickPrice(OrderType orderType, BigDecimal tickSize) {
+        BigDecimal thePrice = BigDecimal.ZERO;
+        if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
+            BigDecimal ask = Utils.getBestAsk(getOrderBook()).getLimitPrice();
+            thePrice = ask.subtract(tickSize);
+        } else if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
+            BigDecimal bid = Utils.getBestBid(getOrderBook()).getLimitPrice();
+            thePrice = bid.add(tickSize);
+        }
+        if (thePrice.signum() == 0) {
+            getTradeLogger().info("WARNING: PRICE IS 0");
+            warningLogger.warn(getName() + " WARNING: PRICE IS 0");
+            logger.warn(getName() + " WARNING: PRICE IS 0");
         }
 
         return thePrice;
     }
 
-    protected BigDecimal createBestHybridPrice(Order.OrderType orderType) {
+    private BigDecimal createBestHybridTickPrice(Order.OrderType orderType, BigDecimal tickSize) {
+        BigDecimal thePrice = BigDecimal.ZERO;
+        BigDecimal bid = Utils.getBestBid(getOrderBook()).getLimitPrice();
+        BigDecimal ask = Utils.getBestAsk(getOrderBook()).getLimitPrice();
+        if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
+            BigDecimal askTick = ask.subtract(tickSize);
+            thePrice = askTick.compareTo(bid) > 0 ? askTick : ask;
+        } else if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
+            BigDecimal bidTick = bid.add(tickSize);
+            thePrice = bidTick.compareTo(ask) < 0 ? bidTick : bid;
+        }
+        if (thePrice.signum() == 0) {
+            getTradeLogger().info("WARNING: PRICE IS 0");
+            logger.warn(getName() + " WARNING: PRICE IS 0");
+        }
+
+        return thePrice;
+    }
+
+    private BigDecimal createBestHybridPrice(Order.OrderType orderType) {
         BigDecimal thePrice = BigDecimal.ZERO;
         if (orderType == Order.OrderType.BID
                 || orderType == Order.OrderType.EXIT_ASK) {
@@ -728,6 +788,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }
         if (thePrice.signum() == 0) {
             getTradeLogger().info("WARNING: PRICE IS 0");
+            warningLogger.warn(getName() + " WARNING: PRICE IS 0");
+            logger.warn(getName() + " WARNING: PRICE IS 0");
         }
 
         return thePrice;
@@ -755,7 +817,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
         } else {
 
-            BigDecimal bestPrice = createBestMakerPrice(limitOrder.getType());
+            BigDecimal bestPrice = createNonTakerPrice(limitOrder.getType(), fplayOrder.getPlacingType());
 
             if (bestPrice.signum() == 0) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "bestPrice is 0");

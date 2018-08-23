@@ -16,6 +16,8 @@ public class TradeRequestJson {
         TAKER,
         MAKER,
         HYBRID,
+        MAKER_TICK,
+        HYBRID_TICK,
     }
 
     private Type type;

@@ -445,6 +445,11 @@ public class BitmexService extends MarketService {
     }
 
     @Override
+    protected ContractType getContractType() {
+        return bitmexContractType;
+    }
+
+    @Override
     protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
         final MarketState marketState = getMarketState();
         if (marketState == MarketState.SYSTEM_OVERLOADED
@@ -1044,8 +1049,9 @@ public class BitmexService extends MarketService {
         throw new IllegalArgumentException("Use placeOrderToOpenOrders instead");
     }
 
-    public TradeResponse makerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
-        return placeOrderToOpenOrders(getCounterName(signalType), orderType, amountInContracts, bestQuotes, PlacingType.MAKER, signalType);
+    public TradeResponse nonTakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType,
+            PlacingType placingType) {
+        return placeOrderToOpenOrders(getCounterName(signalType), orderType, amountInContracts, bestQuotes, placingType, signalType);
     }
 
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
@@ -1132,18 +1138,19 @@ public class BitmexService extends MarketService {
                         tradeLogger.warn("placeOrder end waiting for reconnect.");
                     }
 
-                    if (placingType == PlacingType.MAKER) {
+                    if (placingType != PlacingType.TAKER) {
 
                         final BigDecimal bitmexPrice = settings.getBitmexPrice();
                         if (bitmexPrice != null && bitmexPrice.signum() != 0) {
                             thePrice = bitmexPrice;
                         } else {
-                            thePrice = createBestMakerPrice(orderType).setScale(1, BigDecimal.ROUND_HALF_UP);
+                            thePrice = createNonTakerPrice(orderType, placingType).setScale(1, BigDecimal.ROUND_HALF_UP);
                         }
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
 
                         final LimitOrder requestOrder = new LimitOrder(orderType, amount, bitmexContractType.getCurrencyPair(), "0", new Date(), thePrice);
-                        final LimitOrder resultOrder = bitmexTradeService.placeLimitOrderBitmex(requestOrder);
+                        boolean participateOnly = placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK;
+                        final LimitOrder resultOrder = bitmexTradeService.placeLimitOrderBitmex(requestOrder, participateOnly);
                         orderId = resultOrder.getId();
                         final FplayOrder fplayOrder = new FplayOrder(counterName, resultOrder, bestQuotes, placingType, signalType);
                         orderRepositoryService.save(fplayOrder);
@@ -1180,7 +1187,7 @@ public class BitmexService extends MarketService {
                         cancelledInRow.set(0);
                         nextMarketState = MarketState.ARBITRAGE;
 
-                    } else {
+                    } else { // TAKER
                         final MarketOrder marketOrder = new MarketOrder(orderType, amount, bitmexContractType.getCurrencyPair(), new Date());
                         final MarketOrder resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder);
                         orderId = resultOrder.getId();

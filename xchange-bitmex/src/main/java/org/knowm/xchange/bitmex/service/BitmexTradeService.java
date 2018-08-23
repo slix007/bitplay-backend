@@ -102,7 +102,8 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         return String.valueOf(order.getOrderID());
     }
 
-    public LimitOrder placeLimitOrderBitmex(LimitOrder limitOrder) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+    public LimitOrder placeLimitOrderBitmex(LimitOrder limitOrder, boolean participateOnly)
+            throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final String symbol = (String) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Symbol");
         final String side = limitOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
         final Double tradableAmount = limitOrder.getTradableAmount().setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
@@ -113,7 +114,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 tradableAmount,
                 limitPrice,
                 "Limit",
-                "ParticipateDoNotInitiate");
+                participateOnly ? "ParticipateDoNotInitiate" : "");
 
         return (LimitOrder) BitmexAdapters.adaptOrder(order);
     }
