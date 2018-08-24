@@ -2,12 +2,9 @@ package info.bitrich.xchangestream.bitmex;
 
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingTradingService;
-
+import io.reactivex.Observable;
 import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.dto.trade.OpenOrders;
-import org.knowm.xchange.exceptions.NotAvailableFromExchangeException;
-
-import io.reactivex.Observable;
 
 /**
  * Created by Sergey Shurmin on 5/17/17.
@@ -28,6 +25,9 @@ public class BitmexStreamingTradingService implements StreamingTradingService {
 
     @Override
     public Observable<OpenOrders> getOpenOrderObservable(Object... objects) {
-        throw new NotAvailableFromExchangeException();
+        String symbol = (String) objects[0];
+        String channel = "order:" + symbol;
+        return service.subscribeChannel("order", channel)
+                .map(BitmexAdapters::adaptOpenOrdersUpdate);
     }
 }

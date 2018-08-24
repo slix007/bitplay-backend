@@ -930,7 +930,7 @@ public class BitmexService extends MarketService {
 
     private Disposable startOpenOrderListener() {
         return exchange.getStreamingTradingService()
-                .getOpenOrdersObservable()
+                .getOpenOrderObservable(bitmexContractType.getSymbol())
                 .doOnError(throwable -> handleSubscriptionError(throwable, "onOpenOrdersListening"))
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
