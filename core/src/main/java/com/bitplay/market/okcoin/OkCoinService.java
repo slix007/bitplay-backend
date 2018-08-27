@@ -469,8 +469,9 @@ public class OkCoinService extends MarketService {
 
     private Disposable startPrivateDataListener() {
         String baseTool = okexContractType.getCurrencyPair().base.getCurrencyCode().toLowerCase();
+        final String contractName = okexContractType.getContractName();
         return exchange.getStreamingPrivateDataService()
-                .getAllPrivateDataObservable(baseTool)
+                .getAllPrivateDataObservable(baseTool, contractName)
                 .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())

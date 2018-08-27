@@ -45,6 +45,8 @@ public class Settings extends AbstractDocument {
     private OkexContractType okexContractType;
     private BitmexContractType bitmexContractType;
     @Transient
+    private String okexContractName;
+    @Transient
     private String okexContractTypeCurrent; // only for UI
     @Transient
     private String bitmexContractTypeCurrent; // only for UI

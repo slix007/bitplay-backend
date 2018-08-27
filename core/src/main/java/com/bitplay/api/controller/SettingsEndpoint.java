@@ -71,6 +71,7 @@ public class SettingsEndpoint {
             settings = settingsRepositoryService.getSettings();
             settings.setBitmexContractTypeCurrent(bitmexService.getFuturesContractName());
             settings.setOkexContractTypeCurrent(okCoinService.getFuturesContractName());
+            settings.setOkexContractName(settings.getOkexContractType().getContractName());
         } catch (Exception e) {
             final String error = String.format("Failed to get settings %s", e.toString());
             logger.error(error, e);
@@ -188,6 +189,7 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
 
             settings.setOkexContractTypeCurrent(okCoinService.getFuturesContractName());
+            settings.setOkexContractName(settings.getOkexContractType().getContractName());
         }
         if (settingsUpdate.getBitmexContractType() != null) {
             settings.setBitmexContractType(settingsUpdate.getBitmexContractType());
