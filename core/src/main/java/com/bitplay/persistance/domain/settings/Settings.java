@@ -68,7 +68,7 @@ public class Settings extends AbstractDocument {
 
     public BigDecimal getBFee(PlacingType placingType) {
         final FeeSettings feeSettings = getFeeSettings();
-        if (placingType == PlacingType.MAKER) {
+        if (placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK) {
             return feeSettings.getbMakerComRate();
         }
         return feeSettings.getbTakerComRate();
@@ -76,7 +76,7 @@ public class Settings extends AbstractDocument {
 
     public BigDecimal getOFee(PlacingType placingType) {
         final FeeSettings feeSettings = getFeeSettings();
-        if (placingType == PlacingType.MAKER) {
+        if (placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK) {
             return feeSettings.getoMakerComRate();
         }
         return feeSettings.getoTakerComRate(); // TAKER, HYBRID
