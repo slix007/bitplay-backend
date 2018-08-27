@@ -41,6 +41,11 @@ public class Config {
     @Value("${cold_storage}")
     private BigDecimal defaultColdStorage;
 
+    @Value("${ui.password.trader}")
+    private String uiPasswordForTrader;
+    @Value("${ui.password.admin}")
+    private String uiPasswordForAdmin;
+
     private Integer eBestMin;
     private BigDecimal coldStorage;
 

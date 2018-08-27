@@ -42,7 +42,10 @@ class DomainAwarePermissionEvaluator implements PermissionEvaluator {
     @Override
     public boolean hasPermission(Authentication authentication, Serializable targetId, String targetType,
             Object permission) {
-        return hasPermission(authentication, new DomainObjectReference(targetId, targetType), permission);
+        boolean permissionForAll = hasPermission(authentication, new DomainObjectReference(targetId, targetType), permission);
+        boolean roleAdmin = hasRole("ROLE_ADMIN", authentication);
+
+        return permissionForAll || roleAdmin;
     }
 
     private boolean hasRole(String role, Authentication auth) {

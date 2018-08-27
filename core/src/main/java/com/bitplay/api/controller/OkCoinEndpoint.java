@@ -15,6 +15,7 @@ import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +27,7 @@ import java.util.List;
 /**
  * Created by Sergey Shurmin on 4/3/17.
  */
+@Secured("ROLE_TRADER")
 @RestController
 @RequestMapping("/market/okcoin")
 public class OkCoinEndpoint {

@@ -1,7 +1,6 @@
 package com.bitplay.api.controller;
 
 import java.security.Principal;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.security.access.annotation.Secured;
@@ -18,22 +17,31 @@ public class UserEndpoint {
 
     @GetMapping
     Map<String, Object> info(@AuthenticationPrincipal Principal user) {
+        return getUserInfo(user);
+    }
 
+    private Map<String, Object> getUserInfo(@AuthenticationPrincipal Principal user) {
         Map<String, Object> map = new HashMap<>();
-        map.put("user", user.getName());
-        if (user instanceof UsernamePasswordAuthenticationToken) {
-            UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) user;
-            for (GrantedAuthority grantedAuthority : token.getAuthorities()) {
-                map.put(grantedAuthority.getAuthority(), user.getName());
+        if (user == null) {
+            map.put("user", "unauthorized");
+        } else {
+            map.put("user", user.getName());
+            if (user instanceof UsernamePasswordAuthenticationToken) {
+                UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) user;
+                Object[] objects = token.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .toArray();
+                map.put("roles", objects);
             }
+            map.put("details", user.toString());
         }
         return map;
     }
 
 
+    @Secured("ROLE_TRADER")
     @GetMapping("/manage")
-    @Secured("ROLE_ADMIN")
     Map<String, Object> manage(@AuthenticationPrincipal Principal user) {
-        return Collections.singletonMap("user", user.getName());
+        return getUserInfo(user);
     }
 }
