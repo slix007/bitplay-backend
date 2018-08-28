@@ -750,6 +750,13 @@ public class BitmexService extends MarketService {
                 tradeLogger.info(finishMsg);
                 warningLogger.info(finishMsg);
                 logger.info(finishMsg);
+
+                fetchOpenOrders();
+
+                if (!hasOpenOrders()) {
+                    logger.info("market-ready after reconnect: ");
+                    setFree();
+                }
             }
 
         } catch (Exception e) {

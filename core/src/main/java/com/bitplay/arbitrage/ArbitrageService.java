@@ -332,7 +332,7 @@ public class ArbitrageService {
                             secondMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
 
-                    } else if (!firstMarketService.isReadyForArbitrage() || !secondMarketService.isReadyForArbitrage()) {
+                    } else if (!firstMarketService.isReadyForArbitrageWithOOFetch() || !secondMarketService.isReadyForArbitrage()) {
                         final String logString = String.format("#%s Warning: busy for 6 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
                                 getCounter(),
                                 firstMarketService.isReadyForArbitrage(), firstMarketService.getOnlyOpenOrders().size(),

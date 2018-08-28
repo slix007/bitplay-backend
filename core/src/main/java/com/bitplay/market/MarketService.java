@@ -193,7 +193,14 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         if (isBusy()) {
             return false;
         }
+        return !hasOpenOrders();
+    }
 
+    public boolean isReadyForArbitrageWithOOFetch() {
+        if (isBusy()) {
+            return false;
+        }
+        fetchOpenOrders();
         return !hasOpenOrders();
     }
 
@@ -543,42 +550,37 @@ public abstract class MarketService extends MarketServiceOpenOrders {
      * @return list of open orders.
      */
     protected List<FplayOrder> fetchOpenOrders() {
-        synchronized (openOrdersLock) {
-
-            if (getExchange() != null && getTradeService() != null) {
-                try {
-                    final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
-                            .getOpenOrders();
-                    if (fetchedList == null) {
-                        logger.error("GetOpenOrdersError");
-                        throw new IllegalStateException("GetOpenOrdersError");
-                    }
-                    if (fetchedList.size() > 1) {
-                        getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
-                    }
-
-                    synchronized (openOrdersLock) {
-                        this.openOrders = fetchedList.stream()
-                                .map(limitOrder ->
-                                        this.openOrders.stream()
-                                                .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
-                                                .findAny()
-                                                .map(fOrd -> new FplayOrder(fOrd.getCounterName(), limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(),
-                                                        fOrd.getSignalType()))
-                                                .orElseGet(() -> new FplayOrder(getCounterName(), (limitOrder), null, null, null)))
-                                .collect(Collectors.toList());
-                    }
-
-                    // updateOpenOrders(fetchedList); - Don't use incremental update
-
-                } catch (Exception e) {
-                    logger.error("GetOpenOrdersError", e);
-                    throw new IllegalStateException("GetOpenOrdersError", e);
+        if (getExchange() != null && getTradeService() != null) {
+            try {
+                final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
+                        .getOpenOrders();
+                if (fetchedList == null) {
+                    logger.error("GetOpenOrdersError");
+                    throw new IllegalStateException("GetOpenOrdersError");
+                }
+                if (fetchedList.size() > 1) {
+                    getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
                 }
 
+                synchronized (openOrdersLock) {
+                    this.openOrders = fetchedList.stream()
+                            .map(limitOrder ->
+                                    this.openOrders.stream()
+                                            .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
+                                            .findAny()
+                                            .map(fOrd -> new FplayOrder(fOrd.getCounterName(), limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(),
+                                                    fOrd.getSignalType()))
+                                            .orElseGet(() -> new FplayOrder(getCounterName(), (limitOrder), null, null, null)))
+                            .collect(Collectors.toList());
+                }
 
+                // updateOpenOrders(fetchedList); - Don't use incremental update
+
+            } catch (Exception e) {
+                logger.error("GetOpenOrdersError", e);
+                throw new IllegalStateException("GetOpenOrdersError", e);
             }
-        } // synchronized (openOrdersLock)
+        }
         return openOrders;
     }
 
