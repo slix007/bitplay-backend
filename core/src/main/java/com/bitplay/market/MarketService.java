@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.Affordable;
@@ -15,6 +16,7 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
@@ -654,8 +656,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 .sample(100, TimeUnit.MILLISECONDS)
                 .subscribe(signalEvent -> {
                     try {
-                        if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
-                                || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
+                        if ((signalEvent == SignalEvent.B_ORDERBOOK_CHANGED && getName().equals(BitmexService.NAME))
+                                || (signalEvent == SignalEvent.O_ORDERBOOK_CHANGED && getName().equals(OkCoinService.NAME))) {
                             checkOpenOrdersForMoving();
                         }
                     } catch (NotYetInitializedException e) {
