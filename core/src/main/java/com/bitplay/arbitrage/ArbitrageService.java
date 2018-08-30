@@ -310,7 +310,7 @@ public class ArbitrageService {
                         // do nothing
 
                     } else if (firstMarketService.isBusy() || secondMarketService.isBusy()) {
-                        final String logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s)",
+                        String logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s). Checking bitmex openOrders...",
                                 getCounter(),
                                 firstMarketService.isBusy(),
                                 firstMarketService.getOnlyOpenOrders().size(),
@@ -319,6 +319,16 @@ public class ArbitrageService {
                         deltasLogger.warn(logString);
                         warningLogger.warn(logString);
 
+                        firstMarketService.isReadyForArbitrageWithOOFetch();
+
+                        logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s). After check of bitmex openOrders.",
+                                getCounter(),
+                                firstMarketService.isBusy(),
+                                firstMarketService.getOnlyOpenOrders().size(),
+                                secondMarketService.isBusy(),
+                                secondMarketService.getOnlyOpenOrders().size());
+                        deltasLogger.warn(logString);
+                        warningLogger.warn(logString);
 
                         if (firstMarketService.isBusy() && !firstMarketService.hasOpenOrders()) {
                             deltasLogger.warn("Warning: Free Bitmex");

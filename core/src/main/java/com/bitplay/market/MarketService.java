@@ -199,10 +199,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public boolean isReadyForArbitrageWithOOFetch() {
+        fetchOpenOrders();
+
         if (isBusy()) {
             return false;
         }
-        fetchOpenOrders();
         return !hasOpenOrders();
     }
 

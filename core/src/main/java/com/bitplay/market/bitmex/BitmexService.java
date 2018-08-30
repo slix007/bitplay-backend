@@ -741,11 +741,12 @@ public class BitmexService extends MarketService {
                         getSubscribersStatuses());
                 throw new Exception(msg);
             } else {
-                String finishMsg = String.format("Warning: Bitmex reconnect finished. OrderBook asks=%s, bids=%s, timestamp=%s. %s",
+                String finishMsg = String.format("Warning: Bitmex reconnect is finished. OrderBook asks=%s, bids=%s, timestamp=%s. %s. OpenOrdersCount=%s",
                         orderBook.getAsks().size(),
                         orderBook.getBids().size(),
                         orderBook.getTimeStamp(),
-                        getSubscribersStatuses());
+                        getSubscribersStatuses(),
+                        getOnlyOpenOrders().size());
 
                 tradeLogger.info(finishMsg);
                 warningLogger.info(finishMsg);
@@ -756,6 +757,11 @@ public class BitmexService extends MarketService {
                 if (!hasOpenOrders()) {
                     logger.info("market-ready after reconnect: ");
                     setFree();
+                } else {
+                    String msg = String.format("Warning: Bitmex reconnect is finished, but there are %s openOrders.", getOnlyOpenOrders().size());
+                    tradeLogger.info(msg);
+                    warningLogger.info(msg);
+                    logger.info(msg);
                 }
             }
 
