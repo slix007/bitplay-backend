@@ -1452,9 +1452,9 @@ public class OkCoinService extends MarketService {
 
                 if (margin.signum() > 0 && equity.signum() > 0 && d.signum() > 0 && n.signum() > 0) {
                     final BigDecimal L =
-//                            (position.getLiquidationPrice() != null && position.getLiquidationPrice().signum() != 0)
-//                            ? position.getLiquidationPrice()
-                            n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
+                            (position.getLiquidationPrice() != null && position.getLiquidationPrice().signum() != 0)
+                                    ? position.getLiquidationPrice()
+                                    : n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
                     final BigDecimal subtract = (BigDecimal.ONE.divide(m, 15, BigDecimal.ROUND_HALF_UP))
                             .subtract(BigDecimal.ONE.divide(L, 15, BigDecimal.ROUND_HALF_UP));
                     final BigDecimal eqLiq = equity.add(subtract.multiply(n));
@@ -1491,9 +1491,9 @@ public class OkCoinService extends MarketService {
                 if (d.signum() > 0) {
                     if (margin.signum() > 0 && equity.signum() > 0 && n.signum() > 0) {
                         final BigDecimal L =
-//                                (position.getLiquidationPrice() != null && position.getLiquidationPrice().signum() != 0)
-//                                ? position.getLiquidationPrice()
-                                n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
+                                (position.getLiquidationPrice() != null && position.getLiquidationPrice().signum() != 0)
+                                        ? position.getLiquidationPrice()
+                                        : n.divide(d, 2, BigDecimal.ROUND_HALF_UP);
                         final BigDecimal substract = (BigDecimal.ONE.divide(L, 15, BigDecimal.ROUND_HALF_UP))
                                 .subtract(BigDecimal.ONE.divide(m, 15, BigDecimal.ROUND_HALF_UP));
                         final BigDecimal eqLiq = equity.add(substract.multiply(n));
