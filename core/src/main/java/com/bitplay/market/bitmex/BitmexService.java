@@ -1597,9 +1597,12 @@ public class BitmexService extends MarketService {
 
         final BigDecimal bMrliq = persistenceService.fetchGuiLiqParams().getBMrLiq();
 
-        final BigDecimal m = (contractIndex instanceof BitmexContractIndex)
-                ? ((BitmexContractIndex) contractIndex).getMarkPrice()
-                : contractIndex.getIndexPrice();
+        if (!(contractIndex instanceof BitmexContractIndex)) {
+            // bitmex contract index is not updated yet. Skip the re-calc.
+            return;
+        }
+
+        final BigDecimal m = ((BitmexContractIndex) contractIndex).getMarkPrice();
         final BigDecimal L = position.getLiquidationPrice();
 
         if (equity != null && margin != null
