@@ -1,7 +1,7 @@
 package com.bitplay.security;
 
-import com.bitplay.Config;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.persistance.SettingsRepositoryService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +17,7 @@ public class TraderPermissionsService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     @Autowired
-    private Config config;
+    private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -35,7 +35,7 @@ public class TraderPermissionsService {
             final BigDecimal sumEBestUsd = arbitrageService.getSumEBestUsd();
             BigDecimal bEbest = arbitrageService.getbEbest();
             BigDecimal oEbest = arbitrageService.getoEbest();
-            final Integer eBestMin = config.getEBestMin();
+            final Integer eBestMin = settingsRepositoryService.getSettings().getEBestMin();
 
             if (eBestMin == null) {
                 log.warn("WARNING: e_best_min is not set");

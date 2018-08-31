@@ -41,4 +41,13 @@ public class Changelog0711 {
         }
     }
 
+    @ChangeSet(order = "004", id = "2018-08-31:e best min", author = "SergeiShurmin")
+    public void change04(MongoTemplate mongoTemplate) {
+        final List<Settings> all = mongoTemplate.findAll(Settings.class);
+        for (Settings settings : all) {
+            settings.setEBestMin(0);
+            mongoTemplate.save(settings);
+        }
+    }
+
 }

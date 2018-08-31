@@ -34,6 +34,7 @@ import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.RestartMonitoring;
 import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.repository.RestartMonitoringRepository;
 import com.bitplay.security.TraderPermissionsService;
 import java.io.IOException;
@@ -430,9 +431,10 @@ public class CommonUIService {
     public SumBalJson getSumBal() {
         final String sumBalString = arbitrageService.getSumBalString();
         final String sumEBest = arbitrageService.getSumEBestUsd().toPlainString();
-        final String sumEBestMin = config.getEBestMin().toString();
+        Settings settings = settingsRepositoryService.getSettings();
+        final String sumEBestMin = settings.getEBestMin().toString();
         final String timeToForbidden = traderPermissionsService.getTimeToForbidden();
-        final String coldStorage = config.getColdStorage().toPlainString();
+        final String coldStorage = settings.getColdStorageBtc().toPlainString();
         return new SumBalJson(sumBalString, sumEBest, sumEBestMin, timeToForbidden, coldStorage);
     }
 

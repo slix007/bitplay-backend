@@ -41,6 +41,7 @@ public class Settings extends AbstractDocument {
     private RestartSettings restartSettings;
     private Integer signalDelayMs;
     private BigDecimal coldStorageBtc;
+    private Integer eBestMin;
     private UsdQuoteType usdQuoteType;
     private OkexContractType okexContractType;
     private BitmexContractType bitmexContractType;
@@ -64,6 +65,8 @@ public class Settings extends AbstractDocument {
         settings.signalDelayMs = 1000;
         settings.okexContractType = OkexContractType.BTC_ThisWeek;
         settings.bitmexContractType = BitmexContractType.XBTUSD;
+        settings.coldStorageBtc = BigDecimal.ZERO;
+        settings.eBestMin = 0;
         settings.setId(1L);
         return settings;
     }

@@ -938,7 +938,7 @@ public class ArbitrageService {
             if (bW == null || oW == null) {
                 throw new IllegalStateException(String.format("Balance is not yet defined. bW=%s, oW=%s", bW, oW));
             }
-            final BigDecimal coldStorageBtc = config.getColdStorage();
+            final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
             final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumE = bEMark.add(oELast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumEBest = bEbest.add(oEbest).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
@@ -965,7 +965,7 @@ public class ArbitrageService {
                     usdQuote.toPlainString());
 
             if (!traderPermissionsService.isEBestMinOk()) {
-                Integer eBestMin = config.getEBestMin();
+                Integer eBestMin = persistenceService.getSettingsRepositoryService().getSettings().getEBestMin();
                 warningLogger.warn("WARNING: sumEBestUsd({}) < e_best_min({})", sumEBestUsd, eBestMin);
 
                 firstMarketService.setMarketState(MarketState.FORBIDDEN);
@@ -1045,7 +1045,7 @@ public class ArbitrageService {
                         usdQuote.toPlainString()
                 ));
 
-                final BigDecimal coldStorageBtc = config.getColdStorage();
+                final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
                 final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumE = bEmark.add(oElast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumEBest = bEbest.add(oEbest).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);

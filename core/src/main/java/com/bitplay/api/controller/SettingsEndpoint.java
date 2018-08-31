@@ -1,7 +1,6 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.Config;
-import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -54,18 +53,19 @@ public class SettingsEndpoint {
     /**
      * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
      */
-    @RequestMapping(value = "/reload-e-best-min",
+/*    @RequestMapping(value = "/reload-e-best-min",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public SumBalJson reloadSumEBestMin() {
         config.reload();
-        final String sumEBestMin = config.getEBestMin().toString();
-        final String coldStorage = config.getColdStorage().toPlainString();
+        final Settings settings = settingsRepositoryService.getSettings();
+        final String sumEBestMin = settings.getEBestMin().toString();
+        final String coldStorage = settings.getColdStorageBtc().toPlainString();
         final String timeToForbidden = traderPermissionsService.getTimeToForbidden();
         return new SumBalJson("", "", sumEBestMin, timeToForbidden, coldStorage);
     }
-
+*/
     @RequestMapping(value = "/all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public Settings getSettings() {
         Settings settings = new Settings();
@@ -178,10 +178,6 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
             arbitrageService.restartSignalDelay();
         }
-//        if (settingsUpdate.getColdStorageBtc() != null) {
-//            settings.setColdStorageBtc(settingsUpdate.getColdStorageBtc());
-//            settingsRepositoryService.saveSettings(settings);
-//        }
         if (settingsUpdate.getUsdQuoteType() != null) {
             settings.setUsdQuoteType(settingsUpdate.getUsdQuoteType());
             settingsRepositoryService.saveSettings(settings);
@@ -198,6 +194,21 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
 
             settings.setBitmexContractTypeCurrent(bitmexService.getFuturesContractName());
+        }
+        return settings;
+    }
+
+    @Secured("ROLE_ADMIN")
+    @RequestMapping(value = "/all-admin", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Settings updateAdminSettings(@RequestBody Settings settingsUpdate) {
+        final Settings settings = settingsRepositoryService.getSettings();
+        if (settingsUpdate.getColdStorageBtc() != null) {
+            settings.setColdStorageBtc(settingsUpdate.getColdStorageBtc());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getEBestMin() != null) {
+            settings.setEBestMin(settingsUpdate.getEBestMin());
+            settingsRepositoryService.saveSettings(settings);
         }
         return settings;
     }
