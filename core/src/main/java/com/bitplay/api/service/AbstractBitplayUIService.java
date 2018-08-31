@@ -103,7 +103,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public OrderBookJson getOrderBook() {
-        return convertOrderBookAndFilter(getBusinessService().getOrderBook());
+        return convertOrderBookAndFilter(getBusinessService().getOrderBook(), getBusinessService().getTicker());
     }
 
     public AccountInfoJson getAccountInfo() {
@@ -111,7 +111,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getBusinessService().getPosition());
     }
 
-    protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook) {
+    protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook, Ticker ticker) {
         final OrderBookJson orderJson = new OrderBookJson();
         final List<LimitOrder> bestBids = Utils.getBestBids(orderBook, 5);
         orderJson.setBid(bestBids.stream()
@@ -121,6 +121,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         orderJson.setAsk(bestAsks.stream()
                 .map(toOrderJson)
                 .collect(Collectors.toList()));
+        orderJson.setLastPrice(ticker.getLast());
         return orderJson;
     }
 

@@ -1437,15 +1437,15 @@ public class OkCoinService extends MarketService {
         final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
         final BigDecimal equity = accountInfoContracts.geteLast();
         final BigDecimal margin = accountInfoContracts.getMargin();
+        final BigDecimal m = ticker != null ? ticker.getLast() : null;
 
         if (equity != null && margin != null && oMrLiq != null
                 && position.getPriceAvgShort() != null
-                && position.getPriceAvgLong() != null) {
+                && position.getPriceAvgLong() != null
+                && m != null) {
             BigDecimal dql = null;
             String dqlString;
             if (pos.signum() > 0) {
-                final BigDecimal m = Utils.getBestAsk(orderBook).getLimitPrice();
-
                 if (margin.signum() > 0 && equity.signum() > 0) {
                     if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
                         warningLogger.warn("Warning recalcLiqInfo: L=" + position.getLiquidationPrice());
@@ -1464,8 +1464,6 @@ public class OkCoinService extends MarketService {
                 }
 
             } else if (pos.signum() < 0) {
-                final BigDecimal m = Utils.getBestBid(orderBook).getLimitPrice();
-
                 if (margin.signum() > 0 && equity.signum() > 0) {
                     if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
                         warningLogger.warn("Warning recalcLiqInfo: L=" + position.getLiquidationPrice());

@@ -72,6 +72,10 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                             ? new BigDecimal(instrument.getMarkPrice()).setScale(2, BigDecimal.ROUND_HALF_UP)
                             : null;
 
+                    final BigDecimal lastPrice = instrument.getLastPrice() != null
+                            ? new BigDecimal(instrument.getLastPrice()).setScale(2, BigDecimal.ROUND_HALF_UP)
+                            : null;
+
                     final BigDecimal indexPrice = instrument.getIndicativeSettlePrice() != null
                             ? new BigDecimal(instrument.getIndicativeSettlePrice()).setScale(2, BigDecimal.ROUND_HALF_UP)
                             : null;
@@ -85,6 +89,7 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                     return new BitmexContractIndex(
                             indexPrice,
                             markPrice,
+                            lastPrice,
                             Date.from(instrument.getTimestamp().toInstant()),
                             fundingRate,
                             fundingTimestamp);

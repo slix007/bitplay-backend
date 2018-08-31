@@ -1,31 +1,20 @@
 package com.bitplay.api.domain;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
  */
+@Getter
+@Setter
 public class OrderBookJson {
 
-    List<OrderJson> bid = new ArrayList<>();
-    List<OrderJson> ask = new ArrayList<>();
-
-    public List<OrderJson> getBid() {
-        return bid;
-    }
-
-    public void setBid(List<OrderJson> bid) {
-        this.bid = bid;
-    }
-
-    public List<OrderJson> getAsk() {
-        return ask;
-    }
-
-    public void setAsk(List<OrderJson> ask) {
-        this.ask = ask;
-    }
-
+    private List<OrderJson> bid = new ArrayList<>();
+    private List<OrderJson> ask = new ArrayList<>();
+    private BigDecimal lastPrice;
 
 }

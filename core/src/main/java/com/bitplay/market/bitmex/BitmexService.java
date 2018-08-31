@@ -72,6 +72,7 @@ import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
@@ -1564,6 +1565,9 @@ public class BitmexService extends MarketService {
         final BigDecimal markPrice = update.getMarkPrice() != null
                 ? update.getMarkPrice()
                 : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getMarkPrice() : BigDecimal.ZERO);
+        final BigDecimal lastPrice = update.getLastPrice() != null
+                ? update.getLastPrice()
+                : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getLastPrice() : BigDecimal.ZERO);
         final BigDecimal fundingRate;
         final OffsetDateTime fundingTimestamp;
         if (contractIndex instanceof BitmexContractIndex) {
@@ -1580,7 +1584,8 @@ public class BitmexService extends MarketService {
         }
         final Date timestamp = update.getTimestamp();
 
-        this.contractIndex = new BitmexContractIndex(indexPrice, markPrice, timestamp, fundingRate, fundingTimestamp);
+        this.contractIndex = new BitmexContractIndex(indexPrice, markPrice, lastPrice, timestamp, fundingRate, fundingTimestamp);
+        this.ticker = new Ticker.Builder().last(lastPrice).timestamp(new Date()).build();
     }
 
     @Override
