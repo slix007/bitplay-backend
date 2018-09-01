@@ -1,16 +1,15 @@
 package com.bitplay.market.bitmex;
 
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.utils.Utils;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.springframework.stereotype.Component;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 /**
  * Created by Sergey Shurmin on 11/12/17.
@@ -113,6 +112,10 @@ public class BitmexBalanceService implements BalanceService {
 //            fullBalance = recalcEquity(accountInfoContracts, pObj, orderBook);
 //            prevTime = nowTime;
 //        }
-        return recalcEquity(accountInfoContracts, pObj, orderBook);
+        try {
+            return recalcEquity(accountInfoContracts, pObj, orderBook);
+        } catch (NotYetInitializedException e) {
+            return new FullBalance(null, null, null, null);
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.bitplay.utils;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import info.bitrich.xchangestream.okex.dto.Tool;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -36,11 +37,7 @@ public class Utils {
         final ArrayList<LimitOrder> filtered = new ArrayList<>();
         final List<LimitOrder> bids = orderBook.getBids();
 //        bids.sort((o1, o2) -> o2.getLimitPrice().compareTo(o1.getLimitPrice()));
-        synchronized (bids) {
-            for (int i = 0; i < amount && i < bids.size(); i++) {
-                filtered.add(bids.get(i));
-            }
-        }
+        filterHalfOrderBook(amount, filtered, bids);
         return filtered;
     }
 
@@ -48,12 +45,19 @@ public class Utils {
         final ArrayList<LimitOrder> filtered = new ArrayList<>();
         final List<LimitOrder> asks = orderBook.getAsks();
 //        asks.sort(Comparator.comparing(LimitOrder::getLimitPrice));
-        synchronized (asks) {
-            for (int i = 0; i < amount && i < asks.size(); i++) {
-                filtered.add(asks.get(i));
+        filterHalfOrderBook(amount, filtered, asks);
+        return filtered;
+    }
+
+    private static void filterHalfOrderBook(int amount, ArrayList<LimitOrder> filtered, List<LimitOrder> obHalf) {
+        synchronized (obHalf) {
+            if (obHalf.size() == 0) {
+                throw new NotYetInitializedException();
+            }
+            for (int i = 0; i < amount && i < obHalf.size(); i++) {
+                filtered.add(obHalf.get(i));
             }
         }
-        return filtered;
     }
 
     public static String convertOrderTypeName(Order.OrderType orderType) {

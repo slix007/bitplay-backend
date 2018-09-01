@@ -11,6 +11,7 @@ import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.domain.futureindex.FutureIndexJson;
 import com.bitplay.api.service.BitplayUIServiceBitmex;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -37,7 +38,11 @@ public class BitmexEndpoint {
 
     @RequestMapping(value = "/order-book", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderBookJson okCoinOrderBook() {
-        return this.bitmex.getOrderBook();
+        try {
+            return this.bitmex.getOrderBook();
+        } catch (NotYetInitializedException e) {
+            return OrderBookJson.empty();
+        }
     }
 
     @RequestMapping(value = "/account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

@@ -1,7 +1,6 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
-import com.bitplay.api.domain.futureindex.FutureIndexJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.OrderBookJson;
 import com.bitplay.api.domain.OrderJson;
@@ -9,8 +8,10 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.api.domain.futureindex.FutureIndexJson;
 import com.bitplay.api.service.BitplayUIServiceOkCoin;
-
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import java.util.List;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -21,8 +22,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 4/3/17.
@@ -38,7 +37,11 @@ public class OkCoinEndpoint {
 
     @RequestMapping(value = "/order-book", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderBookJson okCoinOrderBook() {
-        return this.okCoin.getOrderBook();
+        try {
+            return this.okCoin.getOrderBook();
+        } catch (NotYetInitializedException e) {
+            return OrderBookJson.empty();
+        }
     }
 
     @RequestMapping(value = "/account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

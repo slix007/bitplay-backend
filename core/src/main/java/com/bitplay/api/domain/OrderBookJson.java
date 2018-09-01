@@ -3,7 +3,9 @@ package com.bitplay.api.domain;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -11,10 +13,15 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class OrderBookJson {
 
     private List<OrderJson> bid = new ArrayList<>();
     private List<OrderJson> ask = new ArrayList<>();
     private BigDecimal lastPrice;
 
+    public static OrderBookJson empty() {
+        return new OrderBookJson(new ArrayList<>(), new ArrayList<>(), BigDecimal.ZERO);
+    }
 }

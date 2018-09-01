@@ -255,7 +255,7 @@ public class BitmexService extends MarketService {
 
         logger.info("startAllListeners");
         orderBookSubscription = startOrderBookListener();
-        if (bitmexContractType != bitmexContractTypeForPrice) {
+        if (!sameOrderBookForPrice()) {
             orderBookForPriceSubscription = startOrderBookForPriceListener();
         }
         accountInfoSubscription = startAccountInfoListener();
@@ -723,29 +723,34 @@ public class BitmexService extends MarketService {
             startAllListeners();
 
             int attempts = 0;
-            while (attempts < 5 && orderBook.getAsks().size() == 0 && orderBook.getBids().size() == 0) {
+            while (attempts < 5) {
+                if (orderBookIsFilled() && orderBookForPriceIsFilled()) {
+                    break;
+                }
                 attempts++;
                 Thread.sleep(1000);
             }
 
-            if (orderBook.getAsks().size() < 10 || orderBook.getBids().size() < 10
-                    || (orderBookForPrice != null && orderBookForPrice.getAsks().size() < 10)
-                    || (orderBookForPrice != null && orderBookForPrice.getBids().size() < 10)) {
-                String msg = orderBookForPrice == null ? "" : String.format("OrderBookForPrice is not full: asks=%s, bids=%s, timestamp=%s. ",
-                        orderBookForPrice.getAsks().size(),
-                        orderBookForPrice.getBids().size(),
-                        orderBookForPrice.getTimeStamp());
-                msg += String.format("OrderBook is not full: asks=%s, bids=%s, timestamp=%s. %s",
-                        orderBook.getAsks().size(),
-                        orderBook.getBids().size(),
-                        orderBook.getTimeStamp(),
+            String msgOb = String.format("OrderBook: asks=%s, bids=%s, timestamp=%s. ",
+                    orderBook.getAsks().size(),
+                    orderBook.getBids().size(),
+                    orderBook.getTimeStamp());
+            String msgObForPrice = sameOrderBookForPrice() ? ""
+                    : String.format("OrderBookForPrice: asks=%s, bids=%s, timestamp=%s. ",
+                            orderBookForPrice.getAsks().size(),
+                            orderBookForPrice.getBids().size(),
+                            orderBookForPrice.getTimeStamp());
+
+            if (!orderBookIsFilled() || !orderBookForPriceIsFilled()) {
+                String msg = String.format("OrderBook(ForPrice) is not full. %s; %s. %s",
+                        msgOb,
+                        msgObForPrice,
                         getSubscribersStatuses());
                 throw new Exception(msg);
             } else {
-                String finishMsg = String.format("Warning: Bitmex reconnect is finished. OrderBook asks=%s, bids=%s, timestamp=%s. %s. OpenOrdersCount=%s",
-                        orderBook.getAsks().size(),
-                        orderBook.getBids().size(),
-                        orderBook.getTimeStamp(),
+                String finishMsg = String.format("Warning: Bitmex reconnect is finished. %s; %s. %s. OpenOrdersCount=%s",
+                        msgOb,
+                        msgObForPrice,
                         getSubscribersStatuses(),
                         getOnlyOpenOrders().size());
 
@@ -774,6 +779,19 @@ public class BitmexService extends MarketService {
 
             throw new ReconnectFailedException();
         }
+    }
+
+    private boolean sameOrderBookForPrice() {
+        return bitmexContractType == bitmexContractTypeForPrice;
+    }
+
+    private boolean orderBookIsFilled() {
+        return orderBook.getAsks().size() > 10 && orderBook.getBids().size() > 10;
+    }
+
+    private boolean orderBookForPriceIsFilled() {
+        return sameOrderBookForPrice()
+                || (orderBookForPrice.getAsks().size() > 10 && orderBookForPrice.getBids().size() > 10);
     }
 
     private void doRestart() {
@@ -929,7 +947,7 @@ public class BitmexService extends MarketService {
     @Override
     public OrderBook getOrderBookForPrice() {
         OrderBook orderBook;
-        if (bitmexContractType == bitmexContractTypeForPrice) {
+        if (sameOrderBookForPrice()) {
             synchronized (orderBookLock) {
                 orderBook = getShortOrderBook(this.orderBook);
             }
