@@ -67,41 +67,6 @@ public class CommonEndpoint {
         return new MarketList(firstName, secondName, firstFuturesContractName, secondFuturesContract);
     }
 
-    @RequestMapping(value = "/market/trade-log/poloniex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradeLogJson getPoloniexTradeLog() {
-        return commonUIService.getPoloniexTradeLog();
-    }
-
-    @RequestMapping(value = "/market/trade-log/bitmex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradeLogJson getBitmexTradeLog(@RequestParam(value = "date", required = false) String date) {
-        return commonUIService.getTradeLog("bitmex", date);
-    }
-
-    @RequestMapping(value = "/market/trade-log/okcoin", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradeLogJson getOkcoinTradeLog(@RequestParam(value = "date",required = false) String date) {
-        return commonUIService.getTradeLog("okcoin", date);
-    }
-
-    @RequestMapping(value = "/market/deltas-log", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradeLogJson getDeltasLog(@RequestParam(value = "date", required = false) String date) {
-        return commonUIService.getDeltasLog(date);
-    }
-
-    @RequestMapping(value = "/market/warning-log", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradeLogJson getWarningLog(@RequestParam(value = "date", required = false) String date) {
-        return commonUIService.getWarningLog(date);
-    }
-
-    @RequestMapping(value = "/market/debug-log", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradeLogJson getDebugLog(@RequestParam(value = "date", required = false) String date) {
-        return commonUIService.getDebugLog(date);
-    }
-
-    @RequestMapping(value = "/market/deltas", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public DeltasJson deltas() {
-        return commonUIService.getDeltas();
-    }
-
     @RequestMapping(value = "/market/update-borders",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
