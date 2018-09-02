@@ -1026,7 +1026,7 @@ public class BitmexService extends MarketService {
     private synchronized void recalcAffordableContracts() {
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
 
-        if (accountInfoContracts != null && orderBook != null && orderBook.getBids().size() > 0) {
+        if (accountInfoContracts != null && Utils.orderBookIsFull(orderBook)) {
             final BigDecimal availableBtc = accountInfoContracts.getAvailable();
             final BigDecimal equityBtc = accountInfoContracts.geteMark();
             final OrderBook orderBook = getOrderBook();

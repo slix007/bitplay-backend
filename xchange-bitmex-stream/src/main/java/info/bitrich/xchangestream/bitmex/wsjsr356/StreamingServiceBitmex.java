@@ -105,7 +105,7 @@ public class StreamingServiceBitmex {
 
                         int attempt = 0;
                         boolean sendPingSuccessfully = false;
-                        while (attempt < 5 && !sendPingSuccessfully) { // 5*2sec=10sec < 1 min(repeat interval)
+                        while (attempt < 5 && !sendPingSuccessfully) { // 5*4sec=20sec < 1 min(repeat interval)
                             attempt++;
 
                             sendPingSuccessfully = Completable.create(e -> {
@@ -124,7 +124,7 @@ public class StreamingServiceBitmex {
                                     clientEndPoint.sendMessage("ping");
                                 }
 
-                            }).blockingAwait(2, TimeUnit.SECONDS);
+                            }).blockingAwait(4, TimeUnit.SECONDS);
 
                         }
 //                        if (checkReconnect) {

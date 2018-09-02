@@ -1,20 +1,17 @@
 package com.bitplay.utils;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
-
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import info.bitrich.xchangestream.okex.dto.Tool;
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.trade.LimitOrder;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-
 import javafx.util.Pair;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderType;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.trade.LimitOrder;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
@@ -207,4 +204,7 @@ public class Utils {
         return message;
     }
 
+    public static boolean orderBookIsFull(OrderBook orderBook) {
+        return orderBook != null && orderBook.getBids().size() > 0 && orderBook.getAsks().size() > 0;
+    }
 }

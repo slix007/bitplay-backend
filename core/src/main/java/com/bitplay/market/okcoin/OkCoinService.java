@@ -628,7 +628,7 @@ public class OkCoinService extends MarketService {
         final BigDecimal volPlan = settingsRepositoryService.getSettings().getPlacingBlocks().getFixedBlockOkex();
 //        final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 
-        if (accountInfoContracts != null && position != null && orderBook != null && orderBook.getBids().size() > 0) {
+        if (accountInfoContracts != null && position != null && Utils.orderBookIsFull(orderBook)) {
             final BigDecimal availableBtc = accountInfoContracts.getAvailable();
             final BigDecimal equityBtc = accountInfoContracts.geteLast();
 
