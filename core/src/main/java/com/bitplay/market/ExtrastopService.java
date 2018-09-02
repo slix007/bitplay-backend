@@ -92,13 +92,13 @@ public class ExtrastopService {
             }
         } catch (IllegalArgumentException e) {
             logger.error("on check times", e);
-            warningLogger.error("ERROR on check times", e);
+//            warningLogger.error("ERROR on check times", e);
             bitmexService.setMarketState(MarketState.STOPPED);
             okCoinService.setMarketState(MarketState.STOPPED);
             restartService.doDeferredRestart(e.getMessage());
         } catch (Exception e) {
             logger.error("on check times", e);
-            warningLogger.error("ERROR on check times", e);
+//            warningLogger.error("ERROR on check times", e);
         }
     }
 

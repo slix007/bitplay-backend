@@ -723,7 +723,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             thePrice = createBestHybridPrice(orderType);
         } else { // placingType == null???
             String msg = String.format("%s PlacingType==%s, use MAKER", getName(), placingType);
-            warningLogger.warn(msg);
+//            warningLogger.warn(msg);
             logger.warn(msg);
             thePrice = createBestMakerPrice(orderType);
         }
