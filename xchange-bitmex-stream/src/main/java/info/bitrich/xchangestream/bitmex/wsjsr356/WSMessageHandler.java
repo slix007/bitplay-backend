@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import info.bitrich.xchangestream.service.exception.NotAuthorizedException;
 import io.reactivex.CompletableEmitter;
+import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import java.io.IOException;
 import java.util.Map;
@@ -22,8 +23,14 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     private Map<String, ObservableEmitter<JsonNode>> channels = new ConcurrentHashMap<>();
     private boolean isAuthenticated = false;
     private CompletableEmitter authCompleteEmitter;
-    private CompletableEmitter pingCompleteEmitter;
+    private Observable<String> pongObservable;
+    private volatile ObservableEmitter pongEmitter;
     private CompletableEmitter onDisconnectEmitter;
+
+    public WSMessageHandler() {
+        pongObservable = Observable.<String>create(emitter -> this.pongEmitter = emitter)
+                .share();
+    }
 
     @Override
     public void handleMessage(String message) {
@@ -48,9 +55,7 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     private void parseAndProcessJsonMessage(String message) {
         if (message.equals("pong")) {
             log.debug("Received message: " + message);
-            if (pingCompleteEmitter != null && !pingCompleteEmitter.isDisposed()) {
-                pingCompleteEmitter.onComplete();
-            }
+            pongEmitter.onNext("pong");
         } else {
             log.debug("Received message: " + message);
             ObjectMapper objectMapper = new ObjectMapper();
@@ -139,12 +144,12 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
         this.authCompleteEmitter = authCompleteEmitter;
     }
 
-    public void setPingCompleteEmitter(CompletableEmitter pingCompleteEmitter) {
-        this.pingCompleteEmitter = pingCompleteEmitter;
-    }
-
     public void setOnDisconnectEmitter(CompletableEmitter onDisconnectEmitter) {
         this.onDisconnectEmitter = onDisconnectEmitter;
+    }
+
+    public Observable<String> getPongObservable() {
+        return pongObservable;
     }
 
 }

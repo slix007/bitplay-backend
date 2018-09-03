@@ -16,6 +16,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.knowm.xchange.bitmex.service.BitmexDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,40 +104,53 @@ public class StreamingServiceBitmex {
             pingDisposable = Observable.interval(20, 60, TimeUnit.SECONDS)
                     .subscribe(aLong -> {
 
-                        int attempt = 0;
-                        boolean sendPingSuccessfully = false;
-                        while (attempt < 5 && !sendPingSuccessfully) { // 5*4sec=20sec < 1 min(repeat interval)
-                            attempt++;
+                        AtomicBoolean sendPingSuccessfully = new AtomicBoolean(false);
 
-                            sendPingSuccessfully = Completable.create(e -> {
-//                                if (checkReconnect) {
-//                                    log.error("CHECK RECONNECT ACTION: DO CLOSE");
-//                                    checkReconnect = false;
-//                                    clientEndPoint.doClose();
-//                                }
-                                msgHandler.setPingCompleteEmitter(e);
+                        // 10*2sec=20sec < 1 min(repeat interval)
+                        Disposable pongListener = msgHandler.getPongObservable().take(1)
+                                .timeInterval()
+                                .subscribe(timed -> {
+                                            if (timed.time() > 5000) {
+                                                log.info("WARNING: pong is long(ms): " + timed.time());
+                                            }
+                                            sendPingSuccessfully.set(true);
+                                        },
+                                        throwable -> log.error("pong waiting error", throwable),
+                                        () -> log.debug("ping-pong completed"));
 
-                                if (!clientEndPoint.isOpen()) {
-                                    log.error("Ping failed: clientEndPoint is not open");
-                                    onDisconnectEmitter.onComplete();
-                                } else {
-                                    log.debug("Send: ping");
-                                    clientEndPoint.sendMessage("ping");
-                                }
+                        for (int i = 0; i < 10; i++) {
+                            if (sendPingSuccessfully.get()) {
+                                break;
+                            }
 
-                            }).blockingAwait(4, TimeUnit.SECONDS);
+                            // Sending 'ping'
+                            if (!clientEndPoint.isOpen()) {
+                                log.error("Ping failed: clientEndPoint is not open");
+                                onDisconnectEmitter.onComplete();
+                                break;
+                            }
 
+                            log.debug("Send: ping");
+                            clientEndPoint.sendMessage("ping");
+
+                            Thread.sleep(2000);
+                            if (sendPingSuccessfully.get()) {
+                                break;
+                            }
                         }
+
 //                        if (checkReconnect) {
 //                            log.error("CHECK RECONNECT ACTION: DO CLOSE");
 //                            checkReconnect = false;
-//                            sendPingSuccessfully = false;
+////                            sendPingSuccessfully = false;
+//                            clientEndPoint.doClose();
 //                        }
 
-                        if (!sendPingSuccessfully) {
+                        if (!sendPingSuccessfully.get()) {
                             log.error("Ping failed. Timeout on waiting 'pong'.");
                             onDisconnectEmitter.onComplete();
                         }
+                        pongListener.dispose();
 
                     }, throwable -> {
                         log.error("Ping failed exception", throwable);

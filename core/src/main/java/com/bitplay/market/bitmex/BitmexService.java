@@ -41,6 +41,7 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.swagger.client.model.Error;
@@ -226,6 +227,32 @@ public class BitmexService extends MarketService {
             accountInfoSubscription = startAccountInfoListener();
         }
     }
+
+    public void afterReconnect() {
+        Disposable subscribe = Single.fromCallable(() -> {
+
+            logger.info("after reconnect check.");
+
+            dobleCheckAvailableBalance();
+
+            fetchOpenOrders();
+
+            if (!hasOpenOrders()) {
+                logger.info("market-ready after reconnect: ");
+                setFree();
+            } else {
+                String msg = String.format("Warning: Bitmex reconnect is finished, but there are %s openOrders.", getOnlyOpenOrders().size());
+                tradeLogger.info(msg);
+                warningLogger.info(msg);
+                logger.info(msg);
+            }
+            return new Object();
+        })
+                .subscribeOn(Schedulers.computation())
+                .subscribe();
+
+    }
+
 
     @Override
     public void initializeMarket(String key, String secret, ContractType contractType) {
@@ -758,17 +785,7 @@ public class BitmexService extends MarketService {
                 warningLogger.info(finishMsg);
                 logger.info(finishMsg);
 
-                fetchOpenOrders();
-
-                if (!hasOpenOrders()) {
-                    logger.info("market-ready after reconnect: ");
-                    setFree();
-                } else {
-                    String msg = String.format("Warning: Bitmex reconnect is finished, but there are %s openOrders.", getOnlyOpenOrders().size());
-                    tradeLogger.info(msg);
-                    warningLogger.info(msg);
-                    logger.info(msg);
-                }
+                afterReconnect();
             }
 
         } catch (Exception e) {
