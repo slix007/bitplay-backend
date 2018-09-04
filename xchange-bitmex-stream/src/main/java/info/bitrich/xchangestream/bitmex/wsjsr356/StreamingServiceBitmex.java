@@ -14,9 +14,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.knowm.xchange.bitmex.service.BitmexDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,25 +105,10 @@ public class StreamingServiceBitmex {
             pingDisposable = Observable.interval(20, 60, TimeUnit.SECONDS)
                     .subscribe(aLong -> {
 
-                        AtomicBoolean sendPingSuccessfully = new AtomicBoolean(false);
+                        boolean success = false;
+                        Instant start = Instant.now();
 
-                        // 10*2sec=20sec < 1 min(repeat interval)
-                        Disposable pongListener = msgHandler.getPongObservable().take(1)
-                                .timeInterval()
-                                .subscribe(timed -> {
-                                            if (timed.time() > 5000) {
-                                                log.info("WARNING: pong is long(ms): " + timed.time());
-                                            }
-                                            sendPingSuccessfully.set(true);
-                                        },
-                                        throwable -> log.error("pong waiting error", throwable),
-                                        () -> log.debug("ping-pong completed"));
-
-                        for (int i = 0; i < 10; i++) {
-                            if (sendPingSuccessfully.get()) {
-                                break;
-                            }
-
+                        for (int i = 0; i < 10; i++) { // 2*10 = 20sec
                             // Sending 'ping'
                             if (!clientEndPoint.isOpen()) {
                                 log.error("Ping failed: clientEndPoint is not open");
@@ -130,27 +116,31 @@ public class StreamingServiceBitmex {
                                 break;
                             }
 
-                            log.debug("Send: ping");
+                            if (i > 2) {
+                                log.info("Send: ping " + i);
+                            }
                             clientEndPoint.sendMessage("ping");
 
-                            Thread.sleep(2000);
-                            if (sendPingSuccessfully.get()) {
+                            success = msgHandler.completablePong().blockingAwait(2, TimeUnit.SECONDS);
+                            if (success) {
                                 break;
                             }
+                        }
+
+                        Instant end = Instant.now();
+                        log.info("ping-pong(sec): " + Duration.between(start, end).getSeconds());
+
+                        if (!success) {
+                            log.error("Ping failed. Timeout on waiting 'pong'.");
+                            onDisconnectEmitter.onComplete();
                         }
 
 //                        if (checkReconnect) {
 //                            log.error("CHECK RECONNECT ACTION: DO CLOSE");
 //                            checkReconnect = false;
-////                            sendPingSuccessfully = false;
 //                            clientEndPoint.doClose();
 //                        }
 
-                        if (!sendPingSuccessfully.get()) {
-                            log.error("Ping failed. Timeout on waiting 'pong'.");
-                            onDisconnectEmitter.onComplete();
-                        }
-                        pongListener.dispose();
 
                     }, throwable -> {
                         log.error("Ping failed exception", throwable);

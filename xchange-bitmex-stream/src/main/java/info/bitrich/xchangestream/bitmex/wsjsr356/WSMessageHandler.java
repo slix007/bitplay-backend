@@ -4,12 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import info.bitrich.xchangestream.service.exception.NotAuthorizedException;
+import io.reactivex.Completable;
 import io.reactivex.CompletableEmitter;
-import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,14 +24,8 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     private Map<String, ObservableEmitter<JsonNode>> channels = new ConcurrentHashMap<>();
     private boolean isAuthenticated = false;
     private CompletableEmitter authCompleteEmitter;
-    private Observable<String> pongObservable;
-    private volatile ObservableEmitter pongEmitter;
+    private final AtomicReference<CompletableEmitter> pongEmitter = new AtomicReference<>();
     private CompletableEmitter onDisconnectEmitter;
-
-    public WSMessageHandler() {
-        pongObservable = Observable.<String>create(emitter -> this.pongEmitter = emitter)
-                .share();
-    }
 
     @Override
     public void handleMessage(String message) {
@@ -55,7 +50,10 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     private void parseAndProcessJsonMessage(String message) {
         if (message.equals("pong")) {
             log.debug("Received message: " + message);
-            pongEmitter.onNext("pong");
+            CompletableEmitter completableEmitter = pongEmitter.get();
+            if (completableEmitter != null && !completableEmitter.isDisposed()) {
+                completableEmitter.onComplete();
+            }
         } else {
             log.debug("Received message: " + message);
             ObjectMapper objectMapper = new ObjectMapper();
@@ -148,8 +146,7 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
         this.onDisconnectEmitter = onDisconnectEmitter;
     }
 
-    public Observable<String> getPongObservable() {
-        return pongObservable;
+    public Completable completablePong() {
+        return Completable.create(emitter -> this.pongEmitter.set(emitter));
     }
-
 }
