@@ -152,6 +152,7 @@ public class BitmexService extends MarketService {
     private BitmexContractType bitmexContractTypeForPrice = BitmexContractType.XBTUSD;
     private AtomicInteger cancelledInRow = new AtomicInteger();
     private volatile boolean reconnectInProgress = false;
+    private volatile AtomicInteger reconnectCount = new AtomicInteger(0);
 
     public Date getOrderBookLastTimestamp() {
         return orderBookLastTimestamp;
@@ -216,6 +217,10 @@ public class BitmexService extends MarketService {
 
     public boolean isReconnectInProgress() {
         return reconnectInProgress;
+    }
+
+    public Integer getReconnectCount() {
+        return reconnectCount.get();
     }
 
     @Scheduled(fixedRate = 30000)
@@ -359,6 +364,12 @@ public class BitmexService extends MarketService {
     }
 
     private void reconnectOrRestart() {
+        final Integer maxBitmexReconnects = settingsRepositoryService.getSettings().getRestartSettings().getMaxBitmexReconnects();
+        int currReconnectCount = reconnectCount.incrementAndGet();
+        if (currReconnectCount >= maxBitmexReconnects) {
+            doRestart(String.format("Warning: Bitmex max reconnects(%s) is reached.", currReconnectCount));
+            return;
+        }
         int attempt = 0;
         while (true) {
             try {
@@ -373,13 +384,7 @@ public class BitmexService extends MarketService {
             } catch (ReconnectFailedException e) {
                 attempt++;
                 if (attempt >= MAX_RECONNECTS_BEFORE_RESTART) {
-                    final String errMsg = String
-                            .format("Warning: Bitmex reconnect attempt=%s failed. Do restart. %s", attempt, getSubscribersStatuses());
-                    warningLogger.info(errMsg);
-                    tradeLogger.info(errMsg);
-                    logger.info(errMsg);
-
-                    doRestart();
+                    doRestart(String.format("Warning: Bitmex reconnect attempt=%s/%s failed.", currReconnectCount, attempt));
                     break;
                 }
             }
@@ -811,7 +816,12 @@ public class BitmexService extends MarketService {
                 || (orderBookForPrice.getAsks().size() > 10 && orderBookForPrice.getBids().size() > 10);
     }
 
-    private void doRestart() {
+    private void doRestart(String errMsg) {
+        errMsg += " Do restart. " + getSubscribersStatuses();
+        warningLogger.info(errMsg);
+        tradeLogger.info(errMsg);
+        logger.info(errMsg);
+
         try {
 
             restartService.doFullRestart("BitmexService#doRestart(). orderBookLastTimestamp=" + orderBookLastTimestamp);

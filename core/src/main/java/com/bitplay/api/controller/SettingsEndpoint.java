@@ -167,9 +167,13 @@ public class SettingsEndpoint {
         }
 
         if (settingsUpdate.getRestartSettings() != null) {
-            RestartSettings restartSettings = settingsUpdate.getRestartSettings();
-            settings.getRestartSettings().setMaxTimestampDelay(
-                    restartSettings != null ? restartSettings.getMaxTimestampDelay() : settings.getRestartSettings().getMaxTimestampDelay());
+            RestartSettings rUpdate = settingsUpdate.getRestartSettings();
+            settings.getRestartSettings().setMaxTimestampDelay(rUpdate.getMaxTimestampDelay() != null
+                    ? rUpdate.getMaxTimestampDelay()
+                    : settings.getRestartSettings().getMaxTimestampDelay());
+            settings.getRestartSettings().setMaxBitmexReconnects(rUpdate.getMaxBitmexReconnects() != null
+                    ? rUpdate.getMaxBitmexReconnects()
+                    : settings.getRestartSettings().getMaxBitmexReconnects());
             settingsRepositoryService.saveSettings(settings);
         }
 

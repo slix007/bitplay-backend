@@ -6,8 +6,13 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.okcoin.OOHangedCheckerService;
-import com.bitplay.market.okcoin.OkCoinService;
-
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,14 +21,6 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Map;
 
 /**
  * Created by Sergey Shurmin on 9/23/17.
@@ -81,6 +78,8 @@ public class DebugEndpoints {
         }
 
         deadLockDescr += "<br>OOHangedChecker: " + ooHangedCheckerService.getStatus();
+
+        deadLockDescr += "<br>BitmexReconnectCount=" + bs.getReconnectCount();
 
         return new ResultJson(resultJson.getResult(), deadLockDescr);
     }

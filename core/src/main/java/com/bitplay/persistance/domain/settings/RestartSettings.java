@@ -17,9 +17,12 @@ public class RestartSettings {
     private Integer maxTimestampDelay;
 
 
+    private Integer maxBitmexReconnects;
+
     public static RestartSettings createDefaults() {
         RestartSettings restartSettings = new RestartSettings();
         restartSettings.setMaxTimestampDelay(60);
+        restartSettings.setMaxBitmexReconnects(10);
         return restartSettings;
     }
 
