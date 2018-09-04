@@ -1448,7 +1448,6 @@ public class OkCoinService extends MarketService {
             if (pos.signum() > 0) {
                 if (margin.signum() > 0 && equity.signum() > 0) {
                     if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
-                        warningLogger.warn("Warning recalcLiqInfo: L=" + position.getLiquidationPrice());
                         return;
                     }
 
@@ -1466,7 +1465,6 @@ public class OkCoinService extends MarketService {
             } else if (pos.signum() < 0) {
                 if (margin.signum() > 0 && equity.signum() > 0) {
                     if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
-                        warningLogger.warn("Warning recalcLiqInfo: L=" + position.getLiquidationPrice());
                         return;
                     }
 
