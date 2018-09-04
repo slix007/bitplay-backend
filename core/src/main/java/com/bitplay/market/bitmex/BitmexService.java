@@ -373,7 +373,7 @@ public class BitmexService extends MarketService {
         int attempt = 0;
         while (true) {
             try {
-                final String msg = String.format("Warning: Bitmex reconnect attempt=%s. %s", attempt, getSubscribersStatuses());
+                final String msg = String.format("Warning: Bitmex reconnect attempt=%s/%s. %s", currReconnectCount, attempt, getSubscribersStatuses());
                 warningLogger.info(msg);
                 tradeLogger.info(msg);
                 logger.info(msg);
