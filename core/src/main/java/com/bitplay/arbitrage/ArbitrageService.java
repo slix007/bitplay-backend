@@ -134,6 +134,7 @@ public class ArbitrageService {
     private final PublishSubject<DeltaChange> deltaChangesPublisher = PublishSubject.create();
     private final AtomicBoolean arbInProgress = new AtomicBoolean();
     private volatile Instant startSignalTime = null;
+    private volatile Instant lastCalcSumBal = null;
 
     // Signal delay
     private volatile Long signalDelayActivateTime;
@@ -916,6 +917,7 @@ public class ArbitrageService {
 
     @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)
     public void calcSumBalForGui() {
+        lastCalcSumBal = Instant.now();
         final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
         final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();
         if (firstAccount != null && secondAccount != null) {
@@ -1300,6 +1302,10 @@ public class ArbitrageService {
         SignalTimeParams signalTimeParams = signalTimeService.getSignalTimeParams();
         int count = signalTimeParams != null ? signalTimeParams.getAvgDen().intValue() : 0;
         return String.format("Signal(%s) started %s sec ago", count, res);
+    }
+
+    public Instant getLastCalcSumBal() {
+        return lastCalcSumBal;
     }
 
     private class PreliqBlocks {

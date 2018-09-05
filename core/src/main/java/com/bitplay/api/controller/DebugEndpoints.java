@@ -81,6 +81,13 @@ public class DebugEndpoints {
 
         deadLockDescr += "<br>BitmexReconnectCount=" + bs.getReconnectCount();
 
+        if (arbitrageService.getLastCalcSumBal() != null) {
+            Date lastCalcSumBal = Date.from(arbitrageService.getLastCalcSumBal());
+
+            deadLockDescr += "<br>Last sum_bal update=" + sdf.format(lastCalcSumBal);
+        }
+
+
         return new ResultJson(resultJson.getResult(), deadLockDescr);
     }
 
