@@ -552,7 +552,6 @@ public class OkCoinService extends MarketService {
     /**
      * See {@link OOHangedCheckerService}.
      */
-    //    @Scheduled(fixedDelay = 10000)
     void openOrdersHangedChecker() {
         updateOOStatuses();
 
