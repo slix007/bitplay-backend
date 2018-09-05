@@ -5,6 +5,8 @@ import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import info.bitrich.xchangestream.okex.dto.Tool;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.util.Pair;
@@ -12,6 +14,7 @@ import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.slf4j.Logger;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
@@ -206,5 +209,13 @@ public class Utils {
 
     public static boolean orderBookIsFull(OrderBook orderBook) {
         return orderBook != null && orderBook.getBids().size() > 0 && orderBook.getAsks().size() > 0;
+    }
+
+    public static void logIfLong(Instant start, Instant end, Logger logger, String methodName) {
+        long seconds = Duration.between(start, end).getSeconds();
+        if (seconds > 10) {
+            logger.warn(methodName + " duration is long(sec): " + seconds);
+        }
+
     }
 }

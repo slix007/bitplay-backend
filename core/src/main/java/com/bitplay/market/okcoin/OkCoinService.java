@@ -38,6 +38,7 @@ import io.reactivex.schedulers.Schedulers;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -340,6 +341,7 @@ public class OkCoinService extends MarketService {
 
     @Scheduled(initialDelay = 5 * 1000, fixedRate = 2000)
     public void requestAccountInfo() {
+        Instant start = Instant.now();
         try {
             exchange.getStreamingAccountInfoService().requestAccountInfo();
         } catch (NotConnectedException e) {
@@ -359,15 +361,20 @@ public class OkCoinService extends MarketService {
         } catch (IOException e) {
             logger.error("AccountInfo request error", e);
         }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "requestAccountInfo");
     }
 
     @Scheduled(fixedRate = 2000)
     public void fetchPositionScheduled() {
+        Instant start = Instant.now();
         try {
             fetchPosition();
         } catch (Exception e) {
             logger.error("On fetchPositionScheduled", e);
         }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "fetchPositionScheduled");
     }
 
     @Override
@@ -544,9 +551,12 @@ public class OkCoinService extends MarketService {
 
     @Scheduled(fixedDelay = 2000)
     public void openOrdersCleaner() {
+        Instant start = Instant.now();
         if (openOrders.size() > 0) {
             cleanOldOO();
         }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "openOrdersCleaner");
     }
 
     /**
@@ -1559,6 +1569,8 @@ public class OkCoinService extends MarketService {
 
     @Scheduled(fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
+        Instant start = Instant.now();
+
         if (isMarketStopped()) {
             return;
         }
@@ -1597,6 +1609,8 @@ public class OkCoinService extends MarketService {
                 }
             }
         }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "checkForDecreasePosition");
     }
 
     @Override

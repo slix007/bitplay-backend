@@ -49,6 +49,7 @@ import io.swagger.client.model.Execution;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -210,9 +211,12 @@ public class BitmexService extends MarketService {
 
     @Scheduled(fixedDelay = 2000)
     public void openOrdersCleaner() {
+        Instant start = Instant.now();
         if (openOrders.size() > 0) {
             cleanOldOO();
         }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "openOrdersCleaner");
     }
 
     public boolean isReconnectInProgress() {
@@ -225,12 +229,15 @@ public class BitmexService extends MarketService {
 
     @Scheduled(fixedRate = 30000)
     public void dobleCheckAvailableBalance() {
+        Instant start = Instant.now();
         if (accountInfoContracts == null) {
             tradeLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener");
             warningLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener");
             accountInfoSubscription.dispose();
             accountInfoSubscription = startAccountInfoListener();
         }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "doubleCheckAvailableBalance");
     }
 
     public void afterReconnect() {
@@ -1760,6 +1767,7 @@ public class BitmexService extends MarketService {
 
     @Scheduled(initialDelay = 30 * 1000, fixedDelay = 5 * 1000) // 30 sec
     public void checkForDecreasePosition() {
+        Instant start = Instant.now();
         if (isMarketStopped()) {
             return;
         }
@@ -1797,6 +1805,8 @@ public class BitmexService extends MarketService {
                 }
             }
         }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "checkForDecreasePosition");
     }
 
     public BitmexSwapService getBitmexSwapService() {

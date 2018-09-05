@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ExtrastopService {
 
-    private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
+    private final static Logger logger = LoggerFactory.getLogger(ExtrastopService.class);
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     @Autowired
@@ -50,6 +50,7 @@ public class ExtrastopService {
 
     @Scheduled(initialDelay = 60 * 1000, fixedDelay = 10 * 1000)
     public void checkOrderBooks() {
+        Instant start = Instant.now();
         try {
             if (bitmexService.isReconnectInProgress()) {
                 logger.warn("skip checkOrderBooks: bitmex reconnect IN_PROGRESS");
@@ -100,6 +101,8 @@ public class ExtrastopService {
             logger.error("on check times", e);
 //            warningLogger.error("ERROR on check times", e);
         }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "checkOrderBooks");
     }
 
     private void printBest3Prices(OrderBook bOB, OrderBook oOB) {

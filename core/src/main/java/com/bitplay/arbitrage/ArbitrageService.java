@@ -974,6 +974,8 @@ public class ArbitrageService {
                 secondMarketService.setMarketState(MarketState.FORBIDDEN);
             }
         }
+        Instant end = Instant.now();
+        Utils.logIfLong(lastCalcSumBal, end, logger, "calcSumBalForGui");
     }
 
     public void printSumBal(String counterName) {
