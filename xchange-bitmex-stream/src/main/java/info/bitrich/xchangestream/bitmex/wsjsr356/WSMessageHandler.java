@@ -25,6 +25,7 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     private boolean isAuthenticated = false;
     private CompletableEmitter authCompleteEmitter;
     private final AtomicReference<CompletableEmitter> pongEmitter = new AtomicReference<>();
+    private AtomicReference<Boolean> waitingForPong = new AtomicReference<>(false);
     private CompletableEmitter onDisconnectEmitter;
 
     @Override
@@ -50,6 +51,7 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     private void parseAndProcessJsonMessage(String message) {
         if (message.equals("pong")) {
             log.debug("Received message: " + message);
+            waitingForPong.set(false);
             CompletableEmitter completableEmitter = pongEmitter.get();
             if (completableEmitter != null && !completableEmitter.isDisposed()) {
                 completableEmitter.onComplete();
@@ -146,7 +148,15 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
         this.onDisconnectEmitter = onDisconnectEmitter;
     }
 
+    public void setWaitingForPong() {
+        this.waitingForPong.set(true);
+    }
+
+    public Boolean isWaitingForPong() {
+        return waitingForPong.get();
+    }
+
     public Completable completablePong() {
-        return Completable.create(emitter -> this.pongEmitter.set(emitter));
+        return Completable.create(this.pongEmitter::set);
     }
 }

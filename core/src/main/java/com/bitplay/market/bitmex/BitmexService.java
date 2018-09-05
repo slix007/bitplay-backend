@@ -380,7 +380,7 @@ public class BitmexService extends MarketService {
         int attempt = 0;
         while (true) {
             try {
-                final String msg = String.format("Warning: Bitmex reconnect attempt=%s/%s. %s", currReconnectCount, attempt, getSubscribersStatuses());
+                final String msg = String.format("Warning: Bitmex reconnect(%s) attempt=%s. %s", currReconnectCount, attempt, getSubscribersStatuses());
                 warningLogger.info(msg);
                 tradeLogger.info(msg);
                 logger.info(msg);
@@ -391,7 +391,7 @@ public class BitmexService extends MarketService {
             } catch (ReconnectFailedException e) {
                 attempt++;
                 if (attempt >= MAX_RECONNECTS_BEFORE_RESTART) {
-                    doRestart(String.format("Warning: Bitmex reconnect attempt=%s/%s failed.", currReconnectCount, attempt));
+                    doRestart(String.format("Warning: Bitmex reconnect(%s) attempt=%s failed.", currReconnectCount, attempt));
                     break;
                 }
             }

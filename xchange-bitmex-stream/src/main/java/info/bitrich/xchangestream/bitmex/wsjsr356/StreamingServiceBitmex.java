@@ -30,7 +30,9 @@ public class StreamingServiceBitmex {
     private WSClientEndpoint clientEndPoint;
     private WSMessageHandler msgHandler;
     private Disposable pingDisposable;
-    private boolean checkReconnect = true;
+    private int checkReconnect = 2;
+    private final Object pingLock = new Object();
+    private volatile int disconnectCount = 0;
 
     public StreamingServiceBitmex(String apiUrl) {
         this.apiUrl = apiUrl;
@@ -97,62 +99,68 @@ public class StreamingServiceBitmex {
     }
 
     public Completable onDisconnect() {
+        int currentIter = disconnectCount;
         return Completable.create(onDisconnectEmitter -> {
 
             msgHandler.setOnDisconnectEmitter(onDisconnectEmitter);
 
             // Sending 'ping' just to keep the connection alive.
             pingDisposable = Observable.interval(20, 60, TimeUnit.SECONDS)
+                    .takeWhile(observer -> currentIter == disconnectCount)
                     .subscribe(aLong -> {
 
-                        boolean success = false;
-                        Instant start = Instant.now();
+                        synchronized (pingLock) {
+                            log.info(currentIter + " ping-pong start");
+                            msgHandler.setWaitingForPong();
+                            Instant start = Instant.now();
 
-                        for (int i = 0; i < 10; i++) { // 2*10 = 20sec
-                            // Sending 'ping'
-                            if (!clientEndPoint.isOpen()) {
-                                log.error("Ping failed: clientEndPoint is not open");
+                            for (int i = 0; i < 10; i++) { // 2*10 = 20sec
+                                // Sending 'ping'
+                                if (!clientEndPoint.isOpen()) {
+                                    log.error(currentIter + " Ping failed: clientEndPoint is not open");
+                                    onDisconnectEmitter.onComplete();
+                                    break;
+                                }
+
+                                if (i > 2) {
+                                    log.info(currentIter + " Send: ping " + i);
+                                }
+                                clientEndPoint.sendMessage("ping");
+
+                                boolean success = msgHandler.completablePong().blockingAwait(2, TimeUnit.SECONDS);
+
+                                if (!msgHandler.isWaitingForPong()) {
+                                    break;
+                                }
+                            }
+
+                            Instant end = Instant.now();
+                            log.info(currentIter + " ping-pong(sec): " + Duration.between(start, end).getSeconds());
+
+                            if (msgHandler.isWaitingForPong()) {
+                                log.error(currentIter + " Ping failed. Timeout on waiting 'pong'.");
                                 onDisconnectEmitter.onComplete();
-                                break;
                             }
 
-                            if (i > 2) {
-                                log.info("Send: ping " + i);
-                            }
-                            clientEndPoint.sendMessage("ping");
+//                            if (checkReconnect % 2 == 0) {
+//                                log.error(currentIter + " CHECK RECONNECT ACTION: DO CLOSE");
+//                                clientEndPoint.doClose();
+//                            }
+//                            checkReconnect++;
 
-                            success = msgHandler.completablePong().blockingAwait(2, TimeUnit.SECONDS);
-                            if (success) {
-                                break;
-                            }
                         }
-
-                        Instant end = Instant.now();
-                        log.info("ping-pong(sec): " + Duration.between(start, end).getSeconds());
-
-                        if (!success) {
-                            log.error("Ping failed. Timeout on waiting 'pong'.");
-                            onDisconnectEmitter.onComplete();
-                        }
-
-//                        if (checkReconnect) {
-//                            log.error("CHECK RECONNECT ACTION: DO CLOSE");
-//                            checkReconnect = false;
-//                            clientEndPoint.doClose();
-//                        }
-
-
                     }, throwable -> {
-                        log.error("Ping failed exception", throwable);
+                        log.error(currentIter + " Ping failed exception", throwable);
                         onDisconnectEmitter.onComplete();
-                    }, () -> log.info("pingDisposable onComplete()"));
+                    }, () -> log.info(currentIter + " pingDisposable onComplete()"));
         });
     }
 
     public Completable disconnect() {
         return Completable.create((completableEmitter) -> {
             try {
-                log.info("disconnect");
+                log.info(disconnectCount + " disconnect");
+                disconnectCount++;
                 pingDisposable.dispose();
                 clientEndPoint.doClose();
                 msgHandler.getChannels().clear();
