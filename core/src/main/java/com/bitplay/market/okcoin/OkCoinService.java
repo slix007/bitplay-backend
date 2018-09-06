@@ -365,7 +365,7 @@ public class OkCoinService extends MarketService {
         Utils.logIfLong(start, end, logger, "requestAccountInfo");
     }
 
-    @Scheduled(fixedRate = 2000)
+    @Scheduled(fixedDelay = 2000)
     public void fetchPositionScheduled() {
         Instant start = Instant.now();
         try {

@@ -227,7 +227,7 @@ public class BitmexService extends MarketService {
         return reconnectCount.get();
     }
 
-    @Scheduled(fixedRate = 30000)
+    @Scheduled(fixedDelay = 30000)
     public void dobleCheckAvailableBalance() {
         Instant start = Instant.now();
         if (accountInfoContracts == null) {
