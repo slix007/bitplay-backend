@@ -787,11 +787,11 @@ public class BitmexService extends MarketService {
                         getSubscribersStatuses());
                 throw new Exception(msg);
             } else {
-                String finishMsg = String.format("Warning: Bitmex reconnect is finished. %s; %s. %s. OpenOrdersCount=%s",
+                String finishMsg = String.format("Warning: Bitmex reconnect is finished. %s; %s. %s. OpenOrdersCount(но это не точно)=%s",
                         msgOb,
                         msgObForPrice,
                         getSubscribersStatuses(),
-                        getOnlyOpenOrders().size());
+                        openOrders.size());
 
                 tradeLogger.info(finishMsg);
                 warningLogger.info(finishMsg);
