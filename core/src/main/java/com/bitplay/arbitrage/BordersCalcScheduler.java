@@ -22,11 +22,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class BordersCalcScheduler {
 
-//    private static final Logger logger = LoggerFactory.getLogger(BordersService.class);
-    //    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
-//    private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
-//    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
-//
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private volatile ScheduledFuture<?> scheduledRecalc;
 

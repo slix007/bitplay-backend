@@ -37,7 +37,6 @@ public class PosDiffService {
 
     private static final Logger logger = LoggerFactory.getLogger(com.bitplay.arbitrage.ArbitrageService.class);
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
-    private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
     private static final long MIN_CORR_TIME_AFTER_READY_MS = 25000; // 25 sec
 
