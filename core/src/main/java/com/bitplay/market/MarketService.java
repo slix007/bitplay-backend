@@ -268,7 +268,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             case ARBITRAGE:
 //            fetchPosition(); -- deadlock
                 setMarketState(MarketState.READY);
-                eventBus.send(BtsEvent.MARKET_GOT_FREE);
+                eventBus.send(BtsEvent.MARKET_FREE);
                 if (getArbitrageService().getSignalType().isCorr()) {
                     warningLogger.info("WARN: finishCorr from unusual place");
                     getPosDiffService().finishCorr(true);

@@ -1370,7 +1370,7 @@ public class BitmexService extends MarketService {
                 }
                 nextMarketState = MarketState.READY;
                 setMarketState(nextMarketState, counterName);
-                eventBus.send(BtsEvent.MARKET_GOT_FREE);
+                eventBus.send(BtsEvent.MARKET_FREE);
             }
         } finally {
             setMarketState(nextMarketState, counterName);

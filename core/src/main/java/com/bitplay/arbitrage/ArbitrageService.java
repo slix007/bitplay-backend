@@ -205,7 +205,7 @@ public class ArbitrageService {
                 .observeOn(scheduler)
                 .subscribe(btsEvent -> {
                     try {
-                        if (btsEvent == BtsEvent.MARKET_GOT_FREE) {
+                        if (btsEvent == BtsEvent.MARKET_FREE) {
                             onArbDone();
                         }
                     } catch (Exception e) {

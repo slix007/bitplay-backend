@@ -810,7 +810,7 @@ public class OkCoinService extends MarketService {
                 }
                 nextState = MarketState.READY;
                 setMarketState(nextState, counterName);
-                eventBus.send(BtsEvent.MARKET_GOT_FREE);
+                eventBus.send(BtsEvent.MARKET_FREE);
             }
         } finally {
             // RESET STATE
