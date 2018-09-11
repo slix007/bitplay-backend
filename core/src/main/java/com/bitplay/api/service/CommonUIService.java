@@ -44,8 +44,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -55,8 +53,6 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class CommonUIService {
-
-    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -396,8 +392,8 @@ public class CommonUIService {
         arbitrageService.getFirstMarketService().getEventBus().send(BtsEvent.MARKET_FREE_FROM_UI);
         arbitrageService.getSecondMarketService().getEventBus().send(BtsEvent.MARKET_FREE_FROM_UI);
         arbitrageService.getArbInProgress().set(false);
-        log.info("Free markets states");
-        deltasLogger.info("Free markets states");
+        log.info("Free markets states from UI");
+        arbitrageService.printToCurrentDeltaLog("Free markets states from UI");
         return new MarketFlagsJson(
                 arbitrageService.getFirstMarketService().isReadyForArbitrage(),
                 arbitrageService.getSecondMarketService().isReadyForArbitrage()
@@ -424,7 +420,7 @@ public class CommonUIService {
 //    }
 
     public ResultJson printSumBal() {
-        arbitrageService.printSumBal("button");
+//        arbitrageService.printSumBal(null,"button");
         return new ResultJson("OK", "");
     }
 

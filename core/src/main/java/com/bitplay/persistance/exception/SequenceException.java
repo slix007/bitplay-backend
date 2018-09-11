@@ -1,5 +1,10 @@
 package com.bitplay.persistance.exception;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class SequenceException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
@@ -7,7 +12,6 @@ public class SequenceException extends RuntimeException {
     private String errCode;
     private String errMsg;
 
-    //get, set...
     public SequenceException(String errMsg) {
         this.errMsg = errMsg;
     }

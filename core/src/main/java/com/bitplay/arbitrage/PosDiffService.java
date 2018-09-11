@@ -36,7 +36,6 @@ import org.springframework.stereotype.Service;
 public class PosDiffService {
 
     private static final Logger logger = LoggerFactory.getLogger(com.bitplay.arbitrage.ArbitrageService.class);
-    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
     private static final long MIN_CORR_TIME_AFTER_READY_MS = 25000; // 25 sec
 
@@ -138,13 +137,13 @@ public class PosDiffService {
                     final CorrParams corrParams = persistenceService.fetchCorrParams();
                     corrParams.getCorr().incSuccesses();
                     persistenceService.saveCorrParams(corrParams);
-                    deltasLogger.info("Correction succeed. " + corrParams.getCorr().toString());
+                    arbitrageService.printToCurrentDeltaLog("Correction succeed. " + corrParams.getCorr().toString());
                 } else {
                     // error++
                     final CorrParams corrParams = persistenceService.fetchCorrParams();
                     corrParams.getCorr().incFails();
                     persistenceService.saveCorrParams(corrParams);
-                    deltasLogger.info("Correction failed. {}. dc={}", corrParams.getCorr().toString(), dc);
+                    arbitrageService.printToCurrentDeltaLog(String.format("Correction failed. %s. dc=%s", corrParams.getCorr().toString(), dc));
                 }
 
             } catch (Exception e) {
@@ -155,7 +154,7 @@ public class PosDiffService {
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
                 corrParams.getCorr().incFails();
                 persistenceService.saveCorrParams(corrParams);
-                deltasLogger.info("Error on finishCorr. {}. dc={}", corrParams.getCorr().toString(), dc);
+                arbitrageService.printToCurrentDeltaLog(String.format("Error on finishCorr. %s. dc=%s", corrParams.getCorr().toString(), dc));
             }
         }
     }

@@ -18,12 +18,13 @@ import org.slf4j.LoggerFactory;
  */
 public class AvgPrice implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(AvgPrice.class);
-    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     private final String counterName;
     private final Map<String, AvgPriceItem> pItems = new LinkedHashMap<>();
     private final BigDecimal fullAmount;
     private final String marketName;
+
+    private String deltaLogTmp;
 
     private BigDecimal openPrice;
 
@@ -86,8 +87,6 @@ public class AvgPrice implements Serializable {
         if (notNullItems.isEmpty()) {
             if (withLogs) {
                 String msg = String.format("#%s %s WARNING: this is only openPrice. %s", counterName, marketName, this);
-                logger.warn(msg);
-                deltasLogger.info(msg);
                 throw new RoundIsNotDoneException(msg);
             }
             return openPrice; // may be null
@@ -109,7 +108,6 @@ public class AvgPrice implements Serializable {
             String msg = String.format("#%s %s WARNING avg price calc: %s NiceFormat: %s", counterName, marketName, this, sb.toString());
             logger.warn(msg);
             if (withLogs) {
-                deltasLogger.info(msg);
                 throw new RoundIsNotDoneException(msg);
             }
 //                final BigDecimal left = fullAmount.subtract(sumDenominator);
@@ -126,10 +124,14 @@ public class AvgPrice implements Serializable {
         avgPrice = sumDenominator.signum() == 0 ? BigDecimal.ZERO : sumNumerator.divide(sumDenominator, 2, RoundingMode.HALF_UP);
 
         if (withLogs) {
-            deltasLogger.info(String.format("#%s %sAvgPrice: %s = %s", counterName, marketName, sb.toString(), avgPrice));
+            deltaLogTmp = String.format("#%s %sAvgPrice: %s = %s", counterName, marketName, sb.toString(), avgPrice);
         }
 
         return avgPrice;
+    }
+
+    public String getDeltaLogTmp() {
+        return deltaLogTmp;
     }
 
     public synchronized Map<String, AvgPriceItem> getpItems() {

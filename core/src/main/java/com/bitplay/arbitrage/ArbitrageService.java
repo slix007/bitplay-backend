@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.BordersService.TradingSignal;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DealPrices;
+import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DeltaMon;
 import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.arbitrage.dto.PlBlocks;
@@ -23,6 +24,7 @@ import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.persistance.DeltaLogService;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.CumParams;
@@ -36,6 +38,7 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.UsdQuoteType;
+import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -75,7 +78,6 @@ import org.springframework.stereotype.Service;
 public class ArbitrageService {
 
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
-    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
@@ -109,6 +111,10 @@ public class ArbitrageService {
     private PreliqUtilsService preliqUtilsService;
     @Autowired
     private SignalTimeService signalTimeService;
+    @Autowired
+    private DeltaLogService deltaLogService;
+    @Autowired
+    private FplayTradeRepository fplayTradeRepository;
 
 //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
@@ -135,6 +141,8 @@ public class ArbitrageService {
     private final AtomicBoolean arbInProgress = new AtomicBoolean();
     private volatile Instant startSignalTime = null;
     private volatile Instant lastCalcSumBal = null;
+
+    private Long tradeId;
 
     // Signal delay
     private volatile Long signalDelayActivateTime;
@@ -210,13 +218,16 @@ public class ArbitrageService {
                         }
                     } catch (Exception e) {
                         logger.error("On arb-done handling", e);
-                        deltasLogger.error("ERROR on arb-done handling" + e.toString());
+//                        deltasLogger.error("ERROR on arb-done handling" + e.toString());
                         warningLogger.error("ERROR on arb-done handling" + e.toString());
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }
 
     private void onArbDone() {
+
+        final Long tradeIdSnap = tradeId != null ? new Long(tradeId) : fplayTradeRepository.getLastId();
+        final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
 
         if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
 
@@ -229,8 +240,7 @@ public class ArbitrageService {
                     }
 
                     // start writeLogArbitrageIsDone();
-                    final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
-                    deltasLogger.info("#{} is done. SignalTime={} sec ---", counterNameSnap, signalTimeSec);
+                    deltaLogService.info(tradeIdSnap, counterNameSnap, String.format("#%s is done. SignalTime=%s sec ---", counterNameSnap, signalTimeSec));
 
                     // use snapshot of Params
                     DealPrices dealPricesSnap;
@@ -249,6 +259,7 @@ public class ArbitrageService {
                             signalTypeSnap,
                             guiLiqParams,
                             deltaName,
+                            tradeIdSnap,
                             counterNameSnap,
                             settings,
                             okexPosition,
@@ -256,7 +267,8 @@ public class ArbitrageService {
                             (OkCoinService) getSecondMarketService(),
                             preliqUtilsService,
                             persistenceService,
-                            this
+                            this,
+                            new DeltaLogWriter(tradeIdSnap, counterNameSnap, deltaLogService)
                     );
 
                     if (signalTypeSnap.isPreliq()) {
@@ -301,6 +313,9 @@ public class ArbitrageService {
 
         theCheckBusyTimer = Completable.timer(6, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
+
+                    final String counterName = firstMarketService.getCounterName();
+
                     if (firstMarketService.isMarketStopped()
                             || secondMarketService.isMarketStopped()
                             || firstMarketService.getMarketState() == MarketState.SWAP_AWAIT
@@ -317,7 +332,7 @@ public class ArbitrageService {
                                 firstMarketService.getOnlyOpenOrders().size(),
                                 secondMarketService.isBusy(),
                                 secondMarketService.getOnlyOpenOrders().size());
-                        deltasLogger.warn(logString);
+                        deltaLogService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
 
                         firstMarketService.isReadyForArbitrageWithOOFetch();
@@ -328,17 +343,17 @@ public class ArbitrageService {
                                 firstMarketService.getOnlyOpenOrders().size(),
                                 secondMarketService.isBusy(),
                                 secondMarketService.getOnlyOpenOrders().size());
-                        deltasLogger.warn(logString);
+                        deltaLogService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
 
                         if (firstMarketService.isBusy() && !firstMarketService.hasOpenOrders()) {
-                            deltasLogger.warn("Warning: Free Bitmex");
+                            deltaLogService.warn(tradeId, counterName, "Warning: Free Bitmex");
                             warningLogger.warn("Warning: Free Bitmex");
                             firstMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
 
                         if (secondMarketService.isBusy() && !secondMarketService.hasOpenOrders()) {
-                            deltasLogger.warn("Warning: Free Okcoin");
+                            deltaLogService.warn(tradeId, counterName, "Warning: Free Okcoin");
                             warningLogger.warn("Warning: Free Okcoin");
                             secondMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
@@ -348,7 +363,7 @@ public class ArbitrageService {
                                 getCounter(),
                                 firstMarketService.isReadyForArbitrage(), firstMarketService.getOnlyOpenOrders().size(),
                                 secondMarketService.isReadyForArbitrage(), secondMarketService.getOnlyOpenOrders().size());
-                        deltasLogger.warn(logString);
+                        deltaLogService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
                     }
                 })
@@ -706,7 +721,7 @@ public class ArbitrageService {
         final String counterName = firstMarketService.getCounterName();
 
         if (dynamicDeltaLogs != null) {
-            deltasLogger.info(String.format("#%s %s", counterName, dynamicDeltaLogs));
+            deltaLogService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
         }
 
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
@@ -735,7 +750,7 @@ public class ArbitrageService {
             dealPrices.calcPlanPosAo();
 
             if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
-                deltasLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
+                deltaLogService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
                 warningLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
             }
         }
@@ -743,7 +758,7 @@ public class ArbitrageService {
         arbInProgress.set(true);
         startSignalTime = Instant.now();
 
-        deltasLogger.info("#{} is started ---", counterName);
+        deltaLogService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType, okexPlacingType, counterName);
         signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.ASK, b_block, bestQuotes, signalType, btmPlacingType, counterName);
@@ -818,7 +833,7 @@ public class ArbitrageService {
 
         final String counterName = firstMarketService.getCounterName();
         if (dynamicDeltaLogs != null) {
-            deltasLogger.info(String.format("#%s %s", counterName, dynamicDeltaLogs));
+            deltaLogService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
         }
 
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
@@ -847,7 +862,7 @@ public class ArbitrageService {
             dealPrices.calcPlanPosAo();
 
             if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
-                deltasLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
+                deltaLogService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
                 warningLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
             }
         }
@@ -855,7 +870,7 @@ public class ArbitrageService {
         arbInProgress.set(true);
         startSignalTime = Instant.now();
 
-        deltasLogger.info("#{} is started ---", counterName);
+        deltaLogService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.ASK, o_block, bestQuotes, signalType, okexPlacingType, counterName);
         signalService.placeBitmexOrderOnSignal(firstMarketService, Order.OrderType.BID, b_block, bestQuotes, signalType, btmPlacingType, counterName);
@@ -867,7 +882,6 @@ public class ArbitrageService {
 
     private void writeLogOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final BordersService.TradingSignal tradingSignal,
             final BigDecimal borderX, final BigDecimal deltaX, final String deltaNumber) {
-        deltasLogger.info("------------------------------------------");
 
         Integer counter1 = params.getCounter1();
         Integer counter2 = params.getCounter2();
@@ -889,22 +903,22 @@ public class ArbitrageService {
             iterationMarker = "whole iteration";
         }
 
-        String counterName = String.valueOf(counter1 + counter2);
         if (signalType.isPreliq()) {
             CorrParams corrParams = persistenceService.fetchCorrParams();
             corrParams.getPreliq().incTotalCount();
             persistenceService.saveCorrParams(corrParams);
-            counterName = firstMarketService.getCounterName();
         }
+        final String counterName = firstMarketService.getCounterName();
+        tradeId = deltaLogService.createTrade(counterName);
+        deltaLogService.info(tradeId, counterName, "------------------------------------------");
 
-        deltasLogger.info(String.format("#%s count=%s+%s=%s(completed=%s+%s=%s) %s", counterName,
+        deltaLogService.info(tradeId, counterName, String.format("count=%s+%s=%s(completed=%s+%s=%s) %s",
                 counter1, counter2, counter1 + counter2,
                 cc1, cc2, cc1 + cc2,
                 iterationMarker));
 
-        deltasLogger.info(String.format("#%s delta%s=%s-%s=%s; %s",
-                //usdP=%s; btcO=%s; usdO=%s; w=%s; ",
-                counterName, deltaNumber,
+        deltaLogService.info(tradeId, counterName, String.format("delta%s=%s-%s=%s; %s",
+                deltaNumber,
                 bid1_X.toPlainString(), ask1_X.toPlainString(),
                 deltaX.toPlainString(),
                 tradingSignal == null
@@ -912,7 +926,7 @@ public class ArbitrageService {
                         : ("borderV2:" + tradingSignal.toString())
         ));
 
-        printSumBal(counterName);
+        printSumBal(tradeId, counterName);
     }
 
     @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)
@@ -978,7 +992,20 @@ public class ArbitrageService {
         Utils.logIfLong(lastCalcSumBal, end, logger, "calcSumBalForGui");
     }
 
-    public void printSumBal(String counterName) {
+    public void printToCurrentDeltaLog(String msg) {
+        final Long tradeIdSnap = tradeId != null ? new Long(tradeId) : fplayTradeRepository.getLastId();
+        String counterName = firstMarketService.getCounterName();
+        deltaLogService.info(tradeIdSnap, counterName, msg);
+    }
+
+    public void printSumBal(Long tradeId, String counterName) {
+        if (tradeId == null) {
+            tradeId = this.tradeId;
+            if (tradeId == null) {
+                logger.warn("printSumBal with tradeId==null");
+                return;
+            }
+        }
         try {
             final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
             final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();
@@ -998,7 +1025,8 @@ public class ArbitrageService {
                 final OrderBook bOrderBook = firstMarketService.getOrderBook();
                 final BigDecimal bBestAsk = Utils.getBestAsks(bOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal bBestBid = Utils.getBestBids(bOrderBook, 1).get(0).getLimitPrice();
-                deltasLogger.info(String.format("#%s b_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
+                deltaLogService.info(tradeId, counterName, String.format(
+                        "#%s b_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
                         bW.toPlainString(), bW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         bEmark.toPlainString(), bEmark.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1031,7 +1059,8 @@ public class ArbitrageService {
                 final OrderBook oOrderBook = secondMarketService.getOrderBook();
                 final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
-                deltasLogger.info(String.format("#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
+                deltaLogService.info(tradeId, counterName, String.format(
+                        "#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
                         oW.toPlainString(), oW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         oElast.toPlainString(), oElast.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1073,7 +1102,7 @@ public class ArbitrageService {
                         sumM.toPlainString(), sumM.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         sumA.toPlainString(), sumA.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         usdQuote.toPlainString());
-                deltasLogger.info(sBalStr);
+                deltaLogService.info(tradeId, counterName, sBalStr);
 
                 final String bDQLMin;
                 final String oDQLMin;
@@ -1086,14 +1115,16 @@ public class ArbitrageService {
                     oDQLMin = String.format("o_DQL_open_min=%s", guiLiqParams.getODQLOpenMin());
                 }
 
-                deltasLogger.info(String.format("#%s Pos diff: %s", counterName, getPosDiffString()));
+                deltaLogService.info(tradeId, counterName, String.format("#%s Pos diff: %s", counterName, getPosDiffString()));
                 final LiqInfo bLiqInfo = getFirstMarketService().getLiqInfo();
-                deltasLogger.info(String.format("#%s %s; %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString(), bDQLMin));
+                deltaLogService
+                        .info(tradeId, counterName, String.format("#%s %s; %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString(), bDQLMin));
                 final LiqInfo oLiqInfo = getSecondMarketService().getLiqInfo();
-                deltasLogger.info(String.format("#%s %s; %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString(), oDQLMin));
+                deltaLogService
+                        .info(tradeId, counterName, String.format("#%s %s; %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString(), oDQLMin));
             }
         } catch (Exception e) {
-            deltasLogger.info("Error on printSumBal");
+            deltaLogService.error(tradeId, counterName, "Error on printSumBal");
             logger.error("Error on printSumBal", e);
         }
     }
@@ -1385,5 +1416,9 @@ public class ArbitrageService {
             forbidden = false;
             return this;
         }
+    }
+
+    public Long getTradeId() {
+        return tradeId;
     }
 }

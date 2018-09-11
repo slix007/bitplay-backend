@@ -2,6 +2,7 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.DealPrices;
+import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DeltaName;
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
@@ -33,7 +34,6 @@ import org.springframework.beans.BeanUtils;
 @AllArgsConstructor
 public class AfterArbTask implements Runnable {
 
-    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private static final String NA = "NA";
@@ -42,6 +42,7 @@ public class AfterArbTask implements Runnable {
     private final SignalType signalType;
     private final GuiLiqParams guiLiqParams;
     private final DeltaName deltaName;
+    private final Long tradeId;
     private final String counterName;
     private final Settings settings;
     private final Position okPosition;
@@ -50,6 +51,7 @@ public class AfterArbTask implements Runnable {
     private final PreliqUtilsService preliqUtilsService;
     private final PersistenceService persistenceService;
     private final ArbitrageService arbitrageService;
+    private final DeltaLogWriter deltaLogWriter;
 
     @Override
     public void run() {
@@ -69,17 +71,17 @@ public class AfterArbTask implements Runnable {
 
             calcCumAndPrintLogs(b_price_fact, ok_price_fact, cumParams);
 
-            arbitrageService.printSumBal(counterName); // TODO calcFull balance ???
+            arbitrageService.printSumBal(tradeId, counterName); // TODO calcFull balance ???
 
             persistenceService.saveCumParams(cumParams);
 
-            deltasLogger.info("#{} Round completed", counterName);
+            deltaLogWriter.info(String.format("#%s Round completed", counterName));
 
         } catch (RoundIsNotDoneException e) {
-            deltasLogger.info("Round is not done. Error: " + e.getMessage());
+            deltaLogWriter.info("Round is not done. Error: " + e.getMessage());
             log.error("Round is not done", e);
         } catch (Exception e) {
-            deltasLogger.info("Round is not done. Write logs error: " + e.getMessage());
+            deltaLogWriter.info("Round is not done. Write logs error: " + e.getMessage());
             log.error("Round is not done. Write logs error", e);
         }
     }
@@ -97,12 +99,12 @@ public class AfterArbTask implements Runnable {
                     bitmexService, okCoinService);
 
         } catch (RoundIsNotDoneException e) {
-            deltasLogger.info("Round is not done. Error: " + e.getMessage());
+            deltaLogWriter.info("Round is not done. Error: " + e.getMessage());
             log.error("Round is not done", e);
             preliqUtilsService.preliqCountersOnRoundDone(false, guiLiqParams, signalType,
                     bitmexService, okCoinService);
         } catch (Exception e) {
-            deltasLogger.info("Round is not done. Write logs error: " + e.getMessage());
+            deltaLogWriter.info("Round is not done. Write logs error: " + e.getMessage());
             log.error("Round is not done. Write logs error", e);
             preliqUtilsService.preliqCountersOnRoundDone(false, guiLiqParams, signalType,
                     bitmexService, okCoinService);
@@ -117,7 +119,7 @@ public class AfterArbTask implements Runnable {
         final BigDecimal ok_bid = dealPrices.getBestQuotes().getBid1_o();
         final BigDecimal ok_ask = dealPrices.getBestQuotes().getAsk1_o();
 
-        deltasLogger.info(String.format("#%s Params for calc: con=%s, b_bid=%s, b_ask=%s, ok_bid=%s, ok_ask=%s, b_price_fact=%s, ok_price_fact=%s",
+        deltaLogWriter.info(String.format("#%s Params for calc: con=%s, b_bid=%s, b_ask=%s, ok_bid=%s, ok_ask=%s, b_price_fact=%s, ok_price_fact=%s",
                 counterName, con, b_bid, b_ask, ok_bid, ok_ask, b_price_fact, ok_price_fact));
 
         if (deltaName == DeltaName.B_DELTA) {
@@ -222,16 +224,18 @@ public class AfterArbTask implements Runnable {
 
                 bitmexService.updateAvgPrice(counterName, dealPrices.getbPriceFact());
                 b_price_fact = dealPrices.getbPriceFact().getAvg(true, counterName);
+                deltaLogWriter.info(dealPrices.getbPriceFact().getDeltaLogTmp());
                 break;
 
             } catch (RoundIsNotDoneException e) {
-                // logs are written in AvgPrice.getAvgPrice(true);
+                log.warn(e.getMessage());
+                deltaLogWriter.info(e.getMessage());
                 if (attempt == maxAttempts) {
                     throw e;
                 }
+                deltaLogWriter.info("Wait 200mc for avgPrice");
 
                 try {
-                    deltasLogger.info("Wait 200mc for avgPrice");
                     Thread.sleep(200);
                 } catch (InterruptedException e1) {
                     log.error("Error on Wait 200mc for avgPrice", e1);
@@ -257,18 +261,20 @@ public class AfterArbTask implements Runnable {
 
             try {
                 ok_price_fact = dealPrices.getoPriceFact().getAvg(true, counterName);
+                deltaLogWriter.info(dealPrices.getoPriceFact().getDeltaLogTmp());
 
                 okCoinService.writeAvgPriceLog();
                 break;
 
             } catch (RoundIsNotDoneException e) {
-                // logs are written in AvgPrice.getAvgPrice(true);
+                log.warn(e.getMessage());
+                deltaLogWriter.info(e.getMessage());
                 if (attempt == maxAttempts) {
                     throw e;
                 }
+                deltaLogWriter.info("Wait 200mc for avgPrice");
 
                 try {
-//                    deltasLogger.info("Wait 200mc for avgPrice");
                     Thread.sleep(200);
                 } catch (InterruptedException e1) {
                     log.error("Error on Wait 200mc for avgPrice", e1);
@@ -339,7 +345,7 @@ public class AfterArbTask implements Runnable {
                         diffFactBr = diffFactBrComputer.compute();
                     } catch (Exception e) {
                         warningLogger.warn(e.toString());
-                        deltasLogger.warn("WARNING: " + e.toString());
+                        deltaLogWriter.warn("WARNING: " + e.toString());
                         log.warn("WARNING", e);
                         cumParams.setDiffFactBrFailsCount(cumParams.getDiffFactBrFailsCount() + 1);
                         warningLogger.warn("diff_fact_br_fails_count = " + cumParams.getDiffFactBrFailsCount());
@@ -348,7 +354,7 @@ public class AfterArbTask implements Runnable {
             } else {
                 String msg = "WARNING: borderParams.activeVersion" + borderParams.getActiveVersion();
                 warningLogger.warn(msg);
-                deltasLogger.warn(msg);
+                deltaLogWriter.warn(msg);
             }
         }
 
@@ -380,7 +386,7 @@ public class AfterArbTask implements Runnable {
                 .multiply(BigDecimal.valueOf(2));
         cumParams.setSlip(slip);
 
-        deltasLogger.info(String.format("#%s %s; " +
+        deltaLogWriter.info(String.format("#%s %s; " +
                         "cum_delta_fact=%s; " +
                         "diff_fact_v1=%s+%s=%s; " +
                         "diff_fact_v2=%s-%s=%s; " +
@@ -411,17 +417,17 @@ public class AfterArbTask implements Runnable {
     }
 
     private void printOAvgPrice() {
-        deltasLogger.info(String.format("o_avg_price_long=%s, o_avg_price_short=%s ",
+        deltaLogWriter.info(String.format("o_avg_price_long=%s, o_avg_price_short=%s ",
                 okPosition.getPriceAvgLong(),
                 okPosition.getPriceAvgShort()));
     }
 
     private void printCumDelta(BigDecimal cumDelta) {
-        deltasLogger.info(String.format("#%s cum_delta=%s", counterName, cumDelta.toPlainString()));
+        deltaLogWriter.info(String.format("#%s cum_delta=%s", counterName, cumDelta.toPlainString()));
     }
 
     private void printAstDeltaLogs(BigDecimal ast_delta, BigDecimal cum_ast_delta, BigDecimal ast_delta_fact, BigDecimal cum_ast_delta_fact) {
-        deltasLogger.info(String.format("#%s ast_delta=%s, cum_ast_delta=%s, " +
+        deltaLogWriter.info(String.format("#%s ast_delta=%s, cum_ast_delta=%s, " +
                         "ast_delta_fact=%s, cum_ast_delta_fact=%s",
                 counterName,
                 ast_delta.toPlainString(), cum_ast_delta.toPlainString(),
@@ -460,7 +466,7 @@ public class AfterArbTask implements Runnable {
         cumParams.setCumCom2(cumParams.getCumCom2().add(com2));
         BigDecimal cumCom = cumParams.getCumCom1().add(cumParams.getCumCom2());
 
-        deltasLogger.info(String.format("#%s com=%s+%s=%s; cum_com=%s+%s=%s; " +
+        deltaLogWriter.info(String.format("#%s com=%s+%s=%s; cum_com=%s+%s=%s; " +
                         "ast_com=%s+%s=%s; cum_ast_com=%s",
                 counterName,
                 com1.toPlainString(),
@@ -492,7 +498,7 @@ public class AfterArbTask implements Runnable {
         cumParams.setAstBitmexMCom(ast_Bitmex_m_com);
         cumParams.setCumAstBitmexMCom((cumParams.getCumAstBitmexMCom().add(cumParams.getAstBitmexMCom())).setScale(8, BigDecimal.ROUND_HALF_UP));
 
-        deltasLogger.info(String.format("#%s bitmex_m_com=%s; cum_bitmex_m_com=%s; " +
+        deltaLogWriter.info(String.format("#%s bitmex_m_com=%s; cum_bitmex_m_com=%s; " +
                         "ast_Bitmex_m_com=%s; cum_ast_Bitmex_m_com=%s",
                 counterName,
                 bitmexMCom.toPlainString(),

@@ -6,8 +6,6 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import java.math.BigDecimal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,11 +15,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class PreliqUtilsService {
 
-    private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
-
-
     @Autowired
     private PersistenceService persistenceService;
+
+    @Autowired
+    private ArbitrageService arbitrageService;
 
 
     public void preliqCountersOnRoundDone(boolean isSucceeded, GuiLiqParams params, SignalType signalType,
@@ -53,12 +51,12 @@ public class PreliqUtilsService {
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
                 corrParams.getPreliq().incSuccesses();
                 persistenceService.saveCorrParams(corrParams);
-                deltasLogger.info("Preliq succeed. " + corrParams.getPreliq().toString());
+                arbitrageService.printToCurrentDeltaLog("Preliq succeed. " + corrParams.getPreliq().toString());
             } else {
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
                 corrParams.getPreliq().incFails();
                 persistenceService.saveCorrParams(corrParams);
-                deltasLogger.info("Preliq failed. " + corrParams.getPreliq().toString());
+                arbitrageService.printToCurrentDeltaLog("Preliq failed. " + corrParams.getPreliq().toString());
             }
 
         }

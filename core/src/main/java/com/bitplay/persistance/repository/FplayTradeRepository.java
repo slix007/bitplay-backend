@@ -1,6 +1,8 @@
 package com.bitplay.persistance.repository;
 
 import com.bitplay.persistance.domain.fluent.FplayTrade;
+import java.util.Date;
+import java.util.stream.Stream;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
@@ -8,4 +10,11 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  */
 public interface FplayTradeRepository extends MongoRepository<FplayTrade, Long> {
 
+    Stream<FplayTrade> streamFplayTradeByStartTimestampBetween(Date from, Date to);
+
+    FplayTrade findTopByOrderByDocumentIdDesc();
+
+    default Long getLastId() {
+        return findTopByOrderByDocumentIdDesc().getId();
+    }
 }
