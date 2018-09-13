@@ -4,6 +4,7 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.okcoin.OOHangedCheckerService;
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.lang.management.ThreadMXBean;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,9 +29,9 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Secured("ROLE_TRADER")
 @RestController
+@Slf4j
 public class DebugEndpoints {
 
-    private final static Logger logger = LoggerFactory.getLogger(DebugEndpoints.class);
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     @Autowired
@@ -41,12 +43,29 @@ public class DebugEndpoints {
     @Autowired
     private ArbitrageService arbitrageService;
 
+    @Autowired
+    private BitmexService bitmexService;
+
     @RequestMapping(value = "/full-restart", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson fullRestart() throws IOException {
 
         restartService.doFullRestart(RestartService.API_REQUEST);
 
         return new ResultJson("Restart has been sent", "");
+    }
+
+    @RequestMapping(value = "/bitmex-reconnect", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson reconnect() {
+
+        String errorMsg = "";
+        try {
+            bitmexService.reconnect();
+        } catch (ReconnectFailedException e) {
+            log.error("Can't reconnect bitmex", e);
+            errorMsg = e.getMessage();
+        }
+
+        return new ResultJson("Reconnect is done", errorMsg);
     }
 
     @RequestMapping(value = "/deadlock/check", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -98,7 +117,7 @@ public class DebugEndpoints {
         final String deadlocksMsg = "Number of deadlocked threads: " + deadlockedThreads;
 
         if (deadlockedThreads > 0) {
-            logger.info(deadlocksMsg);
+            log.info(deadlocksMsg);
             warningLogger.info(deadlocksMsg);
 
             ThreadInfo[] threadInfos = threadBean.getThreadInfo(threadIds);
@@ -109,7 +128,7 @@ public class DebugEndpoints {
 
     private static void handleDeadlock(final ThreadInfo[] deadlockedThreads) {
         if (deadlockedThreads != null) {
-            logger.error("Deadlock detected!");
+            log.error("Deadlock detected!");
 
             Map<Thread, StackTraceElement[]> stackTraceMap = Thread.getAllStackTraces();
             for (ThreadInfo threadInfo : deadlockedThreads) {
@@ -119,10 +138,10 @@ public class DebugEndpoints {
                     for (Thread thread : Thread.getAllStackTraces().keySet()) {
 
                         if (thread.getId() == threadInfo.getThreadId()) {
-                            logger.error(threadInfo.toString().trim());
+                            log.error(threadInfo.toString().trim());
 
                             for (StackTraceElement ste : thread.getStackTrace()) {
-                                logger.error("\t" + ste.toString().trim());
+                                log.error("\t" + ste.toString().trim());
                             }
                         }
                     }

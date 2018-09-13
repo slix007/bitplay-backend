@@ -744,7 +744,7 @@ public class BitmexService extends MarketService {
                 });
     }
 
-    private void reconnect() throws ReconnectFailedException {
+    public void reconnect() throws ReconnectFailedException {
 
         String startMsg = "Warning: Bitmex reconnect is starting. " + getSubscribersStatuses();
         tradeLogger.info(startMsg);
