@@ -6,6 +6,7 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.borders.BordersV1;
 import com.bitplay.persistance.domain.borders.BordersV2;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import java.math.BigDecimal;
 import org.apache.commons.lang3.SerializationUtils;
 import org.junit.Test;

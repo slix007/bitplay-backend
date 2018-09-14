@@ -3,7 +3,7 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
-import com.bitplay.arbitrage.dto.DeltaName;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
 import com.bitplay.arbitrage.dto.SignalType;
@@ -16,6 +16,7 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.borders.BordersV2;
+import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -76,12 +77,15 @@ public class AfterArbTask implements Runnable {
             persistenceService.saveCumParams(cumParams);
 
             deltaLogWriter.info(String.format("#%s Round completed", counterName));
+            deltaLogWriter.setEndStatus(TradeStatus.COMPLETED);
 
         } catch (RoundIsNotDoneException e) {
             deltaLogWriter.info("Round is not done. Error: " + e.getMessage());
+            deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
             log.error("Round is not done", e);
         } catch (Exception e) {
             deltaLogWriter.info("Round is not done. Write logs error: " + e.getMessage());
+            deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
             log.error("Round is not done. Write logs error", e);
         }
     }
@@ -100,11 +104,13 @@ public class AfterArbTask implements Runnable {
 
         } catch (RoundIsNotDoneException e) {
             deltaLogWriter.info("Round is not done. Error: " + e.getMessage());
+            deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
             log.error("Round is not done", e);
             preliqUtilsService.preliqCountersOnRoundDone(false, guiLiqParams, signalType,
                     bitmexService, okCoinService);
         } catch (Exception e) {
             deltaLogWriter.info("Round is not done. Write logs error: " + e.getMessage());
+            deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
             log.error("Round is not done. Write logs error", e);
             preliqUtilsService.preliqCountersOnRoundDone(false, guiLiqParams, signalType,
                     bitmexService, okCoinService);

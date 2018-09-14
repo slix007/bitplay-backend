@@ -6,6 +6,7 @@ import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MOD
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;

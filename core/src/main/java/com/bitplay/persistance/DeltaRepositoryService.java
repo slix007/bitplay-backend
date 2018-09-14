@@ -1,7 +1,7 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.dto.DeltaName;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.arbitrage.events.DeltaChange;
 import com.bitplay.persistance.domain.borders.BorderDelta;
 import com.bitplay.persistance.domain.borders.BorderParams;

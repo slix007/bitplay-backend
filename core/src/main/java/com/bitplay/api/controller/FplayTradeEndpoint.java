@@ -1,6 +1,5 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.persistance.FplayTradeRepositoryService;
 import com.bitplay.persistance.domain.fluent.FplayTrade;
 import com.bitplay.persistance.repository.FplayTradeRepository;
 import java.text.ParseException;
@@ -27,9 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Secured("ROLE_TRADER")
 @RestController
 public class FplayTradeEndpoint {
-
-    @Autowired
-    private FplayTradeRepositoryService fplayTradeRepositoryService;
 
     @Autowired
     private FplayTradeRepository fplayTradeRepository;

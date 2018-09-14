@@ -1,6 +1,6 @@
 package com.bitplay.arbitrage;
 
-import com.bitplay.arbitrage.dto.DeltaName;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.borders.BorderDelta;
 import com.bitplay.persistance.domain.fluent.Dlt;
 import java.math.BigDecimal;

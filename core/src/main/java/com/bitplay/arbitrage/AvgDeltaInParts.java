@@ -2,7 +2,7 @@ package com.bitplay.arbitrage;
 
 import static com.bitplay.arbitrage.DeltasCalcService.NONE_VALUE;
 
-import com.bitplay.arbitrage.dto.DeltaName;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderDelta;
 import com.bitplay.persistance.domain.borders.BorderParams;

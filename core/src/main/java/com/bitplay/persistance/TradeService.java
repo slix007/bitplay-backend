@@ -1,10 +1,13 @@
 package com.bitplay.persistance;
 
 import com.bitplay.persistance.dao.SequenceDao;
+import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.FplayTrade;
 import com.bitplay.persistance.domain.fluent.LogLevel;
 import com.bitplay.persistance.domain.fluent.LogRow;
 import com.bitplay.persistance.repository.FplayTradeRepository;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -22,7 +25,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
-public class DeltaLogService {
+public class TradeService {
 
     private static final String SEQ_NAME = "trade";
 
@@ -33,13 +36,13 @@ public class DeltaLogService {
     @Autowired
     private SequenceDao sequenceDao;
 
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
+    private ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("deltas-log-%d").build());
 
     @Autowired
     private FplayTradeRepository fplayTradeRepository;
 
     @Autowired
-    public DeltaLogService(MongoOperations mongoOperation) {
+    public TradeService(MongoOperations mongoOperation) {
         this.mongoOperation = mongoOperation;
     }
 
@@ -60,20 +63,9 @@ public class DeltaLogService {
         deltasLogger.info(String.format("%s::%s %s", tradeId, counterName, theLog));
 
         executor.execute(() -> {
-            FplayTrade toUpdate = fplayTradeRepository.findOne(tradeId);
+            FplayTrade toUpdate = getFplayTrade(tradeId, counterName, theLog);
             if (toUpdate == null) {
-                log.warn("trade is null. Use the latest");
-                toUpdate = fplayTradeRepository.findTopByOrderByDocumentIdDesc();
-                log.warn("The latest trade is " + toUpdate);
-                if (toUpdate == null) {
-                    return;
-                }
-            }
-
-            if (!toUpdate.getCounterName().equals(counterName)) {
-                log.warn("counterName={} is not match", counterName);
-                log.warn(toUpdate.toString());
-                log.warn(theLog);
+                return;
             }
             List<LogRow> deltaLog = toUpdate.getDeltaLog();
             deltaLog.add(new LogRow(logLevel, new Date(), theLog));
@@ -84,18 +76,32 @@ public class DeltaLogService {
 
     }
 
-    public synchronized void updateOrInsert(FplayTrade trade) {
-        executor.submit(() -> {
-            //TODO
-//            if (trade.getId() != null) {
-//                FplayTrade toUpdate = fplayTradeRepository.findOne(trade.getId());
-//                toUpdate.getBitmexOrders().replaceAll();
+    private FplayTrade getFplayTrade(long tradeId, String counterName, String theLog) {
+        FplayTrade toUpdate = getFplayTrade(tradeId);
+        if (toUpdate == null) {
+            return null;
+        }
 
-//            }
-            fplayTradeRepository.save(trade);
-        });
+        if (!toUpdate.getCounterName().equals(counterName)) {
+            log.warn("counterName={} is not match", counterName);
+            log.warn(toUpdate.toString());
+            log.warn(theLog);
+        }
+        return toUpdate;
     }
 
+    private FplayTrade getFplayTrade(long tradeId) {
+        FplayTrade toUpdate = fplayTradeRepository.findOne(tradeId);
+        if (toUpdate == null) {
+            log.warn("trade is null. Use the latest");
+            toUpdate = fplayTradeRepository.findTopByOrderByDocumentIdDesc();
+            log.warn("The latest trade is " + toUpdate);
+            if (toUpdate == null) {
+                return null;
+            }
+        }
+        return toUpdate;
+    }
 
     public synchronized void update(FplayTrade trade) {
         executor.submit(() -> {
@@ -103,14 +109,30 @@ public class DeltaLogService {
         });
     }
 
-    public long createTrade(String counterName) {
-        return createTrade(counterName, Instant.now());
+    public void setEndStatus(Long tradeId, TradeStatus tradeStatus) {
+        executor.execute(() -> {
+            FplayTrade toUpdate = getFplayTrade(tradeId);
+            if (toUpdate == null) {
+                return;
+            }
+            toUpdate.setTradeStatus(tradeStatus);
+
+            fplayTradeRepository.save(toUpdate);
+        });
+
     }
 
-    public synchronized long createTrade(String counterName, Instant startTimestamp) {
+    public long createTrade(String counterName, DeltaName deltaName) {
+        return createTrade(counterName, Instant.now(), deltaName);
+    }
+
+    public synchronized long createTrade(String counterName, Instant startTimestamp, DeltaName deltaName) {
         final FplayTrade fplayTrade = new FplayTrade();
         fplayTrade.setCounterName(counterName);
         fplayTrade.setStartTimestamp(Date.from(startTimestamp));
+        fplayTrade.setDeltaName(deltaName);
+        fplayTrade.setTradeStatus(TradeStatus.IN_PROGRESS);
+
         long nextId = sequenceDao.getNextSequenceId(SEQ_NAME);
         fplayTrade.setId(nextId);
         fplayTradeRepository.save(fplayTrade);

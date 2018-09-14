@@ -33,6 +33,9 @@ public class FplayTrade extends AbstractDocument {
     private List<FplayOrder> bitmexOrders;
     private List<FplayOrder> okexOrders;
 
+    private DeltaName deltaName;
+    private TradeStatus tradeStatus;
+
     private List<LogRow> deltaLog;
 
     public List<FplayOrder> getBitmexOrders() {

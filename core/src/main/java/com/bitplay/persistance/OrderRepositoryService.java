@@ -4,6 +4,7 @@ import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.repository.OrderRepository;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,7 @@ public class OrderRepositoryService {
 
     private MongoOperations mongoOperation;
 
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
+    private ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("order-repo-%d").build());
 
     @Autowired
     private OrderRepository orderRepository;

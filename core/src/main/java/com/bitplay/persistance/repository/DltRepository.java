@@ -1,6 +1,6 @@
 package com.bitplay.persistance.repository;
 
-import com.bitplay.arbitrage.dto.DeltaName;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.Dlt;
 import java.util.Date;
 import java.util.stream.Stream;

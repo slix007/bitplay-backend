@@ -1,6 +1,5 @@
 package com.bitplay.persistance.domain.fluent;
 
-import com.bitplay.arbitrage.dto.DeltaName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 import java.util.Date;
