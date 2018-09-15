@@ -361,6 +361,11 @@ public class BitmexService extends MarketService {
 
                 try {
                     reconnectOrRestart();
+                } catch (Exception e) {
+                    final String msg = String.format("Reconnect exception: %s", e.getMessage());
+                    warningLogger.error(msg);
+                    tradeLogger.error(msg);
+                    logger.error(msg, e);
                 } finally {
                     reconnectInProgress = false;
                 }
