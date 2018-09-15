@@ -8,12 +8,18 @@ import com.bitplay.persistance.domain.RestartMonitoring;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.repository.RestartMonitoringRepository;
 import com.bitplay.utils.Utils;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
@@ -25,11 +31,14 @@ import org.springframework.stereotype.Service;
 /**
  * Created by Sergey Shurmin on 1/12/18.
  */
+@Slf4j
 @Service
 public class ExtrastopService {
 
-    private final static Logger logger = LoggerFactory.getLogger(ExtrastopService.class);
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+
+    protected final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
+            .setNameFormat("extrastop-service-%d").build());
 
     @Autowired
     private BitmexService bitmexService;
@@ -53,56 +62,71 @@ public class ExtrastopService {
         Instant start = Instant.now();
         try {
             if (bitmexService.isReconnectInProgress()) {
-                logger.warn("skip checkOrderBooks: bitmex reconnect IN_PROGRESS");
+                log.warn("skip checkOrderBooks: bitmex reconnect IN_PROGRESS");
                 return;
             }
-            Settings settings = settingsRepositoryService.getSettings();
-            Integer maxGap = settings.getRestartSettings().getMaxTimestampDelay();
 
-            RestartMonitoring restartMonitoring = restartMonitoringRepository.fetchRestartMonitoring();
+            if (isHanged()) {
+                warningLogger.warn("Stop markets and schedule restart in 30 sec");
 
-            final OrderBook bOB = bitmexService.getOrderBook();
-            final Date bT = getBitmexOrderBook3BestTimestamp(bOB); // bitmexService.getOrderBookLastTimestamp();
-//            logger.info("Bitmex timestamp: " + bT.toString());
-            final OrderBook oOB = okCoinService.getOrderBook();
-            final Date oT = oOB.getTimeStamp();
-            details = "";
-
-            long bDiffSec = getDiffSec(bT, "Bitmex");
-            long oDiffSec = getDiffSec(oT, "Okex");
-            restartMonitoring.addBTimestampDelay(BigDecimal.valueOf(bDiffSec));
-            restartMonitoring.addOTimestampDelay(BigDecimal.valueOf(oDiffSec));
-            restartMonitoringRepository.saveRestartMonitoring(restartMonitoring);
-
-            boolean bWrong = isOrderBookPricesWrong(bOB);
-            boolean oWrong = isOrderBookPricesWrong(oOB);
-            boolean isBDiff = bDiffSec > maxGap;
-            boolean isODiff = oDiffSec > maxGap;
-            if (isBDiff || isODiff || bWrong || oWrong) {
                 bitmexService.setMarketState(MarketState.STOPPED);
                 okCoinService.setMarketState(MarketState.STOPPED);
 
-                details += String.format("maxTimestampDelay(maxDiff)=%s, b_bid_more_ask=%s, o_bid_more_ask=%s",
-                        settings.getRestartSettings().getMaxTimestampDelay(),
-                        bWrong, oWrong);
-
-                warningLogger.warn(details);
-                printBest3Prices(bOB, oOB);
-
-                restartService.doDeferredRestart(details);
+                startTimerToRestart(details);
             }
+
         } catch (IllegalArgumentException e) {
-            logger.error("on check times", e);
+            log.error("on check times", e);
 //            warningLogger.error("ERROR on check times", e);
             bitmexService.setMarketState(MarketState.STOPPED);
             okCoinService.setMarketState(MarketState.STOPPED);
-            restartService.doDeferredRestart(e.getMessage());
+            startTimerToRestart(e.getMessage());
         } catch (Exception e) {
-            logger.error("on check times", e);
+            log.error("on check times", e);
 //            warningLogger.error("ERROR on check times", e);
         }
         Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "checkOrderBooks");
+        Utils.logIfLong(start, end, log, "checkOrderBooks");
+    }
+
+    private synchronized boolean isHanged() {
+        Settings settings = settingsRepositoryService.getSettings();
+        Integer maxGap = settings.getRestartSettings().getMaxTimestampDelay();
+
+        RestartMonitoring restartMonitoring = restartMonitoringRepository.fetchRestartMonitoring();
+
+        final OrderBook bOB = bitmexService.getOrderBook();
+        final Date bT = getBitmexOrderBook3BestTimestamp(bOB); // bitmexService.getOrderBookLastTimestamp();
+//            log.info("Bitmex timestamp: " + bT.toString());
+        final OrderBook oOB = okCoinService.getOrderBook();
+        final Date oT = oOB.getTimeStamp();
+        details = "";
+
+        long bDiffSec = getDiffSec(bT, "Bitmex");
+        long oDiffSec = getDiffSec(oT, "Okex");
+        restartMonitoring.addBTimestampDelay(BigDecimal.valueOf(bDiffSec));
+        restartMonitoring.addOTimestampDelay(BigDecimal.valueOf(oDiffSec));
+        restartMonitoringRepository.saveRestartMonitoring(restartMonitoring);
+
+        boolean bWrong = isOrderBookPricesWrong(bOB);
+        boolean oWrong = isOrderBookPricesWrong(oOB);
+        boolean isBDiff = bDiffSec > maxGap;
+        boolean isODiff = oDiffSec > maxGap;
+
+        boolean isHanged = false;
+        if (isBDiff || isODiff || bWrong || oWrong) {
+
+            details += String.format("maxTimestampDelay(maxDiff)=%s, b_bid_more_ask=%s, o_bid_more_ask=%s",
+                    settings.getRestartSettings().getMaxTimestampDelay(),
+                    bWrong, oWrong);
+
+            warningLogger.warn(details);
+            printBest3Prices(bOB, oOB);
+
+            isHanged = true;
+
+        }
+        return isHanged;
     }
 
     private void printBest3Prices(OrderBook bOB, OrderBook oOB) {
@@ -146,4 +170,18 @@ public class ExtrastopService {
         details += (name + " diff: " + diffSec + " sec. ");
         return diffSec;
     }
+
+    private void startTimerToRestart(String details) {
+        log.info("deferred restart. " + details);
+        scheduler.schedule(() -> {
+            try {
+                if (isHanged()) {
+                    restartService.doFullRestart("OrderBook timestamp diff(after flag STOPPED). " + details);
+                }
+            } catch (IOException e) {
+                log.error("Error on restart", e);
+            }
+        }, 30, TimeUnit.SECONDS);
+    }
+
 }

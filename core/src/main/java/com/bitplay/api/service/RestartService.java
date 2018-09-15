@@ -24,8 +24,6 @@ public class RestartService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
@@ -68,14 +66,5 @@ public class RestartService {
         }
     }
 
-    public void doDeferredRestart(String details) {
-        log.info("deferred restart. " + details);
-        scheduler.schedule(() -> {
-            try {
-                doFullRestart("deferred after flag STOPPED. " + details);
-            } catch (IOException e) {
-                log.error("Error on restart", e);
-            }
-        }, 30, TimeUnit.SECONDS);
-    }
+
 }
