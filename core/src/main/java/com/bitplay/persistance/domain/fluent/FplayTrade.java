@@ -27,7 +27,7 @@ public class FplayTrade extends AbstractDocument {
 
     private String counterName;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.SSS(z)")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss.SSS(z)", timezone = "Europe/Moscow")
     private Date startTimestamp;
 
     private List<FplayOrder> bitmexOrders;

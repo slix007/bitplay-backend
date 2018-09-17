@@ -2,13 +2,12 @@ package com.bitplay.persistance;
 
 import com.bitplay.persistance.dao.SequenceDao;
 import com.bitplay.persistance.domain.fluent.DeltaName;
-import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.FplayTrade;
 import com.bitplay.persistance.domain.fluent.LogLevel;
 import com.bitplay.persistance.domain.fluent.LogRow;
+import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -123,13 +122,13 @@ public class TradeService {
     }
 
     public long createTrade(String counterName, DeltaName deltaName) {
-        return createTrade(counterName, Instant.now(), deltaName);
+        return createTrade(counterName, new Date(), deltaName);
     }
 
-    public synchronized long createTrade(String counterName, Instant startTimestamp, DeltaName deltaName) {
+    public synchronized long createTrade(String counterName, Date startTimestamp, DeltaName deltaName) {
         final FplayTrade fplayTrade = new FplayTrade();
         fplayTrade.setCounterName(counterName);
-        fplayTrade.setStartTimestamp(Date.from(startTimestamp));
+        fplayTrade.setStartTimestamp(startTimestamp);
         fplayTrade.setDeltaName(deltaName);
         fplayTrade.setTradeStatus(TradeStatus.IN_PROGRESS);
 

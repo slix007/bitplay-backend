@@ -16,7 +16,7 @@ import lombok.ToString;
 public class LogRow {
 
     private LogLevel logLevel;
-    @JsonFormat(pattern = "HH:mm:ss.SSS")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss.SSS", timezone = "Europe/Moscow")
     private Date timestamp;
     private String theLog;
 
