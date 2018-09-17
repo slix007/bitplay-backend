@@ -190,6 +190,11 @@ public class ExtrastopService {
             try {
                 if (isHanged()) {
                     restartService.doFullRestart("OrderBook timestamp diff(after flag STOPPED). " + details);
+                } else {
+                    warningLogger.warn("No restart in 30 sec, back to READY. OrderBooks looks ok.");
+
+                    bitmexService.setMarketState(MarketState.READY);
+                    okCoinService.setMarketState(MarketState.READY);
                 }
             } catch (IOException e) {
                 log.error("Error on restart", e);
