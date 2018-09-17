@@ -960,6 +960,11 @@ public class BitmexService extends MarketService {
             this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
             this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
             logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
+            if (this.bestBid.compareTo(this.bestAsk) >= 0) {
+                String warn = String.format("#%s bid(%s) >= ask(%s)", getCounterName(), this.bestBid, this.bestAsk);
+                logger.warn(warn);
+                warningLogger.warn(warn);
+            }
 
             getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
         }

@@ -55,12 +55,16 @@ public class ExtrastopService {
     @Autowired
     private RestartMonitoringRepository restartMonitoringRepository;
 
-    private String details = "";
+    private volatile String details = "";
+
+    private volatile Instant lastRun = null;
 
     @Scheduled(initialDelay = 60 * 1000, fixedDelay = 10 * 1000)
     public void checkOrderBooks() {
         Instant start = Instant.now();
         try {
+            checkLastRun();
+
             if (bitmexService.isReconnectInProgress()) {
                 log.warn("skip checkOrderBooks: bitmex reconnect IN_PROGRESS");
                 return;
@@ -87,6 +91,15 @@ public class ExtrastopService {
         }
         Instant end = Instant.now();
         Utils.logIfLong(start, end, log, "checkOrderBooks");
+    }
+
+    private void checkLastRun() {
+        Instant now = Instant.now();
+        if (lastRun != null && Duration.between(lastRun, now).getSeconds() > 10) {
+            warningLogger.warn("checkOrderBooks lastRun was too long ago at " + lastRun);
+            log.warn("checkOrderBooks lastRun was too long ago at " + lastRun);
+        }
+        lastRun = now;
     }
 
     private synchronized boolean isHanged() {
