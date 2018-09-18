@@ -51,16 +51,19 @@ public enum OkexContractType implements ContractType {
                 expTime = expTime.plusDays(7);
             }
         } else if (futuresContract == FuturesContract.NextWeek) {
-            // bi-weekly BTC0907 ->
-            expTime = LocalDateTime.of(2018, 9, 7, 8, 0, 0);
+            // bi-weekly  - always next week! BTC0907 ->
+            expTime = LocalDateTime.of(2018, 8, 31, 8, 0, 0);
             while (now.isAfter(expTime)) {
-                expTime = expTime.plusDays(14);
+                expTime = expTime.plusDays(7);
             }
+            expTime = expTime.plusDays(7);
         } else if (futuresContract == FuturesContract.Quarter) {
-            // quoterly BTC0928 ->
+            // Quarterly BTC0928 ->
             expTime = LocalDateTime.of(2018, 9, 28, 8, 0, 0);
-            while (now.isAfter(expTime)) {
-                expTime = expTime.plusDays(14);
+            // use next Time when bi-weekly==Quarterly
+            final LocalDateTime plus2Weeks = now.plusDays(14);
+            while (plus2Weeks.isAfter(expTime)) {
+                expTime = expTime.plusDays(28 * 3 + 7);
             }
         } else {
             throw new IllegalArgumentException("Illegal futuresContract " + futuresContract);

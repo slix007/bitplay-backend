@@ -36,13 +36,13 @@ public class OkexContractTypeTest {
         LocalDateTime first = LocalDateTime.of(2018, 8, 28, 8, 0, 0);
         assertEquals("0907", OkexContractType.BTC_NextWeek.getExpString(first));
 
-        assertEquals("0907", OkexContractType.BTC_NextWeek.getExpString(first.plusDays(7)));
+        assertEquals("0914", OkexContractType.BTC_NextWeek.getExpString(first.plusDays(7)));
 
         // the second of the change
         assertEquals("0907", OkexContractType.BTC_NextWeek.getExpString(LocalDateTime.of(2018, 8, 31, 8, 0, 0)));
-        assertEquals("0907", OkexContractType.BTC_NextWeek.getExpString(LocalDateTime.of(2018, 8, 31, 8, 0, 1)));
+        assertEquals("0914", OkexContractType.BTC_NextWeek.getExpString(LocalDateTime.of(2018, 8, 31, 8, 0, 1)));
 
-        assertEquals("0907", OkexContractType.BTC_NextWeek.getExpString(LocalDateTime.of(2018, 9, 07, 8, 0, 0)));
+        assertEquals("0914", OkexContractType.BTC_NextWeek.getExpString(LocalDateTime.of(2018, 9, 07, 8, 0, 0)));
         assertEquals("0921", OkexContractType.BTC_NextWeek.getExpString(LocalDateTime.of(2018, 9, 07, 8, 0, 1)));
     }
 
@@ -57,11 +57,21 @@ public class OkexContractTypeTest {
         assertEquals("0928", OkexContractType.BTC_Quarter.getExpString(LocalDateTime.of(2018, 8, 31, 8, 0, 0)));
         assertEquals("0928", OkexContractType.BTC_Quarter.getExpString(LocalDateTime.of(2018, 8, 31, 8, 0, 1)));
 
-        assertEquals("0928", OkexContractType.BTC_Quarter.getExpString(LocalDateTime.of(2018, 9, 07, 8, 0, 0)));
-        assertEquals("0928", OkexContractType.BTC_Quarter.getExpString(LocalDateTime.of(2018, 9, 07, 8, 0, 1)));
+        assertEquals("0928", OkexContractType.BTC_Quarter.getExpString(LocalDateTime.of(2018, 9, 14, 8, 0, 0)));
+        assertEquals("1228", OkexContractType.BTC_Quarter.getExpString(LocalDateTime.of(2018, 9, 14, 8, 0, 1)));
+        assertEquals("1228", OkexContractType.BTC_Quarter.getExpString(LocalDateTime.of(2018, 9, 18, 8, 0, 1)));
 
         // the change
-        assertEquals("1012", OkexContractType.BTC_Quarter.getExpString(LocalDateTime.of(2018, 9, 28, 8, 0, 1)));
+        assertEquals("1228", OkexContractType.BTC_Quarter.getExpString(LocalDateTime.of(2018, 9, 28, 8, 0, 0)));
+        assertEquals("1228", OkexContractType.BTC_Quarter.getExpString(LocalDateTime.of(2018, 9, 28, 8, 0, 1)));
     }
 
+    @Test
+    public void test1809Fix() {
+        LocalDateTime first = LocalDateTime.of(2018, 9, 18, 17, 0, 0);
+        assertEquals("0921", OkexContractType.BTC_ThisWeek.getExpString(first));
+        assertEquals("0928", OkexContractType.BTC_NextWeek.getExpString(first));
+        assertEquals("1228", OkexContractType.BTC_Quarter.getExpString(first));
+
+    }
 }
