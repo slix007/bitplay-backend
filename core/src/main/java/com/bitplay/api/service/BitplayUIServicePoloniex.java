@@ -10,7 +10,9 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.polonex.PoloniexService;
-
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
@@ -20,10 +22,6 @@ import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexTradeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Created by Sergey Shurmin on 3/25/17.
@@ -66,7 +64,10 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
     }
 
     public OrderBookJson cleanOrderBook() {
-        return convertOrderBookAndFilter(poloniexService.cleanOrderBook(), getBusinessService().getTicker());
+        return convertOrderBookAndFilter(
+                poloniexService.cleanOrderBook(),
+                getBusinessService().getTicker(),
+                getBusinessService().getEthTicker());
     }
 
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {

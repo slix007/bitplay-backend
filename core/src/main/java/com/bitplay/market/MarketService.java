@@ -75,6 +75,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected volatile Affordable affordable = new Affordable();
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected volatile Ticker ticker;
+    protected volatile Ticker ethTicker;
     protected volatile int usdInContract = 0;
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -490,6 +491,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public Ticker getTicker() {
         return ticker;
+    }
+
+    public Ticker getEthTicker() {
+        return ethTicker;
     }
 
     public LiqInfo getLiqInfo() {

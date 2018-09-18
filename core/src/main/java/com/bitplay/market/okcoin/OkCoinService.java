@@ -30,6 +30,7 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
+import info.bitrich.xchangestream.okex.dto.Tool;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
@@ -57,6 +58,7 @@ import javax.validation.constraints.NotNull;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -135,6 +137,7 @@ public class OkCoinService extends MarketService {
     private Disposable accountInfoSubscription;
     private Disposable futureIndexSubscription;
     private Disposable tickerSubscription;
+    private Disposable tickerEthSubscription;
     private Observable<OrderBook> orderBookObservable;
     private OkexContractType okexContractType;
     private OkexContractType okexContractTypeForPrice = OkexContractType.BTC_ThisWeek;
@@ -221,6 +224,9 @@ public class OkCoinService extends MarketService {
         accountInfoSubscription = startAccountInfoSubscription();
         futureIndexSubscription = startFutureIndexListener();
         tickerSubscription = startTickerListener();
+        if (okexContractType.getBaseTool() == Tool.ETH) {
+            tickerEthSubscription = startEthTickerListener();
+        }
 
         fetchOpenOrders();
     }
@@ -236,6 +242,9 @@ public class OkCoinService extends MarketService {
         accountInfoSubscription.dispose();
         futureIndexSubscription.dispose();
         tickerSubscription.dispose();
+        if (tickerEthSubscription != null) {
+            tickerEthSubscription.dispose();
+        }
         final Completable com = exchange.disconnect(); // not invoked here
         return com;
     }
@@ -545,9 +554,22 @@ public class OkCoinService extends MarketService {
                     logger.debug(ticker.toString());
                     this.ticker = ticker;
                 }, throwable -> {
-                    logger.error("FutureIndex.Exception: ", throwable);
+                    logger.error("OkexFutureTicker.Exception: ", throwable);
                 });
     }
+
+    private Disposable startEthTickerListener() {
+        return exchange.getStreamingMarketDataService()
+                .getTicker(CurrencyPair.ETH_BTC, null, "eth_btc")
+                .doOnError(throwable -> logger.error("Error on Ticker observing", throwable))
+                .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.io())
+                .subscribe(
+                        ethTick -> this.ethTicker = ethTick,
+                        throwable -> logger.error("OkexSpotTicker.Exception: ", throwable)
+                );
+    }
+
 
     @Scheduled(fixedDelay = 2000)
     public void openOrdersCleaner() {

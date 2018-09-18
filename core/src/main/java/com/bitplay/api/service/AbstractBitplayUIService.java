@@ -103,7 +103,11 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public OrderBookJson getOrderBook() {
-        return convertOrderBookAndFilter(getBusinessService().getOrderBook(), getBusinessService().getTicker());
+        return convertOrderBookAndFilter(
+                getBusinessService().getOrderBook(),
+                getBusinessService().getTicker(),
+                getBusinessService().getEthTicker()
+        );
     }
 
     public AccountInfoJson getAccountInfo() {
@@ -111,7 +115,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getBusinessService().getPosition());
     }
 
-    protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook, Ticker ticker) {
+    protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook, Ticker ticker, Ticker ethTicker) {
         final OrderBookJson orderJson = new OrderBookJson();
         final List<LimitOrder> bestBids = Utils.getBestBids(orderBook, 5);
         orderJson.setBid(bestBids.stream()
@@ -122,6 +126,9 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 .map(toOrderJson)
                 .collect(Collectors.toList()));
         orderJson.setLastPrice(ticker.getLast());
+
+        // bid[1] в token trading (okex spot).
+        orderJson.setEthBal(ethTicker == null ? "" : "Quote ETH/BTC: " + ethTicker.getBid().toPlainString());
         return orderJson;
     }
 
