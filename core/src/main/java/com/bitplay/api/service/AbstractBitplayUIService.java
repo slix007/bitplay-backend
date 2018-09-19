@@ -140,7 +140,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     public AccountInfoJson getContractsAccountInfo() {
         final AccountInfoContracts accountInfoContracts = getBusinessService().getAccountInfoContracts();
         if (accountInfoContracts == null) {
-            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
+            return new AccountInfoJson("error","error", "error", "error", "error", "error", "error", "error",
                     "error", "error", "error", "error", "error", "error", "error", "error", "error");
         }
 
@@ -170,6 +170,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getBusinessService().getAffordable().getForLong().toPlainString(),
                 getBusinessService().getAffordable().getForShort().toPlainString(),
                 quAvg.toPlainString(),
+                null,
                 liqPrice == null ? null : liqPrice.toPlainString(),
                 eMark != null ? eMark.toPlainString() : "0",
                 eLast != null ? eLast.toPlainString() : "0",
@@ -185,7 +186,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final FullBalance fullBalance = getBusinessService().calcFullBalance();
         if (fullBalance.getAccountInfoContracts() == null) {
             return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
-                    "error", "error", "error", "error", "error", "error", "error", "error", "error");
+                    "error", "error", "error", "error", "error", "error", "error", "error", "error", "error");
         }
 
         final AccountInfoContracts accountInfoContracts = fullBalance.getAccountInfoContracts();
@@ -209,10 +210,12 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         if (available == null || wallet == null || margin == null || upl == null
                 || position.getLeverage() == null || quAvg == null) {
 //            throw new IllegalStateException("Balance and/or Position are not yet defined. entryPrice=" + entryPrice);
-            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
+            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error", "error",
                     "error", "error", "error", "error", "error", "error", "error",
                     entryPrice, "error");
         }
+
+        final String ethBtcBid1 = getBusinessService().getEthTicker() != null ? getBusinessService().getEthTicker().getBid().toPlainString() : null;
 
         return new AccountInfoJson(
                 wallet.toPlainString(),
@@ -224,6 +227,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getBusinessService().getAffordable().getForLong().toPlainString(),
                 getBusinessService().getAffordable().getForShort().toPlainString(),
                 quAvg.toPlainString(),
+                ethBtcBid1,
                 liqPrice == null ? null : liqPrice.toPlainString(),
                 eMark != null ? eMark.toPlainString() : "0",
                 eLast != null ? eLast.toPlainString() : "0",

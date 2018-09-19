@@ -1,8 +1,11 @@
 package com.bitplay.api.domain;
 
+import lombok.Getter;
+
 /**
  * Created by Sergey Shurmin on 4/15/17.
  */
+@Getter
 public class AccountInfoJson {
     private String btc;
     private String usd;
@@ -16,6 +19,7 @@ public class AccountInfoJson {
     private String availableForLong;
     private String availableForShort;
     private String quAvg;
+    private String ethBtcBid1;
     private String liqPrice;
     private String eMark;
     private String eBest;
@@ -35,8 +39,8 @@ public class AccountInfoJson {
     }
 
     public AccountInfoJson(String wallet, String available, String margin, String position, String upl, String leverage,
-                           String availableForLong, String availableForShort, String quAvg, String liqPrice, String eMark,
-                           String eLast, String eBest, String eAvg, String entryPrice, String raw) {
+            String availableForLong, String availableForShort, String quAvg, String ethBtcBid1, String liqPrice, String eMark,
+            String eLast, String eBest, String eAvg, String entryPrice, String raw) {
         this.wallet = wallet;
         this.available = available;
         this.margin = margin;
@@ -46,6 +50,7 @@ public class AccountInfoJson {
         this.availableForLong = availableForLong;
         this.availableForShort = availableForShort;
         this.quAvg = quAvg;
+        this.ethBtcBid1 = ethBtcBid1;
         this.liqPrice = liqPrice;
         this.eMark = eMark;
         this.eLast = eLast;
@@ -53,54 +58,6 @@ public class AccountInfoJson {
         this.eAvg = eAvg;
         this.entryPrice = entryPrice;
         this.raw = raw;
-    }
-
-    public String getBtc() {
-        return btc;
-    }
-
-    public String getUsd() {
-        return usd;
-    }
-
-    public String getWallet() {
-        return wallet;
-    }
-
-    public String getAvailable() {
-        return available;
-    }
-
-    public String getMargin() {
-        return margin;
-    }
-
-    public String getPosition() {
-        return position;
-    }
-
-    public String getUpl() {
-        return upl;
-    }
-
-    public String getLeverage() {
-        return leverage;
-    }
-
-    public String getAvailableForLong() {
-        return availableForLong;
-    }
-
-    public String getAvailableForShort() {
-        return availableForShort;
-    }
-
-    public String getQuAvg() {
-        return quAvg;
-    }
-
-    public String getLiqPrice() {
-        return liqPrice;
     }
 
     public String geteMark() {
@@ -119,11 +76,4 @@ public class AccountInfoJson {
         return eAvg;
     }
 
-    public String getEntryPrice() {
-        return entryPrice;
-    }
-
-    public String getRaw() {
-        return raw;
-    }
 }

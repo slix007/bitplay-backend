@@ -8,7 +8,6 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DeltaMon;
-import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.DeltaChange;
@@ -24,9 +23,9 @@ import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiLiqParams;
@@ -35,6 +34,7 @@ import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.UsdQuoteType;
@@ -943,17 +943,29 @@ public class ArbitrageService {
             final BigDecimal bM = firstAccount.getMargin();
             final BigDecimal bA = firstAccount.getAvailable();
 
-            final BigDecimal oW = secondAccount.getWallet();
-            final BigDecimal oELast = secondAccount.geteLast() != null ? secondAccount.geteLast() : BigDecimal.ZERO;
+            BigDecimal oW = secondAccount.getWallet();
+            BigDecimal oELast = secondAccount.geteLast() != null ? secondAccount.geteLast() : BigDecimal.ZERO;
             oEbest = secondAccount.geteBest() != null ? secondAccount.geteBest() : BigDecimal.ZERO;
-            final BigDecimal oEAvg = secondAccount.geteAvg() != null ? secondAccount.geteAvg() : BigDecimal.ZERO;
-            final BigDecimal oM = secondAccount.getMargin();
-            final BigDecimal oU = secondAccount.getUpl();
-            final BigDecimal oA = secondAccount.getAvailable();
+            BigDecimal oEAvg = secondAccount.geteAvg() != null ? secondAccount.geteAvg() : BigDecimal.ZERO;
+            BigDecimal oM = secondAccount.getMargin();
+            BigDecimal oU = secondAccount.getUpl();
+            BigDecimal oA = secondAccount.getAvailable();
 
             if (bW == null || oW == null) {
                 throw new IllegalStateException(String.format("Balance is not yet defined. bW=%s, oW=%s", bW, oW));
             }
+
+            if (secondMarketService.getEthTicker() != null) {
+                BigDecimal ethBtcBid1 = secondMarketService.getEthTicker().getBid();
+                oW = oW.multiply(ethBtcBid1);
+                oELast = oELast.multiply(ethBtcBid1);
+                oEbest = oEbest.multiply(ethBtcBid1);
+                oEAvg = oEAvg.multiply(ethBtcBid1);
+                oM = oM.multiply(ethBtcBid1);
+                oU = oU.multiply(ethBtcBid1);
+                oA = oA.multiply(ethBtcBid1);
+            }
+
             final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
             final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumE = bEMark.add(oELast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
@@ -1044,13 +1056,23 @@ public class ArbitrageService {
                         usdQuote.toPlainString()
                 ));
 
-                final BigDecimal oW = secondAccount.getWallet();
-                final BigDecimal oElast = secondAccount.geteLast() != null ? secondAccount.geteLast() : BigDecimal.ZERO;
+                BigDecimal oW = secondAccount.getWallet();
+                BigDecimal oElast = secondAccount.geteLast() != null ? secondAccount.geteLast() : BigDecimal.ZERO;
                 oEbest = secondAccount.geteBest() != null ? secondAccount.geteBest() : BigDecimal.ZERO;
-                final BigDecimal oEavg = secondAccount.geteAvg() != null ? secondAccount.geteAvg() : BigDecimal.ZERO;
-                final BigDecimal oM = secondAccount.getMargin();
-                final BigDecimal oU = secondAccount.getUpl();
-                final BigDecimal oA = secondAccount.getAvailable();
+                BigDecimal oEavg = secondAccount.geteAvg() != null ? secondAccount.geteAvg() : BigDecimal.ZERO;
+                BigDecimal oM = secondAccount.getMargin();
+                BigDecimal oU = secondAccount.getUpl();
+                BigDecimal oA = secondAccount.getAvailable();
+                if (secondMarketService.getEthTicker() != null) {
+                    BigDecimal ethBtcBid1 = secondMarketService.getEthTicker().getBid();
+                    oW = oW.multiply(ethBtcBid1);
+                    oElast = oElast.multiply(ethBtcBid1);
+                    oEbest = oEbest.multiply(ethBtcBid1);
+                    oEavg = oEavg.multiply(ethBtcBid1);
+                    oM = oM.multiply(ethBtcBid1);
+                    oU = oU.multiply(ethBtcBid1);
+                    oA = oA.multiply(ethBtcBid1);
+                }
                 final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
                 final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
                 final BigDecimal oLv = secondMarketService.getPosition().getLeverage();
@@ -1059,6 +1081,7 @@ public class ArbitrageService {
                 final OrderBook oOrderBook = secondMarketService.getOrderBook();
                 final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
+
                 tradeService.info(tradeId, counterName, String.format(
                         "#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
