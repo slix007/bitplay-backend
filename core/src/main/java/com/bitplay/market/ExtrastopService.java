@@ -14,6 +14,8 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -96,10 +98,15 @@ public class ExtrastopService {
     private void checkLastRun() {
         Instant now = Instant.now();
         if (lastRun != null && Duration.between(lastRun, now).getSeconds() > 10) {
-            warningLogger.warn("checkOrderBooks lastRun was too long ago at " + lastRun);
-            log.warn("checkOrderBooks lastRun was too long ago at " + lastRun);
+            LocalDateTime ldt = getLastRun();
+            warningLogger.warn("checkOrderBooks lastRun was too long ago at " + ldt);
+            log.warn("checkOrderBooks lastRun was too long ago at " + ldt);
         }
         lastRun = now;
+    }
+
+    public LocalDateTime getLastRun() {
+        return LocalDateTime.ofInstant(lastRun, ZoneId.systemDefault());
     }
 
     private synchronized boolean isHanged() {

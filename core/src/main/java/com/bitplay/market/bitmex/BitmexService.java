@@ -10,6 +10,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.market.BalanceService;
+import com.bitplay.market.ExtrastopService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
@@ -117,6 +118,8 @@ public class BitmexService extends MarketService {
 
     private volatile BigDecimal prevCumulativeAmount;
 
+    private volatile AtomicInteger obWrongCount = new AtomicInteger(0);
+
     private volatile Disposable orderBookSubscription;
     private volatile Disposable orderBookForPriceSubscription;
     private volatile Disposable openOrdersSubscription;
@@ -146,6 +149,8 @@ public class BitmexService extends MarketService {
     private OrderRepositoryService orderRepositoryService;
     @Autowired
     private BitmexLimitsService bitmexLimitsService;
+    @Autowired
+    private ExtrastopService extrastopService;
     private String key;
     private String secret;
     private Disposable restartTimer;
@@ -961,9 +966,18 @@ public class BitmexService extends MarketService {
             this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
             logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
             if (this.bestBid.compareTo(this.bestAsk) >= 0) {
-                String warn = String.format("#%s bid(%s) >= ask(%s)", getCounterName(), this.bestBid, this.bestAsk);
-                logger.warn(warn);
-                warningLogger.warn(warn);
+                String warn = String.format("#%s bid(%s) >= ask(%s). LastRun of 'checkOrderBooks' is %s. ",
+                        getCounterName(), this.bestBid, this.bestAsk, extrastopService.getLastRun());
+                if (obWrongCount.incrementAndGet() < 100) {
+                    logger.warn(warn);
+                    warningLogger.warn(warn);
+                } else {
+                    warn += "Do reconnect.";
+                    logger.warn(warn);
+                    warningLogger.warn(warn);
+                    requestReconnect(true);
+                    obWrongCount.set(0);
+                }
             }
 
             getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
