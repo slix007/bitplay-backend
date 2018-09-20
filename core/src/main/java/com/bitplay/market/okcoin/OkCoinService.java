@@ -1644,7 +1644,7 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    protected ContractType getContractType() {
+    public ContractType getContractType() {
         return okexContractType;
     }
 

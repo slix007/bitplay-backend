@@ -136,7 +136,7 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    protected ContractType getContractType() {
+    public ContractType getContractType() {
         return null;
     }
 

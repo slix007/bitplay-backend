@@ -1163,11 +1163,18 @@ public class ArbitrageService {
                 usdQuote = Utils.calcQuAvg(secondMarketService.getOrderBookForPrice());
                 break;
             case INDEX_BITMEX:
-                usdQuote = firstMarketService.getContractIndex() != null && firstMarketService.getContractIndex().getIndexPrice() != null
-                        ? firstMarketService.getContractIndex().getIndexPrice()
-                        : BigDecimal.ZERO;
+                if (firstMarketService.getContractType().isEth()) {
+                    usdQuote = firstMarketService.getBtcContractIndex() != null && firstMarketService.getBtcContractIndex().getIndexPrice() != null
+                            ? firstMarketService.getBtcContractIndex().getIndexPrice()
+                            : BigDecimal.ZERO;
+                } else {
+                    usdQuote = firstMarketService.getContractIndex() != null && firstMarketService.getContractIndex().getIndexPrice() != null
+                            ? firstMarketService.getContractIndex().getIndexPrice()
+                            : BigDecimal.ZERO;
+                }
                 break;
             case INDEX_OKEX:
+                // TODO
                 usdQuote = secondMarketService.getContractIndex() != null && secondMarketService.getContractIndex().getIndexPrice() != null
                         ? secondMarketService.getContractIndex().getIndexPrice()
                         : BigDecimal.ZERO;

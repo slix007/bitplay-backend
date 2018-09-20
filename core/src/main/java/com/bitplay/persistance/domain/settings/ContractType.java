@@ -4,4 +4,6 @@ import java.math.BigDecimal;
 
 public interface ContractType {
     BigDecimal getTickSize();
+
+    boolean isEth();
 }

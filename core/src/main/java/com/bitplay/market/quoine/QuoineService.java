@@ -77,7 +77,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    protected ContractType getContractType() {
+    public ContractType getContractType() {
         return null;
     }
 

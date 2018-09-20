@@ -693,7 +693,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     abstract protected void onReadyState();
 
-    abstract protected ContractType getContractType();
+    abstract public ContractType getContractType();
 
     public MoveResponse moveMakerOrderFromGui(String orderId) {
         MoveResponse response;

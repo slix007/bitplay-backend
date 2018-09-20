@@ -75,4 +75,8 @@ public enum OkexContractType implements ContractType {
                 dayOfMonth < 10 ? "0" + dayOfMonth : dayOfMonth
         );
     }
+
+    public boolean isEth() {
+        return this.name().startsWith("ETH");
+    }
 }

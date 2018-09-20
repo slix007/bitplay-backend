@@ -480,7 +480,7 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    protected ContractType getContractType() {
+    public ContractType getContractType() {
         return bitmexContractType;
     }
 
