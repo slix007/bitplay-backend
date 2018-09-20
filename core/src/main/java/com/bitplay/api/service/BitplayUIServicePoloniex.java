@@ -1,11 +1,11 @@
 package com.bitplay.api.service;
 
 import com.bitplay.api.domain.AccountInfoJson;
-import com.bitplay.api.domain.OrderBookJson;
 import com.bitplay.api.domain.TickerJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.api.domain.ob.FutureIndexJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
@@ -63,12 +63,9 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
         return convertTicker(poloniexService.getTicker());
     }
 
-    public OrderBookJson cleanOrderBook() {
-        return convertOrderBookAndFilter(
-                poloniexService.cleanOrderBook(),
-                getBusinessService().getTicker(),
-                getBusinessService().getEthBtcTicker(),
-                getBusinessService().getBtcContractIndex());
+    @Override
+    public FutureIndexJson getFutureIndex() {
+        return null;
     }
 
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {

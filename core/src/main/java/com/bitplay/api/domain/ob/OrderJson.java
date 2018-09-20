@@ -1,4 +1,4 @@
-package com.bitplay.api.domain;
+package com.bitplay.api.domain.ob;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;

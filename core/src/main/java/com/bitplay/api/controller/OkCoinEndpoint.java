@@ -2,13 +2,13 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
-import com.bitplay.api.domain.OrderBookJson;
-import com.bitplay.api.domain.OrderJson;
+import com.bitplay.api.domain.ob.OrderBookJson;
+import com.bitplay.api.domain.ob.OrderJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.api.domain.futureindex.FutureIndexJson;
+import com.bitplay.api.domain.ob.FutureIndexJson;
 import com.bitplay.api.service.BitplayUIServiceOkCoin;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import java.util.List;
@@ -40,7 +40,7 @@ public class OkCoinEndpoint {
         try {
             return this.okCoin.getOrderBook();
         } catch (NotYetInitializedException e) {
-            return OrderBookJson.empty();
+            return new OrderBookJson();
         }
     }
 
@@ -86,11 +86,6 @@ public class OkCoinEndpoint {
         final String id = orderJson.getId();
         final OkCoinTradeResult cancelResult = this.okCoin.getBusinessService().cancelOrderSync(id, "CancelFromUI");
         return new ResultJson(String.valueOf(cancelResult.isResult()), cancelResult.getDetails());
-    }
-
-    @RequestMapping(value = "/future-index", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public FutureIndexJson futureIndex() {
-        return this.okCoin.getFutureIndex();
     }
 
     @RequestMapping(value = "/liq-info", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

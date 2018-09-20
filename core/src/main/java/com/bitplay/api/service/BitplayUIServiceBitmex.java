@@ -5,8 +5,8 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.api.domain.futureindex.FutureIndexJson;
-import com.bitplay.api.domain.futureindex.LimitsJson;
+import com.bitplay.api.domain.ob.FutureIndexJson;
+import com.bitplay.api.domain.ob.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexLimitsService;
@@ -25,8 +25,6 @@ import java.util.stream.Collectors;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.trade.UserTrades;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -35,8 +33,6 @@ import org.springframework.stereotype.Component;
  */
 @Component("Bitmex")
 public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexService> {
-
-    private static final Logger logger = LoggerFactory.getLogger(BitplayUIServiceBitmex.class);
 
     @Autowired
     private BitmexService bitmexService;
@@ -104,7 +100,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         try {
             contractIndex = (BitmexContractIndex) bitmexService.getContractIndex();
         } catch (ClassCastException e) {
-            return new FutureIndexJson("", "", null);
+            return FutureIndexJson.empty();
         }
 
         final BigDecimal indexPrice = contractIndex.getIndexPrice();
@@ -139,8 +135,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         }
 
         if (bitmexService.getPosition() == null || bitmexService.getPosition().getPositionLong() == null) {
-            return new FutureIndexJson("", "", null);
-//            throw new NotYetInitializedException("Position is not yet defined");
+            return FutureIndexJson.empty();
         }
         final String position = bitmexService.getPosition().getPositionLong().toPlainString();
 
@@ -148,6 +143,8 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         final Integer timeCompareUpdating = bitmexTimeService.fetchTimeCompareUpdating();
 
         final LimitsJson limitsJson = bitmexLimitsService.getLimitsJson();
+
+        String bxbtBal = ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice();
 
         return new FutureIndexJson(
                 indexString,
@@ -160,7 +157,8 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 signalType,
                 timeCompareString,
                 String.valueOf(timeCompareUpdating),
-                limitsJson);
+                limitsJson,
+                bxbtBal);
     }
 
     public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {

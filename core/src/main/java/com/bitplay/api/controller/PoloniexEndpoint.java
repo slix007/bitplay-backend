@@ -1,8 +1,8 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
-import com.bitplay.api.domain.OrderBookJson;
-import com.bitplay.api.domain.OrderJson;
+import com.bitplay.api.domain.ob.OrderBookJson;
+import com.bitplay.api.domain.ob.OrderJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TickerJson;
 import com.bitplay.api.domain.TradeRequestJson;
@@ -38,7 +38,7 @@ public class PoloniexEndpoint {
 
     @RequestMapping(value = "/order-book-clean", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderBookJson cleanOrderBook() {
-        return this.poloniex.cleanOrderBook();
+        return new OrderBookJson(); //this.poloniex.cleanOrderBook();
     }
 
     /* @GET

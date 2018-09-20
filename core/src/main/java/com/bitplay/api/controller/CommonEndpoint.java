@@ -13,9 +13,8 @@ import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TimersJson;
-import com.bitplay.api.domain.TradeLogJson;
+import com.bitplay.api.domain.ob.PosDiffJson;
 import com.bitplay.api.service.CommonUIService;
-import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.MarketService;
 import com.bitplay.security.TraderPermissionsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +24,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -148,15 +146,8 @@ public class CommonEndpoint {
     }
 
     @RequestMapping(value = "/market/pos-diff", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson getPositionEquality() {
-        ResultJson posDiff;
-        try {
-            posDiff = commonUIService.getPosDiff();
-        } catch (NotYetInitializedException e) {
-            // do nothing
-            posDiff = new ResultJson("NotInitialized", "position is not yet initialized");
-        }
-        return posDiff;
+    public PosDiffJson getPositionEquality() {
+        return commonUIService.getPosDiff();
     }
 
     @RequestMapping(value = "/market/pos-corr",

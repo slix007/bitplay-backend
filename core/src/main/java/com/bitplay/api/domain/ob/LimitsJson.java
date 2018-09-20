@@ -1,4 +1,4 @@
-package com.bitplay.api.domain.futureindex;
+package com.bitplay.api.domain.ob;
 
 import java.math.BigDecimal;
 

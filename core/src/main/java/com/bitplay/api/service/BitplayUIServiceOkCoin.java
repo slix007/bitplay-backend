@@ -3,8 +3,8 @@ package com.bitplay.api.service;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.api.domain.futureindex.FutureIndexJson;
-import com.bitplay.api.domain.futureindex.LimitsJson;
+import com.bitplay.api.domain.ob.FutureIndexJson;
+import com.bitplay.api.domain.ob.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
@@ -110,7 +110,12 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         final LimitsJson limitsJson = okexLimitsService.getLimitsJson();
-        return new FutureIndexJson(indexString, sdf.format(timestamp), limitsJson);
+
+        // bid[1] в token trading (okex spot).
+        String ethBtcBal = service.getEthBtcTicker() == null ? ""
+                : "Quote ETH/BTC: " + service.getEthBtcTicker().getBid().toPlainString();
+
+        return new FutureIndexJson(indexString, sdf.format(timestamp), limitsJson, ethBtcBal);
     }
 
 }

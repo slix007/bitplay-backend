@@ -1,4 +1,4 @@
-package com.bitplay.api.domain.futureindex;
+package com.bitplay.api.domain.ob;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -20,17 +20,23 @@ public class FutureIndexJson {
     private String timeCompareString;
     private String timeCompareUpdating;
     private LimitsJson limits;
+    private ContractExtraJson contractExtraJson = new ContractExtraJson();
 
-    public FutureIndexJson(String index, String timestamp, LimitsJson limits) {
+    public static FutureIndexJson empty() {
+        return new FutureIndexJson("", "", new LimitsJson(), null);
+    }
+
+    public FutureIndexJson(String index, String timestamp, LimitsJson limits, String ethBtcBal) {
         this.index = index;
         this.timestamp = timestamp;
         this.limits = limits;
+        this.contractExtraJson.setEthBtcBal(ethBtcBal);
     }
 
     public FutureIndexJson(String index, String timestamp, String fundingRate,
                            String fundingCost,
                            String position, String swapTime, String timeToSwap, String swapType,
-                           String timeCompareString, String timeCompareUpdating, LimitsJson limits) {
+            String timeCompareString, String timeCompareUpdating, LimitsJson limits, String bxbtBal) {
         this.index = index;
         this.timestamp = timestamp;
         this.fundingRate = fundingRate;
@@ -42,5 +48,6 @@ public class FutureIndexJson {
         this.timeCompareString = timeCompareString;
         this.timeCompareUpdating = timeCompareUpdating;
         this.limits = limits;
+        this.contractExtraJson.setBxbtBal(bxbtBal);
     }
 }

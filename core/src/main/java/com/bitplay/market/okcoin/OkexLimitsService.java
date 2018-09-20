@@ -1,6 +1,6 @@
 package com.bitplay.market.okcoin;
 
-import com.bitplay.api.domain.futureindex.LimitsJson;
+import com.bitplay.api.domain.ob.LimitsJson;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;

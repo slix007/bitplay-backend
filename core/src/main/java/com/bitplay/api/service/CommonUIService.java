@@ -15,12 +15,14 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TimersJson;
 import com.bitplay.api.domain.TradeLogJson;
+import com.bitplay.api.domain.ob.PosDiffJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalTimeService;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.ArbState;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
@@ -434,10 +436,16 @@ public class CommonUIService {
         return new SumBalJson(sumBalString, sumEBest, sumEBestMin, timeToForbidden, coldStorage);
     }
 
-    public ResultJson getPosDiff() {
-        return new ResultJson(
-                posDiffService.getIsPositionsEqual() ? "0" : "-1",
-                arbitrageService.getPosDiffString());
+    public PosDiffJson getPosDiff() {
+        PosDiffJson posDiff;
+        try {
+            posDiff = new PosDiffJson(posDiffService.getIsPositionsEqual(),
+                    arbitrageService.getPosDiffString());
+        } catch (NotYetInitializedException e) {
+            // do nothing
+            posDiff = new PosDiffJson(true, "position is not yet initialized");
+        }
+        return posDiff;
     }
 
     public PosCorrJson getPosCorr() {

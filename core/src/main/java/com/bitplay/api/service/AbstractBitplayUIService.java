@@ -2,11 +2,13 @@ package com.bitplay.api.service;
 
 import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
-import com.bitplay.api.domain.OrderBookJson;
-import com.bitplay.api.domain.OrderJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TickerJson;
 import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.api.domain.ob.FutureIndexJson;
+import com.bitplay.api.domain.ob.OrderBookJson;
+import com.bitplay.api.domain.ob.OrderJson;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
@@ -14,7 +16,6 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.utils.Utils;
-import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import io.reactivex.Observable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,7 +29,6 @@ import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
-import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
@@ -93,6 +93,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public abstract T getBusinessService();
 
+    public abstract FutureIndexJson getFutureIndex();
+
     VisualTrade toVisualTrade(Trade trade) {
         return new VisualTrade(
                 trade.getCurrencyPair().toString(),
@@ -107,9 +109,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     public OrderBookJson getOrderBook() {
         return convertOrderBookAndFilter(
                 getBusinessService().getOrderBook(),
-                getBusinessService().getTicker(),
-                getBusinessService().getEthBtcTicker(),
-                getBusinessService().getBtcContractIndex()
+                getBusinessService().getTicker()
         );
     }
 
@@ -118,7 +118,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getBusinessService().getPosition());
     }
 
-    protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook, Ticker ticker, Ticker ethBtcTicker, ContractIndex btcContractInd) {
+    protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook, Ticker ticker) {
         final OrderBookJson orderJson = new OrderBookJson();
         final List<LimitOrder> bestBids = Utils.getBestBids(orderBook, 5);
         orderJson.setBid(bestBids.stream()
@@ -130,10 +130,10 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 .collect(Collectors.toList()));
         orderJson.setLastPrice(ticker != null ? ticker.getLast() : null);
 
-        // bid[1] в token trading (okex spot).
-        orderJson.setEthBtcBal(ethBtcTicker == null ? "" : "Quote ETH/BTC: " + ethBtcTicker.getBid().toPlainString());
-        if (btcContractInd instanceof BitmexContractIndex) {
-            orderJson.setBxbtBal(".BXBT: " + btcContractInd.getIndexPrice());
+        try {
+            orderJson.setFutureIndex(getFutureIndex());
+        } catch (NotYetInitializedException e) {
+            orderJson.setFutureIndex(FutureIndexJson.empty());
         }
 
         return orderJson;

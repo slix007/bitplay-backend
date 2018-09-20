@@ -3,13 +3,13 @@ package com.bitplay.api.controller;
 import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
-import com.bitplay.api.domain.OrderBookJson;
-import com.bitplay.api.domain.OrderJson;
+import com.bitplay.api.domain.ob.OrderBookJson;
+import com.bitplay.api.domain.ob.OrderJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.api.domain.futureindex.FutureIndexJson;
+import com.bitplay.api.domain.ob.FutureIndexJson;
 import com.bitplay.api.service.BitplayUIServiceBitmex;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import java.util.List;
@@ -41,7 +41,7 @@ public class BitmexEndpoint {
         try {
             return this.bitmex.getOrderBook();
         } catch (NotYetInitializedException e) {
-            return OrderBookJson.empty();
+            return new OrderBookJson();
         }
     }
 
@@ -88,11 +88,6 @@ public class BitmexEndpoint {
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrders(@RequestBody OrderJson orderJson) {
         return this.bitmex.moveOpenOrder(orderJson);
-    }
-
-    @RequestMapping(value = "/future-index", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public FutureIndexJson futureIndex() {
-        return this.bitmex.getFutureIndex();
     }
 
     @RequestMapping(value = "/custom-swap-time",

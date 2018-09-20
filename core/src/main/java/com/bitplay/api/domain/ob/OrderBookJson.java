@@ -1,4 +1,4 @@
-package com.bitplay.api.domain;
+package com.bitplay.api.domain.ob;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -19,11 +19,9 @@ public class OrderBookJson {
 
     private List<OrderJson> bid = new ArrayList<>();
     private List<OrderJson> ask = new ArrayList<>();
-    private BigDecimal lastPrice;
-    private String ethBtcBal;
-    private String bxbtBal;
 
-    public static OrderBookJson empty() {
-        return new OrderBookJson(new ArrayList<>(), new ArrayList<>(), BigDecimal.ZERO, "", "");
-    }
+    private BigDecimal lastPrice = BigDecimal.ZERO;
+
+    private FutureIndexJson futureIndex = FutureIndexJson.empty();
+
 }
