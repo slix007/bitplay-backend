@@ -955,8 +955,8 @@ public class ArbitrageService {
                 throw new IllegalStateException(String.format("Balance is not yet defined. bW=%s, oW=%s", bW, oW));
             }
 
-            if (secondMarketService.getEthTicker() != null) {
-                BigDecimal ethBtcBid1 = secondMarketService.getEthTicker().getBid();
+            if (secondMarketService.getEthBtcTicker() != null) {
+                BigDecimal ethBtcBid1 = secondMarketService.getEthBtcTicker().getBid();
                 oW = oW.multiply(ethBtcBid1);
                 oELast = oELast.multiply(ethBtcBid1);
                 oEbest = oEbest.multiply(ethBtcBid1);
@@ -1063,8 +1063,8 @@ public class ArbitrageService {
                 BigDecimal oM = secondAccount.getMargin();
                 BigDecimal oU = secondAccount.getUpl();
                 BigDecimal oA = secondAccount.getAvailable();
-                if (secondMarketService.getEthTicker() != null) {
-                    BigDecimal ethBtcBid1 = secondMarketService.getEthTicker().getBid();
+                if (secondMarketService.getEthBtcTicker() != null) {
+                    BigDecimal ethBtcBid1 = secondMarketService.getEthBtcTicker().getBid();
                     oW = oW.multiply(ethBtcBid1);
                     oElast = oElast.multiply(ethBtcBid1);
                     oEbest = oEbest.multiply(ethBtcBid1);

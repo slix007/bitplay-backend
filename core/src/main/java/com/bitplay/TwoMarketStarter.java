@@ -71,7 +71,7 @@ public class TwoMarketStarter {
             firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret(), bitmexContractType);
             logger.info("MARKET1: " + firstMarketService);
         } catch (Exception e) {
-            logger.error("Initialization error", e);
+            logger.error("MARKET1 Initialization error. Set STOPPED.", e);
             // Workaround to make work the other market
             firstMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
             firstMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
@@ -84,7 +84,7 @@ public class TwoMarketStarter {
             secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret(), okexContractType);
             logger.info("MARKET2: " + secondMarketService);
         } catch (Exception e) {
-            logger.error("Initialization error", e);
+            logger.error("MARKET2 Initialization error. Set STOPPED.", e);
             // Workaround to make work the other market
             secondMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
             secondMarketService.getPosition().setPositionShort(BigDecimal.ZERO);

@@ -565,7 +565,7 @@ public class OkCoinService extends MarketService {
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(
-                        ethTick -> this.ethTicker = ethTick,
+                        ethTick -> this.ethBtcTicker = ethTick,
                         throwable -> logger.error("OkexSpotTicker.Exception: ", throwable)
                 );
     }

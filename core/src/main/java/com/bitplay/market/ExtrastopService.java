@@ -73,7 +73,7 @@ public class ExtrastopService {
             }
 
             if (isHanged()) {
-                warningLogger.warn("Stop markets and schedule restart in 30 sec");
+                warningLogger.warn("Stop markets and schedule restart in 30 sec. Set STOPPED.");
 
                 bitmexService.setMarketState(MarketState.STOPPED);
                 okCoinService.setMarketState(MarketState.STOPPED);
@@ -82,7 +82,7 @@ public class ExtrastopService {
             }
 
         } catch (IllegalArgumentException e) {
-            log.error("on check times", e);
+            log.error("Error on check times. Set STOPPED.", e);
 //            warningLogger.error("ERROR on check times", e);
             bitmexService.setMarketState(MarketState.STOPPED);
             okCoinService.setMarketState(MarketState.STOPPED);

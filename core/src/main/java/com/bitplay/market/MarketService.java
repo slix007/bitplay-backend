@@ -67,15 +67,18 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected volatile OrderBook orderBookForPrice = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-    protected final static Object orderBookLock = new Object();
-    protected final static Object orderBookForPriceLock = new Object();
+    protected final Object orderBookLock = new Object();
+    protected final Object orderBookForPriceLock = new Object();
     protected volatile AccountInfo accountInfo = null;
     protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
     protected volatile Position position = new Position(null, null, null, null, "");
     protected volatile Affordable affordable = new Affordable();
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
+    protected final Object contractIndexLock = new Object();
+    protected volatile ContractIndex btcContractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
+    protected final Object btcContractIndexLock = new Object();
     protected volatile Ticker ticker;
-    protected volatile Ticker ethTicker;
+    protected volatile Ticker ethBtcTicker;
     protected volatile int usdInContract = 0;
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -438,6 +441,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public void setMarketState(MarketState newState, String counterName) {
         getTradeLogger().info("#{} {} marketState: {} {}", counterName, getName(), newState, getPosDiffString());
+        logger.info("#{} {} marketState: {} {}", counterName, getName(), newState, getPosDiffString());
         this.marketState = newState;
         if (newState == MarketState.READY) {
             this.readyTime = Instant.now();
@@ -493,8 +497,12 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return ticker;
     }
 
-    public Ticker getEthTicker() {
-        return ethTicker;
+    public Ticker getEthBtcTicker() {
+        return ethBtcTicker;
+    }
+
+    public ContractIndex getBtcContractIndex() {
+        return btcContractIndex;
     }
 
     public LiqInfo getLiqInfo() {

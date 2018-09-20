@@ -14,6 +14,7 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.utils.Utils;
+import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import io.reactivex.Observable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -27,6 +28,7 @@ import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
@@ -106,7 +108,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         return convertOrderBookAndFilter(
                 getBusinessService().getOrderBook(),
                 getBusinessService().getTicker(),
-                getBusinessService().getEthTicker()
+                getBusinessService().getEthBtcTicker(),
+                getBusinessService().getBtcContractIndex()
         );
     }
 
@@ -115,7 +118,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 getBusinessService().getPosition());
     }
 
-    protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook, Ticker ticker, Ticker ethTicker) {
+    protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook, Ticker ticker, Ticker ethBtcTicker, ContractIndex btcContractInd) {
         final OrderBookJson orderJson = new OrderBookJson();
         final List<LimitOrder> bestBids = Utils.getBestBids(orderBook, 5);
         orderJson.setBid(bestBids.stream()
@@ -125,10 +128,14 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         orderJson.setAsk(bestAsks.stream()
                 .map(toOrderJson)
                 .collect(Collectors.toList()));
-        orderJson.setLastPrice(ticker.getLast());
+        orderJson.setLastPrice(ticker != null ? ticker.getLast() : null);
 
         // bid[1] в token trading (okex spot).
-        orderJson.setEthBal(ethTicker == null ? "" : "Quote ETH/BTC: " + ethTicker.getBid().toPlainString());
+        orderJson.setEthBtcBal(ethBtcTicker == null ? "" : "Quote ETH/BTC: " + ethBtcTicker.getBid().toPlainString());
+        if (btcContractInd instanceof BitmexContractIndex) {
+            orderJson.setBxbtBal(".BXBT: " + btcContractInd.getIndexPrice());
+        }
+
         return orderJson;
     }
 
@@ -215,7 +222,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                     entryPrice, "error");
         }
 
-        final String ethBtcBid1 = getBusinessService().getEthTicker() != null ? getBusinessService().getEthTicker().getBid().toPlainString() : null;
+        final String ethBtcBid1 = getBusinessService().getEthBtcTicker() != null ? getBusinessService().getEthBtcTicker().getBid().toPlainString() : null;
 
         return new AccountInfoJson(
                 wallet.toPlainString(),

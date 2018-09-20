@@ -25,4 +25,8 @@ public enum BitmexContractType implements ContractType {
     public String getSymbol() {
         return this.name();
     }
+
+    public boolean isEth() {
+        return this.name().startsWith("ETH");
+    }
 }

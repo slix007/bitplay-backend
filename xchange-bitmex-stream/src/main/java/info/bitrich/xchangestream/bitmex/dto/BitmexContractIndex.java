@@ -10,6 +10,7 @@ import org.knowm.xchange.dto.marketdata.ContractIndex;
  */
 public class BitmexContractIndex extends ContractIndex {
 
+    private String symbol;
     private BigDecimal markPrice;
     private BigDecimal lastPrice;
     private BigDecimal fundingRate;
@@ -19,13 +20,18 @@ public class BitmexContractIndex extends ContractIndex {
         super(indexPrice, timestamp);
     }
 
-    public BitmexContractIndex(BigDecimal indexPrice, BigDecimal markPrice, BigDecimal lastPrice, Date timestamp, BigDecimal fundingRate,
+    public BitmexContractIndex(String symbol, BigDecimal indexPrice, BigDecimal markPrice, BigDecimal lastPrice, Date timestamp, BigDecimal fundingRate,
             OffsetDateTime swapTime) {
         super(indexPrice, timestamp);
+        this.symbol = symbol;
         this.markPrice = markPrice;
         this.lastPrice = lastPrice;
         this.fundingRate = fundingRate;
         this.swapTime = swapTime;
+    }
+
+    public String getSymbol() {
+        return symbol;
     }
 
     public BigDecimal getMarkPrice() {

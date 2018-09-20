@@ -74,6 +74,7 @@ import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -306,22 +307,6 @@ public class BitmexService extends MarketService {
         openOrdersSubscription = startOpenOrderListener();
         positionSubscription = startPositionListener();
         futureIndexSubscription = startFutureIndexListener();
-
-//        Completable.timer(1000, TimeUnit.MILLISECONDS)
-//                .doOnComplete(() -> accountInfoSubscription = startAccountInfoListener())
-//                .subscribe();
-//
-//        Completable.timer(1000, TimeUnit.MILLISECONDS)
-//                .doOnComplete(() -> openOrdersSubscription = startOpenOrderListener())
-//                .subscribe();
-//
-//        Completable.timer(1000, TimeUnit.MILLISECONDS)
-//                .doOnComplete(() -> positionSubscription = startPositionListener())
-//                .subscribe();
-//
-//        Completable.timer(1000, TimeUnit.MILLISECONDS)
-//                .doOnComplete(() -> futureIndexSubscription = startFutureIndexListener())
-//                .subscribe();
 
     }
 
@@ -1614,16 +1599,33 @@ public class BitmexService extends MarketService {
     }
 
     private Disposable startFutureIndexListener() {
+        List<String> symbols = new ArrayList<>();
+        symbols.add(bitmexContractType.getSymbol());
+        if (bitmexContractType.isEth()) {
+            symbols.add(BitmexContractType.XBTUSD.getSymbol());
+        }
+
         Observable<BitmexContractIndex> indexObservable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
-                .getContractIndexObservable(bitmexContractType.getSymbol())
+                .getContractIndexObservable(symbols)
                 .doOnError(throwable -> handleSubscriptionError(throwable, "Index fetch error"))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
 
         return indexObservable
-                .subscribe(contractIndex1 -> {
+                .observeOn(Schedulers.computation())
+                .subscribe(contIndUpdate -> {
                     try {
 
-                        mergeContractIndex(contractIndex1);
+                        if (bitmexContractType.isEth() && contIndUpdate.getSymbol().equals(BitmexContractType.XBTUSD.getSymbol())) {
+                            synchronized (btcContractIndexLock) {
+                                this.btcContractIndex = mergeContractIndex(this.btcContractIndex, contIndUpdate);
+                            }
+                        } else {
+                            synchronized (contractIndexLock) {
+                                BitmexContractIndex bitmexContractIndex = mergeContractIndex(this.contractIndex, contIndUpdate);
+                                this.contractIndex = bitmexContractIndex;
+                                this.ticker = new Ticker.Builder().last(bitmexContractIndex.getLastPrice()).timestamp(new Date()).build();
+                            }
+                        }
 
                     } catch (Exception e) {
                         logger.error("Can not merge contractIndex", e);
@@ -1635,35 +1637,30 @@ public class BitmexService extends MarketService {
                 });
     }
 
-    private synchronized void mergeContractIndex(BitmexContractIndex update) {
+    private BitmexContractIndex mergeContractIndex(ContractIndex current, BitmexContractIndex update) {
         // merge contractIndex
         final BigDecimal indexPrice = update.getIndexPrice() != null
                 ? update.getIndexPrice()
-                : contractIndex.getIndexPrice();
-        final BigDecimal markPrice = update.getMarkPrice() != null
-                ? update.getMarkPrice()
-                : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getMarkPrice() : BigDecimal.ZERO);
-        final BigDecimal lastPrice = update.getLastPrice() != null
-                ? update.getLastPrice()
-                : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getLastPrice() : BigDecimal.ZERO);
+                : current.getIndexPrice();
+        final BigDecimal markPrice;
+        final BigDecimal lastPrice;
         final BigDecimal fundingRate;
         final OffsetDateTime fundingTimestamp;
-        if (contractIndex instanceof BitmexContractIndex) {
-            fundingRate = update.getFundingRate() != null
-                    ? update.getFundingRate()
-                    : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getFundingRate() : BigDecimal.ZERO);
-            fundingTimestamp = update.getSwapTime() != null
-                    ? update.getSwapTime()
-                    : (contractIndex instanceof BitmexContractIndex ? ((BitmexContractIndex) contractIndex).getSwapTime()
-                            : OffsetDateTime.now().minusHours(10));
+        if (current instanceof BitmexContractIndex) {
+            BitmexContractIndex cur = (BitmexContractIndex) current;
+            markPrice = update.getMarkPrice() != null ? update.getMarkPrice() : cur.getMarkPrice();
+            lastPrice = update.getLastPrice() != null ? update.getLastPrice() : cur.getLastPrice();
+            fundingRate = update.getFundingRate() != null ? update.getFundingRate() : cur.getFundingRate();
+            fundingTimestamp = update.getSwapTime() != null ? update.getSwapTime() : cur.getSwapTime();
         } else {
+            markPrice = update.getMarkPrice();
+            lastPrice = update.getLastPrice();
             fundingRate = update.getFundingRate();
             fundingTimestamp = update.getSwapTime();
         }
         final Date timestamp = update.getTimestamp();
 
-        this.contractIndex = new BitmexContractIndex(indexPrice, markPrice, lastPrice, timestamp, fundingRate, fundingTimestamp);
-        this.ticker = new Ticker.Builder().last(lastPrice).timestamp(new Date()).build();
+        return new BitmexContractIndex(update.getSymbol(), indexPrice, markPrice, lastPrice, timestamp, fundingRate, fundingTimestamp);
     }
 
     @Override

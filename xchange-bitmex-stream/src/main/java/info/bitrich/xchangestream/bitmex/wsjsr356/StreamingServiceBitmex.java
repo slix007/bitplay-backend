@@ -16,7 +16,9 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.knowm.xchange.bitmex.service.BitmexDigest;
 import org.slf4j.Logger;
@@ -57,7 +59,11 @@ public class StreamingServiceBitmex {
     }
 
     public Observable<JsonNode> subscribeChannel(String channel, String subscriptionSubject) {
-        log.info("Subscribing to channel {}", channel);
+        return subscribeChannel(channel, Collections.singletonList(subscriptionSubject));
+    }
+
+    public Observable<JsonNode> subscribeChannel(String channel, List<String> subscriptionSubject) {
+        log.info("Subscribing to channel {} {}", channel, Arrays.toString(subscriptionSubject.toArray()));
 
         return Observable.<JsonNode>create(e -> {
             if (clientEndPoint == null || !clientEndPoint.isOpen()) {
@@ -72,13 +78,17 @@ public class StreamingServiceBitmex {
 
             msgHandler.getChannels().put(channel, e);
             try {
-                clientEndPoint.sendMessage(getSubscribeMessage(subscriptionSubject));
+                for (String s : subscriptionSubject) {
+                    clientEndPoint.sendMessage(getSubscribeMessage(s));
+                }
             } catch (IOException throwable) {
                 e.onError(throwable);
             }
         }).doOnDispose(() -> {
-            if (clientEndPoint.isOpen()) {
-                clientEndPoint.sendMessage(getUnsubscribeMessage(subscriptionSubject));
+            for (String s : subscriptionSubject) {
+                if (clientEndPoint.isOpen()) {
+                    clientEndPoint.sendMessage(getUnsubscribeMessage(s));
+                }
             }
             msgHandler.getChannels().remove(channel);
         });

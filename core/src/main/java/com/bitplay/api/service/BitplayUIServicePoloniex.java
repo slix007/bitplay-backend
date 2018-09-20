@@ -67,7 +67,8 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
         return convertOrderBookAndFilter(
                 poloniexService.cleanOrderBook(),
                 getBusinessService().getTicker(),
-                getBusinessService().getEthTicker());
+                getBusinessService().getEthBtcTicker(),
+                getBusinessService().getBtcContractIndex());
     }
 
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {

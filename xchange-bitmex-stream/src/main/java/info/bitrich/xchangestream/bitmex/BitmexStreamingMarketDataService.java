@@ -12,6 +12,8 @@ import io.swagger.client.model.Instrument;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
@@ -35,8 +37,8 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
     }
 
     public Observable<BitmexOrderBook> getOrderBookL2(String symbol) {
-        String channel = "orderBookL2:" + symbol;
-        return service.subscribeChannel(channel, channel)
+        String orderBookL2Channel = "orderBookL2:" + symbol;
+        return service.subscribeChannel(orderBookL2Channel, orderBookL2Channel)
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -59,8 +61,11 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
         throw new NotYetImplementedForExchangeException();
     }
 
-    public Observable<BitmexContractIndex> getContractIndexObservable(String symbol) {
-        return service.subscribeChannel("instrument", "instrument:" + symbol) //instrument:XBTUSD
+    public Observable<BitmexContractIndex> getContractIndexObservable(List<String> symbols) {
+        List<String> instruments = symbols.stream()
+                .map(s -> "instrument:" + s).collect(Collectors.toList());//instrument:XBTUSD
+
+        return service.subscribeChannel("instrument", instruments)
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -87,6 +92,7 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                     final OffsetDateTime fundingTimestamp = instrument.getFundingTimestamp();
 
                     return new BitmexContractIndex(
+                            instrument.getSymbol(),
                             indexPrice,
                             markPrice,
                             lastPrice,
