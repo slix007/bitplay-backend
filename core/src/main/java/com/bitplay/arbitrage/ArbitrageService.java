@@ -1188,7 +1188,7 @@ public class ArbitrageService {
     }
 
     public String getPosDiffString() {
-        final BigDecimal posDiff = posDiffService.getPositionsDiffSafe();
+        BigDecimal posDiff = posDiffService.getPositionsDiffSafe();
         final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
@@ -1196,12 +1196,19 @@ public class ArbitrageService {
         final BigDecimal dc = posDiffService.getPositionsDiffWithHedge();
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
-        return String.format("b(%s) o(+%s-%s) = %s, ha=%s, dc=%s, mdc=%s",
+        BigDecimal cm = ((BitmexService) firstMarketService).getCm();
+        if (cm != null) {
+            //TODO
+        } else {
+            cm = BigDecimal.valueOf(100);
+        }
+
+        return String.format("b(%s) o(+%s-%s) = %s, ha=%s, dc=%s, mdc=%s, cm=%s",
                 Utils.withSign(bP),
                 oPL.toPlainString(),
                 oPS.toPlainString(),
                 posDiff.toPlainString(),
-                ha, dc, mdc
+                ha, dc, mdc, cm
         );
     }
 

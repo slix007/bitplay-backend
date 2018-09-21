@@ -160,6 +160,8 @@ public class BitmexService extends MarketService {
     private AtomicInteger cancelledInRow = new AtomicInteger();
     private volatile boolean reconnectInProgress = false;
     private volatile AtomicInteger reconnectCount = new AtomicInteger(0);
+    private volatile BigDecimal cm = null; // correlation multiplier
+
 
     public Date getOrderBookLastTimestamp() {
         return orderBookLastTimestamp;
@@ -213,6 +215,10 @@ public class BitmexService extends MarketService {
     @Override
     public String getFuturesContractName() {
         return bitmexContractType.getSymbol();
+    }
+
+    public BigDecimal getCm() {
+        return cm;
     }
 
     @Scheduled(fixedDelay = 2000)
@@ -1615,15 +1621,24 @@ public class BitmexService extends MarketService {
                 .subscribe(contIndUpdate -> {
                     try {
 
-                        if (bitmexContractType.isEth() && contIndUpdate.getSymbol().equals(BitmexContractType.XBTUSD.getSymbol())) {
-                            synchronized (btcContractIndexLock) {
+                        synchronized (contractIndexLock) {
+                            if (bitmexContractType.isEth() && contIndUpdate.getSymbol().equals(BitmexContractType.XBTUSD.getSymbol())) {
+
                                 this.btcContractIndex = mergeContractIndex(this.btcContractIndex, contIndUpdate);
-                            }
-                        } else {
-                            synchronized (contractIndexLock) {
+
+                                if (this.contractIndex instanceof BitmexContractIndex) {
+                                    calcCM();
+                                }
+
+                            } else {
+
                                 BitmexContractIndex bitmexContractIndex = mergeContractIndex(this.contractIndex, contIndUpdate);
                                 this.contractIndex = bitmexContractIndex;
                                 this.ticker = new Ticker.Builder().last(bitmexContractIndex.getLastPrice()).timestamp(new Date()).build();
+
+                                if (cm != null) {
+                                    calcCM();
+                                }
                             }
                         }
 
@@ -1635,6 +1650,15 @@ public class BitmexService extends MarketService {
                     logger.error("Can not merge contractIndex exception", throwable);
                     checkForRestart();
                 });
+    }
+
+    private void calcCM() {
+        if (this.contractIndex instanceof BitmexContractIndex && this.btcContractIndex instanceof BitmexContractIndex) {
+            final BigDecimal bxbtIndex = btcContractIndex.getIndexPrice();
+            final BigDecimal ethUsdMark = ((BitmexContractIndex) this.contractIndex).getMarkPrice();
+            // CM = round(10000000 / (ETHUSD_mark BXBT);2);
+            this.cm = BigDecimal.valueOf(10 * 1000 * 1000).divide(bxbtIndex.multiply(ethUsdMark), 2, RoundingMode.HALF_UP);
+        }
     }
 
     private BitmexContractIndex mergeContractIndex(ContractIndex current, BitmexContractIndex update) {

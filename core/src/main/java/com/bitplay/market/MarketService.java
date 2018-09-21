@@ -73,10 +73,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
     protected volatile Position position = new Position(null, null, null, null, "");
     protected volatile Affordable affordable = new Affordable();
-    protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected final Object contractIndexLock = new Object();
+    protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
     protected volatile ContractIndex btcContractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
-    protected final Object btcContractIndexLock = new Object();
     protected volatile Ticker ticker;
     protected volatile Ticker ethBtcTicker;
     protected volatile int usdInContract = 0;
