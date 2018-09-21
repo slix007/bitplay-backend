@@ -58,6 +58,23 @@ public class StreamingServiceBitmex {
         });
     }
 
+    public Completable unsubscribeChannel(String channel, String subscriptionSubject) {
+        return Completable.create(emitter -> {
+            try {
+                if (msgHandler.getChannels().containsKey(channel)) {
+                    if (clientEndPoint.isOpen()) {
+                        clientEndPoint.sendMessage(getUnsubscribeMessage(subscriptionSubject));
+                    }
+                    msgHandler.getChannels().remove(channel);
+                }
+                emitter.onComplete();
+
+            } catch (IOException throwable) {
+                emitter.onError(throwable);
+            }
+        });
+    }
+
     public Observable<JsonNode> subscribeChannel(String channel, String subscriptionSubject) {
         return subscribeChannel(channel, Collections.singletonList(subscriptionSubject));
     }

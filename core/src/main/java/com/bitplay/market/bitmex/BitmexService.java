@@ -61,6 +61,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -105,7 +106,9 @@ public class BitmexService extends MarketService {
 
     private BitmexStreamingExchange exchange;
 
-    private static final int MAX_RECONNECTS_BEFORE_RESTART = 5;
+    private static final int MAX_RECONNECTS_BEFORE_RESTART = 1;
+    private static final int MAX_WAITING_OB_CHECKS = 3; // sleep 1 sec
+    private static final int MAX_RESUBSCRIBES = 10;
     private volatile boolean isDestroyed = false;
 
     // Moving timeout
@@ -316,6 +319,53 @@ public class BitmexService extends MarketService {
 
     }
 
+    public void reSubscribeOrderBooks(boolean force) throws ReconnectFailedException, TimeoutException {
+
+        if (force || !orderBookIsFilled()) {
+
+            String msgOb = String.format("re-subscribe OrderBook: asks=%s, bids=%s, timestamp=%s. ",
+                    orderBook.getAsks().size(),
+                    orderBook.getBids().size(),
+                    orderBook.getTimeStamp());
+            tradeLogger.info(msgOb);
+            warningLogger.info(msgOb);
+            logger.info(msgOb);
+
+            orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+
+            orderBookSubscription.dispose();
+            Throwable throwable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                    .unsubscribeOrderBook(bitmexContractType.getSymbol())
+                    .doOnComplete(() -> orderBookSubscription = startOrderBookListener())
+                    .blockingGet(5, TimeUnit.SECONDS);
+            if (throwable != null) {
+                throw new ReconnectFailedException(throwable);
+            }
+
+        }
+        if (force || !orderBookForPriceIsFilled()) {
+            String msgObForPrice = sameOrderBookForPrice() ? ""
+                    : String.format("re-subscribe OrderBookForPrice: asks=%s, bids=%s, timestamp=%s. ",
+                            orderBookForPrice.getAsks().size(),
+                            orderBookForPrice.getBids().size(),
+                            orderBookForPrice.getTimeStamp());
+            tradeLogger.info(msgObForPrice);
+            warningLogger.info(msgObForPrice);
+            logger.info(msgObForPrice);
+
+            orderBookForPrice = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+
+            orderBookForPriceSubscription.dispose();
+            Throwable throwable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                    .unsubscribeOrderBook(bitmexContractTypeForPrice.getSymbol())
+                    .doOnComplete(() -> orderBookForPriceSubscription = startOrderBookForPriceListener())
+                    .blockingGet(5, TimeUnit.SECONDS);
+            if (throwable != null) {
+                throw new ReconnectFailedException(throwable);
+            }
+        }
+    }
+
     private void checkForRestart() {
         logger.info("checkForRestart reconnectInProgress={}. {}", reconnectInProgress, getSubscribersStatuses());
         requestReconnect(false);
@@ -390,8 +440,7 @@ public class BitmexService extends MarketService {
                 break;
 
             } catch (ReconnectFailedException e) {
-                attempt++;
-                if (attempt >= MAX_RECONNECTS_BEFORE_RESTART) {
+                if (++attempt >= MAX_RECONNECTS_BEFORE_RESTART) {
                     doRestart(String.format("Warning: Bitmex reconnect(%s) attempt=%s failed.", currReconnectCount, attempt));
                     break;
                 }
@@ -762,13 +811,22 @@ public class BitmexService extends MarketService {
 
             startAllListeners();
 
-            int attempts = 0;
-            while (attempts < 5) {
+            int reSubAttempts = 0;
+            while (reSubAttempts++ < MAX_RESUBSCRIBES) {
+
+                int checkAttempts = 0;
+                while (checkAttempts++ < MAX_WAITING_OB_CHECKS) {
+                    if (orderBookIsFilled() && orderBookForPriceIsFilled()) {
+                        break;
+                    }
+                    Thread.sleep(1000);
+                }
+
                 if (orderBookIsFilled() && orderBookForPriceIsFilled()) {
                     break;
                 }
-                attempts++;
-                Thread.sleep(1000);
+
+                reSubscribeOrderBooks(false);
             }
 
             String msgOb = String.format("OrderBook: asks=%s, bids=%s, timestamp=%s. ",
@@ -780,13 +838,12 @@ public class BitmexService extends MarketService {
                             orderBookForPrice.getAsks().size(),
                             orderBookForPrice.getBids().size(),
                             orderBookForPrice.getTimeStamp());
-
             if (!orderBookIsFilled() || !orderBookForPriceIsFilled()) {
                 String msg = String.format("OrderBook(ForPrice) is not full. %s; %s. %s",
                         msgOb,
                         msgObForPrice,
                         getSubscribersStatuses());
-                throw new Exception(msg);
+                throw new ReconnectFailedException(msg);
             } else {
                 String finishMsg = String.format("Warning: Bitmex reconnect is finished. %s; %s. %s. OpenOrdersCount(но это не точно)=%s",
                         msgOb,
@@ -807,7 +864,7 @@ public class BitmexService extends MarketService {
             warningLogger.info(msg);
             logger.info(msg);
 
-            throw new ReconnectFailedException();
+            throw new ReconnectFailedException(e);
         }
     }
 

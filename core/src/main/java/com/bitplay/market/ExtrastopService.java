@@ -106,7 +106,7 @@ public class ExtrastopService {
     }
 
     public LocalDateTime getLastRun() {
-        return LocalDateTime.ofInstant(lastRun, ZoneId.systemDefault());
+        return lastRun == null ? null : LocalDateTime.ofInstant(lastRun, ZoneId.systemDefault());
     }
 
     private synchronized boolean isHanged() {

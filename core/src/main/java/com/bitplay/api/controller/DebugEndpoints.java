@@ -57,15 +57,33 @@ public class DebugEndpoints {
     @RequestMapping(value = "/bitmex-reconnect", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson reconnect() {
 
+        String isDone = "is done";
         String errorMsg = "";
         try {
             bitmexService.reconnect();
-        } catch (ReconnectFailedException e) {
+        } catch (Exception e) {
             log.error("Can't reconnect bitmex", e);
+            isDone = "failed";
             errorMsg = e.getMessage();
         }
 
-        return new ResultJson("Reconnect is done", errorMsg);
+        return new ResultJson("Reconnect " + isDone, errorMsg);
+    }
+
+    @RequestMapping(value = "/bitmex-ob-resubscribe", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResultJson reOBResubscribe() {
+
+        String isDone = "is done";
+        String errorMsg = "";
+        try {
+            bitmexService.reSubscribeOrderBooks(true);
+        } catch (Exception e) {
+            log.error("Can't re-subscribe bitmex OB", e);
+            isDone = " failed.";
+            errorMsg = e.getMessage();
+        }
+
+        return new ResultJson("Resubscribe OB " + isDone, errorMsg);
     }
 
     @RequestMapping(value = "/deadlock/check", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

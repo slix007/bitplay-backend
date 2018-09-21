@@ -7,6 +7,7 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
+import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.swagger.client.model.Instrument;
 import java.math.BigDecimal;
@@ -50,6 +51,10 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                 });
     }
 
+    public Completable unsubscribeOrderBook(String symbol) {
+        String orderBookL2Channel = "orderBookL2:" + symbol;
+        return service.unsubscribeChannel(orderBookL2Channel, orderBookL2Channel);
+    }
 
     @Override
     public Observable<Ticker> getTicker(CurrencyPair currencyPair, Object... objects) {
