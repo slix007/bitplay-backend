@@ -1,13 +1,15 @@
 package com.bitplay.persistance.domain.settings;
 
 import java.math.BigDecimal;
+import org.springframework.data.annotation.Transient;
 
 /**
  * Created by Sergey Shurmin on 12/29/17.
  */
 public class PlacingBlocks {
 
-    private static final BigDecimal BITMEX_BLOCK_FACTOR = BigDecimal.valueOf(100);
+    @Transient
+    private BigDecimal bitmexBlockFactor = BigDecimal.valueOf(100);
     private Ver activeVersion;
     private BigDecimal fixedBlockOkex;
     private BigDecimal dynMaxBlockOkex;
@@ -29,7 +31,7 @@ public class PlacingBlocks {
     }
 
     public BigDecimal getFixedBlockBitmex() {
-        return fixedBlockOkex.multiply(BITMEX_BLOCK_FACTOR);
+        return fixedBlockOkex.multiply(bitmexBlockFactor);
     }
 
     public BigDecimal getFixedBlockOkex() {
@@ -41,7 +43,7 @@ public class PlacingBlocks {
     }
 
     public BigDecimal getDynMaxBlockBitmex() {
-        return dynMaxBlockOkex.multiply(BITMEX_BLOCK_FACTOR);
+        return dynMaxBlockOkex.multiply(bitmexBlockFactor);
     }
 
     public BigDecimal getDynMaxBlockOkex() {
@@ -50,6 +52,14 @@ public class PlacingBlocks {
 
     public void setDynMaxBlockOkex(BigDecimal dynMaxBlockOkex) {
         this.dynMaxBlockOkex = dynMaxBlockOkex;
+    }
+
+    public BigDecimal getBitmexBlockFactor() {
+        return bitmexBlockFactor;
+    }
+
+    public void setBitmexBlockFactor(BigDecimal bitmexBlockFactor) {
+        this.bitmexBlockFactor = bitmexBlockFactor;
     }
 
     @Override

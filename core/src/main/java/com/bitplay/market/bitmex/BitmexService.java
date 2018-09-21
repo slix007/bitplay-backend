@@ -224,6 +224,13 @@ public class BitmexService extends MarketService {
         return cm;
     }
 
+    @Override
+    public boolean isStarted() {
+        return !bitmexContractType.isEth()
+                ||
+                (bitmexContractType.isEth() && cm != null);
+    }
+
     @Scheduled(fixedDelay = 2000)
     public void openOrdersCleaner() {
         Instant start = Instant.now();

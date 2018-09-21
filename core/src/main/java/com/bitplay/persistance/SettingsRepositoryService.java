@@ -1,10 +1,12 @@
 package com.bitplay.persistance;
 
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.persistance.repository.SettingsRepository;
 
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -24,6 +26,9 @@ public class SettingsRepositoryService {
     private SettingsRepository settingsRepository;
 
     @Autowired
+    private BitmexService bitmexService;
+
+    @Autowired
     public SettingsRepositoryService(MongoOperations mongoOperation) {
         this.mongoOperation = mongoOperation;
     }
@@ -34,6 +39,11 @@ public class SettingsRepositoryService {
 
         if (settings == null) {
             settings = fetchSettings();
+        }
+
+        BigDecimal cm = bitmexService.getCm();
+        if (cm != null) {
+            settings.getPlacingBlocks().setBitmexBlockFactor(cm);
         }
 
         return settings;

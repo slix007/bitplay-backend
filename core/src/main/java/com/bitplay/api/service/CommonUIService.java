@@ -36,6 +36,7 @@ import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.RestartMonitoring;
 import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.repository.RestartMonitoringRepository;
 import com.bitplay.security.TraderPermissionsService;
@@ -439,11 +440,13 @@ public class CommonUIService {
     public PosDiffJson getPosDiff() {
         PosDiffJson posDiff;
         try {
-            posDiff = new PosDiffJson(posDiffService.getIsPositionsEqual(),
-                    arbitrageService.getPosDiffString());
+            final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
+
+            posDiff = new PosDiffJson(posDiffService.getIsPositionsEqual(), arbitrageService.getPosDiffString(), placingBlocks);
+
         } catch (NotYetInitializedException e) {
             // do nothing
-            posDiff = new PosDiffJson(true, "position is not yet initialized");
+            posDiff = new PosDiffJson(true, "position is not yet initialized", null);
         }
         return posDiff;
     }

@@ -946,4 +946,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     public boolean cancelAllOrders(String logInfoId) {
         return false;
     }
+
+    public boolean isStarted() {
+        return true;
+    }
 }

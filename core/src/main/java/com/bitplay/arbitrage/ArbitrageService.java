@@ -447,7 +447,8 @@ public class ArbitrageService {
             }
             synchronized (calcLock) {
 
-                if (bitmexOrderBook != null
+                if (firstMarketService.isStarted()
+                        && bitmexOrderBook != null
                         && okCoinOrderBook != null
                         && firstMarketService.getAccountInfoContracts() != null
                         && secondMarketService.getAccountInfoContracts() != null) {
