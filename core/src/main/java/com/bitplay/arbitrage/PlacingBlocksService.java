@@ -2,17 +2,16 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 12/29/17.
@@ -26,7 +25,7 @@ public class PlacingBlocksService {
     SettingsRepositoryService settingsRepositoryService;
 
     public PlBlocks getPlacingBlocks(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                     BigDecimal theBorder, PlacingBlocks.DeltaBase deltaBase, BigDecimal oPL, BigDecimal oPS) {
+                                     BigDecimal theBorder, DeltaName deltaName, BigDecimal oPL, BigDecimal oPS) {
         PlBlocks theBlocks;
         final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
 
@@ -34,7 +33,7 @@ public class PlacingBlocksService {
             theBlocks = new PlBlocks(placingBlocks.getFixedBlockBitmex(), placingBlocks.getFixedBlockOkex(), PlacingBlocks.Ver.FIXED);
         } else if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC) {
             final BigDecimal bMaxBlock = placingBlocks.getDynMaxBlockBitmex();
-            if (deltaBase == PlacingBlocks.DeltaBase.B_DELTA) {
+            if (deltaName == DeltaName.B_DELTA) {
                 theBlocks = getDynamicBlockByBDelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
                 theBlocks = minByPos(theBlocks, oPS);
             } else { // O_DELTA

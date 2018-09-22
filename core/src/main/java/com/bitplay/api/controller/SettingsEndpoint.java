@@ -135,6 +135,8 @@ public class SettingsEndpoint {
             current.setActiveVersion(update.getActiveVersion() != null ? update.getActiveVersion() : current.getActiveVersion());
             current.setFixedBlockOkex(update.getFixedBlockOkex() != null ? update.getFixedBlockOkex() : current.getFixedBlockOkex());
             current.setDynMaxBlockOkex(update.getDynMaxBlockOkex() != null ? update.getDynMaxBlockOkex() : current.getDynMaxBlockOkex());
+            current.setPosAdjustment(update.getPosAdjustment() != null ? update.getPosAdjustment() : current.getPosAdjustment());
+            current.setPosAdjustmentPlacingType(update.getPosAdjustmentPlacingType() != null ? update.getPosAdjustmentPlacingType() : current.getPosAdjustmentPlacingType());
             settings.setPlacingBlocks(current);
             settingsRepositoryService.saveSettings(settings);
         }

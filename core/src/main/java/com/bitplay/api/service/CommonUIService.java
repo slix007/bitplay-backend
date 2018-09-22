@@ -442,7 +442,7 @@ public class CommonUIService {
         try {
             final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
 
-            posDiff = new PosDiffJson(posDiffService.getIsPositionsEqual(), arbitrageService.getPosDiffString(), placingBlocks);
+            posDiff = new PosDiffJson(posDiffService.isPosEqual(), arbitrageService.getPosDiffString(), placingBlocks);
 
         } catch (NotYetInitializedException e) {
             // do nothing

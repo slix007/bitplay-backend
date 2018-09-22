@@ -477,8 +477,7 @@ public class ArbitrageService {
                     startSignalDelay(0);
                 }
 
-                PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border1,
-                        PlacingBlocks.DeltaBase.B_DELTA, oPL, oPS);
+                PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border1, DeltaName.B_DELTA, oPL, oPS);
                 if (plBlocks.getBlockOkex().signum() == 0) {
                     return bestQuotes;
                 }
@@ -499,8 +498,7 @@ public class ArbitrageService {
                     startSignalDelay(0);
                 }
 
-                PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border2,
-                        PlacingBlocks.DeltaBase.O_DELTA, oPL, oPS);
+                PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border2, DeltaName.O_DELTA, oPL, oPS);
                 if (plBlocks.getBlockOkex().signum() == 0) {
                     return bestQuotes;
                 }
@@ -521,7 +519,8 @@ public class ArbitrageService {
 
         } else if (borderParams.getActiveVersion() == Ver.V2) {
 
-            boolean withWarningLogs = firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage() && posDiffService.isPositionsEqual();
+            boolean withWarningLogs =
+                    firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage() && posDiffService.checkIsPositionsEqual();
 
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(
                     bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs);
@@ -628,7 +627,7 @@ public class ArbitrageService {
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
         if (checkBalanceBorder1(DeltaName.B_DELTA, b_block, o_block)
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
-                && posDiffService.isPositionsEqual()
+                && posDiffService.checkIsPositionsEqual()
                 && !firstMarketService.isMarketStopped() && !secondMarketService.isMarketStopped()
                 && // liqEdge violation only with non-AUTOMATIC signals(corr,preliq,etc)
                 (signalType != SignalType.AUTOMATIC ||
@@ -789,7 +788,7 @@ public class ArbitrageService {
 
         if (checkBalanceBorder1(DeltaName.O_DELTA, b_block, o_block)
                 && firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
-                && posDiffService.isPositionsEqual()
+                && posDiffService.checkIsPositionsEqual()
                 && !firstMarketService.isMarketStopped() && !secondMarketService.isMarketStopped()
                 && // liqEdge violation only with non-AUTOMATIC signals(corr,preliq,etc)
                 (signalType != SignalType.AUTOMATIC ||
@@ -1197,19 +1196,17 @@ public class ArbitrageService {
         final BigDecimal dc = posDiffService.getPositionsDiffWithHedge();
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
-        BigDecimal cm = ((BitmexService) firstMarketService).getCm();
-        if (cm != null) {
-            //TODO
-        } else {
-            cm = BigDecimal.valueOf(100);
-        }
+        PlacingBlocks pb = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
+//        final BigDecimal cm = ((BitmexService) firstMarketService).getCm();
+        final BigDecimal cm = pb.getBitmexBlockFactor();
+        BigDecimal adj = pb.getPosAdjustment();
 
-        return String.format("b(%s) o(+%s-%s) = %s, ha=%s, dc=%s, mdc=%s, cm=%s",
+        return String.format("b(%s) o(+%s-%s) = %s, ha=%s, dc=%s, mdc=%s, cm=%s, adj=%s",
                 Utils.withSign(bP),
                 oPL.toPlainString(),
                 oPS.toPlainString(),
                 posDiff.toPlainString(),
-                ha, dc, mdc, cm
+                ha, dc, mdc, cm, adj
         );
     }
 

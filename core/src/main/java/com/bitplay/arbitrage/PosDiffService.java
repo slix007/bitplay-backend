@@ -61,6 +61,9 @@ public class PosDiffService {
     @Autowired
     private OkexLimitsService okexLimitsService;
 
+    @Autowired
+    private BitmexService bitmexService;
+
     private ScheduledExecutorService posDiffExecutor;
 
     @PreDestroy
@@ -71,7 +74,7 @@ public class PosDiffService {
     @PostConstruct
     private void init() {
         ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("pos-diff-thread-%d").build();
-        posDiffExecutor = Executors.newSingleThreadScheduledExecutor(namedThreadFactory);
+        posDiffExecutor = Executors.newScheduledThreadPool(2, namedThreadFactory);
         posDiffExecutor.scheduleWithFixedDelay(this::calcPosDiffJob,
                 60, 1, TimeUnit.SECONDS);
 
@@ -125,7 +128,7 @@ public class PosDiffService {
                             pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                             logger.info(infoMsg + "bitmex " + pos1);
                             logger.info(infoMsg + "okex " + pos2);
-                            if (getIsPositionsEqual()) {
+                            if (isPosEqual()) {
                                 isCorrect = true;
                             }
                         }
@@ -182,7 +185,7 @@ public class PosDiffService {
 
                     if (Thread.interrupted()) return;
 //                    doCorrectionImmediate(SignalType.CORR_TIMER); - no correction. StopAllActions instead.
-                    if (getPositionsDiffWithHedge().signum() != 0) {
+                    if (!isPosEqual()) {
                         arbitrageService.getFirstMarketService().stopAllActions();
                         arbitrageService.getSecondMarketService().stopAllActions();
                     }
@@ -243,7 +246,7 @@ public class PosDiffService {
     }
 
     private void checkPosDiff(boolean isSecondCheck) throws Exception {
-        if (!hasGeneralCorrStarted) {
+        if (!hasGeneralCorrStarted || !arbitrageService.getFirstMarketService().isStarted()) {
             return;
         }
 
@@ -340,7 +343,8 @@ public class PosDiffService {
     }
 
     private synchronized void doCorrection(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount, SignalType signalType) {
-        if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
+        if (!arbitrageService.getFirstMarketService().isStarted()
+                || arbitrageService.getFirstMarketService().getMarketState().isStopped()
                 || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
             return;
         }
@@ -468,7 +472,7 @@ public class PosDiffService {
         return false;
     }
 
-    boolean isPositionsEqual() {
+    boolean checkIsPositionsEqual() {
 
         posDiffExecutor.execute(() -> {
             try {
@@ -479,10 +483,10 @@ public class PosDiffService {
             }
         });
 
-        return getPositionsDiffWithHedge().signum() == 0;
+        return isPosEqual();
     }
 
-    public boolean getIsPositionsEqual() {
+    public boolean isPosEqual() {
         return getPositionsDiffWithHedge().signum() == 0;
     }
 
@@ -494,7 +498,7 @@ public class PosDiffService {
         oPL = oPL == null ? BigDecimal.ZERO : oPL;
         oPS = oPS == null ? BigDecimal.ZERO : oPS;
 
-        final BigDecimal okExPosEquivalent = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
+        final BigDecimal okExPosEquivalent = (oPL.subtract(oPS)).multiply(bitmexService.getCm());
         return okExPosEquivalent.add(bP);
     }
 
@@ -506,7 +510,7 @@ public class PosDiffService {
             throw new NotYetInitializedException("Position is not yet defined");
         }
 
-        final BigDecimal okExPosEquivalent = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);
+        final BigDecimal okExPosEquivalent = (oPL.subtract(oPS)).multiply(bitmexService.getCm());
         return okExPosEquivalent.add(bP);
     }
 
@@ -533,7 +537,7 @@ public class PosDiffService {
         arbitrageService.getParams().setPeriodToCorrection(periodToCorrection);
         // restart timer
         stopTimerToImmidiateCorrection();
-        if (getPositionsDiffWithHedge().signum() != 0) {
+        if (!isPosEqual()) {
             startTimerToImmidiateCorrection();
         }
     }

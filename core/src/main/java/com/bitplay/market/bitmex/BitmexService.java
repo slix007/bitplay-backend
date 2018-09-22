@@ -164,6 +164,7 @@ public class BitmexService extends MarketService {
     private volatile boolean reconnectInProgress = false;
     private volatile AtomicInteger reconnectCount = new AtomicInteger(0);
     private volatile BigDecimal cm = null; // correlation multiplier
+    private final static BigDecimal DEFAULT_CM = BigDecimal.valueOf(100);
 
 
     public Date getOrderBookLastTimestamp() {
@@ -221,6 +222,9 @@ public class BitmexService extends MarketService {
     }
 
     public BigDecimal getCm() {
+        if (cm == null) {
+            return DEFAULT_CM;
+        }
         return cm;
     }
 
