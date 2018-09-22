@@ -1193,7 +1193,7 @@ public class ArbitrageService {
         final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
         final BigDecimal ha = getParams().getHedgeAmount();
-        final BigDecimal dc = posDiffService.getPositionsDiffWithHedge();
+        final BigDecimal dc = posDiffService.getDc();
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
         PlacingBlocks pb = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();

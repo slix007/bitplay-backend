@@ -10,7 +10,9 @@ import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
@@ -39,8 +41,6 @@ public class PosDiffService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
     private static final long MIN_CORR_TIME_AFTER_READY_MS = 25000; // 25 sec
 
-    private final BigDecimal DIFF_FACTOR = BigDecimal.valueOf(100);
-
     private Disposable theTimerToImmidiateCorr;
 
     private volatile boolean checkInProgress = false;
@@ -55,6 +55,8 @@ public class PosDiffService {
 
     @Autowired
     private PersistenceService persistenceService;
+    @Autowired
+    private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
     private BitmexLimitsService bitmexLimitsService;
@@ -99,7 +101,7 @@ public class PosDiffService {
     public void finishCorr(boolean wasOrderSuccess) {
         if (corrInProgress) {
             corrInProgress = false;
-            BigDecimal dc = getPositionsDiffWithHedge();
+            BigDecimal dc = getDc();
 
             try {
                 boolean isCorrect = false;
@@ -115,7 +117,7 @@ public class PosDiffService {
                         logger.info(infoMsg + "bitmex " + pos1);
                         logger.info(infoMsg + "okex " + pos2);
 
-                        dc = getPositionsDiffWithHedge();
+                        dc = getDc();
 
                         if (dc.signum() == 0) {
                             isCorrect = true;
@@ -226,7 +228,7 @@ public class PosDiffService {
 
                 if (isMdcNeeded()) {
                     final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
-                    final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
+                    final BigDecimal positionsDiffWithHedge = getDc();
                     warningLogger.info("MDC posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
 
                     doCorrectionImmediate(SignalType.CORR_MDC);
@@ -240,9 +242,9 @@ public class PosDiffService {
 
     private boolean isMdcNeeded() {
         final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
-        final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
-        return positionsDiffWithHedge.signum() != 0
-                && positionsDiffWithHedge.abs().compareTo(maxDiffCorr) != -1;
+        final BigDecimal dc = getDc();
+        return !isPosEqual()
+                && dc.abs().compareTo(maxDiffCorr) >= 0;
     }
 
     private void checkPosDiff(boolean isSecondCheck) throws Exception {
@@ -260,7 +262,7 @@ public class PosDiffService {
                 final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
                 final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
 
-                final BigDecimal positionsDiffWithHedge = getPositionsDiffWithHedge();
+                final BigDecimal positionsDiffWithHedge = getDc();
                 if (positionsDiffWithHedge.signum() != 0) {
                     if (theTimerToImmidiateCorr == null || theTimerToImmidiateCorr.isDisposed()) {
                         startTimerToImmidiateCorrection();
@@ -350,12 +352,15 @@ public class PosDiffService {
         }
         stopTimerToImmidiateCorrection(); // avoid double-correction
 
-        final BigDecimal dc = getPositionsDiffWithHedge();
+        PlacingBlocks pl = settingsRepositoryService.getSettings().getPlacingBlocks();
+        BigDecimal cm = pl.getBitmexBlockFactor();
+
+        final BigDecimal dc = getDc();
         // 1. What we have to correct
         Order.OrderType orderType;
         BigDecimal correctAmount;
         MarketService marketService;                                            // Hedge=-300, dc=-100
-        final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(DIFF_FACTOR);   // okexPos   100
+        final BigDecimal okEquiv = (oPL.subtract(oPS)).multiply(cm);   // okexPos   100
         final BigDecimal bEquiv = bP.subtract(hedgeAmount);                     // bitmexPos 100
 
         if (dc.signum() < 0) {
@@ -373,7 +378,7 @@ public class PosDiffService {
                 }
             } else {
                 // okcoin buy
-                correctAmount = dc.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
+                correctAmount = dc.abs().divide(cm, 0, BigDecimal.ROUND_DOWN);
                 if (oPS.subtract(correctAmount).signum() < 0) { // orderType==CLOSE_ASK
                     correctAmount = oPS;
                 }
@@ -390,7 +395,7 @@ public class PosDiffService {
             orderType = Order.OrderType.ASK;
             if (bEquiv.compareTo(okEquiv) < 0) {
                 // okcoin sell
-                correctAmount = dc.abs().divide(DIFF_FACTOR, 0, BigDecimal.ROUND_DOWN);
+                correctAmount = dc.abs().divide(cm, 0, BigDecimal.ROUND_DOWN);
                 if (oPL.subtract(correctAmount).signum() < 0) { // orderType==CLOSE_BID
                     correctAmount = oPL;
                 }
@@ -487,7 +492,11 @@ public class PosDiffService {
     }
 
     public boolean isPosEqual() {
-        return getPositionsDiffWithHedge().signum() == 0;
+        PlacingBlocks pl = settingsRepositoryService.getSettings().getPlacingBlocks();
+//        BigDecimal cm = pl.getBitmexBlockFactor();
+        BigDecimal posAdjustment = pl.getPosAdjustment();
+
+        return getDc().abs().subtract(posAdjustment).signum() <= 0;
     }
 
     public BigDecimal getPositionsDiffSafe() {
@@ -514,7 +523,10 @@ public class PosDiffService {
         return okExPosEquivalent.add(bP);
     }
 
-    public BigDecimal getPositionsDiffWithHedge() {
+    /**
+     * Positions diff with hedge.
+     */
+    public BigDecimal getDc() {
         final BigDecimal hedgeAmount = getHedgeAmount();
         BigDecimal positionsDiff = getPositionsDiff();
         return positionsDiff.subtract(hedgeAmount);

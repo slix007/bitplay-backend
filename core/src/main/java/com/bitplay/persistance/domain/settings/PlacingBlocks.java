@@ -17,6 +17,9 @@ public class PlacingBlocks {
     private BigDecimal fixedBlockOkex;
     private BigDecimal dynMaxBlockOkex;
 
+    /**
+     * CM - correlation multiplier.
+     */
     @Transient
     private BigDecimal bitmexBlockFactor = BigDecimal.valueOf(100);
     private BigDecimal posAdjustment;

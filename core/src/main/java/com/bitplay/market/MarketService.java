@@ -373,7 +373,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 //            final BigDecimal oPL = getArbitrageService().getSecondMarketService().getPosition().getPositionLong();
 //            final BigDecimal oPS = getArbitrageService().getSecondMarketService().getPosition().getPositionShort();
 //            final BigDecimal ha = getArbitrageService().getParams().getHedgeAmount();
-//            final BigDecimal dc = getPosDiffService().getPositionsDiffWithHedge();
+//            final BigDecimal dc = getPosDiffService().getDc();
 //            final BigDecimal mdc = getArbitrageService().getParams().getMaxDiffCorr();
 //            res = String.format("b(%s) o(%s-%s) = %s, ha=%s, dc=%s, mdc=%s",
 //                    Utils.withSign(bP),
