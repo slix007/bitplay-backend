@@ -9,6 +9,8 @@ import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.market.BalanceService;
+import com.bitplay.market.DefaultLogService;
+import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
@@ -94,7 +96,7 @@ public class OkCoinService extends MarketService {
     public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
     private static final Logger debugLog = LoggerFactory.getLogger(OkCoinService.class);
-    private static final Logger tradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
+
     private static final Logger ordersLogger = LoggerFactory.getLogger("OKCOIN_ORDERS_LOG");
 
     public final static String NAME = "okcoin";
@@ -129,6 +131,10 @@ public class OkCoinService extends MarketService {
     private OkexLimitsService okexLimitsService;
     @Autowired
     private OOHangedCheckerService ooHangedCheckerService;
+    @Autowired
+    private OkexTradeLogger tradeLogger;
+    @Autowired
+    private DefaultLogService defaultLogger;
 
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
@@ -338,8 +344,13 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    public Logger getTradeLogger() {
+    public LogService getTradeLogger() {
         return tradeLogger;
+    }
+
+    @Override
+    public LogService getLogger() {
+        return defaultLogger;
     }
 
     @PreDestroy
@@ -403,7 +414,7 @@ public class OkCoinService extends MarketService {
         if (restUpdate != null) {
             if (restUpdate.getPositions().length > 1) {
                 logger.warn("#{} More than one positions found", getCounterName());
-                tradeLogger.warn("#{} More than one positions found", getCounterName());
+                tradeLogger.warn(String.format("#%s More than one positions found", getCounterName()));
             }
             if (restUpdate.getPositions().length == 0) {
                 position = new Position(
@@ -1053,11 +1064,11 @@ public class OkCoinService extends MarketService {
             final Collection<Order> orderCollection = exchange.getTradeService().getOrder(orderId);
             if (!orderCollection.isEmpty()) {
                 order = orderCollection.iterator().next();
-                tradeLogger.info("#{} OrderInfo id={}, status={}, filled={}",
+                tradeLogger.info(String.format("#%s OrderInfo id=%s, status=%s, filled=%s",
                         getCounterName(),
                         orderId,
                         order.getStatus(),
-                        order.getCumulativeAmount());
+                        order.getCumulativeAmount()));
             }
         } catch (Exception e) {
             logger.error("on fetch order info by id=" + orderId, e);
@@ -1094,7 +1105,7 @@ public class OkCoinService extends MarketService {
 
         final String counterName = fOrderToCancel.getCounterName();
         if (limitOrder.getStatus() == Order.OrderStatus.CANCELED || limitOrder.getStatus() == Order.OrderStatus.FILLED) {
-            tradeLogger.error("#{} do not move ALREADY_CLOSED order", counterName);
+            tradeLogger.error(String.format("#%s do not move ALREADY_CLOSED order", counterName));
             return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null,null, fOrderToCancel);
         }
         if (getMarketState() == MarketState.PLACING_ORDER) { // !arbitrageService.getParams().getOkCoinOrderType().equals("maker")
@@ -1191,7 +1202,7 @@ public class OkCoinService extends MarketService {
                 final BigDecimal newAmount = limitOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount())
                         .setScale(0, RoundingMode.HALF_UP);
 
-                tradeLogger.info("#{}/{} Moving3:placingNew a={}, placingType={}", counterName, attemptCount, newAmount, placingType);
+                tradeLogger.info(String.format("#%s/%s Moving3:placingNew a=%s, placingType=%s", counterName, attemptCount, newAmount, placingType));
 
                 PlacingType okexPlacingType = placingType;
                 if (okexPlacingType == null) {
@@ -1201,21 +1212,21 @@ public class OkCoinService extends MarketService {
                 tradeResponse = placeNonTakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType);
 
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
-                    tradeLogger.info("#{}/{} Moving3:Failed {} amount={},quote={},id={},attempt={}. Error: {}",
+                    tradeLogger.info(String.format("#%s/%s Moving3:Failed %s amount=%s,quote=%s,id=%s,attempt=%s. Error: %s",
                             counterName, attemptCount,
                             limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                             limitOrder.getTradableAmount(),
                             limitOrder.getLimitPrice().toPlainString(),
                             limitOrder.getId(),
                             attemptCount,
-                            tradeResponse.getErrorCode());
+                            tradeResponse.getErrorCode()));
                 }
                 if (tradeResponse.getErrorCode() == null) {
                     break;
                 }
             } catch (Exception e) {
                 logger.error("#{}/{} Moving3:placingError", counterName, attemptCount, e);
-                tradeLogger.error("#{}/{} Warning: Moving3:placingError {}", counterName, attemptCount, e.toString());
+                tradeLogger.error(String.format("#%s/%s Warning: Moving3:placingError %s", counterName, attemptCount, e.toString()));
                 tradeResponse.setOrderId(null);
                 tradeResponse.setErrorCode(e.getMessage());
 
@@ -1245,13 +1256,13 @@ public class OkCoinService extends MarketService {
 
                 final Collection<Order> order = tradeService.getOrder(orderId);
                 Order cancelledOrder = order.iterator().next();
-                tradeLogger.info("#{}/{} {} id={}, status={}, filled={}",
+                tradeLogger.info(String.format("#%s/%s %s id=%s, status=%s, filled=%s",
                         counterName,
                         attemptCount,
                         logInfoId,
                         cancelledOrder.getId(),
                         cancelledOrder.getStatus(),
-                        cancelledOrder.getCumulativeAmount());
+                        cancelledOrder.getCumulativeAmount()));
 
                 if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED
                         || cancelledOrder.getStatus() == Order.OrderStatus.FILLED) {
@@ -1260,7 +1271,7 @@ public class OkCoinService extends MarketService {
                 }
             } catch (Exception e) {
                 logger.error("#{}/{} error on get order status", counterName, attemptCount, e);
-                tradeLogger.error("#{}/{} error on get order status: {}", counterName, attemptCount, e.toString());
+                tradeLogger.error(String.format("#%s/%s error on get order status: %s", counterName, attemptCount, e.toString()));
             }
         }
         return result;
@@ -1293,14 +1304,14 @@ public class OkCoinService extends MarketService {
                                 okexContractType.getCurrencyPair(),
                                 okexContractType.getFuturesContract());
 
-                        tradeLogger.info("#{}/{} {} id={},res={},code={},details={}({})",
+                        tradeLogger.info(String.format("#%s/%s %s id=%s,res=%s,code=%s,details=%s(%s)",
                                 counterName, attemptCount,
                                 logInfoId,
                                 orderId,
                                 result.isResult(),
                                 result.getErrorCode(),
                                 result.getDetails(),
-                                getErrorCodeTranslation(result));
+                                getErrorCodeTranslation(result)));
 
                         if (result.isResult() || result.getDetails().contains("20015") /* "Order does not exist"*/) {
                             order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
@@ -1308,7 +1319,7 @@ public class OkCoinService extends MarketService {
                         }
                     } catch (Exception e) {
                         logger.error("#{}/{} error cancel maker order", counterName, attemptCount, e);
-                        tradeLogger.error("#{}/{} error cancel maker order: {}", counterName, attemptCount, e.toString());
+                        tradeLogger.error(String.format("#%s/%s error cancel maker order: %s", counterName, attemptCount, e.toString()));
                     }
                 }
             });
@@ -1348,11 +1359,11 @@ public class OkCoinService extends MarketService {
                         okexContractType.getFuturesContract());
 
                 if (result == null) {
-                    tradeLogger.info("#{}/{} {} id={}, no response", counterName, attemptCount, logInfoId, orderId);
+                    tradeLogger.info(String.format("#%s/%s %s id=%s, no response", counterName, attemptCount, logInfoId, orderId));
                     continue;
                 }
 
-                tradeLogger.info("#{}/{} {} id={},res={}({}),code={},details={}({})",
+                tradeLogger.info(String.format("#%s/%s %s id=%s,res=%s(%s),code=%s,details=%s(%s)",
                         counterName, attemptCount,
                         logInfoId,
                         orderId,
@@ -1360,7 +1371,7 @@ public class OkCoinService extends MarketService {
                         result.isResult() ? "cancelled" : "probably already filled",
                         result.getErrorCode(),
                         result.getDetails(),
-                        getErrorCodeTranslation(result));
+                        getErrorCodeTranslation(result)));
 
                 if (result.isResult()) {
                     break;
@@ -1368,7 +1379,7 @@ public class OkCoinService extends MarketService {
 
             } catch (Exception e) {
                 logger.error("#{}/{} error cancel maker order", counterName, attemptCount, e);
-                tradeLogger.error("#{}/{} error cancel maker order: {}", counterName, attemptCount, e.toString());
+                tradeLogger.error(String.format("#%s/%s error cancel maker order: %s", counterName, attemptCount, e.toString()));
                 final Order order = fetchOrderInfo(orderId);
                 if (order != null) {
                     if (order.getStatus() == Order.OrderStatus.CANCELED) {
@@ -1406,11 +1417,11 @@ public class OkCoinService extends MarketService {
                             okexContractType.getFuturesContract());
 
                     if (result == null) {
-                        tradeLogger.info("#{}/{} {} id={}, no response", counterName, attemptCount, logInfoId1, orderId);
+                        tradeLogger.info(String.format("#%s/%s %s id=%s, no response", counterName, attemptCount, logInfoId1, orderId));
                         continue;
                     }
 
-                    tradeLogger.info("#{}/{} {} id={},res={}({}),code={},details={}({})",
+                    tradeLogger.info(String.format("#%s/%s %s id=%s,res=%s(%s),code=%s,details=%s(%s)",
                             counterName, attemptCount,
                             logInfoId1,
                             orderId,
@@ -1418,7 +1429,7 @@ public class OkCoinService extends MarketService {
                             result.isResult() ? "cancelled" : "probably already filled",
                             result.getErrorCode(),
                             result.getDetails(),
-                            getErrorCodeTranslation(result));
+                            getErrorCodeTranslation(result)));
 
                     if (result.isResult()) {
                         cancelSucceed = true;
@@ -1428,20 +1439,20 @@ public class OkCoinService extends MarketService {
                 // 2. Status check
                 final Collection<Order> order = tradeService.getOrder(orderId);
                 if (order.size() == 0) {
-                    tradeLogger.info("#{}/{} {} id={} no orders in response",
+                    tradeLogger.info(String.format("#%s/%s %s id=%s no orders in response",
                             counterName,
                             attemptCount,
                             logInfoId2,
-                            orderId);
+                            orderId));
                 } else {
                     Order cancelledOrder = order.iterator().next();
-                    tradeLogger.info("#{}/{} {} id={}, status={}, filled={}",
+                    tradeLogger.info(String.format("#%s/%s %s id=%s, status=%s, filled=%s",
                             counterName,
                             attemptCount,
                             logInfoId2,
                             cancelledOrder.getId(),
                             cancelledOrder.getStatus(),
-                            cancelledOrder.getCumulativeAmount());
+                            cancelledOrder.getCumulativeAmount()));
 
                     if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED
                             || cancelledOrder.getStatus() == Order.OrderStatus.FILLED) {
@@ -1452,7 +1463,7 @@ public class OkCoinService extends MarketService {
 
             } catch (Exception e) {
                 logger.error("#{}/{} error cancel maker order", counterName, attemptCount, e);
-                tradeLogger.error("#{}/{} error cancel maker order: {}", counterName, attemptCount, e.toString());
+                tradeLogger.error(String.format("#%s/%s error cancel maker order: %s", counterName, attemptCount, e.toString()));
             }
         }
         return Pair.of(cancelSucceed, resOrder);
@@ -1764,7 +1775,7 @@ public class OkCoinService extends MarketService {
         if ((counterToDiff == null || counterToDiff.counter == null || !counterToDiff.counter.equals(counter)
                 || counterToDiff.diff.compareTo(diffO.val) != 0)
                 && avg != null && avg.signum() != 0) {
-            tradeLogger.info("#{} {}", counter, diffO.str);
+            tradeLogger.info(String.format("#%s %s", counter, diffO.str));
             counterToDiff = new CounterToDiff(counter, diffO.val);
         }
 

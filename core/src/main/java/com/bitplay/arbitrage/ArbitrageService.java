@@ -35,6 +35,8 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
+import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.UsdQuoteType;
@@ -909,7 +911,10 @@ public class ArbitrageService {
             persistenceService.saveCorrParams(corrParams);
         }
         final String counterName = firstMarketService.getCounterName();
-        tradeId = tradeService.createTrade(counterName, deltaName);
+
+        tradeId = tradeService.createTrade(counterName, deltaName,
+                ((BitmexContractType) firstMarketService.getContractType()),
+                ((OkexContractType) secondMarketService.getContractType()));
         tradeService.info(tradeId, counterName, "------------------------------------------");
 
         tradeService.info(tradeId, counterName, String.format("count=%s+%s=%s(completed=%s+%s=%s) %s",

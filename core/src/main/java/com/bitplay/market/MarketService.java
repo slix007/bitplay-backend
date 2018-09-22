@@ -231,7 +231,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }
         if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (!isBusy()) {
-                getTradeLogger().info("#{} {}: busy, {}", getCounterNameNext(), getName(), getArbitrageService().getPosDiffString());
+                getTradeLogger().info(String.format("#%s %s: busy, %s", getCounterNameNext(), getName(), getArbitrageService().getPosDiffString()));
             }
             this.marketState = MarketState.ARBITRAGE;
         }
@@ -621,13 +621,13 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return getOrderInfo(orderId, counterName, attemptCount, logInfoId, getTradeLogger());
     }
 
-    protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, Logger customLogger) {
+    protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, LogService customLogger) {
         final String[] orderIds = {orderId};
         final Collection<Order> orderInfos = getOrderInfos(orderIds, counterName, attemptCount, logInfoId, customLogger);
         return orderInfos.isEmpty() ? Optional.empty() : Optional.ofNullable(orderInfos.iterator().next());
     }
 
-    protected Collection<Order> getOrderInfos(String[] orderIds, String counterName, int attemptCount, String logInfoId, Logger customLogger) {
+    protected Collection<Order> getOrderInfos(String[] orderIds, String counterName, int attemptCount, String logInfoId, LogService customLogger) {
         final TradeService tradeService = getExchange().getTradeService();
         Collection<Order> orders = new ArrayList<>();
         try {
@@ -642,7 +642,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 for (Order orderInfo : orders) {
                     orderInfo = orders.iterator().next();
                     if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                        customLogger.info("#{}/{} {} {} status={}, avgPrice={}, orderId={}, type={}, cumAmount={}",
+                        customLogger.info(String.format("#%s/%s %s %s status=%s, avgPrice=%s, orderId=%s, type=%s, cumAmount=%s",
                                 counterName, attemptCount,
                                 logInfoId,
                                 Utils.convertOrderTypeName(orderInfo.getType()),
@@ -650,7 +650,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                 orderInfo.getAveragePrice() != null ? orderInfo.getAveragePrice().toPlainString() : null,
                                 orderInfo.getId(),
                                 orderInfo.getType(),
-                                orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null);
+                                orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null));
                     }
                 }
             }

@@ -34,7 +34,8 @@ public abstract class MarketServiceOpenOrders {
     protected volatile List<FplayOrder> openOrders = new ArrayList<>();
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
-    public abstract Logger getTradeLogger();
+    public abstract LogService getTradeLogger();
+    public abstract LogService getLogger();
 
     protected abstract void setFree(String... flags);
 
@@ -179,13 +180,13 @@ public abstract class MarketServiceOpenOrders {
                                 df.format(update.getTimestamp()));
 
                         if (update.getStatus() == Order.OrderStatus.FILLED) {
-                            getTradeLogger().info("#{} Order {} FILLED", counterName, update.getId());
+                            getTradeLogger().info(String.format("#%s Order %s FILLED", counterName, update.getId()));
                         }
 
                         final FplayOrder fplayOrder = updateOpenOrder(update, stabOrderForNew); // exist or null
 
                         if (fplayOrder.getOrderId().equals("0")) {
-                            getTradeLogger().warn("#{} WARNING: update of fplayOrder with id=0: {}", counterName, fplayOrder);
+                            getTradeLogger().warn(String.format("#%s WARNING: update of fplayOrder with id=0: %s", counterName, fplayOrder));
                         }
 
                         return removeOpenOrderByTime(fplayOrder);
@@ -283,12 +284,12 @@ public abstract class MarketServiceOpenOrders {
         }
     }
 
-    abstract protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, Logger logger);
+    abstract protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, LogService logger);
 
     private FplayOrder updateOOStatus(FplayOrder fplayOrder) throws Exception {
         final String orderId = fplayOrder.getOrderId();
         final String counterName = getCounterName();
-        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterName, 1, "updateOOStatus:", logger);
+        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterName, 1, "updateOOStatus:", getLogger());
 
         if (!orderInfoAttempts.isPresent()) {
             throw new Exception("Failed to updateOOStatus id=" + orderId);
@@ -297,7 +298,7 @@ public abstract class MarketServiceOpenOrders {
         final LimitOrder limitOrder = (LimitOrder) orderInfo;
 
         if (fplayOrder.getOrder().getStatus() != Order.OrderStatus.FILLED && limitOrder.getStatus() == Order.OrderStatus.FILLED) {
-            getTradeLogger().info("#{} updateOOStatus got FILLED orderId={}", counterName, limitOrder.getId());
+            getTradeLogger().info(String.format("#%s updateOOStatus got FILLED orderId=%s", counterName, limitOrder.getId()));
             logger.info("#{} updateOOStatus got FILLED order: {}", counterName, limitOrder.toString());
         }
 

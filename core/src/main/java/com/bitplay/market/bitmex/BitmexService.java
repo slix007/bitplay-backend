@@ -10,7 +10,9 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.market.BalanceService;
+import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.ExtrastopService;
+import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
@@ -98,7 +100,6 @@ import si.mazi.rescu.HttpStatusIOException;
 @Service("bitmex")
 public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
-    private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
     private static final Logger ordersLogger = LoggerFactory.getLogger("BITMEX_ORDERS_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
@@ -138,6 +139,11 @@ public class BitmexService extends MarketService {
 
     @Autowired
     private BitmexBalanceService bitmexBalanceService;
+
+    @Autowired
+    private BitmexTradeLogger tradeLogger;
+    @Autowired
+    private DefaultLogService defaultLogger;
 
     @Autowired
     private RestartService restartService;
@@ -207,8 +213,13 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public Logger getTradeLogger() {
+    public LogService getTradeLogger() {
         return tradeLogger;
+    }
+
+    @Override
+    public LogService getLogger() {
+        return defaultLogger;
     }
 
     @Override
@@ -1323,14 +1334,14 @@ public class BitmexService extends MarketService {
                             tradeResponse.addCancelledOrder(requestOrder);
                             tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
                             tradeResponse.setLimitOrder(null);
-                            tradeLogger.info("#{} {} {} CANCELED amount={}, filled={}, quote={}, orderId={}",
+                            tradeLogger.info(String.format("#%s %s %s CANCELED amount=%s, filled=%s, quote=%s, orderId=%s",
                                     counterName,
                                     placingType,
                                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                                     amount.toPlainString(),
                                     resultOrder.getCumulativeAmount(),
                                     thePrice,
-                                    orderId);
+                                    orderId));
                             continue;
                         }
                         cancelledInRow.set(0);
@@ -1440,7 +1451,7 @@ public class BitmexService extends MarketService {
 
         } catch (Exception e) {
             logger.error("Place market order error", e);
-            tradeLogger.info("maker error {}", e.toString());
+            tradeLogger.info(String.format("maker error %s", e.toString()));
             tradeResponse.setErrorCode(e.getMessage());
         }
 
@@ -2064,12 +2075,12 @@ public class BitmexService extends MarketService {
                 }
             }
         }
-        tradeLogger.info("#{} AvgPrice by {} orders({}) is {}", counterName,
+        tradeLogger.info(String.format("#%s AvgPrice by %s orders(%s) is %s", counterName,
                 itemMap.size(),
                 Arrays.toString(itemMap.keySet().toArray()),
-                avgPrice.getAvg());
+                avgPrice.getAvg()));
 
-        tradeLogger.info("#{} {}", counterName, arbitrageService.getDealPrices().getDiffB().str);
+        tradeLogger.info(String.format("#%s %s", counterName, arbitrageService.getDealPrices().getDiffB().str));
     }
 
     private void updateXRateLimit(HttpStatusIOException e) {
@@ -2174,10 +2185,10 @@ public class BitmexService extends MarketService {
                 BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
                 boolean res = tradeService.cancelOrder(orderId);
 
-                getTradeLogger().info("#{}/{} {} cancelled id={}",
+                getTradeLogger().info(String.format("#%s/%s %s cancelled id=%s",
                         counterName, attemptCount,
                         logInfoId,
-                        orderId);
+                        orderId));
 
                 return res;
 
@@ -2186,10 +2197,10 @@ public class BitmexService extends MarketService {
                 overloadByXRateLimit();
 
                 logger.error("#{}/{} error cancel order id={}", counterName, attemptCount, orderId, e);
-                getTradeLogger().error("#{}/{} error cancel order id={}: {}", counterName, attemptCount, orderId, e.toString());
+                getTradeLogger().error(String.format("#%s/%s error cancel order id=%s: %s", counterName, attemptCount, orderId, e.toString()));
             } catch (Exception e) {
                 logger.error("#{}/{} error cancel order id={}", counterName, attemptCount, orderId, e);
-                getTradeLogger().error("#{}/{} error cancel order id={}: {}", counterName, attemptCount, orderId, e.toString());
+                getTradeLogger().error(String.format("#%s/%s error cancel order id=%s: %s", counterName, attemptCount, orderId, e.toString()));
             }
         }
         return false;
@@ -2209,10 +2220,10 @@ public class BitmexService extends MarketService {
                 BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
                 List<LimitOrder> limitOrders = tradeService.cancelAllOrders();
 
-                getTradeLogger().info("#{}/{} {} cancelled id={}",
+                getTradeLogger().info(String.format("#%s/%s %s cancelled id=%s",
                         counterName, attemptCount,
                         logInfoId,
-                        limitOrders.stream().map(Order::getId).reduce((acc, item) -> acc + "," + item));
+                        limitOrders.stream().map(Order::getId).reduce((acc, item) -> acc + "," + item)));
 
                 updateOpenOrders(limitOrders);
 
@@ -2223,10 +2234,10 @@ public class BitmexService extends MarketService {
                 overloadByXRateLimit();
 
                 logger.error("#{}/{} error cancel orders", counterName, attemptCount, e);
-                getTradeLogger().error("#{}/{} error cancel orders: {}", counterName, attemptCount, e.toString());
+                getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterName, attemptCount, e.toString()));
             } catch (Exception e) {
                 logger.error("#{}/{} error cancel orders", counterName, attemptCount, e);
-                getTradeLogger().error("#{}/{} error cancel orders: {}", counterName, attemptCount, e.toString());
+                getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterName, attemptCount, e.toString()));
             }
         }
         return false;

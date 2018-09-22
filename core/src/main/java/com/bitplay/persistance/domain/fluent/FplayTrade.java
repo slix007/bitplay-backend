@@ -1,6 +1,8 @@
 package com.bitplay.persistance.domain.fluent;
 
 import com.bitplay.persistance.domain.AbstractDocument;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
+import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,6 +37,9 @@ public class FplayTrade extends AbstractDocument {
 
     private DeltaName deltaName;
     private TradeStatus tradeStatus;
+
+    private BitmexContractType bitmexContractType;
+    private OkexContractType okexContractType;
 
     private List<LogRow> deltaLog;
 

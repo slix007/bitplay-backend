@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
+import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
@@ -121,8 +122,13 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    public Logger getTradeLogger() {
-        return tradeLogger;
+    public LogService getTradeLogger() {
+        return null;
+    }
+
+    @Override
+    public LogService getLogger() {
+        return null;
     }
 
     @Override

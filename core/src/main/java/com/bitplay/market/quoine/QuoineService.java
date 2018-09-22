@@ -1,10 +1,11 @@
 package com.bitplay.market.quoine;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
+import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
@@ -12,16 +13,13 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
-
 import com.bitplay.persistance.domain.settings.ContractType;
+import java.math.BigDecimal;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.service.trade.TradeService;
-import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
@@ -57,7 +55,12 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public Logger getTradeLogger() {
+    public LogService getTradeLogger() {
+        return null;
+    }
+
+    @Override
+    public LogService getLogger() {
         return null;
     }
 
