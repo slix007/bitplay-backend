@@ -2,6 +2,7 @@ package com.bitplay.persistance.domain.settings;
 
 import com.bitplay.market.model.PlacingType;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Transient;
@@ -35,11 +36,11 @@ public class PlacingBlocks {
     }
 
     public BigDecimal getFixedBlockBitmex() {
-        return fixedBlockOkex.multiply(bitmexBlockFactor);
+        return fixedBlockOkex.multiply(bitmexBlockFactor).setScale(0, RoundingMode.HALF_UP);
     }
 
     public BigDecimal getDynMaxBlockBitmex() {
-        return dynMaxBlockOkex.multiply(bitmexBlockFactor);
+        return dynMaxBlockOkex.multiply(bitmexBlockFactor).setScale(0, RoundingMode.HALF_UP);
     }
 
     @Override

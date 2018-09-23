@@ -85,7 +85,6 @@ public class ArbitrageService {
 
     public static final String DELTA1 = "delta1";
     public static final String DELTA2 = "delta2";
-    public static final BigDecimal OKEX_FACTOR = BigDecimal.valueOf(100);
     private static final Object calcLock = new Object();
     private final DealPrices dealPrices = new DealPrices();
     private boolean firstDeltasCalculated = false;
@@ -1218,6 +1217,7 @@ public class ArbitrageService {
     private PlBlocks dynBlockDecriseByAffordable(DeltaName deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {
         BigDecimal b1 = BigDecimal.ZERO;
         BigDecimal b2 = BigDecimal.ZERO;
+        final BigDecimal cm = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks().getBitmexBlockFactor();
         final Affordable firstAffordable = firstMarketService.recalcAffordable();
         final Affordable secondAffordable = secondMarketService.recalcAffordable();
         if (deltaRef == DeltaName.B_DELTA) {
@@ -1237,10 +1237,13 @@ public class ArbitrageService {
         if (b1.signum() == 0 || b2.signum() == 0) {
             b1 = BigDecimal.ZERO;
             b2 = BigDecimal.ZERO;
-        } else if (b1.compareTo(b2.multiply(OKEX_FACTOR)) != 0) {
-            b2 = b2.min(b1.divide(OKEX_FACTOR, 0, RoundingMode.HALF_UP));
-            b1 = b2.multiply(OKEX_FACTOR);
+        } else if (b1.compareTo(b2.multiply(cm)) != 0) {
+            b2 = b2.min(b1.divide(cm, 0, RoundingMode.HALF_UP));
+            b1 = b2.multiply(cm).setScale(0, RoundingMode.HALF_UP);
         }
+
+        b1 = b1.setScale(0, RoundingMode.HALF_UP);
+        b2 = b2.setScale(0, RoundingMode.HALF_UP);
 
         String debugLog = String.format("dynBlockDecriseByAffordable: %s, %s. bitmex %s, okex %s",
                 b1, b2, firstAffordable, secondAffordable);
@@ -1403,6 +1406,7 @@ public class ArbitrageService {
             final CorrParams corrParams = persistenceService.fetchCorrParams();
             b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
             o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
+            final BigDecimal cm = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks().getBitmexBlockFactor();
 
             final BigDecimal btmPos = firstMarketService.getPosition().getPositionLong();
             if (btmPos.signum() == 0) {
@@ -1415,7 +1419,7 @@ public class ArbitrageService {
             if ((deltaName == DeltaName.B_DELTA && btmPos.signum() > 0 && btmPos.compareTo(b_block) < 0)
                     || (deltaName == DeltaName.O_DELTA && btmPos.signum() < 0 && btmPos.abs().compareTo(b_block) < 0)) {
                 b_block = btmPos.abs();
-                o_block = b_block.divide(OKEX_FACTOR, 0, RoundingMode.HALF_UP);
+                o_block = b_block.divide(cm, 0, RoundingMode.HALF_UP);
             }
             final BigDecimal okLong = secondMarketService.getPosition().getPositionLong();
             final BigDecimal okShort = secondMarketService.getPosition().getPositionShort();
@@ -1429,7 +1433,7 @@ public class ArbitrageService {
             BigDecimal okMeaningPos = deltaName == DeltaName.B_DELTA ? okShort : okLong;
             if (okMeaningPos.compareTo(o_block) < 0) {
                 o_block = okMeaningPos;
-                b_block = o_block.multiply(OKEX_FACTOR);
+                b_block = o_block.multiply(cm).setScale(0, RoundingMode.HALF_UP);
             }
 
             // increasing position on any market is forbidden

@@ -19,8 +19,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class PlacingBlocksService {
 
-    private final BigDecimal OKEX_FACTOR = BigDecimal.valueOf(100);
-
     @Autowired
     SettingsRepositoryService settingsRepositoryService;
 
@@ -28,17 +26,18 @@ public class PlacingBlocksService {
                                      BigDecimal theBorder, DeltaName deltaName, BigDecimal oPL, BigDecimal oPS) {
         PlBlocks theBlocks;
         final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
+        final BigDecimal cm = placingBlocks.getBitmexBlockFactor();
 
         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
             theBlocks = new PlBlocks(placingBlocks.getFixedBlockBitmex(), placingBlocks.getFixedBlockOkex(), PlacingBlocks.Ver.FIXED);
         } else if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC) {
             final BigDecimal bMaxBlock = placingBlocks.getDynMaxBlockBitmex();
             if (deltaName == DeltaName.B_DELTA) {
-                theBlocks = getDynamicBlockByBDelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
-                theBlocks = minByPos(theBlocks, oPS);
+                theBlocks = getDynamicBlockByBDelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock, cm);
+                theBlocks = minByPos(theBlocks, oPS, cm);
             } else { // O_DELTA
-                theBlocks = getDynamicBlockByODelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock);
-                theBlocks = minByPos(theBlocks, oPL);
+                theBlocks = getDynamicBlockByODelta(bitmexOrderBook, okexOrderBook, theBorder, bMaxBlock, cm);
+                theBlocks = minByPos(theBlocks, oPL, cm);
             }
         } else {
             throw new IllegalStateException("Unhandled PlacsingBlocks version");
@@ -46,39 +45,39 @@ public class PlacingBlocksService {
         return theBlocks;
     }
 
-    public PlBlocks minByPos(PlBlocks dynBlock, BigDecimal pos) {
+    PlBlocks minByPos(PlBlocks dynBlock, BigDecimal pos, BigDecimal cm) {
         if (pos.signum() > 0 && dynBlock.getBlockOkex().compareTo(pos) > 0) {
-            dynBlock = new PlBlocks(pos.multiply(OKEX_FACTOR), pos, PlacingBlocks.Ver.DYNAMIC);
+            dynBlock = new PlBlocks(pos.multiply(cm).setScale(0, RoundingMode.HALF_UP), pos, PlacingBlocks.Ver.DYNAMIC);
         }
         return dynBlock;
     }
 
     public PlBlocks getDynamicBlockByBDelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                            BigDecimal bBorder, BigDecimal bMaxBlock) {
+            BigDecimal bBorder, BigDecimal bMaxBlock, BigDecimal cm) {
         // b_bid - o_ask
         final List<LimitOrder> bids = bitmexOrderBook.getBids();
         final List<LimitOrder> asks = okexOrderBook.getAsks();
 
         final BigDecimal[] bBidsAm = bids.stream().map(Order::getTradableAmount).limit(20).toArray(BigDecimal[]::new);
-        final BigDecimal[] oAsksAm = asks.stream().map(Order::getTradableAmount).limit(20).map(oAm -> oAm.multiply(OKEX_FACTOR)).toArray(BigDecimal[]::new);
+        final BigDecimal[] oAsksAm = asks.stream().map(Order::getTradableAmount).limit(20).map(oAm -> oAm.multiply(cm)).toArray(BigDecimal[]::new);
 
-        return getDynBlock(bBorder, asks, bids, oAsksAm, bBidsAm, bMaxBlock);
+        return getDynBlock(bBorder, asks, bids, oAsksAm, bBidsAm, bMaxBlock, cm);
     }
 
     public PlBlocks getDynamicBlockByODelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-                                            BigDecimal oBorder, BigDecimal bMaxBlock) {
+            BigDecimal oBorder, BigDecimal bMaxBlock, BigDecimal cm) {
         // o_bid - b_ask
         final List<LimitOrder> bids = okexOrderBook.getBids();
         final List<LimitOrder> asks = bitmexOrderBook.getAsks();
 
-        final BigDecimal[] oBidsAm = bids.stream().map(Order::getTradableAmount).limit(20).map(oAm -> oAm.multiply(OKEX_FACTOR)).toArray(BigDecimal[]::new);
+        final BigDecimal[] oBidsAm = bids.stream().map(Order::getTradableAmount).limit(20).map(oAm -> oAm.multiply(cm)).toArray(BigDecimal[]::new);
         final BigDecimal[] bAsksAm = asks.stream().map(Order::getTradableAmount).limit(20).toArray(BigDecimal[]::new);
 
-        return getDynBlock(oBorder, asks, bids, bAsksAm, oBidsAm, bMaxBlock);
+        return getDynBlock(oBorder, asks, bids, bAsksAm, oBidsAm, bMaxBlock, cm);
     }
 
     private PlBlocks getDynBlock(BigDecimal xBorder, List<LimitOrder> asks, List<LimitOrder> bids,
-                                 BigDecimal[] asksAm, BigDecimal[] bidsAm, BigDecimal maxBlock) {
+            BigDecimal[] asksAm, BigDecimal[] bidsAm, BigDecimal maxBlock, BigDecimal cm) {
         int i = 0;
         int k = 0;
         BigDecimal xBlock = BigDecimal.ZERO;
@@ -112,8 +111,8 @@ public class PlacingBlocksService {
 
         xBlock = maxBlock == null ? xBlock : xBlock.min(maxBlock);
 
-        xBlock = xBlock.divide(OKEX_FACTOR, 0, RoundingMode.DOWN); // round to OKEX_FACTOR
-        return new PlBlocks(xBlock.multiply(OKEX_FACTOR), xBlock, PlacingBlocks.Ver.DYNAMIC);
+        xBlock = xBlock.divide(cm, 0, RoundingMode.DOWN); // round to OKEX_FACTOR
+        return new PlBlocks(xBlock.multiply(cm).setScale(0, RoundingMode.HALF_UP), xBlock, PlacingBlocks.Ver.DYNAMIC);
     }
 
     private boolean isLessThanMaxBlock(BigDecimal maxBlock, BigDecimal xBlock) {

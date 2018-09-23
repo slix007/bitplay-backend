@@ -63,6 +63,7 @@ public class AfterArbTask implements Runnable {
 
         try {
             final CumParams cumParams = persistenceService.fetchCumParams();
+//            final BigDecimal cm = bitmexService.getCm();
 
             BigDecimal b_price_fact = fetchBtmFactPrice();
             BigDecimal ok_price_fact = fetchOkFactPrice();
@@ -455,9 +456,9 @@ public class AfterArbTask implements Runnable {
         // ast_com2 = con / ok_price_fact * 0.015 / 100
         // ast_com = ast_com1 + ast_com2
         final BigDecimal ast_com1 = con.divide(b_price_fact, 16, RoundingMode.HALF_UP).multiply(bFee)
-                .divide(ArbitrageService.OKEX_FACTOR, 8, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
         final BigDecimal ast_com2 = con.divide(ok_price_fact, 16, RoundingMode.HALF_UP).multiply(oFee)
-                .divide(ArbitrageService.OKEX_FACTOR, 8, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
         final BigDecimal ast_com = ast_com1.add(ast_com2);
         cumParams.setAstCom1(ast_com1);
         cumParams.setAstCom2(ast_com2);
@@ -494,13 +495,13 @@ public class AfterArbTask implements Runnable {
         // bitmex_m_com = round(open_price_fact * 0.025 / 100; 4),
         final BigDecimal BITMEX_M_COM_FACTOR = new BigDecimal(0.025);
         BigDecimal bitmexMCom = b_price_fact.multiply(BITMEX_M_COM_FACTOR)
-                .divide(ArbitrageService.OKEX_FACTOR, 2, BigDecimal.ROUND_HALF_UP);
+                .divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
 
         cumParams.setCumBitmexMCom((cumParams.getCumBitmexMCom().add(bitmexMCom)).setScale(2, BigDecimal.ROUND_HALF_UP));
         // ast_Bitmex_m_com = con / b_price_fact * 0.025 / 100
         // cum_ast_Bitmex_m_com = sum(ast_Bitmex_m_com)
         final BigDecimal ast_Bitmex_m_com = con.divide(b_price_fact, 16, RoundingMode.HALF_UP).multiply(BITMEX_M_COM_FACTOR)
-                .divide(ArbitrageService.OKEX_FACTOR, 8, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
         cumParams.setAstBitmexMCom(ast_Bitmex_m_com);
         cumParams.setCumAstBitmexMCom((cumParams.getCumAstBitmexMCom().add(cumParams.getAstBitmexMCom())).setScale(8, BigDecimal.ROUND_HALF_UP));
 

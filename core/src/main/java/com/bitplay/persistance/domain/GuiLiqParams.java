@@ -25,7 +25,7 @@ public class GuiLiqParams extends AbstractParams {
     private BigDecimal oMrLiq = BigDecimal.valueOf(20);
     private BigDecimal bDQLOpenMin = BigDecimal.valueOf(300);
     private BigDecimal oDQLOpenMin = BigDecimal.valueOf(350);
-    private BigDecimal bDQLCloseMin = BigDecimal.valueOf(100);
+    private BigDecimal bDQLCloseMin = BigDecimal.valueOf(150);
     private BigDecimal oDQLCloseMin = BigDecimal.valueOf(150);
 
 }
