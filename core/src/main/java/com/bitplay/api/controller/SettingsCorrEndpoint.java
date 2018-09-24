@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ChangeRequestJson;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.correction.Adj;
 import com.bitplay.persistance.domain.correction.Corr;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.Preliq;
@@ -61,6 +62,9 @@ public class SettingsCorrEndpoint {
             corrParams.getPreliq().setTotalCount(0);
             corrParams.getPreliq().setFailedCount(0);
             corrParams.getPreliq().setCurrErrorCount(0);
+            corrParams.getAdj().setSucceedCount(0);
+            corrParams.getAdj().setFailedCount(0);
+            corrParams.getAdj().setCurrErrorCount(0);
             persistenceService.saveCorrParams(corrParams);
         }
         return corrParams;
@@ -98,6 +102,17 @@ public class SettingsCorrEndpoint {
                 }
                 if (uCorr.getMaxTotalCount() != null) {
                     corrParams.getCorr().setMaxTotalCount(uCorr.getMaxTotalCount());
+                    persistenceService.saveCorrParams(corrParams);
+                }
+            }
+            if (anUpdate.getAdj() != null) {
+                final Adj update = anUpdate.getAdj();
+                if (update.getMaxErrorCount() != null) {
+                    corrParams.getAdj().setMaxErrorCount(update.getMaxErrorCount());
+                    persistenceService.saveCorrParams(corrParams);
+                }
+                if (update.getMaxTotalCount() != null) {
+                    corrParams.getAdj().setMaxTotalCount(update.getMaxTotalCount());
                     persistenceService.saveCorrParams(corrParams);
                 }
             }

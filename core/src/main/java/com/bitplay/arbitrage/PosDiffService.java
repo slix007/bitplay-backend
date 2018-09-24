@@ -13,6 +13,7 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
@@ -492,9 +493,8 @@ public class PosDiffService {
     }
 
     public boolean isPosEqual() {
-        PlacingBlocks pl = settingsRepositoryService.getSettings().getPlacingBlocks();
-//        BigDecimal cm = pl.getBitmexBlockFactor();
-        BigDecimal posAdjustment = pl.getPosAdjustment();
+        final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+        final BigDecimal posAdjustment = pa.getPosAdjustmentMin();
 
         return getDc().abs().subtract(posAdjustment).signum() <= 0;
     }

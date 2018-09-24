@@ -7,6 +7,7 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.RestartSettings;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
@@ -135,11 +136,22 @@ public class SettingsEndpoint {
             current.setActiveVersion(update.getActiveVersion() != null ? update.getActiveVersion() : current.getActiveVersion());
             current.setFixedBlockOkex(update.getFixedBlockOkex() != null ? update.getFixedBlockOkex() : current.getFixedBlockOkex());
             current.setDynMaxBlockOkex(update.getDynMaxBlockOkex() != null ? update.getDynMaxBlockOkex() : current.getDynMaxBlockOkex());
-            current.setPosAdjustment(update.getPosAdjustment() != null ? update.getPosAdjustment() : current.getPosAdjustment());
-            current.setPosAdjustmentPlacingType(update.getPosAdjustmentPlacingType() != null ? update.getPosAdjustmentPlacingType() : current.getPosAdjustmentPlacingType());
             settings.setPlacingBlocks(current);
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getPosAdjustment() != null) {
+            final PosAdjustment current = settings.getPosAdjustment();
+            final PosAdjustment update = settingsUpdate.getPosAdjustment();
+            current.setPosAdjustmentMin(update.getPosAdjustmentMin() != null ? update.getPosAdjustmentMin() : current.getPosAdjustmentMin());
+            current.setPosAdjustmentMax(update.getPosAdjustmentMax() != null ? update.getPosAdjustmentMax() : current.getPosAdjustmentMax());
+            current.setPosAdjustmentPlacingType(
+                    update.getPosAdjustmentPlacingType() != null ? update.getPosAdjustmentPlacingType() : current.getPosAdjustmentPlacingType());
+            current.setPosAdjustmentDelaySec(
+                    update.getPosAdjustmentDelaySec() != null ? update.getPosAdjustmentDelaySec() : current.getPosAdjustmentDelaySec());
+            current.setCorrDelaySec(update.getCorrDelaySec() != null ? update.getCorrDelaySec() : current.getCorrDelaySec());
+            settingsRepositoryService.saveSettings(settings);
+        }
+
         if (settingsUpdate.getRestartEnabled() != null) {
             settings.setRestartEnabled(settingsUpdate.getRestartEnabled());
             settingsRepositoryService.saveSettings(settings);

@@ -35,6 +35,7 @@ public class Settings extends AbstractDocument {
     private PlacingType okexPlacingType;
     private BigDecimal bitmexPrice;
     private PlacingBlocks placingBlocks;
+    private PosAdjustment posAdjustment;
     private Boolean restartEnabled;
     private FeeSettings feeSettings;
     private Limits limits;
@@ -59,6 +60,7 @@ public class Settings extends AbstractDocument {
         settings.okexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexPlacingType = PlacingType.TAKER;
         settings.placingBlocks = PlacingBlocks.createDefault();
+        settings.posAdjustment = PosAdjustment.createDefault();
         settings.feeSettings = FeeSettings.createDefault();
         settings.limits = Limits.createDefault();
         settings.restartSettings = RestartSettings.createDefaults();

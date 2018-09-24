@@ -23,15 +23,12 @@ public class PlacingBlocks {
      */
     @Transient
     private BigDecimal bitmexBlockFactor = BigDecimal.valueOf(100);
-    private BigDecimal posAdjustment;
-    private PlacingType posAdjustmentPlacingType;
 
     public static PlacingBlocks createDefault() {
         final PlacingBlocks placingBlocks = new PlacingBlocks();
         placingBlocks.setActiveVersion(Ver.FIXED);
         placingBlocks.setFixedBlockOkex(BigDecimal.valueOf(1));
         placingBlocks.setDynMaxBlockOkex(BigDecimal.valueOf(1));
-        placingBlocks.setPosAdjustment(BigDecimal.ZERO);
         return placingBlocks;
     }
 
@@ -50,7 +47,6 @@ public class PlacingBlocks {
                 ", fixedBlockOkex=" + fixedBlockOkex +
                 ", dynMaxBlockOkex=" + dynMaxBlockOkex +
                 ", bitmexBlockFactor=" + bitmexBlockFactor +
-                ", posAdjustment=" + posAdjustment +
                 '}';
     }
 

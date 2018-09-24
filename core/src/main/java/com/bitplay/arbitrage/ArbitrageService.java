@@ -1200,17 +1200,17 @@ public class ArbitrageService {
         final BigDecimal dc = posDiffService.getDc();
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
-        PlacingBlocks pb = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
-//        final BigDecimal cm = ((BitmexService) firstMarketService).getCm();
-        final BigDecimal cm = pb.getBitmexBlockFactor();
-        BigDecimal adj = pb.getPosAdjustment();
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        final BigDecimal cm = settings.getPlacingBlocks().getBitmexBlockFactor();
+        final BigDecimal adj = settings.getPosAdjustment().getPosAdjustmentMin();
+        final BigDecimal adjMax = settings.getPosAdjustment().getPosAdjustmentMin();
 
-        return String.format("b(%s) o(+%s-%s) = %s, ha=%s, dc=%s, mdc=%s, cm=%s, adj=%s",
+        return String.format("b(%s) o(+%s-%s) = %s, ha=%s, dc=%s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s",
                 Utils.withSign(bP),
                 oPL.toPlainString(),
                 oPS.toPlainString(),
                 posDiff.toPlainString(),
-                ha, dc, mdc, cm, adj
+                ha, dc, mdc, cm, adj, adjMax
         );
     }
 
