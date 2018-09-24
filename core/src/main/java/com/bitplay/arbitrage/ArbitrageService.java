@@ -187,7 +187,7 @@ public class ArbitrageService {
                         // do nothing
                     } catch (Exception e) {
                         logger.error("ERROR: signalEventBus errorOnEvent", e);
-                        warningLogger.error("ERROR: signalEventBus errorOnEvent. Signals may not work at all." + e.toString());
+//                        warningLogger.error("ERROR: signalEventBus errorOnEvent. Signals may not work at all." + e.toString());
                     }
                 }, throwable -> {
                     logger.error("signalEventBus errorOnEvent", throwable);

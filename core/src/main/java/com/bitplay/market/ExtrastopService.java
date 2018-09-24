@@ -97,10 +97,11 @@ public class ExtrastopService {
 
     private void checkLastRun() {
         Instant now = Instant.now();
-        if (lastRun != null && Duration.between(lastRun, now).getSeconds() > 10) {
+        if (lastRun != null && Duration.between(lastRun, now).getSeconds() > 15) {
             LocalDateTime ldt = getLastRun();
-            warningLogger.warn("checkOrderBooks lastRun was too long ago at " + ldt);
-            log.warn("checkOrderBooks lastRun was too long ago at " + ldt);
+            String msg = String.format("checkOrderBooks lastRun(%s) was too long (%s)", ldt, Duration.between(lastRun, now).getSeconds());
+            warningLogger.warn(msg);
+            log.warn(msg);
         }
         lastRun = now;
     }
