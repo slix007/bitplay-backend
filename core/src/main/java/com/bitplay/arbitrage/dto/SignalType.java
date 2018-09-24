@@ -5,6 +5,7 @@ package com.bitplay.arbitrage.dto;
  */
 public enum SignalType {
     AUTOMATIC(""),
+    B_ADJ("b_adj"),
     CORR("corr"),
     B_CORR("b_corr"),
     B_CORR_INCREASE_POS("b_corr_increase_pos"),
@@ -35,7 +36,8 @@ public enum SignalType {
 
     public boolean isCorr() {
         return this == CORR || this == CORR_MDC || this == CORR_TIMER || this == B_CORR || this == O_CORR || this == B_CORR_INCREASE_POS
-                || this == O_CORR_INCREASE_POS;
+                || this == O_CORR_INCREASE_POS
+                || this == B_ADJ;
     }
 
     public boolean isDoubleTradingSignal() {

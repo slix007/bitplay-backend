@@ -1203,7 +1203,7 @@ public class ArbitrageService {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final BigDecimal cm = settings.getPlacingBlocks().getBitmexBlockFactor();
         final BigDecimal adj = settings.getPosAdjustment().getPosAdjustmentMin();
-        final BigDecimal adjMax = settings.getPosAdjustment().getPosAdjustmentMin();
+        final BigDecimal adjMax = settings.getPosAdjustment().getPosAdjustmentMax();
 
         return String.format("b(%s) o(+%s-%s) = %s, ha=%s, dc=%s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s",
                 Utils.withSign(bP),

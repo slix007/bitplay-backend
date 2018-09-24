@@ -108,7 +108,7 @@ public class BitmexService extends MarketService {
     private BitmexStreamingExchange exchange;
 
     private static final int MAX_RECONNECTS_BEFORE_RESTART = 1;
-    private static final int MAX_WAITING_OB_CHECKS = 3; // sleep 1 sec
+    private static final int MAX_WAITING_OB_CHECKS = 5; // each sleep 1 sec. // Bitmex min delay is 2,5 sec: https://blog.bitmex.com/ru_ru-update-to-our-realtime-apis-image-delivery/
     private static final int MAX_RESUBSCRIBES = 10;
     private volatile boolean isDestroyed = false;
 
