@@ -2,13 +2,13 @@ package com.bitplay.arbitrage;
 
 import static com.bitplay.arbitrage.DeltasCalcService.NONE_VALUE;
 
-import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -105,7 +105,7 @@ public class BordersRecalcService {
         }
     }
 
-        private void recalculateBordersV2(BorderParams borderParams, BigDecimal b_delta, BigDecimal o_delta) {
+    private void recalculateBordersV2(BorderParams borderParams, BigDecimal b_delta, BigDecimal o_delta) {
         final BordersV2 bordersV2 = borderParams.getBordersV2();
 
         if (bordersV2.getAutoBaseLvl()) {
@@ -126,7 +126,9 @@ public class BordersRecalcService {
         if (b_add_delta.signum() == 0 && ok_add_delta.signum() == 0) {
             return;
         }
-        final BigDecimal mid_delta = ((b_delta.abs()).add(o_delta.abs())).divide(BigDecimal.valueOf(2), 0, RoundingMode.HALF_UP);
+        final BigDecimal mid_delta = arbitrageService.getFirstMarketService().getContractType().isEth()
+                ? ((b_delta.abs()).add(o_delta.abs())).divide(BigDecimal.valueOf(2), 1, RoundingMode.HALF_UP)
+                : ((b_delta.abs()).add(o_delta.abs())).divide(BigDecimal.valueOf(2), 0, RoundingMode.HALF_UP);
 
 //        if b_delta >= 0
 //        b_br_open_val[base_lvl] = mid_delta + b_add_delta
