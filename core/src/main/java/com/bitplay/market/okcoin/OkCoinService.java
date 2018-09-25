@@ -142,6 +142,7 @@ public class OkCoinService extends MarketService {
     private Disposable privateDataSubscription;
     private Disposable accountInfoSubscription;
     private Disposable futureIndexSubscription;
+    private Disposable btcUsdFutureIndexSubscription;
     private Disposable tickerSubscription;
     private Disposable tickerEthSubscription;
     private Observable<OrderBook> orderBookObservable;
@@ -232,6 +233,7 @@ public class OkCoinService extends MarketService {
         tickerSubscription = startTickerListener();
         if (okexContractType.getBaseTool() == Tool.ETH) {
             tickerEthSubscription = startEthTickerListener();
+            btcUsdFutureIndexSubscription = startBtcUsdFutureIndexListener();
         }
 
         fetchOpenOrders();
@@ -247,6 +249,9 @@ public class OkCoinService extends MarketService {
         privateDataSubscription.dispose();
         accountInfoSubscription.dispose();
         futureIndexSubscription.dispose();
+        if (btcUsdFutureIndexSubscription != null) {
+            btcUsdFutureIndexSubscription.dispose();
+        }
         tickerSubscription.dispose();
         if (tickerEthSubscription != null) {
             tickerEthSubscription.dispose();
@@ -550,6 +555,21 @@ public class OkCoinService extends MarketService {
                     logger.debug(futureIndex.toString());
                     this.contractIndex = new ContractIndex(futureIndex.getIndex(),
                             futureIndex.getTimestamp());
+                }, throwable -> {
+                    logger.error("FutureIndex.Exception: ", throwable);
+                });
+    }
+
+    private Disposable startBtcUsdFutureIndexListener() {
+        return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                .getFutureIndex(okexContractTypeForPrice.getCurrencyPair())
+                .doOnError(throwable -> logger.error("Error on FutureIndex observing", throwable))
+                .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.io())
+                .subscribe(btcFutureIndex -> {
+                    logger.debug(btcFutureIndex.toString());
+                    this.btcContractIndex = new ContractIndex(btcFutureIndex.getIndex(),
+                            btcFutureIndex.getTimestamp());
                 }, throwable -> {
                     logger.error("FutureIndex.Exception: ", throwable);
                 });

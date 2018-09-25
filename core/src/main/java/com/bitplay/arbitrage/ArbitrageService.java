@@ -1178,10 +1178,15 @@ public class ArbitrageService {
                 }
                 break;
             case INDEX_OKEX:
-                // TODO
-                usdQuote = secondMarketService.getContractIndex() != null && secondMarketService.getContractIndex().getIndexPrice() != null
-                        ? secondMarketService.getContractIndex().getIndexPrice()
-                        : BigDecimal.ZERO;
+                if (secondMarketService.getContractType().isEth()) {
+                    usdQuote = secondMarketService.getBtcContractIndex() != null && secondMarketService.getBtcContractIndex().getIndexPrice() != null
+                            ? secondMarketService.getBtcContractIndex().getIndexPrice()
+                            : BigDecimal.ZERO;
+                } else {
+                    usdQuote = secondMarketService.getContractIndex() != null && secondMarketService.getContractIndex().getIndexPrice() != null
+                            ? secondMarketService.getContractIndex().getIndexPrice()
+                            : BigDecimal.ZERO;
+                }
                 break;
             case AVG:
             default:
