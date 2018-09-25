@@ -1397,7 +1397,7 @@ public class BitmexService extends MarketService {
                     final MoveResponse.MoveOrderStatus placeOrderStatus = handler.getMoveResponse().getMoveOrderStatus();
                     if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == placeOrderStatus) {
                         if (attemptCount < maxAttempts) {
-                            Thread.sleep(200);
+//                            Thread.sleep(200);
                         } else {
                             setOverloaded(null);
                             nextMarketState = MarketState.SYSTEM_OVERLOADED;
