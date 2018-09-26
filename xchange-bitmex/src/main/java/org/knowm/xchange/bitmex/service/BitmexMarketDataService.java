@@ -35,6 +35,8 @@ public class BitmexMarketDataService extends BitmexMarketDataServiceRaw implemen
 
     public OrderBook getOrderBook(CurrencyPair currencyPair, Object... args) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final String symbol = currencyPair.base.getCurrencyCode();
+//        final String symbol = (String) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Symbol");
+        final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
         Integer depth = 25;
         if (args != null && args.length > 0) {
             if (args[0] instanceof Integer) {
@@ -50,7 +52,7 @@ public class BitmexMarketDataService extends BitmexMarketDataServiceRaw implemen
         } catch (ApiException e) {
             throw new ExchangeException("Can not get such a symbol depth", e);
         }
-        return BitmexAdapters.adaptBitmexOrderBook(bitmexMarketDepth, currencyPair);
+        return BitmexAdapters.adaptBitmexOrderBook(bitmexMarketDepth, currencyPair, scale);
     }
 
     public Trades getTrades(CurrencyPair currencyPair, Object... args) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {

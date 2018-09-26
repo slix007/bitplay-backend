@@ -30,30 +30,30 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
 
     /**
      * Wanring: this method will response once in 5 sec after 8 Oct 2017.
-     * Use {@link #getOrderBookL2(String)} instead
+     * Use {@link #getOrderBookL2(List)}} instead
      */
     @Override
     public Observable<OrderBook> getOrderBook(CurrencyPair currencyPair, Object... args) {
         throw new IllegalArgumentException("Deprecated. Use {@link #getOrderBookL2(String)} instead.");
     }
 
-    public Observable<BitmexOrderBook> getOrderBookL2(String symbol) {
-        String orderBookL2Channel = "orderBookL2:" + symbol;
-        return service.subscribeChannel(orderBookL2Channel, orderBookL2Channel)
+    public Observable<BitmexOrderBook> getOrderBookL2(List<String> symbols) {
+        List<String> subjects = symbols.stream()
+                .map(s -> "orderBookL2_25:" + s).collect(Collectors.toList());//orderBookL2_25:XBTUSD
+
+        String channel = "orderBookL2_25";
+        return service.subscribeChannel(channel, subjects)
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-                    @SuppressWarnings("unused")
-                    BitmexOrderBook bitmexOrderBook = mapper.treeToValue(s, BitmexOrderBook.class);
-
-                    return bitmexOrderBook;
+                    return mapper.treeToValue(s, BitmexOrderBook.class);
                 });
     }
 
-    public Completable unsubscribeOrderBook(String symbol) {
-        String orderBookL2Channel = "orderBookL2:" + symbol;
-        return service.unsubscribeChannel(orderBookL2Channel, orderBookL2Channel);
+    public Completable unsubscribeOrderBook(List<String> symbols) {
+        List<String> subjects = symbols.stream().map(s -> "orderBookL2_25:" + s).collect(Collectors.toList());
+        return service.unsubscribeChannel("orderBookL2_25", subjects);
     }
 
     @Override

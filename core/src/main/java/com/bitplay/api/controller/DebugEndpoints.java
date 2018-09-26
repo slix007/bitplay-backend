@@ -4,7 +4,6 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.okcoin.OOHangedCheckerService;
 import java.io.IOException;
@@ -117,6 +116,7 @@ public class DebugEndpoints {
         deadLockDescr += "<br>OOHangedChecker: " + ooHangedCheckerService.getStatus();
 
         deadLockDescr += "<br>BitmexReconnectCount=" + bs.getReconnectCount();
+        deadLockDescr += "<br>BitmexOrderBookErrors=" + getBitmexOrderBookErrors();
 
         if (arbitrageService.getLastCalcSumBal() != null) {
             Date lastCalcSumBal = Date.from(arbitrageService.getLastCalcSumBal());
@@ -127,6 +127,16 @@ public class DebugEndpoints {
 
         return new ResultJson(resultJson.getResult(), deadLockDescr);
     }
+
+    public String getBitmexOrderBookErrors() {
+        Integer count = bitmexService.getOrderBookErrors();
+        String statusString = "0";
+        if (count > 0) {
+            statusString = String.format("<span style=\"color: red\">%s<span>", count);
+        }
+        return statusString;
+    }
+
 
     public static ResultJson detectDeadlock() {
         ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();

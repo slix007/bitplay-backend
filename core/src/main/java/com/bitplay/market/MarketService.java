@@ -26,6 +26,7 @@ import com.bitplay.utils.Utils;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,7 +53,6 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
-import org.slf4j.Logger;
 
 /**
  * Created by Sergey Shurmin on 4/16/17.
@@ -249,9 +249,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     logger.info("Free attempt when {}", marketState);
                 }
                 break;
-            case WAITING_ARB:
             case MOVING:
-            case PLACING_ORDER:
             case STOPPED:
             case FORBIDDEN:
                 if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
@@ -267,6 +265,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     logger.info("Free attempt when SYSTEM_OVERLOADED");
                 }
                 break;
+
+            case PLACING_ORDER:
+            case WAITING_ARB:
 
             case ARBITRAGE:
 //            fetchPosition(); -- deadlock
@@ -740,7 +741,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             logger.warn(msg);
             thePrice = createBestMakerPrice(orderType);
         }
-        return thePrice;
+        return thePrice.setScale(contractType.getScale(), RoundingMode.HALF_UP);
     }
 
     protected BigDecimal createBestMakerPrice(Order.OrderType orderType) {

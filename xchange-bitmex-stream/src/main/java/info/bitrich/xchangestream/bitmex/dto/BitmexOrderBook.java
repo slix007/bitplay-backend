@@ -28,4 +28,11 @@ public class BitmexOrderBook {
         return bitmexOrderList;
     }
 
+    @Override
+    public String toString() {
+        return "BitmexOrderBook{" +
+                "action='" + action + '\'' +
+                ", bitmexOrderList=" + bitmexOrderList +
+                '}';
+    }
 }

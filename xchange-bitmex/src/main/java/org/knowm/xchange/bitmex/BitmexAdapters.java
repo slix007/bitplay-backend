@@ -33,16 +33,16 @@ public class BitmexAdapters {
     private final static String BID_TYPE = "Buy";
     private final static String ASK_TYPE = "Sell";
 
-    public static OrderBook adaptBitmexOrderBook(List<OrderBookL2> bitmexMarketDepth, CurrencyPair currencyPair) {
-        List<LimitOrder> asks = adaptBitmexPublicOrders(bitmexMarketDepth, Order.OrderType.ASK, currencyPair);
-        List<LimitOrder> bids = adaptBitmexPublicOrders(bitmexMarketDepth, Order.OrderType.BID, currencyPair);
+    public static OrderBook adaptBitmexOrderBook(List<OrderBookL2> bitmexMarketDepth, CurrencyPair currencyPair, Integer scale) {
+        List<LimitOrder> asks = adaptBitmexPublicOrders(bitmexMarketDepth, Order.OrderType.ASK, currencyPair, scale);
+        List<LimitOrder> bids = adaptBitmexPublicOrders(bitmexMarketDepth, Order.OrderType.BID, currencyPair, scale);
 
 
         return new OrderBook(null, asks, bids);
     }
 
     private static List<LimitOrder> adaptBitmexPublicOrders(List<OrderBookL2> bitmexMarketDepth,
-                                                            Order.OrderType orderType, CurrencyPair currencyPair) {
+            Order.OrderType orderType, CurrencyPair currencyPair, Integer scale) {
         List<LimitOrder> limitOrderList = new ArrayList<>();
 
         for (OrderBookL2 orderBookL2 : bitmexMarketDepth) {
@@ -53,7 +53,7 @@ public class BitmexAdapters {
                 LimitOrder limitOrder = new LimitOrder
                         .Builder(orderType, currencyPair)
                         .tradableAmount(orderBookL2.getSize())
-                        .limitPrice(new BigDecimal(orderBookL2.getPrice()).setScale(1, RoundingMode.HALF_UP))
+                        .limitPrice(new BigDecimal(orderBookL2.getPrice()).setScale(scale, RoundingMode.HALF_UP))
                         .build();
                 limitOrderList.add(limitOrder);
             }
@@ -127,12 +127,11 @@ public class BitmexAdapters {
         );
     }
 
-    public static BigDecimal priceToBigDecimal(Double aDouble) {
-        return new BigDecimal(aDouble)
-                .setScale(1, RoundingMode.HALF_UP);
+    public static BigDecimal priceToBigDecimal(Double aDouble, Integer scale) {
+        return new BigDecimal(aDouble).setScale(scale, RoundingMode.HALF_UP);
     }
 
-    public static OpenOrders adaptOpenOrdersUpdate(JsonNode fullInputJson) throws JsonProcessingException {
+    public static OpenOrders adaptOpenOrdersUpdate(JsonNode fullInputJson, Integer scale) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.registerModule(new JavaTimeModule());
@@ -145,7 +144,7 @@ public class BitmexAdapters {
                 io.swagger.client.model.Order order = mapper.treeToValue(node, io.swagger.client.model.Order.class);
 
                 //TODO MarketOrder can not be cast to LimitOrder
-                final LimitOrder limitOrder = (LimitOrder) adaptOrder(order, true);
+                final LimitOrder limitOrder = (LimitOrder) adaptOrder(order, true, scale);
                 openOrders.add(limitOrder);
             }
         }
@@ -153,11 +152,11 @@ public class BitmexAdapters {
         return new OpenOrders(openOrders);
     }
 
-    public static Order adaptOrder(io.swagger.client.model.Order order) {
-        return adaptOrder(order, false);
+    public static Order adaptOrder(io.swagger.client.model.Order order, Integer scale) {
+        return adaptOrder(order, false, scale);
     }
 
-    public static Order adaptOrder(io.swagger.client.model.Order order, boolean alwaysLimit) {
+    public static Order adaptOrder(io.swagger.client.model.Order order, boolean alwaysLimit, Integer scale) {
         final String side = order.getSide(); // may be null
         Order.OrderType orderType = null;
         BigDecimal tradableAmount = null;
@@ -180,10 +179,10 @@ public class BitmexAdapters {
             currencyPair = new CurrencyPair(new Currency(first), new Currency(second));
         }
         if (order.getPrice() != null) {
-            price = priceToBigDecimal(order.getPrice());
+            price = priceToBigDecimal(order.getPrice(), scale);
         }
         if (order.getAvgPx() != null) {
-            avgPrice = priceToBigDecimal(order.getAvgPx());
+            avgPrice = priceToBigDecimal(order.getAvgPx(), scale);
         }
 
         final Date timestamp = Date.from(order.getTimestamp().toInstant());
@@ -232,8 +231,8 @@ public class BitmexAdapters {
         return orderStatus;
     }
 
-    public static LimitOrder updateLimitOrder(LimitOrder limitOrder, io.swagger.client.model.Order order) {
-        final LimitOrder convertedOrd = (LimitOrder) BitmexAdapters.adaptOrder(order, true);
+    public static LimitOrder updateLimitOrder(LimitOrder limitOrder, io.swagger.client.model.Order order, Integer scale) {
+        final LimitOrder convertedOrd = (LimitOrder) BitmexAdapters.adaptOrder(order, true, scale);
 
         return new LimitOrder(
                 limitOrder.getType(),
