@@ -111,7 +111,12 @@ public class PlacingBlocksService {
 
         xBlock = maxBlock == null ? xBlock : xBlock.min(maxBlock);
 
-        xBlock = xBlock.divide(cm, 0, RoundingMode.DOWN); // round to OKEX_FACTOR
+        if (cm.scale() > 0) {
+            xBlock = xBlock.divide(cm, 0, RoundingMode.HALF_UP); // fix bug when 1 contract goes to 0
+        } else {
+            xBlock = xBlock.divide(cm, 0, RoundingMode.DOWN); // round to OKEX_FACTOR
+        }
+
         return new PlBlocks(xBlock.multiply(cm).setScale(0, RoundingMode.HALF_UP), xBlock, PlacingBlocks.Ver.DYNAMIC);
     }
 

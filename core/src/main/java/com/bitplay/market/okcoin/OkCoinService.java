@@ -196,10 +196,14 @@ public class OkCoinService extends MarketService {
 
     @Override
     public void initializeMarket(String key, String secret, ContractType contractType) {
-        this.usdInContract = 100;
         okexContractType = (OkexContractType) contractType;
         logger.info("Starting okex with " + okexContractType);
         tradeLogger.info("Starting okex with " + okexContractType);
+        if (okexContractType.isEth()) {
+            this.usdInContract = 10;
+        } else {
+            this.usdInContract = 100;
+        }
 
         exchange = initExchange(key, secret);
         loadLiqParams();
@@ -691,31 +695,34 @@ public class OkCoinService extends MarketService {
 //        final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 
         if (accountInfoContracts != null && position != null && Utils.orderBookIsFull(orderBook)) {
-            final BigDecimal availableBtc = accountInfoContracts.getAvailable();
-            final BigDecimal equityBtc = accountInfoContracts.geteLast();
+            final BigDecimal available = accountInfoContracts.getAvailable();
+            final BigDecimal equity = accountInfoContracts.geteLast();
 
             final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
             final BigDecimal leverage = position.getLeverage();
 
-            if (availableBtc != null && equityBtc != null && leverage != null && position.getPositionLong() != null && position.getPositionShort() != null) {
+            if (available != null && equity != null && leverage != null && position.getPositionLong() != null && position.getPositionShort() != null) {
 
-//                if (availableBtc.signum() > 0) {
+//                if (available.signum() > 0) {
 //                if (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK)) {
                     BigDecimal affordableContractsForLong;
-                    if (position.getPositionShort().signum() != 0) { // there are sells
+                final BigDecimal usdInContract = BigDecimal.valueOf(this.usdInContract);
+                if (position.getPositionShort().signum() != 0) { // there are sells
                         if (volPlan.compareTo(position.getPositionShort()) != 1) {
                             affordableContractsForLong = (position.getPositionShort().subtract(position.getPositionLong()).add(
-                                    (equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN)
+                                    (equity.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(usdInContract, 0, BigDecimal.ROUND_DOWN)
                             )).setScale(0, BigDecimal.ROUND_DOWN);
                         } else {
-                            affordableContractsForLong = (availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
+                            affordableContractsForLong = (available.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)
+                                    .divide(usdInContract, 0, BigDecimal.ROUND_DOWN);
                         }
                         if (affordableContractsForLong.compareTo(position.getPositionShort()) == -1) {
                             affordableContractsForLong = position.getPositionShort();
                         }
                     } else { // no sells
-                        affordableContractsForLong = (availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
+                    affordableContractsForLong = (available.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)
+                            .divide(usdInContract, 0, BigDecimal.ROUND_DOWN);
                     }
                     affordable.setForLong(affordableContractsForLong);
 //                }
@@ -724,18 +731,21 @@ public class OkCoinService extends MarketService {
                     BigDecimal affordableContractsForShort;
                     if (position.getPositionLong().signum() != 0) { // we have BIDs
                         if (volPlan.compareTo(position.getPositionLong()) != 1) { // если мы хотим закрыть меньше чем есть
-                            final BigDecimal divide = (equityBtc.subtract(reserveBtc)).multiply(bestBid.multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
+                            final BigDecimal divide = (equity.subtract(reserveBtc)).multiply(bestBid.multiply(leverage))
+                                    .divide(usdInContract, 0, BigDecimal.ROUND_DOWN);
                             affordableContractsForShort = (position.getPositionLong().subtract(position.getPositionShort()).add(
                                     divide
                             )).setScale(0, BigDecimal.ROUND_DOWN);
                         } else {
-                            affordableContractsForShort = (availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
+                            affordableContractsForShort = (available.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)
+                                    .divide(usdInContract, 0, BigDecimal.ROUND_DOWN);
                         }
                         if (affordableContractsForShort.compareTo(position.getPositionLong()) == -1) {
                             affordableContractsForShort = position.getPositionLong();
                         }
                     } else { // no BIDs
-                        affordableContractsForShort = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).divide(BigDecimal.valueOf(100), 0, BigDecimal.ROUND_DOWN);
+                        affordableContractsForShort = ((available.subtract(reserveBtc)).multiply(bestBid).multiply(leverage))
+                                .divide(usdInContract, 0, BigDecimal.ROUND_DOWN);
                     }
                     affordable.setForShort(affordableContractsForShort);
 //                }
