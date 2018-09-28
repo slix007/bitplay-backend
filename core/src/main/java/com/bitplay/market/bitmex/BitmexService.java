@@ -379,7 +379,7 @@ public class BitmexService extends MarketService {
         requestReconnect(false);
     }
 
-    private void requestReconnect(boolean isForceReconnect) {
+    public void requestReconnect(boolean isForceReconnect) {
         if (isDestroyed) {
             return;
         }
@@ -783,7 +783,8 @@ public class BitmexService extends MarketService {
         logger.info("bitmex authenticate");
         exchange.authenticate()
                 .doOnError(throwable -> logger.error("doOnError authenticate", throwable))
-                .retryWhen(e -> e.delay(5, TimeUnit.SECONDS))
+                .retry()
+//                .retryWhen(e -> e.delay(5, TimeUnit.SECONDS))
                 .doOnComplete(() -> logger.info("bitmex authenticate completed"))
                 .blockingAwait();
 
@@ -989,42 +990,55 @@ public class BitmexService extends MarketService {
             // skip the update
             throw new IllegalArgumentException("Unknown OrderBook action=" + obUpdate.getAction() + ". " + obUpdate);
         }
+        if (finalOB.getBids().size() == 0 || finalOB.getAsks().size() == 0) {
+            logger.warn("update OB is empty: " + obUpdate);
+            logger.warn("full OB is empty: " + finalOB);
+        } else if (!startFlag) {
+            startFlag = true;
+            logger.warn("update OB : " + obUpdate);
+            logger.warn("full OB : " + finalOB);
+            logger.info("full OB bids=" + finalOB.getBids().size());
+        }
+
         return finalOB;
     }
 
+    boolean startFlag = false;
+
     private Disposable startOrderBookListener() {
+        startFlag = false;
         List<String> symbols = new ArrayList<>();
         symbols.add(bitmexContractType.getSymbol());
         if (!sameOrderBookForPrice()) {
             symbols.add(bitmexContractTypeXBTUSD.getSymbol());
         }
 
-        Observable<OrderBook> orderBookObservable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
+        return ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getOrderBookL2(symbols)
                 .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBook"))
+                .subscribeOn(Schedulers.from(scheduler))
+                .observeOn(Schedulers.from(scheduler))
                 .map(this::convertOrderBook)
+                .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
+                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
+//                .subscribeOn(Schedulers.io())
+                .filter(ob -> ob.getBids().size() != 0 && ob.getAsks().size() != 0)
                 .doOnError(throwable -> {
                     logger.error("can not convert orderBook", throwable);
                     warningLogger.error("can not convert orderBook", throwable);
                     orderBookErrors.incrementAndGet();
                 })
-                .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
-                .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
-                .retry();
-
-        return orderBookObservable
-                .subscribeOn(Schedulers.io())
+                .retry()
                 .subscribe(orderBook -> {
-
-                    if (isDefaultOB(orderBook)) {
-                        this.orderBook = orderBook;
-                        try {
+                    try {
+                        if (isDefaultOB(orderBook)) {
+                            this.orderBook = orderBook;
                             afterOrderBookChanged(orderBook);
-                        } catch (Exception e) {
-                            logger.error("Can not merge OrderBook", e);
+                        } else {
+                            this.orderBookForPrice = orderBook;
                         }
-                    } else {
-                        this.orderBookForPrice = orderBook;
+                    } catch (Exception e) {
+                        logger.error("Can not merge OrderBook", e);
                     }
 
                 }, throwable -> {

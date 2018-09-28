@@ -80,12 +80,19 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
         }
     }
 
+    private boolean startFlag = false;
+
     private void handleJsonMessage(JsonNode jsonMessage) {
         if (!isAuthenticated && authCompleteEmitter != null && !authCompleteEmitter.isDisposed()) {
             checkIfAuthenticationResponse(jsonMessage);
         }
 
         String channel = parseChannelNameFromMessage(jsonMessage);
+
+        if (!startFlag && channel != null && channel.equals("orderBookL2_25")) {
+            startFlag = true;
+            log.info("OBThreadSubscriber: " + Thread.currentThread().getName() + ". " + jsonMessage);
+        }
 
         if (channel != null) {
             handleChannelMessage(channel, jsonMessage);

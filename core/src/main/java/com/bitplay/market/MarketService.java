@@ -23,6 +23,7 @@ import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import java.math.BigDecimal;
@@ -80,7 +81,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected volatile Ticker ethBtcTicker;
     protected volatile int usdInContract = 0;
 
-    protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3,
+            new ThreadFactoryBuilder().setNameFormat("market-scheduler-%d").build());
     // Moving timeout
     private volatile ScheduledFuture<?> scheduledOverloadReset;
     private volatile PlaceOrderArgs placeOrderArgs;

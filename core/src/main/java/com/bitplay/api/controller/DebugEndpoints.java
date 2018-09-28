@@ -59,7 +59,7 @@ public class DebugEndpoints {
         String isDone = "is done";
         String errorMsg = "";
         try {
-            bitmexService.reconnect();
+            bitmexService.requestReconnect(true);
         } catch (Exception e) {
             log.error("Can't reconnect bitmex", e);
             isDone = "failed";
