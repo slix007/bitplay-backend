@@ -89,4 +89,8 @@ public class Settings extends AbstractDocument {
         return feeSettings.getoTakerComRate(); // TAKER, HYBRID
     }
 
+    public boolean isEth() {
+        return bitmexContractTypeCurrent != null && bitmexContractTypeCurrent.startsWith("ETH");
+    }
+
 }

@@ -73,6 +73,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected volatile AccountInfo accountInfo = null;
     protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
     protected volatile Position position = new Position(null, null, null, null, "");
+    protected volatile Position positionXBTUSD = new Position(null, null, null, null, "");
     protected volatile Affordable affordable = new Affordable();
     protected final Object contractIndexLock = new Object();
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
@@ -958,5 +959,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public boolean isStarted() {
         return true;
+    }
+
+    public BigDecimal getHbPosUsd() {
+        return positionXBTUSD != null && positionXBTUSD.getPositionLong() != null
+                ? positionXBTUSD.getPositionLong()
+                : BigDecimal.ZERO;
     }
 }

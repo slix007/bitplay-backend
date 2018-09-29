@@ -13,7 +13,7 @@ import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TimersJson;
-import com.bitplay.api.domain.ob.PosDiffJson;
+import com.bitplay.api.domain.pos.PosDiffJson;
 import com.bitplay.api.service.CommonUIService;
 import com.bitplay.market.MarketService;
 import com.bitplay.security.TraderPermissionsService;

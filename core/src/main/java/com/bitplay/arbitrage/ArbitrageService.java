@@ -356,13 +356,7 @@ public class ArbitrageService {
                             logger.warn("Warning: Free Bitmex");
                             firstMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
-
-                        if (!firstMarketService.isBusy() && secondMarketService.getMarketState() == MarketState.WAITING_ARB) {
-                            tradeService.warn(tradeId, counterName, "Warning: bitmex is Free, but okex is WAITING_ARB. sending MT2_BITMEX_ORDER_FILLED");
-                            warningLogger.warn("Warning: bitmex is Free, but okex is WAITING_ARB. sending MT2_BITMEX_ORDER_FILLED");
-                            logger.warn("Warning: bitmex is Free, but okex is WAITING_ARB. sending MT2_BITMEX_ORDER_FILLED");
-                            signalEventBus.send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
-                        } else if (secondHanged && noOrders) {
+                        if (secondHanged && noOrders) {
                             tradeService.warn(tradeId, counterName, "Warning: Free Okcoin");
                             warningLogger.warn("Warning: Free Okcoin");
                             logger.warn("Warning: Free Okcoin");
@@ -1162,7 +1156,7 @@ public class ArbitrageService {
                     oDQLMin = String.format("o_DQL_open_min=%s", guiLiqParams.getODQLOpenMin());
                 }
 
-                tradeService.info(tradeId, counterName, String.format("#%s Pos diff: %s", counterName, getPosDiffString()));
+                tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, getPosDiffString()));
                 final LiqInfo bLiqInfo = getFirstMarketService().getLiqInfo();
                 tradeService
                         .info(tradeId, counterName, String.format("#%s %s; %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString(), bDQLMin));
@@ -1217,26 +1211,73 @@ public class ArbitrageService {
     }
 
     public String getPosDiffString() {
-        BigDecimal posDiff = posDiffService.getPositionsDiffSafe();
-        final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
-        final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
-        final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
-        final BigDecimal ha = getParams().getHedgeAmount();
-        final BigDecimal dc = posDiffService.getDc();
-        final BigDecimal mdc = getParams().getMaxDiffCorr();
-
+        // Notional = b_pos * 10 / CM + o_pos * 10 - hb_pos - ha;
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final BigDecimal cm = settings.getPlacingBlocks().getBitmexBlockFactor();
         final BigDecimal adj = settings.getPosAdjustment().getPosAdjustmentMin();
         final BigDecimal adjMax = settings.getPosAdjustment().getPosAdjustmentMax();
 
-        return String.format("b(%s) o(+%s-%s) = %s, ha=%s, dc=%s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s",
-                Utils.withSign(bP),
-                oPL.toPlainString(),
-                oPS.toPlainString(),
-                posDiff.toPlainString(),
-                ha, dc, mdc, cm, adj, adjMax
-        );
+        MarketService bitmexService = getFirstMarketService();
+        MarketService okcoinService = getSecondMarketService();
+
+        boolean isEth = bitmexService.getContractType().isEth();
+
+        final BigDecimal bP = bitmexService.getPosition().getPositionLong();
+        final BigDecimal oPL = okcoinService.getPosition().getPositionLong();
+        final BigDecimal oPS = okcoinService.getPosition().getPositionShort();
+        final BigDecimal ha = getParams().getHedgeAmount();
+        final BigDecimal okexUsd = isEth
+                ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
+                : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
+        final BigDecimal bitmexUsd = isEth
+                ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
+                : bP;
+        final BigDecimal hbPos = bitmexService.getHbPosUsd();
+        final BigDecimal notional = bitmexUsd.add(okexUsd).subtract(hbPos).subtract(ha);
+
+        final BigDecimal mdc = getParams().getMaxDiffCorr();
+
+        if (isEth) {
+            return String.format("Notional: dc = b(%s) + o(%s) - hb(%s) - ha(%s) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s",
+                    bitmexUsd.toPlainString(),
+                    okexUsd.toPlainString(),
+                    hbPos.toPlainString(),
+                    ha.toPlainString(),
+                    notional.toPlainString(),
+                    mdc, cm, adj, adjMax
+            );
+        } else {
+            return String.format("Notional: dc = b(%s) + o(%s) - ha(%s) = %s, mdc=%s",
+                    bitmexUsd.toPlainString(),
+                    okexUsd.toPlainString(),
+                    ha.toPlainString(),
+                    notional.toPlainString(),
+                    mdc
+            );
+        }
+    }
+
+    public String getPosDiffSource() {
+        // Source: b_pos() o_pos() hb_pos()
+        final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
+        final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
+        final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
+
+        if (getFirstMarketService().getContractType().isEth()) {
+            final BigDecimal hbPos = getFirstMarketService().getHbPosUsd();
+            return String.format("Source: b_pos(%s) o_pos(+%s-%s) hb_pos(%s)",
+                    Utils.withSign(bP),
+                    oPL.toPlainString(),
+                    oPS.toPlainString(),
+                    hbPos
+            );
+        } else {
+            return String.format("Source: b_pos(%s) o_pos(+%s-%s)",
+                    Utils.withSign(bP),
+                    oPL.toPlainString(),
+                    oPS.toPlainString()
+            );
+        }
     }
 
     private PlBlocks dynBlockDecriseByAffordable(DeltaName deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {

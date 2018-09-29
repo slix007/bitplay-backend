@@ -1,4 +1,4 @@
-package com.bitplay.api.domain.ob;
+package com.bitplay.api.domain.pos;
 
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import lombok.AllArgsConstructor;
@@ -17,5 +17,8 @@ public class PosDiffJson {
 
     private PlacingBlocks placingBlocks;
 
+    private String notionalSource;
+    private String btmUsdInContract;
+//    private String okUsdInContract;
 
 }

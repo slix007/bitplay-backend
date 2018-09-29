@@ -1,6 +1,5 @@
 package com.bitplay.persistance.domain.settings;
 
-import com.bitplay.market.model.PlacingType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import lombok.Getter;

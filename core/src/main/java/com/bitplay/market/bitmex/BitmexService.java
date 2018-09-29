@@ -256,6 +256,55 @@ public class BitmexService extends MarketService {
         Utils.logIfLong(start, end, logger, "openOrdersCleaner");
     }
 
+    @Scheduled(fixedDelay = 5000)
+    public void posXBTUSDUpdater() {
+        Instant start = Instant.now();
+        if (bitmexContractType.isEth()) {
+            try {
+                final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
+                Position pUpdate = accountService.fetchPositionInfo(bitmexContractTypeXBTUSD.getSymbol());
+
+                BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
+                BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
+                BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.position.getMarkValue();
+                BigDecimal avgPriceL = pUpdate.getPriceAvgLong().signum() == 0 ? this.position.getPriceAvgLong() : pUpdate.getPriceAvgLong();
+                BigDecimal avgPriceS = pUpdate.getPriceAvgShort().signum() == 0 ? this.position.getPriceAvgShort() : pUpdate.getPriceAvgShort();
+                this.positionXBTUSD = new Position(
+                        pUpdate.getPositionLong(),
+                        pUpdate.getPositionShort(),
+                        leverage,
+                        liqPrice,
+                        markValue,
+                        avgPriceL,
+                        avgPriceS,
+                        pUpdate.getRaw()
+                );
+
+            } catch (HttpStatusIOException e) {
+                updateXRateLimit(e);
+
+                overloadByXRateLimit();
+
+                if (e.getMessage().contains("HTTP status code was not OK: 429")) {
+                    logger.warn("WARNING:" + e.getMessage());
+                    warningLogger.warn("WARNING:" + e.getMessage());
+                    setOverloaded(null);
+                }
+                if (e.getMessage().contains("HTTP status code was not OK: 403")) {// banned, no repeats
+                    logger.warn("Banned:" + e.getMessage());
+                    warningLogger.warn("Banned:" + e.getMessage());
+                    setOverloaded(null);
+                }
+            } catch (Exception e) {
+                logger.error("posXBTUSDUpdater:", e);
+            }
+
+        }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "openOrdersCleaner");
+    }
+
+
     public boolean isReconnectInProgress() {
         return reconnectInProgress;
     }

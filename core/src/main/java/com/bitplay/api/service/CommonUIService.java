@@ -15,7 +15,7 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TimersJson;
 import com.bitplay.api.domain.TradeLogJson;
-import com.bitplay.api.domain.ob.PosDiffJson;
+import com.bitplay.api.domain.pos.PosDiffJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.DeltaMinService;
@@ -27,6 +27,7 @@ import com.bitplay.market.ArbState;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.CumParams;
@@ -42,6 +43,7 @@ import com.bitplay.persistance.repository.RestartMonitoringRepository;
 import com.bitplay.security.TraderPermissionsService;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
@@ -59,6 +61,12 @@ public class CommonUIService {
 
     @Autowired
     private ArbitrageService arbitrageService;
+
+    @Autowired
+    private BitmexService bitmexService;
+
+    @Autowired
+    private OkCoinService okCoinService;
 
     @Autowired
     private Config config;
@@ -442,11 +450,22 @@ public class CommonUIService {
         try {
             final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
 
-            posDiff = new PosDiffJson(posDiffService.isPosEqual(), arbitrageService.getPosDiffString(), placingBlocks);
+            String btmUsdInContract = null;
+            if (bitmexService.getContractType().isEth()) {
+                final BigDecimal cm = placingBlocks.getBitmexBlockFactor();
+                btmUsdInContract = BigDecimal.valueOf(10).divide(cm, 2, RoundingMode.HALF_UP).toPlainString();
+            }
+
+            posDiff = new PosDiffJson(posDiffService.isPosEqual(),
+                    arbitrageService.getPosDiffString(),
+                    placingBlocks,
+                    arbitrageService.getPosDiffSource(),
+                    btmUsdInContract
+            );
 
         } catch (NotYetInitializedException e) {
             // do nothing
-            posDiff = new PosDiffJson(true, "position is not yet initialized", null);
+            posDiff = new PosDiffJson(true, "position is not yet initialized", null, null, null);
         }
         return posDiff;
     }
