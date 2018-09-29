@@ -733,7 +733,7 @@ public class PosDiffService {
                 ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
                 : bP;
 
-        final BigDecimal bitmexUsdWithHedge = bitmexUsd.subtract(hedgeAmountUsd).subtract(bitmexService.getHbPosUsd());
+        final BigDecimal bitmexUsdWithHedge = bitmexUsd.add(hedgeAmountUsd).add(bitmexService.getHbPosUsd());
 
         return okexUsd.add(bitmexUsdWithHedge);
     }

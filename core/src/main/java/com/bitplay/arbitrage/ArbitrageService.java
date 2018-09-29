@@ -1233,12 +1233,12 @@ public class ArbitrageService {
                 ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
                 : bP;
         final BigDecimal hbPos = bitmexService.getHbPosUsd();
-        final BigDecimal notional = bitmexUsd.add(okexUsd).subtract(hbPos).subtract(ha);
+        final BigDecimal notional = bitmexUsd.add(okexUsd).add(hbPos).add(ha);
 
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
         if (isEth) {
-            return String.format("Notional: dc = b(%s) + o(%s) - hb(%s) - ha(%s) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s",
+            return String.format("Notional: dc = b(%s) + o(%s) + hb(%s) + ha(%s) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s",
                     bitmexUsd.toPlainString(),
                     okexUsd.toPlainString(),
                     hbPos.toPlainString(),
@@ -1247,7 +1247,7 @@ public class ArbitrageService {
                     mdc, cm, adj, adjMax
             );
         } else {
-            return String.format("Notional: dc = b(%s) + o(%s) - ha(%s) = %s, mdc=%s",
+            return String.format("Notional: dc = b(%s) + o(%s) + ha(%s) = %s, mdc=%s",
                     bitmexUsd.toPlainString(),
                     okexUsd.toPlainString(),
                     ha.toPlainString(),
