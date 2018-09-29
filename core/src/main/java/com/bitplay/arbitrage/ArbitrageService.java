@@ -347,16 +347,35 @@ public class ArbitrageService {
                         tradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
 
-                        if (firstMarketService.isBusy() && !firstMarketService.hasOpenOrders()) {
+                        boolean firstHanged = firstMarketService.isBusy() && !firstMarketService.hasOpenOrders();
+                        boolean secondHanged = secondMarketService.isBusy() && !secondMarketService.hasOpenOrders();
+                        boolean noOrders = !firstMarketService.hasOpenOrders() && !secondMarketService.hasOpenOrders();
+                        if (firstHanged && noOrders) {
                             tradeService.warn(tradeId, counterName, "Warning: Free Bitmex");
                             warningLogger.warn("Warning: Free Bitmex");
+                            logger.warn("Warning: Free Bitmex");
                             firstMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
 
-                        if (secondMarketService.isBusy() && !secondMarketService.hasOpenOrders()) {
+                        if (!firstMarketService.isBusy() && secondMarketService.getMarketState() == MarketState.WAITING_ARB) {
+                            tradeService.warn(tradeId, counterName, "Warning: bitmex is Free, but okex is WAITING_ARB. sending MT2_BITMEX_ORDER_FILLED");
+                            warningLogger.warn("Warning: bitmex is Free, but okex is WAITING_ARB. sending MT2_BITMEX_ORDER_FILLED");
+                            logger.warn("Warning: bitmex is Free, but okex is WAITING_ARB. sending MT2_BITMEX_ORDER_FILLED");
+                            signalEventBus.send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
+                        } else if (secondHanged && noOrders) {
                             tradeService.warn(tradeId, counterName, "Warning: Free Okcoin");
                             warningLogger.warn("Warning: Free Okcoin");
+                            logger.warn("Warning: Free Okcoin");
                             secondMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
+                        }
+
+                        if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
+                            boolean wasReset = arbInProgress.compareAndSet(true, false);
+                            if (wasReset) {
+                                tradeService.warn(tradeId, counterName, "Arbitrage state was reset READY");
+                                warningLogger.warn("Arbitrage state was reset READY");
+                                logger.warn("Arbitrage state was reset READY");
+                            }
                         }
 
                     } else if (!firstMarketService.isReadyForArbitrageWithOOFetch() || !secondMarketService.isReadyForArbitrage()) {
@@ -366,6 +385,7 @@ public class ArbitrageService {
                                 secondMarketService.isReadyForArbitrage(), secondMarketService.getOnlyOpenOrders().size());
                         tradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
+                        logger.warn(logString);
                     }
                 })
                 .repeat()

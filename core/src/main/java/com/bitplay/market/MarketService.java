@@ -240,6 +240,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     protected void setFree(String... flags) {
+        if (getName().equals(BitmexService.NAME)) {
+            logger.info("#{} is READY", getCounterName());
+            getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
+        }
+
         switch (marketState) {
             case SWAP:
             case SWAP_AWAIT:
@@ -274,7 +279,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             case ARBITRAGE:
 //            fetchPosition(); -- deadlock
                 setMarketState(MarketState.READY);
-                eventBus.send(BtsEvent.MARKET_FREE);
+                eventBus.send(BtsEvent.MARKET_FREE); // end arbitrage trigger
                 if (getArbitrageService().getSignalType().isCorr()) {
                     warningLogger.info("WARN: finishCorr from unusual place");
                     getPosDiffService().finishCorr(true);
