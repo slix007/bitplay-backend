@@ -586,6 +586,10 @@ public class BitmexService extends MarketService {
 
     @Override
     protected void onReadyState() {
+        if (getName().equals(BitmexService.NAME)) {
+            logger.info("#{} is READY", getCounterName());
+            getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
+        }
         iterateOpenOrdersMove();
     }
 
@@ -1536,21 +1540,20 @@ public class BitmexService extends MarketService {
             tradeResponse.setErrorCode(e.getMessage());
         }
 
-        try {
-            if (placeOrderArgs.getSignalType().isCorr()
-                    && placeOrderArgs.getPlacingType() == PlacingType.TAKER) { // It's only TAKER, so it should be DONE, if no errors
-                if (tradeResponse.getOrderId() != null) {
-                    posDiffService.finishCorr(true); // - Only when FILLED by subscription
-                } else {
-                    posDiffService.finishCorr(false);
-                }
-                nextMarketState = MarketState.READY;
-//                setMarketState(nextMarketState, counterName);
-                eventBus.send(BtsEvent.MARKET_FREE);
-            }
-        } finally {
+//        try {
+//            if (placeOrderArgs.getSignalType().isCorr() && placeOrderArgs.getPlacingType() == PlacingType.TAKER) { // It's only TAKER, so it should be DONE, if no errors
+//                if (tradeResponse.getOrderId() != null) {
+//                    posDiffService.finishCorr(true); // - Only when FILLED by subscription
+//                } else {
+//                    posDiffService.finishCorr(false);
+//                }
+//                nextMarketState = MarketState.READY;
+////                setMarketState(nextMarketState, counterName);
+//                eventBus.send(BtsEvent.MARKET_FREE);
+//            }
+//        } finally {
             setMarketState(nextMarketState, counterName);
-        }
+//        }
 
         return tradeResponse;
     }

@@ -241,11 +241,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     protected void setFree(String... flags) {
-        if (getName().equals(BitmexService.NAME)) {
-            logger.info("#{} is READY", getCounterName());
-            getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
-        }
-
         switch (marketState) {
             case SWAP:
             case SWAP_AWAIT:
@@ -276,7 +271,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
             case PLACING_ORDER:
             case WAITING_ARB:
-
             case ARBITRAGE:
 //            fetchPosition(); -- deadlock
                 setMarketState(MarketState.READY);
@@ -355,6 +349,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             getTradeLogger().warn(backWarn);
             warningLogger.warn(backWarn);
             logger.warn(backWarn);
+
+            if (marketStateToSet == MarketState.READY && getName().equals(BitmexService.NAME)
+                    && getArbitrageService().getSecondMarketService().getMarketState() == MarketState.WAITING_ARB) {
+                getArbitrageService().getSecondMarketService().setFree();
+            }
 
             setMarketState(marketStateToSet);
 
