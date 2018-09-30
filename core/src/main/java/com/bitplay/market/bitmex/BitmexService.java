@@ -1537,14 +1537,15 @@ public class BitmexService extends MarketService {
         }
 
         try {
-            if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
+            if (placeOrderArgs.getSignalType().isCorr()
+                    && placeOrderArgs.getPlacingType() == PlacingType.TAKER) { // It's only TAKER, so it should be DONE, if no errors
                 if (tradeResponse.getOrderId() != null) {
                     posDiffService.finishCorr(true); // - Only when FILLED by subscription
                 } else {
                     posDiffService.finishCorr(false);
                 }
                 nextMarketState = MarketState.READY;
-                setMarketState(nextMarketState, counterName);
+//                setMarketState(nextMarketState, counterName);
                 eventBus.send(BtsEvent.MARKET_FREE);
             }
         } finally {
