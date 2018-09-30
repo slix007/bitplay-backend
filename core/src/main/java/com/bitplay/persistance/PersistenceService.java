@@ -1,6 +1,7 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.ExchangePair;
@@ -29,6 +30,9 @@ import org.springframework.stereotype.Service;
 public class PersistenceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
+
+    @Autowired
+    private BitmexService bitmexService;
 
     @Autowired
     private LiqParamsRepository liqParamsRepository;
@@ -129,7 +133,15 @@ public class PersistenceService {
     }
 
     public CorrParams fetchCorrParams() {
-        return corrParamsRepository.findFirstByExchangePair(ExchangePair.BITMEX_OKEX);
+        CorrParams corrParams = corrParamsRepository.findFirstByExchangePair(ExchangePair.BITMEX_OKEX);
+        if (bitmexService.getContractType() != null && !bitmexService.getContractType().isEth()) {
+            corrParams.getAdj().setSucceedCount(0);
+            corrParams.getAdj().setFailedCount(0);
+            corrParams.getAdj().setCurrErrorCount(0);
+            corrParams.getAdj().setMaxErrorCount(0);
+            corrParams.getAdj().setMaxTotalCount(0);
+        }
+        return corrParams;
     }
 
     public BorderParams fetchBorders() {
