@@ -1156,7 +1156,7 @@ public class ArbitrageService {
                     oDQLMin = String.format("o_DQL_open_min=%s", guiLiqParams.getODQLOpenMin());
                 }
 
-                tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, getPosDiffString()));
+                tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, getFullPosDiff()));
                 final LiqInfo bLiqInfo = getFirstMarketService().getLiqInfo();
                 tradeService
                         .info(tradeId, counterName, String.format("#%s %s; %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString(), bDQLMin));
@@ -1210,6 +1210,10 @@ public class ArbitrageService {
         return usdQuote;
     }
 
+    public String getFullPosDiff() {
+        return getPosDiffString() + getPosDiffSource();
+    }
+
     public String getPosDiffString() {
         // Notional = b_pos * 10 / CM + o_pos * 10 - hb_pos - ha;
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
@@ -1238,7 +1242,7 @@ public class ArbitrageService {
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
         if (isEth) {
-            return String.format("Notional: dc = b(%s) + o(%s) + hb(%s) + ha(%s) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s",
+            return String.format("Notional: dc = b(%s) + o(%s) + hb(%s) + ha(%s) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
                     bitmexUsd.toPlainString(),
                     okexUsd.toPlainString(),
                     hbPos.toPlainString(),
@@ -1247,7 +1251,7 @@ public class ArbitrageService {
                     mdc, cm, adj, adjMax
             );
         } else {
-            return String.format("Notional: dc = b(%s) + o(%s) + ha(%s) = %s, mdc=%s",
+            return String.format("Notional: dc = b(%s) + o(%s) + ha(%s) = %s, mdc=%s. ",
                     bitmexUsd.toPlainString(),
                     okexUsd.toPlainString(),
                     ha.toPlainString(),

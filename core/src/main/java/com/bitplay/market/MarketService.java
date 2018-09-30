@@ -234,7 +234,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }
         if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (!isBusy()) {
-                getTradeLogger().info(String.format("#%s %s: busy, %s", getCounterNameNext(), getName(), getArbitrageService().getPosDiffString()));
+                getTradeLogger().info(String.format("#%s %s: busy, %s", getCounterNameNext(), getName(), getArbitrageService().getFullPosDiff()));
             }
             this.marketState = MarketState.ARBITRAGE;
         }
@@ -448,7 +448,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public void setMarketState(MarketState newState, String counterName) {
-        final String msg = String.format("#%s %s marketState: %s %s", counterName, getName(), newState, getArbitrageService().getPosDiffString());
+        final String msg = String.format("#%s %s marketState: %s %s", counterName, getName(), newState, getArbitrageService().getFullPosDiff());
         getTradeLogger().info(msg);
         logger.info(msg);
         this.marketState = newState;
