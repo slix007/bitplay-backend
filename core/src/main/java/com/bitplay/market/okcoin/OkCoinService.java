@@ -1680,6 +1680,7 @@ public class OkCoinService extends MarketService {
 
     @Override
     protected void onReadyState() {
+        placeOrderArgsRef.set(null);
         ooHangedCheckerService.stopChecker();
         iterateOpenOrdersMove();
     }
