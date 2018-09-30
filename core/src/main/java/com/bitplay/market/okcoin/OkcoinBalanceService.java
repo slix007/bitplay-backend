@@ -2,17 +2,16 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.model.FullBalance;
+import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.utils.Utils;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 /**
  * Created by Sergey Shurmin on 11/13/17.
@@ -107,7 +106,7 @@ public class OkcoinBalanceService implements BalanceService {
 
     }
 
-    public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
+    public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType) {
         if (accountInfoContracts == null || pObj == null || orderBook == null) {
             logger.error(String.format("Can not calc full balance: accountInfoContracts=%s, pObj=%s",
                     accountInfoContracts, pObj));

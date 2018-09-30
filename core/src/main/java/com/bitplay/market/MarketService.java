@@ -491,7 +491,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public FullBalance calcFullBalance() {
-        return getBalanceService().recalcAndGetAccountInfo(accountInfoContracts, position, orderBook);
+        return getBalanceService().recalcAndGetAccountInfo(accountInfoContracts, position, orderBook, getContractType());
     }
 
     public Position getPosition() {
