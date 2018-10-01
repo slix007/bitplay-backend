@@ -24,7 +24,7 @@ public class OkcoinBalanceService implements BalanceService {
 //    private volatile Instant prevTime = Instant.now();
 //    private volatile FullBalance fullBalance;
 
-    private FullBalance recalcEquity(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook) {
+    private FullBalance recalcEquity(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType) {
 
         String tempValues = "";
 
@@ -36,7 +36,8 @@ public class OkcoinBalanceService implements BalanceService {
         BigDecimal eBest = null;
         BigDecimal eAvg = null;
         if (accountInfoContracts.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
-            final BigDecimal pos = (pObj.getPositionLong().subtract(pObj.getPositionShort())).multiply(BigDecimal.valueOf(100));
+            final BigDecimal pos_cm = contractType.isEth() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
+            final BigDecimal pos = (pObj.getPositionLong().subtract(pObj.getPositionShort())).multiply(pos_cm);
             final BigDecimal wallet = accountInfoContracts.getWallet();
 
             if (pos.signum() > 0) {
@@ -118,6 +119,6 @@ public class OkcoinBalanceService implements BalanceService {
 //            fullBalance = recalcEquity(accountInfoContracts, pObj, orderBook);
 //            prevTime = nowTime;
 //        }
-        return recalcEquity(accountInfoContracts, pObj, orderBook);
+        return recalcEquity(accountInfoContracts, pObj, orderBook, contractType);
     }
 }
