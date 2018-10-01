@@ -17,6 +17,7 @@ import com.bitplay.persistance.repository.CorrParamsRepository;
 import com.bitplay.persistance.repository.DeltaParamsRepository;
 import com.bitplay.persistance.repository.LiqParamsRepository;
 import com.bitplay.persistance.repository.SwapParamsRepository;
+import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -140,6 +141,10 @@ public class PersistenceService {
             corrParams.getAdj().setCurrErrorCount(0);
             corrParams.getAdj().setMaxErrorCount(0);
             corrParams.getAdj().setMaxTotalCount(0);
+        } else {
+            BigDecimal cm = bitmexService.getCm();
+            corrParams.getCorr().setCm(cm);
+            corrParams.getPreliq().setCm(cm);
         }
         return corrParams;
     }

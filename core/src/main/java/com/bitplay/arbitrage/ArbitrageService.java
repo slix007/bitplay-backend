@@ -1472,10 +1472,10 @@ public class ArbitrageService {
         }
 
         public PreliqBlocks getPreliqBlocks(DeltaName deltaName) {
-            final CorrParams corrParams = persistenceService.fetchCorrParams();
-            b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
-            o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
             final BigDecimal cm = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks().getBitmexBlockFactor();
+            final CorrParams corrParams = persistenceService.fetchCorrParams();
+            b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex(cm));
+            o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
 
             final BigDecimal btmPos = firstMarketService.getPosition().getPositionLong();
             if (btmPos.signum() == 0) {

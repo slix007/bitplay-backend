@@ -1,10 +1,13 @@
 package com.bitplay.persistance.domain.correction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.Transient;
 
 /**
  * Created by Sergey Shurmin on 3/24/18.
@@ -25,12 +28,21 @@ public class Preliq {
     private Integer failedCount;
     private Integer maxTotalCount;
 
+    @Transient
+    private BigDecimal cm = BigDecimal.valueOf(100);
+
     public static Preliq createDefault() {
-        return new Preliq(1, 0, 3, 0, 0, 0, 20);
+        return new Preliq(1, 0, 3, 0, 0, 0, 20,
+                BigDecimal.valueOf(100));
     }
 
     public Integer getPreliqBlockBitmex() {
-        return preliqBlockOkex * 100;
+        return getPreliqBlockBitmex(cm);
+    }
+
+    public Integer getPreliqBlockBitmex(BigDecimal cm) {
+        this.cm = cm;
+        return BigDecimal.valueOf(preliqBlockOkex).multiply(cm).setScale(0, RoundingMode.HALF_UP).intValue();
     }
 
     public boolean hasSpareAttempts() {

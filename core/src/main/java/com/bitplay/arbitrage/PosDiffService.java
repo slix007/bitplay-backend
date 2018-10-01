@@ -460,7 +460,7 @@ public class PosDiffService {
                             placingType, corrObj.signalType, 1, counterName));
                 }
             } else {
-                Integer maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
+                Integer maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm());
                 Integer maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
                 warningLogger.warn("No adjustment: adjAmount={}, isAffordable={}, maxBtm={}, maxOk={}, dc={}, btmPos={}, okPos={}, hedge={}",
                         adjAmount, isAffordable,
@@ -502,7 +502,7 @@ public class PosDiffService {
                             PlacingType.TAKER, corrObj.signalType, 1, counterName));
                 }
             } else {
-                Integer maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
+                Integer maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm());
                 Integer maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
                 warningLogger.warn("No correction: correctAmount={}, isAffordable={}, maxBtm={}, maxOk={}, dc={}, btmPos={}, okPos={}, hedge={}",
                         correctAmount, isAffordable,
@@ -523,7 +523,7 @@ public class PosDiffService {
                 corrObj.correctAmount = okMax;
             }
         } else {
-            BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
+            BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm()));
             if (corrObj.correctAmount.compareTo(bMax) > 0) {
                 corrObj.correctAmount = bMax;
             }
