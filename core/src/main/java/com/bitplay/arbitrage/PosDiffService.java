@@ -412,7 +412,7 @@ public class PosDiffService {
         }
     }
 
-    private synchronized void doCorrection(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount, SignalType signalType) {
+    private synchronized void doCorrection(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount, SignalType baseSignalType) {
         if (!arbitrageService.getFirstMarketService().isStarted()
                 || arbitrageService.getFirstMarketService().getMarketState().isStopped()
                 || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
@@ -426,10 +426,10 @@ public class PosDiffService {
 
         final BigDecimal dc = getDc().setScale(2, RoundingMode.HALF_UP);
 
-        if (signalType.isAdj()) {
+        if (baseSignalType.isAdj()) {
 
             // 1. What we have to correct
-            final CorrObj corrObj = new CorrObj(signalType);
+            final CorrObj corrObj = new CorrObj(baseSignalType);
 //            adaptAdjByPos(corrObj, dc);
             adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
 
@@ -444,7 +444,7 @@ public class PosDiffService {
             boolean isAffordable = marketService.isAffordable(orderType, adjAmount);
             if (adjAmount.signum() > 0 && isAffordable) {
 //                bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
-                arbitrageService.setSignalType(signalType);
+                arbitrageService.setSignalType(corrObj.signalType);
                 marketService.setBusy();
 
                 corrInProgress = true;
@@ -455,9 +455,9 @@ public class PosDiffService {
                     final PosAdjustment posAdjustment = settingsRepositoryService.getSettings().getPosAdjustment();
                     final PlacingType placingType = posAdjustment.getPosAdjustmentPlacingType();
                     // Market specific params
-                    String counterName = marketService.getCounterName(signalType);
+                    String counterName = marketService.getCounterName(corrObj.signalType);
                     marketService.placeOrder(new PlaceOrderArgs(orderType, adjAmount, null,
-                            placingType, signalType, 1, counterName));
+                            placingType, corrObj.signalType, 1, counterName));
                 }
             } else {
                 Integer maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
@@ -474,7 +474,7 @@ public class PosDiffService {
         } else { // corr
 
             // 1. What we have to correct
-            final CorrObj corrObj = new CorrObj(signalType);
+            final CorrObj corrObj = new CorrObj(baseSignalType);
             adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
 
             // 2. limit by maxVolCorr
@@ -488,7 +488,7 @@ public class PosDiffService {
             boolean isAffordable = marketService.isAffordable(orderType, correctAmount);
             if (correctAmount.signum() > 0 && isAffordable) {
 //                bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
-                arbitrageService.setSignalType(signalType);
+                arbitrageService.setSignalType(corrObj.signalType);
                 marketService.setBusy();
 
                 corrInProgress = true;
@@ -497,9 +497,9 @@ public class PosDiffService {
                     // do nothing
                 } else {
                     // Market specific params
-                    String counterName = marketService.getCounterName(signalType);
+                    String counterName = marketService.getCounterName(corrObj.signalType);
                     marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
-                            PlacingType.TAKER, signalType, 1, counterName));
+                            PlacingType.TAKER, corrObj.signalType, 1, counterName));
                 }
             } else {
                 Integer maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
