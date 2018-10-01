@@ -90,6 +90,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     private volatile MarketState marketState = MarketState.READY;
     private volatile Instant readyTime = Instant.now();
 
+    // moving mon
+    protected volatile Instant lastMovingStart = null;
+
+
     protected volatile boolean shouldStopPlacing;
 
     private volatile SpecialFlags specialFlags = SpecialFlags.NONE;
@@ -675,7 +679,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     private void initOpenOrdersMovingSubscription() {
         openOrdersMovingSubscription = getArbitrageService().getSignalEventBus().toObserverable()
-                .sample(100, TimeUnit.MILLISECONDS)
+//                .sample(100, TimeUnit.MILLISECONDS)
                 .subscribe(signalEvent -> {
                     try {
                         if ((signalEvent == SignalEvent.B_ORDERBOOK_CHANGED && getName().equals(BitmexService.NAME))

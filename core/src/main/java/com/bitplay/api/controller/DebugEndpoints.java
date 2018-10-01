@@ -1,11 +1,14 @@
 package com.bitplay.api.controller;
 
+import com.bitplay.api.domain.MonAllJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.okcoin.OOHangedCheckerService;
+import com.bitplay.persistance.MonitoringDataService;
+import com.bitplay.persistance.domain.mon.MonMoving;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
@@ -19,6 +22,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,6 +49,9 @@ public class DebugEndpoints {
 
     @Autowired
     private BitmexService bitmexService;
+
+    @Autowired
+    private MonitoringDataService monitoringDataService;
 
     @RequestMapping(value = "/full-restart", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson fullRestart() throws IOException {
@@ -85,8 +93,8 @@ public class DebugEndpoints {
         return new ResultJson("Resubscribe OB " + isDone, errorMsg);
     }
 
-    @RequestMapping(value = "/deadlock/check", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResultJson checkDeadlocks() {
+    @RequestMapping(value = "/mon/all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public MonAllJson checkDeadlocks() {
         final ResultJson resultJson = detectDeadlock();
 //        arbitrageService.getParams()
 
@@ -124,8 +132,22 @@ public class DebugEndpoints {
             deadLockDescr += "<br>Last sum_bal update=" + sdf.format(lastCalcSumBal);
         }
 
+        MonMoving monMoving = monitoringDataService.fetchMonMoving();
+//        monMoving.getBefore().setCurr(BigDecimal.ZERO);
+        monMoving.getMainWaiting().add(bitmexService.getMonMovingMainWaiting());
 
-        return new ResultJson(resultJson.getResult(), deadLockDescr);
+        return new MonAllJson(resultJson.getResult(), deadLockDescr, monMoving);
+    }
+
+    @RequestMapping(value = "/mon/reset", method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public MonAllJson resetMon(@RequestBody MonAllJson monAllJson) {
+        if (monAllJson.getMonMoving() != null) {
+            monitoringDataService.saveMonMoving(MonMoving.createDefaults());
+        }
+        return monAllJson;
     }
 
     public String getBitmexOrderBookErrors() {

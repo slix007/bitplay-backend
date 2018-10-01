@@ -1,5 +1,6 @@
-package com.bitplay.persistance.domain;
+package com.bitplay.persistance.domain.mon;
 
+import com.bitplay.persistance.domain.AbstractDocument;
 import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,17 +11,17 @@ import org.springframework.data.mongodb.core.mapping.Document;
 /**
  * Created by Sergey Shurmin on 7/18/17.
  */
-@Document(collection = "restartMonitoringCollection")
-@TypeAlias("restartMonitoring")
+@Document(collection = "monitoringCollection")
+@TypeAlias("monRestart")
 @Setter
 @Getter
 @ToString
-public class RestartMonitoring extends AbstractDocument {
+public class MonRestart extends AbstractDocument {
 
     private BigDecimal bTimestampDelayMax;
     private BigDecimal oTimestampDelayMax;
 
-    public RestartMonitoring() {
+    public MonRestart() {
     }
 
     public void addBTimestampDelay(BigDecimal val) {
@@ -35,10 +36,10 @@ public class RestartMonitoring extends AbstractDocument {
         }
     }
 
-    public static RestartMonitoring createDefaults() {
-        RestartMonitoring restartMonitoring = new RestartMonitoring();
-        restartMonitoring.bTimestampDelayMax = BigDecimal.ZERO;
-        restartMonitoring.oTimestampDelayMax = BigDecimal.ZERO;
-        return restartMonitoring;
+    public static MonRestart createDefaults() {
+        MonRestart monRestart = new MonRestart();
+        monRestart.bTimestampDelayMax = BigDecimal.ZERO;
+        monRestart.oTimestampDelayMax = BigDecimal.ZERO;
+        return monRestart;
     }
 }

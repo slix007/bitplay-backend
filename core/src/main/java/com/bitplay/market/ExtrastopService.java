@@ -3,10 +3,10 @@ package com.bitplay.market;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.RestartMonitoring;
+import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.persistance.repository.RestartMonitoringRepository;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
@@ -55,7 +55,7 @@ public class ExtrastopService {
     private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
-    private RestartMonitoringRepository restartMonitoringRepository;
+    private MonitoringDataService monitoringDataService;
 
     private volatile String details = "";
 
@@ -114,7 +114,7 @@ public class ExtrastopService {
         Settings settings = settingsRepositoryService.getSettings();
         Integer maxGap = settings.getRestartSettings().getMaxTimestampDelay();
 
-        RestartMonitoring restartMonitoring = restartMonitoringRepository.fetchRestartMonitoring();
+        MonRestart monRestart = monitoringDataService.fetchRestartMonitoring();
 
         final OrderBook bOB = bitmexService.getOrderBook();
         final Date bT = getBitmexOrderBook3BestTimestamp(bOB); // bitmexService.getOrderBookLastTimestamp();
@@ -125,9 +125,9 @@ public class ExtrastopService {
 
         long bDiffSec = getDiffSec(bT, "Bitmex");
         long oDiffSec = getDiffSec(oT, "Okex");
-        restartMonitoring.addBTimestampDelay(BigDecimal.valueOf(bDiffSec));
-        restartMonitoring.addOTimestampDelay(BigDecimal.valueOf(oDiffSec));
-        restartMonitoringRepository.saveRestartMonitoring(restartMonitoring);
+        monRestart.addBTimestampDelay(BigDecimal.valueOf(bDiffSec));
+        monRestart.addOTimestampDelay(BigDecimal.valueOf(oDiffSec));
+        monitoringDataService.saveRestartMonitoring(monRestart);
 
         boolean bWrong = isOrderBookPricesWrong(bOB);
         boolean oWrong = isOrderBookPricesWrong(oOB);

@@ -28,18 +28,18 @@ import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
-import com.bitplay.persistance.domain.RestartMonitoring;
+import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.persistance.repository.RestartMonitoringRepository;
 import com.bitplay.security.TraderPermissionsService;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -93,7 +93,7 @@ public class CommonUIService {
     private PosDiffService posDiffService;
 
     @Autowired
-    private RestartMonitoringRepository restartMonitoringRepository;
+    private MonitoringDataService monitoringDataService;
 
     @Autowired
     private SignalTimeService signalTimeService;
@@ -578,23 +578,23 @@ public class CommonUIService {
     }
 
     public DeltasMinMaxJson getRestartMonitoringParamsJson() {
-        RestartMonitoring restartMonitoring = restartMonitoringRepository.fetchRestartMonitoring();
+        MonRestart monRestart = monitoringDataService.fetchRestartMonitoring();
         return new DeltasMinMaxJson(new MinMaxData(
                 "",
                 "",
-                restartMonitoring.getBTimestampDelayMax().toPlainString(),
-                restartMonitoring.getOTimestampDelayMax().toPlainString()), null, null);
+                monRestart.getBTimestampDelayMax().toPlainString(),
+                monRestart.getOTimestampDelayMax().toPlainString()), null, null);
     }
 
     public DeltasMinMaxJson resetRestartMonitoringParamsJson() {
-        log.warn("RESET RestartMonitoring");
-        RestartMonitoring defaults = RestartMonitoring.createDefaults();
-        RestartMonitoring restartMonitoring = restartMonitoringRepository.saveRestartMonitoring(defaults);
+        log.warn("RESET MonRestart");
+        MonRestart defaults = MonRestart.createDefaults();
+        MonRestart monRestart = monitoringDataService.saveRestartMonitoring(defaults);
         return new DeltasMinMaxJson(new MinMaxData(
                 "",
                 "",
-                restartMonitoring.getBTimestampDelayMax().toPlainString(),
-                restartMonitoring.getOTimestampDelayMax().toPlainString()), null, null);
+                monRestart.getBTimestampDelayMax().toPlainString(),
+                monRestart.getOTimestampDelayMax().toPlainString()), null, null);
     }
 
     public ResultJson getDeltaMinTimerString() {

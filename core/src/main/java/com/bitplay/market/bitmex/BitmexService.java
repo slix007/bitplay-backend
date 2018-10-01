@@ -24,12 +24,14 @@ import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
+import com.bitplay.persistance.domain.mon.MonMoving;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -147,6 +149,10 @@ public class BitmexService extends MarketService {
     @Autowired
     private RestartService restartService;
     private volatile Date orderBookLastTimestamp = new Date();
+    private volatile Instant startMoving;
+    private volatile BigDecimal monMovingBefore = BigDecimal.ZERO;
+    private volatile BigDecimal monMovingMainWaiting = BigDecimal.ZERO;
+    private volatile BigDecimal monMovingAfter = BigDecimal.ZERO;
 
     @Autowired
     private PosDiffService posDiffService;
@@ -160,6 +166,9 @@ public class BitmexService extends MarketService {
     private BitmexLimitsService bitmexLimitsService;
     @Autowired
     private ExtrastopService extrastopService;
+    @Autowired
+    private MonitoringDataService monitoringDataService;
+
     private String key;
     private String secret;
     private Disposable restartTimer;
@@ -175,6 +184,10 @@ public class BitmexService extends MarketService {
 
     public Date getOrderBookLastTimestamp() {
         return orderBookLastTimestamp;
+    }
+
+    public BigDecimal getMonMovingMainWaiting() {
+        return monMovingMainWaiting;
     }
 
     @Override
@@ -617,6 +630,7 @@ public class BitmexService extends MarketService {
         } else {
             movingInProgress = true;
             scheduledMoveInProgressReset = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
+            startMoving = Instant.now();
         }
 
         synchronized (openOrdersLock) {
@@ -1574,8 +1588,22 @@ public class BitmexService extends MarketService {
             assert bestMakerPrice.signum() != 0;
             assert bestMakerPrice.compareTo(limitOrder.getLimitPrice()) != 0;
 
+//            Duration.between(orderBookLastTimestamp.toInstant(), Instant.now()).getNano()
+
+            Instant startReq = Instant.now();
+
+            if (startMoving != null) {
+                monMovingBefore = BigDecimal.valueOf(startMoving.toEpochMilli() - startReq.toEpochMilli());
+            }
+
             final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService())
                     .moveLimitOrder(limitOrder, bestMakerPrice);
+            Instant endReq = Instant.now();
+            monMovingMainWaiting = BigDecimal.valueOf(endReq.toEpochMilli() - startReq.toEpochMilli());
+            MonMoving monMoving = monitoringDataService.fetchMonMoving();
+            monMoving.getBefore().add(monMovingBefore);
+            monMoving.getMainWaiting().add(monMovingMainWaiting);
+            monitoringDataService.saveMonMoving(monMoving);
 
             if (movedLimitOrder != null) {
 
