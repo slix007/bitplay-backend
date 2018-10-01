@@ -9,6 +9,7 @@ import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
+import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.ExtrastopService;
@@ -149,10 +150,6 @@ public class BitmexService extends MarketService {
     @Autowired
     private RestartService restartService;
     private volatile Date orderBookLastTimestamp = new Date();
-    private volatile Instant startMoving;
-    private volatile BigDecimal monMovingBefore = BigDecimal.ZERO;
-    private volatile BigDecimal monMovingMainWaiting = BigDecimal.ZERO;
-    private volatile BigDecimal monMovingAfter = BigDecimal.ZERO;
 
     @Autowired
     private PosDiffService posDiffService;
@@ -184,10 +181,6 @@ public class BitmexService extends MarketService {
 
     public Date getOrderBookLastTimestamp() {
         return orderBookLastTimestamp;
-    }
-
-    public BigDecimal getMonMovingMainWaiting() {
-        return monMovingMainWaiting;
     }
 
     @Override
@@ -613,7 +606,7 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
+    protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
         final MarketState marketState = getMarketState();
         if (marketState == MarketState.SYSTEM_OVERLOADED
                 || marketState == MarketState.PLACING_ORDER
@@ -622,20 +615,20 @@ public class BitmexService extends MarketService {
         }
 
         if (movingInProgress) {
-
-            // Should not happen ever, because 'synch' on method
-            final String logString = String.format("#%s No moving. Too often requests.", getCounterName());
+            final String logString = String.format("#%s Too often moving requests.", getCounterName());
             logger.error(logString);
-            return;
-
-        } else {
-            movingInProgress = true;
-            scheduledMoveInProgressReset = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
-            startMoving = Instant.now();
         }
+        movingInProgress = true;
+        scheduledMoveInProgressReset = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
+
+        Instant startMoving = (iterateArgs != null && iterateArgs.length > 0)
+                ? (Instant) iterateArgs[0]
+                : null;
+        Instant beforeLock = Instant.now();
 
         synchronized (openOrdersLock) {
             if (hasOpenOrders()) {
+                Long waitingPrevMs = Instant.now().toEpochMilli() - beforeLock.toEpochMilli();
 
                 final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
                 final Integer maxAttempts = sysOverloadArgs.getMovingErrorsForOverload();
@@ -664,7 +657,7 @@ public class BitmexService extends MarketService {
                                         return orderStream;
                                     }
 
-                                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
+                                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, startMoving, waitingPrevMs);
 
                                     //TODO keep an eye on 'hang open orders'
                                     if (overloadByXRateLimit()) {
@@ -1137,6 +1130,8 @@ public class BitmexService extends MarketService {
 
     private void afterOrderBookChanged(OrderBook orderBook) {
         if (orderBook != null && orderBook.getBids().size() > 0 && orderBook.getAsks().size() > 0) {
+            Instant obChangeTime = Instant.now();
+
             final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
             final LimitOrder bestBid = Utils.getBestBid(orderBook);
 
@@ -1168,7 +1163,7 @@ public class BitmexService extends MarketService {
                 }
             }
 
-            getArbitrageService().getSignalEventBus().send(SignalEvent.B_ORDERBOOK_CHANGED);
+            getArbitrageService().getSignalEventBus().send(new SignalEventEx(SignalEvent.B_ORDERBOOK_CHANGED, obChangeTime));
         }
     }
 
@@ -1574,7 +1569,7 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice) {
+    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice, Object... reqMovingArgs) {
         final LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "do nothing by default");
 
@@ -1589,22 +1584,10 @@ public class BitmexService extends MarketService {
             assert bestMakerPrice.signum() != 0;
             assert bestMakerPrice.compareTo(limitOrder.getLimitPrice()) != 0;
 
-//            Duration.between(orderBookLastTimestamp.toInstant(), Instant.now()).getNano()
-
             Instant startReq = Instant.now();
-
-            if (startMoving != null) {
-                monMovingBefore = BigDecimal.valueOf(startMoving.toEpochMilli() - startReq.toEpochMilli());
-            }
-
             final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService())
                     .moveLimitOrder(limitOrder, bestMakerPrice);
             Instant endReq = Instant.now();
-            monMovingMainWaiting = BigDecimal.valueOf(endReq.toEpochMilli() - startReq.toEpochMilli());
-            MonMoving monMoving = monitoringDataService.fetchMonMoving();
-            monMoving.getBefore().add(monMovingBefore);
-            monMoving.getMainWaiting().add(monMovingMainWaiting);
-            monitoringDataService.saveMonMoving(monMoving);
 
             if (movedLimitOrder != null) {
 
@@ -1660,6 +1643,24 @@ public class BitmexService extends MarketService {
             } else {
                 logger.info("Moving response is null");
                 tradeLogger.info("Moving response is null");
+            }
+
+            if (reqMovingArgs != null && reqMovingArgs.length == 2 && reqMovingArgs[0] != null) {
+                Instant lastEnd = Instant.now();
+                MonMoving monMoving = monitoringDataService.fetchMonMoving();
+                if (reqMovingArgs[0] != null) {
+                    Instant startMoving = (Instant) reqMovingArgs[0];
+                    BigDecimal before = BigDecimal.valueOf(startReq.toEpochMilli() - startMoving.toEpochMilli());
+                    monMoving.getBefore().add(before);
+                }
+                Long waitingPrevMs = (Long) reqMovingArgs[1];
+                monMoving.getWaitingPrev().add(BigDecimal.valueOf(waitingPrevMs));
+
+                BigDecimal waitingMarket = BigDecimal.valueOf(endReq.toEpochMilli() - startReq.toEpochMilli());
+                monMoving.getWaitingMarket().add(waitingMarket);
+                monMoving.getAfter().add(new BigDecimal(lastEnd.toEpochMilli() - endReq.toEpochMilli()));
+                monMoving.incCount();
+                monitoringDataService.saveMonMoving(monMoving);
             }
 
         } catch (HttpStatusIOException e) {

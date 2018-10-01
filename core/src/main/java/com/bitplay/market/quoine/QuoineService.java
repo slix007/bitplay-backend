@@ -85,7 +85,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    protected void iterateOpenOrdersMove() {
+    protected void iterateOpenOrdersMove(Object... iterateArgs) {
 
     }
 
@@ -124,7 +124,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal bestMarketPrice) {
+    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal bestMarketPrice, Object... reqMovingArgs) {
         return null;
     }
 

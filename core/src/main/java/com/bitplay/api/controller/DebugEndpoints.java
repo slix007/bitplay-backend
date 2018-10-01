@@ -133,8 +133,6 @@ public class DebugEndpoints {
         }
 
         MonMoving monMoving = monitoringDataService.fetchMonMoving();
-//        monMoving.getBefore().setCurr(BigDecimal.ZERO);
-        monMoving.getMainWaiting().add(bitmexService.getMonMovingMainWaiting());
 
         return new MonAllJson(resultJson.getResult(), deadLockDescr, monMoving);
     }

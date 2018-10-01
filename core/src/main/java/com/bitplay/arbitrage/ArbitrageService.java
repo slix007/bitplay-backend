@@ -13,6 +13,7 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.DeltaChange;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventBus;
+import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
@@ -168,9 +169,12 @@ public class ArbitrageService {
 
     private Disposable initSignalEventBus() {
         return signalEventBus.toObserverable()
-                .sample(100, TimeUnit.MILLISECONDS)
-                .subscribe(signalEvent -> {
+                .subscribe(eventQuant -> {
                     try {
+                        SignalEvent signalEvent = eventQuant instanceof SignalEventEx
+                                ? ((SignalEventEx) eventQuant).getSignalEvent()
+                                : (SignalEvent) eventQuant;
+
                         if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
                                 || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
 

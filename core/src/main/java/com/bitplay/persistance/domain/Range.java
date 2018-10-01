@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.data.annotation.Transient;
 
 /**
  * Created by Sergey Shurmin on 10/31/17.
@@ -18,8 +17,7 @@ public class Range {
 
     private BigDecimal min;
     private BigDecimal max;
-    @Transient
-    private BigDecimal curr;
+    private BigDecimal last;
 
     private Range(BigDecimal min, BigDecimal max) {
         this.min = min;
@@ -34,7 +32,7 @@ public class Range {
         if (val == null) {
             return;
         }
-        curr = val;
+        last = val;
         if (val.signum() == 0) {
             return;
         }

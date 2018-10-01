@@ -8,6 +8,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
+import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.LogService;
@@ -772,8 +773,12 @@ public class OkCoinService extends MarketService {
 
     private void initDeferedPlacingOrder() {
         getArbitrageService().getSignalEventBus().toObserverable()
-                .subscribe(signalEvent -> {
+                .subscribe(eventQuant -> {
                     try {
+                        SignalEvent signalEvent = eventQuant instanceof SignalEventEx
+                                ? ((SignalEventEx) eventQuant).getSignalEvent()
+                                : (SignalEvent) eventQuant;
+
                         if (signalEvent == SignalEvent.MT2_BITMEX_ORDER_FILLED) {
                             final Settings settings = settingsRepositoryService.getSettings();
                             if (settings.getArbScheme() == ArbScheme.CON_B_O
@@ -1129,7 +1134,7 @@ public class OkCoinService extends MarketService {
     private volatile CounterToDiff counterToDiff = new CounterToDiff(null, null);
 
     @Override
-    public MoveResponse moveMakerOrder(FplayOrder fOrderToCancel, BigDecimal bestMarketPrice) {
+    public MoveResponse moveMakerOrder(FplayOrder fOrderToCancel, BigDecimal bestMarketPrice, Object... reqMovingArgs) {
         final LimitOrder limitOrder = LimitOrder.Builder.from(fOrderToCancel.getOrder()).build();
         final SignalType signalType = fOrderToCancel.getSignalType() != null ? fOrderToCancel.getSignalType() : getArbitrageService().getSignalType();
 
@@ -1691,7 +1696,7 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    protected void iterateOpenOrdersMove() { // if synchronized then the queue for moving could be long
+    protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED
                 || getMarketState() == MarketState.PLACING_ORDER
                 || isMarketStopped()) {

@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
+import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
@@ -683,12 +684,15 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     private void initOpenOrdersMovingSubscription() {
         openOrdersMovingSubscription = getArbitrageService().getSignalEventBus().toObserverable()
-//                .sample(100, TimeUnit.MILLISECONDS)
-                .subscribe(signalEvent -> {
+                .subscribe(eventQuant -> {
                     try {
+                        SignalEvent signalEvent = eventQuant instanceof SignalEventEx
+                                ? ((SignalEventEx) eventQuant).getSignalEvent()
+                                : (SignalEvent) eventQuant;
+
                         if ((signalEvent == SignalEvent.B_ORDERBOOK_CHANGED && getName().equals(BitmexService.NAME))
                                 || (signalEvent == SignalEvent.O_ORDERBOOK_CHANGED && getName().equals(OkCoinService.NAME))) {
-                            checkOpenOrdersForMoving();
+                            checkOpenOrdersForMoving(eventQuant.startTime());
                         }
                     } catch (NotYetInitializedException e) {
                         // do nothing
@@ -698,14 +702,14 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 }, throwable -> logger.error("{} openOrdersMovingSubscription error", getName(), throwable));
     }
 
-    protected void checkOpenOrdersForMoving() {
+    protected void checkOpenOrdersForMoving(Instant startTime) {
 //        debugLog.info(getName() + ":checkOpenOrdersForMoving");
         if (specialFlags != SpecialFlags.STOP_MOVING) {
-            iterateOpenOrdersMove();
+            iterateOpenOrdersMove(startTime);
         }
     }
 
-    abstract protected void iterateOpenOrdersMove();
+    abstract protected void iterateOpenOrdersMove(Object... iterateArgs);
 
     abstract protected void onReadyState();
 
@@ -736,7 +740,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return response;
     }
 
-    public abstract MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice);
+    public abstract MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice, Object... reqMovingArgs);
 
     protected BigDecimal createNonTakerPrice(Order.OrderType orderType, PlacingType placingType) {
         final ContractType contractType = getContractType();
@@ -829,7 +833,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return thePrice;
     }
 
-    protected MoveResponse moveMakerOrderIfNotFirst(FplayOrder fplayOrder) {
+    protected MoveResponse moveMakerOrderIfNotFirst(FplayOrder fplayOrder, Object... reqMovingArgs) {
         MoveResponse response;
         LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
         if (limitOrder.getLimitPrice() == null) {
@@ -869,7 +873,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 //                debugLog.info("{} Try to move maker order {} {}, from {} to {}",
 //                        getName(), limitOrder.getId(), limitOrder.getType(),
 //                        limitOrder.getLimitPrice(), bestPrice);
-                response = moveMakerOrder(fplayOrder, bestPrice);
+                response = moveMakerOrder(fplayOrder, bestPrice, reqMovingArgs);
             } else {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
             }

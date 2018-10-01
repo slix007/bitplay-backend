@@ -22,17 +22,33 @@ public class MonMoving extends AbstractDocument {
      * Time from receiving orderBook to sending request 'move order'.
      */
     private Range before;
+
+    private Range waitingPrev;
+
     /**
      * Time from sending request 'move order' to getting an answer.
      */
-    private Range mainWaiting;
+    private Range waitingMarket;
     private Range after;
+
+    private Integer count;
 
     public static MonMoving createDefaults() {
         MonMoving doc = new MonMoving();
         doc.before = Range.empty();
-        doc.mainWaiting = Range.empty();
+        doc.waitingPrev = Range.empty();
+        doc.waitingMarket = Range.empty();
         doc.after = Range.empty();
+        doc.count = 0;
         return doc;
+    }
+
+    public void incCount() {
+        if (count == null) {
+            count = 1;
+        } else {
+            count++;
+        }
+
     }
 }
