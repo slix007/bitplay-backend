@@ -579,7 +579,7 @@ public class PosDiffService {
             } else {
                 // okcoin buy
                 defineCorrectAmountOkex(corrObj, dc, isEth);
-                if (oPS.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_ASK
+                if (oPS.signum() > 0 && oPS.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_ASK
                     corrObj.correctAmount = oPS;
                 }
 
@@ -604,7 +604,7 @@ public class PosDiffService {
             if (bEquiv.compareTo(okEquiv) < 0) {
                 // okcoin sell
                 defineCorrectAmountOkex(corrObj, dc, isEth);
-                if (oPL.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_BID
+                if (oPL.signum() > 0 && oPL.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_BID
                     corrObj.correctAmount = oPL;
                 }
 
