@@ -352,7 +352,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
             if (marketStateToSet == MarketState.READY && getName().equals(BitmexService.NAME)
                     && getArbitrageService().getSecondMarketService().getMarketState() == MarketState.WAITING_ARB) {
-                getArbitrageService().getSecondMarketService().setFree();
+                getArbitrageService().getSecondMarketService().getEventBus().send(BtsEvent.MARKET_FREE);
             }
 
             setMarketState(marketStateToSet);

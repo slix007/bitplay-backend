@@ -363,15 +363,6 @@ public class ArbitrageService {
                             secondMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
                         }
 
-                        if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
-                            boolean wasReset = arbInProgress.compareAndSet(true, false);
-                            if (wasReset) {
-                                tradeService.warn(tradeId, counterName, "Arbitrage state was reset READY");
-                                warningLogger.warn("Arbitrage state was reset READY");
-                                logger.warn("Arbitrage state was reset READY");
-                            }
-                        }
-
                     } else if (!firstMarketService.isReadyForArbitrageWithOOFetch() || !secondMarketService.isReadyForArbitrage()) {
                         final String logString = String.format("#%s Warning: busy for 6 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
                                 getCounter(),
@@ -380,7 +371,15 @@ public class ArbitrageService {
                         tradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
                         logger.warn(logString);
+                    } else if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
+                        boolean wasReset = arbInProgress.compareAndSet(true, false);
+                        if (wasReset) {
+                            tradeService.warn(tradeId, counterName, "Arbitrage state was reset READY");
+                            warningLogger.warn("Arbitrage state was reset READY");
+                            logger.warn("Arbitrage state was reset READY");
+                        }
                     }
+
                 })
                 .repeat()
                 .retry()
