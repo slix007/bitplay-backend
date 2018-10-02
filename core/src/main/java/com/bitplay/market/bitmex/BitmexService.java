@@ -271,10 +271,10 @@ public class BitmexService extends MarketService {
                 Position pUpdate = accountService.fetchPositionInfo(bitmexContractTypeXBTUSD.getSymbol());
 
                 BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
-                BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
-                BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.position.getMarkValue();
-                BigDecimal avgPriceL = pUpdate.getPriceAvgLong().signum() == 0 ? this.position.getPriceAvgLong() : pUpdate.getPriceAvgLong();
-                BigDecimal avgPriceS = pUpdate.getPriceAvgShort().signum() == 0 ? this.position.getPriceAvgShort() : pUpdate.getPriceAvgShort();
+                BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.positionXBTUSD.getLiquidationPrice() : pUpdate.getLiquidationPrice();
+                BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.positionXBTUSD.getMarkValue();
+                BigDecimal avgPriceL = pUpdate.getPriceAvgLong().signum() == 0 ? this.positionXBTUSD.getPriceAvgLong() : pUpdate.getPriceAvgLong();
+                BigDecimal avgPriceS = pUpdate.getPriceAvgShort().signum() == 0 ? this.positionXBTUSD.getPriceAvgShort() : pUpdate.getPriceAvgShort();
                 this.positionXBTUSD = new Position(
                         pUpdate.getPositionLong(),
                         pUpdate.getPositionShort(),

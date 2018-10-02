@@ -73,8 +73,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected final Object orderBookForPriceLock = new Object();
     protected volatile AccountInfo accountInfo = null;
     protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
-    protected volatile Position position = new Position(null, null, null, null, "");
-    protected volatile Position positionXBTUSD = new Position(null, null, null, null, "");
+    protected volatile Position position = new Position(null, null, null, BigDecimal.ZERO, "");
+    protected volatile Position positionXBTUSD = new Position(null, null, null, BigDecimal.ZERO, "");
     protected volatile Affordable affordable = new Affordable();
     protected final Object contractIndexLock = new Object();
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
