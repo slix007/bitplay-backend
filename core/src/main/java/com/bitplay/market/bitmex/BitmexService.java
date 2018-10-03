@@ -1,5 +1,7 @@
 package com.bitplay.market.bitmex;
 
+import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
+
 import com.bitplay.api.controller.DebugEndpoints;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
@@ -271,7 +273,7 @@ public class BitmexService extends MarketService {
                 Position pUpdate = accountService.fetchPositionInfo(bitmexContractTypeXBTUSD.getSymbol());
 
                 BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
-                BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.positionXBTUSD.getLiquidationPrice() : pUpdate.getLiquidationPrice();
+                BigDecimal liqPrice = pUpdate.getLiquidationPrice() == null ? this.positionXBTUSD.getLiquidationPrice() : pUpdate.getLiquidationPrice();
                 BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.positionXBTUSD.getMarkValue();
                 BigDecimal avgPriceL = pUpdate.getPriceAvgLong().signum() == 0 ? this.positionXBTUSD.getPriceAvgLong() : pUpdate.getPriceAvgLong();
                 BigDecimal avgPriceS = pUpdate.getPriceAvgShort().signum() == 0 ? this.positionXBTUSD.getPriceAvgShort() : pUpdate.getPriceAvgShort();
@@ -574,7 +576,7 @@ public class BitmexService extends MarketService {
         }
         BigDecimal defaultLeverage = bitmexContractType.isEth() ? BigDecimal.valueOf(50) : BigDecimal.valueOf(100);
         BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? defaultLeverage : pUpdate.getLeverage();
-        BigDecimal liqPrice = pUpdate.getLiquidationPrice().signum() == 0 ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
+        BigDecimal liqPrice = pUpdate.getLiquidationPrice() == null ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
         BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.position.getMarkValue();
         BigDecimal avgPriceL = pUpdate.getPriceAvgLong().signum() == 0 ? this.position.getPriceAvgLong() : pUpdate.getPriceAvgLong();
         BigDecimal avgPriceS = pUpdate.getPriceAvgShort().signum() == 0 ? this.position.getPriceAvgShort() : pUpdate.getPriceAvgShort();
@@ -1918,7 +1920,7 @@ public class BitmexService extends MarketService {
                     dqlString = String.format("b_DQL = m%s - L%s = %s", m, L, dql);
                 } else {
                     dqlString = "b_DQL = na";
-                    dql = DQL_WRONG;
+                    dql = null;
                     warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
                             m.toPlainString(), L.toPlainString()));
                 }
@@ -1932,7 +1934,7 @@ public class BitmexService extends MarketService {
                     }
                 } else {
                     dqlString = "b_DQL = na";
-                    dql = DQL_WRONG;
+                    dql = null;
                     warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
                             m.toPlainString(), L.toPlainString()));
                 }
@@ -2019,7 +2021,6 @@ public class BitmexService extends MarketService {
             final BigDecimal bDQLCloseMin = getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
 
             if (liqInfo.getDqlCurr() != null
-                    && liqInfo.getDqlCurr().compareTo(DQL_WRONG) != 0
                     && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
                     && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) < 0
                     && position.getPositionLong().signum() != 0) {

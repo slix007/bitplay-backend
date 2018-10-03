@@ -62,7 +62,6 @@ import org.knowm.xchange.service.trade.TradeService;
 public abstract class MarketService extends MarketServiceOpenOrders {
 
     protected static final int MAX_ATTEMPTS_CANCEL = 90;
-    protected static final BigDecimal DQL_WRONG = BigDecimal.valueOf(-100);
 
     private static final int ORDERBOOK_MAX_SIZE = 20;
     protected BigDecimal bestBid = BigDecimal.ZERO;

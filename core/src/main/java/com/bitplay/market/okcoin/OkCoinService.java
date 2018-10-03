@@ -1,5 +1,7 @@
 package com.bitplay.market.okcoin;
 
+import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
+
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
@@ -1535,7 +1537,7 @@ public class OkCoinService extends MarketService {
                         dqlString = String.format("o_DQL = m%s - L%s = %s", m, L, dql);
                 } else {
                     dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s)", pos, margin, equity);
-                    dql = DQL_WRONG;
+                    dql = null;
                     warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s",
                             pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
                             position.getPriceAvgLong(), position.getPriceAvgShort()));
@@ -1552,7 +1554,7 @@ public class OkCoinService extends MarketService {
                     dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
                 } else {
                     dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s)", pos, margin, equity);
-                    dql = DQL_WRONG;
+                    dql = null;
                     warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s",
                             pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
                             position.getPriceAvgLong(), position.getPriceAvgShort()));
@@ -1652,7 +1654,6 @@ public class OkCoinService extends MarketService {
             final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
             if (liqInfo.getDqlCurr() != null
-                    && liqInfo.getDqlCurr().compareTo(DQL_WRONG) != 0
                     && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
                     && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) < 0
                     && pos.signum() != 0) {
