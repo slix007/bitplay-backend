@@ -1677,8 +1677,12 @@ public class BitmexService extends MarketService {
                 Long waitingPrevMs = (Long) reqMovingArgs[1];
                 monMoving.getWaitingPrev().add(BigDecimal.valueOf(waitingPrevMs));
 
-                BigDecimal waitingMarket = BigDecimal.valueOf(endReq.toEpochMilli() - startReq.toEpochMilli());
-                monMoving.getWaitingMarket().add(waitingMarket);
+                long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
+                monMoving.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
+                if (waitingMarketMs > 5000) {
+                    logger.warn("waitingMarketMs=" + waitingMarketMs);
+                }
+
                 monMoving.getAfter().add(new BigDecimal(lastEnd.toEpochMilli() - endReq.toEpochMilli()));
                 monMoving.incCount();
                 monitoringDataService.saveMonMoving(monMoving);
