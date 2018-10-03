@@ -26,7 +26,9 @@ import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Observable;
+import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -83,7 +85,16 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected volatile int usdInContract = 0;
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3,
-            new ThreadFactoryBuilder().setNameFormat("market-scheduler-%d").build());
+            new ThreadFactoryBuilder().setNameFormat(getName() + "-scheduler-%d").build());
+    protected final Scheduler obSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
+            new ThreadFactoryBuilder().setNameFormat(getName() + "-ob-executor-%d").build()));
+    protected final Scheduler ooSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
+            new ThreadFactoryBuilder().setNameFormat(getName() + "-oo-executor-%d").build()));
+    protected final Scheduler posSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
+            new ThreadFactoryBuilder().setNameFormat(getName() + "-pos-executor-%d").build()));
+    protected final Scheduler indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
+            new ThreadFactoryBuilder().setNameFormat(getName() + "-index-executor-%d").build()));
+
     // Moving timeout
     private volatile ScheduledFuture<?> scheduledOverloadReset;
     private volatile PlaceOrderArgs placeOrderArgs;

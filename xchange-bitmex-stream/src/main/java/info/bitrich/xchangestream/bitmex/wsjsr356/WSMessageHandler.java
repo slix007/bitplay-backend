@@ -116,10 +116,10 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
 
         } else if (message.get("table") != null) {
             channelName = message.get("table").asText();
-            if (channelName.equals("orderBookL2")) { //orderBookL2:ETHUSD
-                String symbol = message.get("data").get(0).get("symbol").asText();
-                channelName = channelName + ":" + symbol;
-            }
+//            if (channelName.equals("orderBookL2")) { //orderBookL2:ETHUSD
+//                String symbol = message.get("data").get(0).get("symbol").asText();
+//                channelName = channelName + ":" + symbol;
+//            }
         }
         return channelName;
     }

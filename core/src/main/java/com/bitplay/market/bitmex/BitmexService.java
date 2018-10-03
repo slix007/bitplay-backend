@@ -113,8 +113,8 @@ public class BitmexService extends MarketService {
     private BitmexStreamingExchange exchange;
 
     private static final int MAX_RECONNECTS_BEFORE_RESTART = 1;
-    private static final int MAX_WAITING_OB_CHECKS = 20; // each sleep 1 sec. // Bitmex min delay is 2,5 sec: https://blog.bitmex.com/ru_ru-update-to-our-realtime-apis-image-delivery/
-    private static final int MAX_RESUBSCRIBES = 10;
+    private static final int MAX_WAITING_OB_CHECKS = 5; // each sleep 1 sec. // Bitmex min delay is 2,5 sec: https://blog.bitmex.com/ru_ru-update-to-our-realtime-apis-image-delivery/
+    private static final int MAX_RESUBSCRIBES = 5;
     private volatile boolean isDestroyed = false;
 
     // Moving timeout
@@ -272,11 +272,13 @@ public class BitmexService extends MarketService {
                 final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
                 Position pUpdate = accountService.fetchPositionInfo(bitmexContractTypeXBTUSD.getSymbol());
 
-                BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
+                BigDecimal leverage = pUpdate.getLeverage() == null || pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
                 BigDecimal liqPrice = pUpdate.getLiquidationPrice() == null ? this.positionXBTUSD.getLiquidationPrice() : pUpdate.getLiquidationPrice();
                 BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.positionXBTUSD.getMarkValue();
-                BigDecimal avgPriceL = pUpdate.getPriceAvgLong().signum() == 0 ? this.positionXBTUSD.getPriceAvgLong() : pUpdate.getPriceAvgLong();
-                BigDecimal avgPriceS = pUpdate.getPriceAvgShort().signum() == 0 ? this.positionXBTUSD.getPriceAvgShort() : pUpdate.getPriceAvgShort();
+                BigDecimal avgPriceL = pUpdate.getPriceAvgLong() == null || pUpdate.getPriceAvgLong().signum() == 0 ? this.positionXBTUSD.getPriceAvgLong()
+                        : pUpdate.getPriceAvgLong();
+                BigDecimal avgPriceS = pUpdate.getPriceAvgShort() == null || pUpdate.getPriceAvgShort().signum() == 0 ? this.positionXBTUSD.getPriceAvgShort()
+                        : pUpdate.getPriceAvgShort();
                 this.positionXBTUSD = new Position(
                         pUpdate.getPositionLong(),
                         pUpdate.getPositionShort(),
@@ -338,29 +340,30 @@ public class BitmexService extends MarketService {
         Utils.logIfLong(start, end, logger, "doubleCheckAvailableBalance");
     }
 
-    public void afterReconnect() {
-        Disposable subscribe = Single.fromCallable(() -> {
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private void afterReconnect() {
+        Single.just(new Object())
+                .observeOn(Schedulers.io())
+                .subscribe(o -> {
 
-            logger.info("after reconnect check.");
+                            logger.info("after reconnect check.");
 
-            dobleCheckAvailableBalance();
+                            dobleCheckAvailableBalance();
 
-            fetchOpenOrders();
+                            fetchOpenOrders();
 
-            if (!hasOpenOrders()) {
-                logger.info("market-ready after reconnect: ");
-                setFree();
-            } else {
-                String msg = String.format("Warning: Bitmex reconnect is finished, but there are %s openOrders.", getOnlyOpenOrders().size());
-                tradeLogger.info(msg);
-                warningLogger.info(msg);
-                logger.info(msg);
-            }
-            return new Object();
-        })
-                .subscribeOn(Schedulers.computation())
-                .subscribe();
+                            if (!hasOpenOrders()) {
+                                logger.info("market-ready after reconnect: ");
+                                setFree();
+                            } else {
+                                String msg = String.format("Warning: Bitmex reconnect is finished, but there are %s openOrders.", getOnlyOpenOrders().size());
+                                tradeLogger.info(msg);
+                                warningLogger.info(msg);
+                                logger.info(msg);
+                            }
 
+                        },
+                        throwable -> logger.error("Error afterReconnect", throwable));
     }
 
 
@@ -386,6 +389,7 @@ public class BitmexService extends MarketService {
 
         startAllListeners();
 
+        fetchOpenOrders();
     }
 
     private void startAllListeners() {
@@ -609,6 +613,14 @@ public class BitmexService extends MarketService {
 
     @Override
     protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
+        //noinspection ResultOfMethodCallIgnored
+        Observable.just(iterateArgs)
+                .observeOn(ooSingleExecutor)
+                .subscribe(this::iterateOpenOrdersMoveSync,
+                        throwable -> logger.error("Error in iterateOpenOrdersMove", throwable));
+    }
+
+    private void iterateOpenOrdersMoveSync(Object[] iterateArgs) {
         final MarketState marketState = getMarketState();
         if (marketState == MarketState.SYSTEM_OVERLOADED
                 || marketState == MarketState.PLACING_ORDER
@@ -646,9 +658,9 @@ public class BitmexService extends MarketService {
                                 orderStream = Stream.empty();
                             } else if (openOrder.getOrder().getType() == null) {
                                 warningLogger.warn("OO type is null. " + openOrder.toString());
-                            } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
-                                    && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
-                                    && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
+                            } else if (openOrder.getOrderDetail().getOrderStatus() != OrderStatus.NEW
+                                    && openOrder.getOrderDetail().getOrderStatus() != OrderStatus.PENDING_NEW
+                                    && openOrder.getOrderDetail().getOrderStatus() != OrderStatus.PARTIALLY_FILLED) {
                                 // keep the order
 
                             } else {
@@ -664,7 +676,7 @@ public class BitmexService extends MarketService {
                                     //TODO keep an eye on 'hang open orders'
                                     if (overloadByXRateLimit()) {
                                         movingErrorsOverloaded.set(0);
-                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+                                    } else if (response.getMoveOrderStatus() == MoveOrderStatus.ALREADY_CLOSED) {
                                         // update the status
                                         final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
                                         if (cancelledFplayOrder != null) {
@@ -676,10 +688,10 @@ public class BitmexService extends MarketService {
                                                             cancelledOrder.getAveragePrice(), cancelledOrder.getStatus());
                                         }
 
-                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
+                                    } else if (response.getMoveOrderStatus() == MoveOrderStatus.MOVED) {
                                         orderStream = Stream.of(response.getNewFplayOrder());
                                         movingErrorsOverloaded.set(0);
-                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL) {
+                                    } else if (response.getMoveOrderStatus() == MoveOrderStatus.ONLY_CANCEL) {
                                         if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
                                             setOverloaded(null);
                                             movingErrorsOverloaded.set(0);
@@ -715,8 +727,8 @@ public class BitmexService extends MarketService {
                                                             openOrder.getPlacingType(), openOrder.getSignalType()));
                                                     arbitrageService.getDealPrices().getbPriceFact()
                                                             .addPriceItem(openOrder.getCounterName(), placedOrder.getId(),
-                                                            placedOrder.getCumulativeAmount(), placedOrder.getAveragePrice(),
-                                                            placedOrder.getStatus());
+                                                                    placedOrder.getCumulativeAmount(), placedOrder.getAveragePrice(),
+                                                                    placedOrder.getStatus());
                                                 }
 
                                                 // 3. failed on placing
@@ -866,6 +878,12 @@ public class BitmexService extends MarketService {
     }
 
     public void reconnect() throws ReconnectFailedException {
+        if (Thread.currentThread().getName().startsWith("bitmex-ob-executor")) {
+            String startMsg = "WARNING: Bitmex reconnect in the thread " + Thread.currentThread().getName();
+            tradeLogger.info(startMsg);
+            warningLogger.info(startMsg);
+            logger.info(startMsg);
+        }
 
         String startMsg = "Warning: Bitmex reconnect is starting. " + getSubscribersStatuses();
         tradeLogger.info(startMsg);
@@ -1021,7 +1039,7 @@ public class BitmexService extends MarketService {
         }
     }
 
-    private OrderBook convertOrderBook(BitmexOrderBook obUpdate) {
+    private OrderBook mergeOrderBook(BitmexOrderBook obUpdate) {
         if (obUpdate.getBitmexOrderList().size() == 0 || obUpdate.getBitmexOrderList().get(0).getSymbol() == null) {
             // skip the update
             throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
@@ -1054,8 +1072,8 @@ public class BitmexService extends MarketService {
             throw new IllegalArgumentException("Unknown OrderBook action=" + obUpdate.getAction() + ". " + obUpdate);
         }
         if (finalOB.getBids().size() == 0 || finalOB.getAsks().size() == 0) {
-            logger.warn("update OB is empty: " + obUpdate);
-            logger.warn("full OB is empty: " + finalOB);
+            logger.warn("update OB. OB is empty: " + obUpdate);
+            logger.warn("full OB. OB is empty: " + finalOB);
         } else if (!startFlag) {
             startFlag = true;
             logger.warn("update OB : " + obUpdate);
@@ -1079,12 +1097,12 @@ public class BitmexService extends MarketService {
         return ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getOrderBookL2(symbols)
                 .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBook"))
-                .subscribeOn(Schedulers.from(scheduler))
-                .observeOn(Schedulers.from(scheduler))
-                .map(this::convertOrderBook)
+//                .subscribeOn(obSingleExecutor) // WARNING: don't use subscribeOn if there something should be initialized for the next steps.
+//                .subscribeOn(obSingleExecutor) // emitting is always a thread like [WebSocketClient-SecureIO-1]
+                .observeOn(obSingleExecutor) // the sync queue is here.
+                .map(this::mergeOrderBook)
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
-//                .subscribeOn(Schedulers.io())
                 .filter(ob -> ob.getBids().size() != 0 && ob.getAsks().size() != 0)
                 .doOnError(throwable -> {
                     logger.error("can not convert orderBook", throwable);
@@ -1188,6 +1206,7 @@ public class BitmexService extends MarketService {
     private Disposable startOpenOrderListener() {
         return exchange.getStreamingTradingService()
                 .getOpenOrderObservable(bitmexContractType.getSymbol(), bitmexContractType.getScale())
+                .observeOn(ooSingleExecutor) // blocking queue is here
                 .doOnError(throwable -> handleSubscriptionError(throwable, "onOpenOrdersListening"))
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
@@ -1730,14 +1749,13 @@ public class BitmexService extends MarketService {
     }
 
     private Disposable startAccountInfoListener() {
-        Observable<AccountInfoContracts> accountInfoObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
+
+        return ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
                 .getAccountInfoContractsObservable()
-                .doOnError(throwable -> handleSubscriptionError(throwable, "Account fetch error"))
+                .doOnError(throwable1 -> handleSubscriptionError(throwable1, "Account fetch error"))
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
-                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
-
-        return accountInfoObservable
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribe(newInfo -> {
                     try {
 
@@ -1778,12 +1796,12 @@ public class BitmexService extends MarketService {
     }
 
     private Disposable startPositionListener() {
-        Observable<Position> positionObservable = ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
-                .getPositionObservable(bitmexContractType.getSymbol())
-                .doOnError(throwable -> handleSubscriptionError(throwable, "Position fetch error"))
-                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
 
-        return positionObservable
+        return ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
+                .getPositionObservable(bitmexContractType.getSymbol())
+                .observeOn(posSingleExecutor)
+                .doOnError(throwable1 -> handleSubscriptionError(throwable1, "Position fetch error"))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribe(pUpdate -> {
                     try {
 
@@ -1807,13 +1825,11 @@ public class BitmexService extends MarketService {
             symbols.add(BitmexContractType.XBTUSD.getSymbol());
         }
 
-        Observable<BitmexContractIndex> indexObservable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
+        return ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getContractIndexObservable(symbols)
-                .doOnError(throwable -> handleSubscriptionError(throwable, "Index fetch error"))
-                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS));
-
-        return indexObservable
-                .observeOn(Schedulers.computation())
+                .observeOn(indexSingleExecutor)
+                .doOnError(throwable1 -> handleSubscriptionError(throwable1, "Index fetch error"))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribe(contIndUpdate -> {
                     try {
 

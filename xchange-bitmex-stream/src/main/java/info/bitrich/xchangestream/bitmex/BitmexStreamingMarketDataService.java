@@ -34,15 +34,14 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
      */
     @Override
     public Observable<OrderBook> getOrderBook(CurrencyPair currencyPair, Object... args) {
-        throw new IllegalArgumentException("Deprecated. Use {@link #getOrderBookL2(String)} instead.");
+        throw new IllegalArgumentException("Deprecated. Use {@link #getOrderBookL2(List)} instead.");
     }
 
     public Observable<BitmexOrderBook> getOrderBookL2(List<String> symbols) {
-        List<String> subjects = symbols.stream()
+        List<String> orderBookSubjects = symbols.stream()
                 .map(s -> "orderBookL2_25:" + s).collect(Collectors.toList());//orderBookL2_25:XBTUSD
 
-        String channel = "orderBookL2_25";
-        return service.subscribeChannel(channel, subjects)
+        return service.subscribeChannel("orderBookL2_25", orderBookSubjects)
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
