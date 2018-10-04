@@ -33,6 +33,7 @@ import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
+import com.stackify.apm.Trace;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import info.bitrich.xchangestream.okex.dto.Tool;
@@ -94,6 +95,7 @@ import si.mazi.rescu.HttpStatusIOException;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service("okcoin")
+@Trace
 public class OkCoinService extends MarketService {
 
     public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
@@ -803,6 +805,7 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
+    @Trace(trackedFunction = true, trackedFunctionName = "Okex placeOrder")
     public TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
         TradeResponse tradeResponse = new TradeResponse();
 
@@ -1136,6 +1139,7 @@ public class OkCoinService extends MarketService {
     private volatile CounterToDiff counterToDiff = new CounterToDiff(null, null);
 
     @Override
+    @Trace(trackedFunction = true, trackedFunctionName = "Okex moveMakerOrder")
     public MoveResponse moveMakerOrder(FplayOrder fOrderToCancel, BigDecimal bestMarketPrice, Object... reqMovingArgs) {
         final LimitOrder limitOrder = LimitOrder.Builder.from(fOrderToCancel.getOrder()).build();
         final SignalType signalType = fOrderToCancel.getSignalType() != null ? fOrderToCancel.getSignalType() : getArbitrageService().getSignalType();

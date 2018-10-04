@@ -102,7 +102,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     private volatile Instant readyTime = Instant.now();
 
     // moving mon
-    protected volatile Instant lastMovingStart = null;
+//    protected volatile Instant lastMovingStart = null;
 
 
     protected volatile boolean shouldStopPlacing;

@@ -41,6 +41,10 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stackify.apm.Trace;
+import com.stackify.metric.CounterAndTimer;
+import com.stackify.metric.MetricFactory;
+import com.stackify.metric.MetricManager;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
@@ -103,6 +107,7 @@ import si.mazi.rescu.HttpStatusIOException;
  * Created by Sergey Shurmin on 4/29/17.
  */
 @Service("bitmex")
+@Trace
 public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger ordersLogger = LoggerFactory.getLogger("BITMEX_ORDERS_LOG");
@@ -988,6 +993,7 @@ public class BitmexService extends MarketService {
 
     @PreDestroy
     private void preDestroy() {
+        MetricManager.shutdown();
         isDestroyed = true;
         destroyAction(1);
     }
@@ -1358,6 +1364,7 @@ public class BitmexService extends MarketService {
         return tradeResponse;
     }
 
+    @Trace(trackedFunction = true, trackedFunctionName = "Bitmex placeOrder")
     public TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
         prevCumulativeAmount = BigDecimal.ZERO;
 
@@ -1589,6 +1596,7 @@ public class BitmexService extends MarketService {
         return tradeResponse;
     }
 
+    @Trace(trackedFunction = true, trackedFunctionName = "Bitmex moveMakerOrder")
     @Override
     public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice, Object... reqMovingArgs) {
         final LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
@@ -1671,8 +1679,10 @@ public class BitmexService extends MarketService {
                 MonMoving monMoving = monitoringDataService.fetchMonMoving();
                 if (reqMovingArgs[0] != null) {
                     Instant startMoving = (Instant) reqMovingArgs[0];
-                    BigDecimal before = BigDecimal.valueOf(startReq.toEpochMilli() - startMoving.toEpochMilli());
-                    monMoving.getBefore().add(before);
+                    long beforeMs = startReq.toEpochMilli() - startMoving.toEpochMilli();
+                    monMoving.getBefore().add(BigDecimal.valueOf(beforeMs));
+                    CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforeMoveOrder");
+                    metrics.durationMs(beforeMs);
                 }
                 Long waitingPrevMs = (Long) reqMovingArgs[1];
                 monMoving.getWaitingPrev().add(BigDecimal.valueOf(waitingPrevMs));
@@ -1686,6 +1696,9 @@ public class BitmexService extends MarketService {
                 monMoving.getAfter().add(new BigDecimal(lastEnd.toEpochMilli() - endReq.toEpochMilli()));
                 monMoving.incCount();
                 monitoringDataService.saveMonMoving(monMoving);
+
+                CounterAndTimer moveOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "moveOrder");
+                moveOrderMetrics.durationMs(waitingMarketMs);
             }
 
         } catch (HttpStatusIOException e) {
