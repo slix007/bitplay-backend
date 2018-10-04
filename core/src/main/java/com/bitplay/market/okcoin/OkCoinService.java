@@ -22,18 +22,22 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
+import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import com.stackify.apm.Trace;
+import com.stackify.metric.CounterAndTimer;
+import com.stackify.metric.MetricFactory;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import info.bitrich.xchangestream.okex.dto.Tool;
@@ -140,6 +144,8 @@ public class OkCoinService extends MarketService {
     private OkexTradeLogger tradeLogger;
     @Autowired
     private DefaultLogService defaultLogger;
+    @Autowired
+    private MonitoringDataService monitoringDataService;
 
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
@@ -329,7 +335,8 @@ public class OkCoinService extends MarketService {
                     this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                     logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
 
-                    getArbitrageService().getSignalEventBus().send(SignalEvent.O_ORDERBOOK_CHANGED);
+                    Instant lastObTime = Instant.now();
+                    getArbitrageService().getSignalEventBus().send(new SignalEventEx(SignalEvent.O_ORDERBOOK_CHANGED, lastObTime));
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }
@@ -651,7 +658,22 @@ public class OkCoinService extends MarketService {
             BigDecimal thePrice = Utils.createPriceForTaker(getOrderBook(), orderType, okexContractType.getBaseTool());
             getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
             final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), "123", new Date(), thePrice);
+
+            // metrics
+            final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
+            final Instant startReq = Instant.now();
+
             String orderId = tradeService.placeLimitOrder(limitOrder);
+
+            final Instant endReq = Instant.now();
+            final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
+            monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
+            if (waitingMarketMs > 5000) {
+                logger.warn("TAKER okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
+            }
+            monitoringDataService.saveMon(monPlacing);
+            CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrderTAKER");
+            placeOrderMetrics.durationMs(waitingMarketMs);
 
             final String counterName = getCounterName();
 
@@ -821,6 +843,9 @@ public class OkCoinService extends MarketService {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
             placingType = settings.getOkexPlacingType();
         }
+        final Instant lastObTime = placeOrderArgs.getLastObTime();
+        final Instant startPlacing = Instant.now();
+        final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
 
         // SET STATE
         arbitrageService.setSignalType(signalType);
@@ -897,6 +922,27 @@ public class OkCoinService extends MarketService {
                 }
             }
         }
+
+        // metrics
+        if (lastObTime != null) {
+            long beforeMs = startPlacing.toEpochMilli() - lastObTime.toEpochMilli();
+            monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
+            CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforePlaceOrder");
+            metrics.durationMs(beforeMs);
+            if (beforeMs > 5000) {
+                logger.warn(placingType + "okex beforePlaceOrderMs=" + beforeMs);
+            }
+        }
+        final Instant endPlacing = Instant.now();
+        long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();
+        monPlacing.getWholePlacing().add(BigDecimal.valueOf(wholeMs));
+        CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "wholePlacing" + placingType);
+        metrics.durationMs(wholeMs);
+        if (wholeMs > 5000) {
+            logger.warn(placingType + "okex wholePlacingMs=" + wholeMs);
+        }
+        monPlacing.incCount();
+        monitoringDataService.saveMon(monPlacing);
 
         return tradeResponse;
     }
@@ -996,7 +1042,23 @@ public class OkCoinService extends MarketService {
             } else {
 
                 final LimitOrder limitOrder = new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), "123", new Date(), thePrice);
+
+                // metrics
+                final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
+                final Instant startReq = Instant.now();
+
                 String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
+
+                final Instant endReq = Instant.now();
+                final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
+                monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
+                if (waitingMarketMs > 5000) {
+                    logger.warn(placingSubType + " okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
+                }
+                monitoringDataService.saveMon(monPlacing);
+                CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrder" + placingSubType);
+                placeOrderMetrics.durationMs(waitingMarketMs);
+
                 tradeResponse.setOrderId(orderId);
 
                 final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
@@ -1157,6 +1219,7 @@ public class OkCoinService extends MarketService {
 
         final MarketState savedState = getMarketState();
         setMarketState(MarketState.MOVING);
+        Instant startMoving = Instant.now();
 
         MoveResponse response;
         try {
@@ -1226,6 +1289,30 @@ public class OkCoinService extends MarketService {
         } finally {
             setMarketState(savedState);
         }
+
+        if (reqMovingArgs != null && reqMovingArgs.length == 2 && reqMovingArgs[0] != null) {
+            Instant lastEnd = Instant.now();
+            Mon mon = monitoringDataService.fetchMon(getName(), "moveMakerOrder");
+            if (reqMovingArgs[0] != null) {
+                Instant lastObTime = (Instant) reqMovingArgs[0];
+                long beforeMs = startMoving.toEpochMilli() - lastObTime.toEpochMilli();
+                mon.getBefore().add(BigDecimal.valueOf(beforeMs));
+                CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforeMoveOrder");
+                metrics.durationMs(beforeMs);
+                if (beforeMs > 5000) {
+                    logger.warn("okex beforeMoveOrderMs=" + beforeMs);
+                }
+            }
+
+            long wholeMovingMs = lastEnd.toEpochMilli() - startMoving.toEpochMilli();
+            mon.getWholePlacing().add(new BigDecimal(wholeMovingMs));
+            if (wholeMovingMs > 30000) {
+                logger.warn("okex wholeMovingMs=" + wholeMovingMs);
+            }
+            mon.incCount();
+            monitoringDataService.saveMon(mon);
+        }
+
 
         return response;
     }
@@ -1739,8 +1826,11 @@ public class OkCoinService extends MarketService {
                                 } else {
 
                                     try {
+                                        Instant lastObTime = (iterateArgs != null && iterateArgs.length > 0)
+                                                ? (Instant) iterateArgs[0]
+                                                : null;
 
-                                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder);
+                                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, lastObTime);
                                         //TODO keep an eye on 'hang open orders'
                                         if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
                                                 || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL // do nothing on such exception

@@ -7,8 +7,9 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.okcoin.OOHangedCheckerService;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.MonitoringDataService;
-import com.bitplay.persistance.domain.mon.MonMoving;
+import com.bitplay.persistance.domain.mon.Mon;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
@@ -132,9 +133,14 @@ public class DebugEndpoints {
             deadLockDescr += "<br>Last sum_bal update=" + sdf.format(lastCalcSumBal);
         }
 
-        MonMoving monMoving = monitoringDataService.fetchMonMoving();
+        Mon monBitmexPlacing = monitoringDataService.fetchMon(BitmexService.NAME, "placeOrder");
+        Mon monBitmexMoving = monitoringDataService.fetchMon(BitmexService.NAME, "moveMakerOrder");
+        Mon monOkexPlacing = monitoringDataService.fetchMon(OkCoinService.NAME, "placeOrder");
+        Mon monOkexMoving = monitoringDataService.fetchMon(OkCoinService.NAME, "moveMakerOrder");
 
-        return new MonAllJson(resultJson.getResult(), deadLockDescr, monMoving);
+        return new MonAllJson(resultJson.getResult(), deadLockDescr,
+                monBitmexPlacing, monBitmexMoving,
+                monOkexPlacing, monOkexMoving);
     }
 
     @RequestMapping(value = "/mon/reset", method = RequestMethod.POST,
@@ -142,8 +148,20 @@ public class DebugEndpoints {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public MonAllJson resetMon(@RequestBody MonAllJson monAllJson) {
-        if (monAllJson.getMonMoving() != null) {
-            monitoringDataService.saveMonMoving(MonMoving.createDefaults());
+        if (monAllJson.getMonBitmexPlacing() != null) {
+            Mon monBitmexPlacing = monitoringDataService.fetchMon(BitmexService.NAME, "placeOrder");
+            Mon monBitmexMoving = monitoringDataService.fetchMon(BitmexService.NAME, "moveMakerOrder");
+            Mon monOkexPlacing = monitoringDataService.fetchMon(OkCoinService.NAME, "placeOrder");
+            Mon monOkexMoving = monitoringDataService.fetchMon(OkCoinService.NAME, "moveMakerOrder");
+            monBitmexPlacing = Mon.createDefaults(monBitmexPlacing.getId());
+            monBitmexMoving = Mon.createDefaults(monBitmexMoving.getId());
+            monOkexPlacing = Mon.createDefaults(monOkexPlacing.getId());
+            monOkexMoving = Mon.createDefaults(monOkexMoving.getId());
+
+            monitoringDataService.saveMon(monBitmexPlacing);
+            monitoringDataService.saveMon(monBitmexMoving);
+            monitoringDataService.saveMon(monOkexPlacing);
+            monitoringDataService.saveMon(monOkexMoving);
         }
         return monAllJson;
     }

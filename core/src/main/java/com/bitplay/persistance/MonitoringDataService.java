@@ -1,16 +1,24 @@
 package com.bitplay.persistance;
 
-import com.bitplay.persistance.domain.mon.MonMoving;
+import com.bitplay.persistance.dao.SequenceDao;
+import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.mon.MonRestart;
+import com.bitplay.persistance.exception.SequenceException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
 public class MonitoringDataService {
 
+    private static final String SEQ_NAME = "mon";
+
+    @Autowired
+    private SequenceDao sequenceDao;
     @Autowired
     private MongoTemplate mongoTemplate;
 
@@ -30,22 +38,55 @@ public class MonitoringDataService {
         mongoTemplate.save(monRestart);
         return monRestart;
     }
+//
+//    public Mon fetchMonMoving() {
+//        Mon doc = mongoTemplate.findById(2L, Mon.class);
+//        if (doc == null || doc.getAfter() == null) {
+//            doc = Mon.createDefaults();
+//            doc = saveMonMoving(doc);
+//        }
+//        return doc;
+//    }
+//
+//    public Mon saveMonMoving(Mon monMoving) {
+//        if (monMoving.getId() == null) {
+//            monMoving.setId(2L);
+//        }
+//        mongoTemplate.save(monMoving);
+//        return monMoving;
+//    }
 
-    public MonMoving fetchMonMoving() {
-        MonMoving doc = mongoTemplate.findById(2L, MonMoving.class);
+    public Mon fetchMon(String marketName, String typeName) {
+        Mon doc = findMon(marketName, typeName);
         if (doc == null || doc.getAfter() == null) {
-            doc = MonMoving.createDefaults();
-            doc = saveMonMoving(doc);
+            doc = Mon.createDefaults();
+            doc.setMarketName(marketName);
+            doc.setTypeName(typeName);
+
+            long nextId = sequenceDao.getNextSequenceId(SEQ_NAME);
+            doc.setId(nextId);
+            doc = saveMon(doc);
         }
         return doc;
     }
 
-    public MonMoving saveMonMoving(MonMoving monMoving) {
-        if (monMoving.getId() == null) {
-            monMoving.setId(2L);
+    public Mon saveMon(Mon mon) {
+        if (mon.getId() == null) {
+            Mon exists = findMon(mon.getMarketName(), mon.getTypeName());
+            if (exists == null) {
+                throw new SequenceException("Unable to find mon: " + mon);
+            }
+            mon.setId(exists.getId());
         }
-        mongoTemplate.save(monMoving);
-        return monMoving;
+        mongoTemplate.save(mon);
+        return mon;
+    }
+
+    private Mon findMon(String marketName, String typeName) {
+        return mongoTemplate.findOne(
+                Query.query(Criteria.where("marketName").is(marketName)
+                        .and("typeName").is(typeName)),
+                Mon.class);
     }
 
 }

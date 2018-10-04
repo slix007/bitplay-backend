@@ -218,4 +218,10 @@ public class Utils {
         }
 
     }
+
+    public static Instant getLastObTime(OrderBook bitmexOb, OrderBook okexOb) {
+        Instant first = bitmexOb.getTimeStamp().toInstant();
+        Instant second = okexOb.getTimeStamp().toInstant();
+        return first.isAfter(second) ? first : second;
+    }
 }

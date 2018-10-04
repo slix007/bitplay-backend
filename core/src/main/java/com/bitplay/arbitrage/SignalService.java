@@ -11,16 +11,15 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
-
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by Sergey Shurmin on 1/21/18.
@@ -34,11 +33,11 @@ public class SignalService {
     private SettingsRepositoryService settingsRepositoryService;
 
     public void placeOkexOrderOnSignal(MarketService okexService, Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-                                       SignalType signalType, PlacingType placingType, String counterName) {
+            SignalType signalType, PlacingType placingType, String counterName, Instant lastObTime) {
         final Settings settings = settingsRepositoryService.getSettings();
         final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
                 placingType,
-                signalType, 1, counterName);
+                signalType, 1, counterName, lastObTime);
 
         if (settings.getArbScheme() == ArbScheme.CON_B_O) {
             ((OkCoinService) okexService).deferredPlaceOrderOnSignal(placeOrderArgs);
@@ -60,10 +59,10 @@ public class SignalService {
     }
 
     public void placeBitmexOrderOnSignal(MarketService bitmexService, Order.OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-                                         SignalType signalType, PlacingType placingType, String counterName) {
+            SignalType signalType, PlacingType placingType, String counterName, Instant lastObTime) {
         executorService.submit(() -> {
             try {
-                ((BitmexService) bitmexService).placeOrderToOpenOrders(counterName, orderType, b_block, bestQuotes, placingType, signalType);
+                ((BitmexService) bitmexService).placeOrderToOpenOrders(counterName, orderType, b_block, bestQuotes, placingType, signalType, lastObTime);
             } catch (Exception e) {
                 logger.error("Error on placeOrderOnSignal", e);
             }

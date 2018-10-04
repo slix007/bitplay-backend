@@ -1,6 +1,6 @@
 package com.bitplay.api.domain;
 
-import com.bitplay.persistance.domain.mon.MonMoving;
+import com.bitplay.persistance.domain.mon.Mon;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,6 +17,9 @@ public class MonAllJson {
 
     private String result;
     private String allHtml;
-    private MonMoving monMoving;
+    private Mon monBitmexPlacing;
+    private Mon monBitmexMoving;
+    private Mon monOkexPlacing;
+    private Mon monOkexMoving;
 
 }

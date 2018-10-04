@@ -291,7 +291,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 setMarketState(MarketState.READY);
                 eventBus.send(BtsEvent.MARKET_FREE); // end arbitrage trigger
                 if (getArbitrageService().getSignalType().isCorr()) {
-                    warningLogger.info("WARN: finishCorr from unusual place");
                     getPosDiffService().finishCorr(true);
                 }
 
