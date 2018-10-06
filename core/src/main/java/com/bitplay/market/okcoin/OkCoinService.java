@@ -900,16 +900,16 @@ public class OkCoinService extends MarketService {
         }
 
         try {
-            if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
-                if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
-                    posDiffService.finishCorr(true); // - when market is READY
-                } else {
-                    posDiffService.finishCorr(false);
-                }
-                nextState = MarketState.READY;
-                setMarketState(nextState, counterName);
-                eventBus.send(BtsEvent.MARKET_FREE);
-            }
+//            if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
+//                if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
+//                    posDiffService.finishCorr(true); // - when market is READY
+//                } else {
+//                    posDiffService.finishCorr(false);
+//                }
+//                nextState = MarketState.READY;
+//                setMarketState(nextState, counterName);
+//                eventBus.send(BtsEvent.MARKET_FREE);
+//            }
         } finally {
             // RESET STATE
             if (placingType != PlacingType.TAKER) {

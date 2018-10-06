@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.slf4j.Logger;
@@ -37,9 +38,9 @@ import org.springframework.stereotype.Service;
  * Created by Sergey Shurmin on 7/15/17.
  */
 @Service("pos-diff")
+@Slf4j
 public class PosDiffService {
 
-    private static final Logger logger = LoggerFactory.getLogger(com.bitplay.arbitrage.ArbitrageService.class);
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private Disposable theTimerToImmediateCorr;
@@ -95,7 +96,7 @@ public class PosDiffService {
             checkPosDiff(false);
         } catch (Exception e) {
             warningLogger.error("Check correction: is failed. " + e.getMessage());
-            logger.error("Check correction: is failed.", e);
+            log.error("Check correction: is failed.", e);
         }
     }
 
@@ -116,8 +117,8 @@ public class PosDiffService {
                         String infoMsg = "First check before finishCorr: fetchPosition:";
                         String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                         String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
-                        logger.info(infoMsg + "bitmex " + pos1);
-                        logger.info(infoMsg + "okex " + pos2);
+                        log.info(infoMsg + "bitmex " + pos1);
+                        log.info(infoMsg + "okex " + pos2);
 
                         if ((isAdj && isPosEqual()) || (!isAdj && isPosEqualByMaxAdj())) {
                             isCorrect = true;
@@ -128,8 +129,8 @@ public class PosDiffService {
                             infoMsg = String.format("Double check before finish %s: fetchPosition:", signalType);
                             pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                             pos2 = arbitrageService.getSecondMarketService().fetchPosition();
-                            logger.info(infoMsg + "bitmex " + pos1);
-                            logger.info(infoMsg + "okex " + pos2);
+                            log.info(infoMsg + "bitmex " + pos1);
+                            log.info(infoMsg + "okex " + pos2);
                             if ((isAdj && isPosEqual()) || (!isAdj && isPosEqualByMaxAdj())) {
                                 isCorrect = true;
                             }
@@ -164,7 +165,7 @@ public class PosDiffService {
             } catch (Exception e) {
                 final String msg = String.format("Error on finish %s: %s", signalType, e.getMessage());
                 warningLogger.error(msg);
-                logger.error(msg, e);
+                log.error(msg, e);
 
                 // error++
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
@@ -212,7 +213,7 @@ public class PosDiffService {
                 })
                 .doOnError(e -> {
                     warningLogger.error("timer-state-reset failed. " + e.getMessage());
-                    logger.error("timer-state-reset failed.", e);
+                    log.error("timer-state-reset failed.", e);
                 })
                 .retry()
                 .subscribe();
@@ -254,7 +255,7 @@ public class PosDiffService {
             }
         } catch (Exception e) {
             warningLogger.error("Correction MDC failed. " + e.getMessage());
-            logger.error("Correction MDC failed.", e);
+            log.error("Correction MDC failed.", e);
         }
     }
 
@@ -683,7 +684,7 @@ public class PosDiffService {
                 checkPosDiff(false);
             } catch (Exception e) {
                 warningLogger.error("Check correction: is failed(check before signal). " + e.getMessage());
-                logger.error("Check correction: is failed(check before signal).", e);
+                log.error("Check correction: is failed(check before signal).", e);
             }
         });
 

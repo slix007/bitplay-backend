@@ -435,6 +435,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         } else if (signalType.isPreliq()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();
             value = String.format("%s:%s", String.valueOf(corrParams.getPreliq().getTotalCount()), signalType.getCounterName());
+        } else if (signalType.isAdj()) {
+            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+            value = String.format("%s:%s", String.valueOf(corrParams.getAdj().getTotalCount()), signalType.getCounterName());
         } else if (signalType.isCorr()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();
             value = String.format("%s:%s", String.valueOf(corrParams.getCorr().getTotalCount()), signalType.getCounterName());
