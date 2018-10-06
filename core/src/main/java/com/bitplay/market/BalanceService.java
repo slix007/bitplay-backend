@@ -11,5 +11,6 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
  */
 public interface BalanceService {
 
-    FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType);
+    FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType,
+            Position positionXBTUSD, OrderBook orderBookXBTUSD);
 }

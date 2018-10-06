@@ -862,7 +862,7 @@ public class OkCoinService extends MarketService {
                 }
 
                 if (placingType != PlacingType.TAKER) {
-                    tradeResponse = placeNonTakerOrder(orderType, amountLeft, bestQuotes, false, signalType, placingType);
+                    tradeResponse = placeNonTakerOrder(orderType, amountLeft, bestQuotes, false, signalType, placingType, counterName);
                 } else {
                     tradeResponse = takerOrder(orderType, amountLeft, bestQuotes, signalType);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
@@ -1013,12 +1013,11 @@ public class OkCoinService extends MarketService {
     }
 
     private TradeResponse placeNonTakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-                                          boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType) throws IOException {
+                                          boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName) throws IOException {
         final TradeResponse tradeResponse = new TradeResponse();
 
         BigDecimal thePrice;
 
-        String counterName = getCounterName();
         final String message = Utils.getTenAskBid(getOrderBook(), counterName, String.format("Before %s placing", placingSubType));
         logger.info(message);
         tradeLogger.info(message);
@@ -1337,7 +1336,7 @@ public class OkCoinService extends MarketService {
                     placingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
                 }
 
-                tradeResponse = placeNonTakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType);
+                tradeResponse = placeNonTakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType, counterName);
 
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info(String.format("#%s/%s Moving3:Failed %s amount=%s,quote=%s,id=%s,attempt=%s. Error: %s",

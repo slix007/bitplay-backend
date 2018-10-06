@@ -145,7 +145,8 @@ public class AvgPrice implements Serializable {
     @Override
     public String toString() {
         return "AvgPrice{" +
-                "pItems=" + pItems +
+                "counterName=" + counterName +
+                ", pItems=" + pItems +
                 ", fullAmount=" + fullAmount +
                 ", openPrice=" + openPrice +
                 ", marketName='" + marketName + '\'' +

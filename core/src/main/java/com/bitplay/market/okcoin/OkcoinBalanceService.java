@@ -107,7 +107,8 @@ public class OkcoinBalanceService implements BalanceService {
 
     }
 
-    public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType) {
+    public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType,
+            Position positionXBTUSD, OrderBook orderBookXBTUSD) {
         if (accountInfoContracts == null || pObj == null || orderBook == null) {
             logger.error(String.format("Can not calc full balance: accountInfoContracts=%s, pObj=%s",
                     accountInfoContracts, pObj));
