@@ -22,7 +22,10 @@ public class FplayOrderUtils {
             updated = new FplayOrder(fplayOrder.getCounterName(), limitOrder,
                     fplayOrder.getBestQuotes(), fplayOrder.getPlacingType(), fplayOrder.getSignalType());
         } else {
-            updated = new FplayOrder(fplayOrder.getCounterName(), update, null, null, null);
+            updated = new FplayOrder(fplayOrder.getCounterName(), update,
+                    fplayOrder.getBestQuotes(), // may be null
+                    fplayOrder.getPlacingType(), // may be null
+                    fplayOrder.getSignalType()); // may be null
         }
         return updated;
     }

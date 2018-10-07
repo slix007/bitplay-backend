@@ -62,7 +62,10 @@ public class SignalService {
             SignalType signalType, PlacingType placingType, String counterName, Instant lastObTime) {
         executorService.submit(() -> {
             try {
-                ((BitmexService) bitmexService).placeOrderToOpenOrders(counterName, orderType, b_block, bestQuotes, placingType, signalType, lastObTime);
+
+                final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, signalType, 1, counterName, lastObTime);
+
+                ((BitmexService) bitmexService).placeOrderToOpenOrders(placeOrderArgs);
             } catch (Exception e) {
                 logger.error("Error on placeOrderOnSignal", e);
             }

@@ -3,16 +3,14 @@ package com.bitplay.persistance;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.repository.OrderRepository;
-
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.stereotype.Service;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by Sergey Shurmin on 12/4/17.
@@ -58,6 +56,9 @@ public class OrderRepositoryService {
             FplayOrder one = orderRepository.findOne(orderId);
             if (one == null) {
                 one = stabOrderForNew;
+            }
+            if (one == null) {
+                return null; // can not update. No
             }
             one = FplayOrderUtils.updateFplayOrder(one, update);
 

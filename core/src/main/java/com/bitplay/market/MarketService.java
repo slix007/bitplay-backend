@@ -320,8 +320,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             return;
         }
 
+        final String counterForLogs = getCounterName();
         final String changeStat = String.format("#%s change status from %s to %s",
-                getCounterName(),
+                counterForLogs,
                 currMarketState,
                 MarketState.SYSTEM_OVERLOADED);
         getTradeLogger().warn(changeStat);
@@ -356,8 +357,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                         : MarketState.READY;
             }
 
+            final String counterForLogs = getCounterName();
             final String backWarn = String.format("#%s change status from %s to %s",
-                    getCounterName(),
+                    counterForLogs,
                     MarketState.SYSTEM_OVERLOADED,
                     marketStateToSet);
             getTradeLogger().warn(backWarn);
@@ -464,7 +466,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public void setMarketState(MarketState newState) {
-        setMarketState(newState, getCounterName());
+        final String counterForLogs = getCounterName();
+        setMarketState(newState, counterForLogs);
     }
 
     public void setMarketState(MarketState newState, String counterName) {
@@ -608,6 +611,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
                 }
 
+                String currCounterName = getCounterName();
+
                 synchronized (openOrdersLock) {
                     this.openOrders = fetchedList.stream()
                             .map(limitOrder ->
@@ -616,7 +621,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                             .findAny()
                                             .map(fOrd -> new FplayOrder(fOrd.getCounterName(), limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(),
                                                     fOrd.getSignalType()))
-                                            .orElseGet(() -> new FplayOrder(getCounterName(), (limitOrder), null, null, null)))
+                                            .orElseGet(() -> new FplayOrder(currCounterName, (limitOrder), null, null, null)))
                             .collect(Collectors.toList());
                 }
 

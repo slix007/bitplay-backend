@@ -92,6 +92,11 @@ public class AvgPrice implements Serializable {
             return openPrice; // may be null
         }
 
+        if (withLogs) {
+            String msg = String.format("#%s %s %s", counterName, marketName, this);
+            logger.info(msg);
+        }
+
         StringBuilder sb = new StringBuilder();
         //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
         BigDecimal sumNumerator = notNullItems.stream()

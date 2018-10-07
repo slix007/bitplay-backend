@@ -84,7 +84,6 @@ import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
-import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
@@ -606,7 +605,8 @@ public class BitmexService extends MarketService {
     @Override
     protected void onReadyState() {
         if (getName().equals(BitmexService.NAME)) {
-            logger.info("#{} is READY", getCounterName());
+            final String counterForLogs = getCounterName();
+            logger.info("#{} is READY", counterForLogs);
             getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
         }
         iterateOpenOrdersMove();
@@ -635,13 +635,14 @@ public class BitmexService extends MarketService {
         }
 
         if (movingInProgress) {
-            final String logString = String.format("#%s Too often moving requests.", getCounterName());
+            final String counterForLogs = getCounterName();
+            final String logString = String.format("#%s Too often moving requests.", counterForLogs);
             logger.error(logString);
         }
         movingInProgress = true;
         scheduledMoveInProgressReset = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
 
-        Instant startMoving = (iterateArgs != null && iterateArgs.length > 0)
+        Instant startMoving = (iterateArgs != null && iterateArgs.length > 0 && iterateArgs[0] != null)
                 ? (Instant) iterateArgs[0]
                 : null;
         Instant beforeLock = Instant.now();
@@ -1176,8 +1177,9 @@ public class BitmexService extends MarketService {
             this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
             logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
             if (this.bestBid.compareTo(this.bestAsk) >= 0) {
+                final String counterForLogs = getCounterName();
                 String warn = String.format("#%s bid(%s) >= ask(%s). LastRun of 'checkOrderBooks' is %s. ",
-                        getCounterName(), this.bestBid, this.bestAsk, extrastopService.getLastRun());
+                        counterForLogs, this.bestBid, this.bestAsk, extrastopService.getLastRun());
                 if (obWrongCount.incrementAndGet() < 100) {
                     logger.warn(warn);
                     warningLogger.warn(warn);
@@ -1240,19 +1242,18 @@ public class BitmexService extends MarketService {
             // update DealPrice object firstly
             updateOfOpenOrders.getOpenOrders()
                     .forEach(update -> {
-                        LimitOrder limitOrder = update;
-                        String counterName = getCounterName();
 
+                        // update only 'known orders' aka in-memory FplayOrders.
                         for (FplayOrder ord : openOrders) {
                             if (update.getId().equals(ord.getOrderId())) {
                                 final FplayOrder fplayOrder = FplayOrderUtils.updateFplayOrder(ord, update);
-                                limitOrder = (LimitOrder) fplayOrder.getOrder();
-                                counterName = fplayOrder.getCounterName();
+                                LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
+                                String counterName = fplayOrder.getCounterName(); // found counterName
+                                setQuotesForArbLogs(counterName, limitOrder, limitOrder.getAveragePrice(), false);
                                 break;
                             }
                         }
 
-                        setQuotesForArbLogs(counterName, limitOrder, limitOrder.getAveragePrice(), false);
                     });
 
             updateOpenOrders(updateOfOpenOrders.getOpenOrders()); // all there: add/update/remove -> free Market -> write logs
@@ -1261,7 +1262,8 @@ public class BitmexService extends MarketService {
             updateOfOpenOrders.getOpenOrders()
                     .forEach(update -> {
                         if (update.getStatus() == OrderStatus.FILLED) {
-                            logger.info("#{} Order {} FILLED", getCounterName(), update.getId());
+                            final String counterForLogs = getCounterName();
+                            logger.info("#{} Order {} FILLED", counterForLogs, update.getId());
                             getArbitrageService().getSignalEventBus().send(SignalEvent.MT2_BITMEX_ORDER_FILLED);
                         }
                     });
@@ -1334,16 +1336,21 @@ public class BitmexService extends MarketService {
 
     public TradeResponse nonTakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType,
             PlacingType placingType) {
-        return placeOrderToOpenOrders(getCounterName(signalType), orderType, amountInContracts, bestQuotes, placingType, signalType, null);
+        String counterName = getCounterName(signalType);
+        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amountInContracts, bestQuotes, placingType, signalType, 1, counterName, null);
+
+        return placeOrderToOpenOrders(placeOrderArgs);
     }
 
     public TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
-        return placeOrderToOpenOrders(getCounterName(signalType), orderType, amountInContracts, bestQuotes, PlacingType.TAKER, signalType, null);
+        String counterName = getCounterName(signalType);
+        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amountInContracts, bestQuotes, PlacingType.TAKER,
+                signalType, 1, counterName, null);
+
+        return placeOrderToOpenOrders(placeOrderArgs);
     }
 
-    public TradeResponse placeOrderToOpenOrders(String counterName, OrderType orderType, BigDecimal amount, BestQuotes bestQuotes,
-            PlacingType placingType, SignalType signalType, Instant lastObTime) {
-        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1, counterName, lastObTime);
+    public TradeResponse placeOrderToOpenOrders(final PlaceOrderArgs placeOrderArgs) {
 
         final TradeResponse tradeResponse = placeOrder(placeOrderArgs);
 
@@ -1353,12 +1360,14 @@ public class BitmexService extends MarketService {
         if (tradeResponse.getLimitOrder() != null) updates.add(tradeResponse.getLimitOrder());
 
         LimitOrder limitOrder = tradeResponse.getLimitOrder();
+        final FplayOrder stub;
         if (limitOrder == null) {
-            String orderId = tradeResponse.getOrderId() != null ? tradeResponse.getOrderId() : "0";
-            limitOrder = new LimitOrder(orderType, amount, CurrencyPair.BTC_USD, orderId, new Date(), BigDecimal.ZERO);
+            stub = new FplayOrder(placeOrderArgs.getCounterName(), placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(),
+                    placeOrderArgs.getSignalType());
+        } else {
+            stub = new FplayOrder(placeOrderArgs.getCounterName(), limitOrder, placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(),
+                    placeOrderArgs.getSignalType());
         }
-        final FplayOrder stub = new FplayOrder(counterName, limitOrder, placeOrderArgs.getBestQuotes(), placeOrderArgs.getPlacingType(),
-                placeOrderArgs.getSignalType());
 
         updateOpenOrders(updates, stub);
 
@@ -1374,8 +1383,9 @@ public class BitmexService extends MarketService {
         final Settings settings = settingsRepositoryService.getSettings();
         final Integer maxAttempts = settings.getBitmexSysOverloadArgs().getPlaceAttempts();
         if (placeOrderArgs.getAttempt() == maxAttempts) {
+            final String counterForLogs = getCounterName();
             final String logString = String.format("#%s Bitmex Warning placing: too many attempt(%s) when SYSTEM_OVERLOADED. Do nothing.",
-                    getCounterName(),
+                    counterForLogs,
                     maxAttempts);
 
             logger.error(logString);
@@ -2117,9 +2127,10 @@ public class BitmexService extends MarketService {
                         arbitrageService.getSecondMarketService().getOrderBook(),
                         arbitrageService.getFirstMarketService().getOrderBook());
 
+                final String counterForLogs = getCounterName();
                 if (position.getPositionLong().signum() > 0) {
                     tradeLogger.info(String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
-                            getCounterName(),
+                            counterForLogs,
                             position.getPositionLong().toPlainString(),
                             liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
 
@@ -2127,7 +2138,7 @@ public class BitmexService extends MarketService {
 
                 } else if (position.getPositionLong().signum() < 0) {
                     tradeLogger.info(String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
-                            getCounterName(),
+                            counterForLogs,
                             position.getPositionLong().toPlainString(),
                             liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
 
@@ -2347,8 +2358,9 @@ public class BitmexService extends MarketService {
                     marketResponseMessage = new ObjectMapper().readValue(httpBody, Error.class).getError().getMessage();
                 }
 
-                String fullMessage = String.format("#%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, httpBody, rateLimitStr);
-                String shortMessage = String.format("#%s/%s %s: %s %s", getCounterName(), attemptCount, operationName, marketResponseMessage, rateLimitStr);
+                final String counterForLogs = getCounterName();
+                String fullMessage = String.format("#%s/%s %s: %s %s", counterForLogs, attemptCount, operationName, httpBody, rateLimitStr);
+                String shortMessage = String.format("#%s/%s %s: %s %s", counterForLogs, attemptCount, operationName, marketResponseMessage, rateLimitStr);
 
                 tradeLogger.error(shortMessage);
 
@@ -2378,7 +2390,7 @@ public class BitmexService extends MarketService {
     }
 
     public boolean cancelOrderSync(String orderId, String logInfoId) {
-        final String counterName = getCounterName();
+        final String counterForLogs = getCounterName();
 
         int attemptCount = 0;
         while (attemptCount < MAX_ATTEMPTS_CANCEL && getMarketState() != MarketState.SYSTEM_OVERLOADED) {
@@ -2391,7 +2403,7 @@ public class BitmexService extends MarketService {
                 boolean res = tradeService.cancelOrder(orderId);
 
                 getTradeLogger().info(String.format("#%s/%s %s cancelled id=%s",
-                        counterName, attemptCount,
+                        counterForLogs, attemptCount,
                         logInfoId,
                         orderId));
 
@@ -2401,11 +2413,11 @@ public class BitmexService extends MarketService {
                 updateXRateLimit(e);
                 overloadByXRateLimit();
 
-                logger.error("#{}/{} error cancel order id={}", counterName, attemptCount, orderId, e);
-                getTradeLogger().error(String.format("#%s/%s error cancel order id=%s: %s", counterName, attemptCount, orderId, e.toString()));
+                logger.error("#{}/{} error cancel order id={}", counterForLogs, attemptCount, orderId, e);
+                getTradeLogger().error(String.format("#%s/%s error cancel order id=%s: %s", counterForLogs, attemptCount, orderId, e.toString()));
             } catch (Exception e) {
-                logger.error("#{}/{} error cancel order id={}", counterName, attemptCount, orderId, e);
-                getTradeLogger().error(String.format("#%s/%s error cancel order id=%s: %s", counterName, attemptCount, orderId, e.toString()));
+                logger.error("#{}/{} error cancel order id={}", counterForLogs, attemptCount, orderId, e);
+                getTradeLogger().error(String.format("#%s/%s error cancel order id=%s: %s", counterForLogs, attemptCount, orderId, e.toString()));
             }
         }
         return false;
@@ -2413,7 +2425,7 @@ public class BitmexService extends MarketService {
 
     @Override
     public boolean cancelAllOrders(String logInfoId) {
-        final String counterName = getCounterName();
+        final String counterForLogs = getCounterName();
 
         int attemptCount = 0;
         while (attemptCount < MAX_ATTEMPTS_CANCEL && getMarketState() != MarketState.SYSTEM_OVERLOADED) {
@@ -2426,7 +2438,7 @@ public class BitmexService extends MarketService {
                 List<LimitOrder> limitOrders = tradeService.cancelAllOrders();
 
                 getTradeLogger().info(String.format("#%s/%s %s cancelled id=%s",
-                        counterName, attemptCount,
+                        counterForLogs, attemptCount,
                         logInfoId,
                         limitOrders.stream().map(Order::getId).reduce((acc, item) -> acc + "," + item)));
 
@@ -2438,11 +2450,11 @@ public class BitmexService extends MarketService {
                 updateXRateLimit(e);
                 overloadByXRateLimit();
 
-                logger.error("#{}/{} error cancel orders", counterName, attemptCount, e);
-                getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterName, attemptCount, e.toString()));
+                logger.error("#{}/{} error cancel orders", counterForLogs, attemptCount, e);
+                getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterForLogs, attemptCount, e.toString()));
             } catch (Exception e) {
-                logger.error("#{}/{} error cancel orders", counterName, attemptCount, e);
-                getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterName, attemptCount, e.toString()));
+                logger.error("#{}/{} error cancel orders", counterForLogs, attemptCount, e);
+                getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterForLogs, attemptCount, e.toString()));
             }
         }
         return false;

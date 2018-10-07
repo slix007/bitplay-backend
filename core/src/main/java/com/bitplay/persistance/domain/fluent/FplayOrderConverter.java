@@ -27,7 +27,7 @@ public class FplayOrderConverter {
     public static Order convert(OrderDetail orderDetail) {
         return new LimitOrder(orderDetail.getOrderType(),
                 orderDetail.getTradableAmount(),
-                CurrencyPair.BTC_USD,
+                orderDetail.getCurrencyPair(),
                 orderDetail.getId(),
                 orderDetail.getTimestamp(),
                 orderDetail.getLimitPrice(),

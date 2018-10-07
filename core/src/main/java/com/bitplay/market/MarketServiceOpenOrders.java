@@ -9,6 +9,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -146,10 +147,25 @@ public abstract class MarketServiceOpenOrders {
         return openOrdersCount == 0;
     }
 
-    protected void updateOpenOrders(List<LimitOrder> trades) {
-        updateOpenOrders(trades, new FplayOrder(getCounterName()));
+    /**
+     * WARNING: the reason of orders with id==0, if used with OpenOrders subscriptions.<br>
+     * <b> Use only when trades has id</b>
+     */
+    protected void updateFullInfoOpenOrder(LimitOrder fullInfoOrder, String counterName) {
+        FplayOrder stabOrderForNew = new FplayOrder(counterName); //
+        updateOpenOrders(Collections.singletonList(fullInfoOrder), stabOrderForNew); // getCounterName???
     }
 
+    protected void updateOpenOrders(List<LimitOrder> trades) {
+        updateOpenOrders(trades, null);
+    }
+
+    /**
+     * WARNING:<br> stabOrderForNew should be with correctly filled 'counterName' or null.
+     *
+     * @param trades any orderInfo updates from server.
+     * @param stabOrderForNew with correctly filled 'counterName' or null.
+     */
     protected void updateOpenOrders(List<LimitOrder> trades, FplayOrder stabOrderForNew) {
 
         if (trades.size() == 0) {
@@ -184,6 +200,9 @@ public abstract class MarketServiceOpenOrders {
                         }
 
                         final FplayOrder fplayOrder = updateOpenOrder(update, stabOrderForNew); // exist or null
+                        if (fplayOrder == null) {
+                            return Stream.empty();
+                        }
 
                         if (fplayOrder.getOrderId().equals("0")) {
                             getTradeLogger().warn(String.format("#%s WARNING: update of fplayOrder with id=0: %s", counterName, fplayOrder));
@@ -249,13 +268,16 @@ public abstract class MarketServiceOpenOrders {
 
     /**
      * Use openOrdersLock.
+     * <br>
+     * <br>
+     * Can return null, if (FplayOrder not found && stab == null).
      */
     private FplayOrder updateOpenOrder(LimitOrder update, FplayOrder stabOrderForNew) {
         final FplayOrder updated = this.openOrders.stream()
                 .filter(fplayOrder -> fplayOrder.getOrderId().equals(update.getId()))
                 .map(fplayOrder -> FplayOrderUtils.updateFplayOrder(fplayOrder, update))
                 .findAny()
-                .orElseGet(() -> FplayOrderUtils.updateFplayOrder(stabOrderForNew, update));
+                .orElseGet(() -> stabOrderForNew == null ? null : FplayOrderUtils.updateFplayOrder(stabOrderForNew, update));
         return updated;
     }
 

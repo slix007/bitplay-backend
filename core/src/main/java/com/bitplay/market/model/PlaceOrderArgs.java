@@ -35,7 +35,7 @@ public class PlaceOrderArgs {
         this.placingType = placingType;
         this.signalType = signalType;
         this.attempt = attempt;
-        this.counterName = counterName;
+        this.counterName = new String(counterName);
         this.lastObTime = null;
     }
 

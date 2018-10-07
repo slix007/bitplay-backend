@@ -238,8 +238,10 @@ public class ArbitrageService {
 
             long signalTimeSec = startSignalTime == null ? -1 : Duration.between(startSignalTime, Instant.now()).getSeconds();
 
-            if (arbInProgress.getAndSet(false)) {
-                synchronized (arbInProgress) {
+            synchronized (arbInProgress) { // do not set arbInProgress=false until the whole block is done!
+                // The other option is "doing stateSnapshot before doing set arbInProgress=false"
+
+                if (arbInProgress.getAndSet(false)) {
                     if (signalTimeSec > 0) {
                         signalTimeService.addSignalTime(BigDecimal.valueOf(signalTimeSec));
                     }
@@ -736,6 +738,10 @@ public class ArbitrageService {
     private void startTradingOnDelta1(BorderParams borderParams, SignalType signalType, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, PlacingType predefinedPlacingType, BigDecimal ask1_o, BigDecimal bid1_p,
             Instant lastObTime) {
+
+        arbInProgress.set(true);
+        startSignalTime = Instant.now();
+
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
         bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
@@ -745,9 +751,7 @@ public class ArbitrageService {
         firstMarketService.setBusy();
         secondMarketService.setBusy();
 
-        writeLogOnStartTrade(ask1_o, bid1_p, tradingSignal, params.getBorder1(), delta1, DeltaName.B_DELTA);
-
-        final String counterName = firstMarketService.getCounterName();
+        final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, params.getBorder1(), delta1, DeltaName.B_DELTA);
 
         if (dynamicDeltaLogs != null) {
             tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
@@ -783,9 +787,6 @@ public class ArbitrageService {
                 warningLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
             }
         }
-
-        arbInProgress.set(true);
-        startSignalTime = Instant.now();
 
         tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
         // in scheme MT2 Okex should be the first
@@ -854,6 +855,10 @@ public class ArbitrageService {
     private void startTradingOnDelta2(BorderParams borderParams, SignalType signalType, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, PlacingType predefinedPlacingType, BigDecimal ask1_p, BigDecimal bid1_o,
             Instant lastObTime) {
+
+        arbInProgress.set(true);
+        startSignalTime = Instant.now();
+
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
         bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
@@ -863,9 +868,8 @@ public class ArbitrageService {
         firstMarketService.setBusy();
         secondMarketService.setBusy();
 
-        writeLogOnStartTrade(ask1_p, bid1_o, tradingSignal, params.getBorder2(), delta2, DeltaName.O_DELTA);
+        final String counterName = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, params.getBorder2(), delta2, DeltaName.O_DELTA);
 
-        final String counterName = firstMarketService.getCounterName();
         if (dynamicDeltaLogs != null) {
             tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
         }
@@ -901,9 +905,6 @@ public class ArbitrageService {
             }
         }
 
-        arbInProgress.set(true);
-        startSignalTime = Instant.now();
-
         tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
         // in scheme MT2 Okex should be the first
         signalService
@@ -916,7 +917,7 @@ public class ArbitrageService {
         saveParamsToDb();
     }
 
-    private void writeLogOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final BordersService.TradingSignal tradingSignal,
+    private String createCounterOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final BordersService.TradingSignal tradingSignal,
             final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName) {
 
         Integer counter1 = params.getCounter1();
@@ -966,6 +967,8 @@ public class ArbitrageService {
         ));
 
         printSumBal(tradeId, counterName);
+
+        return counterName;
     }
 
     @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)

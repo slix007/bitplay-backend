@@ -46,6 +46,13 @@ public class FplayOrder {
         this.counterName = counterName;
     }
 
+    public FplayOrder(String counterName, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
+        this.counterName = counterName;
+        this.bestQuotes = bestQuotes;
+        this.placingType = placingType;
+        this.signalType = signalType;
+    }
+
     public FplayOrder(String counterName, @NotNull Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
         this.counterName = counterName;
         this.orderId = order.getId();

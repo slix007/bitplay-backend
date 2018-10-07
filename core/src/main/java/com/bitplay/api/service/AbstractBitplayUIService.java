@@ -80,7 +80,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 ord.getCounterName(),
                 ord.getOrderId(),
                 o.getStatus() != null ? o.getStatus().toString() : null,
-                o.getCurrencyPair().toString(),
+                o.getCurrencyPair() == null ? "" : o.getCurrencyPair().toString(),
                 ((LimitOrder) o).getLimitPrice().toPlainString(),
                 o.getTradableAmount().toPlainString(),
                 o.getType() != null ? o.getType().toString() : "null",
