@@ -555,7 +555,7 @@ public class PosDiffService {
                 : bP;
 
         final BigDecimal okEquiv = okexUsd;
-        final BigDecimal bEquiv = bitmexUsd.subtract(hedgeAmount).subtract(bitmexService.getHbPosUsd());
+        final BigDecimal bEquiv = bitmexUsd.subtract(hedgeAmount).add(bitmexService.getHbPosUsd());
 
         if (dc.signum() < 0) {
             corrObj.orderType = Order.OrderType.BID;
@@ -737,7 +737,7 @@ public class PosDiffService {
                 ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
                 : bP;
 
-        final BigDecimal bitmexUsdWithHedge = bitmexUsd.add(hedgeAmountUsd).add(bitmexService.getHbPosUsd());
+        final BigDecimal bitmexUsdWithHedge = bitmexUsd.subtract(hedgeAmountUsd).add(bitmexService.getHbPosUsd());
 
         return okexUsd.add(bitmexUsdWithHedge);
     }
