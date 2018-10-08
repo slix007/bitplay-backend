@@ -132,8 +132,8 @@ public class ArbitrageService {
     private BigDecimal oEbest = BigDecimal.ZERO;
     private BigDecimal sumEBestUsd = BigDecimal.valueOf(-1);
     private String sumBalString = "";
-    private volatile Boolean isReadyForTheArbitrage = true;
-    private Disposable theTimer;
+//    private volatile Boolean isReadyForTheArbitrage = true;
+//    private Disposable theTimer;
     private Disposable theCheckBusyTimer;
     private volatile SignalType signalType = SignalType.AUTOMATIC;
     private SignalEventBus signalEventBus = new SignalEventBus();
@@ -299,16 +299,16 @@ public class ArbitrageService {
     }
 
     private void setTimeoutAfterStartTrading() {
-        isReadyForTheArbitrage = false;
-        if (theTimer != null) {
-            theTimer.dispose();
-        }
-        theTimer = Completable.timer(100, TimeUnit.MILLISECONDS)
-                .doOnComplete(() -> isReadyForTheArbitrage = true)
-                .doOnError(throwable -> logger.error("onError timer", throwable))
-                .repeat()
-                .retry()
-                .subscribe();
+//        isReadyForTheArbitrage = false;
+//        if (theTimer != null) {
+//            theTimer.dispose();
+//        }
+//        theTimer = Completable.timer(100, TimeUnit.MILLISECONDS)
+//                .doOnComplete(() -> isReadyForTheArbitrage = true)
+//                .doOnError(throwable -> logger.error("onError timer", throwable))
+//                .repeat()
+//                .retry()
+//                .subscribe();
         setBusyStackChecker();
     }
 
@@ -458,7 +458,7 @@ public class ArbitrageService {
             // do nothing
             stopSignalDelay();
 
-        } else if (!isReadyForTheArbitrage) {
+//        } else if (!isReadyForTheArbitrage) {
             // debugLog.info("isReadyForTheArbitrage=false");
             // do not stopSignalDelay
         } else {
