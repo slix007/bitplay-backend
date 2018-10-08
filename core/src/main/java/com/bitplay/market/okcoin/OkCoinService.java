@@ -680,7 +680,7 @@ public class OkCoinService extends MarketService {
                 throw new ResetToReadyException("Failed to check final status of taker-maker id=" + orderId);
             }
 
-            updateFullInfoOpenOrder((LimitOrder) orderInfo, counterName);
+            this.openOrders.add(new FplayOrder(counterName, orderInfo, bestQuotes, PlacingType.TAKER, signalType));
 
             arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
             arbitrageService.getDealPrices().getoPriceFact()
@@ -694,7 +694,7 @@ public class OkCoinService extends MarketService {
                 }
                 orderInfo = orderPair.getSecond();
 
-                updateFullInfoOpenOrder((LimitOrder) orderInfo, counterName);
+                updateOrAddOpenOrder((LimitOrder) orderInfo, counterName);
             }
 
             if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen

@@ -621,7 +621,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                             .findAny()
                                             .map(fOrd -> new FplayOrder(fOrd.getCounterName(), limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(),
                                                     fOrd.getSignalType()))
-                                            .orElseGet(() -> new FplayOrder(currCounterName, (limitOrder), null, null, null)))
+                                            .orElseGet(() ->
+                                                    new FplayOrder(currCounterName, (limitOrder), null, null, null)))
                             .collect(Collectors.toList());
                 }
 
@@ -656,20 +657,20 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return getOrderInfo(orderId, counterName, attemptCount, logInfoId, getTradeLogger());
     }
 
-    protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, LogService customLogger) {
+    protected Optional<Order> getOrderInfo(String orderId, String counterForLogs, int attemptCount, String logInfoId, LogService customLogger) {
         final String[] orderIds = {orderId};
-        final Collection<Order> orderInfos = getOrderInfos(orderIds, counterName, attemptCount, logInfoId, customLogger);
+        final Collection<Order> orderInfos = getOrderInfos(orderIds, counterForLogs, attemptCount, logInfoId, customLogger);
         return orderInfos.isEmpty() ? Optional.empty() : Optional.ofNullable(orderInfos.iterator().next());
     }
 
-    protected Collection<Order> getOrderInfos(String[] orderIds, String counterName, int attemptCount, String logInfoId, LogService customLogger) {
+    protected Collection<Order> getOrderInfos(String[] orderIds, String counterForLogs, int attemptCount, String logInfoId, LogService customLogger) {
         final TradeService tradeService = getExchange().getTradeService();
         Collection<Order> orders = new ArrayList<>();
         try {
             orders = tradeService.getOrder(orderIds);
             if (orders.isEmpty()) {
                 final String message = String.format("#%s/%s %s orderIds=%s, error: %s",
-                        counterName, attemptCount,
+                        counterForLogs, attemptCount,
                         logInfoId,
                         Arrays.toString(orderIds), "Market did not return info by orderIds");
                 customLogger.error(message);
@@ -678,7 +679,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     orderInfo = orders.iterator().next();
                     if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
                         customLogger.info(String.format("#%s/%s %s %s status=%s, avgPrice=%s, orderId=%s, type=%s, cumAmount=%s",
-                                counterName, attemptCount,
+                                counterForLogs, attemptCount,
                                 logInfoId,
                                 Utils.convertOrderTypeName(orderInfo.getType()),
                                 orderInfo.getStatus() != null ? orderInfo.getStatus().toString() : null,
@@ -691,7 +692,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             }
         } catch (Exception e) {
             final String message = String.format("#%s/%s %s orderIds=%s, error: %s",
-                    counterName, attemptCount,
+                    counterForLogs, attemptCount,
                     logInfoId,
                     Arrays.toString(orderIds), e.toString());
             customLogger.error(message);

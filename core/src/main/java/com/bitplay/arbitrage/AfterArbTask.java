@@ -230,7 +230,10 @@ public class AfterArbTask implements Runnable {
             try {
 
                 bitmexService.updateAvgPrice(counterName, dealPrices.getbPriceFact());
-                b_price_fact = dealPrices.getbPriceFact().getAvg(true, counterName);
+                StringBuilder logBuilder = new StringBuilder();
+                b_price_fact = dealPrices.getbPriceFact().getAvg(true, counterName, logBuilder);
+                deltaLogWriter.info(logBuilder.toString());
+                log.info(logBuilder.toString());
                 deltaLogWriter.info(dealPrices.getbPriceFact().getDeltaLogTmp());
                 break;
 
@@ -267,7 +270,10 @@ public class AfterArbTask implements Runnable {
             attempt++;
 
             try {
-                ok_price_fact = dealPrices.getoPriceFact().getAvg(true, counterName);
+                StringBuilder logBuilder = new StringBuilder();
+                ok_price_fact = dealPrices.getoPriceFact().getAvg(true, counterName, logBuilder);
+                deltaLogWriter.info(logBuilder.toString());
+                log.info(logBuilder.toString());
                 deltaLogWriter.info(dealPrices.getoPriceFact().getDeltaLogTmp());
 
                 okCoinService.writeAvgPriceLog();

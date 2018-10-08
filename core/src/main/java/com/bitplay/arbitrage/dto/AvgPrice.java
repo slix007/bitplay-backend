@@ -70,14 +70,14 @@ public class AvgPrice implements Serializable {
 
     public synchronized BigDecimal getAvg() {
         try {
-            return getAvg(false, "");
+            return getAvg(false, "", null);
         } catch (Exception e) {
             logger.error("Error on Avg", e);
         }
         return BigDecimal.ZERO;
     }
 
-    public synchronized BigDecimal getAvg(boolean withLogs, String counterName) throws RoundIsNotDoneException {
+    public synchronized BigDecimal getAvg(boolean withLogs, String counterName, StringBuilder logBuilder) throws RoundIsNotDoneException {
         BigDecimal avgPrice;
         List<AvgPriceItem> notNullItems = pItems.values().stream()
                 .filter(Objects::nonNull)
@@ -92,9 +92,8 @@ public class AvgPrice implements Serializable {
             return openPrice; // may be null
         }
 
-        if (withLogs) {
-            String msg = String.format("#%s %s %s", counterName, marketName, this);
-            logger.info(msg);
+        if (withLogs && logBuilder != null) {
+            logBuilder.append(String.format("#%s %s %s", counterName, marketName, this));
         }
 
         StringBuilder sb = new StringBuilder();

@@ -151,7 +151,7 @@ public abstract class MarketServiceOpenOrders {
      * WARNING: the reason of orders with id==0, if used with OpenOrders subscriptions.<br>
      * <b> Use only when trades has id</b>
      */
-    protected void updateFullInfoOpenOrder(LimitOrder fullInfoOrder, String counterName) {
+    protected void updateOrAddOpenOrder(LimitOrder fullInfoOrder, String counterName) {
         FplayOrder stabOrderForNew = new FplayOrder(counterName); //
         updateOpenOrders(Collections.singletonList(fullInfoOrder), stabOrderForNew); // getCounterName???
     }
@@ -188,15 +188,15 @@ public abstract class MarketServiceOpenOrders {
                     .flatMap(update -> {
 
                         final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-                        String counterName = getCounterName();
+                        final String counterForLogs = getCounterName();
                         logger.info("#{} Order update:id={},status={},amount={},filled={},time={}",
-                                counterName,
+                                counterForLogs,
                                 update.getId(), update.getStatus(), update.getTradableAmount(),
                                 update.getCumulativeAmount(),
                                 df.format(update.getTimestamp()));
 
                         if (update.getStatus() == Order.OrderStatus.FILLED) {
-                            getTradeLogger().info(String.format("#%s Order %s FILLED", counterName, update.getId()));
+                            getTradeLogger().info(String.format("#%s Order %s FILLED", counterForLogs, update.getId()));
                         }
 
                         final FplayOrder fplayOrder = updateOpenOrder(update, stabOrderForNew); // exist or null
@@ -205,7 +205,7 @@ public abstract class MarketServiceOpenOrders {
                         }
 
                         if (fplayOrder.getOrderId().equals("0")) {
-                            getTradeLogger().warn(String.format("#%s WARNING: update of fplayOrder with id=0: %s", counterName, fplayOrder));
+                            getTradeLogger().warn(String.format("#%s WARNING: update of fplayOrder with id=0: %s", counterForLogs, fplayOrder));
                         }
 
                         return removeOpenOrderByTime(fplayOrder);
@@ -310,8 +310,8 @@ public abstract class MarketServiceOpenOrders {
 
     private FplayOrder updateOOStatus(FplayOrder fplayOrder) throws Exception {
         final String orderId = fplayOrder.getOrderId();
-        final String counterName = getCounterName();
-        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterName, 1, "updateOOStatus:", getLogger());
+        final String counterForLogs = getCounterName();
+        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterForLogs, 1, "updateOOStatus:", getLogger());
 
         if (!orderInfoAttempts.isPresent()) {
             throw new Exception("Failed to updateOOStatus id=" + orderId);
@@ -320,8 +320,8 @@ public abstract class MarketServiceOpenOrders {
         final LimitOrder limitOrder = (LimitOrder) orderInfo;
 
         if (fplayOrder.getOrder().getStatus() != Order.OrderStatus.FILLED && limitOrder.getStatus() == Order.OrderStatus.FILLED) {
-            getTradeLogger().info(String.format("#%s updateOOStatus got FILLED orderId=%s", counterName, limitOrder.getId()));
-            logger.info("#{} updateOOStatus got FILLED order: {}", counterName, limitOrder.toString());
+            getTradeLogger().info(String.format("#%s updateOOStatus got FILLED orderId=%s", counterForLogs, limitOrder.getId()));
+            logger.info("#{} updateOOStatus got FILLED order: {}", counterForLogs, limitOrder.toString());
         }
 
         final FplayOrder updatedOrder = FplayOrderUtils.updateFplayOrder(fplayOrder, limitOrder);
