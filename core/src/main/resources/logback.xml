@@ -25,6 +25,8 @@
 
 <configuration>
 
+    <property resource="application.properties" />
+
     <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%contextName] [%thread] %-5level %logger{36}.%M:%line - %msg %xEx%n</pattern>
@@ -33,8 +35,8 @@
 
     <appender name="STACKIFY" class="com.stackify.log.logback.StackifyLogAppender">
         <apiKey>2Iz2Hf9Ty7Jc4Lj6Xk2Bt8Pw1Ox4Rt6Xw2Qq4Tm</apiKey>
-        <application>bitplay2-logs</application>
-        <environment>Host664</environment>
+        <application>bitplay2</application>
+        <environment>TEST</environment>
     </appender>
 
     <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
