@@ -1208,7 +1208,7 @@ public class OkCoinService extends MarketService {
         final String counterName = fOrderToCancel.getCounterName();
         if (limitOrder.getStatus() == Order.OrderStatus.CANCELED || limitOrder.getStatus() == Order.OrderStatus.FILLED) {
             tradeLogger.error(String.format("#%s do not move ALREADY_CLOSED order", counterName));
-            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null,null, fOrderToCancel);
+            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null, fOrderToCancel);
         }
         if (getMarketState() == MarketState.PLACING_ORDER) { // !arbitrageService.getParams().getOkCoinOrderType().equals("maker")
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving for taker");
@@ -1289,10 +1289,10 @@ public class OkCoinService extends MarketService {
             setMarketState(savedState);
         }
 
-        if (reqMovingArgs != null && reqMovingArgs.length == 2 && reqMovingArgs[0] != null) {
+        { // mon
             Instant lastEnd = Instant.now();
             Mon mon = monitoringDataService.fetchMon(getName(), "moveMakerOrder");
-            if (reqMovingArgs[0] != null) {
+            if (reqMovingArgs != null && reqMovingArgs.length == 1 && reqMovingArgs[0] != null) {
                 Instant lastObTime = (Instant) reqMovingArgs[0];
                 long beforeMs = startMoving.toEpochMilli() - lastObTime.toEpochMilli();
                 mon.getBefore().add(BigDecimal.valueOf(beforeMs));

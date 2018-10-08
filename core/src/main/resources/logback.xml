@@ -208,6 +208,21 @@
         </encoder>
     </appender>
 
+    <appender name="HTTP_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/http.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/http.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+
     <root level="INFO">
         <appender-ref ref="CONSOLE_APPENDER"/>
         <appender-ref ref="FILE_APPENDER"/>
@@ -255,7 +270,9 @@
 
 
     <!-- Logging api requests for poloniex -->
-    <!--<logger name="si.mazi.rescu" level="trace"/>-->
+    <logger name="si.mazi.rescu" level="trace" additivity="false">
+        <appender-ref ref="HTTP_APPENDER"/>
+    </logger>
 
     <!--<logger name="info.bitrich.xchangestream.bitmex.netty" level="debug">-->
         <!--<appender-ref ref="CONSOLE_APPENDER"/>-->
