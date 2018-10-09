@@ -42,6 +42,8 @@ public class FplayOrder {
     private PlacingType placingType;
     private SignalType signalType;
 
+    private Long tradeId;
+
     public FplayOrder(String counterName) {
         this.counterName = counterName;
     }

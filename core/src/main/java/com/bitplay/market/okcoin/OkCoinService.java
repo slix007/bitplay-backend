@@ -694,7 +694,7 @@ public class OkCoinService extends MarketService {
                 }
                 orderInfo = orderPair.getSecond();
 
-                updateOrAddOpenOrder((LimitOrder) orderInfo, counterName);
+                this.openOrders.add(new FplayOrder(counterName, orderInfo, bestQuotes, PlacingType.TAKER, signalType));
             }
 
             if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
@@ -708,7 +708,7 @@ public class OkCoinService extends MarketService {
 
                 tradeResponse.setOrderId(orderId);
             }
-        }
+        } // openOrdersLock
 
         return tradeResponse;
     }

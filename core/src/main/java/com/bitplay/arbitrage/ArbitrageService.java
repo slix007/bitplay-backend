@@ -144,7 +144,7 @@ public class ArbitrageService {
     private volatile Instant startSignalTime = null;
     private volatile Instant lastCalcSumBal = null;
 
-    private Long tradeId;
+    private volatile Long tradeId;
 
     // Signal delay
     private volatile Long signalDelayActivateTime;
@@ -250,7 +250,7 @@ public class ArbitrageService {
                     tradeService.info(tradeIdSnap, counterNameSnap, String.format("#%s is done. SignalTime=%s sec ---", counterNameSnap, signalTimeSec));
 
                     // use snapshot of Params
-                    DealPrices dealPricesSnap;
+                    final DealPrices dealPricesSnap;
                     synchronized (dealPrices) {
                         dealPricesSnap = SerializationUtils.clone(dealPrices);
                     }
@@ -360,13 +360,13 @@ public class ArbitrageService {
                             tradeService.warn(tradeId, counterName, "Warning: Free Bitmex");
                             warningLogger.warn("Warning: Free Bitmex");
                             logger.warn("Warning: Free Bitmex");
-                            firstMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
+                            firstMarketService.getEventBus().send(BtsEvent.MARKET_FREE_FORCE_RESET);
                         }
                         if (secondHanged && noOrders) {
                             tradeService.warn(tradeId, counterName, "Warning: Free Okcoin");
                             warningLogger.warn("Warning: Free Okcoin");
                             logger.warn("Warning: Free Okcoin");
-                            secondMarketService.getEventBus().send(BtsEvent.MARKET_FREE);
+                            secondMarketService.getEventBus().send(BtsEvent.MARKET_FREE_FORCE_RESET);
                         }
 
                     } else if (!firstMarketService.isReadyForArbitrageWithOOFetch() || !secondMarketService.isReadyForArbitrage()) {
@@ -740,6 +740,7 @@ public class ArbitrageService {
             Instant lastObTime) {
 
         arbInProgress.set(true);
+        logger.info("START SIGNAL 1");
         startSignalTime = Instant.now();
 
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
@@ -857,6 +858,7 @@ public class ArbitrageService {
             Instant lastObTime) {
 
         arbInProgress.set(true);
+        logger.info("START SIGNAL 2");
         startSignalTime = Instant.now();
 
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());

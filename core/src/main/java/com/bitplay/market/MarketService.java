@@ -237,6 +237,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                         setFree("UI");
                     } else if (btsEvent == BtsEvent.MARKET_FREE_FROM_CHECKER) {
                         setFree("CHECKER");
+                    } else if (btsEvent == BtsEvent.MARKET_FREE_FORCE_RESET) {
+                        setFree("FORCE_RESET");
                     } else if (btsEvent == BtsEvent.MARKET_FREE) {
                         setFree();
                     }
@@ -267,12 +269,19 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     logger.info("Free attempt when {}", marketState);
                 }
                 break;
+            case WAITING_ARB: // openOrderSubscr can setFree, when it's not needed
+            case PLACING_ORDER: // openOrderSubscr can setFree, when it's not needed
             case MOVING:
             case STOPPED:
             case FORBIDDEN:
-                if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
-                    logger.info("reset {} from UI", marketState);
+                if (flags != null && flags.length > 0 && (flags[0].equals("UI") || flags[0].equals("FORCE_RESET"))) {
+                    logger.info("reset {} from " + flags[0], marketState);
                     setMarketState(MarketState.READY);
+                    eventBus.send(BtsEvent.MARKET_FREE); // end arbitrage trigger s==> already ready.
+                    if (getArbitrageService().getSignalType().isCorr()) {
+                        getPosDiffService().finishCorr(true);
+                    }
+
                 }
                 break;
             case SYSTEM_OVERLOADED:
@@ -284,8 +293,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 }
                 break;
 
-            case PLACING_ORDER:
-            case WAITING_ARB:
             case ARBITRAGE:
 //            fetchPosition(); -- deadlock
                 setMarketState(MarketState.READY);

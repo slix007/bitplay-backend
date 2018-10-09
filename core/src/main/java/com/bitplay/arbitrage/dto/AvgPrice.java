@@ -153,7 +153,8 @@ public class AvgPrice implements Serializable {
                 ", pItems=" + pItems +
                 ", fullAmount=" + fullAmount +
                 ", openPrice=" + openPrice +
-                ", marketName='" + marketName + '\'' +
+                ", marketName='" + marketName + "'" +
+                ", hash='@" + Integer.toHexString(hashCode()) + "'" +
                 '}';
     }
 }
