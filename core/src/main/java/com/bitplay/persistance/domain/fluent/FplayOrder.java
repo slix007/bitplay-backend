@@ -45,21 +45,9 @@ public class FplayOrder {
 
     private Long tradeId;
 
-    public FplayOrder(String counterName) {
+    public FplayOrder(Long tradeId, String counterName, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
+        this.tradeId = tradeId;
         this.counterName = counterName;
-    }
-
-    public FplayOrder(String counterName, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
-        this.counterName = counterName;
-        this.bestQuotes = bestQuotes;
-        this.placingType = placingType;
-        this.signalType = signalType;
-    }
-
-    public FplayOrder(String counterName, @NotNull Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
-        this.counterName = counterName;
-        this.orderId = order.getId();
-        this.orderDetail = FplayOrderConverter.convert(order);
         this.bestQuotes = bestQuotes;
         this.placingType = placingType;
         this.signalType = signalType;

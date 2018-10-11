@@ -257,7 +257,7 @@ public class ArbitrageService {
                 tradeIdOkexFinished = Utils.lastTradeId(tradeIdOkexFinished, doneTradeId);
             }
 
-            final Long tradeIdSnap = tradeId != null ? new Long(tradeId) : fplayTradeRepository.getLastId(); //inside lock
+            final Long tradeIdSnap = getLastTradeId(); //inside lock
             if (tradeIdBitmexFinished != null && tradeIdOkexFinished != null
                     && tradeIdBitmexFinished >= tradeIdSnap && tradeIdOkexFinished >= tradeIdSnap) {
 
@@ -1606,8 +1606,12 @@ public class ArbitrageService {
         return tradeId;
     }
 
+    public Long getLastTradeId() {
+        return tradeId != null ? tradeId.longValue() : fplayTradeRepository.getLastId();
+    }
+
     public Long getLastInProgressTradeId() {
-        final Long tradeIdSnap = tradeId != null ? tradeId.longValue() : fplayTradeRepository.getLastId();
+        final Long tradeIdSnap = getLastTradeId();
         FplayTrade one = fplayTradeRepository.findOne(tradeIdSnap);
         if (one.getTradeStatus() == TradeStatus.IN_PROGRESS) {
             return tradeIdSnap;

@@ -169,10 +169,8 @@ public abstract class MarketServiceOpenOrders {
         }
     }
 
-    protected void addOpenOrders(List<FplayOrder> fPlayOrders) {
-        synchronized (openOrdersLock) {
-            fPlayOrders.forEach(this::addOpenOrder);
-        }
+    protected void addOpenOrders(List<LimitOrder> trades, FplayOrder stubOrderForNew) {
+        updateOpenOrders(trades, stubOrderForNew);
     }
 
     protected void updateOpenOrder(LimitOrder trade) {
@@ -189,7 +187,7 @@ public abstract class MarketServiceOpenOrders {
      * @param trades any orderInfo updates from server.
      * @param stubOrderForNew with correctly filled 'counterName' or null.
      */
-    private void updateOpenOrders(List<LimitOrder> trades, FplayOrder stubOrderForNew) { // TODO
+    protected void updateOpenOrders(List<LimitOrder> trades, FplayOrder stubOrderForNew) { // TODO
 
         if (trades.size() == 0) {
             return;

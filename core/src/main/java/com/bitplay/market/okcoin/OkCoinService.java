@@ -553,7 +553,12 @@ public class OkCoinService extends MarketService {
                                     );
                         }
 
-                        updateOpenOrders(privateData.getTrades());
+                        final Long tradeId = arbitrageService.getLastTradeId();
+                        final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, getCounterName(),
+                                null,
+                                null,
+                                null);
+                        updateOpenOrders(privateData.getTrades(), fPlayOrderStub);
                     }
                 }, throwable -> {
                     logger.error("PrivateData.Exception: ", throwable);
@@ -1210,6 +1215,7 @@ public class OkCoinService extends MarketService {
         final LimitOrder limitOrder = LimitOrder.Builder.from(fOrderToCancel.getOrder()).build();
         final SignalType signalType = fOrderToCancel.getSignalType() != null ? fOrderToCancel.getSignalType() : getArbitrageService().getSignalType();
 
+        final Long tradeId = fOrderToCancel.getTradeId();
         final String counterName = fOrderToCancel.getCounterName();
         if (limitOrder.getStatus() == Order.OrderStatus.CANCELED || limitOrder.getStatus() == Order.OrderStatus.FILLED) {
             tradeLogger.error(String.format("#%s do not move ALREADY_CLOSED order", counterName));
@@ -1271,13 +1277,13 @@ public class OkCoinService extends MarketService {
                     getTradeLogger().warn("WARNING: PlaceType is null." + cancelledFplayOrd);
                 }
 
-                tradeResponse = finishMovingSync(fOrderToCancel.getTradeId(), limitOrder, signalType, bestQuotes, counterName, cancelledLimitOrder,
+                tradeResponse = finishMovingSync(tradeId, limitOrder, signalType, bestQuotes, counterName, cancelledLimitOrder,
                         tradeResponse,
                         cancelledFplayOrd.getPlacingType());
 
                 if (tradeResponse.getLimitOrder() != null) {
                     final LimitOrder newOrder = tradeResponse.getLimitOrder();
-                    final FplayOrder newFplayOrder = new FplayOrder(counterName, newOrder, cancelledFplayOrd.getBestQuotes(),
+                    final FplayOrder newFplayOrder = new FplayOrder(tradeId, counterName, newOrder, cancelledFplayOrd.getBestQuotes(),
                             cancelledFplayOrd.getPlacingType(), cancelledFplayOrd.getSignalType());
                     response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(),
                             newOrder, newFplayOrder, cancelledFplayOrd);
@@ -1903,7 +1909,6 @@ public class OkCoinService extends MarketService {
                                 .addPriceItem(resultOO.getCounterName(), order.getId(),
                                         order.getCumulativeAmount(),
                                         order.getAveragePrice(), order.getStatus());
-                        resultOOList.add(resultOO);
                         tradeId = Utils.lastTradeId(tradeId, resultOO.getTradeId());
                     }
 

@@ -632,7 +632,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
                 }
 
-                String currCounterName = getCounterName();
+                final String currCounterName = getCounterName();
+                final Long lastTradeId = getArbitrageService().getLastTradeId();
 
                 synchronized (openOrdersLock) {
                     this.openOrders = fetchedList.stream()
@@ -640,10 +641,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                     this.openOrders.stream()
                                             .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
                                             .findAny()
-                                            .map(fOrd -> new FplayOrder(fOrd.getCounterName(), limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(),
+                                            .map(fOrd -> new FplayOrder(fOrd.getTradeId(), fOrd.getCounterName(),
+                                                    limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(),
                                                     fOrd.getSignalType()))
-                                            .orElseGet(() ->
-                                                    new FplayOrder(currCounterName, (limitOrder), null, null, null)))
+                                            .orElseGet(() -> new FplayOrder(lastTradeId, currCounterName,
+                                                    (limitOrder), null, null, null)))
                             .collect(Collectors.toList());
                 }
 
