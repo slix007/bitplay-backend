@@ -1293,7 +1293,7 @@ public class BitmexService extends MarketService {
 
                     });
 
-            Long tradeId = arbitrageService.getLastTradeId();
+            final Long tradeId = arbitrageService.getTradeId();
             final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, getCounterName(),
                     null,
                     null,

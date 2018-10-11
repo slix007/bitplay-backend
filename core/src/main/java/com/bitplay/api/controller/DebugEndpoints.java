@@ -153,10 +153,10 @@ public class DebugEndpoints {
             Mon monBitmexMoving = monitoringDataService.fetchMon(BitmexService.NAME, "moveMakerOrder");
             Mon monOkexPlacing = monitoringDataService.fetchMon(OkCoinService.NAME, "placeOrder");
             Mon monOkexMoving = monitoringDataService.fetchMon(OkCoinService.NAME, "moveMakerOrder");
-            monBitmexPlacing = Mon.createDefaults(monBitmexPlacing.getId());
-            monBitmexMoving = Mon.createDefaults(monBitmexMoving.getId());
-            monOkexPlacing = Mon.createDefaults(monOkexPlacing.getId());
-            monOkexMoving = Mon.createDefaults(monOkexMoving.getId());
+            monBitmexPlacing.resetMon();
+            monBitmexMoving.resetMon();
+            monOkexPlacing.resetMon();
+            monOkexMoving.resetMon();
 
             monitoringDataService.saveMon(monBitmexPlacing);
             monitoringDataService.saveMon(monBitmexMoving);

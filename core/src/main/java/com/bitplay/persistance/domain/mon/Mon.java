@@ -47,16 +47,13 @@ public class Mon extends MarketDocument {
         return doc;
     }
 
-    public static Mon createDefaults(Long id) {
-        Mon doc = new Mon();
-        doc.setId(id);
-        doc.before = Range.empty();
-        doc.waitingPrev = Range.empty();
-        doc.wholePlacing = Range.empty();
-        doc.waitingMarket = Range.empty();
-        doc.after = Range.empty();
-        doc.count = 0;
-        return doc;
+    public void resetMon() {
+        this.before = Range.empty();
+        this.waitingPrev = Range.empty();
+        this.wholePlacing = Range.empty();
+        this.waitingMarket = Range.empty();
+        this.after = Range.empty();
+        this.count = 0;
     }
 
     public void incCount() {

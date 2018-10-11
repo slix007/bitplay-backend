@@ -633,7 +633,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 }
 
                 final String currCounterName = getCounterName();
-                final Long lastTradeId = getArbitrageService().getLastTradeId();
+                final Long lastTradeId = getArbitrageService().getTradeId();
 
                 synchronized (openOrdersLock) {
                     this.openOrders = fetchedList.stream()

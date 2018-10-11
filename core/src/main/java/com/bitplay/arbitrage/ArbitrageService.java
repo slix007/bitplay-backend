@@ -1606,7 +1606,7 @@ public class ArbitrageService {
         return tradeId;
     }
 
-    public Long getLastTradeId() {
+    private Long getLastTradeId() {
         return tradeId != null ? tradeId.longValue() : fplayTradeRepository.getLastId();
     }
 

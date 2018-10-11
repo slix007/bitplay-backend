@@ -553,7 +553,7 @@ public class OkCoinService extends MarketService {
                                     );
                         }
 
-                        final Long tradeId = arbitrageService.getLastTradeId();
+                        final Long tradeId = arbitrageService.getTradeId();
                         final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, getCounterName(),
                                 null,
                                 null,
@@ -854,7 +854,6 @@ public class OkCoinService extends MarketService {
         final Long tradeId = placeOrderArgs.getTradeId();
         final Instant lastObTime = placeOrderArgs.getLastObTime();
         final Instant startPlacing = Instant.now();
-        final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
 
         // SET STATE
         arbitrageService.setSignalType(signalType);
@@ -935,6 +934,7 @@ public class OkCoinService extends MarketService {
         }
 
         // metrics
+        final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
         if (lastObTime != null) {
             long beforeMs = startPlacing.toEpochMilli() - lastObTime.toEpochMilli();
             monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
