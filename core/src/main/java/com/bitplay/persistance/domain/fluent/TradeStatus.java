@@ -7,4 +7,5 @@ public enum TradeStatus {
     IN_PROGRESS,
     COMPLETED,
     INTERRUPTED,
+    CORR
 }

@@ -93,9 +93,9 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
             } else {
                 return new TradeResponseJson("Wrong orderType", "Wrong orderType");
             }
-
+            Long tradeId = poloniexService.getArbitrageService().getLastInProgressTradeId();
             tradeResponse = poloniexService.placeOrder(new PlaceOrderArgs(orderType, amount, null,
-                    null, signalType, 1, signalType.getCounterName()));
+                    null, signalType, 1, tradeId, signalType.getCounterName()));
         }
 
         final PoloniexTradeResponse poloniexTradeResponse = tradeResponse.getSpecificResponse() != null

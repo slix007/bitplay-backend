@@ -1,0 +1,13 @@
+[
+  {
+    "Class": "com.bitplay.arbitrage.PosDiffService",
+    "Method": "checkPosDiff",
+    "TrackedFunction": true
+  },
+  {
+    "Class": "com.bitplay.arbitrage.ArbitrageService",
+    "Method": "doComparison",
+    "TrackedFunction": true,
+    "TrackedFunctionName": "Tracked Function Test {{ClassName}}.{{MethodName}}"
+  }
+]

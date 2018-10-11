@@ -9,6 +9,7 @@ import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.FullBalance;
@@ -232,15 +233,18 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         Disposable subscribe = eventBus.toObserverable()
                 .doOnError(throwable -> logger.error("doOnError handling", throwable))
                 .retry()
-                .subscribe(btsEvent -> {
+                .subscribe(btsEventBox -> {
+                    BtsEvent btsEvent = btsEventBox.getBtsEvent();
                     if (btsEvent == BtsEvent.MARKET_FREE_FROM_UI) {
-                        setFree("UI");
+                        setFree(btsEventBox.getTradeId(), "UI");
                     } else if (btsEvent == BtsEvent.MARKET_FREE_FROM_CHECKER) {
-                        setFree("CHECKER");
+                        setFree(btsEventBox.getTradeId(), "CHECKER");
                     } else if (btsEvent == BtsEvent.MARKET_FREE_FORCE_RESET) {
-                        setFree("FORCE_RESET");
+                        setFree(btsEventBox.getTradeId(), "FORCE_RESET");
                     } else if (btsEvent == BtsEvent.MARKET_FREE) {
-                        setFree();
+                        setFree(btsEventBox.getTradeId());
+                    } else if (btsEvent == BtsEvent.MARKET_FREE_FOR_ARB) {
+                        // do not repeat. the event is for ArbitrageService
                     }
                 }, throwable -> logger.error("On event handling", throwable));
     }
@@ -257,7 +261,14 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }
     }
 
-    protected void setFree(String... flags) {
+    protected void setFree(Long tradeId, String... flags) {
+        if (tradeId != null) {
+            logger.info(String.format("setFree(%s, %s, %s), curr marketState=%s", tradeId,
+                    flags != null && flags.length > 0 ? flags[0] : null,
+                    flags != null && flags.length > 1 ? flags[1] : null,
+                    marketState));
+        }
+
         switch (marketState) {
             case SWAP:
             case SWAP_AWAIT:
@@ -277,7 +288,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 if (flags != null && flags.length > 0 && (flags[0].equals("UI") || flags[0].equals("FORCE_RESET"))) {
                     logger.info("reset {} from " + flags[0], marketState);
                     setMarketState(MarketState.READY);
-                    eventBus.send(BtsEvent.MARKET_FREE); // end arbitrage trigger s==> already ready.
+                    eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId)); // end arbitrage trigger s==> already ready.
                     if (getArbitrageService().getSignalType().isCorr()) {
                         getPosDiffService().finishCorr(true);
                     }
@@ -296,7 +307,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             case ARBITRAGE:
 //            fetchPosition(); -- deadlock
                 setMarketState(MarketState.READY);
-                eventBus.send(BtsEvent.MARKET_FREE); // end arbitrage trigger
+                eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId)); // end arbitrage trigger
                 if (getArbitrageService().getSignalType().isCorr()) {
                     getPosDiffService().finishCorr(true);
                 }
@@ -310,6 +321,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 } else {
                     logger.warn("{}: already ready. Iterate OO.", getName());
                 }
+                eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE_FOR_ARB, tradeId)); // end arbitrage trigger
 
                 iterateOpenOrdersMove(); // TODO we should not have such cases
                 break;
@@ -375,13 +387,15 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
             if (marketStateToSet == MarketState.READY && getName().equals(BitmexService.NAME)
                     && getArbitrageService().getSecondMarketService().getMarketState() == MarketState.WAITING_ARB) {
-                getArbitrageService().getSecondMarketService().setFree();
+                final Long tradeId = getArbitrageService().getTradeId();
+                getArbitrageService().getSecondMarketService().setFree(tradeId); // skip OKEX consistently, before bitemx-Ready
             }
 
             setMarketState(marketStateToSet);
 
             if (marketStateToSet == MarketState.READY) {
-                getEventBus().send(BtsEvent.MARKET_FREE);// to fix ARBITRAGE:IN_PROGRESS
+                final Long tradeId = getArbitrageService().getTradeId();
+                getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));// to fix ARBITRAGE:IN_PROGRESS
             }
 
             // Place order if it was placing

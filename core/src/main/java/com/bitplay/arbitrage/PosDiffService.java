@@ -11,7 +11,10 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
+import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
@@ -57,16 +60,23 @@ public class PosDiffService {
 
     @Autowired
     private PersistenceService persistenceService;
+
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
     private BitmexLimitsService bitmexLimitsService;
+
     @Autowired
     private OkexLimitsService okexLimitsService;
 
     @Autowired
     private BitmexService bitmexService;
+    @Autowired
+    private OkCoinService okCoinService;
+
+    @Autowired
+    private TradeService tradeService;
 
     private ScheduledExecutorService posDiffExecutor;
 
@@ -456,13 +466,16 @@ public class PosDiffService {
                     final PosAdjustment posAdjustment = settingsRepositoryService.getSettings().getPosAdjustment();
                     final PlacingType placingType = posAdjustment.getPosAdjustmentPlacingType();
                     // Market specific params
-                    String counterName = marketService.getCounterName(corrObj.signalType);
+                    final String counterName = marketService.getCounterName(corrObj.signalType);
+                    final Long tradeId = tradeService.createCorrTrade(counterName, null,
+                            ((BitmexContractType) bitmexService.getContractType()),
+                            ((OkexContractType) okCoinService.getContractType()));
                     marketService.placeOrder(new PlaceOrderArgs(orderType, adjAmount, null,
-                            placingType, corrObj.signalType, 1, counterName));
+                            placingType, corrObj.signalType, 1, tradeId, counterName));
                 }
             } else {
-                Integer maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm());
-                Integer maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
+                final Integer maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm());
+                final Integer maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
                 warningLogger.warn("No adjustment: adjAmount={}, isAffordable={}, maxBtm={}, maxOk={}, dc={}, btmPos={}, okPos={}, hedge={}",
                         adjAmount, isAffordable,
                         maxBtm, maxOkex, dc.toPlainString(),
@@ -498,9 +511,12 @@ public class PosDiffService {
                     // do nothing
                 } else {
                     // Market specific params
-                    String counterName = marketService.getCounterName(corrObj.signalType);
+                    final String counterName = marketService.getCounterName(corrObj.signalType);
+                    final Long tradeId = tradeService.createCorrTrade(counterName, null,
+                            ((BitmexContractType) bitmexService.getContractType()),
+                            ((OkexContractType) okCoinService.getContractType()));
                     marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
-                            PlacingType.TAKER, corrObj.signalType, 1, counterName));
+                            PlacingType.TAKER, corrObj.signalType, 1, tradeId, counterName));
                 }
             } else {
                 Integer maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm());

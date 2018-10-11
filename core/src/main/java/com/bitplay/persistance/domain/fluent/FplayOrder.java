@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.annotation.Version;
@@ -64,7 +65,21 @@ public class FplayOrder {
         this.signalType = signalType;
     }
 
+    public FplayOrder(Long tradeId, String counterName, @NotNull Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
+        this.tradeId = tradeId;
+        this.counterName = counterName;
+        this.orderId = order.getId();
+        this.orderDetail = FplayOrderConverter.convert(order);
+        this.bestQuotes = bestQuotes;
+        this.placingType = placingType;
+        this.signalType = signalType;
+    }
+
     public Order getOrder() {
+        return FplayOrderConverter.convert(orderDetail);
+    }
+
+    public LimitOrder getLimitOrder() {
         return FplayOrderConverter.convert(orderDetail);
     }
 

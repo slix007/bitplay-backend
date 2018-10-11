@@ -224,4 +224,15 @@ public class Utils {
         Instant second = okexOb.getTimeStamp().toInstant();
         return first.isAfter(second) ? first : second;
     }
+
+    public static Long lastTradeId(Long tradeId1, Long tradeId2) {
+        if (tradeId1 == null) {
+            return tradeId2;
+        }
+        if (tradeId2 == null) {
+            return tradeId1;
+        }
+        return tradeId1 > tradeId2 ? tradeId1 : tradeId2;
+    }
+
 }

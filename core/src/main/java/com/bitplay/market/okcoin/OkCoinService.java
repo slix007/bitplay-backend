@@ -17,6 +17,7 @@ import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -60,8 +61,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.annotation.PreDestroy;
 import javax.validation.constraints.NotNull;
 import org.knowm.xchange.Exchange;
@@ -635,11 +634,12 @@ public class OkCoinService extends MarketService {
         updateOOStatuses();
 
         if (!hasOpenOrders()) {
-            eventBus.send(BtsEvent.MARKET_FREE_FROM_CHECKER);
+            eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_CHECKER));
         }
     }
 
-    private TradeResponse takerOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType, String counterName)
+    private TradeResponse takerOrder(Long tradeId, Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType,
+            String counterName)
             throws Exception {
 
         TradeResponse tradeResponse = new TradeResponse();
@@ -680,7 +680,8 @@ public class OkCoinService extends MarketService {
                 throw new ResetToReadyException("Failed to check final status of taker-maker id=" + orderId);
             }
 
-            this.openOrders.add(new FplayOrder(counterName, orderInfo, bestQuotes, PlacingType.TAKER, signalType));
+            final FplayOrder fPlayOrder = new FplayOrder(tradeId, counterName, orderInfo, bestQuotes, PlacingType.TAKER, signalType);
+            addOpenOrder(fPlayOrder);
 
             arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
             arbitrageService.getDealPrices().getoPriceFact()
@@ -694,7 +695,9 @@ public class OkCoinService extends MarketService {
                 }
                 orderInfo = orderPair.getSecond();
 
-                this.openOrders.add(new FplayOrder(counterName, orderInfo, bestQuotes, PlacingType.TAKER, signalType));
+                updateOpenOrder((LimitOrder) orderInfo);
+                arbitrageService.getDealPrices().getoPriceFact()
+                        .addPriceItem(counterName, orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(), orderInfo.getStatus());
             }
 
             if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
@@ -707,6 +710,7 @@ public class OkCoinService extends MarketService {
                         orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString(), counterName);
 
                 tradeResponse.setOrderId(orderId);
+                tradeResponse.setLimitOrder((LimitOrder) orderInfo);
             }
         } // openOrdersLock
 
@@ -842,6 +846,7 @@ public class OkCoinService extends MarketService {
             placingType = settings.getOkexPlacingType();
         }
         final String counterName = placeOrderArgs.getCounterName();
+        final Long tradeId = placeOrderArgs.getTradeId();
         final Instant lastObTime = placeOrderArgs.getLastObTime();
         final Instant startPlacing = Instant.now();
         final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
@@ -860,9 +865,9 @@ public class OkCoinService extends MarketService {
                 }
 
                 if (placingType != PlacingType.TAKER) {
-                    tradeResponse = placeNonTakerOrder(orderType, amountLeft, bestQuotes, false, signalType, placingType, counterName);
+                    tradeResponse = placeNonTakerOrder(tradeId, orderType, amountLeft, bestQuotes, false, signalType, placingType, counterName);
                 } else {
-                    tradeResponse = takerOrder(orderType, amountLeft, bestQuotes, signalType, counterName);
+                    tradeResponse = takerOrder(tradeId, orderType, amountLeft, bestQuotes, signalType, counterName);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
                         final BigDecimal filled = tradeResponse.getCancelledOrders().get(0).getCumulativeAmount();
                         amountLeft = amountLeft.subtract(filled);
@@ -914,9 +919,12 @@ public class OkCoinService extends MarketService {
                 ooHangedCheckerService.startChecker();
                 setMarketState(MarketState.ARBITRAGE, counterName);
             } else {
+                if (nextState == MarketState.WAITING_ARB) {
+                    nextState = MarketState.ARBITRAGE;
+                }
                 setMarketState(nextState, counterName); // should be READY
                 if (tradeResponse.getOrderId() != null) {
-                    setFree(); // ARBGITRAGE->READY and iterateOOToMove
+                    setFree(placeOrderArgs.getTradeId()); // ARBGITRAGE->READY and iterateOOToMove
                 }
             }
         }
@@ -1011,7 +1019,7 @@ public class OkCoinService extends MarketService {
         throw new IllegalArgumentException("Use placeOrder instead");
     }
 
-    private TradeResponse placeNonTakerOrder(Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
+    private TradeResponse placeNonTakerOrder(Long tradeId, Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
                                           boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName) throws IOException {
         final TradeResponse tradeResponse = new TradeResponse();
 
@@ -1039,16 +1047,14 @@ public class OkCoinService extends MarketService {
                 tradeResponse.setErrorCode("The new price is 0 ");
             } else {
 
-                final LimitOrder limitOrder = new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), "123", new Date(), thePrice);
+                final Instant startReq = Instant.now();
+                final String orderId = exchange.getTradeService().placeLimitOrder(
+                        new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), "0", new Date(), thePrice));
+                final Instant endReq = Instant.now();
 
                 // metrics
-                final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
-                final Instant startReq = Instant.now();
-
-                String orderId = exchange.getTradeService().placeLimitOrder(limitOrder);
-
-                final Instant endReq = Instant.now();
                 final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
+                final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
                 monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
                 if (waitingMarketMs > 5000) {
                     logger.warn(placingSubType + " okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
@@ -1059,17 +1065,17 @@ public class OkCoinService extends MarketService {
 
                 tradeResponse.setOrderId(orderId);
 
-                final LimitOrder limitOrderWithId = new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
+                final LimitOrder resultOrder = new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
                         thePrice);
-                tradeResponse.setLimitOrder(limitOrderWithId);
-                final FplayOrder fplayOrder = new FplayOrder(counterName, limitOrderWithId, bestQuotes, placingSubType, signalType);
-                orderRepositoryService.save(fplayOrder);
+                tradeResponse.setLimitOrder(resultOrder);
+                final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingSubType, signalType);
+                addOpenOrder(fplayOrder);
 
                 String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType;
 
                 if (!isMoving) {
 
-                    final Order.OrderStatus status = limitOrderWithId.getStatus();
+                    final Order.OrderStatus status = resultOrder.getStatus();
                     final String msg = String.format("#%s: %s %s amount=%s, quote=%s, orderId=%s, status=%s",
                             counterName,
                             placingTypeString,
@@ -1079,43 +1085,42 @@ public class OkCoinService extends MarketService {
                             orderId,
                             status);
 
-                    debugLog.debug("placeOrder1 " + msg);
+//                    debugLog.debug("placeOrder1 " + msg);
 
-                    synchronized (openOrdersLock) {
+//                    synchronized (openOrdersLock) {
 
-                        debugLog.debug("placeOrder2 " + msg);
+//                        debugLog.debug("placeOrder2 " + msg);
 
                         tradeLogger.info(msg);
-                        openOrders.replaceAll(exists -> {
-                            if (fplayOrder.getOrderId().equals(exists.getOrderId())) {
-                                return FplayOrderUtils.updateFplayOrder(exists, fplayOrder);
-                            }
-                            return exists;
-                        });
+//                        openOrders.replaceAll(exists -> {
+//                            if (fplayOrder.getOrderId().equals(exists.getOrderId())) {
+//                                return FplayOrderUtils.updateFplayOrder(exists, fplayOrder);
+//                            }
+//                            return exists;
+//                        });
+//
+//                        if (openOrders.stream().noneMatch(o -> o.getOrderId().equals(fplayOrder.getOrderId()))) {
+//                            debugLog.debug("placeOrder2 Order was missed " + msg);
+//                            logger.warn("placeOrder2 Order was missed " + msg);
+//                            tradeLogger.warn("placeOrder2 Order was missed " + msg);
+//
+//                            openOrders.add(fplayOrder);
+//                        }
+//                    }
 
-                        if (openOrders.stream().noneMatch(o -> o.getOrderId().equals(fplayOrder.getOrderId()))) {
-                            debugLog.debug("placeOrder2 Order was missed " + msg);
-                            logger.warn("placeOrder2 Order was missed " + msg);
-                            tradeLogger.warn("placeOrder2 Order was missed " + msg);
-
-                            openOrders.add(fplayOrder);
-                        }
-                    }
-
-                    debugLog.debug("placeOrder3 " + msg);
+//                    debugLog.debug("placeOrder3 " + msg);
                 }
 
                 arbitrageService.getDealPrices().setSecondOpenPrice(thePrice);
                 arbitrageService.getDealPrices().getoPriceFact()
-                        .addPriceItem(counterName, orderId, limitOrderWithId.getCumulativeAmount(), limitOrderWithId.getAveragePrice(),
-                                limitOrderWithId.getStatus());
+                        .addPriceItem(counterName, orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(), resultOrder.getStatus());
 
                 orderIdToSignalInfo.put(orderId, bestQuotes);
 
                 writeLogPlaceOrder(orderType, tradeableAmount,
                         placingTypeString,
                         thePrice, orderId,
-                        (limitOrderWithId.getStatus() != null) ? limitOrderWithId.getStatus().toString() : null,
+                        (resultOrder.getStatus() != null) ? resultOrder.getStatus().toString() : null,
                         counterName);
             }
         }
@@ -1266,7 +1271,8 @@ public class OkCoinService extends MarketService {
                     getTradeLogger().warn("WARNING: PlaceType is null." + cancelledFplayOrd);
                 }
 
-                tradeResponse = finishMovingSync(limitOrder, signalType, bestQuotes, counterName, cancelledLimitOrder, tradeResponse,
+                tradeResponse = finishMovingSync(fOrderToCancel.getTradeId(), limitOrder, signalType, bestQuotes, counterName, cancelledLimitOrder,
+                        tradeResponse,
                         cancelledFplayOrd.getPlacingType());
 
                 if (tradeResponse.getLimitOrder() != null) {
@@ -1316,7 +1322,7 @@ public class OkCoinService extends MarketService {
         return response;
     }
 
-    private TradeResponse finishMovingSync(LimitOrder limitOrder, SignalType signalType, BestQuotes bestQuotes, String counterName,
+    private TradeResponse finishMovingSync(Long tradeId, LimitOrder limitOrder, SignalType signalType, BestQuotes bestQuotes, String counterName,
                                            Order cancelledOrder, TradeResponse tradeResponse, PlacingType placingType) {
         int attemptCount = 0;
         while (attemptCount < MAX_ATTEMPTS_FOR_MOVING) {
@@ -1336,7 +1342,7 @@ public class OkCoinService extends MarketService {
                     placingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
                 }
 
-                tradeResponse = placeNonTakerOrder(limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType, counterName);
+                tradeResponse = placeNonTakerOrder(tradeId, limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType, counterName);
 
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info(String.format("#%s/%s Moving3:Failed %s amount=%s,quote=%s,id=%s,attempt=%s. Error: %s",
@@ -1810,42 +1816,60 @@ public class OkCoinService extends MarketService {
             synchronized (openOrdersLock) {
                 if (hasOpenOrders()) {
 
-                    openOrders = openOrders.stream()
-                            .flatMap(openOrder -> {
-                                Stream<FplayOrder> optionalOrder = Stream.of(openOrder); // default -> keep the order
+                    List<FplayOrder> resultOOList = new ArrayList<>();
 
-                                if (openOrder == null) {
-                                    warningLogger.warn("OO is null. " + openOrder);
-                                    optionalOrder = Stream.empty();
-                                } else if (openOrder.getOrder().getType() == null) {
-                                    warningLogger.warn("OO type is null. " + openOrder.toString());
-                                } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
-                                        && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
-                                        && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
-                                    // keep the order
-                                } else {
+                    for (FplayOrder openOrder : openOrders) {
 
-                                    try {
-                                        Instant lastObTime = (iterateArgs != null && iterateArgs.length > 0)
-                                                ? (Instant) iterateArgs[0]
-                                                : null;
+//                        openOrders = openOrders.stream()
+//                            .flatMap(openOrder -> {
+//                        Stream<FplayOrder> optionalOrder = Stream.of(openOrder); // default -> keep the order
+//                        resultOOList = Collections.singletonList(openOrder); // default -> keep the order
 
-                                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, lastObTime);
-                                        //TODO keep an eye on 'hang open orders'
-                                        if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL // do nothing on such exception
-                                                || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION // do nothing on such exception
-                                        ) {
-                                            // update the status
-                                            final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
-                                            if (cancelledFplayOrder != null) optionalOrder = Stream.of(cancelledFplayOrder);
-                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
-                                            final FplayOrder newOrder = response.getNewFplayOrder();
-                                            final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+                        if (openOrder == null) {
+                            warningLogger.warn("OO is null. " + openOrder);
+                            // empty, do not add
+                            continue;
 
-                                            optionalOrder = Stream.of(newOrder, cancelledOrder);
+                        } else if (openOrder.getOrder().getType() == null) {
+                            warningLogger.warn("OO type is null. " + openOrder.toString());
+                            // keep the order
+                            resultOOList.add(openOrder);
+
+                        } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
+                                && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
+                                && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
+                            // keep the order
+                            resultOOList.add(openOrder);
+
+                        } else {
+
+                            try {
+                                Instant lastObTime = (iterateArgs != null && iterateArgs.length > 0)
+                                        ? (Instant) iterateArgs[0]
+                                        : null;
+
+                                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, lastObTime);
+                                //TODO keep an eye on 'hang open orders'
+                                if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                                        || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL // do nothing on such exception
+                                        || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION // do nothing on such exception
+                                ) {
+                                    // update the status
+                                    final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
+                                    if (cancelledFplayOrder != null) {
+                                        // update the order
+                                        resultOOList.add(cancelledFplayOrder);
+                                    }
+                                } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
+                                    final FplayOrder newOrder = response.getNewFplayOrder();
+                                    final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+
+                                    resultOOList.add(cancelledOrder);
+                                    resultOOList.add(newOrder);
 //                                            movingErrorsOverloaded.set(0);
-                                        }
+                                } else {
+                                    resultOOList.add(openOrder); // keep the same
+                                }
 //                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 //
 //                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
@@ -1853,40 +1877,42 @@ public class OkCoinService extends MarketService {
 //                                                movingErrorsOverloaded.set(0);
 //                                            }
 //                                        }
-                                        final FplayOrder newOrder = response.getNewFplayOrder();
-                                        final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
 
-                                        if (newOrder != null) {
-                                            final Order orderInfo = newOrder.getOrder();
-                                            arbitrageService.getDealPrices().getoPriceFact()
-                                                    .addPriceItem(newOrder.getCounterName(), orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(),
-                                                            orderInfo.getStatus());
-                                        }
-                                        if (cancelledOrder != null) {
-                                            final Order orderInfo = cancelledOrder.getOrder();
-                                            arbitrageService.getDealPrices().getoPriceFact()
-                                                    .addPriceItem(cancelledOrder.getCounterName(), orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(),
-                                                            orderInfo.getStatus());
-                                            if (cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
-                                                writeAvgPriceLog();
-                                            }
-                                        }
-
-                                    } catch (Exception e) {
-                                        // use default OO
-                                        warningLogger.warn("Error on moving: " + e.getMessage());
-                                        logger.warn("Error on moving", e);
-                                    }
+                                final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+                                if (cancelledOrder != null && cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
+                                    writeAvgPriceLog();
                                 }
 
-                                return optionalOrder; // default -> keep the order
-                            })
-                            .collect(Collectors.toList());
+                            } catch (Exception e) {
+                                // use default OO
+                                warningLogger.warn("Error on moving: " + e.getMessage());
+                                logger.warn("Error on moving", e);
+
+                                resultOOList = new ArrayList<>();
+                                resultOOList.add(openOrder); // keep the same
+                            }
+                        }
+
+                    }
+
+                    Long tradeId = null;
+                    // update all fplayOrders
+                    for (FplayOrder resultOO : resultOOList) {
+                        final LimitOrder order = resultOO.getLimitOrder();
+                        arbitrageService.getDealPrices().getbPriceFact()
+                                .addPriceItem(resultOO.getCounterName(), order.getId(),
+                                        order.getCumulativeAmount(),
+                                        order.getAveragePrice(), order.getStatus());
+                        resultOOList.add(resultOO);
+                        tradeId = Utils.lastTradeId(tradeId, resultOO.getTradeId());
+                    }
+
+                    this.openOrders = resultOOList;
 
                     if (!hasOpenOrders()) {
                         tradeLogger.warn("Free by iterateOpenOrdersMove");
                         logger.warn("Free by iterateOpenOrdersMove");
-                        eventBus.send(BtsEvent.MARKET_FREE);
+                        eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
                     }
 
                 }

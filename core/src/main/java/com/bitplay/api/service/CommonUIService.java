@@ -27,6 +27,7 @@ import com.bitplay.market.ArbState;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.PersistenceService;
@@ -365,7 +366,7 @@ public class CommonUIService {
     }
 
     public MarketStatesJson getMarketsStates() {
-        String arbState = arbitrageService.getArbInProgress().get()
+        String arbState = arbitrageService.getArbInProgress()
                 ? ArbState.IN_PROGRESS.toString()
                 : ArbState.READY.toString();
         boolean reconnectInProgress = ((BitmexService) arbitrageService.getFirstMarketService()).isReconnectInProgress();
@@ -400,9 +401,9 @@ public class CommonUIService {
     }
 
     public MarketFlagsJson freeMarketsStates() {
-        arbitrageService.getFirstMarketService().getEventBus().send(BtsEvent.MARKET_FREE_FROM_UI);
-        arbitrageService.getSecondMarketService().getEventBus().send(BtsEvent.MARKET_FREE_FROM_UI);
-        arbitrageService.getArbInProgress().set(false);
+        arbitrageService.getFirstMarketService().getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI));
+        arbitrageService.getSecondMarketService().getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI));
+        arbitrageService.releaseArbInProgress();
         log.info("Free markets states from UI");
         arbitrageService.printToCurrentDeltaLog("Free markets states from UI");
         return new MarketFlagsJson(

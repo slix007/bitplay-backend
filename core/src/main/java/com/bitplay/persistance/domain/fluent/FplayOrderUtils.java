@@ -8,25 +8,25 @@ import org.knowm.xchange.dto.trade.LimitOrder;
  */
 public class FplayOrderUtils {
 
-    public static FplayOrder updateFplayOrder(FplayOrder fplayOrder, LimitOrder update) {
+    public static FplayOrder updateFplayOrder(FplayOrder fplayOrder, LimitOrder theUpdate) {
         final FplayOrder updated;
         if (fplayOrder == null) {
             throw new IllegalArgumentException("FplayOrder stub for update is null");
         }
 
-        if (fplayOrder.getOrderId() != null) {
-            LimitOrder existing = (LimitOrder) fplayOrder.getOrder();
+        final LimitOrder updatedLimit = fplayOrder.getOrderId() != null
+                ? updateLimitOrder(fplayOrder.getLimitOrder(), theUpdate)
+                : theUpdate;
 
-            final LimitOrder limitOrder = updateLimitOrder(existing, update);
+        updated = new FplayOrder(
+                fplayOrder.getTradeId(),
+                fplayOrder.getCounterName(),
+                updatedLimit,
+                fplayOrder.getBestQuotes(),
+                fplayOrder.getPlacingType(),
+                fplayOrder.getSignalType());
 
-            updated = new FplayOrder(fplayOrder.getCounterName(), limitOrder,
-                    fplayOrder.getBestQuotes(), fplayOrder.getPlacingType(), fplayOrder.getSignalType());
-        } else {
-            updated = new FplayOrder(fplayOrder.getCounterName(), update,
-                    fplayOrder.getBestQuotes(), // may be null
-                    fplayOrder.getPlacingType(), // may be null
-                    fplayOrder.getSignalType()); // may be null
-        }
+
         return updated;
     }
 
@@ -39,7 +39,10 @@ public class FplayOrderUtils {
 
             final LimitOrder limitOrder = updateLimitOrder(existingLimit, updateLimit);
 
-            updated = new FplayOrder(exists.getCounterName(), limitOrder,
+            updated = new FplayOrder( // use exists metadata over update metadata. Why? update may be a stub?
+                    exists.getTradeId() != null ? exists.getTradeId() : update.getTradeId(),
+                    exists.getCounterName(),
+                    limitOrder,
                     exists.getBestQuotes() != null ? exists.getBestQuotes() : update.getBestQuotes(),
                     exists.getPlacingType() != null ? exists.getPlacingType() : update.getPlacingType(),
                     exists.getSignalType() != null ? exists.getSignalType() : update.getSignalType());

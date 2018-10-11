@@ -1,6 +1,5 @@
 package com.bitplay.persistance.domain.fluent;
 
-import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
@@ -24,7 +23,7 @@ public class FplayOrderConverter {
         return orderDetail;
     }
 
-    public static Order convert(OrderDetail orderDetail) {
+    public static LimitOrder convert(OrderDetail orderDetail) {
         return new LimitOrder(orderDetail.getOrderType(),
                 orderDetail.getTradableAmount(),
                 orderDetail.getCurrencyPair(),

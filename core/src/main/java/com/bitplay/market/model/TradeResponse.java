@@ -62,6 +62,8 @@ public class TradeResponse {
     }
 
     public void addCancelledOrder(LimitOrder cancelledOrder) {
-        cancelledOrders.add(cancelledOrder);
+        if (cancelledOrder != null) {
+            cancelledOrders.add(cancelledOrder);
+        }
     }
 }

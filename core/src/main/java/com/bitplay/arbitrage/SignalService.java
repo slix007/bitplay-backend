@@ -33,11 +33,11 @@ public class SignalService {
     private SettingsRepositoryService settingsRepositoryService;
 
     public void placeOkexOrderOnSignal(MarketService okexService, Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-            SignalType signalType, PlacingType placingType, String counterName, Instant lastObTime) {
+            SignalType signalType, PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
         final Settings settings = settingsRepositoryService.getSettings();
         final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
                 placingType,
-                signalType, 1, counterName, lastObTime);
+                signalType, 1, tradeId, counterName, lastObTime);
 
         if (settings.getArbScheme() == ArbScheme.CON_B_O) {
             ((OkCoinService) okexService).deferredPlaceOrderOnSignal(placeOrderArgs);
@@ -59,11 +59,12 @@ public class SignalService {
     }
 
     public void placeBitmexOrderOnSignal(MarketService bitmexService, Order.OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-            SignalType signalType, PlacingType placingType, String counterName, Instant lastObTime) {
+            SignalType signalType, PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
         executorService.submit(() -> {
             try {
 
-                final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, signalType, 1, counterName, lastObTime);
+                final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, signalType, 1,
+                        tradeId, counterName, lastObTime);
 
                 ((BitmexService) bitmexService).placeOrderToOpenOrders(placeOrderArgs);
             } catch (Exception e) {

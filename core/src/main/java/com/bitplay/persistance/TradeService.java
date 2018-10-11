@@ -124,16 +124,20 @@ public class TradeService {
     }
 
     public long createTrade(String counterName, DeltaName deltaName, BitmexContractType b, OkexContractType o) {
-        return createTrade(counterName, new Date(), deltaName, b, o);
+        return createTrade(counterName, new Date(), deltaName, b, o, TradeStatus.IN_PROGRESS);
     }
 
-    public synchronized long createTrade(String counterName, Date startTimestamp, DeltaName deltaName,
-            BitmexContractType bitmexContractType, OkexContractType okexContractType) {
+    public long createCorrTrade(String counterName, DeltaName deltaName, BitmexContractType b, OkexContractType o) {
+        return createTrade(counterName, new Date(), deltaName, b, o, TradeStatus.CORR);
+    }
+
+    private synchronized long createTrade(String counterName, Date startTimestamp, DeltaName deltaName,
+            BitmexContractType bitmexContractType, OkexContractType okexContractType, TradeStatus tradeStatus) {
         final FplayTrade fplayTrade = new FplayTrade();
         fplayTrade.setCounterName(counterName);
         fplayTrade.setStartTimestamp(startTimestamp);
         fplayTrade.setDeltaName(deltaName);
-        fplayTrade.setTradeStatus(TradeStatus.IN_PROGRESS);
+        fplayTrade.setTradeStatus(tradeStatus);
         fplayTrade.setBitmexContractType(bitmexContractType);
         fplayTrade.setOkexContractType(okexContractType);
 
