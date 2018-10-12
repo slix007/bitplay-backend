@@ -1899,7 +1899,7 @@ public class OkCoinService extends MarketService {
                     // update all fplayOrders
                     for (FplayOrder resultOO : resultOOList) {
                         final LimitOrder order = resultOO.getLimitOrder();
-                        arbitrageService.getDealPrices().getbPriceFact()
+                        arbitrageService.getDealPrices().getoPriceFact()
                                 .addPriceItem(resultOO.getCounterName(), order.getId(),
                                         order.getCumulativeAmount(),
                                         order.getAveragePrice(), order.getStatus());
