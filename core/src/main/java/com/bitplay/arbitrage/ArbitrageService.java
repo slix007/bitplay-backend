@@ -1085,9 +1085,16 @@ public class ArbitrageService {
     }
 
     public void printToCurrentDeltaLog(String msg) {
-        final Long tradeIdSnap = tradeId != null ? new Long(tradeId) : fplayTradeRepository.getLastId();
-        String counterName = firstMarketService.getCounterName();
+        final Long tradeIdSnap = getLastTradeId();
+        final String counterName = firstMarketService.getCounterName();
         tradeService.info(tradeIdSnap, counterName, msg);
+    }
+
+    public void printToCurrentDeltaLog(Long currTradeId, String msg) {
+        if (currTradeId != null) {
+            final String counterName = firstMarketService.getCounterName();
+            tradeService.info(currTradeId, counterName, msg);
+        }
     }
 
     public void printSumBal(Long tradeId, String counterName) {

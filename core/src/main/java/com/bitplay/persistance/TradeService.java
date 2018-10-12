@@ -128,7 +128,7 @@ public class TradeService {
     }
 
     public long createCorrTrade(String counterName, DeltaName deltaName, BitmexContractType b, OkexContractType o) {
-        return createTrade(counterName, new Date(), deltaName, b, o, TradeStatus.CORR);
+        return createTrade(counterName, new Date(), deltaName, b, o, TradeStatus.IN_PROGRESS);
     }
 
     private synchronized long createTrade(String counterName, Date startTimestamp, DeltaName deltaName,

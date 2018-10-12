@@ -13,9 +13,11 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
+import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
@@ -55,6 +57,8 @@ public class PosDiffService {
     private volatile boolean hasGeneralCorrStarted = false;
     private volatile boolean corrInProgress = false;
 
+    private volatile Long tradeId;
+
     @Autowired
     private ArbitrageService arbitrageService;
 
@@ -77,6 +81,8 @@ public class PosDiffService {
 
     @Autowired
     private TradeService tradeService;
+    @Autowired
+    private FplayTradeRepository fplayTradeRepository;
 
     private ScheduledExecutorService posDiffExecutor;
 
@@ -110,11 +116,12 @@ public class PosDiffService {
         }
     }
 
-    public void finishCorr(boolean wasOrderSuccess) {
+    public void finishCorr(Long tradeId, boolean wasOrderSuccess) {
         if (corrInProgress) {
             corrInProgress = false;
             final SignalType signalType = arbitrageService.getSignalType();
             boolean isAdj = signalType.isAdj();
+            Long lastTradeId = tradeId != null ? tradeId : getLastTradeId();
 
             try {
                 boolean isCorrect = false;
@@ -153,21 +160,28 @@ public class PosDiffService {
                     if (isCorrect) {
                         // correct++
                         corrParams.getAdj().incSuccesses();
-                        arbitrageService.printToCurrentDeltaLog("Adj succeed. " + corrParams.getAdj().toString());
+                        arbitrageService.printToCurrentDeltaLog(lastTradeId, "Adj succeed. " + corrParams.getAdj().toString());
+                        tradeService.setEndStatus(lastTradeId, TradeStatus.COMPLETED);
                     } else {
                         // error++
                         corrParams.getAdj().incFails();
-                        arbitrageService.printToCurrentDeltaLog(String.format("Adj failed. %s. dc=%s", corrParams.getCorr().toString(), getDc()));
+                        arbitrageService.printToCurrentDeltaLog(lastTradeId, String.format("Adj failed. %s. dc=%s", corrParams.getCorr().toString(), getDc()));
+                        tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
                     }
                 } else {
                     if (isCorrect) {
                         // correct++
                         corrParams.getCorr().incSuccesses();
-                        arbitrageService.printToCurrentDeltaLog("Correction succeed. " + corrParams.getCorr().toString());
+                        arbitrageService.printToCurrentDeltaLog(lastTradeId, "Correction succeed. " + corrParams.getCorr().toString());
+                        tradeService.setEndStatus(lastTradeId, TradeStatus.COMPLETED);
+
                     } else {
                         // error++
                         corrParams.getCorr().incFails();
-                        arbitrageService.printToCurrentDeltaLog(String.format("Correction failed. %s. dc=%s", corrParams.getCorr().toString(), getDc()));
+                        arbitrageService
+                                .printToCurrentDeltaLog(lastTradeId, String.format("Correction failed. %s. dc=%s", corrParams.getCorr().toString(), getDc()));
+                        tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
+
                     }
                 }
                 persistenceService.saveCorrParams(corrParams);
@@ -185,10 +199,11 @@ public class PosDiffService {
                     corrParams.getCorr().incFails();
                 }
                 persistenceService.saveCorrParams(corrParams);
-                arbitrageService.printToCurrentDeltaLog(String.format("Error on finish %s. %s. dc=%s",
+                arbitrageService.printToCurrentDeltaLog(lastTradeId, String.format("Error on finish %s. %s. dc=%s",
                         signalType,
                         isAdj ? corrParams.getAdj().toString() : corrParams.getCorr().toString(),
                         getDc()));
+                tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
             }
         }
     }
@@ -778,6 +793,10 @@ public class PosDiffService {
         if (!isPosEqualByMaxAdj()) {
             startTimerToImmediateCorrection();
         }
+    }
+
+    private Long getLastTradeId() {
+        return tradeId != null ? tradeId : fplayTradeRepository.getLastId();
     }
 
 }
