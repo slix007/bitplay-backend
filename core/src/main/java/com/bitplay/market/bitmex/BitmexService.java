@@ -42,10 +42,6 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stackify.apm.Trace;
-import com.stackify.metric.CounterAndTimer;
-import com.stackify.metric.MetricFactory;
-import com.stackify.metric.MetricManager;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
@@ -106,7 +102,6 @@ import si.mazi.rescu.HttpStatusIOException;
  * Created by Sergey Shurmin on 4/29/17.
  */
 @Service("bitmex")
-@Trace
 public class BitmexService extends MarketService {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger ordersLogger = LoggerFactory.getLogger("BITMEX_ORDERS_LOG");
@@ -1032,7 +1027,6 @@ public class BitmexService extends MarketService {
 
     @PreDestroy
     private void preDestroy() {
-        MetricManager.shutdown();
         isDestroyed = true;
         destroyAction(1);
     }
@@ -1411,7 +1405,6 @@ public class BitmexService extends MarketService {
         return tradeResponse;
     }
 
-    @Trace(start = true, trackedFunction = true, trackedFunctionName = "Tracked Function {{ClassName}} - {{MethodParameters[0]}}")
     public TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
         prevCumulativeAmount = BigDecimal.ZERO;
 
@@ -1497,8 +1490,8 @@ public class BitmexService extends MarketService {
                             logger.warn(placingType + " bitmexPlaceOrder waitingMarketMs=" + waitingMarketMs);
                         }
                         monitoringDataService.saveMon(monPlacing);
-                        CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrder" + placingType);
-                        placeOrderMetrics.durationMs(waitingMarketMs);
+//                        CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrder" + placingType);
+//                        placeOrderMetrics.durationMs(waitingMarketMs);
 
                         orderId = resultOrder.getId();
                         final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingType, signalType);
@@ -1549,8 +1542,8 @@ public class BitmexService extends MarketService {
                             logger.warn(placingType + " bitmexPlaceOrder waitingMarketMs=" + waitingMarketMs);
                         }
                         monitoringDataService.saveMon(monPlacing);
-                        CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrder" + placingType);
-                        placeOrderMetrics.durationMs(waitingMarketMs);
+//                        CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrder" + placingType);
+//                        placeOrderMetrics.durationMs(waitingMarketMs);
 
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
@@ -1676,8 +1669,8 @@ public class BitmexService extends MarketService {
         if (lastObTime != null) {
             long beforeMs = startPlacing.toEpochMilli() - lastObTime.toEpochMilli();
             monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
-            CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforePlaceOrder");
-            metrics.durationMs(beforeMs);
+//            CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforePlaceOrder");
+//            metrics.durationMs(beforeMs);
             if (beforeMs > 5000) {
                 logger.warn(placingType + "bitmex beforePlaceOrderMs=" + beforeMs);
             }
@@ -1685,8 +1678,8 @@ public class BitmexService extends MarketService {
         final Instant endPlacing = Instant.now();
         long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();
         monPlacing.getWholePlacing().add(BigDecimal.valueOf(wholeMs));
-        CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "wholePlacing" + placingType);
-        metrics.durationMs(wholeMs);
+//        CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "wholePlacing" + placingType);
+//        metrics.durationMs(wholeMs);
         if (wholeMs > 5000) {
             logger.warn(placingType + "bitmex wholePlacingMs=" + wholeMs);
         }
@@ -1696,7 +1689,6 @@ public class BitmexService extends MarketService {
         return tradeResponse;
     }
 
-    @Trace(start = true, trackedFunction = true, trackedFunctionName = "Bitmex moveMakerOrder")
     @Override
     public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice, Object... reqMovingArgs) {
         final LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
@@ -1781,8 +1773,8 @@ public class BitmexService extends MarketService {
                     Instant startMoving = (Instant) reqMovingArgs[0];
                     long beforeMs = startReq.toEpochMilli() - startMoving.toEpochMilli();
                     mon.getBefore().add(BigDecimal.valueOf(beforeMs));
-                    CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforeMoveOrder");
-                    metrics.durationMs(beforeMs);
+//                    CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforeMoveOrder");
+//                    metrics.durationMs(beforeMs);
                     if (beforeMs > 5000) {
                         logger.warn("beforeMs=" + beforeMs);
                     }
@@ -1802,8 +1794,8 @@ public class BitmexService extends MarketService {
                 mon.incCount();
                 monitoringDataService.saveMon(mon);
 
-                CounterAndTimer moveOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "moveOrder");
-                moveOrderMetrics.durationMs(waitingMarketMs);
+//                CounterAndTimer moveOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "moveOrder");
+//                moveOrderMetrics.durationMs(waitingMarketMs);
             }
 
         } catch (HttpStatusIOException e) {

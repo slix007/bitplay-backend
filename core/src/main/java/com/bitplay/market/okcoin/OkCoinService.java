@@ -36,9 +36,6 @@ import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
-import com.stackify.apm.Trace;
-import com.stackify.metric.CounterAndTimer;
-import com.stackify.metric.MetricFactory;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import info.bitrich.xchangestream.okex.dto.Tool;
@@ -97,7 +94,6 @@ import si.mazi.rescu.HttpStatusIOException;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service("okcoin")
-@Trace
 public class OkCoinService extends MarketService {
 
     public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
@@ -677,8 +673,8 @@ public class OkCoinService extends MarketService {
                 logger.warn("TAKER okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
             }
             monitoringDataService.saveMon(monPlacing);
-            CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrderTAKER");
-            placeOrderMetrics.durationMs(waitingMarketMs);
+//            CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrderTAKER");
+//            placeOrderMetrics.durationMs(waitingMarketMs);
 
             Order orderInfo = getFinalOrderInfoSync(orderId, counterName, "Taker:FinalStatus:");
             if (orderInfo == null) {
@@ -834,7 +830,6 @@ public class OkCoinService extends MarketService {
     }
 
     @Override
-    @Trace(trackedFunction = true, trackedFunctionName = "Okex placeOrder")
     public TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
         TradeResponse tradeResponse = new TradeResponse();
 
@@ -938,8 +933,8 @@ public class OkCoinService extends MarketService {
         if (lastObTime != null) {
             long beforeMs = startPlacing.toEpochMilli() - lastObTime.toEpochMilli();
             monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
-            CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforePlaceOrder");
-            metrics.durationMs(beforeMs);
+//            CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforePlaceOrder");
+//            metrics.durationMs(beforeMs);
             if (beforeMs > 5000) {
                 logger.warn(placingType + "okex beforePlaceOrderMs=" + beforeMs);
             }
@@ -947,8 +942,8 @@ public class OkCoinService extends MarketService {
         final Instant endPlacing = Instant.now();
         long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();
         monPlacing.getWholePlacing().add(BigDecimal.valueOf(wholeMs));
-        CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "wholePlacing" + placingType);
-        metrics.durationMs(wholeMs);
+//        CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "wholePlacing" + placingType);
+//        metrics.durationMs(wholeMs);
         if (wholeMs > 5000) {
             logger.warn(placingType + "okex wholePlacingMs=" + wholeMs);
         }
@@ -1065,8 +1060,8 @@ public class OkCoinService extends MarketService {
                     logger.warn(placingSubType + " okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
                 }
                 monitoringDataService.saveMon(monPlacing);
-                CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrder" + placingSubType);
-                placeOrderMetrics.durationMs(waitingMarketMs);
+//                CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrder" + placingSubType);
+//                placeOrderMetrics.durationMs(waitingMarketMs);
 
                 tradeResponse.setOrderId(orderId);
 
@@ -1210,7 +1205,6 @@ public class OkCoinService extends MarketService {
     private volatile CounterToDiff counterToDiff = new CounterToDiff(null, null);
 
     @Override
-    @Trace(trackedFunction = true, trackedFunctionName = "Okex moveMakerOrder")
     public MoveResponse moveMakerOrder(FplayOrder fOrderToCancel, BigDecimal bestMarketPrice, Object... reqMovingArgs) {
         final LimitOrder limitOrder = LimitOrder.Builder.from(fOrderToCancel.getOrder()).build();
         final SignalType signalType = fOrderToCancel.getSignalType() != null ? fOrderToCancel.getSignalType() : getArbitrageService().getSignalType();
@@ -1308,8 +1302,8 @@ public class OkCoinService extends MarketService {
                 Instant lastObTime = (Instant) reqMovingArgs[0];
                 long beforeMs = startMoving.toEpochMilli() - lastObTime.toEpochMilli();
                 mon.getBefore().add(BigDecimal.valueOf(beforeMs));
-                CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforeMoveOrder");
-                metrics.durationMs(beforeMs);
+//                CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforeMoveOrder");
+//                metrics.durationMs(beforeMs);
                 if (beforeMs > 5000) {
                     logger.warn("okex beforeMoveOrderMs=" + beforeMs);
                 }
