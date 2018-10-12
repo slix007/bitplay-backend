@@ -31,6 +31,8 @@ public class Config {
     private String uiPasswordForTrader;
     @Value("${ui.password.admin}")
     private String uiPasswordForAdmin;
+    @Value("${ui.password.actuator}")
+    private String uiPasswordForActuator;
 
 //    private Integer eBestMin;
 //    private BigDecimal coldStorage;
