@@ -415,4 +415,70 @@ public class BordersServiceTest {
 
     }
 
+    private BorderParams createDefaultBorders5() {
+        final List<BorderTable> borders = new ArrayList<>();
+        final List<BorderItem> borderBtmClose = new ArrayList<>();
+        borderBtmClose.add(new BorderItem(1, BigDecimal.valueOf(0.4), 0, 0));
+        borderBtmClose.add(new BorderItem(2, BigDecimal.valueOf(0.2), 500, 500));
+        borderBtmClose.add(new BorderItem(3, BigDecimal.valueOf(0), 1000, 1000));
+        borderBtmClose.add(new BorderItem(4, BigDecimal.valueOf(-0.2), 1500, 1500));
+        borders.add(new BorderTable("b_br_close", borderBtmClose));
+        final List<BorderItem> borderBtmOpen = new ArrayList<>();
+        borderBtmOpen.add(new BorderItem(1, BigDecimal.valueOf(0.4), 500, 500));
+        borderBtmOpen.add(new BorderItem(2, BigDecimal.valueOf(0.6), 1000, 1000));
+        borderBtmOpen.add(new BorderItem(3, BigDecimal.valueOf(0.8), 1500, 1500));
+        borderBtmOpen.add(new BorderItem(4, BigDecimal.valueOf(1), 2000, 2000));
+        borders.add(new BorderTable("b_br_open", borderBtmOpen));
+        final List<BorderItem> borderOkexClose = new ArrayList<>();
+        borderOkexClose.add(new BorderItem(1, BigDecimal.valueOf(0), 0, 0));
+        borderOkexClose.add(new BorderItem(2, BigDecimal.valueOf(0.2), 500, 500));
+        borderOkexClose.add(new BorderItem(3, BigDecimal.valueOf(0.4), 1000, 1000));
+        borderOkexClose.add(new BorderItem(4, BigDecimal.valueOf(0.6), 1500, 1500));
+        borders.add(new BorderTable("o_br_close", borderOkexClose));
+        final List<BorderItem> borderOkexOpen = new ArrayList<>();
+        borderOkexOpen.add(new BorderItem(1, BigDecimal.valueOf(0), 500, 500));
+        borderOkexOpen.add(new BorderItem(2, BigDecimal.valueOf(0.2), 1000, 1000));
+        borderOkexOpen.add(new BorderItem(3, BigDecimal.valueOf(0.4), 1500, 1500));
+        borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(0.6), 2000, 2000));
+        borders.add(new BorderTable("o_br_open", borderOkexOpen));
+
+        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+    }
+
+    @Test
+    public void test_eth_cm() {
+        borderParams = createDefaultBorders5();
+        when(persistenceService.fetchBorders()).thenReturn(borderParams);
+        when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
+
+//        B_delta: +52
+//        O_delta: -54
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
+        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(40));
+        settings.getPlacingBlocks().setBitmexBlockFactor(BigDecimal.valueOf(8.21));
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(0.7);
+        final BigDecimal delta2 = BigDecimal.valueOf(-0.85);
+        System.out.println("D1=" + delta1 + ", D2=" + delta2);
+        //
+        final BigDecimal bP = BigDecimal.valueOf(-1595);
+        final BigDecimal oPL = BigDecimal.valueOf(171);
+        final BigDecimal oPS = BigDecimal.valueOf(0);
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+
+        System.out.println(signal.toString());
+        System.out.println(signal.okexBlock);
+        System.out.println(signal.bitmexBlock);
+        assertEquals("b_br_open", signal.borderName);
+        assertEquals(40, signal.okexBlock);
+        assertEquals(328, signal.bitmexBlock); // 40 * cm(8.21)
+
+        System.out.println(signal.borderValueList);
+        final DiffFactBr deltaFactBr = ArbUtils.getDeltaFactBr(delta2, signal.borderValueList);
+        System.out.println(deltaFactBr.getStr());
+        System.out.println(deltaFactBr.getVal());
+    }
+
 }

@@ -659,7 +659,7 @@ public class BordersService {
                 bitmexBlock = block;
                 okexBlock = BigDecimal.valueOf(block).divide(cm, 0, RoundingMode.HALF_UP).intValue();
             } else { // usdInContract = cm; => min block is 1
-                bitmexBlock = block * cm.intValue();
+                bitmexBlock = BigDecimal.valueOf(block).multiply(cm).setScale(0, RoundingMode.HALF_UP).intValue();
                 okexBlock = block;
             }
             this.ver = ver;
@@ -678,7 +678,7 @@ public class BordersService {
                 bitmexBlock = block;
                 okexBlock = BigDecimal.valueOf(block).divide(cm, 0, RoundingMode.HALF_UP).intValue();
             } else { // usdInContract = cm; => min block is 1
-                bitmexBlock = block * cm.intValue();
+                bitmexBlock = BigDecimal.valueOf(block).multiply(cm).setScale(0, RoundingMode.HALF_UP).intValue();
                 okexBlock = block;
             }
             this.ver = ver;
