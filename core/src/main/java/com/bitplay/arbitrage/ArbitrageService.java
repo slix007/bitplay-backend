@@ -1084,17 +1084,11 @@ public class ArbitrageService {
         Utils.logIfLong(lastCalcSumBal, end, logger, "calcSumBalForGui");
     }
 
-    public void printToCurrentDeltaLog(String msg) {
+    public Long printToCurrentDeltaLog(String msg) {
         final Long tradeIdSnap = getLastTradeId();
         final String counterName = firstMarketService.getCounterName();
         tradeService.info(tradeIdSnap, counterName, msg);
-    }
-
-    public void printToCurrentDeltaLog(Long currTradeId, String msg) {
-        if (currTradeId != null) {
-            final String counterName = firstMarketService.getCounterName();
-            tradeService.info(currTradeId, counterName, msg);
-        }
+        return tradeIdSnap;
     }
 
     public void printSumBal(Long tradeId, String counterName) {
@@ -1613,7 +1607,7 @@ public class ArbitrageService {
         return tradeId;
     }
 
-    private Long getLastTradeId() {
+    public Long getLastTradeId() {
         return tradeId != null ? tradeId.longValue() : fplayTradeRepository.getLastId();
     }
 

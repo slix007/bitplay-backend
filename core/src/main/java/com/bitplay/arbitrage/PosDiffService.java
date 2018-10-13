@@ -14,8 +14,6 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
-import com.bitplay.persistance.domain.settings.BitmexContractType;
-import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -56,8 +54,6 @@ public class PosDiffService {
     private volatile boolean hasTimerStarted = false;
     private volatile boolean hasGeneralCorrStarted = false;
     private volatile boolean corrInProgress = false;
-
-    private volatile Long tradeId;
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -121,7 +117,6 @@ public class PosDiffService {
             corrInProgress = false;
             final SignalType signalType = arbitrageService.getSignalType();
             boolean isAdj = signalType.isAdj();
-            Long lastTradeId = tradeId != null ? tradeId : getLastTradeId();
 
             try {
                 boolean isCorrect = false;
@@ -160,26 +155,27 @@ public class PosDiffService {
                     if (isCorrect) {
                         // correct++
                         corrParams.getAdj().incSuccesses();
-                        arbitrageService.printToCurrentDeltaLog(lastTradeId, "Adj succeed. " + corrParams.getAdj().toString());
+                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog("Adj succeed. " + corrParams.getAdj().toString());
                         tradeService.setEndStatus(lastTradeId, TradeStatus.COMPLETED);
                     } else {
                         // error++
                         corrParams.getAdj().incFails();
-                        arbitrageService.printToCurrentDeltaLog(lastTradeId, String.format("Adj failed. %s. dc=%s", corrParams.getCorr().toString(), getDc()));
+                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Adj failed. %s. dc=%s",
+                                corrParams.getCorr().toString(), getDc()));
                         tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
                     }
                 } else {
                     if (isCorrect) {
                         // correct++
                         corrParams.getCorr().incSuccesses();
-                        arbitrageService.printToCurrentDeltaLog(lastTradeId, "Correction succeed. " + corrParams.getCorr().toString());
+                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog("Correction succeed. " + corrParams.getCorr().toString());
                         tradeService.setEndStatus(lastTradeId, TradeStatus.COMPLETED);
 
                     } else {
                         // error++
                         corrParams.getCorr().incFails();
-                        arbitrageService
-                                .printToCurrentDeltaLog(lastTradeId, String.format("Correction failed. %s. dc=%s", corrParams.getCorr().toString(), getDc()));
+                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Correction failed. %s. dc=%s",
+                                corrParams.getCorr().toString(), getDc()));
                         tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
 
                     }
@@ -199,7 +195,7 @@ public class PosDiffService {
                     corrParams.getCorr().incFails();
                 }
                 persistenceService.saveCorrParams(corrParams);
-                arbitrageService.printToCurrentDeltaLog(lastTradeId, String.format("Error on finish %s. %s. dc=%s",
+                Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Error on finish %s. %s. dc=%s",
                         signalType,
                         isAdj ? corrParams.getAdj().toString() : corrParams.getCorr().toString(),
                         getDc()));
@@ -482,9 +478,7 @@ public class PosDiffService {
                     final PlacingType placingType = posAdjustment.getPosAdjustmentPlacingType();
                     // Market specific params
                     final String counterName = marketService.getCounterName(corrObj.signalType);
-                    final Long tradeId = tradeService.createCorrTrade(counterName, null,
-                            ((BitmexContractType) bitmexService.getContractType()),
-                            ((OkexContractType) okCoinService.getContractType()));
+                    final Long tradeId = arbitrageService.getLastTradeId();
                     marketService.placeOrder(new PlaceOrderArgs(orderType, adjAmount, null,
                             placingType, corrObj.signalType, 1, tradeId, counterName));
                 }
@@ -527,9 +521,7 @@ public class PosDiffService {
                 } else {
                     // Market specific params
                     final String counterName = marketService.getCounterName(corrObj.signalType);
-                    final Long tradeId = tradeService.createCorrTrade(counterName, null,
-                            ((BitmexContractType) bitmexService.getContractType()),
-                            ((OkexContractType) okCoinService.getContractType()));
+                    final Long tradeId = arbitrageService.getLastTradeId();
                     marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
                             PlacingType.TAKER, corrObj.signalType, 1, tradeId, counterName));
                 }
@@ -793,10 +785,6 @@ public class PosDiffService {
         if (!isPosEqualByMaxAdj()) {
             startTimerToImmediateCorrection();
         }
-    }
-
-    private Long getLastTradeId() {
-        return tradeId != null ? tradeId : fplayTradeRepository.getLastId();
     }
 
 }
