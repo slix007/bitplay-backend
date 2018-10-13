@@ -451,7 +451,7 @@ public class CommonUIService {
         try {
             final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
 
-            String btmUsdInContract = null;
+            String btmUsdInContract = "1";
             if (bitmexService.getContractType().isEth()) {
                 final BigDecimal cm = placingBlocks.getBitmexBlockFactor();
                 btmUsdInContract = BigDecimal.valueOf(10).divide(cm, 2, RoundingMode.HALF_UP).toPlainString();
