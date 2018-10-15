@@ -11,7 +11,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -22,7 +21,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @TypeAlias("trade")
 @Getter
 @Setter
-@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 public class FplayTrade extends AbstractDocument {
@@ -53,5 +51,21 @@ public class FplayTrade extends AbstractDocument {
 
     public List<LogRow> getDeltaLog() {
         return deltaLog != null ? deltaLog : new ArrayList<>();
+    }
+
+    @Override
+    public String toString() {
+        return "FplayTrade{" +
+                "tradeId='" + getId() + '\'' +
+                "counterName='" + counterName + '\'' +
+                ", startTimestamp=" + startTimestamp +
+                ", bitmexOrders=" + bitmexOrders +
+                ", okexOrders=" + okexOrders +
+                ", deltaName=" + deltaName +
+                ", tradeStatus=" + tradeStatus +
+                ", bitmexContractType=" + bitmexContractType +
+                ", okexContractType=" + okexContractType +
+                ", deltaLog=" + deltaLog +
+                '}';
     }
 }

@@ -385,7 +385,9 @@ public class PosDiffService {
                         return true;
                     }
                     warningLogger.info(infoMsg + "bitmex " + pos1);
+                    log.info(infoMsg + "bitmex " + pos1);
                     warningLogger.info(infoMsg + "okex " + pos2);
+                    log.info(infoMsg + "okex " + pos2);
 
                     checkPosDiff(true);
                     return true;

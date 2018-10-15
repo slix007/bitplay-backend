@@ -697,11 +697,12 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                         logInfoId,
                         Arrays.toString(orderIds), "Market did not return info by orderIds");
                 customLogger.error(message);
+                logger.error(message);
             } else {
                 for (Order orderInfo : orders) {
                     orderInfo = orders.iterator().next();
                     if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                        customLogger.info(String.format("#%s/%s %s %s status=%s, avgPrice=%s, orderId=%s, type=%s, cumAmount=%s",
+                        String errorMsg = String.format("#%s/%s %s %s status=%s, avgPrice=%s, orderId=%s, type=%s, cumAmount=%s",
                                 counterForLogs, attemptCount,
                                 logInfoId,
                                 Utils.convertOrderTypeName(orderInfo.getType()),
@@ -709,7 +710,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                 orderInfo.getAveragePrice() != null ? orderInfo.getAveragePrice().toPlainString() : null,
                                 orderInfo.getId(),
                                 orderInfo.getType(),
-                                orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null));
+                                orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null);
+                        customLogger.info(errorMsg);
+                        logger.info(errorMsg);
                     }
                 }
             }

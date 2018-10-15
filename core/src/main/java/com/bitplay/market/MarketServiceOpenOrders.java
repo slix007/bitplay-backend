@@ -225,6 +225,13 @@ public abstract class MarketServiceOpenOrders {
 
                         getPersistenceService().getOrderRepositoryService().save(fplayOrder);
 
+                        final LimitOrder updated = fplayOrder.getLimitOrder();
+                        logger.info("#{} Order updated:id={},status={},amount={},filled={},time={}",
+                                counterForLogs,
+                                updated.getId(), updated.getStatus(), updated.getTradableAmount(),
+                                updated.getCumulativeAmount(),
+                                df.format(updated.getTimestamp()));
+
                         if (fplayOrder.getOrderId().equals("0")) {
                             getTradeLogger().warn(String.format("#%s WARNING: update of fplayOrder with id=0: %s", counterForLogs, fplayOrder));
                         }
