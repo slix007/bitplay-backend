@@ -262,12 +262,12 @@ public class ArbitrageService {
                 tradeIdOkexFinished = Utils.lastTradeId(tradeIdOkexFinished, doneTradeId);
             }
 
-            final Long tradeIdSnap = getLastTradeId(); //inside lock
-            if (tradeIdBitmexFinished != null && tradeIdOkexFinished != null
-                    && tradeIdBitmexFinished >= tradeIdSnap && tradeIdOkexFinished >= tradeIdSnap) {
+            if (tradeId != null && tradeIdBitmexFinished != null && tradeIdOkexFinished != null
+                    && tradeIdBitmexFinished >= tradeId && tradeIdOkexFinished >= tradeId) {
 
                 if (arbInProgress.getAndSet(false)) {
                     final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
+                    final long tradeIdSnap = tradeId.longValue();
 
                     if (signalTimeSec > 0) {
                         signalTimeService.addSignalTime(BigDecimal.valueOf(signalTimeSec));

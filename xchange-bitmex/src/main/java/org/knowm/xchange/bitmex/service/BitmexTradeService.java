@@ -70,9 +70,8 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         return String.valueOf(order.getOrderID());
     }
 
-    public MarketOrder placeMarketOrderBitmex(MarketOrder marketOrder) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+    public MarketOrder placeMarketOrderBitmex(MarketOrder marketOrder, String symbol) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
-        final String symbol = (String) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Symbol");
         final String side = marketOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
         final Double tradableAmount = marketOrder.getTradableAmount().setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
         final io.swagger.client.model.Order order = bitmexAuthenitcatedApi.order(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
@@ -105,9 +104,8 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         return String.valueOf(order.getOrderID());
     }
 
-    public LimitOrder placeLimitOrderBitmex(LimitOrder limitOrder, boolean participateDoNotInitiate)
+    public LimitOrder placeLimitOrderBitmex(LimitOrder limitOrder, boolean participateDoNotInitiate, String symbol)
             throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        final String symbol = (String) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Symbol");
         final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
         final String side = limitOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
         final Double tradableAmount = limitOrder.getTradableAmount().setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();

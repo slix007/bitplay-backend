@@ -13,4 +13,8 @@ public class MarketList {
     String second;
     String firstFutureContractName;
     String secondFutureContractName;
+
+    public boolean isEth() {
+        return firstFutureContractName != null && firstFutureContractName.startsWith("ETH");
+    }
 }

@@ -200,7 +200,7 @@ public class BitmexSwapService {
 
                 printAskBid("Before request");
 
-                final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, amountInContracts, null, SignalType.SWAP_OPEN);
+                final TradeResponse tradeResponse = bitmexService.singleTakerOrder(orderType, amountInContracts, null, SignalType.SWAP_OPEN);
                 if (tradeResponse.getOrderId() != null) {
                     swapParams.getSwapV2().setMsToSwapString("");
                     bitmexService.getPersistenceService().saveSwapParams(swapParams, bitmexService.getName());
@@ -328,7 +328,7 @@ public class BitmexSwapService {
 
                     arbitrageService.setSignalType(SignalType.SWAP_CLOSE_LONG);
 
-                    final TradeResponse tradeResponse = bitmexService.takerOrder(Order.OrderType.ASK, pos, null, SignalType.SWAP_CLOSE_LONG);
+                    final TradeResponse tradeResponse = bitmexService.singleTakerOrder(Order.OrderType.ASK, pos, null, SignalType.SWAP_CLOSE_LONG);
                     bitmexSwapOrders.setSwapCloseOrderId(tradeResponse.getOrderId());
                     if (tradeResponse.getErrorCode() == null) {
                         setStateSwapStarted(position);
@@ -344,7 +344,7 @@ public class BitmexSwapService {
 
                     arbitrageService.setSignalType(SignalType.SWAP_CLOSE_SHORT);
 
-                    final TradeResponse tradeResponse = bitmexService.takerOrder(Order.OrderType.BID, pos.abs(), null, SignalType.SWAP_CLOSE_SHORT);
+                    final TradeResponse tradeResponse = bitmexService.singleTakerOrder(Order.OrderType.BID, pos.abs(), null, SignalType.SWAP_CLOSE_SHORT);
                     bitmexSwapOrders.setSwapCloseOrderId(tradeResponse.getOrderId());
                     if (tradeResponse.getErrorCode() == null) {
                         setStateSwapStarted(position);
@@ -391,7 +391,7 @@ public class BitmexSwapService {
 
         arbitrageService.setSignalType(signalType);
 
-        final TradeResponse tradeResponse = bitmexService.takerOrder(orderType, pos.abs(), null, signalType);
+        final TradeResponse tradeResponse = bitmexService.singleTakerOrder(orderType, pos.abs(), null, signalType);
         bitmexSwapOrders.setSwapOpenOrderId(tradeResponse.getOrderId());
 
         if (tradeResponse.getErrorCode() == null) {

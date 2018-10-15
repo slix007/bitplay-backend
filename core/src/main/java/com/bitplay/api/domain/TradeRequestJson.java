@@ -1,11 +1,17 @@
 package com.bitplay.api.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Created by Sergey Shurmin on 4/15/17.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Getter
+@Setter
+@NoArgsConstructor
 public class TradeRequestJson {
 
     public enum Type {
@@ -23,37 +29,6 @@ public class TradeRequestJson {
     private Type type;
     private PlacementType placementType;
     private String amount;
+    private String toolName;
 
-    public TradeRequestJson() {
-    }
-
-    public TradeRequestJson(Type type, PlacementType placementType, String amount) {
-        this.type = type;
-        this.placementType = placementType;
-        this.amount = amount;
-    }
-
-    public Type getType() {
-        return type;
-    }
-
-    public void setType(Type type) {
-        this.type = type;
-    }
-
-    public String getAmount() {
-        return amount;
-    }
-
-    public void setAmount(String amount) {
-        this.amount = amount;
-    }
-
-    public PlacementType getPlacementType() {
-        return placementType;
-    }
-
-    public void setPlacementType(PlacementType placementType) {
-        this.placementType = placementType;
-    }
 }
