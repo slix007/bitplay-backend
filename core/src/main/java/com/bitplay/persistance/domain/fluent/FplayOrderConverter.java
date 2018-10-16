@@ -17,6 +17,7 @@ public class FplayOrderConverter {
         orderDetail.setCumulativeAmount(order.getCumulativeAmount());
         orderDetail.setTradableAmount(order.getTradableAmount());
         orderDetail.setTimestamp(order.getTimestamp());
+        orderDetail.setCurrencyPair(order.getCurrencyPair());
         if (order instanceof LimitOrder) {
             orderDetail.setLimitPrice(((LimitOrder) order).getLimitPrice());
         }

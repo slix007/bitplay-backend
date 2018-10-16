@@ -6,9 +6,11 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.bitmex.BitmexAdapters;
+import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -36,9 +38,13 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         throw new NotYetImplementedForExchangeException();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public OpenOrders getOpenOrders(OpenOrdersParams params) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
+//        final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
+        final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
+                .getExchangeSpecificParametersItem("currencyToScale");
+
         final String filter = "{\"open\":true}"; //{"open": true}
         final String count = "10";
         final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.getOrders(
@@ -49,7 +55,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 count
         );
         final List<LimitOrder> limitOrders = orders.stream()
-                .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order, scale))
+                .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order, currencyToScale))
                 .collect(Collectors.toList());
         return new OpenOrders(limitOrders);
     }
@@ -70,8 +76,10 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         return String.valueOf(order.getOrderID());
     }
 
+    @SuppressWarnings("unchecked")
     public MarketOrder placeMarketOrderBitmex(MarketOrder marketOrder, String symbol) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
+        final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
+                .getExchangeSpecificParametersItem("currencyToScale");
         final String side = marketOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
         final Double tradableAmount = marketOrder.getTradableAmount().setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
         final io.swagger.client.model.Order order = bitmexAuthenitcatedApi.order(exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
@@ -80,7 +88,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 tradableAmount,
                 "Market");
 
-        return (MarketOrder) BitmexAdapters.adaptOrder(order, scale);
+        return (MarketOrder) BitmexAdapters.adaptOrder(order, currencyToScale);
     }
 
     @Override
@@ -104,9 +112,12 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         return String.valueOf(order.getOrderID());
     }
 
-    public LimitOrder placeLimitOrderBitmex(LimitOrder limitOrder, boolean participateDoNotInitiate, String symbol)
+    @SuppressWarnings("unchecked")
+    public LimitOrder placeLimitOrderBitmex(LimitOrder limitOrder, boolean participateDoNotInitiate, String symbol, Integer scale)
             throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
+        final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
+                .getExchangeSpecificParametersItem("currencyToScale");
+
         final String side = limitOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
         final Double tradableAmount = limitOrder.getTradableAmount().setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
         final Double limitPrice = limitOrder.getLimitPrice().setScale(scale, BigDecimal.ROUND_HALF_UP).doubleValue();
@@ -118,12 +129,15 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 "Limit",
                 participateDoNotInitiate ? "ParticipateDoNotInitiate" : "");
 
-        return (LimitOrder) BitmexAdapters.adaptOrder(order, scale);
+        return (LimitOrder) BitmexAdapters.adaptOrder(order, currencyToScale);
     }
 
+    @SuppressWarnings("unchecked")
     public LimitOrder moveLimitOrder(LimitOrder limitOrder, BigDecimal bestMakerPrice) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final String symbol = (String) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Symbol");
         final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
+        final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
+                .getExchangeSpecificParametersItem("currencyToScale");
         final String side = limitOrder.getType() == Order.OrderType.BID ? "Buy" : "Sell";
         final Double newPrice = bestMakerPrice.setScale(scale, BigDecimal.ROUND_HALF_UP).doubleValue();
         final io.swagger.client.model.Order order = bitmexAuthenitcatedApi.updateOrder(
@@ -135,12 +149,14 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 "Limit",
                 "ParticipateDoNotInitiate");
         // Updated fields: price. It also has: orderID, timestamp(also it has transactTime), ordStatus
-        return order == null ? null : BitmexAdapters.updateLimitOrder(limitOrder, order, scale);
+        return order == null ? null : BitmexAdapters.updateLimitOrder(limitOrder, order, currencyToScale);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public boolean cancelOrder(String orderId) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
+        final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
+                .getExchangeSpecificParametersItem("currencyToScale");
         final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.deleteOrder(
                 exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
                 orderId,
@@ -148,7 +164,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 "");
 
         return orders.stream()
-                .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order, true, scale))
+                .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order, true, currencyToScale))
                 .allMatch(order -> order.getStatus() == OrderStatus.CANCELED
                         || order.getStatus() == OrderStatus.PENDING_CANCEL
                         || order.getStatus() == OrderStatus.FILLED
@@ -158,9 +174,11 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 );
     }
 
+    @SuppressWarnings("unchecked")
     public List<LimitOrder> cancelAllOrders() throws ExchangeException, IOException {
         final String symbol = (String) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Symbol");
-        final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
+        final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
+                .getExchangeSpecificParametersItem("currencyToScale");
 
         final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.deleteAllOrders(
                 exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
@@ -169,7 +187,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 "");
 
         return orders.stream()
-                .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order, true, scale))
+                .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order, true, currencyToScale))
                 .collect(Collectors.toList());
     }
 
@@ -188,9 +206,11 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         throw new NotYetImplementedForExchangeException();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Collection<Order> getOrder(String... orderIds) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        final Integer scale = (Integer) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Scale");
+        final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
+                .getExchangeSpecificParametersItem("currencyToScale");
         final String filter = "{\"orderID\":\"" + orderIds[0] + "\"}"; //{"orderID": "0c8f1e6f-5a06-a8a8-6abf-96ebdecea95f"};
         final String count = "1";
         final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.getOrders(
@@ -201,7 +221,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                 count
         );
         return orders.stream()
-                .map(order -> BitmexAdapters.adaptOrder(order, scale))
+                .map(order -> BitmexAdapters.adaptOrder(order, currencyToScale))
                 .collect(Collectors.toList());
     }
 

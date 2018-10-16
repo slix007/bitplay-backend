@@ -3,7 +3,9 @@ package info.bitrich.xchangestream.bitmex;
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingTradingService;
 import io.reactivex.Observable;
+import java.util.Map;
 import org.knowm.xchange.bitmex.BitmexAdapters;
+import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.trade.OpenOrders;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -25,12 +27,16 @@ public class BitmexStreamingTradingService implements StreamingTradingService {
 //                .map(BitmexAdapters::adaptOpenOrdersUpdate);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Observable<OpenOrders> getOpenOrderObservable(Object... objects) {
-        String symbol = (String) objects[0];
-        Integer scale = (Integer) objects[1];
-        String channel = "order:" + symbol;
-        return service.subscribeChannel("order", channel)
-                .map(jsonNode -> BitmexAdapters.adaptOpenOrdersUpdate(jsonNode, scale));
+        Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) objects[0];
+
+        // subcribe to "order" or "order:XBTUSD" or "order:ETHUSD"
+//        String channel = "order:" + symbol;
+        return service.subscribeChannel("order", "order")
+                .map(jsonNode ->
+                        BitmexAdapters.adaptOpenOrdersUpdate(jsonNode, currencyToScale)
+                );
     }
 }

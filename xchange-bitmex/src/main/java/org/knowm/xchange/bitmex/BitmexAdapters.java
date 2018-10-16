@@ -15,6 +15,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
@@ -131,7 +132,7 @@ public class BitmexAdapters {
         return new BigDecimal(aDouble).setScale(scale, RoundingMode.HALF_UP);
     }
 
-    public static OpenOrders adaptOpenOrdersUpdate(JsonNode fullInputJson, Integer scale) throws JsonProcessingException {
+    public static OpenOrders adaptOpenOrdersUpdate(JsonNode fullInputJson, Map<CurrencyPair, Integer> currencyToScale) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.registerModule(new JavaTimeModule());
@@ -144,7 +145,7 @@ public class BitmexAdapters {
                 io.swagger.client.model.Order order = mapper.treeToValue(node, io.swagger.client.model.Order.class);
 
                 //TODO MarketOrder can not be cast to LimitOrder
-                final LimitOrder limitOrder = (LimitOrder) adaptOrder(order, true, scale);
+                final LimitOrder limitOrder = (LimitOrder) adaptOrder(order, true, currencyToScale);
                 openOrders.add(limitOrder);
             }
         }
@@ -152,11 +153,11 @@ public class BitmexAdapters {
         return new OpenOrders(openOrders);
     }
 
-    public static Order adaptOrder(io.swagger.client.model.Order order, Integer scale) {
-        return adaptOrder(order, false, scale);
+    public static Order adaptOrder(io.swagger.client.model.Order order, Map<CurrencyPair, Integer> currencyToScale) {
+        return adaptOrder(order, false, currencyToScale);
     }
 
-    public static Order adaptOrder(io.swagger.client.model.Order order, boolean alwaysLimit, Integer scale) {
+    public static Order adaptOrder(io.swagger.client.model.Order order, boolean alwaysLimit, Map<CurrencyPair, Integer> currencyToScale) {
         final String side = order.getSide(); // may be null
         Order.OrderType orderType = null;
         BigDecimal tradableAmount = null;
@@ -173,10 +174,21 @@ public class BitmexAdapters {
         if (order.getOrderQty() != null) {
             tradableAmount = order.getOrderQty();
         }
+
+        Integer scale = 2; // max value by default
+
         if (order.getSymbol() != null) {
             final String first = order.getSymbol().substring(0, 3);
             final String second = order.getSymbol().substring(3);
-            currencyPair = new CurrencyPair(new Currency(first), new Currency(second));
+
+            for (CurrencyPair pair : currencyToScale.keySet()) {
+                if (first.equals(pair.base.getCurrencyCode()) && second.equals(pair.counter.getCurrencyCode())) {
+                    currencyPair = pair;
+                    scale = currencyToScale.get(pair);
+                    break;
+                }
+            }
+
         }
         if (order.getPrice() != null) {
             price = priceToBigDecimal(order.getPrice(), scale);
@@ -231,13 +243,14 @@ public class BitmexAdapters {
         return orderStatus;
     }
 
-    public static LimitOrder updateLimitOrder(LimitOrder limitOrder, io.swagger.client.model.Order order, Integer scale) {
-        final LimitOrder convertedOrd = (LimitOrder) BitmexAdapters.adaptOrder(order, true, scale);
+    public static LimitOrder updateLimitOrder(LimitOrder limitOrder, io.swagger.client.model.Order order,
+            Map<CurrencyPair, Integer> currencyToScale) {
+        final LimitOrder convertedOrd = (LimitOrder) BitmexAdapters.adaptOrder(order, true, currencyToScale);
 
         return new LimitOrder(
                 limitOrder.getType(),
                 limitOrder.getTradableAmount(),
-                limitOrder.getCurrencyPair(),
+                convertedOrd.getCurrencyPair() != null ? convertedOrd.getCurrencyPair() : limitOrder.getCurrencyPair(),
                 limitOrder.getId(),
                 convertedOrd.getTimestamp() != null ? convertedOrd.getTimestamp() : limitOrder.getTimestamp(),
                 convertedOrd.getLimitPrice() != null ? convertedOrd.getLimitPrice() : limitOrder.getLimitPrice(),

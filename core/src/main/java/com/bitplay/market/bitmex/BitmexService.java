@@ -64,6 +64,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -172,6 +173,8 @@ public class BitmexService extends MarketService {
     private Disposable restartTimer;
     private BitmexContractType bitmexContractType;
     private BitmexContractType bitmexContractTypeXBTUSD = BitmexContractType.XBTUSD;
+    private Map<CurrencyPair, Integer> currencyToScale = new HashMap<>();
+
     private AtomicInteger cancelledInRow = new AtomicInteger();
     private volatile boolean reconnectInProgress = false;
     private volatile AtomicInteger reconnectCount = new AtomicInteger(0);
@@ -373,14 +376,18 @@ public class BitmexService extends MarketService {
     public void initializeMarket(String key, String secret, ContractType contractType) {
         bitmexContractType = (BitmexContractType) contractType;
 
+        currencyToScale.put(bitmexContractType.getCurrencyPair(), bitmexContractType.getScale());
+        if (!sameOrderBookXBTUSD()) {
+            currencyToScale.put(bitmexContractTypeXBTUSD.getCurrencyPair(), bitmexContractTypeXBTUSD.getScale());
+        }
+
         scheduledMoveInProgressReset = scheduler.scheduleAtFixedRate(
                 DebugEndpoints::detectDeadlock,
                 5,
                 60,
                 TimeUnit.SECONDS);
 
-
-        this.usdInContract = 1;
+        this.usdInContract = 1; // not in use for Bitmex.
         this.key = key;
         this.secret = secret;
         bitmexSwapService = new BitmexSwapService(this, arbitrageService);
@@ -418,12 +425,12 @@ public class BitmexService extends MarketService {
             logger.info(msgOb);
 
             orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-            orderBookForPrice = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
 
             orderBookSubscription.dispose();
             List<String> symbols = new ArrayList<>();
             symbols.add(bitmexContractType.getSymbol());
-            if (!sameOrderBookForPrice()) {
+            if (!sameOrderBookXBTUSD()) {
                 symbols.add(bitmexContractTypeXBTUSD.getSymbol());
             }
 
@@ -831,6 +838,7 @@ public class BitmexService extends MarketService {
         spec.setSecretKey(secret);
         spec.setExchangeSpecificParametersItem("Symbol", bitmexContractType.getSymbol());
         spec.setExchangeSpecificParametersItem("Scale", bitmexContractType.getScale());
+        spec.setExchangeSpecificParametersItem("currencyToScale", currencyToScale);
 
         //ExchangeFactory.INSTANCE.createExchange(spec); - class cast exception, because
         // bitmex-* implementations should be moved into libraries.
@@ -933,7 +941,7 @@ public class BitmexService extends MarketService {
             destroyAction(1);
 
             orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-            orderBookForPrice = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
             orderBookErrors.set(0);
 
             exchangeConnect();
@@ -962,11 +970,11 @@ public class BitmexService extends MarketService {
                     orderBook.getAsks().size(),
                     orderBook.getBids().size(),
                     orderBook.getTimeStamp());
-            String msgObForPrice = sameOrderBookForPrice() ? ""
+            String msgObForPrice = sameOrderBookXBTUSD() ? ""
                     : String.format("OrderBookForPrice: asks=%s, bids=%s, timestamp=%s. ",
-                            orderBookForPrice.getAsks().size(),
-                            orderBookForPrice.getBids().size(),
-                            orderBookForPrice.getTimeStamp());
+                            orderBookXBTUSD.getAsks().size(),
+                            orderBookXBTUSD.getBids().size(),
+                            orderBookXBTUSD.getTimeStamp());
             if (!orderBookIsFilled() || !orderBookForPriceIsFilled()) {
                 String msg = String.format("OrderBook(ForPrice) is not full. %s; %s. %s",
                         msgOb,
@@ -997,7 +1005,7 @@ public class BitmexService extends MarketService {
         }
     }
 
-    private boolean sameOrderBookForPrice() {
+    private boolean sameOrderBookXBTUSD() {
         return bitmexContractType == bitmexContractTypeXBTUSD;
     }
 
@@ -1006,8 +1014,8 @@ public class BitmexService extends MarketService {
     }
 
     private boolean orderBookForPriceIsFilled() {
-        return sameOrderBookForPrice()
-                || (orderBookForPrice.getAsks().size() > 10 && orderBookForPrice.getBids().size() > 10);
+        return sameOrderBookXBTUSD()
+                || (orderBookXBTUSD.getAsks().size() > 10 && orderBookXBTUSD.getBids().size() > 10);
     }
 
     private void doRestart(String errMsg) {
@@ -1129,7 +1137,7 @@ public class BitmexService extends MarketService {
         startFlag = false;
         List<String> symbols = new ArrayList<>();
         symbols.add(bitmexContractType.getSymbol());
-        if (!sameOrderBookForPrice()) {
+        if (!sameOrderBookXBTUSD()) {
             symbols.add(bitmexContractTypeXBTUSD.getSymbol());
         }
 
@@ -1155,7 +1163,7 @@ public class BitmexService extends MarketService {
                             this.orderBook = orderBook;
                             afterOrderBookChanged(orderBook);
                         } else {
-                            this.orderBookForPrice = orderBook;
+                            this.orderBookXBTUSD = orderBook;
                         }
                     } catch (Exception e) {
                         logger.error("Can not merge OrderBook", e);
@@ -1228,15 +1236,15 @@ public class BitmexService extends MarketService {
     }
 
     @Override
-    public OrderBook getOrderBookForPrice() {
+    public OrderBook getOrderBookXBTUSD() {
         OrderBook orderBook;
-        if (sameOrderBookForPrice()) {
+        if (sameOrderBookXBTUSD()) {
             synchronized (orderBookLock) {
                 orderBook = getShortOrderBook(this.orderBook);
             }
         } else {
             synchronized (orderBookForPriceLock) {
-                orderBook = getShortOrderBook(this.orderBookForPrice);
+                orderBook = getShortOrderBook(this.orderBookXBTUSD);
             }
         }
 
@@ -1245,7 +1253,7 @@ public class BitmexService extends MarketService {
 
     private Disposable startOpenOrderListener() {
         return exchange.getStreamingTradingService()
-                .getOpenOrderObservable(bitmexContractType.getSymbol(), bitmexContractType.getScale())
+                .getOpenOrderObservable(currencyToScale)
                 .observeOn(ooSingleExecutor) // blocking queue is here
                 .doOnError(throwable -> handleSubscriptionError(throwable, "onOpenOrdersListening"))
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
@@ -1443,6 +1451,7 @@ public class BitmexService extends MarketService {
                 : bitmexContractType;
         final CurrencyPair currencyPair = btmContType.getCurrencyPair();
         final String symbol = btmContType.getSymbol();
+        final Integer scale = btmContType.getScale();
 
         final Instant startPlacing = Instant.now();
         final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
@@ -1476,13 +1485,20 @@ public class BitmexService extends MarketService {
                         tradeLogger.warn("placeOrder end waiting for reconnect.");
                     }
 
+                    final OrderBook orderBook;
+                    if (getContractType().isEth() && !btmContType.isEth()) {
+                        orderBook = getOrderBookXBTUSD();
+                    } else {
+                        orderBook = getOrderBook();
+                    }
+
                     if (placingType != PlacingType.TAKER) {
 
                         final BigDecimal bitmexPrice = settings.getBitmexPrice();
                         if (bitmexPrice != null && bitmexPrice.signum() != 0) {
                             thePrice = bitmexPrice;
                         } else {
-                            thePrice = createNonTakerPrice(orderType, placingType);
+                            thePrice = createNonTakerPrice(orderType, placingType, orderBook);
                         }
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
 
@@ -1492,7 +1508,7 @@ public class BitmexService extends MarketService {
                         final Instant startReq = Instant.now();
                         final LimitOrder resultOrder = bitmexTradeService.placeLimitOrderBitmex(
                                 new LimitOrder(orderType, amount, currencyPair, "0", new Date(), thePrice),
-                                participateDoNotInitiate, symbol);
+                                participateDoNotInitiate, symbol, scale);
                         final Instant endReq = Instant.now();
                         final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
                         monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
@@ -1727,7 +1743,8 @@ public class BitmexService extends MarketService {
                 FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, movedLimitOrder);
 
                 boolean showDiff = false;
-                if (movedLimitOrder.getCumulativeAmount().compareTo(prevCumulativeAmount) > 0) {
+                if (prevCumulativeAmount != null && movedLimitOrder.getCumulativeAmount() != null
+                        && movedLimitOrder.getCumulativeAmount().compareTo(prevCumulativeAmount) > 0) {
                     showDiff = true;
                 }
                 prevCumulativeAmount = movedLimitOrder.getCumulativeAmount();

@@ -1,8 +1,8 @@
 package com.bitplay.market.polonex;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.LogService;
@@ -15,12 +15,22 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.utils.Utils;
-
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingExchange;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingMarketDataService;
-
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.PreDestroy;
+import jersey.repackaged.com.google.common.collect.Sets;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
@@ -46,21 +56,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.PreDestroy;
-
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
-import jersey.repackaged.com.google.common.collect.Sets;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
@@ -522,7 +517,7 @@ public class PoloniexService extends MarketService {
 
     /**
      * Use when you're sure that order should be moved(has not the best price)
-     * Use {@link MarketService#moveMakerOrderIfNotFirst(FplayOrder)} when you know that price is not the best.
+     * Use {@link MarketService#moveMakerOrderIfNotFirst(FplayOrder, Object...)}} when you know that price is not the best.
      */
     public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal bestMarketPrice, Object... reqMovingArgs) {
         final LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
@@ -537,7 +532,7 @@ public class PoloniexService extends MarketService {
         while (attemptCount < 2) {
             attemptCount++;
             try {
-                bestMakerPrice = createBestMakerPrice(limitOrder.getType());
+                bestMakerPrice = createBestMakerPrice(limitOrder.getType(), getOrderBook());
                 final PoloniexTradeService poloniexTradeService = (PoloniexTradeService) exchange.getTradeService();
                 moveResponse = poloniexTradeService.move(
                         limitOrder.getId(),
@@ -601,7 +596,7 @@ public class PoloniexService extends MarketService {
 
     private PoloniexLimitOrder tryToPlaceMakerOrder(Order.OrderType orderType, BigDecimal amount) throws Exception {
 
-        BigDecimal thePrice = createBestMakerPrice(orderType);
+        BigDecimal thePrice = createBestMakerPrice(orderType, getOrderBook());
 
         final PoloniexLimitOrder theOrder = new PoloniexLimitOrder(orderType, amount,
                 CURRENCY_PAIR_USDT_BTC, null, new Date(), thePrice);

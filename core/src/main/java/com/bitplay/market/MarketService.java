@@ -70,7 +70,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-    protected volatile OrderBook orderBookForPrice = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+    protected volatile OrderBook orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected final Object orderBookLock = new Object();
     protected final Object orderBookForPriceLock = new Object();
     protected volatile AccountInfo accountInfo = null;
@@ -124,7 +124,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public abstract UserTrades fetchMyTradeHistory();
 
-    public OrderBook getOrderBookForPrice() {
+    public OrderBook getOrderBookXBTUSD() {
         return getOrderBook();
     }
 
@@ -162,9 +162,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected OrderBook getFullOrderBookForPrice() {
         OrderBook orderBook;
         synchronized (orderBookForPriceLock) {
-            orderBook = new OrderBook(this.orderBookForPrice.getTimeStamp(),
-                    new ArrayList<>(this.orderBookForPrice.getAsks()),
-                    new ArrayList<>(this.orderBookForPrice.getBids()));
+            orderBook = new OrderBook(this.orderBookXBTUSD.getTimeStamp(),
+                    new ArrayList<>(this.orderBookXBTUSD.getAsks()),
+                    new ArrayList<>(this.orderBookXBTUSD.getBids()));
         }
         return orderBook;
     }
@@ -534,7 +534,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public FullBalance calcFullBalance() {
         return getBalanceService().recalcAndGetAccountInfo(accountInfoContracts, position, orderBook, getContractType(),
-                positionXBTUSD, orderBookForPrice);
+                positionXBTUSD, orderBookXBTUSD);
     }
 
     public Position getPosition() {
@@ -785,33 +785,33 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public abstract MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice, Object... reqMovingArgs);
 
-    protected BigDecimal createNonTakerPrice(Order.OrderType orderType, PlacingType placingType) {
+    protected BigDecimal createNonTakerPrice(Order.OrderType orderType, PlacingType placingType, OrderBook orderBook) {
         final ContractType contractType = getContractType();
         BigDecimal tickSize = contractType.getTickSize();
         BigDecimal thePrice;
         if (placingType == PlacingType.MAKER) {
-            thePrice = createBestMakerPrice(orderType);
+            thePrice = createBestMakerPrice(orderType, orderBook);
         } else if (placingType == PlacingType.MAKER_TICK) {
-            thePrice = createBestMakerTickPrice(orderType, tickSize);
+            thePrice = createBestMakerTickPrice(orderType, tickSize, orderBook);
         } else if (placingType == PlacingType.HYBRID_TICK) {
-            thePrice = createBestHybridTickPrice(orderType, tickSize);
+            thePrice = createBestHybridTickPrice(orderType, tickSize, orderBook);
         } else if (placingType == PlacingType.HYBRID) {
-            thePrice = createBestHybridPrice(orderType);
+            thePrice = createBestHybridPrice(orderType, orderBook);
         } else { // placingType == null???
             String msg = String.format("%s PlacingType==%s, use MAKER", getName(), placingType);
 //            warningLogger.warn(msg);
             logger.warn(msg);
-            thePrice = createBestMakerPrice(orderType);
+            thePrice = createBestMakerPrice(orderType, orderBook);
         }
         return thePrice.setScale(contractType.getScale(), RoundingMode.HALF_UP);
     }
 
-    protected BigDecimal createBestMakerPrice(Order.OrderType orderType) {
+    protected BigDecimal createBestMakerPrice(Order.OrderType orderType, OrderBook orderBook) {
         BigDecimal thePrice = BigDecimal.ZERO;
         if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
-            thePrice = Utils.getBestBid(getOrderBook()).getLimitPrice();
+            thePrice = Utils.getBestBid(orderBook).getLimitPrice();
         } else if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
-            thePrice = Utils.getBestAsk(getOrderBook()).getLimitPrice();
+            thePrice = Utils.getBestAsk(orderBook).getLimitPrice();
         }
         if (thePrice.signum() == 0) {
             getTradeLogger().info("WARNING: PRICE IS 0");
@@ -821,13 +821,13 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return thePrice;
     }
 
-    private BigDecimal createBestMakerTickPrice(OrderType orderType, BigDecimal tickSize) {
+    private BigDecimal createBestMakerTickPrice(OrderType orderType, BigDecimal tickSize, OrderBook orderBook) {
         BigDecimal thePrice = BigDecimal.ZERO;
         if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
-            BigDecimal ask = Utils.getBestAsk(getOrderBook()).getLimitPrice();
+            BigDecimal ask = Utils.getBestAsk(orderBook).getLimitPrice();
             thePrice = ask.subtract(tickSize);
         } else if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
-            BigDecimal bid = Utils.getBestBid(getOrderBook()).getLimitPrice();
+            BigDecimal bid = Utils.getBestBid(orderBook).getLimitPrice();
             thePrice = bid.add(tickSize);
         }
         if (thePrice.signum() == 0) {
@@ -839,10 +839,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return thePrice;
     }
 
-    private BigDecimal createBestHybridTickPrice(Order.OrderType orderType, BigDecimal tickSize) {
+    private BigDecimal createBestHybridTickPrice(Order.OrderType orderType, BigDecimal tickSize, OrderBook orderBook) {
         BigDecimal thePrice = BigDecimal.ZERO;
-        BigDecimal bid = Utils.getBestBid(getOrderBook()).getLimitPrice();
-        BigDecimal ask = Utils.getBestAsk(getOrderBook()).getLimitPrice();
+        BigDecimal bid = Utils.getBestBid(orderBook).getLimitPrice();
+        BigDecimal ask = Utils.getBestAsk(orderBook).getLimitPrice();
         if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
             BigDecimal askTick = ask.subtract(tickSize);
             thePrice = askTick.compareTo(bid) > 0 ? askTick : ask;
@@ -858,14 +858,14 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return thePrice;
     }
 
-    private BigDecimal createBestHybridPrice(Order.OrderType orderType) {
+    private BigDecimal createBestHybridPrice(Order.OrderType orderType, OrderBook orderBook) {
         BigDecimal thePrice = BigDecimal.ZERO;
         if (orderType == Order.OrderType.BID
                 || orderType == Order.OrderType.EXIT_ASK) {
-            thePrice = Utils.getBestAsk(getOrderBook()).getLimitPrice();
+            thePrice = Utils.getBestAsk(orderBook).getLimitPrice();
         } else if (orderType == Order.OrderType.ASK
                 || orderType == Order.OrderType.EXIT_BID) {
-            thePrice = Utils.getBestBid(getOrderBook()).getLimitPrice();
+            thePrice = Utils.getBestBid(orderBook).getLimitPrice();
         }
         if (thePrice.signum() == 0) {
             getTradeLogger().info("WARNING: PRICE IS 0");
@@ -897,8 +897,18 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
             response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
         } else {
+            OrderBook orderBook = getOrderBook();
+            if (getName().equals(BitmexService.NAME) && getContractType().isEth()) {
+                if (limitOrder.getCurrencyPair() == null) {
+                    return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST,
+                            "can not move when CurrencyPair is null");
+                }
+                if (limitOrder.getCurrencyPair().base.getCurrencyCode().equals("XBT")) {
+                    orderBook = getOrderBookXBTUSD();
+                }
+            }
 
-            BigDecimal bestPrice = createNonTakerPrice(limitOrder.getType(), fplayOrder.getPlacingType());
+            BigDecimal bestPrice = createNonTakerPrice(limitOrder.getType(), fplayOrder.getPlacingType(), orderBook);
 
             if (bestPrice.signum() == 0) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "bestPrice is 0");

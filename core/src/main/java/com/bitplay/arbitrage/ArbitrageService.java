@@ -1247,10 +1247,10 @@ public class ArbitrageService {
         BigDecimal usdQuote;
         switch (usdQuoteType) {
             case BITMEX:
-                usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBookForPrice());
+                usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBookXBTUSD());
                 break;
             case OKEX:
-                usdQuote = Utils.calcQuAvg(secondMarketService.getOrderBookForPrice());
+                usdQuote = Utils.calcQuAvg(secondMarketService.getOrderBookXBTUSD());
                 break;
             case INDEX_BITMEX:
                 if (firstMarketService.getContractType().isEth()) {
@@ -1276,7 +1276,7 @@ public class ArbitrageService {
                 break;
             case AVG:
             default:
-                usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBookForPrice(), secondMarketService.getOrderBookForPrice());
+                usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBookXBTUSD(), secondMarketService.getOrderBookXBTUSD());
                 break;
         }
         return usdQuote;
