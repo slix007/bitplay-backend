@@ -212,6 +212,18 @@ public class SettingsEndpoint {
             );
             settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
         }
+        if (settingsUpdate.getHedgeBtc() != null) {
+            settings.setHedgeBtc(settingsUpdate.getHedgeBtc());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getHedgeEth() != null) {
+            settings.setHedgeEth(settingsUpdate.getHedgeEth());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getHedgeAuto() != null) {
+            settings.setHedgeAuto(settingsUpdate.getHedgeAuto());
+            settingsRepositoryService.saveSettings(settings);
+        }
 
         return settings;
     }

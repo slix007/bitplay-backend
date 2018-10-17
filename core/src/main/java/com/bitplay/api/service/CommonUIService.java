@@ -243,9 +243,6 @@ public class CommonUIService {
         if (deltalUpdateJson.getReserveBtc2() != null) {
             guiParams.setReserveBtc2(new BigDecimal(deltalUpdateJson.getReserveBtc2()));
         }
-        if (deltalUpdateJson.getHedgeAmount() != null) {
-            guiParams.setHedgeAmount(new BigDecimal(deltalUpdateJson.getHedgeAmount()));
-        }
         if (deltalUpdateJson.getFundingRateFee() != null) {
             guiParams.setFundingRateFee(new BigDecimal(deltalUpdateJson.getFundingRateFee()));
         }
@@ -333,7 +330,7 @@ public class CommonUIService {
                 cumParams.getCumAstBitmexMCom().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 guiParams.getReserveBtc1().toPlainString(),
                 guiParams.getReserveBtc2().toPlainString(),
-                guiParams.getHedgeAmount().toPlainString(),
+                "deprecated. use settings",
                 guiParams.getFundingRateFee().toPlainString(),
                 cumParams.getSlipBr().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 cumParams.getSlip().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),

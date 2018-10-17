@@ -1301,7 +1301,7 @@ public class ArbitrageService {
         final BigDecimal bP = bitmexService.getPosition().getPositionLong();
         final BigDecimal oPL = okcoinService.getPosition().getPositionLong();
         final BigDecimal oPS = okcoinService.getPosition().getPositionShort();
-        final BigDecimal ha = getParams().getHedgeAmount();
+        final BigDecimal ha = settings.getHedgeBtc();
         final BigDecimal okexUsd = isEth
                 ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
                 : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));

@@ -57,6 +57,10 @@ public class Settings extends AbstractDocument {
     @Transient
     private ContractMode contractModeCurrent; // only for UI
 
+    private BigDecimal hedgeBtc;
+    private BigDecimal hedgeEth;
+    private Boolean hedgeAuto;
+
     public static Settings createDefault() {
         final Settings settings = new Settings();
         settings.arbScheme = ArbScheme.SIM;
@@ -74,6 +78,9 @@ public class Settings extends AbstractDocument {
         settings.bitmexContractType = BitmexContractType.XBTUSD;
         settings.coldStorageBtc = BigDecimal.ZERO;
         settings.eBestMin = 0;
+        settings.hedgeBtc = BigDecimal.ZERO;
+        settings.hedgeEth = BigDecimal.ZERO;
+        settings.hedgeAuto = false;
         settings.setId(1L);
         return settings;
     }

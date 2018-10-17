@@ -409,7 +409,7 @@ public class PosDiffService {
     }
 
     private BigDecimal getHedgeAmount() {
-        final BigDecimal hedgeAmount = arbitrageService.getParams().getHedgeAmount();
+        final BigDecimal hedgeAmount = settingsRepositoryService.getSettings().getHedgeBtc();
         if (hedgeAmount == null) {
             warningLogger.error("Hedge amount is null on checkPosDiff");
             throw new RuntimeException("Hedge amount is null on checkPosDiff");
