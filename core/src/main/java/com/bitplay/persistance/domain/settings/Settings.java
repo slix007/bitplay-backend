@@ -44,14 +44,18 @@ public class Settings extends AbstractDocument {
     private BigDecimal coldStorageBtc;
     private Integer eBestMin;
     private UsdQuoteType usdQuoteType;
+
+    @Deprecated
+    /* Use {@link #contractMode}. */
     private OkexContractType okexContractType;
+    @Deprecated
+    /* Use {@link #contractMode}. */
     private BitmexContractType bitmexContractType;
+    private ContractMode contractMode;
     @Transient
     private String okexContractName;
     @Transient
-    private String okexContractTypeCurrent; // only for UI
-    @Transient
-    private String bitmexContractTypeCurrent; // only for UI
+    private ContractMode contractModeCurrent; // only for UI
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -65,6 +69,7 @@ public class Settings extends AbstractDocument {
         settings.limits = Limits.createDefault();
         settings.restartSettings = RestartSettings.createDefaults();
         settings.signalDelayMs = 1000;
+        settings.contractMode = ContractMode.MODE1_SET_BU11;
         settings.okexContractType = OkexContractType.BTC_ThisWeek;
         settings.bitmexContractType = BitmexContractType.XBTUSD;
         settings.coldStorageBtc = BigDecimal.ZERO;
@@ -90,7 +95,7 @@ public class Settings extends AbstractDocument {
     }
 
     public boolean isEth() {
-        return bitmexContractTypeCurrent != null && bitmexContractTypeCurrent.startsWith("ETH");
+        return contractModeCurrent != null && contractModeCurrent.isEth();
     }
 
 }

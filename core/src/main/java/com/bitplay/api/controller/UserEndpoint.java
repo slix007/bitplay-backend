@@ -33,7 +33,7 @@ public class UserEndpoint {
                         .toArray();
                 map.put("roles", objects);
             }
-            map.put("details", user.toString());
+//            map.put("details", user.toString());
         }
         return map;
     }

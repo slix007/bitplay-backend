@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
@@ -72,9 +73,10 @@ public class SettingsEndpoint {
         Settings settings = new Settings();
         try {
             settings = settingsRepositoryService.getSettings();
-            settings.setBitmexContractTypeCurrent(bitmexService.getFuturesContractName());
-            settings.setOkexContractTypeCurrent(okCoinService.getFuturesContractName());
-            settings.setOkexContractName(settings.getOkexContractType().getContractName());
+            final ContractMode contractMode = ContractMode.parse(bitmexService.getFuturesContractName(),
+                    okCoinService.getFuturesContractName());
+            settings.setContractModeCurrent(contractMode);
+            settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
         } catch (Exception e) {
             final String error = String.format("Failed to get settings %s", e.toString());
             logger.error(error, e);
@@ -200,19 +202,17 @@ public class SettingsEndpoint {
             settings.setUsdQuoteType(settingsUpdate.getUsdQuoteType());
             settingsRepositoryService.saveSettings(settings);
         }
-        if (settingsUpdate.getOkexContractType() != null) {
-            settings.setOkexContractType(settingsUpdate.getOkexContractType());
+        if (settingsUpdate.getContractMode() != null) {
+            settings.setContractMode(settingsUpdate.getContractMode());
             settingsRepositoryService.saveSettings(settings);
 
-            settings.setOkexContractTypeCurrent(okCoinService.getFuturesContractName());
-            settings.setOkexContractName(settings.getOkexContractType().getContractName());
+            settings.setContractModeCurrent(ContractMode.parse(
+                    bitmexService.getFuturesContractName(),
+                    okCoinService.getFuturesContractName())
+            );
+            settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
         }
-        if (settingsUpdate.getBitmexContractType() != null) {
-            settings.setBitmexContractType(settingsUpdate.getBitmexContractType());
-            settingsRepositoryService.saveSettings(settings);
 
-            settings.setBitmexContractTypeCurrent(bitmexService.getFuturesContractName());
-        }
         return settings;
     }
 

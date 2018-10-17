@@ -7,9 +7,14 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
+import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.math.BigDecimal;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,46 +64,66 @@ public class TwoMarketStarter {
     @PostConstruct
     private void init() {
 
+        final ExecutorService startExecutor = Executors.newFixedThreadPool(2,
+                new ThreadFactoryBuilder().setNameFormat("starting-thread-%d").build());
+
+
         restartService.scheduleCheckForFullStart();
 
         final Settings settings = settingsRepositoryService.getSettings();
-        final OkexContractType okexContractType = settings.getOkexContractType();
-        final BitmexContractType bitmexContractType = settings.getBitmexContractType();
-
-        try {
-            final String firstMarketName = config.getFirstMarketName();
-            firstMarketService = (MarketService) context.getBean(firstMarketName);
-            firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret(), bitmexContractType);
-            logger.info("MARKET1: " + firstMarketService);
-        } catch (Exception e) {
-            logger.error("MARKET1 Initialization error. Set STOPPED.", e);
-            // Workaround to make work the other market
-            firstMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
-            firstMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
-            firstMarketService.setMarketState(MarketState.STOPPED);
+        ContractMode contractMode = settings.getContractMode();
+        if (contractMode == null) {
+            contractMode = ContractMode.parse(settings.getBitmexContractType(), settings.getOkexContractType());
         }
+        final OkexContractType okexContractType = contractMode.getOkexContractType();
+        final BitmexContractType bitmexContractType = contractMode.getBitmexContractType();
 
-        try {
-            final String secondMarketName = config.getSecondMarketName();
-            secondMarketService = (MarketService) context.getBean(secondMarketName);
-            secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret(), okexContractType);
-            logger.info("MARKET2: " + secondMarketService);
-        } catch (Exception e) {
-            logger.error("MARKET2 Initialization error. Set STOPPED.", e);
-            // Workaround to make work the other market
-            secondMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
-            secondMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
-            secondMarketService.setMarketState(MarketState.STOPPED);
-        }
+        CompletableFuture<Boolean> first = CompletableFuture.supplyAsync(() -> {
+            try {
+                final String firstMarketName = config.getFirstMarketName();
+                firstMarketService = (MarketService) context.getBean(firstMarketName);
+                firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret(), bitmexContractType);
+                logger.info("MARKET1: " + firstMarketService);
+                return true;
+            } catch (Exception e) {
+                logger.error("MARKET1 Initialization error. Set STOPPED.", e);
+                // Workaround to make work the other market
+                firstMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
+                firstMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
+                firstMarketService.setMarketState(MarketState.STOPPED);
+                return false;
+            }
+        }, startExecutor);
 
-        try {
-            final String correctPosition = "pos-diff";
-            posDiffService = (PosDiffService) context.getBean(correctPosition);
-            logger.info("PosDiffService: " + posDiffService);
-            arbitrageService.init(this);
-        } catch (Exception e) {
-            logger.error("Initialization error", e);
-        }
+        CompletableFuture<Boolean> second = CompletableFuture.supplyAsync(() -> {
+            try {
+                final String secondMarketName = config.getSecondMarketName();
+                secondMarketService = (MarketService) context.getBean(secondMarketName);
+                secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret(), okexContractType);
+                logger.info("MARKET2: " + secondMarketService);
+                return true;
+            } catch (Exception e) {
+                logger.error("MARKET2 Initialization error. Set STOPPED.", e);
+                // Workaround to make work the other market
+                secondMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
+                secondMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
+                secondMarketService.setMarketState(MarketState.STOPPED);
+                return false;
+            }
+        }, startExecutor);
+
+        first.thenCombine(second, (firstIsDone, secondIsDone) -> firstIsDone && secondIsDone)
+                .thenRun(() -> {
+                    try {
+                        final String correctPosition = "pos-diff";
+                        posDiffService = (PosDiffService) context.getBean(correctPosition);
+                        logger.info("PosDiffService: " + posDiffService);
+                        arbitrageService.init(this);
+                    } catch (Exception e) {
+                        logger.error("Initialization error", e);
+                    }
+
+                });
     }
 
     public MarketService getFirstMarketService() {
