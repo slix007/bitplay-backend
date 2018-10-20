@@ -1691,6 +1691,7 @@ public class BitmexService extends MarketService {
 
     @Override
     public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice, Object... reqMovingArgs) {
+        final Long tradeId = fplayOrder.getTradeId();
         final LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "do nothing by default");
 
@@ -1808,7 +1809,7 @@ public class BitmexService extends MarketService {
             moveResponse = handler.getMoveResponse();
             // double check  "Invalid ordStatus"
             if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), counterName, 1, "Moving:CheckInvOrdStatus:");
+                final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), tradeId + ":" + counterName, 1, "Moving:CheckInvOrdStatus:");
                 if (orderInfo.isPresent()) {
                     final Order doubleChecked = orderInfo.get();
                     final FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, (LimitOrder) doubleChecked);

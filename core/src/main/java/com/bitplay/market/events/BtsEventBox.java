@@ -16,10 +16,6 @@ public class BtsEventBox {
 
     private Long tradeId;
 
-    public BtsEventBox(@NotNull BtsEvent btsEvent) {
-        this.btsEvent = btsEvent;
-    }
-
     public BtsEventBox(@NotNull BtsEvent btsEvent, Long tradeId) {
         this.btsEvent = btsEvent;
         this.tradeId = tradeId;

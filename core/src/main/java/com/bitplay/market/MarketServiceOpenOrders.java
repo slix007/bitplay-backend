@@ -17,10 +17,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,6 +96,20 @@ public abstract class MarketServiceOpenOrders {
 
         }
         return hasOO;
+    }
+
+    public Long tryFindLastTradeId() {
+        Long lastTradeId = null;
+        synchronized (openOrdersLock) {
+            OptionalLong aLong = openOrders.stream()
+                    .map(FplayOrder::getTradeId)
+                    .filter(Objects::nonNull)
+                    .mapToLong(Long::longValue).max();
+            if (aLong.isPresent()) {
+                lastTradeId = aLong.getAsLong();
+            }
+        }
+        return lastTradeId;
     }
 
     protected void distinctOpenOrders() {
@@ -297,12 +313,27 @@ public abstract class MarketServiceOpenOrders {
      * Can return null, if (FplayOrder not found && stab == null).
      */
     private FplayOrder updateOpenOrder(LimitOrder update, FplayOrder stabOrderForNew) {
-        final FplayOrder updated = this.openOrders.stream()
-                .filter(fplayOrder -> fplayOrder.getOrderId().equals(update.getId()))
-                .map(fplayOrder -> FplayOrderUtils.updateFplayOrder(fplayOrder, update))
-                .findAny()
-                .orElseGet(() -> stabOrderForNew == null ? null : FplayOrderUtils.updateFplayOrder(stabOrderForNew, update));
-        return updated;
+        if (stabOrderForNew != null) {
+            FplayOrder theUpdate = new FplayOrder(
+                    stabOrderForNew.getTradeId(),
+                    stabOrderForNew.getCounterName(),
+                    update,
+                    stabOrderForNew.getBestQuotes(),
+                    stabOrderForNew.getPlacingType(),
+                    stabOrderForNew.getSignalType());
+
+            return this.openOrders.stream()
+                    .filter(fplayOrder -> fplayOrder.getOrderId().equals(update.getId()))
+                    .map(fplayOrder -> FplayOrderUtils.updateFplayOrder(fplayOrder, theUpdate))
+                    .findAny()
+                    .orElse(theUpdate);
+        } else {
+            return this.openOrders.stream()
+                    .filter(fplayOrder -> fplayOrder.getOrderId().equals(update.getId()))
+                    .map(fplayOrder -> FplayOrderUtils.updateFplayOrder(fplayOrder, update))
+                    .findAny()
+                    .orElse(null);
+        }
     }
 
     private Stream<FplayOrder> removeOpenOrderByTime(FplayOrder fplayOrder) {
@@ -312,6 +343,9 @@ public abstract class MarketServiceOpenOrders {
             final long maxMs = 1000 * 30; // 30 sec
             final long nowMs = Instant.now().toEpochMilli();
             final Date orderTimestamp = theOrder.getTimestamp();
+            if (orderTimestamp == null) {
+                logger.warn("orderTimestamp is null." + fplayOrder);
+            }
             if (orderTimestamp == null ||
                     nowMs - orderTimestamp.toInstant().toEpochMilli() > maxMs) {
                 optionalOpenOrder = Stream.empty();
@@ -361,8 +395,12 @@ public abstract class MarketServiceOpenOrders {
     abstract protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, LogService logger);
 
     private FplayOrder updateOOStatus(FplayOrder fplayOrder) throws Exception {
+        if (fplayOrder.getOrder().getStatus() == OrderStatus.CANCELED) {
+            return fplayOrder;
+        }
+
         final String orderId = fplayOrder.getOrderId();
-        final String counterForLogs = getCounterName();
+        final String counterForLogs = fplayOrder.getTradeId() + ":" + getCounterName();
         final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterForLogs, 1, "updateOOStatus:", getLogger());
 
         if (!orderInfoAttempts.isPresent()) {

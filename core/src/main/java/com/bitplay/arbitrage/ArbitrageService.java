@@ -383,13 +383,13 @@ public class ArbitrageService {
                             tradeService.warn(tradeId, counterName, "Warning: Free Bitmex");
                             warningLogger.warn("Warning: Free Bitmex");
                             logger.warn("Warning: Free Bitmex");
-                            firstMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET));
+                            firstMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, firstMarketService.tryFindLastTradeId()));
                         }
                         if (secondHanged && noOrders) {
                             tradeService.warn(tradeId, counterName, "Warning: Free Okcoin");
                             warningLogger.warn("Warning: Free Okcoin");
                             logger.warn("Warning: Free Okcoin");
-                            secondMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET));
+                            secondMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, secondMarketService.tryFindLastTradeId()));
                         }
 
                     } else if (!firstMarketService.isReadyForArbitrageWithOOFetch() || !secondMarketService.isReadyForArbitrage()) {
@@ -400,7 +400,9 @@ public class ArbitrageService {
                         tradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
                         logger.warn(logString);
-                    } else if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
+                    }
+
+                    if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
                         synchronized (arbInProgressLock) {
                             boolean wasReset = arbInProgress.compareAndSet(true, false);
                             if (wasReset) {

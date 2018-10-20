@@ -649,7 +649,8 @@ public class OkCoinService extends MarketService {
         updateOOStatuses();
 
         if (!hasOpenOrders()) {
-            eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_CHECKER));
+            final Long tradeId = tryFindLastTradeId();
+            eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_CHECKER, tradeId));
         }
     }
 

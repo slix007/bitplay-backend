@@ -262,12 +262,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     protected void setFree(Long tradeId, String... flags) {
-        if (tradeId != null) {
-            logger.info(String.format("setFree(%s, %s, %s), curr marketState=%s", tradeId,
-                    flags != null && flags.length > 0 ? flags[0] : null,
-                    flags != null && flags.length > 1 ? flags[1] : null,
-                    marketState));
-        }
+        logger.info(String.format("setFree(%s, %s, %s), curr marketState=%s", tradeId,
+                flags != null && flags.length > 0 ? flags[0] : null,
+                flags != null && flags.length > 1 ? flags[1] : null,
+                marketState));
 
         switch (marketState) {
             case SWAP:
@@ -676,8 +674,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return orderInfo;
     }
 
-    protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId) {
-        return getOrderInfo(orderId, counterName, attemptCount, logInfoId, getTradeLogger());
+    protected Optional<Order> getOrderInfo(String orderId, String counterForLogs, int attemptCount, String logInfoId) {
+        return getOrderInfo(orderId, counterForLogs, attemptCount, logInfoId, getTradeLogger());
     }
 
     protected Optional<Order> getOrderInfo(String orderId, String counterForLogs, int attemptCount, String logInfoId, LogService customLogger) {

@@ -24,6 +24,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalTimeService;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.ArbState;
+import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
@@ -36,9 +37,9 @@ import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
-import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.security.TraderPermissionsService;
@@ -401,14 +402,16 @@ public class CommonUIService {
     }
 
     public MarketFlagsJson freeMarketsStates() {
-        arbitrageService.getFirstMarketService().getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI));
-        arbitrageService.getSecondMarketService().getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI));
+        MarketService btm = arbitrageService.getFirstMarketService();
+        btm.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, btm.tryFindLastTradeId()));
+        MarketService okex = arbitrageService.getSecondMarketService();
+        okex.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, okex.tryFindLastTradeId()));
         arbitrageService.releaseArbInProgress();
         log.info("Free markets states from UI");
         arbitrageService.printToCurrentDeltaLog("Free markets states from UI");
         return new MarketFlagsJson(
-                arbitrageService.getFirstMarketService().isReadyForArbitrage(),
-                arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                btm.isReadyForArbitrage(),
+                okex.isReadyForArbitrage()
         );
     }
 //
