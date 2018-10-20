@@ -1283,11 +1283,11 @@ public class ArbitrageService {
     }
 
     public String getFullPosDiff() {
-        return getPosDiffString() + getPosDiffSource();
+        return getMainSetStr() + getMainSetSource() + getExtraSetStr() + getExtraSetSource();
     }
 
-    public String getPosDiffString() {
-        // Notional = b_pos * 10 / CM + o_pos * 10 - hb_pos - ha;
+    public String getMainSetStr() {
+        // Notional(usd) = b_pos * 10 / CM + o_pos * 10 - ha;
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final BigDecimal cm = settings.getPlacingBlocks().getBitmexBlockFactor();
         final BigDecimal adj = settings.getPosAdjustment().getPosAdjustmentMin();
@@ -1301,59 +1301,76 @@ public class ArbitrageService {
         final BigDecimal bP = bitmexService.getPosition().getPositionLong();
         final BigDecimal oPL = okcoinService.getPosition().getPositionLong();
         final BigDecimal oPS = okcoinService.getPosition().getPositionShort();
-        final BigDecimal ha = settings.getHedgeBtc();
-        final BigDecimal okexUsd = isEth
-                ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
-                : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
+        final BigDecimal ha = isEth ? settings.getHedgeEth() : settings.getHedgeBtc();
         final BigDecimal bitmexUsd = isEth
                 ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
                 : bP;
-        final BigDecimal hbPos = bitmexService.getHbPosUsd();
-        final BigDecimal notional = bitmexUsd.add(okexUsd).add(hbPos).subtract(ha);
+        final BigDecimal okexUsd = isEth
+                ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
+                : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
+        final BigDecimal notionalUsd = (bitmexUsd.add(okexUsd).subtract(ha)).negate();
 
+        final String setName = settings.getContractMode().getTheSet().toString();
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
         if (isEth) {
-            return String.format("Notional: dc = b(%s) + o(%s) + hb(%s) - ha(%s) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
+            return String.format("%s: nt_usd = -(b(%s) + o(%s) - ha(%s)) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
+                    setName,
                     bitmexUsd.toPlainString(),
                     okexUsd.toPlainString(),
-                    hbPos.toPlainString(),
                     ha.toPlainString(),
-                    notional.toPlainString(),
+                    notionalUsd.toPlainString(),
                     mdc, cm, adj, adjMax
             );
         } else {
-            return String.format("Notional: dc = b(%s) + o(%s) - ha(%s) = %s, mdc=%s. ",
+            return String.format("%s: nt_usd = -(b(%s) + o(%s) - ha(%s)) = %s, mdc=%s. ",
+                    setName,
                     bitmexUsd.toPlainString(),
                     okexUsd.toPlainString(),
                     ha.toPlainString(),
-                    notional.toPlainString(),
+                    notionalUsd.toPlainString(),
                     mdc
             );
         }
     }
 
-    public String getPosDiffSource() {
-        // Source: b_pos() o_pos() hb_pos()
+    public String getExtraSetStr() {
+//        Set_bu10: nt_usd = - (b_pos_usd - hb_usd);
+        final MarketService bitmexService = getFirstMarketService();
+        if (bitmexService.getContractType().isEth()) {
+            final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+            final BigDecimal b_pos_usd = bitmexService.getHbPosUsd();
+            final BigDecimal hb_usd = settings.getHedgeBtc();
+            final BigDecimal nt_usd = (b_pos_usd.subtract(hb_usd)).negate();
+
+            return String.format("Set_bu10: nt_usd = -(b_pos_usd(%s) - hb_usd(%s)) = %s. ",
+                    b_pos_usd.toPlainString(),
+                    hb_usd.toPlainString(),
+                    nt_usd.toPlainString()
+            );
+        }
+        return "";
+    }
+
+    public String getMainSetSource() {
+        // contracts: b_pos() o_pos() hb_pos()
         final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
+        return String.format("contracts: b_pos(%s) o_pos(+%s-%s). ",
+                Utils.withSign(bP),
+                oPL.toPlainString(),
+                oPS.toPlainString());
+    }
 
+    public String getExtraSetSource() {
+        // contracts: b_pos()
         if (getFirstMarketService().getContractType().isEth()) {
-            final BigDecimal hbPos = getFirstMarketService().getHbPosUsd();
-            return String.format("Source: b_pos(%s) o_pos(+%s-%s) hb_pos(%s)",
-                    Utils.withSign(bP),
-                    oPL.toPlainString(),
-                    oPS.toPlainString(),
-                    hbPos
-            );
-        } else {
-            return String.format("Source: b_pos(%s) o_pos(+%s-%s)",
-                    Utils.withSign(bP),
-                    oPL.toPlainString(),
-                    oPS.toPlainString()
-            );
+            final BigDecimal bP = getFirstMarketService().getHbPosUsd();
+            return String.format("contracts: b_pos(%s).",
+                    Utils.withSign(bP));
         }
+        return "";
     }
 
     private PlBlocks dynBlockDecriseByAffordable(DeltaName deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {

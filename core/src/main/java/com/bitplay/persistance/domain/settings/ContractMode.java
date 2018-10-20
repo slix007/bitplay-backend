@@ -1,20 +1,35 @@
 package com.bitplay.persistance.domain.settings;
 
+import static com.bitplay.persistance.domain.settings.ContractMode.ContractModeSet.set_bu11;
+import static com.bitplay.persistance.domain.settings.ContractMode.ContractModeSet.set_bu12;
+import static com.bitplay.persistance.domain.settings.ContractMode.ContractModeSet.set_bu23;
+import static com.bitplay.persistance.domain.settings.ContractMode.ContractModeSet.set_eu11;
+import static com.bitplay.persistance.domain.settings.ContractMode.ContractModeSet.set_eu12;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
 public enum ContractMode {
-    MODE1_SET_BU11(BitmexContractType.XBTUSD, OkexContractType.BTC_ThisWeek),
-    MODE2_SET_BU12(BitmexContractType.XBTUSD, OkexContractType.BTC_NextWeek),
-    MODE3_SET_BU23(BitmexContractType.XBTZ18, OkexContractType.BTC_Quarter),
-    MODE4_SET_BU10_SET_EU11(BitmexContractType.ETHUSD, OkexContractType.ETH_ThisWeek),
-    MODE5_SET_BU10_SET_EU12(BitmexContractType.ETHUSD, OkexContractType.ETH_NextWeek);
+    MODE1_SET_BU11(set_bu11, BitmexContractType.XBTUSD, OkexContractType.BTC_ThisWeek),
+    MODE2_SET_BU12(set_bu12, BitmexContractType.XBTUSD, OkexContractType.BTC_NextWeek),
+    MODE3_SET_BU23(set_bu23, BitmexContractType.XBTZ18, OkexContractType.BTC_Quarter),
+    MODE4_SET_BU10_SET_EU11(set_eu11, BitmexContractType.ETHUSD, OkexContractType.ETH_ThisWeek),
+    MODE5_SET_BU10_SET_EU12(set_eu12, BitmexContractType.ETHUSD, OkexContractType.ETH_NextWeek);
 
+    private ContractModeSet theSet;
     private BitmexContractType bitmexContractType;
     private OkexContractType okexContractType;
 
+    public enum ContractModeSet {
+        set_bu11,
+        set_bu10,
+        set_bu12,
+        set_bu23,
+        set_eu11,
+        set_eu12,
+    }
     //Mod #1 - set_bu11; // set_bu11 пишется справа от Model #1
     //Mod #2 - set_bu12;
     //Mod #3 - set_bu23;

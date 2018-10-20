@@ -457,16 +457,21 @@ public class CommonUIService {
                 btmUsdInContract = BigDecimal.valueOf(10).divide(cm, 2, RoundingMode.HALF_UP).toPlainString();
             }
 
-            posDiff = new PosDiffJson(posDiffService.isPosEqual(),
-                    arbitrageService.getPosDiffString(),
+            boolean posEqual = posDiffService.isPosEqual();
+            posDiff = new PosDiffJson(
+                    posEqual,
+                    arbitrageService.getMainSetStr(),
+                    arbitrageService.getMainSetSource(),
+                    posEqual,
+                    arbitrageService.getExtraSetStr(),
+                    arbitrageService.getExtraSetSource(),
                     placingBlocks,
-                    arbitrageService.getPosDiffSource(),
                     btmUsdInContract
             );
 
         } catch (NotYetInitializedException e) {
             // do nothing
-            posDiff = new PosDiffJson(true, "position is not yet initialized", null, null, null);
+            posDiff = PosDiffJson.notInitialized();
         }
         return posDiff;
     }

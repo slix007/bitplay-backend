@@ -12,13 +12,20 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PosDiffJson {
 
-    private boolean equal;
-    private String str;
+    private boolean mainSetEqual;
+    private String mainSetStr;
+    private String mainSetSource;
+    private boolean extraSetEqual;
+    private String extraSetStr;
+    private String extraSetSource;
 
     private PlacingBlocks placingBlocks;
-
-    private String notionalSource;
     private String btmUsdInContract;
+
+    public static PosDiffJson notInitialized() {
+        return new PosDiffJson(true, "position is not yet initialized", null,
+                false, "position is not yet initialized", null, null, null);
+    }
 //    private String okUsdInContract;
 
 }
