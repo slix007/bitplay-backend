@@ -47,6 +47,7 @@ import io.reactivex.schedulers.Schedulers;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -374,8 +375,21 @@ public class OkCoinService extends MarketService {
         closeAllSubscibers().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
+
+    private volatile Instant lastRequestAccountInfo = Instant.now();
+    private void requestAccountInfoThrottled() {
+        if (Duration.between(lastRequestAccountInfo, Instant.now()).getSeconds() < 1) {
+            logger.info("nothing");
+        } else {
+            logger.info("run");
+            requestAccountInfo();
+        }
+    }
+
     @Scheduled(initialDelay = 5 * 1000, fixedRate = 2000)
     public void requestAccountInfo() {
+        lastRequestAccountInfo = Instant.now();
+
         Instant start = Instant.now();
         try {
             exchange.getStreamingAccountInfoService().requestAccountInfo();
@@ -521,7 +535,7 @@ public class OkCoinService extends MarketService {
                 .subscribe(privateData -> {
                     logger.debug(privateData.toString());
                     if (privateData.getAccountInfoContracts() != null) {
-                        requestAccountInfo();
+                        requestAccountInfoThrottled();
                     }
                     final Position positionInfo = privateData.getPositionInfo();
                     if (positionInfo != null) {
