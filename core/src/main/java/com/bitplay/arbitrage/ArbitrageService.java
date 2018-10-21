@@ -150,6 +150,7 @@ public class ArbitrageService {
     private volatile Instant lastCalcSumBal = null;
 
     private volatile Long tradeId;
+    private volatile FplayTrade fplayTrade;
     private volatile Long tradeIdBitmexFinished = null;
     private volatile Long tradeIdOkexFinished = null;
 
@@ -987,9 +988,10 @@ public class ArbitrageService {
         }
         final String counterName = firstMarketService.getCounterName();
 
-        tradeId = tradeService.createTrade(counterName, deltaName,
+        fplayTrade = tradeService.createTrade(counterName, deltaName,
                 ((BitmexContractType) firstMarketService.getContractType()),
                 ((OkexContractType) secondMarketService.getContractType()));
+        tradeId = fplayTrade.getId();
         tradeService.info(tradeId, counterName, "------------------------------------------");
 
         tradeService.info(tradeId, counterName, String.format("count=%s+%s=%s(completed=%s+%s=%s) %s",

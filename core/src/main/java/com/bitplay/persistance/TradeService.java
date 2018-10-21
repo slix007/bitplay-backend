@@ -123,15 +123,11 @@ public class TradeService {
 
     }
 
-    public long createTrade(String counterName, DeltaName deltaName, BitmexContractType b, OkexContractType o) {
+    public FplayTrade createTrade(String counterName, DeltaName deltaName, BitmexContractType b, OkexContractType o) {
         return createTrade(counterName, new Date(), deltaName, b, o, TradeStatus.IN_PROGRESS);
     }
 
-    public long createCorrTrade(String counterName, DeltaName deltaName, BitmexContractType b, OkexContractType o) {
-        return createTrade(counterName, new Date(), deltaName, b, o, TradeStatus.IN_PROGRESS);
-    }
-
-    private synchronized long createTrade(String counterName, Date startTimestamp, DeltaName deltaName,
+    private synchronized FplayTrade createTrade(String counterName, Date startTimestamp, DeltaName deltaName,
             BitmexContractType bitmexContractType, OkexContractType okexContractType, TradeStatus tradeStatus) {
         final FplayTrade fplayTrade = new FplayTrade();
         fplayTrade.setCounterName(counterName);
@@ -144,6 +140,7 @@ public class TradeService {
         long nextId = sequenceDao.getNextSequenceId(SEQ_NAME);
         fplayTrade.setId(nextId);
         fplayTradeRepository.save(fplayTrade);
-        return nextId;
+
+        return fplayTrade;
     }
 }
