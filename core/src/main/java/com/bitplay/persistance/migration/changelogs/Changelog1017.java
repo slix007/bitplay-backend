@@ -14,7 +14,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 @ChangeLog
 public class Changelog1017 {
 
-    @ChangeSet(order = "001", id = "2018-10-17:Add contract mode", author = "SergeiShurmin")
+    @ChangeSet(order = "001", id = "2018-10-17:Add contract mode..", author = "SergeiShurmin")
     public void change01(MongoTemplate mongoTemplate) {
         final Settings settings = mongoTemplate.findById(1L, Settings.class);
         if (settings != null) {
@@ -24,7 +24,7 @@ public class Changelog1017 {
         }
     }
 
-    @ChangeSet(order = "002", id = "2018-10-17:Add hedge amount to settings", author = "SergeiShurmin")
+    @ChangeSet(order = "002", id = "2018-10-17:Add hedge amount to settings..", author = "SergeiShurmin")
     public void change02(MongoTemplate mongoTemplate) {
         final Settings settings = mongoTemplate.findById(1L, Settings.class);
         final GuiParams guiParams = mongoTemplate.findById(1L, GuiParams.class);
