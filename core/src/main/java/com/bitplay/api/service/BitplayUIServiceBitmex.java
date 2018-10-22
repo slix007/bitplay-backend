@@ -14,6 +14,7 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.okcoin.OkCoinService;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -36,6 +37,9 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
     @Autowired
     private BitmexService bitmexService;
+
+    @Autowired
+    private OkCoinService okexService;
 
     @Autowired
     private BitmexTimeService bitmexTimeService;
@@ -144,7 +148,15 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         final LimitsJson limitsJson = bitmexLimitsService.getLimitsJson();
 
-        String bxbtBal = ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice();
+        final String bxbtBal = ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice();
+
+        // Index diff = b_index (n) - o_index (k) = x,
+        final BigDecimal okexIndex = okexService.getContractIndex().getIndexPrice();
+        final String twoMarketsIndexDiff = String.format("Index diff = b_index (%s) - o_index (%s) = %s",
+                indexPrice.toPlainString(),
+                okexIndex.toPlainString(),
+                indexPrice.subtract(okexIndex).toPlainString()
+        );
 
         return new FutureIndexJson(
                 indexString,
@@ -158,7 +170,8 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 timeCompareString,
                 String.valueOf(timeCompareUpdating),
                 limitsJson,
-                bxbtBal);
+                bxbtBal,
+                twoMarketsIndexDiff);
     }
 
     public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {

@@ -17,6 +17,7 @@ public class MonAllJson {
 
     private String result;
     private String allHtml;
+    private String bitmexReconnectCount;
     private Mon monBitmexPlacing;
     private Mon monBitmexMoving;
     private Mon monOkexPlacing;

@@ -99,38 +99,39 @@ public class DebugEndpoints {
         final ResultJson resultJson = detectDeadlock();
 //        arbitrageService.getParams()
 
-        String deadLockDescr = resultJson.getDescription();
+        String monAllHtml = resultJson.getDescription();
 
         final Date lastOBChange = arbitrageService.getParams().getLastOBChange();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         if (lastOBChange != null) {
-            deadLockDescr += "<br>last_OB_change=" + sdf.format(lastOBChange);
+            monAllHtml += "<br>last_OB_change=" + sdf.format(lastOBChange);
         }
         final Date lastCorrCheck = arbitrageService.getParams().getLastCorrCheck();
         if (lastCorrCheck != null) {
-            deadLockDescr += "<br>last_corr_check=" + sdf.format(lastCorrCheck);
+            monAllHtml += "<br>last_corr_check=" + sdf.format(lastCorrCheck);
         }
         final Date lastMDCCheck = arbitrageService.getParams().getLastMDCCheck();
         if (lastMDCCheck != null) {
-            deadLockDescr += "<br>last_MDC_check=" + sdf.format(lastMDCCheck);
+            monAllHtml += "<br>last_MDC_check=" + sdf.format(lastMDCCheck);
         }
         final BitmexService bs = (BitmexService) (arbitrageService.getFirstMarketService());
         final BitmexXRateLimit bitmexXRateLimit = bs.getxRateLimit();
         if (bitmexXRateLimit != null) {
             final Integer theLimit = bitmexXRateLimit.getxRateLimit();
-            deadLockDescr += "<br>xRateLimit=" + (theLimit == 301 ? "no info" : theLimit)
+            monAllHtml += "<br>xRateLimit=" + (theLimit == 301 ? "no info" : theLimit)
                     + "; lastUpdate: " + sdf.format(bitmexXRateLimit.getLastUpdate());
         }
 
-        deadLockDescr += "<br>OOHangedChecker: " + ooHangedCheckerService.getStatus();
+        monAllHtml += "<br>OOHangedChecker: " + ooHangedCheckerService.getStatus();
 
-        deadLockDescr += "<br>BitmexReconnectCount=" + bs.getReconnectCount();
-        deadLockDescr += "<br>BitmexOrderBookErrors=" + getBitmexOrderBookErrors();
+        monAllHtml += "<br>BitmexOrderBookErrors=" + getBitmexOrderBookErrors();
+
+        final String bitmexReconnectCount = "BitmexReconnectCount=" + bs.getReconnectCount();
 
         if (arbitrageService.getLastCalcSumBal() != null) {
             Date lastCalcSumBal = Date.from(arbitrageService.getLastCalcSumBal());
 
-            deadLockDescr += "<br>Last sum_bal update=" + sdf.format(lastCalcSumBal);
+            monAllHtml += "<br>Last sum_bal update=" + sdf.format(lastCalcSumBal);
         }
 
         Mon monBitmexPlacing = monitoringDataService.fetchMon(BitmexService.NAME, "placeOrder");
@@ -138,7 +139,8 @@ public class DebugEndpoints {
         Mon monOkexPlacing = monitoringDataService.fetchMon(OkCoinService.NAME, "placeOrder");
         Mon monOkexMoving = monitoringDataService.fetchMon(OkCoinService.NAME, "moveMakerOrder");
 
-        return new MonAllJson(resultJson.getResult(), deadLockDescr,
+        return new MonAllJson(resultJson.getResult(), monAllHtml,
+                bitmexReconnectCount,
                 monBitmexPlacing, monBitmexMoving,
                 monOkexPlacing, monOkexMoving);
     }

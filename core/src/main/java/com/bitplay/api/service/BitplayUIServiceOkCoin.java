@@ -99,13 +99,8 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
 
     public FutureIndexJson getFutureIndex() {
         final ContractIndex contractIndex = getBusinessService().getContractIndex();
-        final Ticker ticker = getBusinessService().getTicker();
-        final BigDecimal minPrice = ticker.getLow();
-        final BigDecimal maxPrice = ticker.getHigh();
-        final String indexString = String.format("%s (%s/%s) (1c=%sbtc)",
+        final String indexString = String.format("%s (1c=%sbtc)",
                 contractIndex.getIndexPrice().toPlainString(),
-                minPrice,
-                maxPrice,
                 getBusinessService().calcBtcInContract());
         final Date timestamp = contractIndex.getTimestamp();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
