@@ -15,6 +15,7 @@ import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventBus;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
@@ -121,8 +122,11 @@ public class ArbitrageService {
     private TradeService tradeService;
     @Autowired
     private FplayTradeRepository fplayTradeRepository;
+    @Autowired
+    private SlackNotifications slackNotifications;
 
-//    private Disposable schdeduleUpdateBorders;
+
+    //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
 //    private volatile int updateBordersCounter;
     //TODO rename them to first and second
@@ -438,6 +442,7 @@ public class ArbitrageService {
                     firstDeltasCalculated = true;
                     logger.info("Started: First delta calculated");
                     warningLogger.info("Started: First delta calculated");
+                    slackNotifications.sendNotify("Started: First delta calculated");
                 }
 
                 if (!deltasCalcService.isStarted()) {
