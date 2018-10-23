@@ -10,15 +10,15 @@ public class DefaultLogService implements LogService {
     private static final Logger tradeLogger = LoggerFactory.getLogger(MarketService.class);
 
 
-    public void warn(String s) {
+    public void warn(String s, String... args) {
         tradeLogger.warn(s);
     }
 
-    public void info(String s) {
+    public void info(String s, String... args) {
         tradeLogger.info(s);
     }
 
-    public void error(String s) {
+    public void error(String s, String... args) {
         tradeLogger.error(s);
     }
 }

@@ -609,6 +609,9 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
                 final String currCounterName = getCounterName();
                 final Long lastTradeId = getArbitrageService().getTradeId();
+                //TODO fill placingType, signalType. Use saved fplayTrade-starting-args
+//                final PlacingType defaultPlacingType = getArbitrageService().getFplayTrade() != null ?
+//                        getArbitrageService().getFplayTrade().get
 
                 synchronized (openOrdersLock) {
                     this.openOrders = fetchedList.stream()
@@ -619,6 +622,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                             .map(fOrd -> new FplayOrder(fOrd.getTradeId(), fOrd.getCounterName(),
                                                     limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(),
                                                     fOrd.getSignalType()))
+                                            //TODO fill placingType, signalType
                                             .orElseGet(() -> new FplayOrder(lastTradeId, currCounterName,
                                                     (limitOrder), null, null, null)))
                             .collect(Collectors.toList());
@@ -762,8 +766,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public abstract MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice, Object... reqMovingArgs);
 
-    protected BigDecimal createNonTakerPrice(Order.OrderType orderType, PlacingType placingType, OrderBook orderBook) {
-        final ContractType contractType = getContractType();
+    protected BigDecimal createNonTakerPrice(Order.OrderType orderType, PlacingType placingType, OrderBook orderBook, ContractType contractType) {
         BigDecimal tickSize = contractType.getTickSize();
         BigDecimal thePrice;
         if (placingType == PlacingType.MAKER) {
@@ -875,17 +878,19 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
         } else {
             OrderBook orderBook = getOrderBook();
-            if (getName().equals(BitmexService.NAME) && getContractType().isEth()) {
+            ContractType contractType = getContractType();
+            if (getName().equals(BitmexService.NAME) && contractType.isEth()) {
                 if (limitOrder.getCurrencyPair() == null) {
                     return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST,
                             "can not move when CurrencyPair is null");
                 }
                 if (limitOrder.getCurrencyPair().base.getCurrencyCode().equals("XBT")) {
                     orderBook = getOrderBookXBTUSD();
+                    contractType = BitmexService.bitmexContractTypeXBTUSD;
                 }
             }
 
-            BigDecimal bestPrice = createNonTakerPrice(limitOrder.getType(), fplayOrder.getPlacingType(), orderBook);
+            BigDecimal bestPrice = createNonTakerPrice(limitOrder.getType(), fplayOrder.getPlacingType(), orderBook, contractType);
 
             if (bestPrice.signum() == 0) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "bestPrice is 0");

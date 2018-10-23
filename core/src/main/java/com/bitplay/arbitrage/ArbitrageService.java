@@ -1629,6 +1629,10 @@ public class ArbitrageService {
         }
     }
 
+    public FplayTrade getFplayTrade() {
+        return fplayTrade;
+    }
+
     public Long getTradeId() {
         return tradeId;
     }

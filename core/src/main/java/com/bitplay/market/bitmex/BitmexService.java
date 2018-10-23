@@ -67,6 +67,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -172,7 +173,7 @@ public class BitmexService extends MarketService {
     private String secret;
     private Disposable restartTimer;
     private BitmexContractType bitmexContractType;
-    private BitmexContractType bitmexContractTypeXBTUSD = BitmexContractType.XBTUSD;
+    public static final BitmexContractType bitmexContractTypeXBTUSD = BitmexContractType.XBTUSD;
     private Map<CurrencyPair, Integer> currencyToScale = new HashMap<>();
 
     private AtomicInteger cancelledInRow = new AtomicInteger();
@@ -333,8 +334,8 @@ public class BitmexService extends MarketService {
     public void dobleCheckAvailableBalance() {
         Instant start = Instant.now();
         if (accountInfoContracts == null) {
-            tradeLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener");
-            warningLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener");
+            tradeLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener.", bitmexContractType.getCurrencyPair().toString());
+            warningLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener.");
             accountInfoSubscription.dispose();
             accountInfoSubscription = startAccountInfoListener();
         }
@@ -362,7 +363,7 @@ public class BitmexService extends MarketService {
                                 setFree(tradeId);
                             } else {
                                 String msg = String.format("Warning: Bitmex reconnect is finished, but there are %s openOrders.", getOnlyOpenOrders().size());
-                                tradeLogger.info(msg);
+                                tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
                                 warningLogger.info(msg);
                                 logger.info(msg);
                             }
@@ -420,9 +421,18 @@ public class BitmexService extends MarketService {
                     orderBook.getAsks().size(),
                     orderBook.getBids().size(),
                     orderBook.getTimeStamp());
-            tradeLogger.info(msgOb);
+            tradeLogger.info(msgOb, bitmexContractType.getCurrencyPair().toString());
             warningLogger.info(msgOb);
             logger.info(msgOb);
+            if (!sameOrderBookXBTUSD()) {
+                String msgObXBTUSD = String.format("re-subscribe OrderBookXBTUSD: asks=%s, bids=%s, timestamp=%s. ",
+                        orderBookXBTUSD.getAsks().size(),
+                        orderBookXBTUSD.getBids().size(),
+                        orderBookXBTUSD.getTimeStamp());
+                tradeLogger.info(msgObXBTUSD, bitmexContractTypeXBTUSD.getCurrencyPair().toString());
+                warningLogger.info(msgObXBTUSD);
+                logger.info(msgObXBTUSD);
+            }
 
             orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
             orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
@@ -495,7 +505,7 @@ public class BitmexService extends MarketService {
                 } catch (Exception e) {
                     final String msg = String.format("Reconnect exception: %s", e.getMessage());
                     warningLogger.error(msg);
-                    tradeLogger.error(msg);
+                    tradeLogger.error(msg, bitmexContractType.getCurrencyPair().toString());
                     logger.error(msg, e);
                 } finally {
                     reconnectInProgress = false;
@@ -518,7 +528,7 @@ public class BitmexService extends MarketService {
             try {
                 final String msg = String.format("Warning: Bitmex reconnect(%s) attempt=%s. %s", currReconnectCount, attempt, getSubscribersStatuses());
                 warningLogger.info(msg);
-                tradeLogger.info(msg);
+                tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
                 logger.info(msg);
 
                 reconnect();
@@ -729,6 +739,7 @@ public class BitmexService extends MarketService {
 
     private List<FplayOrder> handleMovingResponse(final MoveResponse response, Integer maxAttempts, FplayOrder openOrder) {
         List<FplayOrder> resultOOList = new ArrayList<>(); // default - the same
+        String contractType = openOrder.getOrderDetail().getContractType();
 
         try {
             //TODO keep an eye on 'hang open orders'
@@ -813,7 +824,7 @@ public class BitmexService extends MarketService {
                     || response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION_502_BAD_GATEWAY
                     || response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION_NONCE
             ) {
-                tradeLogger.warn("MovingException: " + response.getDescription());
+                tradeLogger.warn("MovingException: " + response.getDescription(), contractType);
                 logger.warn("MovingException: " + response.getDescription());
                 resultOOList.add(openOrder); // keep the same
 
@@ -927,13 +938,13 @@ public class BitmexService extends MarketService {
     public void reconnect() throws ReconnectFailedException {
         if (Thread.currentThread().getName().startsWith("bitmex-ob-executor")) {
             String startMsg = "WARNING: Bitmex reconnect in the thread " + Thread.currentThread().getName();
-            tradeLogger.info(startMsg);
+            tradeLogger.info(startMsg, bitmexContractType.getCurrencyPair().toString());
             warningLogger.info(startMsg);
             logger.info(startMsg);
         }
 
         String startMsg = "Warning: Bitmex reconnect is starting. " + getSubscribersStatuses();
-        tradeLogger.info(startMsg);
+        tradeLogger.info(startMsg, bitmexContractType.getCurrencyPair().toString());
         warningLogger.info(startMsg);
         logger.info(startMsg);
 
@@ -988,7 +999,7 @@ public class BitmexService extends MarketService {
                         getSubscribersStatuses(),
                         openOrders.size());
 
-                tradeLogger.info(finishMsg);
+                tradeLogger.info(finishMsg, bitmexContractType.getCurrencyPair().toString());
                 warningLogger.info(finishMsg);
                 logger.info(finishMsg);
 
@@ -997,7 +1008,7 @@ public class BitmexService extends MarketService {
 
         } catch (Exception e) {
             String msg = "Warning: Bitmex reconnect error: " + e.getMessage() + getSubscribersStatuses();
-            tradeLogger.info(msg);
+            tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
             warningLogger.info(msg);
             logger.info(msg);
 
@@ -1021,7 +1032,7 @@ public class BitmexService extends MarketService {
     private void doRestart(String errMsg) {
         errMsg += " Do restart. " + getSubscribersStatuses();
         warningLogger.info(errMsg);
-        tradeLogger.info(errMsg);
+        tradeLogger.info(errMsg, bitmexContractType.getCurrencyPair().toString());
         logger.info(errMsg);
 
         try {
@@ -1107,6 +1118,7 @@ public class BitmexService extends MarketService {
 
         OrderBook finalOB;
         if (obUpdate.getAction().equals("partial")) {
+            logger.info("update OB. partial: " + obUpdate);
             finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, currencyPair);
         } else if (obUpdate.getAction().equals("delete")) {
             finalOB = BitmexStreamAdapters.delete(fullOB, obUpdate);
@@ -1422,6 +1434,12 @@ public class BitmexService extends MarketService {
 
         final TradeResponse tradeResponse = new TradeResponse();
 
+        final BitmexContractType btmContType = (placeOrderArgs.getContractType() != null && placeOrderArgs.getContractType() instanceof BitmexContractType)
+                ? ((BitmexContractType) placeOrderArgs.getContractType())
+                : bitmexContractType;
+        final CurrencyPair currencyPair = btmContType.getCurrencyPair();
+        final String contractTypeStr = btmContType.getCurrencyPair() != null ? btmContType.getCurrencyPair().toString() : "";
+
         final Settings settings = settingsRepositoryService.getSettings();
         final Integer maxAttempts = settings.getBitmexSysOverloadArgs().getPlaceAttempts();
         if (placeOrderArgs.getAttempt() == maxAttempts) {
@@ -1431,7 +1449,7 @@ public class BitmexService extends MarketService {
                     maxAttempts);
 
             logger.error(logString);
-            tradeLogger.error(logString);
+            tradeLogger.error(logString, contractTypeStr);
             warningLogger.error(logString);
 
             tradeResponse.setErrorCode(logString);
@@ -1446,10 +1464,6 @@ public class BitmexService extends MarketService {
         final Long tradeId = placeOrderArgs.getTradeId();
         final String counterName = placeOrderArgs.getCounterName();
         final Instant lastObTime = placeOrderArgs.getLastObTime();
-        final BitmexContractType btmContType = (placeOrderArgs.getContractType() != null && placeOrderArgs.getContractType() instanceof BitmexContractType)
-                ? ((BitmexContractType) placeOrderArgs.getContractType())
-                : bitmexContractType;
-        final CurrencyPair currencyPair = btmContType.getCurrencyPair();
         final String symbol = btmContType.getSymbol();
         final Integer scale = btmContType.getScale();
 
@@ -1457,7 +1471,7 @@ public class BitmexService extends MarketService {
         final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
 
         if (placingType == null) {
-            tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs);
+            tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs, contractTypeStr);
             placingType = settings.getBitmexPlacingType();
         }
 
@@ -1478,11 +1492,11 @@ public class BitmexService extends MarketService {
                     String orderId;
                     BigDecimal thePrice;
                     if (reconnectInProgress) {
-                        tradeLogger.warn("placeOrder waiting for reconnect.");
+                        tradeLogger.warn("placeOrder waiting for reconnect.", contractTypeStr);
                         while (reconnectInProgress) {
                             Thread.sleep(200);
                         }
-                        tradeLogger.warn("placeOrder end waiting for reconnect.");
+                        tradeLogger.warn("placeOrder end waiting for reconnect.", contractTypeStr);
                     }
 
                     final OrderBook orderBook;
@@ -1498,7 +1512,7 @@ public class BitmexService extends MarketService {
                         if (bitmexPrice != null && bitmexPrice.signum() != 0) {
                             thePrice = bitmexPrice;
                         } else {
-                            thePrice = createNonTakerPrice(orderType, placingType, orderBook);
+                            thePrice = createNonTakerPrice(orderType, placingType, orderBook, btmContType);
                         }
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
 
@@ -1532,10 +1546,10 @@ public class BitmexService extends MarketService {
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
                             int cancelledCount = cancelledInRow.incrementAndGet();
                             if (cancelledCount == 5) {
-                                tradeLogger.info("CANCELED more 4 in a row");
+                                tradeLogger.info("CANCELED more 4 in a row", contractTypeStr);
                             }
                             if (cancelledCount % 20 == 0) {
-                                tradeLogger.info("CANCELED more 20 in a row. Do reconnect.");
+                                tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
                                 requestReconnect(true);
                             }
 
@@ -1549,7 +1563,7 @@ public class BitmexService extends MarketService {
                                     amount.toPlainString(),
                                     resultOrder.getCumulativeAmount(),
                                     thePrice,
-                                    orderId));
+                                    orderId), contractTypeStr);
                             continue;
                         }
                         cancelledInRow.set(0);
@@ -1599,7 +1613,7 @@ public class BitmexService extends MarketService {
                             thePrice,
                             orderId,
                             getPositionAsString());
-                    tradeLogger.info(message);
+                    tradeLogger.info(message, contractTypeStr);
                     ordersLogger.info(message);
 
                     break;
@@ -1644,7 +1658,7 @@ public class BitmexService extends MarketService {
 
                     final String logString = String.format("#%s/%s PlaceOrderError: %s", counterName, attemptCount, message);
                     logger.error(logString, e);
-                    tradeLogger.error(logString);
+                    tradeLogger.error(logString, contractTypeStr);
                     warningLogger.error(logString);
 
                     // message.startsWith("Connection refused") - when we got banned for a week. Just skip it.
@@ -1672,7 +1686,7 @@ public class BitmexService extends MarketService {
 
         } catch (Exception e) {
             logger.error("Place market order error", e);
-            tradeLogger.info(String.format("maker error %s", e.toString()));
+            tradeLogger.info(String.format("maker error %s", e.toString()), contractTypeStr);
             tradeResponse.setErrorCode(e.getMessage());
         }
 
@@ -1725,9 +1739,17 @@ public class BitmexService extends MarketService {
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving. Order was placed as taker.");
         }
 
+        if (limitOrder.getCurrencyPair() == null) {
+            String msg = String.format("no moving. currencyPair is null. Can not determinate contractType! %s", limitOrder.toString());
+            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
+        }
+
+        final BitmexContractType cntType = BitmexContractType.parse(bitmexContractType, limitOrder.getCurrencyPair());
+        final String contractTypeStr = cntType.getCurrencyPair().toString();
+
         final String counterName = fplayOrder.getCounterName();
         try {
-            BigDecimal bestMakerPrice = newPrice.setScale(bitmexContractType.getScale(), BigDecimal.ROUND_HALF_UP);
+            BigDecimal bestMakerPrice = newPrice.setScale(cntType.getScale(), BigDecimal.ROUND_HALF_UP);
 
             assert bestMakerPrice.signum() != 0;
             assert bestMakerPrice.compareTo(limitOrder.getLimitPrice()) != 0;
@@ -1767,7 +1789,7 @@ public class BitmexService extends MarketService {
                         getPositionAsString(),
                         diffWithSignal);
                 logger.info(logString);
-                tradeLogger.info(logString);
+                tradeLogger.info(logString, contractTypeStr);
                 ordersLogger.info(logString);
 
                 arbitrageService.getDealPrices().getbPriceFact()
@@ -1777,10 +1799,10 @@ public class BitmexService extends MarketService {
                 if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
                     int cancelledCount = cancelledInRow.incrementAndGet();
                     if (cancelledCount == 5) {
-                        tradeLogger.info("CANCELED more 4 in a row");
+                        tradeLogger.info("CANCELED more 4 in a row", contractTypeStr);
                     }
                     if (cancelledCount % 20 == 0) {
-                        tradeLogger.info("CANCELED more 20 in a row. Do reconnect.");
+                        tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
                         requestReconnect(true);
                     }
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
@@ -1791,7 +1813,7 @@ public class BitmexService extends MarketService {
 
             } else {
                 logger.info("Moving response is null");
-                tradeLogger.info("Moving response is null");
+                tradeLogger.info("Moving response is null", contractTypeStr);
             }
 
             if (reqMovingArgs != null && reqMovingArgs.length == 2 && reqMovingArgs[0] != null) {
@@ -1856,7 +1878,7 @@ public class BitmexService extends MarketService {
             final String message = e.getMessage();
             final String logString = String.format("#%s/%s MovingError id=%s: %s", counterName, movingErrorsOverloaded.get(), limitOrder.getId(), message);
             logger.error(logString, e);
-            tradeLogger.error(logString);
+            tradeLogger.error(logString, contractTypeStr);
             warningLogger.error(logString);
 
             // message.startsWith("Connection refused") - when we got banned for a week. Just skip it.
@@ -2193,7 +2215,8 @@ public class BitmexService extends MarketService {
                     tradeLogger.info(String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
                             counterForLogs,
                             position.getPositionLong().toPlainString(),
-                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
+                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()),
+                            bitmexContractType.getCurrencyPair().toString());
 
                     arbitrageService.startPreliqOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
 
@@ -2201,7 +2224,8 @@ public class BitmexService extends MarketService {
                     tradeLogger.info(String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
                             counterForLogs,
                             position.getPositionLong().toPlainString(),
-                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()));
+                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()),
+                            bitmexContractType.getCurrencyPair().toString());
 
                     arbitrageService.startPerliqOnDelta2(SignalType.B_PRE_LIQ, bestQuotes);
 
@@ -2242,8 +2266,10 @@ public class BitmexService extends MarketService {
      */
     public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
         final MarketState marketState = getMarketState();
+        final String contractTypeStr = bitmexContractType.getCurrencyPair().toString();
         if (marketState.isStopped()) {
-            tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState));
+            tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState),
+                    contractTypeStr);
             return;
         }
         final int LONG_SLEEP = 10000;
@@ -2254,7 +2280,7 @@ public class BitmexService extends MarketService {
             if (theItem == null || theItem.getAmount() == null || theItem.getOrdStatus() == null
                     || (theItem.getAmount().signum() == 0 && theItem.getOrdStatus().equals("CANCELED"))) {
                 String msg = String.format("#%s WARNING: no updateAvgPrice for orderId=%s. theItem=%s", counterName, orderId, theItem);
-                tradeLogger.info(msg);
+                tradeLogger.info(msg, contractTypeStr);
                 logger.warn(msg);
                 continue;
             }
@@ -2264,7 +2290,8 @@ public class BitmexService extends MarketService {
                 int sleepIfFails = SHORT_SLEEP;
                 try {
                     if (marketState.isStopped()) {
-                        tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState));
+                        tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState),
+                                contractTypeStr);
                         return;
                     }
                     final Collection<Execution> orderParts = ((BitmexTradeService) getTradeService()).getOrderParts(orderId);
@@ -2273,16 +2300,19 @@ public class BitmexService extends MarketService {
                         // Try to Update a whole order info.
                         Collection<Order> orders = getTradeService().getOrder(orderId);
                         if (orders.size() == 0) {
-                            tradeLogger.info(String.format("%s WARNING: no order parts. Can not update order.", logMsg));
+                            tradeLogger.info(String.format("%s WARNING: no order parts. Can not update order.", logMsg),
+                                    contractTypeStr);
                         } else {
                             Order order = orders.iterator().next();
                             if (order.getStatus() != null &&
                                     (order.getStatus() == OrderStatus.CANCELED || order.getStatus() == OrderStatus.REJECTED)) {
                                 tradeLogger.info(String.format("%s WARNING: no order parts. Order is %s: %s", logMsg,
-                                        order.getStatus(), Arrays.toString(orders.toArray())));
+                                        order.getStatus(), Arrays.toString(orders.toArray())),
+                                        contractTypeStr);
                                 break;
                             } else {
-                                tradeLogger.info(String.format("%s WARNING: no order parts. UpdatedOrderInfo:%s", logMsg, Arrays.toString(orders.toArray())));
+                                tradeLogger.info(String.format("%s WARNING: no order parts. UpdatedOrderInfo:%s", logMsg, Arrays.toString(orders.toArray())),
+                                        contractTypeStr);
                                 avgPrice.addPriceItem(counterName, orderId, order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus());
                             }
                         }
@@ -2303,7 +2333,8 @@ public class BitmexService extends MarketService {
                         if (amountSum.signum() > 0) {
                             final BigDecimal price = multiplySum.divide(amountSum, 2, RoundingMode.HALF_UP);
                             avgPrice.addPriceItem(counterName, orderId, amountSum, price, ordStatus);
-                            tradeLogger.info(String.format("%s p=%s, a=%s. ordStatus=%s", logMsg, price, amountSum, ordStatus));
+                            tradeLogger.info(String.format("%s p=%s, a=%s. ordStatus=%s", logMsg, price, amountSum, ordStatus),
+                                    contractTypeStr);
                             break;
                         } else {
                             tradeLogger.info(String.format("%s price=0. Use 'order history' price p=%s, a=%s, ordStatus=%s. %s",
@@ -2312,7 +2343,8 @@ public class BitmexService extends MarketService {
                                     theItem.getAmount(),
                                     ordStatus,
                                     Arrays.toString(orderParts.toArray())
-                            ));
+                                    ),
+                                    contractTypeStr);
                         }
                     }
 
@@ -2322,7 +2354,8 @@ public class BitmexService extends MarketService {
                     final String rateLimitStr = String.format(" X-RateLimit-Remaining=%s ", xRateLimit.getxRateLimit());
 
                     logger.info(String.format("%s %s updateAvgPriceError.", logMsg, rateLimitStr), e);
-                    tradeLogger.info(String.format("%s %s updateAvgPriceError %s", logMsg, rateLimitStr, e.getMessage()));
+                    tradeLogger.info(String.format("%s %s updateAvgPriceError %s", logMsg, rateLimitStr, e.getMessage()),
+                            contractTypeStr);
                     warningLogger.info(String.format("%s %s updateAvgPriceError %s", logMsg, rateLimitStr, e.getMessage()));
 
                     overloadByXRateLimit();
@@ -2337,7 +2370,8 @@ public class BitmexService extends MarketService {
 
                 } catch (Exception e) {
                     logger.info(String.format("%s updateAvgPriceError.", logMsg), e);
-                    tradeLogger.info(String.format("%s updateAvgPriceError %s", logMsg, e.getMessage()));
+                    tradeLogger.info(String.format("%s updateAvgPriceError %s", logMsg, e.getMessage()),
+                            contractTypeStr);
                     warningLogger.info(String.format("%s updateAvgPriceError %s", logMsg, e.getMessage()));
                 }
 
@@ -2355,9 +2389,11 @@ public class BitmexService extends MarketService {
         tradeLogger.info(String.format("#%s AvgPrice by %s orders(%s) is %s", counterName,
                 itemMap.size(),
                 Arrays.toString(itemMap.keySet().toArray()),
-                avgPrice.getAvg()));
+                avgPrice.getAvg()),
+                contractTypeStr);
 
-        tradeLogger.info(String.format("#%s %s", counterName, arbitrageService.getDealPrices().getDiffB().str));
+        tradeLogger.info(String.format("#%s %s", counterName, arbitrageService.getDealPrices().getDiffB().str),
+                contractTypeStr);
     }
 
     private void updateXRateLimit(HttpStatusIOException e) {
@@ -2487,6 +2523,7 @@ public class BitmexService extends MarketService {
     @Override
     public boolean cancelAllOrders(String logInfoId) {
         final String counterForLogs = getCounterName();
+        String contractTypeStr = "";
 
         int attemptCount = 0;
         while (attemptCount < MAX_ATTEMPTS_CANCEL && getMarketState() != MarketState.SYSTEM_OVERLOADED) {
@@ -2497,11 +2534,17 @@ public class BitmexService extends MarketService {
                 }
                 BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
                 List<LimitOrder> limitOrders = tradeService.cancelAllOrders();
+                contractTypeStr = limitOrders.stream()
+                        .map(Order::getCurrencyPair)
+                        .filter(Objects::nonNull)
+                        .map(CurrencyPair::toString)
+                        .findFirst()
+                        .orElse("");
 
                 getTradeLogger().info(String.format("#%s/%s %s cancelled id=%s",
                         counterForLogs, attemptCount,
                         logInfoId,
-                        limitOrders.stream().map(Order::getId).reduce((acc, item) -> acc + "," + item)));
+                        limitOrders.stream().map(Order::getId).reduce((acc, item) -> acc + "," + item)), contractTypeStr);
 
                 updateOpenOrders(limitOrders);
 
@@ -2512,10 +2555,10 @@ public class BitmexService extends MarketService {
                 overloadByXRateLimit();
 
                 logger.error("#{}/{} error cancel orders", counterForLogs, attemptCount, e);
-                getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterForLogs, attemptCount, e.toString()));
+                getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterForLogs, attemptCount, e.toString()), contractTypeStr);
             } catch (Exception e) {
                 logger.error("#{}/{} error cancel orders", counterForLogs, attemptCount, e);
-                getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterForLogs, attemptCount, e.toString()));
+                getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterForLogs, attemptCount, e.toString()), contractTypeStr);
             }
         }
         return false;

@@ -1,10 +1,9 @@
 package com.bitplay.persistance.domain.fluent;
 
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order;
-
 import java.math.BigDecimal;
 import java.util.Date;
+import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.Order;
 
 /**
  * Created by Sergey Shurmin on 12/23/17.
@@ -105,5 +104,9 @@ public class OrderDetail {
                 ", timestamp=" + timestamp +
                 ", limitPrice=" + limitPrice +
                 '}';
+    }
+
+    public String getContractType() {
+        return currencyPair != null ? currencyPair.toString() : "";
     }
 }

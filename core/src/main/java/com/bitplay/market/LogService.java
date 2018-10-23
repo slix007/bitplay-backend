@@ -2,9 +2,9 @@ package com.bitplay.market;
 
 public interface LogService {
 
-    void warn(String s);
+    void warn(String s, String... args);
 
-    void info(String s);
+    void info(String s, String... args);
 
-    void error(String s);
+    void error(String s, String... args);
 }

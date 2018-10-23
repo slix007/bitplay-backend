@@ -1056,7 +1056,7 @@ public class OkCoinService extends MarketService {
                 tradeLogger.warn("placing maker, but subType is " + placingSubType);
                 warningLogger.warn("placing maker, but subType is " + placingSubType);
             }
-            thePrice = createNonTakerPrice(orderType, placingSubType, getOrderBook());
+            thePrice = createNonTakerPrice(orderType, placingSubType, getOrderBook(), getContractType());
 
             if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
                 tradeResponse.setErrorCode("The new price is 0 ");

@@ -20,15 +20,15 @@ public class OkexTradeLogger implements LogService {
         return String.format(" cont=%s", ((OkexContractType) okCoinService.getContractType()).name());
     }
 
-    public void warn(String s) {
+    public void warn(String s, String... args) {
         tradeLogger.warn(s + cont());
     }
 
-    public void info(String s) {
+    public void info(String s, String... args) {
         tradeLogger.info(s + cont());
     }
 
-    public void error(String s) {
+    public void error(String s, String... args) {
         tradeLogger.error(s + cont());
     }
 }
