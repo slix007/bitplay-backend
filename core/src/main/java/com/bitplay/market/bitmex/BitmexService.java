@@ -58,6 +58,7 @@ import io.swagger.client.model.Execution;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.SocketTimeoutException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -302,12 +303,15 @@ public class BitmexService extends MarketService {
                     logger.warn("WARNING:" + e.getMessage());
                     warningLogger.warn("WARNING:" + e.getMessage());
                     setOverloaded(null);
-                }
-                if (e.getMessage().contains("HTTP status code was not OK: 403")) {// banned, no repeats
+                } else if (e.getMessage().contains("HTTP status code was not OK: 403")) {// banned, no repeats
                     logger.warn("Banned:" + e.getMessage());
                     warningLogger.warn("Banned:" + e.getMessage());
                     setOverloaded(null);
+                } else {
+                    logger.warn("posXBTUSDUpdater: " + e.toString());
                 }
+            } catch (SocketTimeoutException e) {
+                logger.error("posXBTUSDUpdater: " + e.toString());
             } catch (Exception e) {
                 logger.error("posXBTUSDUpdater:", e);
             }

@@ -288,7 +288,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     setMarketState(MarketState.READY);
                     eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId)); // end arbitrage trigger s==> already ready.
                     if (getArbitrageService().getSignalType().isCorr()) {
-                        getPosDiffService().finishCorr(tradeId, true);
+                        getPosDiffService().finishCorr(tradeId);
                     }
 
                 }
@@ -307,7 +307,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 setMarketState(MarketState.READY);
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId)); // end arbitrage trigger
                 if (getArbitrageService().getSignalType().isCorr()) {
-                    getPosDiffService().finishCorr(tradeId, true);
+                    getPosDiffService().finishCorr(tradeId);
                 }
 
                 iterateOpenOrdersMove();
@@ -516,6 +516,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public Position getPosition() {
         return position;
+    }
+
+    public Position getPositionXBTUSD() {
+        return positionXBTUSD;
     }
 
     public ContractIndex getContractIndex() {

@@ -5,6 +5,9 @@ package com.bitplay.arbitrage.dto;
  */
 public enum SignalType {
     AUTOMATIC(""),
+    ADJBTC("adjbtc"),
+    B_ADJBTC("b_adjbtc"),
+    B_ADJBTC_INCREASE_POS("b_adjbtc_increase_pos"),
     ADJ("adj"),
     B_ADJ("b_adj"),
     B_ADJ_INCREASE_POS("b_adj_increase_pos"),
@@ -45,7 +48,12 @@ public enum SignalType {
     }
 
     public boolean isAdj() {
-        return this == ADJ || this == B_ADJ || this == O_ADJ || this == B_ADJ_INCREASE_POS || this == O_ADJ_INCREASE_POS;
+        return this == ADJ || this == B_ADJ || this == O_ADJ || this == B_ADJ_INCREASE_POS || this == O_ADJ_INCREASE_POS
+                || this.isAdjBtc();
+    }
+
+    public boolean isAdjBtc() {
+        return this == ADJBTC || this == B_ADJBTC || this == B_ADJBTC_INCREASE_POS;
     }
 
     public boolean isDoubleTradingSignal() {

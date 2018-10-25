@@ -457,12 +457,11 @@ public class CommonUIService {
                 btmUsdInContract = BigDecimal.valueOf(10).divide(cm, 2, RoundingMode.HALF_UP).toPlainString();
             }
 
-            boolean posEqual = posDiffService.isPosEqual();
             posDiff = new PosDiffJson(
-                    posEqual,
+                    posDiffService.isMainSetEqual(),
                     arbitrageService.getMainSetStr(),
                     arbitrageService.getMainSetSource(),
-                    posEqual,
+                    posDiffService.isExtraSetEqual(),
                     arbitrageService.getExtraSetStr(),
                     arbitrageService.getExtraSetSource(),
                     placingBlocks,

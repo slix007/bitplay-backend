@@ -4,11 +4,8 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.model.PlacingType;
 import javax.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.data.annotation.Id;
@@ -21,10 +18,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
  */
 @Document(collection = "ordersCollection")
 @TypeAlias("orders")
-@Getter
-@Setter
-@ToString
-@AllArgsConstructor
+@Data
 @NoArgsConstructor
 public class FplayOrder {
 

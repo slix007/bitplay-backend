@@ -1,5 +1,7 @@
 package com.bitplay.persistance.domain.fluent;
 
+import com.bitplay.persistance.domain.fluent.OrderDetail.CurrencyPairDetail;
+import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
@@ -17,7 +19,7 @@ public class FplayOrderConverter {
         orderDetail.setCumulativeAmount(order.getCumulativeAmount());
         orderDetail.setTradableAmount(order.getTradableAmount());
         orderDetail.setTimestamp(order.getTimestamp());
-        orderDetail.setCurrencyPair(order.getCurrencyPair());
+        orderDetail.setCurrencyPair(convert(order.getCurrencyPair()));
         if (order instanceof LimitOrder) {
             orderDetail.setLimitPrice(((LimitOrder) order).getLimitPrice());
         }
@@ -27,7 +29,7 @@ public class FplayOrderConverter {
     public static LimitOrder convert(OrderDetail orderDetail) {
         return new LimitOrder(orderDetail.getOrderType(),
                 orderDetail.getTradableAmount(),
-                orderDetail.getCurrencyPair(),
+                parse(orderDetail.getCurrencyPair()),
                 orderDetail.getId(),
                 orderDetail.getTimestamp(),
                 orderDetail.getLimitPrice(),
@@ -35,4 +37,14 @@ public class FplayOrderConverter {
                 orderDetail.getCumulativeAmount(),
                 orderDetail.getOrderStatus());
     }
+
+    private static CurrencyPairDetail convert(CurrencyPair currencyPair) {
+        return new CurrencyPairDetail(currencyPair.base.getCurrencyCode(),
+                currencyPair.counter.getCurrencyCode());
+    }
+
+    private static CurrencyPair parse(CurrencyPairDetail detail) {
+        return new CurrencyPair(detail.getFirst(), detail.getSecond());
+    }
+
 }
