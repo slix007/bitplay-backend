@@ -149,7 +149,9 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         final LimitsJson limitsJson = bitmexLimitsService.getLimitsJson();
 
-        final String bxbtBal = ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice();
+        final String bxbtBal = bitmexService.getContractType().isEth()
+                ? ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice()
+                : "";
 
         // Index diff = b_index (n) - o_index (k) = x,
         final BigDecimal okexIndex = okexService.getContractIndex().getIndexPrice();

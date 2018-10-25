@@ -1310,11 +1310,13 @@ public class ArbitrageService {
                 : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
         final BigDecimal notionalUsd = (bitmexUsd.add(okexUsd).subtract(ha)).negate();
 
-        final String setName = settings.getContractMode().getTheSet().toString();
+        final String modeName = settings.getContractMode().getModeName();
+        final String setName = settings.getContractMode().getMainSetName();
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
         if (isEth) {
-            return String.format("%s: nt_usd = -(b(%s) + o(%s) - ha(%s)) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
+            return String.format("%s, %s, nt_usd = -(b(%s) + o(%s) - ha(%s)) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
+                    modeName,
                     setName,
                     bitmexUsd.toPlainString(),
                     okexUsd.toPlainString(),
@@ -1323,7 +1325,8 @@ public class ArbitrageService {
                     mdc, cm, adj, adjMax
             );
         } else {
-            return String.format("%s: nt_usd = -(b(%s) + o(%s) - ha(%s)) = %s, mdc=%s. ",
+            return String.format("%s, %s, nt_usd = -(b(%s) + o(%s) - ha(%s)) = %s, mdc=%s. ",
+                    modeName,
                     setName,
                     bitmexUsd.toPlainString(),
                     okexUsd.toPlainString(),
@@ -1335,7 +1338,7 @@ public class ArbitrageService {
     }
 
     public String getExtraSetStr() {
-//        Set_bu10: nt_usd = - (b_pos_usd - hb_usd);
+        // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
         final MarketService bitmexService = getFirstMarketService();
         if (bitmexService.getContractType().isEth()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
@@ -1343,7 +1346,9 @@ public class ArbitrageService {
             final BigDecimal hb_usd = settings.getHedgeBtc();
             final BigDecimal nt_usd = (b_pos_usd.subtract(hb_usd)).negate();
 
-            return String.format("Set_bu10: nt_usd = -(b_pos_usd(%s) - hb_usd(%s)) = %s. ",
+            return String.format("%s, %s, nt_usd = -(b_pos_usd(%s) - hb_usd(%s)) = %s. ",
+                    settings.getContractMode().getModeName(),
+                    "set_bu10",
                     b_pos_usd.toPlainString(),
                     hb_usd.toPlainString(),
                     nt_usd.toPlainString()
@@ -1353,21 +1358,29 @@ public class ArbitrageService {
     }
 
     public String getMainSetSource() {
-        // contracts: b_pos() o_pos() hb_pos()
+        // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
+        // M10, set_bu11, cont: b_pos(-1200); o_pos(+900, -0).
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
-        return String.format("contracts: b_pos(%s) o_pos(+%s-%s). ",
+        return String.format("%s, %s, cont: b_pos(%s) o_pos(+%s, -%s). ",
+                settings.getContractMode().getModeName(),
+                settings.getContractMode().getMainSetName(),
                 Utils.withSign(bP),
                 oPL.toPlainString(),
                 oPS.toPlainString());
     }
 
     public String getExtraSetSource() {
-        // contracts: b_pos()
+        // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
+        // M10, set_bu11, cont: b_pos(-1200); o_pos(+900, -0).
         if (getFirstMarketService().getContractType().isEth()) {
+            final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
             final BigDecimal bP = getFirstMarketService().getHbPosUsd();
-            return String.format("contracts: b_pos(%s).",
+            return String.format("%s, %s, cont: b_pos(%s) o_pos(+0, -0). ",
+                    settings.getContractMode().getModeName(),
+                    "set_bu10",
                     Utils.withSign(bP));
         }
         return "";
