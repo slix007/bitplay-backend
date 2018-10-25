@@ -340,6 +340,10 @@ public class PosDiffService {
 
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
 
+                if (checkPosDiffForCorr(isSecondCheck, bP, oPL, oPS, corrParams)) {
+                    return;
+                }
+
                 boolean isEth = arbitrageService.getFirstMarketService().getContractType().isEth();
                 if (isEth) {
                     if (checkPosDiffForAdj(isSecondCheck, bP, oPL, oPS, corrParams)) {
@@ -348,10 +352,6 @@ public class PosDiffService {
                     if (checkPosDiffForExtraAdj(isSecondCheck, bP, oPL, oPS, corrParams)) {
                         return;
                     }
-                }
-
-                if (checkPosDiffForCorr(isSecondCheck, bP, oPL, oPS, corrParams)) {
-                    return;
                 }
 
             } finally {
