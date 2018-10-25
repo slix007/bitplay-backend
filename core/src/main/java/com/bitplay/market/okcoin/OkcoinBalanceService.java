@@ -89,6 +89,10 @@ public class OkcoinBalanceService implements BalanceService {
             }
         }
 
+        if (contractType.isEth()) {
+            tempValues += "<br>";
+        }
+
         return new FullBalance(new AccountInfoContracts(
                 accountInfoContracts.getWallet(),
                 available,

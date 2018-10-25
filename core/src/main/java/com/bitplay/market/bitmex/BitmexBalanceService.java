@@ -54,11 +54,15 @@ public class BitmexBalanceService implements BalanceService {
             BigDecimal uplBestXBTUSD = BigDecimal.ZERO;
             BigDecimal uplAvgXBTUSD = BigDecimal.ZERO;
 
+            if (contractType.isEth()) {
+                tempValues += "<br>";
+            }
+
             if (contractType.isEth() && positionXBTUSD != null && positionXBTUSD.getPositionLong() != null) {
                 Upl uplXBTUSD = calcUpl(false, positionXBTUSD, orderBookXBTUSD);
                 uplBestXBTUSD = uplXBTUSD.uplBest;
                 uplAvgXBTUSD = uplXBTUSD.uplAvg;
-                tempValues += " " + uplXBTUSD.tempValues;
+                tempValues += uplXBTUSD.tempValues;
             }
 
             eBest = wallet.add(uplBest).add(uplBestXBTUSD);

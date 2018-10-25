@@ -1315,7 +1315,7 @@ public class ArbitrageService {
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
         if (isEth) {
-            return String.format("%s, %s, nt_usd = -(b(%s) + o(%s) - ha(%s)) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
+            return String.format("%s, %s, nt_usd = -(b(%s) + o(%s) - h(%s)) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
                     modeName,
                     setName,
                     bitmexUsd.toPlainString(),
@@ -1325,7 +1325,7 @@ public class ArbitrageService {
                     mdc, cm, adj, adjMax
             );
         } else {
-            return String.format("%s, %s, nt_usd = -(b(%s) + o(%s) - ha(%s)) = %s, mdc=%s. ",
+            return String.format("%s, %s, nt_usd = -(b(%s) + o(%s) - h(%s)) = %s, mdc=%s. ",
                     modeName,
                     setName,
                     bitmexUsd.toPlainString(),
@@ -1346,7 +1346,7 @@ public class ArbitrageService {
             final BigDecimal hb_usd = settings.getHedgeBtc();
             final BigDecimal nt_usd = (b_pos_usd.subtract(hb_usd)).negate();
 
-            return String.format("%s, %s, nt_usd = -(b_pos_usd(%s) - hb_usd(%s)) = %s. ",
+            return String.format("%s, %s, nt_usd = -(b(%s) + o(+0) - h(%s)) = %s. ",
                     settings.getContractMode().getModeName(),
                     "set_bu10",
                     b_pos_usd.toPlainString(),
@@ -1364,7 +1364,7 @@ public class ArbitrageService {
         final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
-        return String.format("%s, %s, cont: b_pos(%s) o_pos(+%s, -%s). ",
+        return String.format("%s, %s, cont: b(%s) o(+%s, -%s). ",
                 settings.getContractMode().getModeName(),
                 settings.getContractMode().getMainSetName(),
                 Utils.withSign(bP),
@@ -1378,7 +1378,7 @@ public class ArbitrageService {
         if (getFirstMarketService().getContractType().isEth()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
             final BigDecimal bP = getFirstMarketService().getHbPosUsd();
-            return String.format("%s, %s, cont: b_pos(%s) o_pos(+0, -0). ",
+            return String.format("%s, %s, cont: b(%s) o(+0, -0). ",
                     settings.getContractMode().getModeName(),
                     "set_bu10",
                     Utils.withSign(bP));
