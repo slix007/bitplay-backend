@@ -24,11 +24,11 @@ public class HedgeService {
 
     public BigDecimal getHedgeBtc() {
         final Settings settings = settingsRepositoryService.getSettings();
-        return settings.getHedgeAuto() ? hedgeBtc : settings.getHedgeBtc();
+        return settings.getHedgeAuto() ? hedgeBtc.negate() : settings.getHedgeBtc();
     }
 
     public BigDecimal getHedgeEth() {
         final Settings settings = settingsRepositoryService.getSettings();
-        return settings.getHedgeAuto() ? hedgeEth : settings.getHedgeEth();
+        return settings.getHedgeAuto() ? hedgeEth.negate() : settings.getHedgeEth();
     }
 }
