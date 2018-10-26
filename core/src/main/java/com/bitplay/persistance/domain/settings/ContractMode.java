@@ -60,4 +60,7 @@ public enum ContractMode {
         return bitmexContractType.name().startsWith("ETH");
     }
 
+    public String getExtraSetName() {
+        return isEth() ? "set_bu10" : "";
+    }
 }

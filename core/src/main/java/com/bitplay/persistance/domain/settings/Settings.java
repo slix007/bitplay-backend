@@ -56,6 +56,10 @@ public class Settings extends AbstractDocument {
     private String okexContractName;
     @Transient
     private ContractMode contractModeCurrent; // only for UI
+    @Transient
+    private String mainSetNameCurrent;
+    @Transient
+    private String extraSetNameCurrent;
 
     private BigDecimal hedgeBtc;
     private BigDecimal hedgeEth;
@@ -106,4 +110,9 @@ public class Settings extends AbstractDocument {
         return contractModeCurrent != null && contractModeCurrent.isEth();
     }
 
+    public void setContractModeCurrent(ContractMode contractModeCurrent) {
+        this.contractModeCurrent = contractModeCurrent;
+        this.mainSetNameCurrent = contractModeCurrent.getMainSetName();
+        this.extraSetNameCurrent = contractModeCurrent.getExtraSetName();
+    }
 }
