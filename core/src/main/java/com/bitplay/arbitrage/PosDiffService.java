@@ -17,7 +17,6 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
-import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
@@ -78,6 +77,9 @@ public class PosDiffService {
     private BitmexService bitmexService;
     @Autowired
     private OkCoinService okCoinService;
+
+    @Autowired
+    private HedgeService hedgeService;
 
     @Autowired
     private TradeService tradeService;
@@ -474,10 +476,8 @@ public class PosDiffService {
     }
 
     private BigDecimal getHedgeAmount() {
-        final Settings settings = settingsRepositoryService.getSettings();
-
         final BigDecimal hedgeAmount = bitmexService.getContractType().isEth()
-                ? settings.getHedgeEth().add(settings.getHedgeBtc()) : settings.getHedgeBtc();
+                ? hedgeService.getHedgeEth().add(hedgeService.getHedgeBtc()) : hedgeService.getHedgeBtc();
         if (hedgeAmount == null) {
             warningLogger.error("Hedge amount is null on checkPosDiff");
             throw new RuntimeException("Hedge amount is null on checkPosDiff");
@@ -486,10 +486,9 @@ public class PosDiffService {
     }
 
     private BigDecimal getHedgeAmountMainSet() {
-        final Settings settings = settingsRepositoryService.getSettings();
         final BigDecimal hedgeAmount = bitmexService.getContractType().isEth()
-                ? settings.getHedgeEth()
-                : settings.getHedgeBtc();
+                ? hedgeService.getHedgeEth()
+                : hedgeService.getHedgeBtc();
         if (hedgeAmount == null) {
             warningLogger.error("Hedge amount is null on checkPosDiff");
             throw new RuntimeException("Hedge amount is null on checkPosDiff");
@@ -501,8 +500,7 @@ public class PosDiffService {
         if (!bitmexService.getContractType().isEth()) {
             return BigDecimal.ZERO;
         }
-        final Settings settings = settingsRepositoryService.getSettings();
-        final BigDecimal hedgeAmount = settings.getHedgeBtc();
+        final BigDecimal hedgeAmount = hedgeService.getHedgeBtc();
         if (hedgeAmount == null) {
             warningLogger.error("Hedge amount is null on checkPosDiff");
             throw new RuntimeException("Hedge amount is null on checkPosDiff");

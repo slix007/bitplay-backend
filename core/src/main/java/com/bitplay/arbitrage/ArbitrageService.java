@@ -124,6 +124,8 @@ public class ArbitrageService {
     private FplayTradeRepository fplayTradeRepository;
     @Autowired
     private SlackNotifications slackNotifications;
+    @Autowired
+    private HedgeService hedgeService;
 
 
     //    private Disposable schdeduleUpdateBorders;
@@ -1088,7 +1090,19 @@ public class ArbitrageService {
                 firstMarketService.setMarketState(MarketState.FORBIDDEN);
                 secondMarketService.setMarketState(MarketState.FORBIDDEN);
             }
+
+            // calc auto hedge
+            if (persistenceService.getSettingsRepositoryService().getSettings().isEth()) {
+                BigDecimal he_usd = oEbest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
+                hedgeService.setHedgeEth(he_usd);
+                BigDecimal hb_usd = (bEbest.add(coldStorageBtc)).multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
+                hedgeService.setHedgeBtc(hb_usd);
+            } else {
+                hedgeService.setHedgeBtc(sumEBestUsdCurr);
+                hedgeService.setHedgeEth(BigDecimal.ZERO);
+            }
         }
+
         Instant end = Instant.now();
         Utils.logIfLong(lastCalcSumBal, end, logger, "calcSumBalForGui");
     }
@@ -1301,7 +1315,7 @@ public class ArbitrageService {
         final BigDecimal bP = bitmexService.getPosition().getPositionLong();
         final BigDecimal oPL = okcoinService.getPosition().getPositionLong();
         final BigDecimal oPS = okcoinService.getPosition().getPositionShort();
-        final BigDecimal ha = isEth ? settings.getHedgeEth() : settings.getHedgeBtc();
+        final BigDecimal ha = isEth ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
         final BigDecimal bitmexUsd = isEth
                 ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
                 : bP;
@@ -1343,7 +1357,7 @@ public class ArbitrageService {
         if (bitmexService.getContractType().isEth()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
             final BigDecimal b_pos_usd = bitmexService.getHbPosUsd();
-            final BigDecimal hb_usd = settings.getHedgeBtc();
+            final BigDecimal hb_usd = hedgeService.getHedgeBtc();
             final BigDecimal nt_usd = (b_pos_usd.subtract(hb_usd)).negate();
 
             return String.format("%s, %s, nt_usd = -(b(%s) + o(+0) - h(%s)) = %s. ",
