@@ -307,8 +307,10 @@ public class BitmexService extends MarketService {
                     logger.warn("Banned:" + e.getMessage());
                     warningLogger.warn("Banned:" + e.getMessage());
                     setOverloaded(null);
+                } else if (e.getHttpBody() != null) {
+                    logger.warn("posXBTUSDUpdater: " + e.toString() + ". " + e.getHttpBody());
                 } else {
-                    logger.warn("posXBTUSDUpdater: ", e);
+                    logger.error("posXBTUSDUpdater:", e);
                 }
             } catch (SocketTimeoutException e) {
                 logger.error("posXBTUSDUpdater: " + e.toString());
