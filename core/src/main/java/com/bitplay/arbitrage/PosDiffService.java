@@ -172,7 +172,7 @@ public class PosDiffService {
                             pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                             log.info(infoMsg + "bitmex2 " + pos1);
                             log.info(infoMsg + "okex2 " + pos2);
-                            if ((isAdj && isPosEqual()) || (!isAdj && isPosEqualByMaxAdj())) {
+                            if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj())) {
                                 isCorrect = true;
                             }
                         }
@@ -190,8 +190,8 @@ public class PosDiffService {
                     } else {
                         // error++
                         corrParams.getAdj().incFails();
-                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Adj failed. %s. dc=%s",
-                                corrParams.getCorr().toString(), getDc()));
+                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Adj failed. %s. dc(main)=%s, dc(extra)=%s",
+                                corrParams.getCorr().toString(), getDcMainSet(), getDcExtraSet()));
                         tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
                     }
                 } else {
@@ -204,8 +204,8 @@ public class PosDiffService {
                     } else {
                         // error++
                         corrParams.getCorr().incFails();
-                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Correction failed. %s. dc=%s",
-                                corrParams.getCorr().toString(), getDc()));
+                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Correction failed. %s. dc(main)=%s, dc(extra)=%s",
+                                corrParams.getCorr().toString(), getDcMainSet(), getDcExtraSet()));
                         tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
 
                     }
@@ -225,10 +225,11 @@ public class PosDiffService {
                     corrParams.getCorr().incFails();
                 }
                 persistenceService.saveCorrParams(corrParams);
-                Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Error on finish %s. %s. dc=%s",
+                Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Error on finish %s. %s. dc(main)=%s, dc(extra)=%s",
                         signalType,
                         isAdj ? corrParams.getAdj().toString() : corrParams.getCorr().toString(),
-                        getDc()));
+                        getDcMainSet(),
+                        getDcExtraSet()));
                 tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
             }
         }
@@ -298,7 +299,7 @@ public class PosDiffService {
 
                 if (isMdcNeeded()) {
                     final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
-                    final BigDecimal positionsDiffWithHedge = getDc();
+                    final BigDecimal positionsDiffWithHedge = getDcMainSet();
                     warningLogger.info("MDC posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
 
                     doCorrectionImmediate(SignalType.CORR_MDC);
@@ -312,7 +313,7 @@ public class PosDiffService {
 
     private boolean isMdcNeeded() {
         final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
-        final BigDecimal dc = getDc();
+        final BigDecimal dc = getDcMainSet();
         return !isPosEqualByMaxAdj()
                 && dc.abs().compareTo(maxDiffCorr) >= 0;
     }
@@ -836,10 +837,11 @@ public class PosDiffService {
     }
 
     private boolean isPosEqual() {
-        final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-        final BigDecimal posAdjustmentMin = pa.getPosAdjustmentMin();
-
-        return getDc().abs().subtract(posAdjustmentMin).signum() <= 0;
+//        final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+//        final BigDecimal posAdjustmentMin = pa.getPosAdjustmentMin();
+//
+//        return getDc().abs().subtract(posAdjustmentMin).signum() <= 0;
+        return isMainSetEqual() && isExtraSetEqual();
     }
 
     public boolean isMainSetEqual() {

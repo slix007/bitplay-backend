@@ -1092,7 +1092,7 @@ public class ArbitrageService {
             }
 
             // calc auto hedge
-            if (persistenceService.getSettingsRepositoryService().getSettings().isEth()) {
+            if (firstMarketService.getContractType().isEth()) {
                 BigDecimal he_usd = oEbest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
                 hedgeService.setHedgeEth(he_usd);
                 BigDecimal hb_usd = (bEbest.add(coldStorageBtc)).multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
