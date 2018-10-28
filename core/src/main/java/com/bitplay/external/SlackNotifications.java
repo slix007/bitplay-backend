@@ -53,7 +53,7 @@ public class SlackNotifications {
 
     private String getHostName() throws UnknownHostException {
         String hostName = InetAddress.getLocalHost().getHostName();
-        if (hostName.startsWith("66") && hostName.length() >= 3) {
+        if (hostName.startsWith("6") && hostName.length() >= 3) {
             return hostName.substring(0, 3);
         }
         return null; // don't send from 'not servers'.
