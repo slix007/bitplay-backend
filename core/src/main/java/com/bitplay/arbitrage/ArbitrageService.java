@@ -1046,7 +1046,9 @@ public class ArbitrageService {
                 throw new IllegalStateException(String.format("Balance is not yet defined. bW=%s, oW=%s", bW, oW));
             }
 
-            if (secondMarketService.getEthBtcTicker() != null) {
+            boolean isEth = secondMarketService.getEthBtcTicker() != null && firstMarketService.getContractType().isEth();
+
+            if (isEth) {
                 BigDecimal ethBtcBid1 = secondMarketService.getEthBtcTicker().getBid();
                 oW = oW.multiply(ethBtcBid1);
                 oELast = oELast.multiply(ethBtcBid1);
@@ -1070,7 +1072,9 @@ public class ArbitrageService {
 
             final BigDecimal sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-            final BigDecimal btmQu = Utils.calcQuAvg(firstMarketService.getOrderBook());
+            final BigDecimal btmQu = isEth
+                    ? Utils.calcQuAvg(firstMarketService.getOrderBookXBTUSD())
+                    : Utils.calcQuAvg(firstMarketService.getOrderBook());
             sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
             sumBalString = String.format("s_bal=w%s_%s, s_e_%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, usd_qu%s",
@@ -1332,20 +1336,20 @@ public class ArbitrageService {
             return String.format("%s, %s, nt_usd = -(b(%s) + o(%s) - h(%s)) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
                     modeName,
                     setName,
-                    bitmexUsd.toPlainString(),
-                    okexUsd.toPlainString(),
-                    ha.toPlainString(),
-                    notionalUsd.toPlainString(),
+                    Utils.withSign(bitmexUsd),
+                    Utils.withSign(okexUsd),
+                    Utils.withSign(ha),
+                    Utils.withSign(notionalUsd),
                     mdc, cm, adj, adjMax
             );
         } else {
             return String.format("%s, %s, nt_usd = -(b(%s) + o(%s) - h(%s)) = %s, mdc=%s. ",
                     modeName,
                     setName,
-                    bitmexUsd.toPlainString(),
-                    okexUsd.toPlainString(),
-                    ha.toPlainString(),
-                    notionalUsd.toPlainString(),
+                    Utils.withSign(bitmexUsd),
+                    Utils.withSign(okexUsd),
+                    Utils.withSign(ha),
+                    Utils.withSign(notionalUsd),
                     mdc
             );
         }
@@ -1363,9 +1367,9 @@ public class ArbitrageService {
             return String.format("%s, %s, nt_usd = -(b(%s) + o(+0) - h(%s)) = %s. ",
                     settings.getContractMode().getModeName(),
                     "set_bu10",
-                    b_pos_usd.toPlainString(),
-                    hb_usd.toPlainString(),
-                    nt_usd.toPlainString()
+                    Utils.withSign(b_pos_usd),
+                    Utils.withSign(hb_usd),
+                    Utils.withSign(nt_usd)
             );
         }
         return "";
