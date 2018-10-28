@@ -1,0 +1,62 @@
+image: maven:latest
+
+variables:
+  #  MAVEN_CLI_OPTS: "-s .m2/settings.xml --batch-mode"
+  MAVEN_CLI_OPTS: "-Dmaven.repo.local=.m2/repository --batch-mode"
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+before_script:
+  - git submodule sync --recursive
+  - git submodule update --init --recursive
+
+cache:
+  paths:
+    - .m2/repository/
+    - target/
+
+stages:
+  - all-in-one
+#  - pre-build
+#  - build
+#  - test
+#  - deploy
+#
+
+all-in-one:
+  stage: all-in-one
+  script:
+    - pwd
+    - mvn $MAVEN_CLI_OPTS -f XChange install
+    - pwd
+    - mvn $MAVEN_CLI_OPTS -f xchange-stream install
+    - ls .m2/repository/org/
+    - mvn $MAVEN_CLI_OPTS -Dmaven.test.skip=true install
+
+#pre-build:
+#  stage: pre-build
+#  script:
+#    - pwd
+#    - cd XChange && mvn $MAVEN_CLI_OPTS install
+#    - pwd
+#    - cd ../
+#    - cd xchange-stream && mvn $MAVEN_CLI_OPTS install
+#    - cd ../
+#    - ls .m2/repository/org/
+#
+#build:
+#  stage: build
+#  script:
+#    - mvn $MAVEN_CLI_OPTS compile
+#
+#test:
+#  stage: test
+#  script:
+#    - mvn $MAVEN_CLI_OPTS test
+#
+#deploy:
+#  stage: deploy
+#  script:
+#    - mvn $MAVEN_CLI_OPTS deploy
+#  only:
+#    - master
+

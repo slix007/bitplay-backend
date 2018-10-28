@@ -9,12 +9,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.util.Pair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
+import org.springframework.data.util.Pair;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
@@ -145,12 +145,12 @@ public class Utils {
             return BigDecimal.ZERO;
         }
 
-        final Pair<BigDecimal, Integer> bidAvgPrice = bidAmount > 0 ? getAvgPriceForOrders(bidAmount, orderBook.getBids()) : new Pair<>(BigDecimal.ZERO, 0);
-        final Pair<BigDecimal, Integer> askAvgPrice = askAmount > 0 ? getAvgPriceForOrders(askAmount, orderBook.getAsks()) : new Pair<>(BigDecimal.ZERO, 0);
+        final Pair<BigDecimal, Integer> bidAvgPrice = bidAmount > 0 ? getAvgPriceForOrders(bidAmount, orderBook.getBids()) : Pair.of(BigDecimal.ZERO, 0);
+        final Pair<BigDecimal, Integer> askAvgPrice = askAmount > 0 ? getAvgPriceForOrders(askAmount, orderBook.getAsks()) : Pair.of(BigDecimal.ZERO, 0);
 
-        return ((bidAvgPrice.getKey().multiply(BigDecimal.valueOf(bidAvgPrice.getValue())))
-                .add(askAvgPrice.getKey().multiply(BigDecimal.valueOf(askAvgPrice.getValue()))))
-                .divide(BigDecimal.valueOf(bidAvgPrice.getValue() + askAvgPrice.getValue()), 2, RoundingMode.HALF_UP);
+        return ((bidAvgPrice.getFirst().multiply(BigDecimal.valueOf(bidAvgPrice.getSecond())))
+                .add(askAvgPrice.getFirst().multiply(BigDecimal.valueOf(askAvgPrice.getSecond()))))
+                .divide(BigDecimal.valueOf(bidAvgPrice.getSecond() + askAvgPrice.getSecond()), 2, RoundingMode.HALF_UP);
     }
 
     private static Pair<BigDecimal, Integer> getAvgPriceForOrders(int askAmount, List<LimitOrder> limitOrderList) {
@@ -175,7 +175,7 @@ public class Utils {
             }
 
             final BigDecimal avgPrice = sumPrices.divide(BigDecimal.valueOf(sumQty), 8, RoundingMode.HALF_UP);
-            return new Pair<>(avgPrice, sumQty);
+            return Pair.of(avgPrice, sumQty);
         }
     }
 
