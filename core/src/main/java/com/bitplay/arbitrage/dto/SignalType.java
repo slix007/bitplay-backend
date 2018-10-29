@@ -5,9 +5,9 @@ package com.bitplay.arbitrage.dto;
  */
 public enum SignalType {
     AUTOMATIC(""),
-    ADJBTC("adjbtc"),
-    B_ADJBTC("b_adjbtc"),
-    B_ADJBTC_INCREASE_POS("b_adjbtc_increase_pos"),
+    ADJ_BTC("adj_btc"),
+    B_ADJ_BTC("b_adj_btc"),
+    B_ADJ_BTC_INCREASE_POS("b_adj_btc_increase_pos"),
     ADJ("adj"),
     B_ADJ("b_adj"),
     B_ADJ_INCREASE_POS("b_adj_increase_pos"),
@@ -18,7 +18,11 @@ public enum SignalType {
     B_CORR_INCREASE_POS("b_corr_increase_pos"),
     O_CORR("o_corr"),
     O_CORR_INCREASE_POS("o_corr_increase_pos"),
+    CORR_BTC("corr_btc"),
+    B_CORR_BTC("b_corr_btc"),
+    B_CORR_BTC_INCREASE_POS("b_corr_btc_increase_pos"),
     CORR_MDC("corr_mdc"),
+    CORR_BTC_MDC("corr_btc_mdc"),
     CORR_TIMER("corr_timer"),
     B_PRE_LIQ("b_preliq"),
     O_PRE_LIQ("o_preliq"),
@@ -44,7 +48,12 @@ public enum SignalType {
     public boolean isCorr() {
         return this == CORR || this == CORR_MDC || this == CORR_TIMER || this == B_CORR || this == O_CORR || this == B_CORR_INCREASE_POS
                 || this == O_CORR_INCREASE_POS
+                || this.isCorrBtc()
                 || this.isAdj();
+    }
+
+    public boolean isCorrBtc() {
+        return this == CORR_BTC || this == B_CORR_BTC || this == B_CORR_BTC_INCREASE_POS;
     }
 
     public boolean isAdj() {
@@ -53,7 +62,7 @@ public enum SignalType {
     }
 
     public boolean isAdjBtc() {
-        return this == ADJBTC || this == B_ADJBTC || this == B_ADJBTC_INCREASE_POS;
+        return this == ADJ_BTC || this == B_ADJ_BTC || this == B_ADJ_BTC_INCREASE_POS;
     }
 
     public boolean isDoubleTradingSignal() {

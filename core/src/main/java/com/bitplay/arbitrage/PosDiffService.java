@@ -134,19 +134,35 @@ public class PosDiffService {
                         isCorrect = true;
                     } else {
                         Thread.sleep(1000);
-                        String infoMsg = "First check before finishCorr: fetchPositionXBTUSD:";
-                        bitmexService.posXBTUSDUpdater();
-                        String pos1 = BitmexUtils.positionToString(bitmexService.getPositionXBTUSD());
-                        log.info(infoMsg + "bitmex " + pos1);
+                        String infoMsg = "First check before finishAdj: fetchPositionXBTUSD:";
+                        checkBitmexPosXBTUSD(infoMsg);
                         if (isExtraSetEqual()) {
                             isCorrect = true;
                         } else {
                             Thread.sleep(14 * 1000);
-                            infoMsg = "Double check2 before finishCorr: fetchPositionXBTUSD:";
-                            bitmexService.posXBTUSDUpdater();
-                            pos1 = BitmexUtils.positionToString(bitmexService.getPositionXBTUSD());
-                            log.info(infoMsg + "bitmex2 " + pos1);
+                            infoMsg = "Double check2 before finishAdj: fetchPositionXBTUSD:";
+                            checkBitmexPosXBTUSD(infoMsg);
                             if (isExtraSetEqual()) {
+                                isCorrect = true;
+                            }
+                        }
+                    }
+
+                } else if (signalType.isCorrBtc()) {
+
+                    if (isPosEqualByMaxAdj(getDcExtraSet())) {
+                        isCorrect = true;
+                    } else {
+                        Thread.sleep(1000);
+                        String infoMsg = "First check before finishCorr: fetchPositionXBTUSD:";
+                        checkBitmexPosXBTUSD(infoMsg);
+                        if (isPosEqualByMaxAdj(getDcExtraSet())) {
+                            isCorrect = true;
+                        } else {
+                            Thread.sleep(14 * 1000);
+                            infoMsg = "Double check2 before finishCorr: fetchPositionXBTUSD:";
+                            checkBitmexPosXBTUSD(infoMsg);
+                            if (isPosEqualByMaxAdj(getDcExtraSet())) {
                                 isCorrect = true;
                             }
                         }
@@ -154,7 +170,7 @@ public class PosDiffService {
 
                 } else {
 
-                    if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj())) {
+                    if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj(getDcMainSet()))) {
                         isCorrect = true;
                     } else {
                         Thread.sleep(1000);
@@ -163,7 +179,7 @@ public class PosDiffService {
                         String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                         log.info(infoMsg + "bitmex " + pos1);
                         log.info(infoMsg + "okex " + pos2);
-                        if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj())) {
+                        if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj(getDcMainSet()))) {
                             isCorrect = true;
                         } else {
                             Thread.sleep(14 * 1000);
@@ -172,7 +188,7 @@ public class PosDiffService {
                             pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                             log.info(infoMsg + "bitmex2 " + pos1);
                             log.info(infoMsg + "okex2 " + pos2);
-                            if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj())) {
+                            if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj(getDcMainSet()))) {
                                 isCorrect = true;
                             }
                         }
@@ -256,9 +272,14 @@ public class PosDiffService {
                     warningLogger.info(infoMsg + "bitmex " + pos1);
                     warningLogger.info(infoMsg + "okex "+ pos2);
 
+                    if (arbitrageService.getFirstMarketService().getContractType().isEth()) {
+                        final String infoMsgXBTUSD = "Double check before timer-state-reset XBTUSD: fetchPosition:";
+                        checkBitmexPosXBTUSD(infoMsgXBTUSD);
+                    }
+
                     if (Thread.interrupted()) return;
 //                    doCorrectionImmediate(SignalType.CORR_TIMER); - no correction. StopAllActions instead.
-                    if (!isPosEqualByMaxAdj()) {
+                    if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
                         arbitrageService.getFirstMarketService().stopAllActions();
                         arbitrageService.getSecondMarketService().stopAllActions();
                     }
@@ -269,6 +290,15 @@ public class PosDiffService {
                 })
                 .retry()
                 .subscribe();
+    }
+
+    private void checkBitmexPosXBTUSD(String infoMsg) {
+        final BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
+        bitmexService.posXBTUSDUpdater();
+        final Position pos2 = bitmexService.getPositionXBTUSD();
+        String msg = infoMsg + "bitmexXBTUSD=" + BitmexUtils.positionToString(pos2);
+        warningLogger.info(msg);
+        log.info(msg);
     }
 
     private void stopTimerToImmediateCorrection() {
@@ -290,14 +320,14 @@ public class PosDiffService {
         }
 
         try {
-            if (isMdcNeeded()) {
+            if (isMdcNeededMainSet()) {
                 final String infoMsg = "Double check before MDC-correction: fetchPosition:";
                 final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                 final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                 warningLogger.info(infoMsg + "bitmex " + pos1);
                 warningLogger.info(infoMsg + "okex "+ pos2);
 
-                if (isMdcNeeded()) {
+                if (isMdcNeededMainSet()) {
                     final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
                     final BigDecimal positionsDiffWithHedge = getDcMainSet();
                     warningLogger.info("MDC posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
@@ -305,17 +335,36 @@ public class PosDiffService {
                     doCorrectionImmediate(SignalType.CORR_MDC);
                 }
             }
+            if (isMdcNeededExtraSet()) {
+                if (bitmexService.getContractType().isEth()) {
+                    final String infoMsgXBTUSD = "Double check before MDC-correction XBTUSD: fetchPosition:";
+                    checkBitmexPosXBTUSD(infoMsgXBTUSD);
+                    if (isMdcNeededExtraSet()) {
+                        final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
+                        final BigDecimal positionsDiffWithHedge = getDcExtraSet();
+                        warningLogger.info("MDC XBTUSD posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
+
+                        doCorrectionImmediate(SignalType.CORR_BTC_MDC);
+                    }
+                }
+            }
+
         } catch (Exception e) {
             warningLogger.error("Correction MDC failed. " + e.getMessage());
             log.error("Correction MDC failed.", e);
         }
     }
 
-    private boolean isMdcNeeded() {
+    private boolean isMdcNeededMainSet() {
         final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
         final BigDecimal dc = getDcMainSet();
-        return !isPosEqualByMaxAdj()
-                && dc.abs().compareTo(maxDiffCorr) >= 0;
+        return (!isPosEqualByMaxAdj(dc) && dc.abs().compareTo(maxDiffCorr) >= 0);
+    }
+
+    private boolean isMdcNeededExtraSet() {
+        final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
+        final BigDecimal dcExtra = getDcExtraSet();
+        return (!isPosEqualByMaxAdj(dcExtra) && dcExtra.abs().compareTo(maxDiffCorr) >= 0);
     }
 
     private void checkPosDiff(boolean isSecondCheck) throws Exception {
@@ -333,7 +382,7 @@ public class PosDiffService {
                 final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
                 final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
 
-                if (!isPosEqualByMaxAdj()) {
+                if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
                     if (theTimerToImmediateCorr == null || theTimerToImmediateCorr.isDisposed()) {
                         startTimerToImmediateCorrection();
                     }
@@ -375,27 +424,43 @@ public class PosDiffService {
                 if (!isSecondCheck) {
 
                     final String infoMsg = "Double check before adjustment: fetchPosition:";
-                    final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
-                    if (Thread.interrupted()) {
+                    if (doubleFetchPosition(infoMsg, false)) {
                         return true;
                     }
-                    final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
-                    if (Thread.interrupted()) {
-                        return true;
-                    }
-                    warningLogger.info(infoMsg + "bitmex " + pos1);
-                    warningLogger.info(infoMsg + "okex " + pos2);
 
                     checkPosDiff(true);
                     return true;
 
                 } else {
                     final BigDecimal hedgeAmount = getHedgeAmount();
-                    doCorrection(bP, oPL, oPS, hedgeAmount, SignalType.ADJ, false);
+                    doCorrection(bP, oPL, oPS, hedgeAmount, SignalType.ADJ);
                     return true;
                 }
             }
         }
+        return false;
+    }
+
+    private boolean doubleFetchPosition(String infoMsg, boolean isExtra) throws Exception {
+        if (!isExtra) {
+            final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+            if (Thread.interrupted()) {
+                return true;
+            }
+
+            final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
+            if (Thread.interrupted()) {
+                return true;
+            }
+            warningLogger.info(infoMsg + "bitmex " + pos1);
+            warningLogger.info(infoMsg + "okex " + pos2);
+        } else {
+            checkBitmexPosXBTUSD(infoMsg);
+            if (Thread.interrupted()) {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -410,21 +475,17 @@ public class PosDiffService {
                     && isReadyByTime(arbitrageService.getSecondMarketService(), delaySec)) {
                 if (!isSecondCheck) {
 
-                    final String infoMsg = "Double check before extra adjustment: fetchPosition:";
-                    final BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
-                    bitmexService.posXBTUSDUpdater();
-                    if (Thread.interrupted()) {
+                    final String infoMsg = "Double check before adjustment XBTUSD: fetchPosition:";
+                    if (doubleFetchPosition(infoMsg, true)) {
                         return true;
                     }
-                    final Position pos1 = bitmexService.getPositionXBTUSD();
-                    warningLogger.info(infoMsg + "bitmexXBTUSD " + BitmexUtils.positionToString(pos1));
 
                     checkPosDiff(true);
                     return true;
 
                 } else {
                     final BigDecimal hedgeAmount = getHedgeAmountExtraSet();
-                    doCorrection(bP, oPL, oPS, hedgeAmount, SignalType.ADJBTC, true);
+                    doCorrection(bP, oPL, oPS, hedgeAmount, SignalType.ADJ_BTC);
                     return true;
                 }
             }
@@ -433,7 +494,9 @@ public class PosDiffService {
     }
 
     private boolean checkPosDiffForCorr(boolean isSecondCheck, BigDecimal bP, BigDecimal oPL, BigDecimal oPS, CorrParams corrParams) throws Exception {
-        if (corrParams.getCorr().hasSpareAttempts() && !isPosEqualByMaxAdj()) {
+        boolean main = isPosEqualByMaxAdj(getDcMainSet());
+        boolean extra = isPosEqualByMaxAdj(getDcExtraSet());
+        if (corrParams.getCorr().hasSpareAttempts() && (!main || !extra)) {
             final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
             // if all READY more than 15 sec
             if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
@@ -442,26 +505,25 @@ public class PosDiffService {
                     && isReadyByTime(arbitrageService.getSecondMarketService(), delaySec)) {
                 if (!isSecondCheck) {
 
-                    final String infoMsg = "Double check before correction: fetchPosition:";
-                    final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
-                    if (Thread.interrupted()) {
-                        return true;
+                    if (!main) {
+                        String infoMsg = "Double check before correction: fetchPosition:";
+                        if (doubleFetchPosition(infoMsg, false)) {
+                            return true;
+                        }
                     }
-                    final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
-                    if (Thread.interrupted()) {
-                        return true;
+                    if (!extra) {
+                        String info = "Double check before correction XBTUSD: fetchPosition:";
+                        if (doubleFetchPosition(info, true)) {
+                            return true;
+                        }
                     }
-                    warningLogger.info(infoMsg + "bitmex " + pos1);
-                    log.info(infoMsg + "bitmex " + pos1);
-                    warningLogger.info(infoMsg + "okex " + pos2);
-                    log.info(infoMsg + "okex " + pos2);
 
                     checkPosDiff(true);
                     return true;
 
                 } else {
                     final BigDecimal hedgeAmount = getHedgeAmount();
-                    doCorrection(bP, oPL, oPS, hedgeAmount, SignalType.CORR, false);
+                    doCorrection(bP, oPL, oPS, hedgeAmount, !main ? SignalType.CORR : SignalType.CORR_BTC);
                     return true;
                 }
             }
@@ -509,7 +571,7 @@ public class PosDiffService {
         return hedgeAmount;
     }
 
-    private void doCorrectionImmediate(SignalType signalType) {
+    private void doCorrectionImmediate(SignalType signalTypeMdcOrMdcbtc) {
         if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
                 || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
             return;
@@ -524,12 +586,12 @@ public class PosDiffService {
             final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
             final BigDecimal hedgeAmount = getHedgeAmount();
 
-            doCorrection(bP, oPL, oPS, hedgeAmount, signalType, false);
+            doCorrection(bP, oPL, oPS, hedgeAmount, signalTypeMdcOrMdcbtc);
         }
     }
 
     private synchronized void doCorrection(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
-            SignalType baseSignalType, boolean extraSetAdj) {
+            SignalType baseSignalType) {
         if (!arbitrageService.getFirstMarketService().isStarted()
                 || arbitrageService.getFirstMarketService().getMarketState().isStopped()
                 || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
@@ -541,45 +603,37 @@ public class PosDiffService {
         final BigDecimal cm = bitmexService.getCm();
         boolean isEth = bitmexService.getContractType().isEth();
 
-        final BigDecimal dc = baseSignalType == SignalType.ADJBTC
+        final BigDecimal dc = (baseSignalType == SignalType.ADJ_BTC || baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC)
                 ? getDcExtraSet().setScale(2, RoundingMode.HALF_UP)
                 : getDcMainSet().setScale(2, RoundingMode.HALF_UP);
 
         final CorrObj corrObj = new CorrObj(baseSignalType);
 
         // for logs
-        final Integer maxBtm;// = corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm());
-        final Integer maxOkex;// = corrParams.getCorr().getMaxVolCorrOkex();
-        final String corrName;//
+        Integer maxBtm = null;// = corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm());
+        Integer maxOkex = null;// = corrParams.getCorr().getMaxVolCorrOkex();
+        String corrName = baseSignalType.getCounterName();
 
-        if (baseSignalType == SignalType.ADJBTC) {
-            corrName = "extraSet_adj_btc";
-            maxBtm = null;
-            maxOkex = null;
+        if (baseSignalType == SignalType.ADJ_BTC) {
 
-            // 1. What we have to correct
-            adaptExtraSetAdjByPos(corrObj, bP, dc);
+            BigDecimal bPXbtUsd = bitmexService.getPositionXBTUSD().getPositionLong();
+            adaptExtraSetAdjByPos(corrObj, bPXbtUsd, dc);
 
         } else if (baseSignalType == SignalType.ADJ) {
-            corrName = "adj_eth";
-            maxBtm = null;
-            maxOkex = null;
 
-            // 1. What we have to correct
             adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
 
-            // 2. limit by maxVolCorr - no limits for Adj
-//            adaptCorrByMaxVolCorr(corrObj, corrParams);
+        } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
+
+            BigDecimal bPXbtUsd = bitmexService.getPositionXBTUSD().getPositionLong();
+            adaptExtraSetAdjByPos(corrObj, bPXbtUsd, dc);
+            adaptCorrByMaxVolCorr(corrObj, corrParams);
 
         } else { // corr
-            corrName = "corr";
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm());
             maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
 
-            // 1. What we have to correct
             adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
-
-            // 2. limit by maxVolCorr
             adaptCorrByMaxVolCorr(corrObj, corrParams);
 
         } // end corr
@@ -761,26 +815,42 @@ public class PosDiffService {
         }
     }
 
-    private void adaptExtraSetAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal dc) {
+    private void adaptExtraSetAdjByPos(final CorrObj corrObj, final BigDecimal bPXbtUsd, final BigDecimal dc) {
         corrObj.contractType = BitmexService.bitmexContractTypeXBTUSD;
         corrObj.marketService = arbitrageService.getFirstMarketService();
         corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.DOWN);
         if (dc.signum() < 0) {
             corrObj.orderType = Order.OrderType.BID;
             // bitmex buy
-            if (bP.signum() >= 0) {
-                corrObj.signalType = SignalType.B_ADJBTC_INCREASE_POS;
+            if (bPXbtUsd.signum() >= 0) {
+                setExtraSetIncreatePos(corrObj);
             } else {
-                corrObj.signalType = SignalType.B_ADJBTC;
+                setExtraSetDecreasePos(corrObj);
             }
         } else {
             corrObj.orderType = Order.OrderType.ASK;
             // bitmex sell
-            if (bP.signum() <= 0) {
-                corrObj.signalType = SignalType.B_ADJBTC_INCREASE_POS;
+            if (bPXbtUsd.signum() <= 0) {
+                setExtraSetIncreatePos(corrObj);
             } else {
-                corrObj.signalType = SignalType.B_ADJBTC;
+                setExtraSetDecreasePos(corrObj);
             }
+        }
+    }
+
+    private void setExtraSetDecreasePos(CorrObj corrObj) {
+        if (corrObj.signalType == SignalType.ADJ_BTC) {
+            corrObj.signalType = SignalType.B_ADJ_BTC;
+        } else if (corrObj.signalType == SignalType.CORR_BTC || corrObj.signalType == SignalType.CORR_BTC_MDC) {
+            corrObj.signalType = SignalType.B_CORR_BTC;
+        }
+    }
+
+    private void setExtraSetIncreatePos(CorrObj corrObj) {
+        if (corrObj.signalType == SignalType.ADJ_BTC) {
+            corrObj.signalType = SignalType.B_ADJ_BTC_INCREASE_POS;
+        } else if (corrObj.signalType == SignalType.CORR_BTC || corrObj.signalType == SignalType.CORR_BTC_MDC) {
+            corrObj.signalType = SignalType.B_CORR_BTC_INCREASE_POS;
         }
     }
 
@@ -829,11 +899,11 @@ public class PosDiffService {
         return isPosEqual();
     }
 
-    private boolean isPosEqualByMaxAdj() {
+    private boolean isPosEqualByMaxAdj(BigDecimal dc) {
         final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
         final BigDecimal posAdjustmentMax = pa.getPosAdjustmentMax();
 
-        return getDcMainSet().abs().subtract(posAdjustmentMax).signum() <= 0;
+        return dc.abs().subtract(posAdjustmentMax).signum() <= 0;
     }
 
     private boolean isPosEqual() {
@@ -895,7 +965,6 @@ public class PosDiffService {
         return bitmexUsd.subtract(hedgeAmountUsd);
     }
 
-
     private BigDecimal getOkexUsd(boolean isEth) {
         final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
         final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
@@ -919,7 +988,6 @@ public class PosDiffService {
                 : bP;
     }
 
-
     private void writeWarnings(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS) {
 //        if (positionsDiffWithHedge.signum() != 0) {
 //            final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
@@ -937,7 +1005,7 @@ public class PosDiffService {
         arbitrageService.getParams().setPeriodToCorrection(periodToCorrection);
         // restart timer
         stopTimerToImmediateCorrection();
-        if (!isPosEqualByMaxAdj()) {
+        if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
             startTimerToImmediateCorrection();
         }
     }

@@ -135,17 +135,11 @@ public class PersistenceService {
 
     public CorrParams fetchCorrParams() {
         CorrParams corrParams = corrParamsRepository.findFirstByExchangePair(ExchangePair.BITMEX_OKEX);
-        if (bitmexService.getContractType() != null && !bitmexService.getContractType().isEth()) {
-            corrParams.getAdj().setSucceedCount(0);
-            corrParams.getAdj().setFailedCount(0);
-            corrParams.getAdj().setCurrErrorCount(0);
-            corrParams.getAdj().setMaxErrorCount(0);
-            corrParams.getAdj().setMaxTotalCount(0);
-        } else {
-            BigDecimal cm = bitmexService.getCm();
-            corrParams.getCorr().setCm(cm);
-            corrParams.getPreliq().setCm(cm);
-        }
+
+        BigDecimal cm = bitmexService.getCm();
+        corrParams.getCorr().setCm(cm);
+        corrParams.getPreliq().setCm(cm);
+
         return corrParams;
     }
 

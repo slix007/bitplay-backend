@@ -74,9 +74,12 @@ def remoteHomeDir = '/home/' + bpUser
 
 task clean << { delete project.buildDir }
 
+// Test servers
 task deployHost658 << { sshRun(remotes.host658, remoteHomeDir, remoteInstallDir) }
-task deployHost659 << { sshRun(remotes.host659, remoteHomeDir, remoteInstallDir) }
 task deployHost660 << { sshRun(remotes.host660, remoteHomeDir, remoteInstallDir) }
+
+// Prod servers
+task deployHost659 << { sshRun(remotes.host659, remoteHomeDir, remoteInstallDir) }
 task deployHost662 << { sshRun(remotes.host662, remoteHomeDir, remoteInstallDir) }
 task deployHost667 << { sshRun(remotes.host667, remoteHomeDir, remoteInstallDir) }
 task deployHost668 << { sshRun(remotes.host668, remoteHomeDir, remoteInstallDir) }

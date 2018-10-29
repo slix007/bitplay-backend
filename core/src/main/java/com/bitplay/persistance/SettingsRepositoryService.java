@@ -41,11 +41,6 @@ public class SettingsRepositoryService {
         }
 
         settings.getPlacingBlocks().setBitmexBlockFactor(bitmexService.getCm());
-        if (bitmexService.getContractType() != null && !bitmexService.getContractType().isEth()) {
-            settings.getPosAdjustment().setPosAdjustmentMin(BigDecimal.ZERO);
-            settings.getPosAdjustment().setPosAdjustmentMax(BigDecimal.ZERO);
-            settings.getPosAdjustment().setPosAdjustmentDelaySec(0);
-        }
 
         return settings;
     }
