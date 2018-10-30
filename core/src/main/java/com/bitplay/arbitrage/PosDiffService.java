@@ -396,11 +396,12 @@ public class PosDiffService {
                     return;
                 }
 
+                if (checkPosDiffForAdj(isSecondCheck, bP, oPL, oPS, corrParams)) {
+                    return;
+                }
+
                 boolean isEth = arbitrageService.getFirstMarketService().getContractType().isEth();
                 if (isEth) {
-                    if (checkPosDiffForAdj(isSecondCheck, bP, oPL, oPS, corrParams)) {
-                        return;
-                    }
                     if (checkPosDiffForExtraAdj(isSecondCheck, bP, oPL, oPS, corrParams)) {
                         return;
                     }
@@ -432,7 +433,7 @@ public class PosDiffService {
                     return true;
 
                 } else {
-                    final BigDecimal hedgeAmount = getHedgeAmount();
+                    final BigDecimal hedgeAmount = getHedgeAmountMainSet();
                     doCorrection(bP, oPL, oPS, hedgeAmount, SignalType.ADJ);
                     return true;
                 }
@@ -522,7 +523,7 @@ public class PosDiffService {
                     return true;
 
                 } else {
-                    final BigDecimal hedgeAmount = getHedgeAmount();
+                    final BigDecimal hedgeAmount = !main ? getHedgeAmountMainSet() : getHedgeAmountExtraSet();
                     doCorrection(bP, oPL, oPS, hedgeAmount, !main ? SignalType.CORR : SignalType.CORR_BTC);
                     return true;
                 }
@@ -536,16 +537,6 @@ public class PosDiffService {
         final long nowMs = Instant.now().toEpochMilli();
         final long readyMs = marketService.getReadyTime().toEpochMilli();
         return nowMs - readyMs > delaySec * 1000;
-    }
-
-    private BigDecimal getHedgeAmount() {
-        final BigDecimal hedgeAmount = bitmexService.getContractType().isEth()
-                ? hedgeService.getHedgeEth().add(hedgeService.getHedgeBtc()) : hedgeService.getHedgeBtc();
-        if (hedgeAmount == null) {
-            warningLogger.error("Hedge amount is null on checkPosDiff");
-            throw new RuntimeException("Hedge amount is null on checkPosDiff");
-        }
-        return hedgeAmount;
     }
 
     private BigDecimal getHedgeAmountMainSet() {
@@ -584,7 +575,8 @@ public class PosDiffService {
             final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
             final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
             final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
-            final BigDecimal hedgeAmount = getHedgeAmount();
+            final BigDecimal hedgeAmount = signalTypeMdcOrMdcbtc == SignalType.CORR_MDC
+                    ? getHedgeAmountMainSet() : getHedgeAmountExtraSet();
 
             doCorrection(bP, oPL, oPS, hedgeAmount, signalTypeMdcOrMdcbtc);
         }
@@ -932,18 +924,6 @@ public class PosDiffService {
         final BigDecimal min = pa.getPosAdjustmentMin();
         final BigDecimal dcAbs = dc.abs();
         return dcAbs.subtract(min).signum() > 0 && dcAbs.subtract(max).signum() <= 0;
-    }
-
-    /**
-     * Positions diff with hedge in USD.
-     */
-    private BigDecimal getDc() {
-        final BigDecimal hedgeAmountUsd = getHedgeAmount();
-        final boolean isEth = bitmexService.getContractType().isEth();
-        final BigDecimal okexUsd = getOkexUsd(isEth);
-        final BigDecimal bitmexUsd = getBitmexUsd(isEth);
-        final BigDecimal bitmexUsdWithHedge = bitmexUsd.subtract(hedgeAmountUsd).subtract(bitmexService.getHbPosUsd());
-        return okexUsd.add(bitmexUsdWithHedge);
     }
 
     private BigDecimal getDcMainSet() {
