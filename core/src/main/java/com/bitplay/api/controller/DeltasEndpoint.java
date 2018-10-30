@@ -1,8 +1,8 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.domain.fluent.Delta;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.Dlt;
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -31,7 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Created by Sergey Shurmin on 2/25/18.
  */
-@Secured("ROLE_TRADER")
 @RestController
 public class DeltasEndpoint {
     private final static Logger logger = LoggerFactory.getLogger(DeltasEndpoint.class);
