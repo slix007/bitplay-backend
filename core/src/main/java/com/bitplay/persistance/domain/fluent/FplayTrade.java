@@ -1,6 +1,5 @@
 package com.bitplay.persistance.domain.fluent;
 
-import com.bitplay.persistance.domain.AbstractDocument;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -8,9 +7,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -19,33 +18,40 @@ import org.springframework.data.mongodb.core.mapping.Document;
  */
 @Document(collection = "tradeSeries")
 @TypeAlias("trade")
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FplayTrade extends AbstractDocument {
+public class FplayTrade {
+
+    @Id
+    private Long id;
 
     private String counterName;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss.SSS(z)", timezone = "Europe/Moscow")
     private Date startTimestamp;
 
-    private List<FplayOrder> bitmexOrders;
-    private List<FplayOrder> okexOrders;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss.SSS(z)", timezone = "Europe/Moscow")
+    private Date updated;
+    private Long version;
 
     private DeltaName deltaName;
     private TradeStatus tradeStatus;
+    private TradeMStatus bitmexStatus;
+    private TradeMStatus okexStatus;
 
     private BitmexContractType bitmexContractType;
     private OkexContractType okexContractType;
 
+    private List<String> bitmexOrders;
+    private List<String> okexOrders;
     private List<LogRow> deltaLog;
 
-    public List<FplayOrder> getBitmexOrders() {
+    public List<String> getBitmexOrders() {
         return bitmexOrders != null ? bitmexOrders : new ArrayList<>();
     }
 
-    public List<FplayOrder> getOkexOrders() {
+    public List<String> getOkexOrders() {
         return okexOrders != null ? okexOrders : new ArrayList<>();
     }
 
@@ -53,19 +59,7 @@ public class FplayTrade extends AbstractDocument {
         return deltaLog != null ? deltaLog : new ArrayList<>();
     }
 
-    @Override
-    public String toString() {
-        return "FplayTrade{" +
-                "tradeId='" + getId() + '\'' +
-                "counterName='" + counterName + '\'' +
-                ", startTimestamp=" + startTimestamp +
-                ", bitmexOrders=" + bitmexOrders +
-                ", okexOrders=" + okexOrders +
-                ", deltaName=" + deltaName +
-                ", tradeStatus=" + tradeStatus +
-                ", bitmexContractType=" + bitmexContractType +
-                ", okexContractType=" + okexContractType +
-                ", deltaLog=" + deltaLog +
-                '}';
+    public boolean isBothCompleded() {
+        return bitmexStatus == TradeMStatus.COMPLETED && okexStatus == TradeMStatus.COMPLETED;
     }
 }

@@ -1,5 +1,6 @@
 package com.bitplay.persistance.domain.fluent;
 
+import java.util.Date;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
@@ -63,12 +64,25 @@ public class FplayOrderUtils {
             return existing;
         }
 
+        Date timestamp; // latest or new Date()
+        if (update.getTimestamp() == null && existing.getTimestamp() == null) {
+            timestamp = new Date();
+        } else if (update.getTimestamp() == null) {
+            timestamp = existing.getTimestamp();
+        } else if (existing.getTimestamp() == null) {
+            timestamp = update.getTimestamp();
+        } else if (update.getTimestamp().after(existing.getTimestamp())) {
+            timestamp = update.getTimestamp();
+        } else {
+            timestamp = existing.getTimestamp();
+        }
+
         return new LimitOrder(
                 existing.getType(),
                 update.getTradableAmount() != null ? update.getTradableAmount() : existing.getTradableAmount(),
                 existing.getCurrencyPair(),
                 existing.getId(),
-                update.getTimestamp(),
+                timestamp,
                 update.getLimitPrice() != null ? update.getLimitPrice() : existing.getLimitPrice(),
                 update.getAveragePrice() != null ? update.getAveragePrice() : existing.getAveragePrice(),
                 update.getCumulativeAmount() != null ? update.getCumulativeAmount() : existing.getCumulativeAmount(),

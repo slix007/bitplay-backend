@@ -39,6 +39,7 @@ import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayTrade;
+import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
@@ -157,8 +158,6 @@ public class ArbitrageService {
 
     private volatile Long tradeId;
     private volatile FplayTrade fplayTrade;
-    private volatile Long tradeIdBitmexFinished = null;
-    private volatile Long tradeIdOkexFinished = null;
 
     // Signal delay
     private volatile Long signalDelayActivateTime;
@@ -259,13 +258,14 @@ public class ArbitrageService {
                 // The other option is "doing stateSnapshot before doing set arbInProgress=false"
 
             if (marketName.equals(BitmexService.NAME)) {
-                tradeIdBitmexFinished = Utils.lastTradeId(tradeIdBitmexFinished, doneTradeId);
+                fplayTrade.setBitmexStatus(TradeMStatus.COMPLETED);
+                tradeService.setBitmexStatus(doneTradeId, TradeMStatus.COMPLETED);
             } else {
-                tradeIdOkexFinished = Utils.lastTradeId(tradeIdOkexFinished, doneTradeId);
+                fplayTrade.setOkexStatus(TradeMStatus.COMPLETED);
+                tradeService.setOkexStatus(doneTradeId, TradeMStatus.COMPLETED);
             }
 
-            if (tradeId != null && tradeIdBitmexFinished != null && tradeIdOkexFinished != null
-                    && tradeIdBitmexFinished >= tradeId && tradeIdOkexFinished >= tradeId) {
+            if (tradeId != null && fplayTrade.isBothCompleded()) {
 
                 if (arbInProgress.getAndSet(false)) {
                     final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
@@ -276,8 +276,10 @@ public class ArbitrageService {
                     }
 
                     // start writeLogArbitrageIsDone();
-                    tradeService.info(tradeIdSnap, counterNameSnap, String.format("#%s is done. SignalTime=%s sec. tradeId(curr/done): %s / %s---",
-                            counterNameSnap, signalTimeSec, tradeIdSnap, doneTradeId));
+                    final String arbIsDoneMsg = String.format("#%s is done. SignalTime=%s sec. tradeId(curr/done): %s / %s---",
+                            counterNameSnap, signalTimeSec, tradeIdSnap, doneTradeId);
+                    tradeService.info(tradeIdSnap, counterNameSnap, arbIsDoneMsg);
+                    logger.info(arbIsDoneMsg);
 
                     // use snapshot of Params
                     final DealPrices dealPricesSnap;
@@ -317,6 +319,7 @@ public class ArbitrageService {
                 }
             }
         }
+        logger.info(String.format("onArbDone(%s, %s) finished", doneTradeId, marketName));
     }
 
 
@@ -413,10 +416,7 @@ public class ArbitrageService {
                         synchronized (arbInProgressLock) {
                             boolean wasReset = arbInProgress.compareAndSet(true, false);
                             if (wasReset) {
-                                releaseArbInProgress();
-                                tradeService.warn(tradeId, counterName, "Arbitrage state was reset READY");
-                                warningLogger.warn("Arbitrage state was reset READY");
-                                logger.warn("Arbitrage state was reset READY");
+                                releaseArbInProgress(counterName, "'busy for 6 min'");
                             }
                         }
                     }
@@ -706,8 +706,6 @@ public class ArbitrageService {
 
                     if (isImmediate) {
                         arbInProgress.set(true);
-                        tradeIdOkexFinished = null;
-                        tradeIdBitmexFinished = null;
                         startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
                                 ask1_o,
                                 bid1_p, lastObTime);
@@ -715,8 +713,6 @@ public class ArbitrageService {
                         startSignalDelay(0);
                     } else if (isSignalDelayExceeded()) {
                         arbInProgress.set(true);
-                        tradeIdOkexFinished = null;
-                        tradeIdBitmexFinished = null;
                         startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
                                 ask1_o,
                                 bid1_p, lastObTime);
@@ -877,8 +873,6 @@ public class ArbitrageService {
 
                     if (isImmediate) {
                         arbInProgress.set(true);
-                        tradeIdOkexFinished = null;
-                        tradeIdBitmexFinished = null;
                         startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
                                 ask1_p,
                                 bid1_o, lastObTime);
@@ -886,8 +880,6 @@ public class ArbitrageService {
                         startSignalDelay(0);
                     } else if (isSignalDelayExceeded()) {
                         arbInProgress.set(true);
-                        tradeIdOkexFinished = null;
-                        tradeIdBitmexFinished = null;
                         startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
                                 ask1_p,
                                 bid1_o, lastObTime);
@@ -1556,11 +1548,22 @@ public class ArbitrageService {
         return arbInProgress.get();
     }
 
-    public void releaseArbInProgress() {
+    public void releaseArbInProgress(String counterName, String from) {
+        String msg = "Arbitrage state was reset READY from " + from + ". ";
+        tradeService.warn(tradeId, counterName, msg);
+        warningLogger.warn(msg);
+        logger.warn(msg);
+
         synchronized (arbInProgressLock) {
+            try {
+                onArbDone(tradeId, BitmexService.NAME);
+                onArbDone(tradeId, OkCoinService.NAME);
+            } catch (Exception e) {
+                logger.error("Error " + msg, e);
+                warningLogger.error("Error " + msg + e.toString());
+            }
+
             arbInProgress.set(false);
-            tradeIdOkexFinished = null;
-            tradeIdBitmexFinished = null;
         }
     }
 

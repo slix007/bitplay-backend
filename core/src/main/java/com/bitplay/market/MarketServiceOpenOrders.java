@@ -200,26 +200,31 @@ public abstract class MarketServiceOpenOrders {
     /**
      * WARNING:<br> stubOrderForNew should be with correctly filled 'counterName' or null.
      *
-     * @param trades any orderInfo updates from server.
+     * @param limitOrderUpdates any orderInfo updates from server.
      * @param stubOrderForNew with correctly filled 'counterName' or null.
      */
-    protected void updateOpenOrders(List<LimitOrder> trades, FplayOrder stubOrderForNew) { // TODO
+    protected void updateOpenOrders(List<LimitOrder> limitOrderUpdates, FplayOrder stubOrderForNew) { // TODO
 
-        if (trades.size() == 0) {
+        if (limitOrderUpdates.size() == 0) {
             return;
         }
 
         synchronized (openOrdersLock) {
 
+            // no new meta-info in fplayOrders, only new limitOrders
+            Long tradeId = this.openOrders.stream()
+                    .map(FplayOrder::getTradeId)
+                    .reduce(null, Utils::lastTradeId);
+
             // keep not-updated
 //            StringBuilder updateAction = new StringBuilder("without update:");
             final List<FplayOrder> withoutUpdate = this.openOrders.stream()
-                    .filter(existing -> trades.stream().noneMatch(update -> update.getId().equals(existing.getOrder().getId())))
+                    .filter(existing -> limitOrderUpdates.stream().noneMatch(update -> update.getId().equals(existing.getOrder().getId())))
 //                    .peek(existing -> updateAction.append(",id=").append(existing.getOrder().getId()))
                     .collect(Collectors.toList());
 
             // new and updates (remove tooOldByTime only)
-            this.openOrders = trades.stream()
+            this.openOrders = limitOrderUpdates.stream()
                     .flatMap(update -> {
 
                         final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
@@ -272,14 +277,30 @@ public abstract class MarketServiceOpenOrders {
                 orderIdToSignalInfo = newMap;
             }
 
-            // no new meta-info in fplayOrders, only new limitOrders
-            final Long tradeId = this.openOrders.stream()
-                    .map(FplayOrder::getTradeId)
-                    .reduce(null, Utils::lastTradeId);
+            // WORKAROUND1: use DB FplayOrder to find tradeId
+            if (tradeId == null) {
+                logger.warn("warning tradeId==null. OO:" + this.openOrders.stream()
+                        .map(FplayOrder::toString)
+                        .reduce((s, s2) -> s + ";;;" + s2));
+                tradeId = getPersistenceService().getOrderRepositoryService().findTradeId(limitOrderUpdates);
+                logger.warn("found tradeId==" + tradeId);
+            }
+
+            // WORKAROUND2: use FplayTrades
+//            if (tradeId == null) {
+//                logger.warn("warning tradeId==null. OO:" + this.openOrders.stream()
+//                        .map(FplayOrder::toString)
+//                        .reduce((s, s2) -> s + ";;;" + s2));
+//                tradeId = getPersistenceService().getOrderRepositoryService().findTradeId(limitOrderUpdates);
+//                logger.warn("found tradeId==" + tradeId);
+//            }
+
 
             // TODO
             if (!hasOpenOrders()) {
-                logger.info("market-ready: " + trades.stream()
+                logger.info("market-ready: " +
+                        "tradeId=" + tradeId +
+                        "limitOrders=" + limitOrderUpdates.stream()
                         .map(LimitOrder::toString)
                         .collect(Collectors.joining("; ")));
                 setFree(tradeId);
@@ -291,7 +312,8 @@ public abstract class MarketServiceOpenOrders {
     /**
      * Use openOrdersLock.
      * <br>
-     * <br>
+     * <br
+     * >
      *
      * @param mainFplayInfo not null
      * @param update not null

@@ -30,6 +30,7 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
+import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ContractType;
@@ -119,6 +120,8 @@ public class OkCoinService extends MarketService {
 
     private volatile String ifDisconnetedString = "";
 
+    @Autowired
+    private com.bitplay.persistance.TradeService fplayTradeService;
     @Autowired
     private OkcoinBalanceService okcoinBalanceService;
     @Autowired
@@ -833,6 +836,7 @@ public class OkCoinService extends MarketService {
                                     setMarketState(MarketState.ARBITRAGE);
                                     tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
 
+                                    fplayTradeService.setOkexStatus(currArgs.getTradeId(), TradeMStatus.IN_PROGRESS);
                                     placeOrder(currArgs);
                                 }
 

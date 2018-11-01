@@ -5,20 +5,20 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayTrade;
 import com.bitplay.persistance.domain.fluent.LogLevel;
 import com.bitplay.persistance.domain.fluent.LogRow;
+import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.repository.FplayTradeRepository;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Date;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 /**
@@ -36,8 +36,6 @@ public class TradeService {
 
     @Autowired
     private SequenceDao sequenceDao;
-
-    private ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("deltas-log-%d").build());
 
     @Autowired
     private FplayTradeRepository fplayTradeRepository;
@@ -60,67 +58,25 @@ public class TradeService {
         addLog(tradeId, counterName, LogLevel.ERROR, theLog);
     }
 
-    private synchronized void addLog(long tradeId, String counterName, LogLevel logLevel, String theLog) {
+    private void addLog(long tradeId, String counterName, LogLevel logLevel, String theLog) {
         deltasLogger.info(String.format("%s::%s %s", tradeId, counterName, theLog));
 
-        executor.execute(() -> {
-            FplayTrade toUpdate = getFplayTrade(tradeId, counterName, theLog);
-            if (toUpdate == null) {
-                return;
-            }
-            List<LogRow> deltaLog = toUpdate.getDeltaLog();
-            deltaLog.add(new LogRow(logLevel, new Date(), theLog));
-            toUpdate.setDeltaLog(deltaLog);
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                new Update()
+                        .inc("version", 1)
+                        .set("updated", new Date())
+                        .push("deltaLog", new LogRow(logLevel, new Date(), theLog))
+                , FplayTrade.class);
 
-            fplayTradeRepository.save(toUpdate);
-        });
-
-    }
-
-    private FplayTrade getFplayTrade(long tradeId, String counterName, String theLog) {
-        FplayTrade toUpdate = getFplayTrade(tradeId);
-        if (toUpdate == null) {
-            return null;
-        }
-
-        if (!toUpdate.getCounterName().equals(counterName)) {
-            log.warn("counterName={} is not match", counterName);
-            log.warn(toUpdate.toString());
-            log.warn(theLog);
-        }
-        return toUpdate;
-    }
-
-    private FplayTrade getFplayTrade(long tradeId) {
-        FplayTrade toUpdate = fplayTradeRepository.findOne(tradeId);
-        if (toUpdate == null) {
-            log.warn("trade is null. Use the latest");
-            toUpdate = fplayTradeRepository.findTopByOrderByDocumentIdDesc();
-            log.warn("The latest trade is " + toUpdate);
-            if (toUpdate == null) {
-                return null;
-            }
-        }
-        return toUpdate;
-    }
-
-    public synchronized void update(FplayTrade trade) {
-        executor.submit(() -> {
-            fplayTradeRepository.save(trade);
-        });
     }
 
     public void setEndStatus(Long tradeId, TradeStatus tradeStatus) {
-        executor.execute(() -> {
-            FplayTrade toUpdate = getFplayTrade(tradeId);
-            if (toUpdate == null) {
-                return;
-            }
-            toUpdate.setTradeStatus(tradeStatus);
-
-            fplayTradeRepository.save(toUpdate);
-        });
-
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                new Update()
+                        .inc("version", 1)
+                        .set("updated", new Date())
+                        .set("tradeStatus", tradeStatus),
+                FplayTrade.class);
     }
 
     public FplayTrade createTrade(String counterName, DeltaName deltaName, BitmexContractType b, OkexContractType o) {
@@ -131,9 +87,12 @@ public class TradeService {
             BitmexContractType bitmexContractType, OkexContractType okexContractType, TradeStatus tradeStatus) {
         final FplayTrade fplayTrade = new FplayTrade();
         fplayTrade.setCounterName(counterName);
+        fplayTrade.setVersion(0L);
         fplayTrade.setStartTimestamp(startTimestamp);
         fplayTrade.setDeltaName(deltaName);
         fplayTrade.setTradeStatus(tradeStatus);
+        fplayTrade.setBitmexStatus(TradeMStatus.WAITING);
+        fplayTrade.setOkexStatus(TradeMStatus.WAITING);
         fplayTrade.setBitmexContractType(bitmexContractType);
         fplayTrade.setOkexContractType(okexContractType);
 
@@ -143,4 +102,43 @@ public class TradeService {
 
         return fplayTrade;
     }
+
+    public void setBitmexStatus(Long tradeId, TradeMStatus status) {
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                new Update()
+                        .inc("version", 1)
+                        .set("updated", new Date())
+                        .set("bitmexStatus", status),
+                FplayTrade.class);
+    }
+
+    public void setOkexStatus(Long tradeId, TradeMStatus status) {
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                new Update()
+                        .inc("version", 1)
+                        .set("updated", new Date())
+                        .set("okexStatus", status),
+                FplayTrade.class);
+    }
+
+    private void addBitmexOrder(long tradeId, String bitmexOrderId) {
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                new Update()
+                        .inc("version", 1)
+                        .set("updated", new Date())
+                        .addToSet("bitmexOrders", bitmexOrderId)
+                , FplayTrade.class);
+
+    }
+
+    private void addOkexOrder(long tradeId, String okexOrderId) {
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                new Update()
+                        .inc("version", 1)
+                        .set("updated", new Date())
+                        .addToSet("bitmexOrders", okexOrderId)
+                , FplayTrade.class);
+
+    }
+
 }

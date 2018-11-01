@@ -12,9 +12,9 @@ public interface FplayTradeRepository extends MongoRepository<FplayTrade, Long> 
 
     Stream<FplayTrade> streamFplayTradeByStartTimestampBetween(Date from, Date to);
 
-    FplayTrade findTopByOrderByDocumentIdDesc();
+    FplayTrade findTopByOrderByIdDesc();
 
     default Long getLastId() {
-        return findTopByOrderByDocumentIdDesc().getId();
+        return findTopByOrderByIdDesc().getId();
     }
 }

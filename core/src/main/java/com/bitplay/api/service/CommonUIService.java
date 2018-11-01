@@ -403,7 +403,7 @@ public class CommonUIService {
         btm.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, btm.tryFindLastTradeId()));
         MarketService okex = arbitrageService.getSecondMarketService();
         okex.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, okex.tryFindLastTradeId()));
-        arbitrageService.releaseArbInProgress();
+        arbitrageService.releaseArbInProgress("", "'UI'");
         log.info("Free markets states from UI");
         arbitrageService.printToCurrentDeltaLog("Free markets states from UI");
         return new MarketFlagsJson(

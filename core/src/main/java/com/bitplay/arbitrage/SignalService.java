@@ -9,6 +9,8 @@ import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.TradeService;
+import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
@@ -32,6 +34,9 @@ public class SignalService {
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
+    @Autowired
+    private TradeService tradeService;
+
     public void placeOkexOrderOnSignal(MarketService okexService, Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
             SignalType signalType, PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
         final Settings settings = settingsRepositoryService.getSettings();
@@ -44,6 +49,7 @@ public class SignalService {
         } else {
             executorService.submit(() -> {
                 try {
+                    tradeService.setOkexStatus(tradeId, TradeMStatus.IN_PROGRESS);
                     TradeResponse tradeResponse = okexService.placeOrder(placeOrderArgs);
 
                     if (tradeResponse.getErrorCode() != null) {
@@ -66,7 +72,9 @@ public class SignalService {
                 final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, signalType, 1,
                         tradeId, counterName, lastObTime);
 
+                tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
                 ((BitmexService) bitmexService).placeOrderToOpenOrders(placeOrderArgs);
+
             } catch (Exception e) {
                 logger.error("Error on placeOrderOnSignal", e);
             }

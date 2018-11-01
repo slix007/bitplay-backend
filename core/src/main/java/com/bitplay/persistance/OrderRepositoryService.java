@@ -4,12 +4,17 @@ import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.repository.OrderRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 /**
@@ -72,5 +77,18 @@ public class OrderRepositoryService {
         executor.submit(() -> {
             orderRepository.save(fplayOrder);
         });
+    }
+
+    public Long findTradeId(List<LimitOrder> trades) {
+        List<String> orderIds = trades.stream()
+                .map(LimitOrder::getId)
+                .collect(Collectors.toList());
+
+        return mongoOperation.find(new Query(Criteria.where("_id").in(orderIds)), FplayOrder.class)
+                .stream()
+                .map(FplayOrder::getTradeId)
+                .filter(Objects::nonNull)
+                .max(Long::compareTo)
+                .orElse(null);
     }
 }
