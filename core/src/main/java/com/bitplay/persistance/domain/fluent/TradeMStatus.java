@@ -6,6 +6,6 @@ package com.bitplay.persistance.domain.fluent;
 public enum TradeMStatus {
     WAITING,
     IN_PROGRESS,
-    COMPLETED,
-    INTERRUPTED,
+    FINISHED,
+    COMPLETED, // not it use
 }

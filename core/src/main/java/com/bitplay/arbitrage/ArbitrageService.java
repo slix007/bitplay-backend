@@ -258,14 +258,15 @@ public class ArbitrageService {
                 // The other option is "doing stateSnapshot before doing set arbInProgress=false"
 
             if (marketName.equals(BitmexService.NAME)) {
-                fplayTrade.setBitmexStatus(TradeMStatus.COMPLETED);
-                tradeService.setBitmexStatus(doneTradeId, TradeMStatus.COMPLETED);
+                fplayTrade.setBitmexStatus(TradeMStatus.FINISHED);
+                tradeService.setBitmexStatus(doneTradeId, TradeMStatus.FINISHED);
             } else {
-                fplayTrade.setOkexStatus(TradeMStatus.COMPLETED);
-                tradeService.setOkexStatus(doneTradeId, TradeMStatus.COMPLETED);
+                fplayTrade.setOkexStatus(TradeMStatus.FINISHED);
+                tradeService.setOkexStatus(doneTradeId, TradeMStatus.FINISHED);
             }
 
-            if (tradeId != null && fplayTrade.isBothCompleded()) {
+            // read from DB to check isBothCompleted
+            if (tradeId != null && tradeService.isBothCompleted(tradeId)) {
 
                 if (arbInProgress.getAndSet(false)) {
                     final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());

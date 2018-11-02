@@ -39,6 +39,9 @@ public class FplayTrade {
     private TradeStatus tradeStatus;
     private TradeMStatus bitmexStatus;
     private TradeMStatus okexStatus;
+    private List<String> tradeStatusUpdates;
+    private List<String> bitmexStatusUpdates;
+    private List<String> okexStatusUpdates;
 
     private BitmexContractType bitmexContractType;
     private OkexContractType okexContractType;
@@ -59,7 +62,7 @@ public class FplayTrade {
         return deltaLog != null ? deltaLog : new ArrayList<>();
     }
 
-    public boolean isBothCompleded() {
-        return bitmexStatus == TradeMStatus.COMPLETED && okexStatus == TradeMStatus.COMPLETED;
+    public boolean isBothCompleted() {
+        return bitmexStatus == TradeMStatus.FINISHED && okexStatus == TradeMStatus.FINISHED;
     }
 }

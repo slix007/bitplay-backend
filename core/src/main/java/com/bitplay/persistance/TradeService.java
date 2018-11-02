@@ -10,6 +10,8 @@ import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.repository.FplayTradeRepository;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -75,22 +77,23 @@ public class TradeService {
                 new Update()
                         .inc("version", 1)
                         .set("updated", new Date())
+                        .push("tradeStatusUpdates", LocalDateTime.now().format(DateTimeFormatter.ISO_TIME) + " " + tradeStatus.toString())
                         .set("tradeStatus", tradeStatus),
                 FplayTrade.class);
     }
 
     public FplayTrade createTrade(String counterName, DeltaName deltaName, BitmexContractType b, OkexContractType o) {
-        return createTrade(counterName, new Date(), deltaName, b, o, TradeStatus.IN_PROGRESS);
+        return createTrade(counterName, new Date(), deltaName, b, o);
     }
 
     private synchronized FplayTrade createTrade(String counterName, Date startTimestamp, DeltaName deltaName,
-            BitmexContractType bitmexContractType, OkexContractType okexContractType, TradeStatus tradeStatus) {
+            BitmexContractType bitmexContractType, OkexContractType okexContractType) {
         final FplayTrade fplayTrade = new FplayTrade();
         fplayTrade.setCounterName(counterName);
         fplayTrade.setVersion(0L);
         fplayTrade.setStartTimestamp(startTimestamp);
         fplayTrade.setDeltaName(deltaName);
-        fplayTrade.setTradeStatus(tradeStatus);
+        fplayTrade.setTradeStatus(TradeStatus.IN_PROGRESS);
         fplayTrade.setBitmexStatus(TradeMStatus.WAITING);
         fplayTrade.setOkexStatus(TradeMStatus.WAITING);
         fplayTrade.setBitmexContractType(bitmexContractType);
@@ -108,6 +111,7 @@ public class TradeService {
                 new Update()
                         .inc("version", 1)
                         .set("updated", new Date())
+                        .push("bitmexStatusUpdates", LocalDateTime.now().format(DateTimeFormatter.ISO_TIME) + " " + status.toString())
                         .set("bitmexStatus", status),
                 FplayTrade.class);
     }
@@ -117,9 +121,15 @@ public class TradeService {
                 new Update()
                         .inc("version", 1)
                         .set("updated", new Date())
+                        .push("okexStatusUpdates", LocalDateTime.now().format(DateTimeFormatter.ISO_TIME) + " " + status.toString())
                         .set("okexStatus", status),
                 FplayTrade.class);
     }
+
+    public boolean isBothCompleted(Long tradeId) {
+        return fplayTradeRepository.findOne(tradeId).isBothCompleted();
+    }
+
 
     private void addBitmexOrder(long tradeId, String bitmexOrderId) {
         mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
