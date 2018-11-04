@@ -202,27 +202,27 @@ public class PosDiffService {
                         // correct++
                         corrParams.getAdj().incSuccesses();
                         Long lastTradeId = arbitrageService.printToCurrentDeltaLog("Adj succeed. " + corrParams.getAdj().toString());
-                        tradeService.setEndStatus(lastTradeId, TradeStatus.COMPLETED);
+//                        tradeService.setEndStatus(lastTradeId, TradeStatus.COMPLETED);
                     } else {
                         // error++
                         corrParams.getAdj().incFails();
                         Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Adj failed. %s. dc(main)=%s, dc(extra)=%s",
                                 corrParams.getCorr().toString(), getDcMainSet(), getDcExtraSet()));
-                        tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
+//                        tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
                     }
                 } else {
                     if (isCorrect) {
                         // correct++
                         corrParams.getCorr().incSuccesses();
                         Long lastTradeId = arbitrageService.printToCurrentDeltaLog("Correction succeed. " + corrParams.getCorr().toString());
-                        tradeService.setEndStatus(lastTradeId, TradeStatus.COMPLETED);
+//                        tradeService.setEndStatus(lastTradeId, TradeStatus.COMPLETED);
 
                     } else {
                         // error++
                         corrParams.getCorr().incFails();
                         Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Correction failed. %s. dc(main)=%s, dc(extra)=%s",
                                 corrParams.getCorr().toString(), getDcMainSet(), getDcExtraSet()));
-                        tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
+//                        tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
 
                     }
                 }
@@ -246,7 +246,7 @@ public class PosDiffService {
                         isAdj ? corrParams.getAdj().toString() : corrParams.getCorr().toString(),
                         getDcMainSet(),
                         getDcExtraSet()));
-                tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
+//                tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
             }
         }
     }

@@ -3,7 +3,6 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
-import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
 import com.bitplay.arbitrage.dto.SignalType;
@@ -16,6 +15,7 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.borders.BordersV2;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
@@ -56,10 +56,6 @@ public class AfterArbTask implements Runnable {
 
     @Override
     public void run() {
-
-        if (!signalType.isDoubleTradingSignal()) {
-            return;
-        }
 
         try {
             final CumParams cumParams = persistenceService.fetchCumParams();

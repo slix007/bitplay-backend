@@ -265,8 +265,8 @@ public class ArbitrageService {
                 tradeService.setOkexStatus(doneTradeId, TradeMStatus.FINISHED);
             }
 
-            // read from DB to check isBothCompleted
-            if (tradeId != null && tradeService.isBothCompleted(tradeId)) {
+            // read from DB to check isReadyToComplete
+            if (tradeId != null && tradeService.isReadyToComplete(tradeId)) {
 
                 if (arbInProgress.getAndSet(false)) {
                     final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());

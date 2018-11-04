@@ -126,8 +126,11 @@ public class TradeService {
                 FplayTrade.class);
     }
 
-    public boolean isBothCompleted(Long tradeId) {
-        return fplayTradeRepository.findOne(tradeId).isBothCompleted();
+    public boolean isReadyToComplete(Long tradeId) {
+        final FplayTrade trade = fplayTradeRepository.findOne(tradeId);
+        boolean bothCompleted = trade.isBothCompleted();
+        boolean tradeStateInProgress = trade.getTradeStatus() == TradeStatus.IN_PROGRESS;
+        return bothCompleted && tradeStateInProgress;
     }
 
 
