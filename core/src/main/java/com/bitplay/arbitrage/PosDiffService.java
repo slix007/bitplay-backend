@@ -14,7 +14,6 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.correction.CorrParams;
-import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.repository.FplayTradeRepository;
@@ -852,7 +851,11 @@ public class PosDiffService {
             BigDecimal btmCm = BigDecimal.valueOf(10).divide(cm, 4, RoundingMode.HALF_UP);
             corrObj.correctAmount = dc.abs().divide(btmCm, 0, RoundingMode.HALF_UP);
         } else {
-            corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.DOWN);
+            if (corrObj.signalType == SignalType.ADJ) {
+                corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.HALF_UP);
+            } else {
+                corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.DOWN);
+            }
         }
     }
 
@@ -861,7 +864,11 @@ public class PosDiffService {
 //            adj/corr_cont_okex = abs(dc) / 10; // если делаем на Okex
             corrObj.correctAmount = dc.abs().divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
         } else {
-            corrObj.correctAmount = dc.abs().divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN);
+            if (corrObj.signalType == SignalType.ADJ) {
+                corrObj.correctAmount = dc.abs().divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+            } else {
+                corrObj.correctAmount = dc.abs().divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN);
+            }
         }
     }
 
