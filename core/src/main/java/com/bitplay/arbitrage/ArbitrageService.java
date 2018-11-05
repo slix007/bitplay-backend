@@ -257,6 +257,11 @@ public class ArbitrageService {
         synchronized (arbInProgressLock) { // do not set arbInProgress=false until the whole block is done!
                 // The other option is "doing stateSnapshot before doing set arbInProgress=false"
 
+            if (fplayTrade == null) {
+                logger.info(String.format("onArbDone(%s, %s) finished fplayTrade == null", doneTradeId, marketName));
+                return;
+            }
+
             if (marketName.equals(BitmexService.NAME)) {
                 fplayTrade.setBitmexStatus(TradeMStatus.FINISHED);
                 tradeService.setBitmexStatus(doneTradeId, TradeMStatus.FINISHED);
