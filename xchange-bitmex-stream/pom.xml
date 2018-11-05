@@ -8,15 +8,9 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <!--<parent>-->
-        <!--<artifactId>xchange-stream-parent</artifactId>-->
-        <!--<groupId>info.bitrich.xchange-stream</groupId>-->
-        <!--<version>4.2.1-bts-SNAPSHOT</version>-->
-    <!--</parent>-->
-
     <properties>
-        <xchange.version>4.2.1-bts-SNAPSHOT</xchange.version>
-        <xchange-stream.version>4.2.3-SNAPSHOT</xchange-stream.version>
+        <xchange.version>4.2.1-bts</xchange.version>
+        <xchange-stream.version>4.2.3-bts</xchange-stream.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -27,10 +21,6 @@
 
     <!--TODO move it into lib xchange-stream-->
     <artifactId>xchange-bitmex-stream</artifactId>
-    <!--<groupId>info.bitrich.xchange-stream</groupId>-->
-    <!--<version>4.2.1-bts-SNAPSHOT</version>-->
-
-
 
     <dependencies>
         <dependency>
