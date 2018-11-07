@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
@@ -24,11 +25,17 @@ public class HedgeService {
 
     public BigDecimal getHedgeBtc() {
         final Settings settings = settingsRepositoryService.getSettings();
+        if (settings.getHedgeAuto() && hedgeBtc == null) {
+            throw new NotYetInitializedException();
+        }
         return settings.getHedgeAuto() ? hedgeBtc.negate() : settings.getHedgeBtc();
     }
 
     public BigDecimal getHedgeEth() {
         final Settings settings = settingsRepositoryService.getSettings();
+        if (settings.getHedgeAuto() && hedgeBtc == null) {
+            throw new NotYetInitializedException();
+        }
         return settings.getHedgeAuto() ? hedgeEth.negate() : settings.getHedgeEth();
     }
 }
