@@ -96,7 +96,7 @@ public class AvgPrice implements Serializable {
             logBuilder.append(String.format("#%s %s %s", counterName, marketName, this));
         }
 
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
         //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
         BigDecimal sumNumerator = notNullItems.stream()
                 .peek(avgPriceItem -> sb.append(String.format("(%s*%s)", avgPriceItem.amount, avgPriceItem.price)))
@@ -144,6 +144,10 @@ public class AvgPrice implements Serializable {
 
     public synchronized boolean isItemsEmpty() {
         return pItems.size() == 0;
+    }
+
+    public synchronized boolean isZeroOrder() {
+        return fullAmount.compareTo(BigDecimal.ZERO) == 0;
     }
 
     @Override

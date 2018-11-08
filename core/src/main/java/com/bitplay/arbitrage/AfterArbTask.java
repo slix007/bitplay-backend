@@ -16,6 +16,7 @@ import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
@@ -58,6 +59,13 @@ public class AfterArbTask implements Runnable {
     public void run() {
 
         try {
+            if (checkForZeroOrders()) {
+                deltaLogWriter.info("Round is not done because of plan zero orders.");
+                deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
+                log.error("Round is not done because of plan zero orders.");
+                return;
+            }
+
             final CumParams cumParams = persistenceService.fetchCumParams();
 //            final BigDecimal cm = bitmexService.getCm();
 
@@ -85,6 +93,21 @@ public class AfterArbTask implements Runnable {
             deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
             log.error("Round is not done. Write logs error", e);
         }
+    }
+
+    private boolean checkForZeroOrders() {
+        boolean hasZero = false;
+        if (dealPrices.getbPriceFact().isZeroOrder()) {
+            deltaLogWriter.info("Bitmex plan order amount is 0.");
+            deltaLogWriter.setBitmexStatus(TradeMStatus.NONE);
+            hasZero = true;
+        }
+        if (dealPrices.getoPriceFact().isZeroOrder()) {
+            deltaLogWriter.info("Okex plan order amount is 0.");
+            deltaLogWriter.setOkexStatus(TradeMStatus.NONE);
+            hasZero = true;
+        }
+        return hasZero;
     }
 
     public void preliqIsDone() {

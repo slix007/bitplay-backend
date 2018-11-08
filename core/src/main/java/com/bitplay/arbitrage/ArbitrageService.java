@@ -716,12 +716,12 @@ public class ArbitrageService {
             final BigDecimal o_block = plBlocks.getBlockOkex();
 
             if (checkAffordable(DeltaName.B_DELTA, b_block, o_block)
-                    && b_block.signum() > 0 && o_block.signum() > 0) {
+                    && b_block.signum() >= 0 && o_block.signum() >= 0) {
 
                 synchronized (arbInProgressLock) {
                     if (!arbInProgress.get()) {
 
-                    printAdjWarning(b_block_input, o_block_input, b_block, o_block);
+                        printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 
                         if (isImmediate) {
                             arbInProgress.set(true);
@@ -896,7 +896,7 @@ public class ArbitrageService {
             final BigDecimal o_block = plBlocks.getBlockOkex();
 
             if (checkAffordable(DeltaName.O_DELTA, b_block, o_block)
-                    && b_block.signum() > 0 && o_block.signum() > 0) {
+                    && b_block.signum() >= 0 && o_block.signum() >= 0) {
 
                 synchronized (arbInProgressLock) {
                     if (!arbInProgress.get()) {
@@ -1524,6 +1524,9 @@ public class ArbitrageService {
             b_block = b_block_usd.setScale(0, RoundingMode.HALF_UP);
             o_block = o_block_usd.divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
         }
+
+        b_block = b_block.signum() < 0 ? BigDecimal.ZERO : b_block;
+        o_block = o_block.signum() < 0 ? BigDecimal.ZERO : o_block;
 
         return new PlBlocks(b_block, o_block, PlacingBlocks.Ver.FIXED);
     }

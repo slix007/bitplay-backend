@@ -1,6 +1,7 @@
 package com.bitplay.arbitrage.dto;
 
 import com.bitplay.persistance.TradeService;
+import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import lombok.AllArgsConstructor;
 
@@ -25,5 +26,13 @@ public class DeltaLogWriter {
 
     public void setEndStatus(TradeStatus tradeStatus) {
         tradeService.setEndStatus(tradeId, tradeStatus);
+    }
+
+    public void setBitmexStatus(TradeMStatus tradeStatus) {
+        tradeService.setBitmexStatus(tradeId, tradeStatus);
+    }
+
+    public void setOkexStatus(TradeMStatus tradeStatus) {
+        tradeService.setOkexStatus(tradeId, tradeStatus);
     }
 }

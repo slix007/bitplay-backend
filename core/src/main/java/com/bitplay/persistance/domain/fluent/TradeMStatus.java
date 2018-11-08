@@ -7,6 +7,6 @@ public enum TradeMStatus {
     WAITING,
     IN_PROGRESS,
     FINISHED,
-    NONE,
+    NONE, // when plan amount is 0
     COMPLETED, // not it use
 }
