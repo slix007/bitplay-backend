@@ -11,6 +11,7 @@ import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.LogService;
@@ -119,6 +120,9 @@ public class OkCoinService extends MarketService {
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
 
     private volatile String ifDisconnetedString = "";
+
+    @Autowired
+    private SlackNotifications slackNotifications;
 
     @Autowired
     private com.bitplay.persistance.TradeService fplayTradeService;
@@ -1745,10 +1749,14 @@ public class OkCoinService extends MarketService {
             }
         }
 
-        debugLog.debug(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
-                position.getPositionLong().subtract(position.getPositionShort()),
-                liqInfo.getDqlCurr(),
-                oDQLOpenMin));
+//        debugLog.debug(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
+//                position.getPositionLong().subtract(position.getPositionShort()),
+//                liqInfo.getDqlCurr(),
+//                oDQLOpenMin));
+
+        if (!isOk) {
+            slackNotifications.sendNotify(String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), oDQLOpenMin));
+        }
 
         return isOk;
     }

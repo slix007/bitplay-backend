@@ -2,6 +2,7 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
@@ -79,6 +80,9 @@ public class PosDiffService {
 
     @Autowired
     private HedgeService hedgeService;
+
+    @Autowired
+    private SlackNotifications slackNotifications;
 
     @Autowired
     private TradeService tradeService;
@@ -264,6 +268,7 @@ public class PosDiffService {
         theTimerToImmediateCorr = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
                 .doOnComplete(() -> {
                     final String infoMsg = "Double check before timer-state-reset: fetchPosition:";
+                    slackNotifications.sendNotify(infoMsg);
                     if (Thread.interrupted()) return;
                     final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                     if (Thread.interrupted()) return;
@@ -273,6 +278,7 @@ public class PosDiffService {
 
                     if (arbitrageService.getFirstMarketService().getContractType().isEth()) {
                         final String infoMsgXBTUSD = "Double check before timer-state-reset XBTUSD: fetchPosition:";
+                        slackNotifications.sendNotify(infoMsg);
                         checkBitmexPosXBTUSD(infoMsgXBTUSD);
                     }
 
@@ -321,6 +327,7 @@ public class PosDiffService {
         try {
             if (isMdcNeededMainSet()) {
                 final String infoMsg = "Double check before MDC-correction: fetchPosition:";
+                slackNotifications.sendNotify(infoMsg);
                 final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                 final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                 warningLogger.info(infoMsg + "bitmex " + pos1);
@@ -337,6 +344,7 @@ public class PosDiffService {
             if (isMdcNeededExtraSet()) {
                 if (bitmexService.getContractType().isEth()) {
                     final String infoMsgXBTUSD = "Double check before MDC-correction XBTUSD: fetchPosition:";
+                    slackNotifications.sendNotify(infoMsgXBTUSD);
                     checkBitmexPosXBTUSD(infoMsgXBTUSD);
                     if (isMdcNeededExtraSet()) {
                         final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
@@ -424,6 +432,7 @@ public class PosDiffService {
                 if (!isSecondCheck) {
 
                     final String infoMsg = "Double check before adjustment: fetchPosition:";
+                    slackNotifications.sendNotify(infoMsg);
                     if (doubleFetchPosition(infoMsg, false)) {
                         return true;
                     }
@@ -476,6 +485,7 @@ public class PosDiffService {
                 if (!isSecondCheck) {
 
                     final String infoMsg = "Double check before adjustment XBTUSD: fetchPosition:";
+                    slackNotifications.sendNotify(infoMsg);
                     if (doubleFetchPosition(infoMsg, true)) {
                         return true;
                     }
@@ -507,12 +517,14 @@ public class PosDiffService {
 
                     if (!main) {
                         String infoMsg = "Double check before correction: fetchPosition:";
+                        slackNotifications.sendNotify(infoMsg);
                         if (doubleFetchPosition(infoMsg, false)) {
                             return true;
                         }
                     }
                     if (!extra) {
                         String info = "Double check before correction XBTUSD: fetchPosition:";
+                        slackNotifications.sendNotify(info);
                         if (doubleFetchPosition(info, true)) {
                             return true;
                         }
@@ -658,6 +670,10 @@ public class PosDiffService {
                 // Market specific params
                 final String counterName = marketService.getCounterName(signalType);
                 final Long tradeId = arbitrageService.getLastTradeId();
+
+                String message = String.format("%s %s %s %s amount=%s c=%s", signalType, counterName, placingType, orderType, correctAmount, contractType);
+                slackNotifications.sendNotify(message);
+
                 marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
                         placingType, signalType, 1, tradeId, counterName, null, contractType));
             }

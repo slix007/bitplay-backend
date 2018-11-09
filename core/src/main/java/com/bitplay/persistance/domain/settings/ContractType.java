@@ -7,4 +7,6 @@ public interface ContractType {
     Integer getScale();
 
     boolean isEth();
+
+    String toString();
 }

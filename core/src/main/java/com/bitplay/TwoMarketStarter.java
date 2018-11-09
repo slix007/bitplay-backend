@@ -3,8 +3,11 @@ package com.bitplay;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
+import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractMode;
@@ -37,6 +40,7 @@ public class TwoMarketStarter {
     private MarketService secondMarketService;
     private PosDiffService posDiffService;
 
+    private SlackNotifications slackNotifications;
     private ArbitrageService arbitrageService;
     private RestartService restartService;
     private SettingsRepositoryService settingsRepositoryService;
@@ -44,6 +48,11 @@ public class TwoMarketStarter {
                             Config config) {
         this.context = context;
         this.config = config;
+    }
+
+    @Autowired
+    public void setSlackNotifications(SlackNotifications slackNotifications) {
+        this.slackNotifications = slackNotifications;
     }
 
     @Autowired
@@ -91,6 +100,7 @@ public class TwoMarketStarter {
                 firstMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
                 firstMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
                 firstMarketService.setMarketState(MarketState.STOPPED);
+                slackNotifications.sendNotify(BitmexService.NAME + " STOPPED: Initialization error.");
                 return false;
             }
         }, startExecutor);
@@ -108,6 +118,7 @@ public class TwoMarketStarter {
                 secondMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
                 secondMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
                 secondMarketService.setMarketState(MarketState.STOPPED);
+                slackNotifications.sendNotify(OkCoinService.NAME + " STOPPED: Initialization error.");
                 return false;
             }
         }, startExecutor);

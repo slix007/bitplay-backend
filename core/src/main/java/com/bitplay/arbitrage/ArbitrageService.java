@@ -392,6 +392,8 @@ public class ArbitrageService {
                         tradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
 
+                        slackNotifications.sendNotify(logString);
+
                         boolean firstHanged = firstMarketService.isBusy() && !firstMarketService.hasOpenOrders();
                         boolean secondHanged = secondMarketService.isBusy() && !secondMarketService.hasOpenOrders();
                         boolean noOrders = !firstMarketService.hasOpenOrders() && !secondMarketService.hasOpenOrders();
@@ -416,6 +418,7 @@ public class ArbitrageService {
                         tradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
                         logger.warn(logString);
+                        slackNotifications.sendNotify(logString);
                     }
 
                     if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
@@ -423,6 +426,7 @@ public class ArbitrageService {
                             boolean wasReset = arbInProgress.compareAndSet(true, false);
                             if (wasReset) {
                                 releaseArbInProgress(counterName, "'busy for 6 min'");
+                                slackNotifications.sendNotify(counterName + " busy for 6 min. Arbitrage state was reset to READY");
                             }
                         }
                     }
@@ -832,6 +836,10 @@ public class ArbitrageService {
             }
         }
 
+        if (signalType != null && signalType.isPreliq()) {
+            slackNotifications.sendNotify(signalType.toString() + " B_DELTA");
+        }
+
         tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(secondMarketService, Order.OrderType.BID, o_block, bestQuotes, signalType, okexPlacingType,
@@ -949,6 +957,10 @@ public class ArbitrageService {
                 tradeService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
                 warningLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
             }
+        }
+
+        if (signalType != null && signalType.isPreliq()) {
+            slackNotifications.sendNotify(signalType.toString() + " O_DELTA");
         }
 
         tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
@@ -1087,10 +1099,12 @@ public class ArbitrageService {
 
             if (!traderPermissionsService.isEBestMinOk()) {
                 Integer eBestMin = persistenceService.getSettingsRepositoryService().getSettings().getEBestMin();
-                warningLogger.warn("WARNING: sumEBestUsd({}) < e_best_min({})", sumEBestUsd, eBestMin);
+                String msg = String.format("WARNING: sumEBestUsd(%s) < e_best_min(%s)", sumEBestUsd, eBestMin);
+                warningLogger.warn(msg);
 
                 firstMarketService.setMarketState(MarketState.FORBIDDEN);
                 secondMarketService.setMarketState(MarketState.FORBIDDEN);
+                slackNotifications.sendNotifyThrottled("FORBIDDEN", "FORBIDDEN: " + msg);
             }
 
             // calc auto hedge

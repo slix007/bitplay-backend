@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration>
+
+  <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%contextName] [%thread] %-5level %logger{36}.%M:%line - %msg %xEx%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Logging api requests for poloniex -->
+  <logger name="si.mazi.rescu" level="trace">
+    <appender-ref ref="CONSOLE_APPENDER"/>
+
+  </logger>
+
+  <root level="DEBUG">
+    <appender-ref ref="CONSOLE_APPENDER"/>
+  </root>
+
+</configuration>

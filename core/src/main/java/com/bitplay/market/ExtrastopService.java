@@ -1,6 +1,7 @@
 package com.bitplay.market;
 
 import com.bitplay.api.service.RestartService;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.MonitoringDataService;
@@ -56,6 +57,9 @@ public class ExtrastopService {
 
     @Autowired
     private MonitoringDataService monitoringDataService;
+
+    @Autowired
+    private SlackNotifications slackNotifications;
 
     private volatile String details = "";
 
@@ -194,9 +198,11 @@ public class ExtrastopService {
 
     private void startTimerToRestart(String details) {
         log.info("deferred restart. " + details);
+        slackNotifications.sendNotify("STOPPED: OrderBook timestamps." + details);
         scheduler.schedule(() -> {
             try {
                 if (isHanged()) {
+                    slackNotifications.sendNotify("RESTART: OrderBook timestamps.");
                     restartService.doFullRestart("OrderBook timestamp diff(after flag STOPPED). " + details);
                 } else {
                     warningLogger.warn("No restart in 30 sec, back to READY. OrderBooks looks ok.");

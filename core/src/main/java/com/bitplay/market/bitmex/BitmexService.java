@@ -12,6 +12,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.ExtrastopService;
@@ -142,6 +143,9 @@ public class BitmexService extends MarketService {
     private BitmexSwapService bitmexSwapService;
 
     private ArbitrageService arbitrageService;
+
+    @Autowired
+    private SlackNotifications slackNotifications;
 
     @Autowired
     private BitmexBalanceService bitmexBalanceService;
@@ -304,8 +308,10 @@ public class BitmexService extends MarketService {
                     warningLogger.warn("WARNING:" + e.getMessage());
                     setOverloaded(null);
                 } else if (e.getMessage().contains("HTTP status code was not OK: 403")) {// banned, no repeats
-                    logger.warn("Banned:" + e.getMessage());
-                    warningLogger.warn("Banned:" + e.getMessage());
+                    String msg = " Banned:" + e.getMessage();
+                    logger.warn(msg);
+                    warningLogger.warn(msg);
+                    slackNotifications.sendNotify(NAME + msg);
                     setOverloaded(null);
                 } else if (e.getHttpBody() != null) {
                     logger.warn("posXBTUSDUpdater: " + e.toString() + ". " + e.getHttpBody());
@@ -2193,6 +2199,10 @@ public class BitmexService extends MarketService {
             }
         }
 
+        if (!isOk) {
+            slackNotifications.sendNotify(String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), bDQLOpenMin));
+        }
+
         return isOk;
     }
 
@@ -2416,10 +2426,11 @@ public class BitmexService extends MarketService {
     private boolean overloadByXRateLimit() {
         boolean isExceeded = xRateLimit.getxRateLimit() <= 0;
         if (isExceeded) {
-            String msg = String.format("xRateLimit=%s(updated=%s). Stop!", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
+            String msg = String.format(" xRateLimit=%s(updated=%s). Stop!", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
             logger.info(msg);
             tradeLogger.info(msg);
             warningLogger.info(msg);
+            slackNotifications.sendNotify(NAME + msg);
             setOverloaded(null);
         }
         return isExceeded;

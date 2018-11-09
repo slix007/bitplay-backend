@@ -2,19 +2,17 @@ package com.bitplay.market.bitmex;
 
 import com.bitplay.api.domain.ob.LimitsJson;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
-
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 /**
  * Created by Sergey Shurmin on 4/8/18.
@@ -23,6 +21,9 @@ import java.math.RoundingMode;
 public class BitmexLimitsService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+
+    @Autowired
+    private SlackNotifications slackNotifications;
 
     @Autowired
     private BitmexService bitmexService;
@@ -79,6 +80,11 @@ public class BitmexLimitsService {
         final LimitsJson limits = getLimitsJson();
         final Boolean doCheck = !limits.getIgnoreLimits();
         final Boolean outsideLimits = !limits.getInsideLimits();
+        if (outsideLimits) {
+            final String name = BitmexService.NAME + " outsideLimits";
+            slackNotifications.sendNotifyThrottled(name, name);
+        }
+
         return doCheck && outsideLimits;
     }
 
