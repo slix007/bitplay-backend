@@ -1755,7 +1755,8 @@ public class OkCoinService extends MarketService {
 //                oDQLOpenMin));
 
         if (!isOk) {
-            slackNotifications.sendNotify(String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), oDQLOpenMin));
+            slackNotifications.sendNotifyThrottled("okexDQL_open_min",
+                    String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), oDQLOpenMin));
         }
 
         return isOk;

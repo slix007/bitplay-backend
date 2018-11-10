@@ -7,11 +7,15 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.log4j.Log4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -24,10 +28,23 @@ import org.springframework.stereotype.Service;
 @Service
 public class SlackNotifications {
 
+    private final static List<String> testServers = Arrays.asList(
+            "658",
+            "660");
+    private final static List<String> prodServers = Arrays.asList(
+            "659",
+            "662",
+            "667",
+            "668",
+            "669");
+
+    private final static String SLACK_URL = "https://hooks.slack.com/services/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";
+    private final static String LOCAL_CHANNEL = "app-local";
+    private final static String TEST_CHANNEL = "app-test";
+    private final static String PROD_CHANNEL = "app-prod";
+
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
             .setNameFormat("slack-notifications-%d").build());
-
-    private String SLACK_URL = "https://hooks.slack.com/services/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";
 
     private Map<String, Instant> toThrottle = new HashMap<>();
 
@@ -53,24 +70,18 @@ public class SlackNotifications {
 
     private void sendSync(String message) {
         try {
-            String theChannel = "app-messages";
-            String localHostName = InetAddress.getLocalHost().getHostName();
-            if (localHostName.equals("sergei-XPS-15-9560")) { // local development workaround
-                theChannel = "localchannel";
-                sendSync("localhost", message, theChannel);
-            } else {
-                String hostLabel = getHostLabel();
-                if (hostLabel == null) { // don't send from unknown hosts
-                    return;
-                }
-                sendSync(hostLabel, message, theChannel);
+            final ToObj toObj = defineWhereToSend();
+
+            if (toObj.getChannel() != null) {
+                sendSync(toObj.getChannel(), toObj.getHostLabel(), message);
             }
+
         } catch (Exception e) {
             log.error("Can not send slack notification", e);
         }
     }
 
-    void sendSync(String hostLabel, String message, String theChannel) {
+    void sendSync(String theChannel, String hostLabel, String message) {
 
         try {
             CloseableHttpClient client = HttpClients.createDefault();
@@ -96,11 +107,26 @@ public class SlackNotifications {
         }
     }
 
-    private String getHostLabel() throws UnknownHostException {
-        String hostName = InetAddress.getLocalHost().getHostName();
-        if (hostName.startsWith("6") && hostName.length() >= 3) {
-            return hostName.substring(0, 3);
+    private ToObj defineWhereToSend() throws UnknownHostException {
+        final String localHostName = InetAddress.getLocalHost().getHostName();
+        String theChannel = null;
+        String hostLabel = localHostName.substring(0, 3);
+        if (localHostName.equals("sergei-XPS-15-9560")) { // local development workaround
+            hostLabel = "localhost";
+            theChannel = LOCAL_CHANNEL;
+        } else if (testServers.contains(hostLabel)) {
+            theChannel = TEST_CHANNEL;
+        } else if (prodServers.contains(hostLabel)) {
+            theChannel = PROD_CHANNEL;
         }
-        return null; // don't send from 'not servers'.
+        return new ToObj(theChannel, hostLabel);
+    }
+
+    @AllArgsConstructor
+    @Getter
+    private static class ToObj {
+
+        private String channel;
+        private String hostLabel;
     }
 }

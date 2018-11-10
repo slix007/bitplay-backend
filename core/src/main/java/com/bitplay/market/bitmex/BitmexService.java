@@ -2200,7 +2200,8 @@ public class BitmexService extends MarketService {
         }
 
         if (!isOk) {
-            slackNotifications.sendNotify(String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), bDQLOpenMin));
+            slackNotifications.sendNotifyThrottled("bitmexDQL_open_min",
+                    String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), bDQLOpenMin));
         }
 
         return isOk;

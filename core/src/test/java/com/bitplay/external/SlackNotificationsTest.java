@@ -29,7 +29,8 @@ public class SlackNotificationsTest {
     public void sendNotify() {
 
         SlackNotifications slackNotifications = new SlackNotifications();
-        String theChannel = "localchannel";
-        slackNotifications.sendSync("mytest", "test", theChannel);
+        String theChannel = "app-local";
+//        slackNotifications.sendSync("testMessage");
+        slackNotifications.sendSync(theChannel, "junit", "testMessage");
     }
 }
