@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 public class AvgPrice implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(AvgPrice.class);
 
+    public final static String FAKE_ORDER_ID = "-1";
+
     private final String counterName;
     private final Map<String, AvgPriceItem> pItems = new LinkedHashMap<>();
     private final BigDecimal fullAmount;
@@ -147,7 +149,7 @@ public class AvgPrice implements Serializable {
     }
 
     public synchronized boolean isZeroOrder() {
-        return fullAmount.compareTo(BigDecimal.ZERO) == 0;
+        return pItems.containsKey(FAKE_ORDER_ID);
     }
 
     @Override

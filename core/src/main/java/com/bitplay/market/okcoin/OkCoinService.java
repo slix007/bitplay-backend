@@ -62,6 +62,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.validation.constraints.NotNull;
 import org.knowm.xchange.Exchange;
@@ -1988,7 +1989,9 @@ public class OkCoinService extends MarketService {
      * @param avgPrice the object to be updated.
      */
     public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
-        final Set<String> orderIds = avgPrice.getpItems().keySet();
+        final Set<String> orderIds = avgPrice.getpItems().keySet()
+                .stream().filter(orderId -> orderId.equals(AvgPrice.FAKE_ORDER_ID))
+                .collect(Collectors.toSet());
         Collection<Order> orderInfos = new ArrayList<>();
 
         String[] orderIdsArray = orderIds.toArray(new String[0]);

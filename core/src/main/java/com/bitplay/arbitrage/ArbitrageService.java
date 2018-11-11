@@ -70,6 +70,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.SerializationUtils;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
@@ -715,8 +716,7 @@ public class ArbitrageService {
             final BigDecimal b_block = plBlocks.getBlockBitmex();
             final BigDecimal o_block = plBlocks.getBlockOkex();
 
-            if (checkAffordable(DeltaName.B_DELTA, b_block, o_block)
-                    && b_block.signum() >= 0 && o_block.signum() >= 0) {
+            if (checkAffordable(DeltaName.B_DELTA, b_block, o_block)) {
 
                 synchronized (arbInProgressLock) {
                     if (!arbInProgress.get()) {
@@ -727,14 +727,14 @@ public class ArbitrageService {
                             arbInProgress.set(true);
                             startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
                                     ask1_o,
-                                    bid1_p, lastObTime);
+                                    bid1_p, lastObTime, b_block_input, o_block_input);
                         } else if (signalDelayActivateTime == null) {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
                             arbInProgress.set(true);
                             startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
                                     ask1_o,
-                                    bid1_p, lastObTime);
+                                    bid1_p, lastObTime, b_block_input, o_block_input);
                         }
                     }
                 }
@@ -793,9 +793,11 @@ public class ArbitrageService {
         return Instant.now().toEpochMilli() - signalDelayActivateTime > signalDelayMs;
     }
 
+    @SuppressWarnings("Duplicates")
     private void startTradingOnDelta1(BorderParams borderParams, SignalType signalType, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, PlacingType predefinedPlacingType, BigDecimal ask1_o, BigDecimal bid1_p,
-            Instant lastObTime) {
+            Instant lastObTime,
+            BigDecimal b_block_input, BigDecimal o_block_input) {
 
         logger.info("START SIGNAL 1");
         startSignalTime = Instant.now();
@@ -819,17 +821,19 @@ public class ArbitrageService {
         final PlacingType okexPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getOkexPlacingType();
         final PlacingType btmPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
 
+        final BigDecimal bPricePlan = bid1_p;
+        final BigDecimal oPricePlan = ask1_o;
         synchronized (dealPrices) {
             dealPrices.setBtmPlacingType(btmPlacingType);
             dealPrices.setOkexPlacingType(okexPlacingType);
             dealPrices.setBorder1(params.getBorder1());
             dealPrices.setBorder2(params.getBorder2());
-            dealPrices.setoBlock(o_block);
             dealPrices.setbBlock(b_block);
+            dealPrices.setoBlock(o_block);
             dealPrices.setDelta1Plan(delta1);
             dealPrices.setDelta2Plan(delta2);
-            dealPrices.setbPricePlan(bid1_p);
-            dealPrices.setoPricePlan(ask1_o);
+            dealPrices.setbPricePlan(bPricePlan);
+            dealPrices.setoPricePlan(oPricePlan);
             dealPrices.setDeltaName(DeltaName.B_DELTA);
             dealPrices.setBestQuotes(bestQuotes);
 
@@ -843,6 +847,21 @@ public class ArbitrageService {
             if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
                 tradeService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
                 warningLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
+            }
+
+            if (b_block.signum() == 0) {
+                dealPrices.setbBlock(b_block_input);
+                AvgPrice avgPrice = new AvgPrice(counterName, b_block_input, "bitmex");
+                avgPrice.setOpenPrice(bPricePlan);
+                avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, b_block_input, bPricePlan, OrderStatus.FILLED);
+                dealPrices.setbPriceFact(avgPrice);
+            }
+            if (o_block.signum() == 0) {
+                dealPrices.setoBlock(o_block_input);
+                AvgPrice avgPrice = new AvgPrice(counterName, o_block_input, "okex");
+                avgPrice.setOpenPrice(oPricePlan);
+                avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
+                dealPrices.setoPriceFact(avgPrice);
             }
         }
 
@@ -895,8 +914,7 @@ public class ArbitrageService {
             final BigDecimal b_block = plBlocks.getBlockBitmex();
             final BigDecimal o_block = plBlocks.getBlockOkex();
 
-            if (checkAffordable(DeltaName.O_DELTA, b_block, o_block)
-                    && b_block.signum() >= 0 && o_block.signum() >= 0) {
+            if (checkAffordable(DeltaName.O_DELTA, b_block, o_block)) {
 
                 synchronized (arbInProgressLock) {
                     if (!arbInProgress.get()) {
@@ -907,14 +925,14 @@ public class ArbitrageService {
                             arbInProgress.set(true);
                             startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
                                     ask1_p,
-                                    bid1_o, lastObTime);
+                                    bid1_o, lastObTime, b_block_input, o_block_input);
                         } else if (signalDelayActivateTime == null) {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
                             arbInProgress.set(true);
                             startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
                                     ask1_p,
-                                    bid1_o, lastObTime);
+                                    bid1_o, lastObTime, b_block_input, o_block_input);
                         }
                     }
                 }
@@ -933,9 +951,11 @@ public class ArbitrageService {
         }
     }
 
+    @SuppressWarnings("Duplicates")
     private void startTradingOnDelta2(BorderParams borderParams, SignalType signalType, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, PlacingType predefinedPlacingType, BigDecimal ask1_p, BigDecimal bid1_o,
-            Instant lastObTime) {
+            Instant lastObTime,
+            BigDecimal b_block_input, BigDecimal o_block_input) {
 
         logger.info("START SIGNAL 2");
         startSignalTime = Instant.now();
@@ -959,6 +979,8 @@ public class ArbitrageService {
         final PlacingType okexPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getOkexPlacingType();
         final PlacingType btmPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
 
+        BigDecimal bPricePlan = ask1_p;
+        BigDecimal oPricePlan = bid1_o;
         synchronized (dealPrices) {
             dealPrices.setBtmPlacingType(btmPlacingType);
             dealPrices.setOkexPlacingType(okexPlacingType);
@@ -968,8 +990,8 @@ public class ArbitrageService {
             dealPrices.setbBlock(b_block);
             dealPrices.setDelta1Plan(delta1);
             dealPrices.setDelta2Plan(delta2);
-            dealPrices.setbPricePlan(ask1_p);
-            dealPrices.setoPricePlan(bid1_o);
+            dealPrices.setbPricePlan(bPricePlan);
+            dealPrices.setoPricePlan(oPricePlan);
             dealPrices.setDeltaName(DeltaName.O_DELTA);
             dealPrices.setBestQuotes(bestQuotes);
 
@@ -983,6 +1005,21 @@ public class ArbitrageService {
             if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
                 tradeService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
                 warningLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
+            }
+
+            if (b_block.signum() == 0) {
+                dealPrices.setbBlock(b_block_input);
+                AvgPrice avgPrice = new AvgPrice(counterName, b_block_input, "bitmex");
+                avgPrice.setOpenPrice(bPricePlan);
+                avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, b_block_input, bPricePlan, OrderStatus.FILLED);
+                dealPrices.setbPriceFact(avgPrice);
+            }
+            if (o_block.signum() == 0) {
+                dealPrices.setoBlock(o_block_input);
+                AvgPrice avgPrice = new AvgPrice(counterName, o_block_input, "okex");
+                avgPrice.setOpenPrice(oPricePlan);
+                avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
+                dealPrices.setoPriceFact(avgPrice);
             }
         }
 

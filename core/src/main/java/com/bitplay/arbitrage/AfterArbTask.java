@@ -59,13 +59,6 @@ public class AfterArbTask implements Runnable {
     public void run() {
 
         try {
-            if (checkForZeroOrders()) {
-                deltaLogWriter.info("Round is not done because of plan zero orders.");
-                deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
-                log.error("Round is not done because of plan zero orders.");
-                return;
-            }
-
             final CumParams cumParams = persistenceService.fetchCumParams();
 //            final BigDecimal cm = bitmexService.getCm();
 
@@ -81,6 +74,8 @@ public class AfterArbTask implements Runnable {
 
             persistenceService.saveCumParams(cumParams);
 
+            handleZeroOrders();
+
             deltaLogWriter.info(String.format("#%s Round completed", counterName));
             deltaLogWriter.setEndStatus(TradeStatus.COMPLETED);
 
@@ -95,7 +90,7 @@ public class AfterArbTask implements Runnable {
         }
     }
 
-    private boolean checkForZeroOrders() {
+    private void handleZeroOrders() {
         boolean hasZero = false;
         if (dealPrices.getbPriceFact().isZeroOrder()) {
             deltaLogWriter.info("Bitmex plan order amount is 0.");
@@ -107,7 +102,10 @@ public class AfterArbTask implements Runnable {
             deltaLogWriter.setOkexStatus(TradeMStatus.NONE);
             hasZero = true;
         }
-        return hasZero;
+        if (hasZero) {
+            deltaLogWriter.info("Round has zero orders.");
+            log.error("Round has zero orders.");
+        }
     }
 
     public void preliqIsDone() {
