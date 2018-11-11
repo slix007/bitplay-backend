@@ -137,13 +137,13 @@ public class PosDiffService {
                         isCorrect = true;
                     } else {
                         Thread.sleep(1000);
-                        String infoMsg = "First check before finishAdj: fetchPositionXBTUSD:";
+                        String infoMsg = "First check after adj: fetchPositionXBTUSD:";
                         checkBitmexPosXBTUSD(infoMsg);
                         if (isExtraSetEqual()) {
                             isCorrect = true;
                         } else {
                             Thread.sleep(14 * 1000);
-                            infoMsg = "Double check2 before finishAdj: fetchPositionXBTUSD:";
+                            infoMsg = "Second check after adj: fetchPositionXBTUSD:";
                             checkBitmexPosXBTUSD(infoMsg);
                             if (isExtraSetEqual()) {
                                 isCorrect = true;
@@ -157,13 +157,13 @@ public class PosDiffService {
                         isCorrect = true;
                     } else {
                         Thread.sleep(1000);
-                        String infoMsg = "First check before finishCorr: fetchPositionXBTUSD:";
+                        String infoMsg = "First check after corr: fetchPositionXBTUSD:";
                         checkBitmexPosXBTUSD(infoMsg);
                         if (isPosEqualByMaxAdj(getDcExtraSet())) {
                             isCorrect = true;
                         } else {
                             Thread.sleep(14 * 1000);
-                            infoMsg = "Double check2 before finishCorr: fetchPositionXBTUSD:";
+                            infoMsg = "Second check after corr: fetchPositionXBTUSD:";
                             checkBitmexPosXBTUSD(infoMsg);
                             if (isPosEqualByMaxAdj(getDcExtraSet())) {
                                 isCorrect = true;
@@ -177,7 +177,7 @@ public class PosDiffService {
                         isCorrect = true;
                     } else {
                         Thread.sleep(1000);
-                        String infoMsg = "First check before finishCorr: fetchPosition:";
+                        String infoMsg = String.format("First check after %s: fetchPosition:", signalType);
                         String pos1 = bitmexService.fetchPosition();
                         String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                         log.info(infoMsg + "bitmex " + pos1);
@@ -186,7 +186,7 @@ public class PosDiffService {
                             isCorrect = true;
                         } else {
                             Thread.sleep(14 * 1000);
-                            infoMsg = String.format("Double check2 before finish %s: fetchPosition:", signalType);
+                            infoMsg = String.format("Second check after %s: fetchPosition:", signalType);
                             pos1 = bitmexService.fetchPosition();
                             pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                             log.info(infoMsg + "bitmex2 " + pos1);
@@ -267,7 +267,8 @@ public class PosDiffService {
         final Long periodToCorrection = arbitrageService.getParams().getPeriodToCorrection();
         theTimerToImmediateCorr = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
                 .doOnComplete(() -> {
-                    final String infoMsg = "Double check before timer-state-reset: fetchPosition:";
+                    final String infoMsg = String.format("Double check before timer-state-reset mainSet. %s fetchPosition:",
+                            arbitrageService.getMainSetStr());
                     slackNotifications.sendNotify(infoMsg);
                     if (Thread.interrupted()) return;
                     final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
@@ -277,7 +278,8 @@ public class PosDiffService {
                     warningLogger.info(infoMsg + "okex "+ pos2);
 
                     if (arbitrageService.getFirstMarketService().getContractType().isEth()) {
-                        final String infoMsgXBTUSD = "Double check before timer-state-reset XBTUSD: fetchPosition:";
+                        final String infoMsgXBTUSD = String.format("Double check before timer-state-reset XBTUSD. %s fetchPosition:",
+                                arbitrageService.getExtraSetStr());
                         slackNotifications.sendNotify(infoMsg);
                         checkBitmexPosXBTUSD(infoMsgXBTUSD);
                     }
@@ -326,7 +328,8 @@ public class PosDiffService {
 
         try {
             if (isMdcNeededMainSet()) {
-                final String infoMsg = "Double check before MDC-correction: fetchPosition:";
+                String infoMsg = String.format("Double check before MDC-correction mainSet. %s fetchPosition:",
+                        arbitrageService.getMainSetStr());
                 slackNotifications.sendNotify(infoMsg);
                 final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                 final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
@@ -343,8 +346,8 @@ public class PosDiffService {
             }
             if (isMdcNeededExtraSet()) {
                 if (bitmexService.getContractType().isEth()) {
-                    final String infoMsgXBTUSD = "Double check before MDC-correction XBTUSD: fetchPosition:";
-                    slackNotifications.sendNotify(infoMsgXBTUSD);
+                    String infoMsgXBTUSD = String.format("Double check before MDC-correction XBTUSD. %s fetchPosition:",
+                            arbitrageService.getExtraSetStr());
                     checkBitmexPosXBTUSD(infoMsgXBTUSD);
                     if (isMdcNeededExtraSet()) {
                         final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
@@ -431,7 +434,8 @@ public class PosDiffService {
                     && isReadyByTime(arbitrageService.getSecondMarketService(), delaySec)) {
                 if (!isSecondCheck) {
 
-                    final String infoMsg = "Double check before adjustment: fetchPosition:";
+                    String infoMsg = String.format("Double check before adjustment mainSet. %s fetchPosition:",
+                            arbitrageService.getMainSetStr());
                     slackNotifications.sendNotify(infoMsg);
                     if (doubleFetchPosition(infoMsg, false)) {
                         return true;
@@ -484,7 +488,8 @@ public class PosDiffService {
                     && isReadyByTime(arbitrageService.getSecondMarketService(), delaySec)) {
                 if (!isSecondCheck) {
 
-                    final String infoMsg = "Double check before adjustment XBTUSD: fetchPosition:";
+                    String infoMsg = String.format("Double check before adjustment XBTUSD. %s fetchPosition:",
+                            arbitrageService.getExtraSetStr());
                     slackNotifications.sendNotify(infoMsg);
                     if (doubleFetchPosition(infoMsg, true)) {
                         return true;
@@ -516,14 +521,16 @@ public class PosDiffService {
                 if (!isSecondCheck) {
 
                     if (!main) {
-                        String infoMsg = "Double check before correction: fetchPosition:";
+                        String infoMsg = String.format("Double check before correction mainSet. %s fetchPosition:",
+                                arbitrageService.getMainSetStr());
                         slackNotifications.sendNotify(infoMsg);
                         if (doubleFetchPosition(infoMsg, false)) {
                             return true;
                         }
                     }
                     if (!extra) {
-                        String info = "Double check before correction XBTUSD: fetchPosition:";
+                        String info = String.format("Double check before correction XBTUSD. %s fetchPosition:",
+                                arbitrageService.getExtraSetStr());
                         slackNotifications.sendNotify(info);
                         if (doubleFetchPosition(info, true)) {
                             return true;
