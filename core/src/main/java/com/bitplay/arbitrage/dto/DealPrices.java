@@ -90,7 +90,7 @@ public class DealPrices implements Serializable {
         final BigDecimal firstOpenPrice = bPriceFact.getAvg();
         final BigDecimal secondOpenPrice = oPriceFact.getAvg();
         return (firstOpenPrice != null && secondOpenPrice != null)
-                ? firstOpenPrice.subtract(secondOpenPrice).setScale(2, BigDecimal.ROUND_HALF_UP)
+                ? firstOpenPrice.subtract(secondOpenPrice).setScale(getScale(), BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO;
     }
 
@@ -98,8 +98,14 @@ public class DealPrices implements Serializable {
         final BigDecimal firstOpenPrice = bPriceFact.getAvg();
         final BigDecimal secondOpenPrice = oPriceFact.getAvg();
         return (firstOpenPrice != null && secondOpenPrice != null)
-                ? secondOpenPrice.subtract(firstOpenPrice).setScale(2, BigDecimal.ROUND_HALF_UP)
+                ? secondOpenPrice.subtract(firstOpenPrice).setScale(getScale(), BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO;
+    }
+
+    private int getScale() {
+        return bPriceFact.getScale() > oPriceFact.getScale()
+                ? bPriceFact.getScale()
+                : oPriceFact.getScale();
     }
 
     public synchronized Details getDiffB() {

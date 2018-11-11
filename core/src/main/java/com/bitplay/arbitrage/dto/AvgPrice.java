@@ -38,6 +38,10 @@ public class AvgPrice implements Serializable {
         this.scale = scale;
     }
 
+    public int getScale() {
+        return scale;
+    }
+
     public String getMarketName() {
         return marketName;
     }
