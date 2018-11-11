@@ -224,6 +224,10 @@ public class SettingsEndpoint {
             settings.setHedgeAuto(settingsUpdate.getHedgeAuto());
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getOkexFakeTakerDev() != null) {
+            settings.setOkexFakeTakerDev(settingsUpdate.getOkexFakeTakerDev());
+            settingsRepositoryService.saveSettings(settings);
+        }
 
         return settings;
     }

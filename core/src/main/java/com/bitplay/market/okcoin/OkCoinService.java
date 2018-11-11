@@ -678,7 +678,8 @@ public class OkCoinService extends MarketService {
 //            final String orderId = tradeService.placeMarketOrder(marketOrder);
 
             // Option 2: FAKE LIMIT ORDER
-            BigDecimal thePrice = Utils.createPriceForTaker(getOrderBook(), orderType, okexContractType.getBaseTool());
+            BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
+            BigDecimal thePrice = Utils.createPriceForTaker(orderType, ticker, okexFakeTakerDev);
             getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
             final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), "123", new Date(), thePrice);
 

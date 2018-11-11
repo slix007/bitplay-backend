@@ -44,6 +44,7 @@ public class Settings extends AbstractDocument {
     private BigDecimal coldStorageBtc;
     private Integer eBestMin;
     private UsdQuoteType usdQuoteType;
+    private BigDecimal okexFakeTakerDev;//deviation of fake taker price
 
     @Deprecated
     /* Use {@link #contractMode}. */
@@ -85,6 +86,7 @@ public class Settings extends AbstractDocument {
         settings.hedgeBtc = BigDecimal.ZERO;
         settings.hedgeEth = BigDecimal.ZERO;
         settings.hedgeAuto = false;
+        settings.okexFakeTakerDev = BigDecimal.ONE;
         settings.setId(1L);
         return settings;
     }
