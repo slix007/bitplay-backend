@@ -837,8 +837,10 @@ public class ArbitrageService {
             dealPrices.setDeltaName(DeltaName.B_DELTA);
             dealPrices.setBestQuotes(bestQuotes);
 
-            dealPrices.setbPriceFact(new AvgPrice(counterName, b_block, "bitmex"));
-            dealPrices.setoPriceFact(new AvgPrice(counterName, o_block, "okex"));
+            Integer bitmexScale = firstMarketService.getContractType().getScale();
+            Integer okexScale = secondMarketService.getContractType().getScale();
+            dealPrices.setbPriceFact(new AvgPrice(counterName, b_block, "bitmex", bitmexScale));
+            dealPrices.setoPriceFact(new AvgPrice(counterName, o_block, "okex", okexScale));
 
             dealPrices.setBorderParamsOnStart(borderParams);
             dealPrices.setPos_bo(pos_bo);
@@ -851,14 +853,14 @@ public class ArbitrageService {
 
             if (b_block.signum() == 0) {
                 dealPrices.setbBlock(b_block_input);
-                AvgPrice avgPrice = new AvgPrice(counterName, b_block_input, "bitmex");
+                AvgPrice avgPrice = new AvgPrice(counterName, b_block_input, "bitmex", bitmexScale);
                 avgPrice.setOpenPrice(bPricePlan);
                 avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, b_block_input, bPricePlan, OrderStatus.FILLED);
                 dealPrices.setbPriceFact(avgPrice);
             }
             if (o_block.signum() == 0) {
                 dealPrices.setoBlock(o_block_input);
-                AvgPrice avgPrice = new AvgPrice(counterName, o_block_input, "okex");
+                AvgPrice avgPrice = new AvgPrice(counterName, o_block_input, "okex", okexScale);
                 avgPrice.setOpenPrice(oPricePlan);
                 avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
                 dealPrices.setoPriceFact(avgPrice);
@@ -995,8 +997,10 @@ public class ArbitrageService {
             dealPrices.setDeltaName(DeltaName.O_DELTA);
             dealPrices.setBestQuotes(bestQuotes);
 
-            dealPrices.setbPriceFact(new AvgPrice(counterName, b_block, "bitmex"));
-            dealPrices.setoPriceFact(new AvgPrice(counterName, o_block, "okex"));
+            Integer bitmexScale = firstMarketService.getContractType().getScale();
+            Integer okexScale = secondMarketService.getContractType().getScale();
+            dealPrices.setbPriceFact(new AvgPrice(counterName, b_block, "bitmex", bitmexScale));
+            dealPrices.setoPriceFact(new AvgPrice(counterName, o_block, "okex", okexScale));
 
             dealPrices.setBorderParamsOnStart(borderParams);
             dealPrices.setPos_bo(pos_bo);
@@ -1009,14 +1013,14 @@ public class ArbitrageService {
 
             if (b_block.signum() == 0) {
                 dealPrices.setbBlock(b_block_input);
-                AvgPrice avgPrice = new AvgPrice(counterName, b_block_input, "bitmex");
+                AvgPrice avgPrice = new AvgPrice(counterName, b_block_input, "bitmex", bitmexScale);
                 avgPrice.setOpenPrice(bPricePlan);
                 avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, b_block_input, bPricePlan, OrderStatus.FILLED);
                 dealPrices.setbPriceFact(avgPrice);
             }
             if (o_block.signum() == 0) {
                 dealPrices.setoBlock(o_block_input);
-                AvgPrice avgPrice = new AvgPrice(counterName, o_block_input, "okex");
+                AvgPrice avgPrice = new AvgPrice(counterName, o_block_input, "okex", okexScale);
                 avgPrice.setOpenPrice(oPricePlan);
                 avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
                 dealPrices.setoPriceFact(avgPrice);

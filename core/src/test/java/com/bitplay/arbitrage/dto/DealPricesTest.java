@@ -27,8 +27,8 @@ public class DealPricesTest {
         dealPrices.setDeltaName(DeltaName.B_DELTA);
         dealPrices.setBestQuotes(new BestQuotes(BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE));
 
-        dealPrices.setbPriceFact(new AvgPrice("", BigDecimal.ONE, "bitmex"));
-        dealPrices.setoPriceFact(new AvgPrice("", BigDecimal.ONE, "okex"));
+        dealPrices.setbPriceFact(new AvgPrice("", BigDecimal.ONE, "bitmex", 2));
+        dealPrices.setoPriceFact(new AvgPrice("", BigDecimal.ONE, "okex", 2));
 
         dealPrices.setBorderParamsOnStart(new BorderParams(Ver.OFF, new BordersV1(), new BordersV2()));
         dealPrices.setPos_bo(1);

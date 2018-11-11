@@ -30,8 +30,8 @@ public class DealPrices implements Serializable {
     private BigDecimal delta2Plan = BigDecimal.ZERO;
     private BigDecimal bPricePlan = BigDecimal.ZERO;
     private BigDecimal oPricePlan = BigDecimal.ZERO;
-    private AvgPrice bPriceFact = new AvgPrice("", BigDecimal.ZERO, "bitmex");
-    private AvgPrice oPriceFact = new AvgPrice("", BigDecimal.ZERO, "okex");
+    private AvgPrice bPriceFact = new AvgPrice("", BigDecimal.ZERO, "bitmex", 2);
+    private AvgPrice oPriceFact = new AvgPrice("", BigDecimal.ZERO, "okex", 2);
     private DeltaName deltaName = DeltaName.B_DELTA;
     private BestQuotes bestQuotes;
     private Integer pos_bo;

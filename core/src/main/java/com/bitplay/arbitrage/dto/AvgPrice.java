@@ -25,15 +25,17 @@ public class AvgPrice implements Serializable {
     private final Map<String, AvgPriceItem> pItems = new LinkedHashMap<>();
     private final BigDecimal fullAmount;
     private final String marketName;
+    private final int scale;
 
     private String deltaLogTmp;
 
     private BigDecimal openPrice;
 
-    public AvgPrice(String counterName, BigDecimal fullAmount, String marketName) {
+    public AvgPrice(String counterName, BigDecimal fullAmount, String marketName, int scale) {
         this.counterName = counterName;
         this.fullAmount = fullAmount;
         this.marketName = marketName;
+        this.scale = scale;
     }
 
     public String getMarketName() {
@@ -127,7 +129,7 @@ public class AvgPrice implements Serializable {
 //                sumDenominator = fullAmount;
         }
 
-        avgPrice = sumDenominator.signum() == 0 ? BigDecimal.ZERO : sumNumerator.divide(sumDenominator, 2, RoundingMode.HALF_UP);
+        avgPrice = sumDenominator.signum() == 0 ? BigDecimal.ZERO : sumNumerator.divide(sumDenominator, scale, RoundingMode.HALF_UP);
 
         if (withLogs) {
             deltaLogTmp = String.format("#%s %sAvgPrice: %s = %s", counterName, marketName, sb.toString(), avgPrice);
