@@ -7,5 +7,6 @@ public enum TradeMStatus {
     WAITING,
     IN_PROGRESS,
     FINISHED,
+    NONE,
     COMPLETED, // not it use
 }
