@@ -107,7 +107,7 @@ public class TradeService {
     }
 
     public void setBitmexStatus(Long tradeId, TradeMStatus status) {
-        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId).and("bitmexStatus").ne(TradeMStatus.NONE)),
                 new Update()
                         .inc("version", 1)
                         .set("updated", new Date())
@@ -117,7 +117,7 @@ public class TradeService {
     }
 
     public void setOkexStatus(Long tradeId, TradeMStatus status) {
-        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId).and("okexStatus").ne(TradeMStatus.NONE)),
                 new Update()
                         .inc("version", 1)
                         .set("updated", new Date())
