@@ -2,8 +2,11 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
@@ -37,37 +40,74 @@ public class SignalService {
     @Autowired
     private TradeService tradeService;
 
+    @Autowired
+    private SlackNotifications slackNotifications;
+
     public void placeOkexOrderOnSignal(MarketService okexService, Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
             SignalType signalType, PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
-        final Settings settings = settingsRepositoryService.getSettings();
-        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
-                placingType,
-                signalType, 1, tradeId, counterName, lastObTime);
 
-        if (settings.getArbScheme() == ArbScheme.CON_B_O) {
-            ((OkCoinService) okexService).deferredPlaceOrderOnSignal(placeOrderArgs);
-        } else {
-            executorService.submit(() -> {
+        if (o_block.signum() <= 0) {
+            executorService.execute(() -> {
+
                 try {
-                    tradeService.setOkexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-                    TradeResponse tradeResponse = okexService.placeOrder(placeOrderArgs);
+                    Thread.sleep(1000);
+                    String warn = "WARNING: o_block=" + o_block + ". No order on signal";
+                    okexService.getTradeLogger().warn(warn);
+                    logger.warn(warn);
 
-                    if (tradeResponse.getErrorCode() != null) {
-                        okexService.getTradeLogger().warn("WARNING: " + tradeResponse.getErrorCode());
-                        logger.warn("WARNING: " + tradeResponse.getErrorCode());
-                    }
+                    okexService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
 
-                } catch (Exception e) {
+                } catch (InterruptedException e) {
                     logger.error("Error on placeOrderOnSignal", e);
                 }
+
             });
+
+        } else {
+
+            final Settings settings = settingsRepositoryService.getSettings();
+            final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
+                    placingType,
+                    signalType, 1, tradeId, counterName, lastObTime);
+
+            if (settings.getArbScheme() == ArbScheme.CON_B_O) {
+                ((OkCoinService) okexService).deferredPlaceOrderOnSignal(placeOrderArgs);
+            } else {
+                executorService.submit(() -> {
+                    try {
+                        tradeService.setOkexStatus(tradeId, TradeMStatus.IN_PROGRESS);
+                        TradeResponse tradeResponse = okexService.placeOrder(placeOrderArgs);
+
+                        if (tradeResponse.getErrorCode() != null) {
+                            okexService.getTradeLogger().warn("WARNING: " + tradeResponse.getErrorCode());
+                            logger.warn("WARNING: " + tradeResponse.getErrorCode());
+                        }
+
+                    } catch (Exception e) {
+                        logger.error("Error on placeOrderOnSignal", e);
+                    }
+                });
+            }
         }
     }
 
     public void placeBitmexOrderOnSignal(MarketService bitmexService, Order.OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
             SignalType signalType, PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
+
         executorService.submit(() -> {
             try {
+
+                slackNotifications.sendNotify(String.format("#%s signal placeOrder bitmex %s a=%s", counterName, orderType, b_block));
+
+                if (b_block.signum() <= 0) {
+                    Thread.sleep(1000);
+                    String warn = "WARNING: b_block=" + b_block + ". No order on signal";
+                    bitmexService.getTradeLogger().warn(warn);
+                    logger.warn(warn);
+
+                    bitmexService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
+                    return;
+                }
 
                 final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, signalType, 1,
                         tradeId, counterName, lastObTime);
