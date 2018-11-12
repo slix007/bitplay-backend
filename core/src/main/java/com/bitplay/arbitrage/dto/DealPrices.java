@@ -70,7 +70,11 @@ public class DealPrices implements Serializable {
      * The following should be set before:<br> BorderParams borderParamsOnStart, int pos_bo, DeltaName deltaName, BigDecimal b_block, BigDecimal o_block
      */
     public void calcPlanPosAo() {
-        this.plan_pos_ao = calcPlanAfterOrderPos();
+        this.plan_pos_ao = calcPlanAfterOrderPos(bBlock, oBlock);
+    }
+
+    public void calcPlanPosAo(BigDecimal b_block_input, BigDecimal o_block_input) {
+        this.plan_pos_ao = calcPlanAfterOrderPos(b_block_input, o_block_input);
     }
 
     public synchronized void setDeltaName(DeltaName deltaName) {
@@ -242,7 +246,7 @@ public class DealPrices implements Serializable {
         }
     }
 
-    private int calcPlanAfterOrderPos() {
+    private int calcPlanAfterOrderPos(BigDecimal bBlock, BigDecimal oBlock) {
         int pos_ao = pos_bo;
         final PosMode posMode = borderParamsOnStart.getPosMode();
         if (posMode == BTM_MODE) {

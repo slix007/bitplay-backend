@@ -844,7 +844,7 @@ public class ArbitrageService {
 
             dealPrices.setBorderParamsOnStart(borderParams);
             dealPrices.setPos_bo(pos_bo);
-            dealPrices.calcPlanPosAo();
+            dealPrices.calcPlanPosAo(b_block_input, o_block_input);
 
             if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
                 tradeService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
@@ -1004,7 +1004,7 @@ public class ArbitrageService {
 
             dealPrices.setBorderParamsOnStart(borderParams);
             dealPrices.setPos_bo(pos_bo);
-            dealPrices.calcPlanPosAo();
+            dealPrices.calcPlanPosAo(b_block_input, o_block_input);
 
             if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
                 tradeService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
