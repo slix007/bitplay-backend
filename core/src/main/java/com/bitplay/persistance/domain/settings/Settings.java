@@ -45,6 +45,7 @@ public class Settings extends AbstractDocument {
     private Integer eBestMin;
     private UsdQuoteType usdQuoteType;
     private BigDecimal okexFakeTakerDev;//deviation of fake taker price
+    private Boolean adjustByNtUsd;
 
     @Deprecated
     /* Use {@link #contractMode}. */

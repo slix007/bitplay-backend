@@ -228,6 +228,10 @@ public class SettingsEndpoint {
             settings.setOkexFakeTakerDev(settingsUpdate.getOkexFakeTakerDev());
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getAdjustByNtUsd() != null) {
+            settings.setAdjustByNtUsd(settingsUpdate.getAdjustByNtUsd());
+            settingsRepositoryService.saveSettings(settings);
+        }
 
         return settings;
     }

@@ -1482,6 +1482,10 @@ public class ArbitrageService {
 
     private PlBlocks adjustByNtUsd(DeltaName deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        if (settings.getAdjustByNtUsd() == null || !settings.getAdjustByNtUsd()) {
+            return new PlBlocks(blockSize1, blockSize2, PlacingBlocks.Ver.FIXED);
+        }
+
         final BigDecimal cm = settings.getPlacingBlocks().getBitmexBlockFactor();
         boolean isEth = firstMarketService.getContractType().isEth();
 
