@@ -1989,8 +1989,8 @@ public class OkCoinService extends MarketService {
      * @param avgPrice the object to be updated.
      */
     public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
-        final Set<String> orderIds = avgPrice.getpItems().keySet()
-                .stream().filter(orderId -> orderId.equals(AvgPrice.FAKE_ORDER_ID))
+        final Set<String> orderIds = avgPrice.getpItems().keySet().stream()
+                .filter(orderId -> !orderId.equals(AvgPrice.FAKE_ORDER_ID))
                 .collect(Collectors.toSet());
         Collection<Order> orderInfos = new ArrayList<>();
 
