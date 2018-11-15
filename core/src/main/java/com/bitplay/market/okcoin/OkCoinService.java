@@ -53,6 +53,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -1990,25 +1991,32 @@ public class OkCoinService extends MarketService {
         final Set<String> orderIds = avgPrice.getpItems().keySet();
         Collection<Order> orderInfos = new ArrayList<>();
 
-        for (int attempt = 0; attempt < 3; attempt++) { // about 11 sec
-            long sleepTime = 200;
-            try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {
-                tradeLogger.error("Error on sleeping");
+        String[] orderIdsArray = orderIds.toArray(new String[0]);
+        if (orderIdsArray.length == 0) {
+            logger.info("updateAvgPrice skipped(no orders)");
+        } else {
+            logger.info("updateAvgPrice of " + Arrays.toString(orderIdsArray));
+            for (int attempt = 0; attempt < 3; attempt++) { // about 11 sec
+                long sleepTime = 200;
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {
+                    tradeLogger.error("Error on sleeping");
+                }
+
+                orderInfos = getOrderInfos(orderIdsArray, counterName,
+                        attempt, "updateAvgPrice:", getTradeLogger());
+
+                if (orderInfos.size() == orderIds.size()
+                        && orderInfos.stream()
+                        .filter(order -> order.getAveragePrice() != null)
+                        .anyMatch(order -> order.getAveragePrice().signum() > 0)) {
+                    break;
+                }
             }
 
-            orderInfos = getOrderInfos(orderIds.toArray(new String[0]), counterName,
-                    attempt, "updateAvgPrice:", getTradeLogger());
-
-            if (orderInfos.size() == orderIds.size()
-                    && orderInfos.stream()
-                    .filter(order -> order.getAveragePrice() != null)
-                    .anyMatch(order -> order.getAveragePrice().signum() > 0)) {
-                break;
-            }
+            orderInfos.forEach(
+                    order -> avgPrice.addPriceItem(counterName, order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus()));
         }
-
-        orderInfos.forEach(order -> avgPrice.addPriceItem(counterName, order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus()));
     }
 }
