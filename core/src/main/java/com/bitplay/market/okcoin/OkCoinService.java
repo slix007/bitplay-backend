@@ -590,7 +590,8 @@ public class OkCoinService extends MarketService {
                 .subscribeOn(Schedulers.io())
                 .subscribe(futureIndex -> {
                     logger.debug(futureIndex.toString());
-                    this.contractIndex = new ContractIndex(futureIndex.getIndex(),
+                    BigDecimal index = futureIndex.getIndex() != null ? futureIndex.getIndex().setScale(2, RoundingMode.HALF_UP) : null;
+                    this.contractIndex = new ContractIndex(index,
                             futureIndex.getTimestamp());
                 }, throwable -> {
                     logger.error("FutureIndex.Exception: ", throwable);
