@@ -1543,19 +1543,19 @@ public class ArbitrageService {
         BigDecimal ntUsd = getNtUsd();
         if (ntUsd.signum() > 0) {
             if (deltaRef == DeltaName.B_DELTA) {
-                b_block_usd = b_block_usd.subtract(ntUsd);
-                o_block_usd = o_block_usd;
-            } else if (deltaRef == DeltaName.O_DELTA) {
-                b_block_usd = b_block_usd;
-                o_block_usd = o_block_usd.subtract(ntUsd);
-            }
-        } else if (ntUsd.signum() < 0) {
-            if (deltaRef == DeltaName.B_DELTA) {
                 b_block_usd = b_block_usd;
                 o_block_usd = o_block_usd.add(ntUsd);
             } else if (deltaRef == DeltaName.O_DELTA) {
                 b_block_usd = b_block_usd.add(ntUsd);
                 o_block_usd = o_block_usd;
+            }
+        } else if (ntUsd.signum() < 0) {
+            if (deltaRef == DeltaName.B_DELTA) {
+                b_block_usd = b_block_usd.add(ntUsd);
+                o_block_usd = o_block_usd;
+            } else if (deltaRef == DeltaName.O_DELTA) {
+                b_block_usd = b_block_usd;
+                o_block_usd = o_block_usd.add(ntUsd);
             }
         }
 
