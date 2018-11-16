@@ -232,6 +232,10 @@ public class SettingsEndpoint {
             settings.setAdjustByNtUsd(settingsUpdate.getAdjustByNtUsd());
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getNtUsdMultiplicityOkex() != null) {
+            settings.setNtUsdMultiplicityOkex(settingsUpdate.getNtUsdMultiplicityOkex());
+            settingsRepositoryService.saveSettings(settings);
+        }
 
         return settings;
     }

@@ -46,6 +46,7 @@ public class Settings extends AbstractDocument {
     private UsdQuoteType usdQuoteType;
     private BigDecimal okexFakeTakerDev;//deviation of fake taker price
     private Boolean adjustByNtUsd;
+    private BigDecimal ntUsdMultiplicityOkex;
 
     @Deprecated
     /* Use {@link #contractMode}. */

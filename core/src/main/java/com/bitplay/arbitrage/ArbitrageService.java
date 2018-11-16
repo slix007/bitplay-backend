@@ -947,8 +947,11 @@ public class ArbitrageService {
 
     private void printAdjWarning(BigDecimal b_block_input, BigDecimal o_block_input, BigDecimal b_block, BigDecimal o_block) {
         if (b_block.compareTo(b_block_input) != 0 || o_block.compareTo(o_block_input) != 0) {
-            String msg = String.format("adjustByNtUsd. Before: b=%s, o=%s. After: b=%s, o=%s. ntUsd=%s",
-                    b_block_input, o_block_input, b_block, o_block, getNtUsd());
+            final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+            BigDecimal multiplicity = settings.getNtUsdMultiplicityOkex();
+
+            String msg = String.format("adjustByNtUsd. Before: b=%s, o=%s. After: b=%s, o=%s. ntUsd=%s, ntUsdMultiplicityOkex=%s",
+                    b_block_input, o_block_input, b_block, o_block, getNtUsd(), multiplicity);
             logger.info(msg);
         }
     }
@@ -1540,7 +1543,8 @@ public class ArbitrageService {
             o_block_usd = blockSize2.multiply(BigDecimal.valueOf(100));
         }
 
-        BigDecimal ntUsd = getNtUsd();
+        BigDecimal multiplicity = settings.getNtUsdMultiplicityOkex();
+        BigDecimal ntUsd = getNtUsd(multiplicity);
         if (ntUsd.signum() > 0) {
             if (deltaRef == DeltaName.B_DELTA) {
                 b_block_usd = b_block_usd;
@@ -1574,6 +1578,23 @@ public class ArbitrageService {
         o_block = o_block.signum() < 0 ? BigDecimal.ZERO : o_block;
 
         return new PlBlocks(b_block, o_block, PlacingBlocks.Ver.FIXED);
+    }
+
+    private BigDecimal getNtUsd(BigDecimal multiplicity) {
+        BigDecimal ntUsd = getNtUsd();
+        if (multiplicity == null || multiplicity.signum() <= 0) {
+            return ntUsd;
+        }
+        BigDecimal mult = multiplicity.setScale(0, RoundingMode.DOWN);
+        // nt=237.65, mult=100 ==> 200
+        // nt=237.65, mult=10  ==> 230
+        // nt=237.65, mult=20  ==> 220
+        // nt=237.65, mult=1   ==> 237
+        // nt=237.65, mult=0   ==> 237.65
+        // nt=237.65, mult=-1  ==> 237.65
+        // nt=237.65, mult=-12 ==> 237.65
+        BigDecimal num = ntUsd.divide(mult, 0, RoundingMode.DOWN);
+        return num.multiply(mult);
     }
 
     private BigDecimal getNtUsd() {
