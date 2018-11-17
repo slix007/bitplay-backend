@@ -341,7 +341,10 @@ public class PosDiffService {
                     final BigDecimal positionsDiffWithHedge = getDcMainSet();
                     warningLogger.info("MDC posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
 
-                    doCorrectionImmediate(SignalType.CORR_MDC);
+//                    doCorrectionImmediate(SignalType.CORR_MDC);
+                    arbitrageService.getFirstMarketService().stopAllActions();
+                    arbitrageService.getSecondMarketService().stopAllActions();
+
                 }
             }
             if (isMdcNeededExtraSet()) {
@@ -354,7 +357,10 @@ public class PosDiffService {
                         final BigDecimal positionsDiffWithHedge = getDcExtraSet();
                         warningLogger.info("MDC XBTUSD posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
 
-                        doCorrectionImmediate(SignalType.CORR_BTC_MDC);
+//                        doCorrectionImmediate(SignalType.CORR_BTC_MDC);
+                        arbitrageService.getFirstMarketService().stopAllActions();
+                        arbitrageService.getSecondMarketService().stopAllActions();
+
                     }
                 }
             }

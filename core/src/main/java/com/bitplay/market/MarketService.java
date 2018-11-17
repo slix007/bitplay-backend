@@ -974,28 +974,32 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     public void stopAllActions() {
         shouldStopPlacing = true;
 
-        if (!hasOpenOrders()) {
-            String msg = String.format("%s: StopAllActions", getName());
-            warningLogger.info(msg);
-            getTradeLogger().info(msg);
-        } else {
-            StringBuilder orderIds = new StringBuilder();
-            synchronized (openOrdersLock) {
-                openOrders.stream()
-                        .map(FplayOrder::getOrder)
-                        .filter(order -> order.getStatus() == Order.OrderStatus.NEW
-                                || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
-                                || order.getStatus() == Order.OrderStatus.PENDING_NEW
-                                || order.getStatus() == Order.OrderStatus.PENDING_CANCEL
-                                || order.getStatus() == Order.OrderStatus.PENDING_REPLACE
-                        ).forEach(order -> orderIds.append(order.getId()).append(","));
+        try {
+            if (!hasOpenOrders()) {
+                String msg = String.format("%s: StopAllActions", getName());
+                warningLogger.info(msg);
+                getTradeLogger().info(msg);
+            } else {
+                StringBuilder orderIds = new StringBuilder();
+                synchronized (openOrdersLock) {
+                    openOrders.stream()
+                            .map(FplayOrder::getOrder)
+                            .filter(order -> order.getStatus() == Order.OrderStatus.NEW
+                                    || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
+                                    || order.getStatus() == Order.OrderStatus.PENDING_NEW
+                                    || order.getStatus() == Order.OrderStatus.PENDING_CANCEL
+                                    || order.getStatus() == Order.OrderStatus.PENDING_REPLACE
+                            ).forEach(order -> orderIds.append(order.getId()).append(","));
+                }
+
+                String msg = String.format("%s: StopAllActions: CancelAllOpenOrders=%s", getName(), orderIds.toString());
+                warningLogger.info(msg);
+                getTradeLogger().info(msg);
+
+                cancelAllOrders("StopAllActions: CancelAllOpenOrders");
             }
-
-            String msg = String.format("%s: StopAllActions: CancelAllOpenOrders=%s", getName(), orderIds.toString());
-            warningLogger.info(msg);
-            getTradeLogger().info(msg);
-
-            cancelAllOrders("StopAllActions: CancelAllOpenOrders");
+        } catch (Exception e) {
+            logger.error("stopAllActions error", e);
         }
 
         if (getMarketState() != MarketState.READY) {
