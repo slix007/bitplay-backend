@@ -151,6 +151,7 @@ public class SettingsEndpoint {
             current.setPosAdjustmentDelaySec(
                     update.getPosAdjustmentDelaySec() != null ? update.getPosAdjustmentDelaySec() : current.getPosAdjustmentDelaySec());
             current.setCorrDelaySec(update.getCorrDelaySec() != null ? update.getCorrDelaySec() : current.getCorrDelaySec());
+            current.setAfterCorrDelaySec(update.getAfterCorrDelaySec() != null ? update.getAfterCorrDelaySec() : current.getAfterCorrDelaySec());
             settingsRepositoryService.saveSettings(settings);
         }
 

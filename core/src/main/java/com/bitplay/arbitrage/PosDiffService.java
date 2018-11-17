@@ -130,6 +130,10 @@ public class PosDiffService {
             try {
                 boolean isCorrect = false;
 
+                final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getAfterCorrDelaySec() != null
+                        ? settingsRepositoryService.getSettings().getPosAdjustment().getAfterCorrDelaySec()
+                        : 14;
+
                 BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
                 if (signalType.isAdjBtc()) {
 
@@ -142,7 +146,7 @@ public class PosDiffService {
                         if (isExtraSetEqual()) {
                             isCorrect = true;
                         } else {
-                            Thread.sleep(14 * 1000);
+                            Thread.sleep(delaySec * 1000);
                             infoMsg = "Second check after adj: fetchPositionXBTUSD:";
                             checkBitmexPosXBTUSD(infoMsg);
                             if (isExtraSetEqual()) {
@@ -162,7 +166,7 @@ public class PosDiffService {
                         if (isPosEqualByMaxAdj(getDcExtraSet())) {
                             isCorrect = true;
                         } else {
-                            Thread.sleep(14 * 1000);
+                            Thread.sleep(delaySec * 1000);
                             infoMsg = "Second check after corr: fetchPositionXBTUSD:";
                             checkBitmexPosXBTUSD(infoMsg);
                             if (isPosEqualByMaxAdj(getDcExtraSet())) {
@@ -185,7 +189,7 @@ public class PosDiffService {
                         if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj(getDcMainSet()))) {
                             isCorrect = true;
                         } else {
-                            Thread.sleep(14 * 1000);
+                            Thread.sleep(delaySec * 1000);
                             infoMsg = String.format("Second check after %s: fetchPosition:", signalType);
                             pos1 = bitmexService.fetchPosition();
                             pos2 = arbitrageService.getSecondMarketService().fetchPosition();

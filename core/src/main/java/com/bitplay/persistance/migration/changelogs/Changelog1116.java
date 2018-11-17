@@ -20,4 +20,13 @@ public class Changelog1116 {
             mongoTemplate.save(settings);
         }
     }
+
+    @ChangeSet(order = "001", id = "2018-11-17: afterCorrDelaySec", author = "SergeiShurmin")
+    public void change02(MongoTemplate mongoTemplate) {
+        final Settings settings = mongoTemplate.findById(1L, Settings.class);
+        if (settings != null) {
+            settings.getPosAdjustment().setAfterCorrDelaySec(14);
+            mongoTemplate.save(settings);
+        }
+    }
 }
