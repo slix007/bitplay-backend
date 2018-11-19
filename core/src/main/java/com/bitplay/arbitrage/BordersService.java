@@ -63,7 +63,7 @@ public class BordersService {
     public TradingSignal checkBorders(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL,
             BigDecimal oPS, boolean withLogs) {
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
-        BigDecimal cm = placingBlocks.getBitmexBlockFactor();
+        BigDecimal cm = placingBlocks.getCm();
 
         final BorderParams borderParams = persistenceService.fetchBorders();
         final BordersV2 bordersV2 = borderParams.getBordersV2();

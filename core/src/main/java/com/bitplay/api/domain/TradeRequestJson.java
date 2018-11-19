@@ -1,5 +1,6 @@
 package com.bitplay.api.domain;
 
+import com.bitplay.persistance.domain.settings.AmountType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,5 +31,6 @@ public class TradeRequestJson {
     private PlacementType placementType;
     private String amount;
     private String toolName;
+    private AmountType amountType;
 
 }

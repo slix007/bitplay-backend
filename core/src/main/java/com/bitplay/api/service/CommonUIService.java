@@ -452,8 +452,8 @@ public class CommonUIService {
             final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
 
             String btmUsdInContract = "1";
+            final BigDecimal cm = placingBlocks.getCm();
             if (bitmexService.getContractType().isEth()) {
-                final BigDecimal cm = placingBlocks.getBitmexBlockFactor();
                 btmUsdInContract = BigDecimal.valueOf(10).divide(cm, 2, RoundingMode.HALF_UP).toPlainString();
             }
 
@@ -465,7 +465,9 @@ public class CommonUIService {
                     arbitrageService.getExtraSetStr(),
                     arbitrageService.getExtraSetSource(),
                     placingBlocks,
-                    btmUsdInContract
+                    btmUsdInContract,
+                    bitmexService.getContractType().isEth(),
+                    cm
             );
 
         } catch (NotYetInitializedException e) {

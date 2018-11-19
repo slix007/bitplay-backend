@@ -12,6 +12,7 @@ import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
+import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -88,14 +89,10 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 //                throw new IllegalArgumentException("No such order type " + tradeRequestJson.getType());
         }
         final String toolName = tradeRequestJson.getToolName();
+        final AmountType amountType = tradeRequestJson.getAmountType();
 
-        TradeResponse tradeResponse;
-        if (tradeRequestJson.getPlacementType() == TradeRequestJson.PlacementType.TAKER) {
-            tradeResponse = bitmexService.singleTakerOrder(orderType, amount, null, signalType, toolName);
-        } else {
-            final PlacingType placingType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
-            tradeResponse = bitmexService.singleOrder(orderType, amount, null, signalType, placingType, toolName);
-        }
+        final PlacingType placingType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
+        final TradeResponse tradeResponse = bitmexService.singleOrder(orderType, amount, null, signalType, placingType, toolName, amountType);
 
         return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
     }

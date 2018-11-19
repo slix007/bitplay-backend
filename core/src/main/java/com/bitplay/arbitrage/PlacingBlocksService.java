@@ -26,7 +26,7 @@ public class PlacingBlocksService {
                                      BigDecimal theBorder, DeltaName deltaName, BigDecimal oPL, BigDecimal oPS) {
         PlBlocks theBlocks;
         final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
-        final BigDecimal cm = placingBlocks.getBitmexBlockFactor();
+        final BigDecimal cm = placingBlocks.getCm();
 
         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
             theBlocks = new PlBlocks(placingBlocks.getFixedBlockBitmex(), placingBlocks.getFixedBlockOkex(), PlacingBlocks.Ver.FIXED);

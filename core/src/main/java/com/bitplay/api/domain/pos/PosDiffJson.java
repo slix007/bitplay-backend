@@ -1,6 +1,7 @@
 package com.bitplay.api.domain.pos;
 
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,10 +22,12 @@ public class PosDiffJson {
 
     private PlacingBlocks placingBlocks;
     private String btmUsdInContract;
+    private Boolean isEth;
+    private BigDecimal cm;
 
     public static PosDiffJson notInitialized() {
         return new PosDiffJson(true, "position is not yet initialized", null,
-                false, "position is not yet initialized", null, null, null);
+                false, "position is not yet initialized", null, null, null, null, null);
     }
 //    private String okUsdInContract;
 

@@ -1,10 +1,11 @@
 package com.bitplay.arbitrage.dto;
 
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
-
 import java.math.BigDecimal;
 
 /**
+ * Blocks are in contracts only.
+ * <br>
  * Created by Sergey Shurmin on 12/29/17.
  */
 public class PlBlocks {

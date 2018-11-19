@@ -1,5 +1,9 @@
 package com.bitplay.market.bitmex;
 
+import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.persistance.domain.settings.AmountType;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import java.math.BigDecimal;
 import org.knowm.xchange.dto.account.Position;
 
 /**
@@ -15,5 +19,12 @@ public class BitmexUtils {
                 ", priceAvg=" + position.getPriceAvgLong() +
                 ", markValue=" + position.getMarkValue() +
                 '}';
+    }
+
+    static BigDecimal amountInContracts(PlaceOrderArgs placeOrderArgs, BigDecimal cm) {
+        if (placeOrderArgs.getAmountType() == null || placeOrderArgs.getAmountType() == AmountType.CONT) {
+            return placeOrderArgs.getAmount();
+        }
+        return PlacingBlocks.toBitmexCont(placeOrderArgs.getAmount(), placeOrderArgs.getContractType().isEth(), cm);
     }
 }

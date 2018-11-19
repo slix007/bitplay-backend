@@ -1390,7 +1390,7 @@ public class ArbitrageService {
     public String getMainSetStr() {
         // nt_usd = b_pos * 10 / CM + o_pos * 10 - ha;
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        final BigDecimal cm = settings.getPlacingBlocks().getBitmexBlockFactor();
+        final BigDecimal cm = settings.getPlacingBlocks().getCm();
         final BigDecimal adj = settings.getPosAdjustment().getPosAdjustmentMin();
         final BigDecimal adjMax = settings.getPosAdjustment().getPosAdjustmentMax();
 
@@ -1490,7 +1490,7 @@ public class ArbitrageService {
     private PlBlocks dynBlockDecriseByAffordable(DeltaName deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {
         BigDecimal b1 = BigDecimal.ZERO;
         BigDecimal b2 = BigDecimal.ZERO;
-        final BigDecimal cm = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks().getBitmexBlockFactor();
+        final BigDecimal cm = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks().getCm();
         final Affordable firstAffordable = firstMarketService.recalcAffordable();
         final Affordable secondAffordable = secondMarketService.recalcAffordable();
         if (deltaRef == DeltaName.B_DELTA) {
@@ -1530,7 +1530,7 @@ public class ArbitrageService {
             return new PlBlocks(blockSize1, blockSize2, PlacingBlocks.Ver.FIXED);
         }
 
-        final BigDecimal cm = settings.getPlacingBlocks().getBitmexBlockFactor();
+        final BigDecimal cm = settings.getPlacingBlocks().getCm();
         boolean isEth = firstMarketService.getContractType().isEth();
 
         BigDecimal b_block_usd;
@@ -1599,7 +1599,7 @@ public class ArbitrageService {
 
     private BigDecimal getNtUsd() {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        final BigDecimal cm = settings.getPlacingBlocks().getBitmexBlockFactor();
+        final BigDecimal cm = settings.getPlacingBlocks().getCm();
 
         MarketService bitmexService = getFirstMarketService();
         MarketService okcoinService = getSecondMarketService();
@@ -1792,7 +1792,7 @@ public class ArbitrageService {
         }
 
         public PreliqBlocks getPreliqBlocks(DeltaName deltaName) {
-            final BigDecimal cm = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks().getBitmexBlockFactor();
+            final BigDecimal cm = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks().getCm();
             final CorrParams corrParams = persistenceService.fetchCorrParams();
             b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex(cm));
             o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());

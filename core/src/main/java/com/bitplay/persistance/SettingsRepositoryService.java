@@ -5,7 +5,6 @@ import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.persistance.repository.SettingsRepository;
-import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -40,7 +39,11 @@ public class SettingsRepositoryService {
             settings = fetchSettings();
         }
 
-        settings.getPlacingBlocks().setBitmexBlockFactor(bitmexService.getCm());
+        settings.getPlacingBlocks().setCm(bitmexService.getCm());
+        boolean eth = bitmexService.getContractType() != null
+                ? bitmexService.getContractType().isEth() // current set
+                : settings.getContractMode().isEth(); // saved set
+        settings.getPlacingBlocks().setEth(eth);
 
         return settings;
     }

@@ -23,6 +23,7 @@ import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
@@ -1402,27 +1403,22 @@ public class BitmexService extends MarketService {
         throw new IllegalArgumentException("Use placeOrderToOpenOrders instead");
     }
 
-    public TradeResponse singleOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType,
-            PlacingType placingType, String toolName) {
+    public TradeResponse singleOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType,
+            PlacingType placingType, String toolName, AmountType amountType) {
         final Long tradeId = arbitrageService.getLastInProgressTradeId();
         final String counterName = getCounterName(signalType);
         final BitmexContractType contractType = (bitmexContractType.isEth() && toolName != null && toolName.equals("XBTUSD"))
                 ? bitmexContractTypeXBTUSD
                 : bitmexContractType;
 
-        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amountInContracts, bestQuotes, placingType, signalType, 1,
-                tradeId, counterName, null, contractType);
+        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1,
+                tradeId, counterName, null, contractType, amountType);
 
         return placeOrderToOpenOrders(placeOrderArgs);
     }
 
     public TradeResponse singleTakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
-        return singleOrder(orderType, amountInContracts, bestQuotes, signalType, PlacingType.TAKER, null);
-    }
-
-    public TradeResponse singleTakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType,
-            String toolName) {
-        return singleOrder(orderType, amountInContracts, bestQuotes, signalType, PlacingType.TAKER, toolName);
+        return singleOrder(orderType, amountInContracts, bestQuotes, signalType, PlacingType.TAKER, null, AmountType.CONT);
     }
 
     public TradeResponse placeOrderToOpenOrders(final PlaceOrderArgs placeOrderArgs) {
@@ -1469,7 +1465,7 @@ public class BitmexService extends MarketService {
         }
 
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
-        final BigDecimal amount = placeOrderArgs.getAmount();
+        final BigDecimal amount = BitmexUtils.amountInContracts(placeOrderArgs, cm);
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
         PlacingType placingType = placeOrderArgs.getPlacingType();
         final SignalType signalType = placeOrderArgs.getSignalType();

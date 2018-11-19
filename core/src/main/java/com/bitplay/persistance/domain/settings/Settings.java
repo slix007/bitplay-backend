@@ -47,13 +47,9 @@ public class Settings extends AbstractDocument {
     private BigDecimal okexFakeTakerDev;//deviation of fake taker price
     private Boolean adjustByNtUsd;
     private BigDecimal ntUsdMultiplicityOkex;
+    private AmountType amountTypeBitmex;
+    private AmountType amountTypeOkex;
 
-    @Deprecated
-    /* Use {@link #contractMode}. */
-    private OkexContractType okexContractType;
-    @Deprecated
-    /* Use {@link #contractMode}. */
-    private BitmexContractType bitmexContractType;
     private ContractMode contractMode;
     @Transient
     private String okexContractName;
@@ -81,8 +77,6 @@ public class Settings extends AbstractDocument {
         settings.restartSettings = RestartSettings.createDefaults();
         settings.signalDelayMs = 1000;
         settings.contractMode = ContractMode.MODE1_SET_BU11;
-        settings.okexContractType = OkexContractType.BTC_ThisWeek;
-        settings.bitmexContractType = BitmexContractType.XBTUSD;
         settings.coldStorageBtc = BigDecimal.ZERO;
         settings.eBestMin = 0;
         settings.hedgeBtc = BigDecimal.ZERO;

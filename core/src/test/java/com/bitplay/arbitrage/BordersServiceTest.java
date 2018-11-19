@@ -140,7 +140,7 @@ public class BordersServiceTest {
 
         final PlacingBlocks placingBlocks = new PlacingBlocks();
         placingBlocks.setActiveVersion(PlacingBlocks.Ver.FIXED);
-        placingBlocks.setFixedBlockOkex(BigDecimal.ONE);
+        placingBlocks.setFixedBlockUsd(BigDecimal.valueOf(100));
         settings.setPlacingBlocks(placingBlocks);
 
         when(settingsRepositoryService.getSettings()).thenReturn(settings);
@@ -158,7 +158,7 @@ public class BordersServiceTest {
 //        O_delta: -54
         borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.FIXED);
-        settings.getPlacingBlocks().setFixedBlockOkex(BigDecimal.valueOf(200));
+        settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(200 * 100));
 
         // delta1 == // b_bid[0] - o_ask[1]
         final BigDecimal delta1 = BigDecimal.valueOf(52);
@@ -179,7 +179,7 @@ public class BordersServiceTest {
 //        O_delta: -54
         borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
-        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(20));
+        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20 * 100));
 
         // delta1 == // b_bid[0] - o_ask[1]
         final BigDecimal delta1 = BigDecimal.valueOf(52);
@@ -236,7 +236,7 @@ public class BordersServiceTest {
 //        O_delta: -54
         borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
-        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(20));
+        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20 * 100));
 
         // delta1 == // b_bid[0] - o_ask[1]
         final BigDecimal delta1 = BigDecimal.valueOf(52);
@@ -294,7 +294,7 @@ public class BordersServiceTest {
 //        O_delta: -54
         borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
-        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(20));
+        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20 * 100));
 
         // delta1 == // b_bid[0] - o_ask[1]
         final BigDecimal delta1 = BigDecimal.valueOf(-54);
@@ -352,7 +352,7 @@ public class BordersServiceTest {
 //        O_delta: -54
         borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
-        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(20));
+        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20 * 100));
 
         // delta1 == // b_bid[0] - o_ask[1]
         final BigDecimal delta1 = BigDecimal.valueOf(-54);
@@ -401,7 +401,7 @@ public class BordersServiceTest {
     public void test_Example1() {
         borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
-        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(2000));
+        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(2000 * 100));
 
         // delta1 == // b_bid[0] - o_ask[1]
         final BigDecimal delta1 = BigDecimal.valueOf(52);
@@ -455,8 +455,8 @@ public class BordersServiceTest {
 //        O_delta: -54
         borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
-        settings.getPlacingBlocks().setDynMaxBlockOkex(BigDecimal.valueOf(40));
-        settings.getPlacingBlocks().setBitmexBlockFactor(BigDecimal.valueOf(8.21));
+        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(40 * 100));
+        settings.getPlacingBlocks().setCm(BigDecimal.valueOf(8.21));
 
         // delta1 == // b_bid[0] - o_ask[1]
         final BigDecimal delta1 = BigDecimal.valueOf(0.7);

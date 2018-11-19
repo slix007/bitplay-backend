@@ -80,10 +80,7 @@ public class TwoMarketStarter {
         restartService.scheduleCheckForFullStart();
 
         final Settings settings = settingsRepositoryService.getSettings();
-        ContractMode contractMode = settings.getContractMode();
-        if (contractMode == null) {
-            contractMode = ContractMode.parse(settings.getBitmexContractType(), settings.getOkexContractType());
-        }
+        final ContractMode contractMode = settings.getContractMode();
         final OkexContractType okexContractType = contractMode.getOkexContractType();
         final BitmexContractType bitmexContractType = contractMode.getBitmexContractType();
 

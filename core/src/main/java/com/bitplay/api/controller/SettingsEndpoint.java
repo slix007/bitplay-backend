@@ -136,8 +136,8 @@ public class SettingsEndpoint {
             final PlacingBlocks current = settings.getPlacingBlocks();
             final PlacingBlocks update = settingsUpdate.getPlacingBlocks();
             current.setActiveVersion(update.getActiveVersion() != null ? update.getActiveVersion() : current.getActiveVersion());
-            current.setFixedBlockOkex(update.getFixedBlockOkex() != null ? update.getFixedBlockOkex() : current.getFixedBlockOkex());
-            current.setDynMaxBlockOkex(update.getDynMaxBlockOkex() != null ? update.getDynMaxBlockOkex() : current.getDynMaxBlockOkex());
+            current.setFixedBlockUsd(update.getFixedBlockUsd() != null ? update.getFixedBlockUsd() : current.getFixedBlockUsd());
+            current.setDynMaxBlockUsd(update.getDynMaxBlockUsd() != null ? update.getDynMaxBlockUsd() : current.getDynMaxBlockUsd());
             settings.setPlacingBlocks(current);
             settingsRepositoryService.saveSettings(settings);
         }
