@@ -590,25 +590,25 @@ public class PosDiffService {
         return hedgeAmount;
     }
 
-    private void doCorrectionImmediate(SignalType signalTypeMdcOrMdcbtc) {
-        if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
-                || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
-            return;
-        }
-
-        final CorrParams corrParams = persistenceService.fetchCorrParams();
-
-        if (corrParams.getCorr().hasSpareAttempts()) {
-            // The double check with 'fetchPosition' should be before this method
-            final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
-            final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
-            final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
-            final BigDecimal hedgeAmount = signalTypeMdcOrMdcbtc == SignalType.CORR_MDC
-                    ? getHedgeAmountMainSet() : getHedgeAmountExtraSet();
-
-            doCorrection(bP, oPL, oPS, hedgeAmount, signalTypeMdcOrMdcbtc);
-        }
-    }
+//    private void doCorrectionImmediate(SignalType signalTypeMdcOrMdcbtc) {
+//        if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
+//                || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
+//            return;
+//        }
+//
+//        final CorrParams corrParams = persistenceService.fetchCorrParams();
+//
+//        if (corrParams.getCorr().hasSpareAttempts()) {
+//            // The double check with 'fetchPosition' should be before this method
+//            final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
+//            final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
+//            final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+//            final BigDecimal hedgeAmount = signalTypeMdcOrMdcbtc == SignalType.CORR_MDC
+//                    ? getHedgeAmountMainSet() : getHedgeAmountExtraSet();
+//
+//            doCorrection(bP, oPL, oPS, hedgeAmount, signalTypeMdcOrMdcbtc);
+//        }
+//    }
 
     private synchronized void doCorrection(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
             SignalType baseSignalType) {
@@ -650,7 +650,7 @@ public class PosDiffService {
             adaptCorrByMaxVolCorr(corrObj, corrParams);
 
         } else { // corr
-            maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm());
+            maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
             maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
 
             adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
@@ -715,7 +715,7 @@ public class PosDiffService {
                 corrObj.correctAmount = okMax;
             }
         } else {
-            BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm()));
+            BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
             if (corrObj.correctAmount.compareTo(bMax) > 0) {
                 corrObj.correctAmount = bMax;
             }

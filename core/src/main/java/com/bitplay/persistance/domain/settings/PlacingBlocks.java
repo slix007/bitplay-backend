@@ -69,6 +69,10 @@ public class PlacingBlocks {
     // set_eu: OkexCONT = block_usd/10
     // set_bu: OkexCONT = block_usd/100
     private BigDecimal toOkexCont(BigDecimal usd) {
+        return toOkexCont(usd, isEth);
+    }
+
+    public static BigDecimal toOkexCont(BigDecimal usd, boolean isEth) {
         if (isEth) {
             return usd.divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
         }

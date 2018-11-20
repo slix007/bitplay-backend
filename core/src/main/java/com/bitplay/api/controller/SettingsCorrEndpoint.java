@@ -77,8 +77,8 @@ public class SettingsCorrEndpoint {
         if (anUpdate != null) {
             if (anUpdate.getPreliq() != null) {
                 final Preliq uPreliq = anUpdate.getPreliq();
-                if (uPreliq.getPreliqBlockOkex() != null) {
-                    corrParams.getPreliq().setPreliqBlockOkex(uPreliq.getPreliqBlockOkex());
+                if (uPreliq.getPreliqBlockUsd() != null) {
+                    corrParams.getPreliq().setPreliqBlockUsd(uPreliq.getPreliqBlockUsd());
                     persistenceService.saveCorrParams(corrParams);
                 }
                 if (uPreliq.getMaxErrorCount() != null) {
@@ -92,8 +92,8 @@ public class SettingsCorrEndpoint {
             }
             if (anUpdate.getCorr() != null) {
                 final Corr uCorr = anUpdate.getCorr();
-                if (uCorr.getMaxVolCorrOkex() != null) {
-                    corrParams.getCorr().setMaxVolCorrOkex(uCorr.getMaxVolCorrOkex());
+                if (uCorr.getMaxVolCorrUsd() != null) {
+                    corrParams.getCorr().setMaxVolCorrUsd(uCorr.getMaxVolCorrUsd());
                     persistenceService.saveCorrParams(corrParams);
                 }
                 if (uCorr.getMaxErrorCount() != null) {

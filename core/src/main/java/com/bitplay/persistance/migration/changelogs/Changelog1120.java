@@ -1,5 +1,6 @@
 package com.bitplay.persistance.migration.changelogs;
 
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.github.mongobee.changeset.ChangeLog;
@@ -20,5 +21,13 @@ public class Changelog1120 {
         placingBlocks.setFixedBlockUsd(BigDecimal.valueOf(100));
         placingBlocks.setDynMaxBlockUsd(BigDecimal.valueOf(100));
         mongoTemplate.save(settings);
+    }
+
+    @ChangeSet(order = "001", id = "2018-11-20: corr/preliq in usd", author = "SergeiShurmin")
+    public void change02(MongoTemplate mongoTemplate) {
+        final CorrParams corrParams = mongoTemplate.findById(1L, CorrParams.class);
+        corrParams.getCorr().setMaxVolCorrUsd(1);
+        corrParams.getPreliq().setPreliqBlockUsd(1);
+        mongoTemplate.save(corrParams);
     }
 }

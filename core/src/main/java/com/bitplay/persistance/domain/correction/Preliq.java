@@ -1,8 +1,8 @@
 package com.bitplay.persistance.domain.correction;
 
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +18,8 @@ import org.springframework.data.annotation.Transient;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Preliq {
-    private Integer preliqBlockOkex;
+
+    private Integer preliqBlockUsd;
     // attempts - resets after success
     private Integer currErrorCount;
     private Integer maxErrorCount;
@@ -29,20 +30,27 @@ public class Preliq {
     private Integer maxTotalCount;
 
     @Transient
-    private BigDecimal cm = BigDecimal.valueOf(100);
+    private BigDecimal cm;
+    @Transient
+    private Boolean isEth;
 
     public static Preliq createDefault() {
-        return new Preliq(1, 0, 3, 0, 0, 0, 20,
-                BigDecimal.valueOf(100));
+        return new Preliq(10, 0, 3, 0, 0, 0, 20,
+                BigDecimal.valueOf(100), false);
     }
 
     public Integer getPreliqBlockBitmex() {
-        return getPreliqBlockBitmex(cm);
+        if (isEth == null || cm == null) {
+            return 0;
+        }
+        return PlacingBlocks.toBitmexCont(BigDecimal.valueOf(preliqBlockUsd), isEth, cm).intValue();
     }
 
-    public Integer getPreliqBlockBitmex(BigDecimal cm) {
-        this.cm = cm;
-        return BigDecimal.valueOf(preliqBlockOkex).multiply(cm).setScale(0, RoundingMode.HALF_UP).intValue();
+    public Integer getPreliqBlockOkex() {
+        if (isEth == null || cm == null) {
+            return 0;
+        }
+        return PlacingBlocks.toOkexCont(BigDecimal.valueOf(preliqBlockUsd), isEth).intValue();
     }
 
     public boolean hasSpareAttempts() {

@@ -1,8 +1,8 @@
 package com.bitplay.persistance.domain.correction;
 
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,7 +19,7 @@ import org.springframework.data.annotation.Transient;
 @AllArgsConstructor
 public class Corr {
 
-    private Integer maxVolCorrOkex;
+    private Integer maxVolCorrUsd;
     // attempts - resets after success
     private Integer currErrorCount;
     private Integer maxErrorCount;
@@ -29,22 +29,28 @@ public class Corr {
     private Integer maxTotalCount;
 
     @Transient
-    private BigDecimal cm = BigDecimal.valueOf(100);
+    private BigDecimal cm;
+    @Transient
+    private Boolean isEth;
 
     public static Corr createDefault() {
         return new Corr(1, 0, 3, 0, 0, 20,
-                BigDecimal.valueOf(100));
+                BigDecimal.valueOf(100), false);
     }
 
     public Integer getMaxVolCorrBitmex() {
-        return getMaxVolCorrBitmex(cm);
+        if (isEth == null || cm == null) {
+            return 0;
+        }
+        return PlacingBlocks.toBitmexCont(BigDecimal.valueOf(maxVolCorrUsd), isEth, cm).intValue();
     }
 
-    public Integer getMaxVolCorrBitmex(BigDecimal cm) {
-        this.cm = cm;
-        return BigDecimal.valueOf(maxVolCorrOkex).multiply(cm).setScale(0, RoundingMode.HALF_UP).intValue();
+    public Integer getMaxVolCorrOkex() {
+        if (isEth == null || cm == null) {
+            return 0;
+        }
+        return PlacingBlocks.toOkexCont(BigDecimal.valueOf(maxVolCorrUsd), isEth).intValue();
     }
-
 
     public boolean hasSpareAttempts() {
         boolean hasSpareCurrent = currErrorCount < maxErrorCount;

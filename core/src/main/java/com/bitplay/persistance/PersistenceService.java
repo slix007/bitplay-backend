@@ -137,7 +137,10 @@ public class PersistenceService {
         CorrParams corrParams = corrParamsRepository.findFirstByExchangePair(ExchangePair.BITMEX_OKEX);
 
         BigDecimal cm = bitmexService.getCm();
+        boolean isEth = bitmexService.getContractType().isEth();
+        corrParams.getCorr().setIsEth(isEth);
         corrParams.getCorr().setCm(cm);
+        corrParams.getPreliq().setIsEth(isEth);
         corrParams.getPreliq().setCm(cm);
 
         return corrParams;

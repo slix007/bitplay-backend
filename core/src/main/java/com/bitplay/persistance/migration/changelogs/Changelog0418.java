@@ -24,15 +24,6 @@ public class Changelog0418 {
         }
     }
 
-    @ChangeSet(order = "002", id = "Max vol corr", author = "SergeiShurmin")
-    public void change02(MongoTemplate mongoTemplate) {
-        final List<CorrParams> all = mongoTemplate.findAll(CorrParams.class);
-        for (CorrParams corrParams : all) {
-            corrParams.getCorr().setMaxVolCorrOkex(1);
-            mongoTemplate.save(corrParams);
-        }
-    }
-
     @ChangeSet(order = "003", id = "2018-04-27:Okex placing attempts", author = "SergeiShurmin")
     public void change03(MongoTemplate mongoTemplate) {
         final List<Settings> all = mongoTemplate.findAll(Settings.class);
