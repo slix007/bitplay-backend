@@ -1,5 +1,10 @@
 package com.bitplay.persistance.migration.changelogs;
 
+import com.bitplay.persistance.domain.borders.BorderItem;
+import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
+import com.bitplay.persistance.domain.borders.BorderTable;
+import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -29,5 +34,37 @@ public class Changelog1120 {
         corrParams.getCorr().setMaxVolCorrUsd(1);
         corrParams.getPreliq().setPreliqBlockUsd(1);
         mongoTemplate.save(corrParams);
+    }
+
+    @ChangeSet(order = "003", id = "2018-11-20: borderParams", author = "SergeiShurmin")
+    public void change03(MongoTemplate mongoTemplate) {
+        final Settings settings = mongoTemplate.findById(1L, Settings.class);
+        boolean isEth = settings.getContractMode().isEth();
+
+        final BorderParams borderParams = mongoTemplate.findById(1L, BorderParams.class);
+        BordersV2 bordersV2 = borderParams.getBordersV2();
+        PosMode posMode = borderParams.getPosMode();
+
+        for (BorderTable borderTable : bordersV2.getBorderTableList()) {
+            for (BorderItem borderItem : borderTable.getBorderItemList()) {
+                if (posMode == PosMode.OK_MODE) {
+                    int mlt = !isEth
+                            ? 100 // set_bu: 100 USD = 1 Okex_cont.
+                            : 10; // set_eu: 10 USD = 1 Okex_cont.
+                    borderItem.setPosShortLimit(mlt * borderItem.getPosShortLimit());
+                    borderItem.setPosLongLimit(mlt * borderItem.getPosLongLimit());
+                } else if (posMode == PosMode.BTM_MODE) {
+                    double cm = 10; // just a guess.
+                    double mlt = !isEth
+                            ? 1 // set_bu: 1 USD = 1 Bitmex_cont.
+                            : cm / 10; // set_eu: 10 / CM USD = 1 Bitmex_cont.
+
+                    borderItem.setPosShortLimit((int) mlt * borderItem.getPosShortLimit());
+                    borderItem.setPosLongLimit((int) mlt * borderItem.getPosLongLimit());
+                }
+            }
+        }
+
+        mongoTemplate.save(borderParams);
     }
 }

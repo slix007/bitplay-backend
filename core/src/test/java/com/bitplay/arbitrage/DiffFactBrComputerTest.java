@@ -1,5 +1,7 @@
 package com.bitplay.arbitrage;
 
+import static com.bitplay.arbitrage.TestingMocks.*;
+
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.exceptions.ToWarningLogException;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -45,7 +47,7 @@ public class DiffFactBrComputerTest {
 //        borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(130), 1500, 1500));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
     @Test
@@ -106,7 +108,7 @@ public class DiffFactBrComputerTest {
         borderOkexOpen.add(new BorderItem(8, BigDecimal.valueOf(30), 8000, 8000));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
     @Test
@@ -169,7 +171,7 @@ public class DiffFactBrComputerTest {
         borderOkexOpen.add(new BorderItem(6, BigDecimal.valueOf(25), 6000, 6000));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
     @Test
@@ -231,7 +233,7 @@ public class DiffFactBrComputerTest {
 //        borderOkexOpen.add(new BorderItem(6, BigDecimal.valueOf(25), 6000, 6000));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
     @Test
@@ -323,7 +325,7 @@ public class DiffFactBrComputerTest {
 //        borderOkexOpen.add(new BorderItem(6, BigDecimal.valueOf(25), 6000, 6000));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
     @Test
@@ -398,7 +400,7 @@ public class DiffFactBrComputerTest {
 //        borderOkexOpen.add(new BorderItem(6, BigDecimal.valueOf(25), 6000, 6000));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
     @Test

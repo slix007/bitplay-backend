@@ -24,8 +24,23 @@ public class DiffFactBrComputer {
     private BigDecimal o_delta_plan;
     private BigDecimal delta_fact;
     private BordersV2 bordersV2;
+    private boolean isEth;
+    private BigDecimal cm;
 
     public DiffFactBrComputer(PosMode pos_mode, int pos_bo, int pos_ao, BigDecimal b_delta_plan, BigDecimal o_delta_plan, BigDecimal delta_fact,
+            BordersV2 bordersV2, boolean isEth, BigDecimal cm) {
+        this.pos_mode = pos_mode;
+        this.pos_bo = pos_bo;
+        this.pos_ao = pos_ao;
+        this.b_delta_plan = b_delta_plan;
+        this.o_delta_plan = o_delta_plan;
+        this.delta_fact = delta_fact;
+        this.bordersV2 = bordersV2;
+        this.isEth = isEth;
+        this.cm = cm;
+    }
+
+    DiffFactBrComputer(PosMode pos_mode, int pos_bo, int pos_ao, BigDecimal b_delta_plan, BigDecimal o_delta_plan, BigDecimal delta_fact,
             BordersV2 bordersV2) {
         this.pos_mode = pos_mode;
         this.pos_bo = pos_bo;
@@ -34,6 +49,12 @@ public class DiffFactBrComputer {
         this.o_delta_plan = o_delta_plan;
         this.delta_fact = delta_fact;
         this.bordersV2 = bordersV2;
+        this.isEth = false;
+        this.cm = BigDecimal.valueOf(100);
+    }
+
+    private int usdToCont(int limInUsd) {
+        return BordersService.usdToCont(limInUsd, pos_mode, isEth, cm);
     }
 
     WamBr comp_wam_br_for_ok_open_long() throws ToWarningLogException {
@@ -116,8 +137,9 @@ public class DiffFactBrComputer {
                 continue;
             }
 
-            if (pos_bo_abs < br_open.get(i).getPosShortLimit()) {
-                int topEdge = pos_ao_abs < br_open.get(i).getPosShortLimit() ? pos_ao_abs : br_open.get(i).getPosShortLimit();
+            int posShortLimit = usdToCont(br_open.get(i).getPosShortLimit());
+            if (pos_bo_abs < posShortLimit) {
+                int topEdge = pos_ao_abs < posShortLimit ? pos_ao_abs : posShortLimit;
                 int amountStep = topEdge - bottomEdge;
                 vol_filled += amountStep; // 1000 - 499 // 1499 - 1000
                 bottomEdge = topEdge;
@@ -163,15 +185,16 @@ public class DiffFactBrComputer {
                 }
             }
 
+            int posShortLimit = usdToCont(nextItem.getPosShortLimit());
             if (nextIndex == br_close.size()
                     || nextItem.getId() == 0
-                    || pos_ao_abs < nextItem.getPosShortLimit()) { // it's last or less next
+                    || pos_ao_abs < posShortLimit) { // it's last or less next
 
                 int topEdge = (nextIndex == br_close.size()
                         || nextItem.getId() == 0
-                        || pos_bo_abs < nextItem.getPosShortLimit()) // the last or the next
+                        || pos_bo_abs < posShortLimit) // the last or the next
                         ? pos_bo_abs
-                        : nextItem.getPosShortLimit();
+                        : posShortLimit;
 
                 int amountStep = topEdge - bottomEdge;
                 vol_filled += amountStep;

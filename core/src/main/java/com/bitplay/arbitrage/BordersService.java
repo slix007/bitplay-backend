@@ -39,6 +39,18 @@ public class BordersService {
 
     private volatile static BorderParams.PosMode theMode = BorderParams.PosMode.OK_MODE;
 
+    public static int usdToCont(int limInUsd, BorderParams.PosMode posMode, boolean isEth, BigDecimal cm) {
+        if (posMode == BorderParams.PosMode.BTM_MODE) {
+            return PlacingBlocks.toBitmexCont(BigDecimal.valueOf(limInUsd), isEth, cm).intValue();
+        }
+        return PlacingBlocks.toOkexCont(BigDecimal.valueOf(limInUsd), isEth).intValue();
+    }
+
+    int usdToCont(int limInUsd) {
+        return usdToCont(limInUsd, theMode, bitmexService.getContractType().isEth(), bitmexService.getCm());
+    }
+
+
     public TradingSignal setNewBlock(TradingSignal tradingSignal, int okexBlock) {
         if (tradingSignal.okexBlock == okexBlock) {
             return tradingSignal;
@@ -149,14 +161,16 @@ public class BordersService {
 
         if (pos != 0) {
             for (int i = 0; i < btm_br_close_cnt; i++) {
-                if (btm_br_close.get(i).getId() != 0) {
-                    if (b_delta.compareTo(btm_br_close.get(i).getValue()) >= 0) { // >=
-                        if (pos > 0 && pos > btm_br_close.get(i).getPosLongLimit() && theMode == BorderParams.PosMode.BTM_MODE) {
+                BorderItem borderItem = btm_br_close.get(i);
+                if (borderItem.getId() != 0) {
+                    if (b_delta.compareTo(borderItem.getValue()) >= 0) { // >=
+                        int posLongLimit = usdToCont(borderItem.getPosLongLimit());
+                        if (pos > 0 && pos > posLongLimit && theMode == BorderParams.PosMode.BTM_MODE) {
 
                             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-                                if (pos - block < btm_br_close.get(i).getPosLongLimit()) {
-                                    int block_once = pos - btm_br_close.get(i).getPosLongLimit();
-                                    final String warnString = String.format("block=%d; block_once = %d - %s(long);", block, pos, btm_br_close.get(i).getPosLongLimit());
+                                if (pos - block < posLongLimit) {
+                                    int block_once = pos - posLongLimit;
+                                    final String warnString = String.format("block=%d; block_once = %d - %s(long);", block, pos, posLongLimit);
                                     if (block_once < 0) {
                                         writeLogs(withLogs, String.format("b_close: block_once(%d) < 0; %s", block_once, warnString));
                                         //TODO ?? зачем
@@ -164,71 +178,72 @@ public class BordersService {
                                     } else {
                                         writeLogs(withLogs, String.format("b_close: block_once(%d) >= 0; %s", block_once, warnString));
                                         // close_pos_mode(bitmex, okex, block_once); // делаем close с шагом block_once;
-                                        return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_close.get(i).toString(),
-                                                Collections.singletonList(btm_br_close.get(i).getValue()),
+                                        return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, borderItem.toString(),
+                                                Collections.singletonList(borderItem.getValue()),
                                                 b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                     }
                                 } else {
                                     // close_pos_mode (bitmex, okex, block); // делаем close b_delta(delta1) с шагом block;
-                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_close.get(i).toString(),
-                                            Collections.singletonList(btm_br_close.get(i).getValue()),
+                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, borderItem.toString(),
+                                            Collections.singletonList(borderItem.getValue()),
                                             b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                 }
 
                             } else { //DYNAMIC
-                                m = pos - btm_br_close.get(i).getPosLongLimit();
+                                m = pos - posLongLimit;
                                 if (m > btm_lvl_max_limit)
                                     btm_lvl_max_limit = m;
-                                final BigDecimal value = btm_br_close.get(i).getValue();
+                                final BigDecimal value = borderItem.getValue();
                                 b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value,
                                         cm); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                                 final int row_block = Math.min(m, b);
                                 btm_lvl_block_limit += row_block;
                                 btm_br_close_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
 
-                                borderValue.append(";").append(btm_br_close.get(i).toString())
+                                borderValue.append(";").append(borderItem.toString())
                                         .append(",m=").append(m)
                                         .append(",b=").append(b);
-                                borderValueList.add(btm_br_close.get(i).getValue());
+                                borderValueList.add(borderItem.getValue());
                             }
                         }
 
-                        if (pos < 0 && -pos > btm_br_close.get(i).getPosShortLimit() && theMode == BorderParams.PosMode.OK_MODE) {
+                        int posShortLimit = usdToCont(borderItem.getPosShortLimit());
+                        if (pos < 0 && -pos > posShortLimit && theMode == BorderParams.PosMode.OK_MODE) {
                             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-                                if (-pos - block < btm_br_close.get(i).getPosShortLimit()) {
-                                    int block_once = -pos - btm_br_close.get(i).getPosShortLimit();
-                                    final String warnString = String.format("block=%d; block_once = %d - %d(short);", block, pos, btm_br_close.get(i).getPosLongLimit());
+                                if (-pos - block < posShortLimit) {
+                                    int block_once = -pos - posShortLimit;
+                                    final String warnString = String.format("block=%d; block_once = %d - %d(short);", block, pos, posLongLimit);
                                     if (block_once < 0) {
                                         writeLogs(withLogs, String.format("b_close: block_once(%d) < 0; %s", block_once, warnString));
                                         block_once = Math.abs(block_once);
                                     } else {
                                         writeLogs(withLogs, String.format("b_close: block_once(%d) >= 0; %s", block_once, warnString));
                                         // close_pos_mode(bitmex, okex, block_once);
-                                        return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_close.get(i).toString(),
-                                                Collections.singletonList(btm_br_close.get(i).getValue()),
+                                        return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, borderItem.toString(),
+                                                Collections.singletonList(borderItem.getValue()),
                                                 b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                     }
                                 } else {
                                     // close_pos_mode (bitmex, okex, block); // делаем close с шагом block;
-                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_close.get(i).toString(),
-                                            Collections.singletonList(btm_br_close.get(i).getValue()),
+                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, borderItem.toString(),
+                                            Collections.singletonList(borderItem.getValue()),
                                             b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                 }
                             } else { //DYNAMIC
-                                m = -pos - btm_br_close.get(i).getPosShortLimit();
+                                m = -pos - posShortLimit;
                                 if (m > btm_lvl_max_limit)
                                     btm_lvl_max_limit = m;
-                                final BigDecimal value = btm_br_close.get(i).getValue();
+                                final BigDecimal value = borderItem.getValue();
                                 b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value,
                                         cm); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                                 final int row_block = Math.min(m, b);
                                 btm_lvl_block_limit += row_block;
                                 btm_br_close_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
 
-                                borderValue.append(";").append(btm_br_close.get(i).toString())
+                                borderValue.append(";").append(borderItem.toString())
                                         .append(",m=").append(m)
                                         .append(",b=").append(b);
-                                borderValueList.add(btm_br_close.get(i).getValue());
+                                borderValueList.add(borderItem.getValue());
                             }
                         }
                     }
@@ -278,85 +293,89 @@ public class BordersService {
         List<BigDecimal> borderValueList = new ArrayList<>();
 
         for (int i = 0; i < btm_br_open_cnt; i++) {
-            if (btm_br_open.get(i).getId() != 0) {
+            BorderItem borderItem = btm_br_open.get(i);
+            if (borderItem.getId() != 0) {
 
-                if (b_delta.compareTo(btm_br_open.get(i).getValue()) >= 0) { // >=
+                if (b_delta.compareTo(borderItem.getValue()) >= 0) { // >=
 
-                    if (pos >= 0 && pos < btm_br_open.get(i).getPosLongLimit() && theMode == BorderParams.PosMode.OK_MODE) {
+                    int posLongLimit = usdToCont(borderItem.getPosLongLimit());
+                    if (pos >= 0 && pos < posLongLimit && theMode == BorderParams.PosMode.OK_MODE) {
                         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-                            if (pos + block > btm_br_open.get(i).getPosLongLimit()) {
-                                int block_once = btm_br_open.get(i).getPosLongLimit() - pos;
-                                final String warnString = String.format("block=%d; block_once = %d(open,long) - %d;", block, btm_br_open.get(i).getPosLongLimit(), pos);
+                            if (pos + block > posLongLimit) {
+                                int block_once = posLongLimit - pos;
+                                final String warnString = String.format("block=%d; block_once = %d(open,long) - %d;", block, posLongLimit, pos);
                                 if (block_once < 0) {
                                     writeLogs(withLogs, String.format("b_open: block_once(%d) < 0; %s", block_once, warnString));
                                     block_once = Math.abs(block_once); // делается запись в логи warning, блок берется по модулю
                                 } else {
                                     writeLogs(withLogs, String.format("b_open: block_once(%d) >= 0; %s", block_once, warnString));
                                     // open_pos_mode(bitmex, okex, block_once); // делаем open с шагом block_once;
-                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_open.get(i).toString(),
-                                            Collections.singletonList(btm_br_open.get(i).getValue()),
+                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, borderItem.toString(),
+                                            Collections.singletonList(borderItem.getValue()),
                                             b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                 }
                             } else {
                                 //open_pos_mode(bitmex, okex, block); // делаем open с шагом block;
-                                return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_open.get(i).toString(),
-                                        Collections.singletonList(btm_br_open.get(i).getValue()),
+                                return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, borderItem.toString(),
+                                        Collections.singletonList(borderItem.getValue()),
                                         b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                             }
                         } else { // DYNAMIC {
-                            m = btm_br_open.get(i).getPosLongLimit() - pos;
+                            m = posLongLimit - pos;
                             if (m > btm_lvl_max_limit)
                                 btm_lvl_max_limit = m;
-                            final BigDecimal value = btm_br_open.get(i).getValue();
+                            final BigDecimal value = borderItem.getValue();
                             b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value,
                                     cm); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                             final int row_block = Math.min(m, b);
                             btm_lvl_block_limit += row_block;
                             btm_br_open_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
 
-                            borderValue.append(";").append(btm_br_open.get(i).toString())
+                            borderValue.append(";").append(borderItem.toString())
                                     .append(",m=").append(m)
                                     .append(",b=").append(b);
-                            borderValueList.add(btm_br_open.get(i).getValue());
+                            borderValueList.add(borderItem.getValue());
                         }
                     }
 
-                    if (pos <= 0 && -pos < btm_br_open.get(i).getPosShortLimit() && theMode == BorderParams.PosMode.BTM_MODE) {
+                    int posShortLimit = usdToCont(borderItem.getPosShortLimit());
+                    if (pos <= 0 && -pos < posShortLimit && theMode == BorderParams.PosMode.BTM_MODE) {
                         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-                            if (-pos + block > btm_br_open.get(i).getPosShortLimit()) {
-                                int block_once = btm_br_open.get(i).getPosShortLimit() - (-pos);
-                                final String warnString = String.format("block=%d; block_once = %d(open,short) - %d;", block, btm_br_open.get(i).getPosShortLimit(), pos);
+                            if (-pos + block > posShortLimit) {
+                                int block_once = posShortLimit - (-pos);
+                                final String warnString = String
+                                        .format("block=%d; block_once = %d(open,short) - %d;", block, posShortLimit, pos);
                                 if (block_once < 0) {
                                     writeLogs(withLogs, String.format("b_open: block_once(%d) < 0; %s", block_once, warnString));
                                     block_once = Math.abs(block_once);
                                 } else {
                                     writeLogs(withLogs, String.format("b_open: block_once(%d) >= 0; %s", block_once, warnString));
                                     //open_pos_mode (bitmex, okex, block_once);
-                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, btm_br_open.get(i).toString(),
-                                            Collections.singletonList(btm_br_open.get(i).getValue()),
+                                    return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block_once, borderName, borderItem.toString(),
+                                            Collections.singletonList(borderItem.getValue()),
                                             b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                 }
                             } else {
                                 // open_pos_mode (bitmex, okex, block) // делаем open с шагом block;
-                                return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, btm_br_open.get(i).toString(),
-                                        Collections.singletonList(btm_br_open.get(i).getValue()),
+                                return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, block, borderName, borderItem.toString(),
+                                        Collections.singletonList(borderItem.getValue()),
                                         b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                             }
                         } else { //DYNAMIC
-                            m = btm_br_open.get(i).getPosShortLimit() + pos;
+                            m = posShortLimit + pos;
                             if (m > btm_lvl_max_limit)
                                 btm_lvl_max_limit = m;
-                            final BigDecimal value = btm_br_open.get(i).getValue();
+                            final BigDecimal value = borderItem.getValue();
                             b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, value,
                                     cm); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                             final int row_block = Math.min(m, b);
                             btm_lvl_block_limit += row_block;
                             btm_br_open_dyn_block = Math.min(btm_lvl_max_limit, btm_lvl_block_limit);
 
-                            borderValue.append(";").append(btm_br_open.get(i).toString())
+                            borderValue.append(";").append(borderItem.toString())
                                     .append(",m=").append(m)
                                     .append(",b=").append(b);
-                            borderValueList.add(btm_br_open.get(i).getValue());
+                            borderValueList.add(borderItem.getValue());
                         }
                     }
                 }
@@ -416,84 +435,89 @@ public class BordersService {
 
         if (pos != 0) {
             for (int i = 0; i < ok_br_close_cnt; i++) {
-                if (ok_br_close.get(i).getId() != 0) {
-                    if (o_delta.compareTo(ok_br_close.get(i).getValue()) >= 0) {
+                BorderItem borderItem = ok_br_close.get(i);
+                if (borderItem.getId() != 0) {
+                    if (o_delta.compareTo(borderItem.getValue()) >= 0) {
 
-                        if (pos > 0 && pos > ok_br_close.get(i).getPosLongLimit() && theMode == BorderParams.PosMode.OK_MODE) {
+                        int posLongLimit = usdToCont(borderItem.getPosLongLimit());
+                        if (pos > 0 && pos > posLongLimit && theMode == BorderParams.PosMode.OK_MODE) {
                             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-                                if (pos - block < ok_br_close.get(i).getPosLongLimit()) {
-                                    int block_once = pos - ok_br_close.get(i).getPosLongLimit();
-                                    final String warnString = String.format("block=%d; block_once = %d(close,long) - %d;", block, pos, ok_br_close.get(i).getPosLongLimit());
+                                if (pos - block < posLongLimit) {
+                                    int block_once = pos - posLongLimit;
+                                    final String warnString = String.format("block=%d; block_once = %d(close,long) - %d;", block, pos,
+                                            posLongLimit);
                                     if (block_once < 0) {
                                         writeLogs(withLogs, String.format("o_close: block_once(%d) < 0; %s", block_once, warnString));
                                         block_once = Math.abs(block_once); // делается запись в логи warning, блок берется по модулю
                                     } else {
                                         writeLogs(withLogs, String.format("o_close: block_once(%d) >= 0; %s", block_once, warnString));
                                         //close_pos_mode (bitmex, okex, block_once); // делаем close с шагом block_once;
-                                        return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_close.get(i).toString(),
-                                                Collections.singletonList(ok_br_close.get(i).getValue()),
+                                        return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, borderItem.toString(),
+                                                Collections.singletonList(borderItem.getValue()),
                                                 o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                     }
                                 } else {
                                     //close_pos_mode(bitmex, okex, block); // делаем close с шагом block;
-                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_close.get(i).toString(),
-                                            Collections.singletonList(ok_br_close.get(i).getValue()),
+                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, borderItem.toString(),
+                                            Collections.singletonList(borderItem.getValue()),
                                             o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                 }
                             } else { // DYNAMIC
-                                m = pos - ok_br_close.get(i).getPosLongLimit();
+                                m = pos - posLongLimit;
                                 if (m > ok_lvl_max_limit)
                                     ok_lvl_max_limit = m;
-                                final BigDecimal value = ok_br_close.get(i).getValue();
+                                final BigDecimal value = borderItem.getValue();
                                 b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value,
                                         cm); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                                 final int row_block = Math.min(m, b);
                                 ok_lvl_block_limit += row_block;
                                 ok_br_close_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
 
-                                borderValue.append(";").append(ok_br_close.get(i).toString())
+                                borderValue.append(";").append(borderItem.toString())
                                         .append(",m=").append(m)
                                         .append(",b=").append(b);
-                                borderValueList.add(ok_br_close.get(i).getValue());
+                                borderValueList.add(borderItem.getValue());
                             }
                         }
 
-                        if (pos < 0 && -pos > ok_br_close.get(i).getPosShortLimit() && theMode == BorderParams.PosMode.BTM_MODE) {
+                        int posShortLimit = usdToCont(borderItem.getPosShortLimit());
+                        if (pos < 0 && -pos > posShortLimit && theMode == BorderParams.PosMode.BTM_MODE) {
                             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-                                if (-pos - block < ok_br_close.get(i).getPosShortLimit()) {
-                                    int block_once = -pos - ok_br_close.get(i).getPosShortLimit();
-                                    final String warnString = String.format("block=%d; block_once = %d - %d(close,short);", block, pos, ok_br_close.get(i).getPosShortLimit());
+                                if (-pos - block < posShortLimit) {
+                                    int block_once = -pos - posShortLimit;
+                                    final String warnString = String
+                                            .format("block=%d; block_once = %d - %d(close,short);", block, pos, posShortLimit);
                                     if (block_once < 0) {
                                         writeLogs(withLogs, String.format("o_close: block_once(%d) < 0; %s", block_once, warnString));
                                         block_once = Math.abs(block_once);
                                     } else {
                                         writeLogs(withLogs, String.format("o_close: block_once(%d) >= 0; %s", block_once, warnString));
                                         // close_pos_mode(bitmex, okex, block_once);
-                                        return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_close.get(i).toString(),
-                                                Collections.singletonList(ok_br_close.get(i).getValue()),
+                                        return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, borderItem.toString(),
+                                                Collections.singletonList(borderItem.getValue()),
                                                 o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                     }
                                 } else {
                                     // close_pos_mode(bitmex, okex, block)
-                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_close.get(i).toString(),
-                                            Collections.singletonList(ok_br_close.get(i).getValue()),
+                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, borderItem.toString(),
+                                            Collections.singletonList(borderItem.getValue()),
                                             o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                 }
                             } else { // DYNAMIC
-                                m = -pos - ok_br_close.get(i).getPosShortLimit();
+                                m = -pos - posShortLimit;
                                 if (m > ok_lvl_max_limit)
                                     ok_lvl_max_limit = m;
-                                final BigDecimal value = ok_br_close.get(i).getValue();
+                                final BigDecimal value = borderItem.getValue();
                                 b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value,
                                         cm); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                                 final int row_block = Math.min(m, b);
                                 ok_lvl_block_limit += row_block;
                                 ok_br_close_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
 
-                                borderValue.append(";").append(ok_br_close.get(i).toString())
+                                borderValue.append(";").append(borderItem.toString())
                                         .append(",m=").append(m)
                                         .append(",b=").append(b);
-                                borderValueList.add(ok_br_close.get(i).getValue());
+                                borderValueList.add(borderItem.getValue());
                             }
                         }
                     }
@@ -537,84 +561,88 @@ public class BordersService {
         List<BigDecimal> borderValueList = new ArrayList<>();
 
         for (int i = 0; i < ok_br_open_cnt; i++) {
-            if (ok_br_open.get(i).getId() != 0) {
-                if (o_delta.compareTo(ok_br_open.get(i).getValue()) >= 0) {
+            BorderItem borderItem = ok_br_open.get(i);
+            if (borderItem.getId() != 0) {
+                if (o_delta.compareTo(borderItem.getValue()) >= 0) {
 
-                    if (pos >= 0 && pos < ok_br_open.get(i).getPosLongLimit() && theMode == BorderParams.PosMode.BTM_MODE) {
+                    int posLongLimit = usdToCont(borderItem.getPosLongLimit());
+                    if (pos >= 0 && pos < posLongLimit && theMode == BorderParams.PosMode.BTM_MODE) {
                         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-                            if (pos + block > ok_br_open.get(i).getPosLongLimit()) {
-                                int block_once = ok_br_open.get(i).getPosLongLimit() - pos;
-                                final String warnString = String.format("block=%d; block_once = %d(open,long) - %d;", block, ok_br_open.get(i).getPosLongLimit(), pos);
+                            if (pos + block > posLongLimit) {
+                                int block_once = posLongLimit - pos;
+                                final String warnString = String.format("block=%d; block_once = %d(open,long) - %d;", block, posLongLimit, pos);
                                 if (block_once < 0) {
                                     writeLogs(withLogs, String.format("o_open: block_once(%d) < 0; %s", block_once, warnString));
                                     block_once = Math.abs(block_once); // делается запись в логи warning, блок берется по модулю
                                 } else {
                                     writeLogs(withLogs, String.format("o_open: block_once(%d) >= 0; %s", block_once, warnString));
                                     //open_pos_mode(okex, bitmex, block_once); // делаем open с шагом block_once;
-                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_open.get(i).toString(),
-                                            Collections.singletonList(ok_br_open.get(i).getValue()),
+                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, borderItem.toString(),
+                                            Collections.singletonList(borderItem.getValue()),
                                             o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                 }
                             } else {
                                 //open_pos_mode(okex, bitmex, block); // делаем open с шагом block;
-                                return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_open.get(i).toString(),
-                                        Collections.singletonList(ok_br_open.get(i).getValue()),
+                                return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, borderItem.toString(),
+                                        Collections.singletonList(borderItem.getValue()),
                                         o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                             }
                         } else { // DYNAMIC
-                            m = ok_br_open.get(i).getPosLongLimit() - pos;
+                            m = posLongLimit - pos;
                             if (m > ok_lvl_max_limit)
                                 ok_lvl_max_limit = m;
-                            final BigDecimal value = ok_br_open.get(i).getValue();
+                            final BigDecimal value = borderItem.getValue();
                             b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value,
                                     cm); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                             final int row_block = Math.min(m, b);
                             ok_lvl_block_limit += row_block;
                             ok_br_open_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
 
-                            borderValue.append(";").append(ok_br_open.get(i).toString())
+                            borderValue.append(";").append(borderItem.toString())
                                     .append(",m=").append(m)
                                     .append(",b=").append(b);
-                            borderValueList.add(ok_br_open.get(i).getValue());
+                            borderValueList.add(borderItem.getValue());
                         }
                     }
 
-                    if (pos <= 0 && -pos < ok_br_open.get(i).getPosShortLimit() && theMode == BorderParams.PosMode.OK_MODE) {
+                    int posShortLimit = usdToCont(borderItem.getPosShortLimit());
+                    if (pos <= 0 && -pos < posShortLimit && theMode == BorderParams.PosMode.OK_MODE) {
                         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-                            if (-pos + block > ok_br_open.get(i).getPosShortLimit()) {
-                                int block_once = ok_br_open.get(i).getPosShortLimit() - (-pos);
-                                final String warnString = String.format("block=%d; block_once = %d(open,short) - %d;", block, ok_br_open.get(i).getPosShortLimit(), pos);
+                            if (-pos + block > posShortLimit) {
+                                int block_once = posShortLimit - (-pos);
+                                final String warnString = String
+                                        .format("block=%d; block_once = %d(open,short) - %d;", block, posShortLimit, pos);
                                 if (block_once < 0) {
                                     writeLogs(withLogs, String.format("o_open: block_once(%d) < 0; %s", block_once, warnString));
                                     block_once = Math.abs(block_once);
                                 } else {
                                     writeLogs(withLogs, String.format("o_open: block_once(%d) >= 0; %s", block_once, warnString));
                                     // open_pos_mode(okex, bitmex, block_once);
-                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, ok_br_open.get(i).toString(),
-                                            Collections.singletonList(ok_br_open.get(i).getValue()),
+                                    return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block_once, borderName, borderItem.toString(),
+                                            Collections.singletonList(borderItem.getValue()),
                                             o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                                 }
                             } else {
                                 // open_pos_mode(okex, bitmex, block)
-                                return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, ok_br_open.get(i).toString(),
-                                        Collections.singletonList(ok_br_open.get(i).getValue()),
+                                return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, block, borderName, borderItem.toString(),
+                                        Collections.singletonList(borderItem.getValue()),
                                         o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm);
                             }
                         } else { // DYNAMIC
-                            m = ok_br_open.get(i).getPosShortLimit() + pos;
+                            m = posShortLimit + pos;
                             if (m > ok_lvl_max_limit)
                                 ok_lvl_max_limit = m;
-                            final BigDecimal value = ok_br_open.get(i).getValue();
+                            final BigDecimal value = borderItem.getValue();
                             b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, value,
                                     cm); // рассчитанное значение динамического шага для соответствующего барьера в таблице
                             final int row_block = Math.min(m, b);
                             ok_lvl_block_limit += row_block;
                             ok_br_open_dyn_block = Math.min(ok_lvl_max_limit, ok_lvl_block_limit);
 
-                            borderValue.append(";").append(ok_br_open.get(i).toString())
+                            borderValue.append(";").append(borderItem.toString())
                                     .append(",m=").append(m)
                                     .append(",b=").append(b);
-                            borderValueList.add(ok_br_open.get(i).getValue());
+                            borderValueList.add(borderItem.getValue());
                         }
                     }
                 }

@@ -370,7 +370,10 @@ public class AfterArbTask implements Runnable {
                             dealPrices.getDelta1Plan(),
                             dealPrices.getDelta2Plan(),
                             deltaFact,
-                            bordersV2);
+                            bordersV2,
+                            bitmexService.getContractType().isEth(),
+                            bitmexService.getCm()
+                    );
                     try {
                         diffFactBr = diffFactBrComputer.compute();
                     } catch (Exception e) {

@@ -2,8 +2,10 @@ package com.bitplay.arbitrage;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
+import static com.bitplay.arbitrage.TestingMocks.*;
 
 import com.bitplay.arbitrage.dto.DiffFactBr;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -11,6 +13,7 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV1;
 import com.bitplay.persistance.domain.borders.BordersV2;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
@@ -43,6 +46,8 @@ public class BordersServiceTest {
     PersistenceService persistenceService;
     @Mock
     SettingsRepositoryService settingsRepositoryService;
+    @Mock
+    BitmexService bitmexService;
     @Spy
     PlacingBlocksService placingBlocksService = new PlacingBlocksService();
     BorderParams borderParams;
@@ -130,7 +135,7 @@ public class BordersServiceTest {
         borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(200), 2000, 2000));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
 
@@ -149,6 +154,9 @@ public class BordersServiceTest {
         when(persistenceService.fetchBorders()).thenReturn(borderParams);
 
         when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
+
+        when(bitmexService.getContractType()).thenReturn(BitmexContractType.XBTUSD);
+        when(bitmexService.getCm()).thenReturn(BigDecimal.valueOf(100));
     }
 
     /** like Ex.2 */
@@ -223,7 +231,7 @@ public class BordersServiceTest {
         borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(200), 2000, 2000));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
     @Test
@@ -281,7 +289,7 @@ public class BordersServiceTest {
         borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(40), 2000, 2000));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
     @Test
@@ -339,7 +347,7 @@ public class BordersServiceTest {
         borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(40), 2000, 2000));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
     @Test
@@ -442,7 +450,7 @@ public class BordersServiceTest {
         borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(0.6), 2000, 2000));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
-        return new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders));
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
     @Test
