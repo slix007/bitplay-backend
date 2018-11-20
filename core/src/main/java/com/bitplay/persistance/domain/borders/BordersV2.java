@@ -25,6 +25,7 @@ public class BordersV2 implements Serializable {
     private Integer gapStep; // between tables
     private BigDecimal bAddDelta;
     private BigDecimal okAddDelta;
+    private BigDecimal plm; // position limit multiplier
 
     public BordersV2(List<BorderTable> borderTableList) {
         this.borderTableList = borderTableList;
@@ -54,7 +55,7 @@ public class BordersV2 implements Serializable {
     }
 
     public int getBorderTableHashCode() {
-        return Objects.hash(borderTableList);
+        return Objects.hash(borderTableList) + Objects.hash(plm);
     }
 
     public enum BaseLvlType {B_OPEN, OK_OPEN}

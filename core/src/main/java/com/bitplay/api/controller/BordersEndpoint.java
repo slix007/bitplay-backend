@@ -13,6 +13,7 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV1;
 import com.bitplay.persistance.domain.borders.BordersV2;
+import com.bitplay.utils.BorderUtils;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,18 +52,14 @@ public class BordersEndpoint {
     @RequestMapping(value = "/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public BorderParams getBorders() {
         final BorderParams borderParams = persistenceService.fetchBorders();
-        // changeset for BordersV2: new params
-        if (borderParams.getBordersV2().getMaxLvl() == null || borderParams.getRecalcPeriodSec() == null) {
-            createDefaultParams2(borderParams);
-        }
-        return borderParams;
+        return BorderUtils.withPlm(borderParams);
     }
 
     @RequestMapping(value = "/tables", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<BorderTable> getBorderTables() {
         final BorderParams borderParams = persistenceService.fetchBorders();
         return (borderParams != null && borderParams.getBordersV2() != null)
-                ? borderParams.getBordersV2().getBorderTableList() : new ArrayList<>();
+                ? BorderUtils.withPlm(borderParams).getBordersV2().getBorderTableList() : new ArrayList<>();
     }
 
     @RequestMapping(value = "/create-default", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -128,6 +125,14 @@ public class BordersEndpoint {
         }
 
         final BorderParams borderParams = persistenceService.fetchBorders();
+
+        int plm = borderParams.getBordersV2().getPlm().intValue();
+        for (BorderTable borderTable : borderTableList) {
+            for (BorderItem borderItem : borderTable.getBorderItemList()) {
+                borderItem.setPosShortLimit(borderItem.getPosShortLimit() * plm);
+                borderItem.setPosLongLimit(borderItem.getPosLongLimit() * plm);
+            }
+        }
 
         for (BorderTable updatedTable : borderTableList) {
             final List<BorderTable> currentList = borderParams.getBordersV2().getBorderTableList();
@@ -291,6 +296,10 @@ public class BordersEndpoint {
             if (update.getOkAddDelta() != null) {
                 bordersV2.setOkAddDelta(update.getOkAddDelta());
                 result = bordersV2.getOkAddDelta().toString();
+            }
+            if (update.getPlm() != null) {
+                bordersV2.setPlm(update.getPlm());
+                result = bordersV2.getPlm().toString();
             }
         } catch (Exception e) {
             return new ResultJson("Wrong request", e.getMessage());

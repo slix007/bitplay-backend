@@ -67,4 +67,13 @@ public class Changelog1120 {
 
         mongoTemplate.save(borderParams);
     }
+
+    @ChangeSet(order = "004", id = "2018-11-20: PLM", author = "SergeiShurmin")
+    public void change04(MongoTemplate mongoTemplate) {
+        final BorderParams borderParams = mongoTemplate.findById(1L, BorderParams.class);
+        BordersV2 bordersV2 = borderParams.getBordersV2();
+        bordersV2.setPlm(BigDecimal.ONE);
+        mongoTemplate.save(borderParams);
+    }
+
 }
