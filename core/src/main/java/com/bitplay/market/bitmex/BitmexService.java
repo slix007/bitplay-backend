@@ -791,34 +791,44 @@ public class BitmexService extends MarketService {
                         resultOOList.add(cancelledFplayOrder);
 
                         // PLACE ORDER instead of cancelled on moving.
-                        final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
-                                cancelledOrder.getType(),
-                                cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount()),
-                                openOrder.getBestQuotes(),
-                                openOrder.getPlacingType(),
-                                openOrder.getSignalType(),
-                                1,
-                                cancelledFplayOrder.getTradeId(),
-                                cancelledFplayOrder.getCounterName()));
+                        final BitmexContractType cntType = BitmexContractType.parse(cancelledOrder.getCurrencyPair());
+                        if (cntType == null) {
+                            String msg = String.format("no moving. Can not determinate contractType! %s", cancelledFplayOrder.toString());
+                            warningLogger.warn("Error on moving: " + msg);
+                            logger.warn("Error on moving: " + msg);
+                        } else {
 
-                        // 2. new order
-                        final LimitOrder placedOrder = tradeResponse.getLimitOrder();
-                        if (placedOrder != null) {
-                            resultOOList.add(new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
-                                    placedOrder, openOrder.getBestQuotes(),
-                                    openOrder.getPlacingType(), openOrder.getSignalType()));
-                        }
+                            final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
+                                    cancelledOrder.getType(),
+                                    cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount()),
+                                    openOrder.getBestQuotes(),
+                                    openOrder.getPlacingType(),
+                                    openOrder.getSignalType(),
+                                    1,
+                                    cancelledFplayOrder.getTradeId(),
+                                    cancelledFplayOrder.getCounterName(),
+                                    null,
+                                    cntType));
 
-                        // 3. failed on placing
-                        for (LimitOrder limitOrder : tradeResponse.getCancelledOrders()) {
-                            resultOOList.add(new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
-                                    limitOrder, openOrder.getBestQuotes(),
-                                    openOrder.getPlacingType(), openOrder.getSignalType()));
-                        }
+                            // 2. new order
+                            final LimitOrder placedOrder = tradeResponse.getLimitOrder();
+                            if (placedOrder != null) {
+                                resultOOList.add(new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
+                                        placedOrder, openOrder.getBestQuotes(),
+                                        openOrder.getPlacingType(), openOrder.getSignalType()));
+                            }
+
+                            // 3. failed on placing
+                            for (LimitOrder limitOrder : tradeResponse.getCancelledOrders()) {
+                                resultOOList.add(new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
+                                        limitOrder, openOrder.getBestQuotes(),
+                                        openOrder.getPlacingType(), openOrder.getSignalType()));
+                            }
+
+                            scheduledMoveInProgressReset = scheduler.schedule(() -> movingErrorsOverloaded.set(0),
+                                    MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
+                        } // end PLACE ORDER instead of cancelled on moving.
                     }
-
-                    scheduledMoveInProgressReset = scheduler.schedule(() -> movingErrorsOverloaded.set(0),
-                            MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
                 }
 
             } else if (response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
@@ -1752,7 +1762,11 @@ public class BitmexService extends MarketService {
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
         }
 
-        final BitmexContractType cntType = BitmexContractType.parse(bitmexContractType, limitOrder.getCurrencyPair());
+        final BitmexContractType cntType = BitmexContractType.parse(limitOrder.getCurrencyPair());
+        if (cntType == null) {
+            String msg = String.format("no moving. Can not determinate contractType! %s", limitOrder.toString());
+            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
+        }
         final String contractTypeStr = cntType.getCurrencyPair().toString();
 
         final String counterName = fplayOrder.getCounterName();

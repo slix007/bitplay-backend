@@ -23,8 +23,8 @@ public enum BitmexContractType implements ContractType {
     private BigDecimal tickSize;
     private Integer scale;
 
-    public static BitmexContractType parse(BitmexContractType def, CurrencyPair currencyPair) {
-        BitmexContractType resultType = def;
+    public static BitmexContractType parse(CurrencyPair currencyPair) {
+        BitmexContractType resultType = null;
         if (currencyPair != null) {
             String first = currencyPair.base.getCurrencyCode();
             String second = currencyPair.counter.getCurrencyCode();
