@@ -676,9 +676,11 @@ public class ArbitrageService {
         final String oMsg = Utils.getTenAskBid(okCoinOrderBook, "",
                 "Okex OrderBook");
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
-        return String.format("%s: Dynamic: dynMaxBlockOkex=%s, b_block=%s, o_block=%s\n%s\n%s. ",
+        return String.format("%s: Dynamic: dynMaxBlockUsd=%s, isEth=%s, cm=%s, b_block=%s, o_block=%s\n%s\n%s. ",
                 deltaName,
-                placingBlocks.getDynMaxBlockOkex(),
+                placingBlocks.getDynMaxBlockUsd(),
+                placingBlocks.isEth(),
+                placingBlocks.getCm(),
                 b_block, o_block,
                 bMsg, oMsg);
     }
