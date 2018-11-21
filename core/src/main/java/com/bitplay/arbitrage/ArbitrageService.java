@@ -757,14 +757,15 @@ public class ArbitrageService {
 
     private void startSignalDelay(long passedDelayMs) {
         signalDelayActivateTime = Instant.now().toEpochMilli() - passedDelayMs;
-        long signalDelayMs = persistenceService.getSettingsRepositoryService().getSettings().getSignalDelayMs() - passedDelayMs;
-        if (signalDelayMs <= 0) {
-            signalDelayMs = 1;
+        Integer signalDelayMs = persistenceService.getSettingsRepositoryService().getSettings().getSignalDelayMs();
+        long timeToSignalMs = signalDelayMs - passedDelayMs;
+        if (timeToSignalMs <= 0) {
+            timeToSignalMs = 1;
         }
 
         futureSignal = signalDelayScheduler.schedule(() -> {
             signalEventBus.send(SignalEvent.B_ORDERBOOK_CHANGED); // to make sure that it will happen in the 'signalDeltayMs period'
-        }, signalDelayMs, TimeUnit.MILLISECONDS);
+        }, timeToSignalMs, TimeUnit.MILLISECONDS);
 
     }
 
