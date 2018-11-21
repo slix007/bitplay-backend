@@ -5,9 +5,11 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import com.bitplay.persistance.domain.settings.PlacingBlocks.Ver;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -665,6 +667,8 @@ public class BordersService {
 
     enum TradeType {NONE, DELTA1_B_SELL_O_BUY, DELTA2_B_BUY_O_SELL}
 
+    enum BorderVer {borderV1, borderV2, preliq}
+
     public static class TradingSignal {
         // params for the signal
         final public TradeType tradeType;
@@ -679,6 +683,21 @@ public class BordersService {
         final public List<BigDecimal> borderValueList;
         final public String deltaVal;
         final public BigDecimal cm;
+        final public BorderVer borderVer;
+
+        TradingSignal(BorderVer borderVer, PlacingBlocks.Ver ver, BigDecimal b_block, BigDecimal o_block, TradeType tradeType) {
+            this.borderVer = borderVer;
+            this.bitmexBlock = b_block.intValue();
+            this.okexBlock = o_block.intValue();
+            this.ver = ver;
+            this.tradeType = tradeType;
+            this.posMode = null;
+            this.borderName = null;
+            this.borderValue = null;
+            this.borderValueList = null;
+            this.deltaVal = null;
+            this.cm = null;
+        }
 
         TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, List<BigDecimal> borderValueList, String deltaVal,
                 PlacingBlocks.Ver ver, BigDecimal cm) {
@@ -697,6 +716,7 @@ public class BordersService {
             this.borderValueList = borderValueList;
             this.deltaVal = deltaVal;
             this.cm = cm;
+            this.borderVer = BorderVer.borderV2;
         }
 
         TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, List<BigDecimal> borderValueList, String deltaVal,
@@ -716,21 +736,55 @@ public class BordersService {
             this.borderValueList = borderValueList;
             this.deltaVal = deltaVal;
             this.cm = cm;
+            this.borderVer = BorderVer.borderV2;
+        }
+
+        private TradingSignal(TradeType tradeType, int bitmexBlock, int okexBlock, Ver ver,
+                PosMode posMode, String borderName, String borderValue, List<BigDecimal> borderValueList, String deltaVal, BigDecimal cm,
+                BorderVer borderVer) {
+            this.tradeType = tradeType;
+            this.bitmexBlock = bitmexBlock;
+            this.okexBlock = okexBlock;
+            this.ver = ver;
+            this.posMode = posMode;
+            this.borderName = borderName;
+            this.borderValue = borderValue;
+            this.borderValueList = borderValueList;
+            this.deltaVal = deltaVal;
+            this.cm = cm;
+            this.borderVer = borderVer;
+        }
+
+        TradingSignal changeBlocks(BigDecimal b_block, BigDecimal o_block) {
+            return new TradingSignal(this.tradeType, b_block.intValue(), o_block.intValue(), this.ver,
+                    this.posMode, this.borderName, this.borderValue, this.borderValueList, this.deltaVal, this.cm,
+                    this.borderVer);
         }
 
         @Override
         public String toString() {
-            return "TradingSignal{" +
-                    "tradeType=" + tradeType +
-                    ", bitmexBlock=" + bitmexBlock +
-                    ", okexBlock=" + okexBlock +
-                    ", cm=" + cm +
-                    ", ver=" + ver +
-                    ", posMode=" + posMode +
-                    ", borderName='" + borderName + '\'' +
-                    ", borderValue='" + borderValue + '\'' +
-                    ", deltaVal='" + deltaVal + '\'' +
-                    '}';
+            if (borderVer == BorderVer.borderV2) {
+                return "TradingSignal{" +
+                        "borderVer =" + borderVer +
+                        ", tradeType=" + tradeType +
+                        ", bitmexBlock=" + bitmexBlock +
+                        ", okexBlock=" + okexBlock +
+                        ", cm=" + cm +
+                        ", ver=" + ver +
+                        ", posMode=" + posMode +
+                        ", borderName='" + borderName + '\'' +
+                        ", borderValue='" + borderValue + '\'' +
+                        ", deltaVal='" + deltaVal + '\'' +
+                        '}';
+            } else { // if (borderVer == BorderVer.borderV1 || preliq) {
+                return "TradingSignal{" +
+                        "borderVer =" + borderVer +
+                        ", tradeType=" + tradeType +
+                        ", bitmexBlock=" + bitmexBlock +
+                        ", okexBlock=" + okexBlock +
+                        ", ver=" + ver +
+                        '}';
+            }
         }
     }
 

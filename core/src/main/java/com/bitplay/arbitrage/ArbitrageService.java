@@ -2,6 +2,8 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.Config;
 import com.bitplay.TwoMarketStarter;
+import com.bitplay.arbitrage.BordersService.BorderVer;
+import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.BordersService.TradingSignal;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
@@ -557,8 +559,10 @@ public class ArbitrageService {
 
                 if (plBlocks.getBlockOkex().signum() > 0) {
                     Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                    final TradingSignal tradingSignal = new TradingSignal(BorderVer.borderV1, plBlocks.getVer(),
+                            plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA1_B_SELL_O_BUY);
                     checkAndStartTradingOnDelta1(borderParams, SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
-                            null, dynDeltaLogs, null, false, lastObTime);
+                            tradingSignal, dynDeltaLogs, null, false, lastObTime);
                     return bestQuotes;
                 }
             } else if (delta2.compareTo(border2) >= 0) {
@@ -578,8 +582,10 @@ public class ArbitrageService {
                 }
                 if (plBlocks.getBlockOkex().signum() > 0) {
                     Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                    final TradingSignal tradingSignal = new TradingSignal(BorderVer.borderV1, plBlocks.getVer(),
+                            plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA2_B_BUY_O_SELL);
                     checkAndStartTradingOnDelta2(borderParams, SignalType.AUTOMATIC, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
-                            null, dynDeltaLogs, null, false, lastObTime);
+                            tradingSignal, dynDeltaLogs, null, false, lastObTime);
                     return bestQuotes;
                 }
             } else {
@@ -695,7 +701,8 @@ public class ArbitrageService {
         final BigDecimal o_block = preliqBlocks.getO_block();
 
         final BorderParams borderParams = persistenceService.fetchBorders();
-        checkAndStartTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, null, null, PlacingType.TAKER,
+        final TradingSignal tradingSignal = new TradingSignal(BorderVer.preliq, null, b_block, o_block, TradeType.DELTA1_B_SELL_O_BUY);
+        checkAndStartTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, null, PlacingType.TAKER,
                 true, null);
     }
 
@@ -717,6 +724,7 @@ public class ArbitrageService {
             final PlBlocks plBlocks = adjustByNtUsd(DeltaName.B_DELTA, b_block_input, o_block_input);
             final BigDecimal b_block = plBlocks.getBlockBitmex();
             final BigDecimal o_block = plBlocks.getBlockOkex();
+            final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
 
             if (checkAffordable(DeltaName.B_DELTA, b_block, o_block)) {
 
@@ -727,14 +735,14 @@ public class ArbitrageService {
 
                         if (isImmediate) {
                             arbInProgress.set(true);
-                            startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
+                            startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs, predefinedPlacingType,
                                     ask1_o,
                                     bid1_p, lastObTime, b_block_input, o_block_input);
                         } else if (signalDelayActivateTime == null) {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
                             arbInProgress.set(true);
-                            startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
+                            startTradingOnDelta1(borderParams, signalType, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs, predefinedPlacingType,
                                     ask1_o,
                                     bid1_p, lastObTime, b_block_input, o_block_input);
                         }
@@ -895,8 +903,9 @@ public class ArbitrageService {
         final BigDecimal o_block = preliqBlocks.getO_block();
 
         final BorderParams borderParams = persistenceService.fetchBorders();
+        final TradingSignal tradingSignal = new TradingSignal(BorderVer.preliq, null, b_block, o_block, TradeType.DELTA2_B_BUY_O_SELL);
         checkAndStartTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block,
-                null, null, PlacingType.TAKER, true, null);
+                tradingSignal, null, PlacingType.TAKER, true, null);
     }
 
     private void checkAndStartTradingOnDelta2(BorderParams borderParams, final SignalType signalType,
@@ -918,6 +927,7 @@ public class ArbitrageService {
             final PlBlocks plBlocks = adjustByNtUsd(DeltaName.O_DELTA, b_block_input, o_block_input);
             final BigDecimal b_block = plBlocks.getBlockBitmex();
             final BigDecimal o_block = plBlocks.getBlockOkex();
+            final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
 
             if (checkAffordable(DeltaName.O_DELTA, b_block, o_block)) {
 
@@ -928,14 +938,14 @@ public class ArbitrageService {
 
                         if (isImmediate) {
                             arbInProgress.set(true);
-                            startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
+                            startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs, predefinedPlacingType,
                                     ask1_p,
                                     bid1_o, lastObTime, b_block_input, o_block_input);
                         } else if (signalDelayActivateTime == null) {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
                             arbInProgress.set(true);
-                            startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, tradingSignal, dynamicDeltaLogs, predefinedPlacingType,
+                            startTradingOnDelta2(borderParams, signalType, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs, predefinedPlacingType,
                                     ask1_p,
                                     bid1_o, lastObTime, b_block_input, o_block_input);
                         }
@@ -987,8 +997,8 @@ public class ArbitrageService {
         final PlacingType okexPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getOkexPlacingType();
         final PlacingType btmPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
 
-        BigDecimal bPricePlan = ask1_p;
-        BigDecimal oPricePlan = bid1_o;
+        final BigDecimal bPricePlan = ask1_p;
+        final BigDecimal oPricePlan = bid1_o;
         synchronized (dealPrices) {
             dealPrices.setBtmPlacingType(btmPlacingType);
             dealPrices.setOkexPlacingType(okexPlacingType);
@@ -1049,7 +1059,7 @@ public class ArbitrageService {
         saveParamsToDb();
     }
 
-    private String createCounterOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final BordersService.TradingSignal tradingSignal,
+    private String createCounterOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final TradingSignal tradingSignal,
             final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName) {
 
         Integer counter1 = params.getCounter1();
@@ -1094,8 +1104,8 @@ public class ArbitrageService {
                 deltaName.getDeltaNumber(),
                 bid1_X.toPlainString(), ask1_X.toPlainString(),
                 deltaX.toPlainString(),
-                tradingSignal == null
-                        ? (String.format("b%s=%s", deltaName.getDeltaNumber(), borderX.toPlainString()))
+                (tradingSignal == null || tradingSignal.borderVer != BorderVer.borderV2)
+                        ? (String.format("b%s=%s, %s: ", deltaName.getDeltaNumber(), borderX.toPlainString(), tradingSignal.toString()))
                         : ("borderV2:" + tradingSignal.toString())
         ));
 

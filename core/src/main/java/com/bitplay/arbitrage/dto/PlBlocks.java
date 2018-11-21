@@ -1,6 +1,7 @@
 package com.bitplay.arbitrage.dto;
 
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import com.bitplay.persistance.domain.settings.PlacingBlocks.Ver;
 import java.math.BigDecimal;
 
 /**
@@ -42,5 +43,9 @@ public class PlBlocks {
 
     public String getDebugLog() {
         return debugLog;
+    }
+
+    public Ver getVer() {
+        return ver;
     }
 }
