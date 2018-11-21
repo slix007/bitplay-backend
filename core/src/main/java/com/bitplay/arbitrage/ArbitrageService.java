@@ -1547,22 +1547,24 @@ public class ArbitrageService {
         }
 
         BigDecimal multiplicity = settings.getNtUsdMultiplicityOkex();
-        BigDecimal ntUsd = getNtUsd(multiplicity);
+        BigDecimal ntUsd = getNtUsd();
         if (ntUsd.signum() > 0) {
             if (deltaRef == DeltaName.B_DELTA) {
                 b_block_usd = b_block_usd;
-                o_block_usd = o_block_usd.add(ntUsd);
+                final BigDecimal ntUsdOkex = getNtUsdMult(ntUsd, multiplicity);
+                o_block_usd = o_block_usd.add(ntUsdOkex);
             } else if (deltaRef == DeltaName.O_DELTA) {
                 b_block_usd = b_block_usd.add(ntUsd);
                 o_block_usd = o_block_usd;
             }
         } else if (ntUsd.signum() < 0) {
             if (deltaRef == DeltaName.B_DELTA) {
-                b_block_usd = b_block_usd.add(ntUsd);
+                b_block_usd = b_block_usd.subtract(ntUsd);
                 o_block_usd = o_block_usd;
             } else if (deltaRef == DeltaName.O_DELTA) {
                 b_block_usd = b_block_usd;
-                o_block_usd = o_block_usd.add(ntUsd);
+                final BigDecimal ntUsdOkex = getNtUsdMult(ntUsd, multiplicity);
+                o_block_usd = o_block_usd.subtract(ntUsdOkex);
             }
         }
 
@@ -1583,8 +1585,7 @@ public class ArbitrageService {
         return new PlBlocks(b_block, o_block, PlacingBlocks.Ver.FIXED);
     }
 
-    private BigDecimal getNtUsd(BigDecimal multiplicity) {
-        BigDecimal ntUsd = getNtUsd();
+    private BigDecimal getNtUsdMult(BigDecimal ntUsd, BigDecimal multiplicity) {
         if (multiplicity == null || multiplicity.signum() <= 0) {
             return ntUsd;
         }
