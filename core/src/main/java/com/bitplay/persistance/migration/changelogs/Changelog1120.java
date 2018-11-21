@@ -76,4 +76,12 @@ public class Changelog1120 {
         mongoTemplate.save(borderParams);
     }
 
+    @ChangeSet(order = "005", id = "2018-11-21: preliqDelaySec", author = "SergeiShurmin")
+    public void change05(MongoTemplate mongoTemplate) {
+        final Settings settings = mongoTemplate.findById(1L, Settings.class);
+        if (settings != null) {
+            settings.getPosAdjustment().setPreliqDelaySec(10);
+            mongoTemplate.save(settings);
+        }
+    }
 }

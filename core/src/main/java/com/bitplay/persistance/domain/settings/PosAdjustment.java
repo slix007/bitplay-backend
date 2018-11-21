@@ -18,6 +18,7 @@ public class PosAdjustment {
     private PlacingType posAdjustmentPlacingType;
     private Integer posAdjustmentDelaySec;
     private Integer corrDelaySec;
+    private Integer preliqDelaySec;
 
     public static PosAdjustment createDefault() {
         final PosAdjustment adj = new PosAdjustment();
@@ -26,6 +27,7 @@ public class PosAdjustment {
         adj.setPosAdjustmentPlacingType(PlacingType.TAKER);
         adj.setPosAdjustmentDelaySec(25);
         adj.setCorrDelaySec(25);
+        adj.setPreliqDelaySec(25);
         return adj;
     }
 

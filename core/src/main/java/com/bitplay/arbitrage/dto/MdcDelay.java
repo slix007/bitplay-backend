@@ -11,9 +11,12 @@ public class MdcDelay {
     private volatile Date firstSignalExtraSet;
 
     public static boolean isMdcReadyByTime(Date firstSignalTime, int delaySec) {
-        final long startedMs = firstSignalTime.toInstant().toEpochMilli();
-        final long nowMs = Instant.now().toEpochMilli();
+        final long activateMs = firstSignalTime.toInstant().toEpochMilli();
+        return isMdcReadyByTime(activateMs, delaySec);
+    }
 
-        return nowMs - startedMs > delaySec * 1000;
+    public static boolean isMdcReadyByTime(long activateMs, int delaySec) {
+        final long nowMs = Instant.now().toEpochMilli();
+        return nowMs - activateMs > delaySec * 1000;
     }
 }
