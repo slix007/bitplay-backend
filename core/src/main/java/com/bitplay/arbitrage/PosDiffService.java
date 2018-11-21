@@ -130,9 +130,16 @@ public class PosDiffService {
             try {
                 boolean isCorrect = false;
 
-                final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getAfterCorrDelaySec() != null
-                        ? settingsRepositoryService.getSettings().getPosAdjustment().getAfterCorrDelaySec()
-                        : 14;
+                final int delaySec;
+                if (isAdj) {
+                    delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec() != null
+                            ? settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec()
+                            : 14;
+                } else {
+                    delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec() != null
+                            ? settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec()
+                            : 14;
+                }
 
                 BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
                 if (signalType.isAdjBtc()) {
@@ -638,10 +645,12 @@ public class PosDiffService {
 
             BigDecimal bPXbtUsd = bitmexService.getPositionXBTUSD().getPositionLong();
             adaptExtraSetAdjByPos(corrObj, bPXbtUsd, dc);
+            adaptCorrByMaxVolCorr(corrObj, corrParams);
 
         } else if (baseSignalType == SignalType.ADJ) {
 
             adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+            adaptCorrByMaxVolCorr(corrObj, corrParams);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
 
