@@ -1766,47 +1766,55 @@ public class OkCoinService extends MarketService {
         return isOk;
     }
 
-    @Scheduled(fixedDelay = 5 * 1000) // 30 sec
+    @Scheduled(initialDelay = 30 * 1000, fixedDelay = 1000)
     public void checkForDecreasePosition() {
         Instant start = Instant.now();
 
         if (isMarketStopped()) {
+            dtPreliq.stop();
             return;
         }
 
-        final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+        final BigDecimal oDQLCloseMin = persistenceService.fetchGuiLiqParams().getODQLCloseMin();
+        final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
 
-        if (corrParams.getPreliq().hasSpareAttempts()) {
-            final BigDecimal oDQLCloseMin = persistenceService.fetchGuiLiqParams().getODQLCloseMin();
-            final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
+        if (liqInfo.getDqlCurr() != null
+                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
+                && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) < 0
+                && pos.signum() != 0) {
 
-            if (liqInfo.getDqlCurr() != null
-                    && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
-                    && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) < 0
-                    && pos.signum() != 0) {
-                final BestQuotes bestQuotes = Utils.createBestQuotes(
-                        arbitrageService.getSecondMarketService().getOrderBook(),
-                        arbitrageService.getFirstMarketService().getOrderBook());
+            dtPreliq.activate();
 
-                final String counterForLogs = getCounterName();
-                if (pos.signum() > 0) {
-                    tradeLogger.info(String.format("#%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
+            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+            if (corrParams.getPreliq().hasSpareAttempts()) {
+                final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPreliqDelaySec();
+                long secToReady = dtPreliq.secToReady(delaySec);
+                if (secToReady > 0) {
+                    String msg = "O_PRE_LIQ signal mainSet. Waiting delay(sec)=" + secToReady;
+                    logger.info(msg);
+                    warningLogger.info(msg);
+                    tradeLogger.info(msg);
+                } else {
+                    final String counterForLogs = getCounterName();
+                    String msg = String.format("#%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
                             counterForLogs,
                             position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
-                            liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
-
-                    arbitrageService.startPerliqOnDelta2(SignalType.O_PRE_LIQ, bestQuotes);
-
-                } else if (pos.signum() < 0) {
-                    tradeLogger.info(String.format("#%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
-                            counterForLogs,
-                            position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
-                            liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString()));
-
-                    arbitrageService.startPreliqOnDelta1(SignalType.O_PRE_LIQ, bestQuotes);
-
+                            liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString());
+                    tradeLogger.info(msg);
+                    warningLogger.info(msg);
+                    final BestQuotes bestQuotes = Utils.createBestQuotes(
+                            arbitrageService.getSecondMarketService().getOrderBook(),
+                            arbitrageService.getFirstMarketService().getOrderBook());
+                    if (pos.signum() > 0) {
+                        arbitrageService.startPreliqOnDelta2(SignalType.O_PRE_LIQ, bestQuotes);
+                    } else if (pos.signum() < 0) {
+                        arbitrageService.startPreliqOnDelta1(SignalType.O_PRE_LIQ, bestQuotes);
+                    }
+                    dtPreliq.stop();
                 }
             }
+        } else {
+            dtPreliq.stop();
         }
         Instant end = Instant.now();
         Utils.logIfLong(start, end, logger, "checkForDecreasePosition");

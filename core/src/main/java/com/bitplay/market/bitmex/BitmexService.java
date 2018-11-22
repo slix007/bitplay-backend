@@ -23,7 +23,6 @@ import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
-import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
@@ -38,6 +37,7 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.mon.Mon;
+import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -2217,47 +2217,55 @@ public class BitmexService extends MarketService {
         return isOk;
     }
 
-    @Scheduled(initialDelay = 30 * 1000, fixedDelay = 5 * 1000) // 30 sec
+    @Scheduled(initialDelay = 30 * 1000, fixedDelay = 1000)
     public void checkForDecreasePosition() {
         Instant start = Instant.now();
+
         if (isMarketStopped()) {
+            dtPreliq.stop();
             return;
         }
 
-        final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+        final BigDecimal bDQLCloseMin = getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
+        final BigDecimal pos = position.getPositionLong();
 
-        if (corrParams.getPreliq().hasSpareAttempts()) {
-            final BigDecimal bDQLCloseMin = getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
+        if (liqInfo.getDqlCurr() != null
+                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
+                && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) < 0
+                && pos.signum() != 0) {
 
-            if (liqInfo.getDqlCurr() != null
-                    && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
-                    && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) < 0
-                    && position.getPositionLong().signum() != 0) {
-                final BestQuotes bestQuotes = Utils.createBestQuotes(
-                        arbitrageService.getSecondMarketService().getOrderBook(),
-                        arbitrageService.getFirstMarketService().getOrderBook());
+            dtPreliq.activate();
 
-                final String counterForLogs = getCounterName();
-                if (position.getPositionLong().signum() > 0) {
-                    tradeLogger.info(String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+            if (corrParams.getPreliq().hasSpareAttempts()) {
+                final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPreliqDelaySec();
+                long secToReady = dtPreliq.secToReady(delaySec);
+                if (secToReady > 0) {
+                    String msg = "B_PRE_LIQ signal mainSet. Waiting delay(sec)=" + secToReady;
+                    logger.info(msg);
+                    warningLogger.info(msg);
+                    tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
+                } else {
+                    final String counterForLogs = getCounterName();
+                    String msg = String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
                             counterForLogs,
-                            position.getPositionLong().toPlainString(),
-                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()),
-                            bitmexContractType.getCurrencyPair().toString());
-
-                    arbitrageService.startPreliqOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
-
-                } else if (position.getPositionLong().signum() < 0) {
-                    tradeLogger.info(String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
-                            counterForLogs,
-                            position.getPositionLong().toPlainString(),
-                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString()),
-                            bitmexContractType.getCurrencyPair().toString());
-
-                    arbitrageService.startPerliqOnDelta2(SignalType.B_PRE_LIQ, bestQuotes);
-
+                            pos.toPlainString(),
+                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString());
+                    tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
+                    warningLogger.info(msg);
+                    final BestQuotes bestQuotes = Utils.createBestQuotes(
+                            arbitrageService.getSecondMarketService().getOrderBook(),
+                            arbitrageService.getFirstMarketService().getOrderBook());
+                    if (pos.signum() > 0) {
+                        arbitrageService.startPreliqOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
+                    } else if (pos.signum() < 0) {
+                        arbitrageService.startPreliqOnDelta2(SignalType.B_PRE_LIQ, bestQuotes);
+                    }
+                    dtPreliq.stop();
                 }
             }
+        } else {
+            dtPreliq.stop();
         }
         Instant end = Instant.now();
         Utils.logIfLong(start, end, logger, "checkForDecreasePosition");

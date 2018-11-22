@@ -894,7 +894,7 @@ public class ArbitrageService {
         saveParamsToDb();
     }
 
-    public void startPerliqOnDelta2(SignalType signalType, BestQuotes bestQuotes) {
+    public void startPreliqOnDelta2(SignalType signalType, BestQuotes bestQuotes) {
         PreliqBlocks preliqBlocks = new PreliqBlocks().getPreliqBlocks(DeltaName.O_DELTA);
         if (preliqBlocks.isForbidden()) {
             return;

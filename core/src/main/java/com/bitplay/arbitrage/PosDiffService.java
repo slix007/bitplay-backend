@@ -1,6 +1,6 @@
 package com.bitplay.arbitrage;
 
-import com.bitplay.arbitrage.dto.MdcDelay;
+import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.SlackNotifications;
@@ -24,7 +24,6 @@ import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -58,7 +57,12 @@ public class PosDiffService {
     private volatile boolean hasTimerStarted = false;
     private volatile boolean hasGeneralCorrStarted = false;
     private volatile boolean corrInProgress = false;
-    private final MdcDelay mdcDelay = new MdcDelay();
+    private final DelayTimer dtMdc = new DelayTimer();
+    private final DelayTimer dtExtraMdc = new DelayTimer();
+    private final DelayTimer dtCorr = new DelayTimer();
+    private final DelayTimer dtExtraCorr = new DelayTimer();
+    private final DelayTimer dtAdj = new DelayTimer();
+    private final DelayTimer dtExtraAdj = new DelayTimer();
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -91,21 +95,26 @@ public class PosDiffService {
     @Autowired
     private FplayTradeRepository fplayTradeRepository;
 
-    private ScheduledExecutorService posDiffExecutor;
+    private ScheduledExecutorService mdcExecutor;
+    private ScheduledExecutorService calcPosDiffExecutor;
 
     @PreDestroy
     public void preDestory() {
-        posDiffExecutor.shutdown();
+        mdcExecutor.shutdown();
+        calcPosDiffExecutor.shutdown();
     }
 
     @PostConstruct
     private void init() {
-        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("pos-diff-thread-%d").build();
-        posDiffExecutor = Executors.newScheduledThreadPool(3, namedThreadFactory);
-        posDiffExecutor.scheduleWithFixedDelay(this::calcPosDiffJob,
+        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("mdc-thread-%d").build();
+        mdcExecutor = Executors.newSingleThreadScheduledExecutor(namedThreadFactory);
+        calcPosDiffExecutor = Executors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder().setNameFormat("pos-diff-thread-%d").build()
+        );
+        calcPosDiffExecutor.scheduleWithFixedDelay(this::calcPosDiffJob,
                 60, 1, TimeUnit.SECONDS);
 
-        posDiffExecutor.scheduleWithFixedDelay(this::checkMDCJob,
+        mdcExecutor.scheduleWithFixedDelay(this::checkMDCJob,
                 60, 5, TimeUnit.SECONDS);
     }
 
@@ -116,7 +125,7 @@ public class PosDiffService {
         }
 
         try {
-            checkPosDiff(false);
+            checkPosDiff();
         } catch (Exception e) {
             warningLogger.error("Check correction: is failed. " + e.getMessage());
             log.error("Check correction: is failed.", e);
@@ -332,8 +341,8 @@ public class PosDiffService {
 
         if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
                 || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
-            mdcDelay.setFirstSignalMainSet(null);
-            mdcDelay.setFirstSignalExtraSet(null);
+            dtMdc.setFirstStart(null);
+            dtExtraMdc.setFirstStart(null);
             return;
         }
         if (!hasMDCStarted) {
@@ -344,12 +353,10 @@ public class PosDiffService {
         try {
             Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
             if (isMdcNeededMainSet()) {
-                if (mdcDelay.getFirstSignalMainSet() == null) {
-                    mdcDelay.setFirstSignalMainSet(new Date());
-                }
-
-                if (!MdcDelay.isMdcReadyByTime(mdcDelay.getFirstSignalMainSet(), delaySec)) {
-                    String msg = "MDC signal mainSet. Waiting delay is " + delaySec;
+                dtMdc.activate();
+                long secToReady = dtMdc.secToReady(delaySec);
+                if (secToReady > 0) {
+                    String msg = "MDC signal mainSet. Waiting delay(sec)=" + secToReady;
                     log.info(msg);
                     warningLogger.info(msg);
                 } else {
@@ -369,21 +376,20 @@ public class PosDiffService {
 //                    doCorrectionImmediate(SignalType.CORR_MDC);
                         arbitrageService.getFirstMarketService().stopAllActions();
                         arbitrageService.getSecondMarketService().stopAllActions();
+                        dtMdc.stop();
                     }
                 }
 
             } else {
-                mdcDelay.setFirstSignalMainSet(null);
+                dtMdc.stop();
             }
 
             if (bitmexService.getContractType().isEth()) {
                 if (isMdcNeededExtraSet()) {
-                    if (mdcDelay.getFirstSignalExtraSet() == null) {
-                        mdcDelay.setFirstSignalExtraSet(new Date());
-                    }
-
-                    if (!MdcDelay.isMdcReadyByTime(mdcDelay.getFirstSignalExtraSet(), delaySec)) {
-                        String msg = "MDC signal extraSet. Waiting delay is " + delaySec;
+                    dtExtraMdc.activate();
+                    long secToReady = dtExtraMdc.secToReady(delaySec);
+                    if (secToReady > 0) {
+                        String msg = "MDC signal extraSet. Waiting delay(sec)=" + secToReady;
                         log.info(msg);
                         warningLogger.info(msg);
                     } else {
@@ -400,10 +406,11 @@ public class PosDiffService {
 //                        doCorrectionImmediate(SignalType.CORR_BTC_MDC);
                             arbitrageService.getFirstMarketService().stopAllActions();
                             arbitrageService.getSecondMarketService().stopAllActions();
+                            dtExtraMdc.stop();
                         }
                     }
                 } else {
-                    mdcDelay.setFirstSignalExtraSet(null);
+                    dtExtraMdc.stop();
                 }
             }
 
@@ -425,42 +432,39 @@ public class PosDiffService {
         return (!isPosEqualByMaxAdj(dcExtra) && dcExtra.abs().compareTo(maxDiffCorr) >= 0);
     }
 
-    private void checkPosDiff(boolean isSecondCheck) throws Exception {
+    private void checkPosDiff() throws Exception {
         if (!hasGeneralCorrStarted || !arbitrageService.getFirstMarketService().isStarted()) {
             return;
         }
 
         arbitrageService.getParams().setLastCorrCheck(new Date());
 
-        if (!checkInProgress || isSecondCheck) {
+        if (!checkInProgress) {
             checkInProgress = true;
 
             try {
-                final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
-                final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
-                final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
 
-                if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
-                    if (theTimerToImmediateCorr == null || theTimerToImmediateCorr.isDisposed()) {
-                        startTimerToImmediateCorrection();
-                    }
-                } else {
-                    stopTimerToImmediateCorrection();
-                }
+                updateTimerToImmediateCorr();
 
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
 
-                if (checkPosDiffForCorr(isSecondCheck, bP, oPL, oPS, corrParams)) {
+                if (corrStartedOrFailed(corrParams)) {
                     return;
                 }
-
-                if (checkPosDiffForAdj(isSecondCheck, bP, oPL, oPS, corrParams)) {
-                    return;
-                }
-
                 boolean isEth = arbitrageService.getFirstMarketService().getContractType().isEth();
+
                 if (isEth) {
-                    if (checkPosDiffForExtraAdj(isSecondCheck, bP, oPL, oPS, corrParams)) {
+                    if (corrExtraStartedOrFailed(corrParams)) {
+                        return;
+                    }
+                }
+
+                if (adjStartedOrFailed(corrParams)) {
+                    return;
+                }
+
+                if (isEth) {
+                    if (adjExtraStartedOrFailed(corrParams)) {
                         return;
                     }
                 }
@@ -471,38 +475,51 @@ public class PosDiffService {
         }
     }
 
-    private boolean checkPosDiffForAdj(boolean isSecondCheck, BigDecimal bP, BigDecimal oPL, BigDecimal oPS, CorrParams corrParams) throws Exception {
-        if (corrParams.getAdj().hasSpareAttempts() && isAdjViolated(getDcMainSet())) {
+    private boolean adjStartedOrFailed(CorrParams corrParams) throws Exception {
+        final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
 
-            final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
-            // if all READY more than X sec
-            if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                    && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                    && isReadyByTime(arbitrageService.getFirstMarketService(), delaySec)
-                    && isReadyByTime(arbitrageService.getSecondMarketService(), delaySec)) {
-                if (!isSecondCheck) {
+        // if all READY more than X sec
+        if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                && isAdjViolated(getDcMainSet())) {
+
+            dtAdj.activate();
+
+            if (corrParams.getAdj().hasSpareAttempts()) {
+                long secToReady = dtAdj.secToReady(delaySec);
+                if (secToReady > 0) {
+                    String msg = "Adj signal mainSet. Waiting delay(sec)=" + secToReady;
+                    log.info(msg);
+                    warningLogger.info(msg);
+                } else {
 
                     String infoMsg = String.format("Double check before adjustment mainSet. %s fetchPosition:",
                             arbitrageService.getMainSetStr());
                     slackNotifications.sendNotify(infoMsg);
-                    if (doubleFetchPosition(infoMsg, false)) {
+                    if (doubleFetchPositionFailed(infoMsg, false)) {
                         return true;
                     }
 
-                    checkPosDiff(true);
-                    return true;
+                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                            && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                            && isAdjViolated(getDcMainSet())) {
 
-                } else {
-                    final BigDecimal hedgeAmount = getHedgeAmountMainSet();
-                    doCorrection(bP, oPL, oPS, hedgeAmount, SignalType.ADJ);
-                    return true;
+                        doCorrection(getHedgeAmountMainSet(), SignalType.ADJ);
+
+                        return true; // started
+                    } else {
+                        dtAdj.stop();
+                    }
                 }
             }
+        } else {
+            dtAdj.stop();
         }
+
         return false;
     }
 
-    private boolean doubleFetchPosition(String infoMsg, boolean isExtra) throws Exception {
+    private boolean doubleFetchPositionFailed(String infoMsg, boolean isExtra) throws Exception {
         if (!isExtra) {
             final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
             if (Thread.interrupted()) {
@@ -525,83 +542,129 @@ public class PosDiffService {
         return false;
     }
 
-    private boolean checkPosDiffForExtraAdj(boolean isSecondCheck, BigDecimal bP, BigDecimal oPL, BigDecimal oPS, CorrParams corrParams) throws Exception {
-        if (corrParams.getAdj().hasSpareAttempts() && isAdjViolated(getDcExtraSet())) {
+    private boolean adjExtraStartedOrFailed(CorrParams corrParams) throws Exception {
+        final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
+        // if all READY more than X sec
+        if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                && isAdjViolated(getDcExtraSet())) {
 
-            final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
-            // if all READY more than X sec
-            if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                    && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                    && isReadyByTime(arbitrageService.getFirstMarketService(), delaySec)
-                    && isReadyByTime(arbitrageService.getSecondMarketService(), delaySec)) {
-                if (!isSecondCheck) {
+            dtExtraAdj.activate();
+
+            if (corrParams.getAdj().hasSpareAttempts()) {
+                long secToReady = dtExtraAdj.secToReady(delaySec);
+                if (secToReady > 0) {
+                    String msg = "Adj signal extraSet. Waiting delay(sec)=" + secToReady;
+                    log.info(msg);
+                    warningLogger.info(msg);
+                } else {
 
                     String infoMsg = String.format("Double check before adjustment XBTUSD. %s fetchPosition:",
                             arbitrageService.getExtraSetStr());
                     slackNotifications.sendNotify(infoMsg);
-                    if (doubleFetchPosition(infoMsg, true)) {
+                    if (doubleFetchPositionFailed(infoMsg, true)) {
                         return true;
                     }
 
-                    checkPosDiff(true);
-                    return true;
+                    // Second check
+                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                            && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                            && isAdjViolated(getDcExtraSet())) {
 
-                } else {
-                    final BigDecimal hedgeAmount = getHedgeAmountExtraSet();
-                    doCorrection(bP, oPL, oPS, hedgeAmount, SignalType.ADJ_BTC);
-                    return true;
+                        doCorrection(getHedgeAmountExtraSet(), SignalType.ADJ_BTC);
+
+                        return true; // started
+                    } else {
+                        dtExtraAdj.stop();
+                    }
                 }
             }
+        } else {
+            dtExtraAdj.stop();
         }
         return false;
     }
 
-    private boolean checkPosDiffForCorr(boolean isSecondCheck, BigDecimal bP, BigDecimal oPL, BigDecimal oPS, CorrParams corrParams) throws Exception {
-        boolean main = isPosEqualByMaxAdj(getDcMainSet());
-        boolean extra = isPosEqualByMaxAdj(getDcExtraSet());
-        if (corrParams.getCorr().hasSpareAttempts() && (!main || !extra)) {
-            final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
-            // if all READY more than 15 sec
-            if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                    && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                    && isReadyByTime(arbitrageService.getFirstMarketService(), delaySec)
-                    && isReadyByTime(arbitrageService.getSecondMarketService(), delaySec)) {
-                if (!isSecondCheck) {
+    private boolean corrStartedOrFailed(CorrParams corrParams) throws Exception {
+        if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                && !isPosEqualByMaxAdj(getDcMainSet())) {
 
-                    if (!main) {
-                        String infoMsg = String.format("Double check before correction mainSet. %s fetchPosition:",
-                                arbitrageService.getMainSetStr());
-                        slackNotifications.sendNotify(infoMsg);
-                        if (doubleFetchPosition(infoMsg, false)) {
-                            return true;
-                        }
-                    }
-                    if (!extra) {
-                        String info = String.format("Double check before correction XBTUSD. %s fetchPosition:",
-                                arbitrageService.getExtraSetStr());
-                        slackNotifications.sendNotify(info);
-                        if (doubleFetchPosition(info, true)) {
-                            return true;
-                        }
-                    }
+            dtCorr.activate();
 
-                    checkPosDiff(true);
-                    return true;
-
+            if (corrParams.getCorr().hasSpareAttempts()) {
+                final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
+                long secToReady = dtCorr.secToReady(delaySec);
+                if (secToReady > 0) {
+                    String msg = "Corr signal mainSet. Waiting delay(sec)=" + secToReady;
+                    log.info(msg);
+                    warningLogger.info(msg);
                 } else {
-                    final BigDecimal hedgeAmount = !main ? getHedgeAmountMainSet() : getHedgeAmountExtraSet();
-                    doCorrection(bP, oPL, oPS, hedgeAmount, !main ? SignalType.CORR : SignalType.CORR_BTC);
-                    return true;
+
+                    String infoMsg = String.format("Double check before correction mainSet. %s fetchPosition:",
+                            arbitrageService.getMainSetStr());
+                    slackNotifications.sendNotify(infoMsg);
+                    if (doubleFetchPositionFailed(infoMsg, false)) {
+                        return true; // failed
+                    }
+
+                    // Second check
+                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                            && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                            && !isPosEqualByMaxAdj(getDcMainSet())) {
+                        doCorrection(getHedgeAmountMainSet(), SignalType.CORR);
+                        return true; // started
+                    } else {
+                        dtCorr.stop();
+                    }
                 }
             }
+
+        } else {
+            dtCorr.stop();
         }
         return false;
     }
 
-    private boolean isReadyByTime(MarketService marketService, Integer delaySec) {
-        final long nowMs = Instant.now().toEpochMilli();
-        final long readyMs = marketService.getReadyTime().toEpochMilli();
-        return nowMs - readyMs > delaySec * 1000;
+    private boolean corrExtraStartedOrFailed(CorrParams corrParams) throws Exception {
+        final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
+        if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                && !isPosEqualByMaxAdj(getDcExtraSet())) {
+
+            dtExtraCorr.activate();
+
+            if (corrParams.getCorr().hasSpareAttempts()) {
+                long secToReady = dtExtraCorr.secToReady(delaySec);
+                if (secToReady > 0) {
+                    String msg = "Corr signal. Waiting delay(sec)=" + secToReady;
+                    log.info(msg);
+                    warningLogger.info(msg);
+                } else {
+
+                    String info = String.format("Double check before correction XBTUSD. %s fetchPosition:",
+                            arbitrageService.getExtraSetStr());
+                    slackNotifications.sendNotify(info);
+                    if (doubleFetchPositionFailed(info, true)) {
+                        return true; // failed
+                    }
+
+                    // Second check
+                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                            && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                            && !isPosEqualByMaxAdj(getDcExtraSet())) {
+                        doCorrection(getHedgeAmountExtraSet(), SignalType.CORR_BTC);
+                        return true; // started
+                    } else {
+                        dtExtraCorr.stop();
+                    }
+                }
+            }
+
+        } else {
+            dtExtraCorr.stop();
+        }
+        return false;
     }
 
     private BigDecimal getHedgeAmountMainSet() {
@@ -647,8 +710,12 @@ public class PosDiffService {
 //        }
 //    }
 
-    private synchronized void doCorrection(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
+    private synchronized void doCorrection(final BigDecimal hedgeAmount,
             SignalType baseSignalType) {
+        BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
+        BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
+        BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+
         if (!arbitrageService.getFirstMarketService().isStarted()
                 || arbitrageService.getFirstMarketService().getMarketState().isStopped()
                 || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
@@ -958,9 +1025,9 @@ public class PosDiffService {
 
     boolean checkIsPositionsEqual() {
 
-        posDiffExecutor.execute(() -> {
+        calcPosDiffExecutor.execute(() -> {
             try {
-                checkPosDiff(false);
+                checkPosDiff();
             } catch (Exception e) {
                 warningLogger.error("Check correction: is failed(check before signal). " + e.getMessage());
                 log.error("Check correction: is failed(check before signal).", e);
@@ -1047,19 +1114,6 @@ public class PosDiffService {
                 : bP;
     }
 
-    private void writeWarnings(final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS) {
-//        if (positionsDiffWithHedge.signum() != 0) {
-//            final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
-//            warningLogger.error("Error: {}", posString);
-//            deltasLogger.error("Error: {}", posString);
-//        }
-
-//        if (oPL.signum() != 0 && oPS.signum() != 0) {
-//            final String posString = String.format("b_pos=%s, o_pos=%s-%s", Utils.withSign(bP), Utils.withSign(oPL), oPS.toPlainString());
-//            warningLogger.error("Warning: {}", posString);
-//        }
-    }
-
     public void setPeriodToCorrection(Long periodToCorrection) {
         arbitrageService.getParams().setPeriodToCorrection(periodToCorrection);
         // restart timer
@@ -1069,4 +1123,13 @@ public class PosDiffService {
         }
     }
 
+    private void updateTimerToImmediateCorr() {
+        if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
+            if (theTimerToImmediateCorr == null || theTimerToImmediateCorr.isDisposed()) {
+                startTimerToImmediateCorrection();
+            }
+        } else {
+            stopTimerToImmediateCorrection();
+        }
+    }
 }

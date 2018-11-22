@@ -3,6 +3,7 @@ package com.bitplay.market;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
@@ -84,6 +85,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected volatile Ticker ticker;
     protected volatile Ticker ethBtcTicker;
     protected volatile int usdInContract = 0;
+    protected final DelayTimer dtPreliq = new DelayTimer();
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3,
             new ThreadFactoryBuilder().setNameFormat(getName() + "-scheduler-%d").build());
