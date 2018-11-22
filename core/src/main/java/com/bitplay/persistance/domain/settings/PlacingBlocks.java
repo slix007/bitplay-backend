@@ -59,11 +59,19 @@ public class PlacingBlocks {
         return toBitmexCont(usd, isEth, cm);
     }
 
-    public static BigDecimal toBitmexCont(BigDecimal usd, boolean isEth, BigDecimal cm) {
+    public static BigDecimal toBitmexContPure(BigDecimal usd, boolean isEth, BigDecimal cm) {
         if (isEth) {
             return usd.multiply(cm).divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
         }
         return usd.setScale(0, RoundingMode.HALF_UP);
+    }
+
+    public static BigDecimal toBitmexCont(BigDecimal usd, boolean isEth, BigDecimal cm) {
+        BigDecimal okexCont = toOkexCont(usd, isEth);
+        if (isEth) {
+            return okexCont.multiply(cm).setScale(0, RoundingMode.HALF_UP);
+        }
+        return okexCont.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP);
     }
 
     // set_eu: OkexCONT = block_usd/10

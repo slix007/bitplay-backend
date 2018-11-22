@@ -42,7 +42,7 @@ public class Corr {
         if (isEth == null || cm == null) {
             return 0;
         }
-        return PlacingBlocks.toBitmexCont(BigDecimal.valueOf(maxVolCorrUsd), isEth, cm).intValue();
+        return PlacingBlocks.toBitmexContPure(BigDecimal.valueOf(maxVolCorrUsd), isEth, cm).intValue();
     }
 
     public Integer getMaxVolCorrOkex() {
