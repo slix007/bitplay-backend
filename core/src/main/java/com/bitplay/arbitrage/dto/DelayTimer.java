@@ -6,9 +6,14 @@ import lombok.Data;
 @Data
 public class DelayTimer {
 
-    private Instant firstStart;
+    private volatile Instant firstStart;
+    public static final long NOT_STARTED = 999999;
 
     public long secToReady(int delaySec) {
+        if (firstStart == null) {
+            return NOT_STARTED;
+        }
+
         final long activateMs = firstStart.toEpochMilli();
         final long nowMs = Instant.now().toEpochMilli();
         return -(nowMs - activateMs - delaySec * 1000) / 1000;

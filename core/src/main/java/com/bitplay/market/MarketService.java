@@ -1022,4 +1022,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 ? positionXBTUSD.getPositionLong()
                 : BigDecimal.ZERO;
     }
+
+    public DelayTimer getDtPreliq() {
+        return dtPreliq;
+    }
 }

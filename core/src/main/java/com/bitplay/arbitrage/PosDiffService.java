@@ -118,6 +118,30 @@ public class PosDiffService {
                 60, 5, TimeUnit.SECONDS);
     }
 
+    public DelayTimer getDtMdc() {
+        return dtMdc;
+    }
+
+    public DelayTimer getDtExtraMdc() {
+        return dtExtraMdc;
+    }
+
+    public DelayTimer getDtCorr() {
+        return dtCorr;
+    }
+
+    public DelayTimer getDtExtraCorr() {
+        return dtExtraCorr;
+    }
+
+    public DelayTimer getDtAdj() {
+        return dtAdj;
+    }
+
+    public DelayTimer getDtExtraAdj() {
+        return dtExtraAdj;
+    }
+
     private void calcPosDiffJob() {
         if (!hasGeneralCorrStarted) {
             warningLogger.info("General correction has started");

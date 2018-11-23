@@ -2,6 +2,8 @@ package com.bitplay.api.service;
 
 import com.bitplay.Config;
 import com.bitplay.api.domain.BorderUpdateJson;
+import com.bitplay.api.domain.DelayTimerBuilder;
+import com.bitplay.api.domain.DelayTimerJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltasMinMaxJson;
@@ -370,6 +372,9 @@ public class CommonUIService {
         boolean reconnectInProgress = ((BitmexService) arbitrageService.getFirstMarketService()).isReconnectInProgress();
         String btmReconnectState = reconnectInProgress ? "IN_PROGRESS" : "NONE";
 
+        DelayTimerJson corrDelay = getCorrDelay();
+        DelayTimerJson preliqDelay = getPreliqDelay();
+
         return new MarketStatesJson(
                 arbitrageService.getFirstMarketService().getMarketState().name(),
                 arbitrageService.getSecondMarketService().getMarketState().name(),
@@ -378,8 +383,36 @@ public class CommonUIService {
                 String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
                 arbitrageService.getTimeToSignal(),
                 arbState,
-                btmReconnectState
+                btmReconnectState,
+                corrDelay,
+                preliqDelay
         );
+    }
+
+    private DelayTimerJson getCorrDelay() {
+        final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
+
+        return DelayTimerBuilder.createEmpty(delaySec)
+                .addTimer(posDiffService.getDtCorr().secToReady(delaySec), "corr")
+                .addTimer(posDiffService.getDtAdj().secToReady(delaySec), "adj")
+                .addTimer(posDiffService.getDtMdc().secToReady(delaySec), "mdc")
+                .addTimer(posDiffService.getDtExtraCorr().secToReady(delaySec), "extraCorr")
+                .addTimer(posDiffService.getDtExtraAdj().secToReady(delaySec), "extraAdj")
+                .addTimer(posDiffService.getDtExtraMdc().secToReady(delaySec), "extraMdc")
+                .toJson();
+    }
+
+
+    private DelayTimerJson getPreliqDelay() {
+        final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPreliqDelaySec();
+
+        long btmToStart = bitmexService.getDtPreliq().secToReady(delaySec);
+        long okToStart = okCoinService.getDtPreliq().secToReady(delaySec);
+
+        return DelayTimerBuilder.createEmpty(delaySec)
+                .addTimer(btmToStart, "bitmex")
+                .addTimer(okToStart, "okex")
+                .toJson();
     }
 
     public MarketStatesJson setMarketsStates(MarketStatesJson marketStatesJson) {
