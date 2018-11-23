@@ -115,7 +115,7 @@ public class PosDiffService {
                 60, 1, TimeUnit.SECONDS);
 
         mdcExecutor.scheduleWithFixedDelay(this::checkMDCJob,
-                60, 5, TimeUnit.SECONDS);
+                60, 1, TimeUnit.SECONDS);
     }
 
     public DelayTimer getDtMdc() {
