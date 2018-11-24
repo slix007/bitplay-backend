@@ -373,6 +373,7 @@ public class CommonUIService {
         String btmReconnectState = reconnectInProgress ? "IN_PROGRESS" : "NONE";
 
         DelayTimerJson corrDelay = getCorrDelay();
+        DelayTimerJson posAdjustmentDelay = getPosAdjustmentDelay();
         DelayTimerJson preliqDelay = getPreliqDelay();
 
         return new MarketStatesJson(
@@ -385,6 +386,7 @@ public class CommonUIService {
                 arbState,
                 btmReconnectState,
                 corrDelay,
+                posAdjustmentDelay,
                 preliqDelay
         );
     }
@@ -394,14 +396,20 @@ public class CommonUIService {
 
         return DelayTimerBuilder.createEmpty(delaySec)
                 .addTimer(posDiffService.getDtCorr().secToReady(delaySec), "corr")
-                .addTimer(posDiffService.getDtAdj().secToReady(delaySec), "adj")
                 .addTimer(posDiffService.getDtMdc().secToReady(delaySec), "mdc")
                 .addTimer(posDiffService.getDtExtraCorr().secToReady(delaySec), "extraCorr")
-                .addTimer(posDiffService.getDtExtraAdj().secToReady(delaySec), "extraAdj")
                 .addTimer(posDiffService.getDtExtraMdc().secToReady(delaySec), "extraMdc")
                 .toJson();
     }
 
+    private DelayTimerJson getPosAdjustmentDelay() {
+        final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
+
+        return DelayTimerBuilder.createEmpty(delaySec)
+                .addTimer(posDiffService.getDtAdj().secToReady(delaySec), "adj")
+                .addTimer(posDiffService.getDtExtraAdj().secToReady(delaySec), "extraAdj")
+                .toJson();
+    }
 
     private DelayTimerJson getPreliqDelay() {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPreliqDelaySec();

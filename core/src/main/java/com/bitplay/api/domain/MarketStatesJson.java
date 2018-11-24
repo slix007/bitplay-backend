@@ -22,6 +22,7 @@ public class MarketStatesJson {
     String arbState;
     String bitmexReconnectState;
     DelayTimerJson corrDelay;
+    DelayTimerJson posAdjustmentDelay;
     DelayTimerJson preliqDelay;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
