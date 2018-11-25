@@ -529,6 +529,7 @@ public class PosDiffService {
                             && isAdjViolated(getDcMainSet())) {
 
                         doCorrection(getHedgeAmountMainSet(), SignalType.ADJ);
+                        dtAdj.stop();
 
                         return true; // started
                     } else {
@@ -596,6 +597,7 @@ public class PosDiffService {
                             && isAdjViolated(getDcExtraSet())) {
 
                         doCorrection(getHedgeAmountExtraSet(), SignalType.ADJ_BTC);
+                        dtExtraAdj.stop();
 
                         return true; // started
                     } else {
@@ -637,6 +639,8 @@ public class PosDiffService {
                             && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                             && !isPosEqualByMaxAdj(getDcMainSet())) {
                         doCorrection(getHedgeAmountMainSet(), SignalType.CORR);
+                        dtCorr.stop();
+
                         return true; // started
                     } else {
                         dtCorr.stop();
@@ -678,6 +682,8 @@ public class PosDiffService {
                             && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                             && !isPosEqualByMaxAdj(getDcExtraSet())) {
                         doCorrection(getHedgeAmountExtraSet(), SignalType.CORR_BTC);
+                        dtExtraCorr.stop();
+
                         return true; // started
                     } else {
                         dtExtraCorr.stop();
