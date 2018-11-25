@@ -133,6 +133,7 @@ public class BitmexService extends MarketService {
     private volatile BigDecimal prevCumulativeAmount;
 
     private volatile AtomicInteger obWrongCount = new AtomicInteger(0);
+    private volatile AtomicInteger obWrongCountXBTUSD = new AtomicInteger(0);
 
     private volatile Disposable orderBookSubscription;
     private volatile Disposable openOrdersSubscription;
@@ -159,6 +160,9 @@ public class BitmexService extends MarketService {
     @Autowired
     private RestartService restartService;
     private volatile Date orderBookLastTimestamp = new Date();
+    private volatile Date orderBookLastTimestampXBTUSD = new Date();
+    protected BigDecimal bestBidXBTUSD = BigDecimal.ZERO;
+    protected BigDecimal bestAskXBTUSD = BigDecimal.ZERO;
 
     @Autowired
     private PosDiffService posDiffService;
@@ -1199,6 +1203,7 @@ public class BitmexService extends MarketService {
                             afterOrderBookChanged(orderBook);
                         } else {
                             this.orderBookXBTUSD = orderBook;
+                            afterOrderBookXBTUSDChanged(orderBook);
                         }
                     } catch (Exception e) {
                         logger.error("Can not merge OrderBook", e);
@@ -1230,6 +1235,7 @@ public class BitmexService extends MarketService {
         return bitmexContractType.getCurrencyPair().equals(currencyPair);
     }
 
+    @SuppressWarnings("Duplicates")
     private void afterOrderBookChanged(OrderBook orderBook) {
         if (orderBook != null && orderBook.getBids().size() > 0 && orderBook.getAsks().size() > 0) {
             Instant obChangeTime = Instant.now();
@@ -1267,6 +1273,37 @@ public class BitmexService extends MarketService {
             }
 
             getArbitrageService().getSignalEventBus().send(new SignalEventEx(SignalEvent.B_ORDERBOOK_CHANGED, obChangeTime));
+        }
+    }
+
+    @SuppressWarnings("Duplicates")
+    private void afterOrderBookXBTUSDChanged(OrderBook orderBook) {
+        if (orderBook != null && orderBook.getBids().size() > 0 && orderBook.getAsks().size() > 0) {
+            final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
+            final LimitOrder bestBid = Utils.getBestBid(orderBook);
+
+            if (bestAsk != null && bestBid != null) {
+                orderBookLastTimestampXBTUSD = new Date();
+            }
+
+            this.bestAskXBTUSD = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
+            this.bestBidXBTUSD = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
+            logger.debug("XBTUSD ask: {}, bid: {}", this.bestAskXBTUSD, this.bestBidXBTUSD);
+            if (this.bestBidXBTUSD.compareTo(this.bestAskXBTUSD) >= 0) {
+                final String counterForLogs = getCounterName();
+                String warn = String.format("#%s bid(%s) >= ask(%s). LastRun of 'checkOrderBooks' is %s. ",
+                        counterForLogs, this.bestBidXBTUSD, this.bestAskXBTUSD, extrastopService.getLastRun());
+                if (obWrongCountXBTUSD.incrementAndGet() < 100) {
+                    logger.warn(warn);
+                    warningLogger.warn(warn);
+                } else {
+                    warn += "Do reconnect.";
+                    logger.warn(warn);
+                    warningLogger.warn(warn);
+                    requestReconnectAsync();
+                    obWrongCountXBTUSD.set(0);
+                }
+            }
         }
     }
 

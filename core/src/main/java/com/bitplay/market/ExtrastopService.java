@@ -10,7 +10,6 @@ import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -28,7 +27,8 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 /**
@@ -61,12 +61,24 @@ public class ExtrastopService {
     @Autowired
     private SlackNotifications slackNotifications;
 
-    private volatile String details = "";
+    private String details = "";
 
     private volatile Instant lastRun = null;
 
-    @Scheduled(initialDelay = 60 * 1000, fixedDelay = 10 * 1000)
-    public void checkOrderBooks() {
+    @EventListener(ApplicationReadyEvent.class)
+    public void init() {
+        log.info("ExtrastopService has started");
+        scheduler.scheduleWithFixedDelay(() -> {
+            try {
+                checkOrderBooks();
+            } catch (Exception e) {
+                log.error("Error on checkOrderBooks", e);
+            }
+        }, 60, 10, TimeUnit.SECONDS);
+    }
+
+    //    @Scheduled(initialDelay = 60 * 1000, fixedDelay = 10 * 1000)
+    private void checkOrderBooks() {
         Instant start = Instant.now();
         try {
             checkLastRun();
@@ -114,7 +126,7 @@ public class ExtrastopService {
         return lastRun == null ? null : LocalDateTime.ofInstant(lastRun, ZoneId.systemDefault());
     }
 
-    private synchronized boolean isHanged() {
+    private boolean isHanged() {
         Settings settings = settingsRepositoryService.getSettings();
         Integer maxGap = settings.getRestartSettings().getMaxTimestampDelay();
 
@@ -150,6 +162,33 @@ public class ExtrastopService {
 
             isHanged = true;
 
+        }
+        // check bitmex extraSet
+        if (!isHanged && bitmexService.getContractType().isEth()) {
+            isHanged = isHangedExtra(settings, maxGap);
+        }
+
+        return isHanged;
+    }
+
+    private boolean isHangedExtra(Settings settings, Integer maxGap) {
+        boolean isHanged = false;
+        final OrderBook bOBExtra = bitmexService.getOrderBookXBTUSD();
+        final Date bTExtra = getBitmexOrderBook3BestTimestamp(bOBExtra); // bitmexService.getOrderBookLastTimestamp();
+        long bDiffSecExtra = getDiffSec(bTExtra, "Bitmex-XBTUSD");
+        boolean bWrongExtra = isOrderBookPricesWrong(bOBExtra);
+        boolean isBDiffExtra = bDiffSecExtra > maxGap;
+        if (bWrongExtra || isBDiffExtra) {
+            details += String.format("Bitmex-XBTUSD extraSet maxTimestampDelay(maxDiff)=%s, b_XBTUSD_bid_more_ask=%s,",
+                    settings.getRestartSettings().getMaxTimestampDelay(),
+                    bWrongExtra);
+            warningLogger.warn(details);
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
+            warningLogger.warn(String.format("now time is %s ", sdf.format(new Date())));
+            Utils.getBestBids(bOBExtra, 3).forEach(item -> printItem("bitmex-XBTUSD", item));
+            Utils.getBestAsks(bOBExtra, 3).forEach(item -> printItem("bitmex-XBTUSD", item));
+
+            isHanged = true;
         }
         return isHanged;
     }
@@ -210,7 +249,7 @@ public class ExtrastopService {
                     bitmexService.setMarketState(MarketState.READY);
                     okCoinService.setMarketState(MarketState.READY);
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 log.error("Error on restart", e);
             }
         }, 30, TimeUnit.SECONDS);
