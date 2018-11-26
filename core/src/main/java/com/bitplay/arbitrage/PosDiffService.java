@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +60,8 @@ public class PosDiffService {
     private volatile boolean corrInProgress = false;
     private final DelayTimer dtMdc = new DelayTimer();
     private final DelayTimer dtExtraMdc = new DelayTimer();
+    private final DelayTimer dtMdcAdj = new DelayTimer();
+    private final DelayTimer dtExtraMdcAdj = new DelayTimer();
     private final DelayTimer dtCorr = new DelayTimer();
     private final DelayTimer dtExtraCorr = new DelayTimer();
     private final DelayTimer dtAdj = new DelayTimer();
@@ -124,6 +127,14 @@ public class PosDiffService {
 
     public DelayTimer getDtExtraMdc() {
         return dtExtraMdc;
+    }
+
+    public DelayTimer getDtMdcAdj() {
+        return dtMdcAdj;
+    }
+
+    public DelayTimer getDtExtraMdcAdj() {
+        return dtExtraMdcAdj;
     }
 
     public DelayTimer getDtCorr() {
@@ -366,7 +377,9 @@ public class PosDiffService {
         if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
                 || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
             dtMdc.setFirstStart(null);
+            dtMdcAdj.setFirstStart(null);
             dtExtraMdc.setFirstStart(null);
+            dtExtraMdcAdj.setFirstStart(null);
             return;
         }
         if (!hasMDCStarted) {
@@ -376,71 +389,76 @@ public class PosDiffService {
 
         try {
             Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
-            if (isMdcNeededMainSet()) {
-                dtMdc.activate();
-                long secToReady = dtMdc.secToReady(delaySec);
-                if (secToReady > 0) {
-                    String msg = "MDC signal mainSet. Waiting delay(sec)=" + secToReady;
-                    log.info(msg);
-                    warningLogger.info(msg);
-                } else {
-                    String infoMsg = String.format("Double check before MDC-correction mainSet. %s fetchPosition:",
-                            arbitrageService.getMainSetStr());
-                    slackNotifications.sendNotify(infoMsg);
-                    final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
-                    final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
-                    warningLogger.info(infoMsg + "bitmex " + pos1);
-                    warningLogger.info(infoMsg + "okex " + pos2);
-
-                    if (isMdcNeededMainSet()) {
-                        final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
-                        final BigDecimal positionsDiffWithHedge = getDcMainSet();
-                        warningLogger.info("MDC posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
-
-//                    doCorrectionImmediate(SignalType.CORR_MDC);
-                        arbitrageService.getFirstMarketService().stopAllActions();
-                        arbitrageService.getSecondMarketService().stopAllActions();
-                        dtMdc.stop();
-                    }
-                }
-
-            } else {
-                dtMdc.stop();
-            }
+            Integer adjDelaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
+            checkMdcMainSet("MDC-mainSet", delaySec, dtMdc, this::isMdcNeededMainSet);
+            checkMdcMainSet("MDCADJ-mainSet", adjDelaySec, dtMdcAdj, this::isMdcAdjNeededMainSet);
 
             if (bitmexService.getContractType().isEth()) {
-                if (isMdcNeededExtraSet()) {
-                    dtExtraMdc.activate();
-                    long secToReady = dtExtraMdc.secToReady(delaySec);
-                    if (secToReady > 0) {
-                        String msg = "MDC signal extraSet. Waiting delay(sec)=" + secToReady;
-                        log.info(msg);
-                        warningLogger.info(msg);
-                    } else {
-
-                        String infoMsgXBTUSD = String.format("Double check before MDC-correction XBTUSD. %s fetchPosition:",
-                                arbitrageService.getExtraSetStr());
-                        checkBitmexPosXBTUSD(infoMsgXBTUSD);
-
-                        if (isMdcNeededExtraSet()) {
-                            final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
-                            final BigDecimal positionsDiffWithHedge = getDcExtraSet();
-                            warningLogger.info("MDC XBTUSD posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
-
-//                        doCorrectionImmediate(SignalType.CORR_BTC_MDC);
-                            arbitrageService.getFirstMarketService().stopAllActions();
-                            arbitrageService.getSecondMarketService().stopAllActions();
-                            dtExtraMdc.stop();
-                        }
-                    }
-                } else {
-                    dtExtraMdc.stop();
-                }
+                checkMdcExtraSet("MDC-extraSet", delaySec, dtExtraMdc, this::isMdcNeededExtraSet);
+                checkMdcExtraSet("MDCADJ-extraSet", adjDelaySec, dtExtraMdcAdj, this::isMdcAdjNeededExtraSet);
             }
 
         } catch (Exception e) {
             warningLogger.error("Correction MDC failed. " + e.getMessage());
             log.error("Correction MDC failed.", e);
+        }
+    }
+
+    private void checkMdcExtraSet(String name, Integer delaySec, DelayTimer dt, BooleanSupplier isNeededFunc) {
+        if (isNeededFunc.getAsBoolean()) {
+            dtExtraMdc.activate();
+            long secToReady = dtExtraMdc.secToReady(delaySec);
+            if (secToReady > 0) {
+                String msg = String.format("%s signal. Waiting delay(sec)=%s", name, secToReady);
+                log.info(msg);
+                warningLogger.info(msg);
+            } else {
+
+                String infoMsgXBTUSD = String.format("Double check before %s. %s fetchPosition:", name, arbitrageService.getExtraSetStr());
+                checkBitmexPosXBTUSD(infoMsgXBTUSD);
+
+                if (isNeededFunc.getAsBoolean()) {
+                    final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
+                    final BigDecimal positionsDiffWithHedge = getDcExtraSet();
+                    warningLogger.info("MDC XBTUSD posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
+                    arbitrageService.getFirstMarketService().stopAllActions();
+                    arbitrageService.getSecondMarketService().stopAllActions();
+                    dtExtraMdc.stop();
+                }
+            }
+        } else {
+            dtExtraMdc.stop();
+        }
+    }
+
+    private void checkMdcMainSet(String name, Integer delaySec, DelayTimer dt, BooleanSupplier isNeededFunc) throws Exception {
+        if (isNeededFunc.getAsBoolean()) {
+            dt.activate();
+            long secToReady = dt.secToReady(delaySec);
+            if (secToReady > 0) {
+                String msg = String.format("%s signal. Waiting delay(sec)=%s", name, secToReady);
+                log.info(msg);
+                warningLogger.info(msg);
+            } else {
+                String infoMsg = String.format("Double check before %s. %s fetchPosition:", name, arbitrageService.getMainSetStr());
+                slackNotifications.sendNotify(infoMsg);
+                final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
+                final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
+                warningLogger.info(infoMsg + "bitmex " + pos1);
+                warningLogger.info(infoMsg + "okex " + pos2);
+
+                if (isNeededFunc.getAsBoolean()) {
+                    final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
+                    final BigDecimal positionsDiffWithHedge = getDcMainSet();
+                    warningLogger.info(String.format("%s posWithHedge=%s > mdc=%s", name, positionsDiffWithHedge, maxDiffCorr));
+                    arbitrageService.getFirstMarketService().stopAllActions();
+                    arbitrageService.getSecondMarketService().stopAllActions();
+                    dt.stop();
+                }
+            }
+
+        } else {
+            dt.stop();
         }
     }
 
@@ -454,6 +472,18 @@ public class PosDiffService {
         final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
         final BigDecimal dcExtra = getDcExtraSet();
         return (!isPosEqualByMaxAdj(dcExtra) && dcExtra.abs().compareTo(maxDiffCorr) >= 0);
+    }
+
+    private boolean isMdcAdjNeededMainSet() {
+        final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
+        final BigDecimal dc = getDcMainSet();
+        return (isAdjViolated(dc) && dc.abs().compareTo(maxDiffCorr) >= 0);
+    }
+
+    private boolean isMdcAdjNeededExtraSet() {
+        final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
+        final BigDecimal dcExtra = getDcExtraSet();
+        return (isAdjViolated(dcExtra) && dcExtra.abs().compareTo(maxDiffCorr) >= 0);
     }
 
     private void checkPosDiff() throws Exception {

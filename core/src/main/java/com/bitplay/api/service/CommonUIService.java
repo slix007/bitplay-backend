@@ -408,6 +408,8 @@ public class CommonUIService {
         return DelayTimerBuilder.createEmpty(delaySec)
                 .addTimer(posDiffService.getDtAdj().secToReady(delaySec), "adj")
                 .addTimer(posDiffService.getDtExtraAdj().secToReady(delaySec), "extraAdj")
+                .addTimer(posDiffService.getDtMdcAdj().secToReady(delaySec), "mdcAdj")
+                .addTimer(posDiffService.getDtExtraMdcAdj().secToReady(delaySec), "extraMdcAdj")
                 .toJson();
     }
 
