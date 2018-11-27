@@ -346,6 +346,7 @@ public class PosDiffService {
                     if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
                         arbitrageService.getFirstMarketService().stopAllActions();
                         arbitrageService.getSecondMarketService().stopAllActions();
+                        arbitrageService.releaseArbInProgress("", "timer-state-reset");
                     }
                 })
                 .doOnError(e -> {
@@ -423,6 +424,7 @@ public class PosDiffService {
                     warningLogger.info("MDC XBTUSD posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
                     arbitrageService.getFirstMarketService().stopAllActions();
                     arbitrageService.getSecondMarketService().stopAllActions();
+                    arbitrageService.releaseArbInProgress("", "MDC extraSet");
                     dtExtraMdc.stop();
                 }
             }
@@ -453,6 +455,7 @@ public class PosDiffService {
                     warningLogger.info(String.format("%s posWithHedge=%s > mdc=%s", name, positionsDiffWithHedge, maxDiffCorr));
                     arbitrageService.getFirstMarketService().stopAllActions();
                     arbitrageService.getSecondMarketService().stopAllActions();
+                    arbitrageService.releaseArbInProgress("", "MDC mainSet");
                     dt.stop();
                 }
             }
