@@ -8,6 +8,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexUtils;
+import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -312,8 +313,7 @@ public class PosDiffService {
     }
 
     private void startTimerToImmediateCorrection() {
-        if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
-                || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
+        if (marketsStopped()) {
             return;
         }
         if (!hasTimerStarted) {
@@ -375,8 +375,7 @@ public class PosDiffService {
     private void checkMDCJob() {
         arbitrageService.getParams().setLastMDCCheck(new Date());
 
-        if (arbitrageService.getFirstMarketService().getMarketState().isStopped()
-                || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
+        if (marketsStopped()) {
             dtMdc.setFirstStart(null);
             dtMdcAdj.setFirstStart(null);
             dtExtraMdc.setFirstStart(null);
@@ -465,6 +464,34 @@ public class PosDiffService {
         }
     }
 
+    private boolean marketsStopped() {
+        final FullBalance firstFullBalance = arbitrageService.getFirstMarketService().calcFullBalance();
+        final FullBalance secondFullBalance = arbitrageService.getSecondMarketService().calcFullBalance();
+
+        return arbitrageService.getFirstMarketService().getMarketState().isStopped()
+                || arbitrageService.getSecondMarketService().getMarketState().isStopped()
+                || firstFullBalance.getAccountInfoContracts() == null
+                || firstFullBalance.getAccountInfoContracts().geteBest() == null
+                || firstFullBalance.getAccountInfoContracts().geteBest().signum() <= 0
+                || secondFullBalance.getAccountInfoContracts() == null
+                || secondFullBalance.getAccountInfoContracts().geteBest() == null
+                || secondFullBalance.getAccountInfoContracts().geteBest().signum() <= 0;
+    }
+
+    private boolean marketsReady() {
+        final FullBalance firstFullBalance = arbitrageService.getFirstMarketService().calcFullBalance();
+        final FullBalance secondFullBalance = arbitrageService.getSecondMarketService().calcFullBalance();
+
+        return arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                && firstFullBalance.getAccountInfoContracts() != null
+                && firstFullBalance.getAccountInfoContracts().geteBest() != null
+                && firstFullBalance.getAccountInfoContracts().geteBest().signum() > 0
+                && secondFullBalance.getAccountInfoContracts() != null
+                && secondFullBalance.getAccountInfoContracts().geteBest() != null
+                && secondFullBalance.getAccountInfoContracts().geteBest().signum() > 0;
+    }
+
     private boolean isMdcNeededMainSet() {
         final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
         final BigDecimal dc = getDcMainSet();
@@ -536,9 +563,7 @@ public class PosDiffService {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
 
         // if all READY more than X sec
-        if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                && isAdjViolated(getDcMainSet())) {
+        if (marketsReady() && isAdjViolated(getDcMainSet())) {
 
             dtAdj.activate();
 
@@ -557,9 +582,7 @@ public class PosDiffService {
                         return true;
                     }
 
-                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                            && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                            && isAdjViolated(getDcMainSet())) {
+                    if (marketsReady() && isAdjViolated(getDcMainSet())) {
 
                         doCorrection(getHedgeAmountMainSet(), SignalType.ADJ);
                         dtAdj.stop();
@@ -603,9 +626,7 @@ public class PosDiffService {
     private boolean adjExtraStartedOrFailed(CorrParams corrParams) throws Exception {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
         // if all READY more than X sec
-        if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                && isAdjViolated(getDcExtraSet())) {
+        if (marketsReady() && isAdjViolated(getDcExtraSet())) {
 
             dtExtraAdj.activate();
 
@@ -625,9 +646,7 @@ public class PosDiffService {
                     }
 
                     // Second check
-                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                            && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                            && isAdjViolated(getDcExtraSet())) {
+                    if (marketsReady() && isAdjViolated(getDcExtraSet())) {
 
                         doCorrection(getHedgeAmountExtraSet(), SignalType.ADJ_BTC);
                         dtExtraAdj.stop();
@@ -645,9 +664,7 @@ public class PosDiffService {
     }
 
     private boolean corrStartedOrFailed(CorrParams corrParams) throws Exception {
-        if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                && !isPosEqualByMaxAdj(getDcMainSet())) {
+        if (marketsReady() && !isPosEqualByMaxAdj(getDcMainSet())) {
 
             dtCorr.activate();
 
@@ -668,9 +685,7 @@ public class PosDiffService {
                     }
 
                     // Second check
-                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                            && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                            && !isPosEqualByMaxAdj(getDcMainSet())) {
+                    if (marketsReady() && !isPosEqualByMaxAdj(getDcMainSet())) {
                         doCorrection(getHedgeAmountMainSet(), SignalType.CORR);
                         dtCorr.stop();
 
@@ -689,9 +704,7 @@ public class PosDiffService {
 
     private boolean corrExtraStartedOrFailed(CorrParams corrParams) throws Exception {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
-        if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                && !isPosEqualByMaxAdj(getDcExtraSet())) {
+        if (marketsReady() && !isPosEqualByMaxAdj(getDcExtraSet())) {
 
             dtExtraCorr.activate();
 
@@ -711,9 +724,7 @@ public class PosDiffService {
                     }
 
                     // Second check
-                    if (arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                            && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                            && !isPosEqualByMaxAdj(getDcExtraSet())) {
+                    if (marketsReady() && !isPosEqualByMaxAdj(getDcExtraSet())) {
                         doCorrection(getHedgeAmountExtraSet(), SignalType.CORR_BTC);
                         dtExtraCorr.stop();
 
@@ -779,9 +790,7 @@ public class PosDiffService {
         BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
         BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
 
-        if (!arbitrageService.getFirstMarketService().isStarted()
-                || arbitrageService.getFirstMarketService().getMarketState().isStopped()
-                || arbitrageService.getSecondMarketService().getMarketState().isStopped()) {
+        if (!arbitrageService.getFirstMarketService().isStarted() || marketsStopped()) {
             return;
         }
         stopTimerToImmediateCorrection(); // avoid double-correction
