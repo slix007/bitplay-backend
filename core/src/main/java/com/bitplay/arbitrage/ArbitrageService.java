@@ -17,6 +17,7 @@ import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventBus;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
@@ -395,7 +396,7 @@ public class ArbitrageService {
                         tradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
 
-                        slackNotifications.sendNotify(logString);
+                        slackNotifications.sendNotify(NotifyType.BUSY_6_MIN, logString);
 
                         boolean firstHanged = firstMarketService.isBusy() && !firstMarketService.hasOpenOrders();
                         boolean secondHanged = secondMarketService.isBusy() && !secondMarketService.hasOpenOrders();
@@ -421,7 +422,7 @@ public class ArbitrageService {
                         tradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
                         logger.warn(logString);
-                        slackNotifications.sendNotify(logString);
+                        slackNotifications.sendNotify(NotifyType.BUSY_6_MIN, logString);
                     }
 
                     if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
@@ -429,7 +430,8 @@ public class ArbitrageService {
                             boolean wasReset = arbInProgress.compareAndSet(true, false);
                             if (wasReset) {
                                 releaseArbInProgress(counterName, "'busy for 6 min'");
-                                slackNotifications.sendNotify(counterName + " busy for 6 min. Arbitrage state was reset to READY");
+                                slackNotifications.sendNotify(NotifyType.BUSY_6_MIN,
+                                        counterName + " busy for 6 min. Arbitrage state was reset to READY");
                             }
                         }
                     }
@@ -457,7 +459,7 @@ public class ArbitrageService {
                     firstDeltasCalculated = true;
                     logger.info("Started: First delta calculated");
                     warningLogger.info("Started: First delta calculated");
-                    slackNotifications.sendNotify("Started: First delta calculated");
+                    slackNotifications.sendNotify(NotifyType.AT_STARTUP, "Started: First delta calculated");
                 }
 
                 if (!deltasCalcService.isStarted()) {
@@ -879,7 +881,7 @@ public class ArbitrageService {
         }
 
         if (signalType != null && signalType.isPreliq()) {
-            slackNotifications.sendNotify(signalType.toString() + " B_DELTA");
+            slackNotifications.sendNotify(NotifyType.PRELIQ, signalType.toString() + " B_DELTA");
         }
 
         tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
@@ -1044,7 +1046,7 @@ public class ArbitrageService {
         }
 
         if (signalType != null && signalType.isPreliq()) {
-            slackNotifications.sendNotify(signalType.toString() + " O_DELTA");
+            slackNotifications.sendNotify(NotifyType.PRELIQ, signalType.toString() + " O_DELTA");
         }
 
         tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
@@ -1188,7 +1190,7 @@ public class ArbitrageService {
 
                 firstMarketService.setMarketState(MarketState.FORBIDDEN);
                 secondMarketService.setMarketState(MarketState.FORBIDDEN);
-                slackNotifications.sendNotifyThrottled("FORBIDDEN", "FORBIDDEN: " + msg);
+                slackNotifications.sendNotify(NotifyType.FORBIDDEN, "FORBIDDEN: " + msg);
             }
 
             // calc auto hedge

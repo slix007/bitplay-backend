@@ -2,6 +2,7 @@ package com.bitplay.market.bitmex;
 
 import com.bitplay.api.domain.ob.LimitsJson;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
@@ -81,8 +82,7 @@ public class BitmexLimitsService {
         final Boolean doCheck = !limits.getIgnoreLimits();
         final Boolean outsideLimits = !limits.getInsideLimits();
         if (outsideLimits) {
-            final String name = BitmexService.NAME + " outsideLimits";
-            slackNotifications.sendNotifyThrottled(name, name);
+            slackNotifications.sendNotify(NotifyType.BITMEX_OUTSIDE_LIMITS, BitmexService.NAME + " outsideLimits");
         }
 
         return doCheck && outsideLimits;

@@ -2,6 +2,7 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.bitmex.BitmexService;
@@ -97,7 +98,7 @@ public class SignalService {
         executorService.submit(() -> {
             try {
 
-                slackNotifications.sendNotify(String.format("#%s signal placeOrder bitmex %s a=%s", counterName, orderType, b_block));
+                slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s signal placeOrder bitmex %s a=%s", counterName, orderType, b_block));
 
                 if (b_block.signum() <= 0) {
                     Thread.sleep(1000);

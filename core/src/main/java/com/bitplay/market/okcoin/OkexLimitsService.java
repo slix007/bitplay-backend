@@ -2,6 +2,7 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.api.domain.ob.LimitsJson;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
@@ -69,8 +70,7 @@ public class OkexLimitsService {
         final Boolean doCheck = !limits.getIgnoreLimits();
         final Boolean outsideLimits = !limits.getInsideLimits();
         if (outsideLimits) {
-            final String name = OkCoinService.NAME + " outsideLimits";
-            slackNotifications.sendNotifyThrottled(name, name);
+            slackNotifications.sendNotify(NotifyType.OKEX_OUTSIDE_LIMITS, OkCoinService.NAME + " outsideLimits");
         }
 
         return doCheck && outsideLimits;

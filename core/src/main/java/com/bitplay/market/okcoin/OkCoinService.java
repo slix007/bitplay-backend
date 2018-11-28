@@ -11,6 +11,7 @@ import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
+import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
@@ -1759,7 +1760,7 @@ public class OkCoinService extends MarketService {
 //                oDQLOpenMin));
 
         if (!isOk) {
-            slackNotifications.sendNotifyThrottled("okexDQL_open_min",
+            slackNotifications.sendNotify(NotifyType.OKEX_DQL_OPEN_MIN,
                     String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), oDQLOpenMin));
         }
 

@@ -12,6 +12,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
+import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
@@ -316,7 +317,7 @@ public class BitmexService extends MarketService {
                     String msg = " Banned:" + e.getMessage();
                     logger.warn(msg);
                     warningLogger.warn(msg);
-                    slackNotifications.sendNotify(NAME + msg);
+                    slackNotifications.sendNotify(NotifyType.BITMEX_BAN_403, NAME + msg);
                     setOverloaded(null);
                 } else if (e.getHttpBody() != null) {
                     logger.warn("posXBTUSDUpdater: " + e.toString() + ". " + e.getHttpBody());
@@ -2247,7 +2248,7 @@ public class BitmexService extends MarketService {
         }
 
         if (!isOk) {
-            slackNotifications.sendNotifyThrottled("bitmexDQL_open_min",
+            slackNotifications.sendNotify(NotifyType.BITMEX_DQL_OPEN_MIN,
                     String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), bDQLOpenMin));
         }
 
@@ -2487,7 +2488,7 @@ public class BitmexService extends MarketService {
             logger.info(msg);
             tradeLogger.info(msg);
             warningLogger.info(msg);
-            slackNotifications.sendNotify(NAME + msg);
+            slackNotifications.sendNotify(NotifyType.BITMEX_X_RATE_LIMIT, NAME + msg);
             setOverloaded(null);
         }
         return isExceeded;
