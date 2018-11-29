@@ -1203,6 +1203,17 @@ public class ArbitrageService {
                 hedgeService.setHedgeBtc(sumEBestUsdCurr);
                 hedgeService.setHedgeEth(BigDecimal.ZERO);
             }
+
+            // notifications
+            // e_best bitmex / e_best okex > 1; e_best bitmex / e_best okex < 2; *
+            BigDecimal divRes = bEbest.divide(oEbest, 4, RoundingMode.HALF_UP);
+            String divResStr = "e_best bitmex/e_best okex=" + divRes;
+            if (divRes.subtract(BigDecimal.ONE).signum() > 0) {
+                slackNotifications.sendNotify(NotifyType.E_BEST_MORE_1, divResStr + " > 1");
+            }
+            if (divRes.subtract(BigDecimal.valueOf(2)).signum() < 0) {
+                slackNotifications.sendNotify(NotifyType.E_BEST_LESS_2, divResStr + " < 2");
+            }
         }
 
         Instant end = Instant.now();
