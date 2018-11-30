@@ -16,6 +16,7 @@ import com.bitplay.api.domain.TimersJson;
 import com.bitplay.api.domain.pos.PosDiffJson;
 import com.bitplay.api.service.CommonUIService;
 import com.bitplay.market.MarketService;
+import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.security.TraderPermissionsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -236,6 +237,31 @@ public class CommonEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public TimersJson timers() {
         return commonUIService.getTimersJson();
+    }
+
+    @RequestMapping(value = "/market/last-price-deviation",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public LastPriceDeviation getLastPriceDeviation() {
+        return commonUIService.getLastPriceDeviation();
+    }
+
+    @RequestMapping(value = "/market/last-price-deviation/fix",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public LastPriceDeviation fixLastPriceDeviation() {
+        return commonUIService.fixLastPriceDeviation();
+    }
+
+    @RequestMapping(value = "/market/last-price-deviation",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public LastPriceDeviation updateLastPriceDeviation(@RequestBody LastPriceDeviation lastPriceDeviation) {
+        return commonUIService.updateLastPriceDeviation(lastPriceDeviation);
     }
 
 }

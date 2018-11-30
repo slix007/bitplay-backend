@@ -1206,8 +1206,9 @@ public class ArbitrageService {
 
             // notifications
             // e_best bitmex / e_best okex > 1; e_best bitmex / e_best okex < 2; *
-            BigDecimal divRes = bEbest.divide(oEbest, 4, RoundingMode.HALF_UP);
-            String divResStr = "e_best bitmex/e_best okex=" + divRes;
+            BigDecimal divRes = bEbest.divide(oEbest, 2, RoundingMode.HALF_UP);
+            String divResStr = String.format("e_best_bitmex(%s)/e_best_okex(%s)=%s",
+                    bEbest, oEbest, divRes);
             if (divRes.subtract(BigDecimal.ONE).signum() > 0) {
                 slackNotifications.sendNotify(NotifyType.E_BEST_MORE_1, divResStr + " > 1");
             }

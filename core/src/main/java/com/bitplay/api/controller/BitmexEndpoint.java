@@ -37,7 +37,7 @@ public class BitmexEndpoint {
     private BitplayUIServiceBitmex bitmex;
 
     @RequestMapping(value = "/order-book", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public OrderBookJson okCoinOrderBook() {
+    public OrderBookJson getOrderBook() {
         try {
             return this.bitmex.getOrderBook();
         } catch (NotYetInitializedException e) {

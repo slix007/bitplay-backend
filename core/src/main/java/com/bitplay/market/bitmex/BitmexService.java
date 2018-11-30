@@ -30,6 +30,7 @@ import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
@@ -149,6 +150,9 @@ public class BitmexService extends MarketService {
 
     @Autowired
     private SlackNotifications slackNotifications;
+
+    @Autowired
+    private LastPriceDeviationService lastPriceDeviationService;
 
     @Autowired
     private BitmexBalanceService bitmexBalanceService;
@@ -2073,6 +2077,7 @@ public class BitmexService extends MarketService {
                                 BitmexContractIndex bitmexContractIndex = mergeContractIndex(this.contractIndex, contIndUpdate);
                                 this.contractIndex = bitmexContractIndex;
                                 this.ticker = new Ticker.Builder().last(bitmexContractIndex.getLastPrice()).timestamp(new Date()).build();
+                                lastPriceDeviationService.checkDeviationAsync();
 
                                 if (cm != null) {
                                     calcCM();

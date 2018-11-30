@@ -32,6 +32,7 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
@@ -39,6 +40,7 @@ import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.mon.MonRestart;
@@ -101,6 +103,9 @@ public class CommonUIService {
 
     @Autowired
     private SignalTimeService signalTimeService;
+
+    @Autowired
+    private LastPriceDeviationService lastPriceDeviationService;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -301,6 +306,7 @@ public class CommonUIService {
         final String delta2MinInstant = deltaMinService.getOkDeltaMinInstant().toPlainString();
         final String delta1MinFixed = deltaMinService.getBtmDeltaMinFixed().toPlainString();
         final String delta2MinFixed = deltaMinService.getOkDeltaMinFixed().toPlainString();
+        final LastPriceDeviation lastPriceDeviation = persistenceService.fetchLastPriceDeviation();
 
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
@@ -345,7 +351,8 @@ public class CommonUIService {
                 deltasCalcService.getBDeltaEveryCalc(),
                 deltasCalcService.getODeltaEveryCalc(),
                 deltasCalcService.getDeltaHistPerStartedSec(),
-                deltaSmaUpdateIn
+                deltaSmaUpdateIn,
+                lastPriceDeviation
         );
     }
 
@@ -669,6 +676,26 @@ public class CommonUIService {
         final int bordersTableHashCode = borderParams.getBordersV2().getBorderTableHashCode();
 
         return new TimersJson(startSignalTimerStr, deltaMinTimerStr, bordersTimerStr, String.valueOf(bordersTableHashCode));
+    }
+
+    public LastPriceDeviation getLastPriceDeviation() {
+        return lastPriceDeviationService.getLastPriceDeviation();
+    }
+
+    public LastPriceDeviation fixLastPriceDeviation() {
+
+        lastPriceDeviationService.fixCurrentLastPrice();
+
+        return lastPriceDeviationService.getLastPriceDeviation();
+    }
+
+    public LastPriceDeviation updateLastPriceDeviation(LastPriceDeviation update) {
+        if (update.getPercentage() != null) {
+            LastPriceDeviation toUpdate = lastPriceDeviationService.getLastPriceDeviation();
+            toUpdate.setPercentage(update.getPercentage());
+            lastPriceDeviationService.saveLastPriceDeviation(toUpdate);
+        }
+        return lastPriceDeviationService.getLastPriceDeviation();
     }
 
 }

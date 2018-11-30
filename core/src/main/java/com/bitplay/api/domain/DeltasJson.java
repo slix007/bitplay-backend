@@ -1,5 +1,6 @@
 package com.bitplay.api.domain;
 
+import com.bitplay.persistance.domain.LastPriceDeviation;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -53,5 +54,7 @@ public class DeltasJson {
     private String delta2EveryCalc;
     private String deltaHistPerStarted;
     private String deltaSmaUpdateIn;
+
+    private LastPriceDeviation lastPriceDeviation;
 
 }

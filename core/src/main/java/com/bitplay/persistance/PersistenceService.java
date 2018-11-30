@@ -7,6 +7,7 @@ import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.ExchangePair;
 import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
+import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.MarketDocument;
 import com.bitplay.persistance.domain.SwapParams;
@@ -85,6 +86,14 @@ public class PersistenceService {
     public GuiLiqParams fetchGuiLiqParams() {
         GuiLiqParams guiLiqParams = mongoTemplate.findById(3L, GuiLiqParams.class);
         return guiLiqParams;
+    }
+
+    public void saveLastPriceDeviation(LastPriceDeviation lastPriceDeviation) {
+        mongoTemplate.save(lastPriceDeviation);
+    }
+
+    public LastPriceDeviation fetchLastPriceDeviation() {
+        return mongoTemplate.findById(4L, LastPriceDeviation.class);
     }
 
 

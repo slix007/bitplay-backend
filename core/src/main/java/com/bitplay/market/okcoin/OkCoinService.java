@@ -25,6 +25,7 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
@@ -126,7 +127,8 @@ public class OkCoinService extends MarketService {
 
     @Autowired
     private SlackNotifications slackNotifications;
-
+    @Autowired
+    private LastPriceDeviationService lastPriceDeviationService;
     @Autowired
     private com.bitplay.persistance.TradeService fplayTradeService;
     @Autowired
@@ -625,6 +627,7 @@ public class OkCoinService extends MarketService {
                 .subscribe(ticker -> {
                     logger.debug(ticker.toString());
                     this.ticker = ticker;
+                    lastPriceDeviationService.checkDeviationAsync();
                 }, throwable -> {
                     logger.error("OkexFutureTicker.Exception: ", throwable);
                 });
