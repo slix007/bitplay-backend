@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.Config;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
@@ -48,6 +49,9 @@ public class SettingsEndpoint {
 
     @Autowired
     private BitmexService bitmexService;
+
+    @Autowired
+    private PosDiffService posDiffService;
 
     @Autowired
     private TraderPermissionsService traderPermissionsService;
@@ -148,10 +152,22 @@ public class SettingsEndpoint {
             current.setPosAdjustmentMax(update.getPosAdjustmentMax() != null ? update.getPosAdjustmentMax() : current.getPosAdjustmentMax());
             current.setPosAdjustmentPlacingType(
                     update.getPosAdjustmentPlacingType() != null ? update.getPosAdjustmentPlacingType() : current.getPosAdjustmentPlacingType());
-            current.setPosAdjustmentDelaySec(
-                    update.getPosAdjustmentDelaySec() != null ? update.getPosAdjustmentDelaySec() : current.getPosAdjustmentDelaySec());
-            current.setCorrDelaySec(update.getCorrDelaySec() != null ? update.getCorrDelaySec() : current.getCorrDelaySec());
-            current.setPreliqDelaySec(update.getPreliqDelaySec() != null ? update.getPreliqDelaySec() : current.getPreliqDelaySec());
+            if (update.getPosAdjustmentDelaySec() != null) {
+                current.setPosAdjustmentDelaySec(update.getPosAdjustmentDelaySec());
+                settingsRepositoryService.saveSettings(settings);
+                posDiffService.stopTimer("adj");
+            }
+            if (update.getCorrDelaySec() != null) {
+                current.setCorrDelaySec(update.getCorrDelaySec());
+                settingsRepositoryService.saveSettings(settings);
+                posDiffService.stopTimer("corr");
+            }
+            if (update.getPreliqDelaySec() != null) {
+                current.setPreliqDelaySec(update.getPreliqDelaySec());
+                settingsRepositoryService.saveSettings(settings);
+                bitmexService.getDtPreliq().stop();
+                okCoinService.getDtPreliq().stop();
+            }
             settingsRepositoryService.saveSettings(settings);
         }
 

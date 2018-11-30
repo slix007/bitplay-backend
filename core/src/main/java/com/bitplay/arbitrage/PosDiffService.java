@@ -378,10 +378,10 @@ public class PosDiffService {
         arbitrageService.getParams().setLastMDCCheck(new Date());
 
         if (marketsStopped()) {
-            dtMdc.setFirstStart(null);
-            dtMdcAdj.setFirstStart(null);
-            dtExtraMdc.setFirstStart(null);
-            dtExtraMdcAdj.setFirstStart(null);
+            dtMdc.stop();
+            dtMdcAdj.stop();
+            dtExtraMdc.stop();
+            dtExtraMdcAdj.stop();
             return;
         }
         if (!hasMDCStarted) {
@@ -903,6 +903,20 @@ public class PosDiffService {
             if (corrObj.correctAmount.compareTo(bMax) > 0) {
                 corrObj.correctAmount = bMax;
             }
+        }
+    }
+
+    public void stopTimer(String type) {
+        if (type.equals("adj")) {
+            dtAdj.stop();
+            dtMdcAdj.stop();
+            dtExtraAdj.stop();
+            dtExtraMdcAdj.stop();
+        } else { //"corr"
+            dtCorr.stop();
+            dtMdc.stop();
+            dtExtraCorr.stop();
+            dtExtraMdc.stop();
         }
     }
 
