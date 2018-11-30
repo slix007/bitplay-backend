@@ -48,6 +48,11 @@ public class TraderPermissionsService {
                 return isValidWithDelay(true, bEbest, oEbest);
             }
             if (sumEBestUsd.compareTo(BigDecimal.valueOf(eBestMin)) < 0) {
+                // Флаг Forbidden не ставится, если s_e_best < s_e_best_min && e_best любой биржи = 0.
+                if (bEbest.signum() == 0 || oEbest.signum() == 0) {
+                    log.warn("WARNING: sumEBestUsd({}) < e_best_min({}), but equity==0(bEbest={}, oEbest={})", sumEBestUsd, eBestMin, bEbest, oEbest);
+                    return isValidWithDelay(true, bEbest, oEbest);
+                }
                 log.warn("WARNING: sumEBestUsd({}) < e_best_min({})", sumEBestUsd, eBestMin);
                 return isValidWithDelay(false, bEbest, oEbest);
             }
