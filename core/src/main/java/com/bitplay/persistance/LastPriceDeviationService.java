@@ -13,6 +13,8 @@ import java.util.concurrent.Executors;
 import lombok.extern.log4j.Log4j;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,8 @@ import org.springframework.stereotype.Service;
 @Log4j
 @Service
 public class LastPriceDeviationService {
+
+    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     @Autowired
     private BitmexService bitmexService;
@@ -88,6 +92,7 @@ public class LastPriceDeviationService {
                     dev.getPercentage()
             );
             slackNotifications.sendNotify(NotifyType.PRICE_CHANGE_10, msg);
+            warningLogger.info(msg);
             log.info(msg);
             dev.setBitmexMain(dev.getBitmexMainCurr());
         }
@@ -98,6 +103,7 @@ public class LastPriceDeviationService {
                     dev.getPercentage()
             );
             slackNotifications.sendNotify(NotifyType.PRICE_CHANGE_10, msg);
+            warningLogger.info(msg);
             log.info(msg);
             dev.setBitmexExtra(dev.getBitmexExtraCurr());
         }
@@ -108,6 +114,7 @@ public class LastPriceDeviationService {
                     dev.getPercentage()
             );
             slackNotifications.sendNotify(NotifyType.PRICE_CHANGE_10, msg);
+            warningLogger.info(msg);
             log.info(msg);
             dev.setOkexMain(dev.getOkexMainCurr());
         }
