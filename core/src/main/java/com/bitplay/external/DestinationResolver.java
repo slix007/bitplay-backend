@@ -72,7 +72,7 @@ public class DestinationResolver {
                 toThrottle.put(objectToThrottle, Instant.now());
             }
         } catch (Exception e) {
-            log.error("Can not send slack notification", e);
+            log.error("Can not throttle slack notification", e);
         }
         return skipThisOne;
     }

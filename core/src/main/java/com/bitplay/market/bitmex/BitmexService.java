@@ -438,6 +438,7 @@ public class BitmexService extends MarketService {
     public void reSubscribeOrderBooks(boolean force) throws ReconnectFailedException, TimeoutException {
 
         if (force || !orderBookIsFilled() || !orderBookForPriceIsFilled()) {
+            slackNotifications.sendNotify(NotifyType.BITMEX_RECONNECT, "bitmex resubscribe");
 
             String msgOb = String.format("re-subscribe OrderBook: asks=%s, bids=%s, timestamp=%s. ",
                     orderBook.getAsks().size(),
@@ -521,6 +522,7 @@ public class BitmexService extends MarketService {
 
             if (needReconnect) {
                 reconnectInProgress = true;
+                slackNotifications.sendNotify(NotifyType.BITMEX_RECONNECT, "bitmex reconnect");
 
                 try {
                     reconnectOrRestart();

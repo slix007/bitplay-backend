@@ -30,6 +30,7 @@ public enum NotifyType {
     OKEX_DQL_OPEN_MIN(true, true),
     BITMEX_OUTSIDE_LIMITS(true, true),
     OKEX_OUTSIDE_LIMITS(true, true),
+    BITMEX_RECONNECT(false, false),
 
     BUSY_6_MIN(false, false),
     AT_STARTUP(false, false),

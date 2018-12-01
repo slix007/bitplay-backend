@@ -81,7 +81,7 @@ public class BitmexLimitsService {
         final LimitsJson limits = getLimitsJson();
         final Boolean doCheck = !limits.getIgnoreLimits();
         final Boolean outsideLimits = !limits.getInsideLimits();
-        if (outsideLimits) {
+        if (outsideLimits && !bitmexService.isReconnectInProgress()) {
             slackNotifications.sendNotify(NotifyType.BITMEX_OUTSIDE_LIMITS, BitmexService.NAME + " outsideLimits");
         }
 
