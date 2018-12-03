@@ -67,7 +67,8 @@ public class DestinationResolver {
 
         try {
             Instant lastRun = toThrottle.get(objectToThrottle);
-            if (lastRun == null || Duration.between(lastRun, Instant.now()).getSeconds() > 30) {
+            int waitingSec = notifyType.getThrottleSec();
+            if (lastRun == null || Duration.between(lastRun, Instant.now()).getSeconds() > waitingSec) {
                 skipThisOne = false;
                 toThrottle.put(objectToThrottle, Instant.now());
             }

@@ -2,9 +2,11 @@ package com.bitplay.external;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-@AllArgsConstructor
 @Getter
+@AllArgsConstructor
+@RequiredArgsConstructor
 public enum NotifyType {
     //Список алармов для night:
     //1. Stop all actions (MDC и signal limit) *
@@ -20,16 +22,16 @@ public enum NotifyType {
 
     STOP_ALL_ACTIONS(false, true),
     PRELIQ(false, true),
-    FORBIDDEN(true, true),
-    E_BEST_VIOLATION(true, true),
+    FORBIDDEN(true, true, 60 * 30), // 30 min
+    E_BEST_VIOLATION(true, true, 60 * 60), // 60 min
     CORR_NOTIFY(false, true),
-    BITMEX_BAN_403(true, true),
-    OKEX_BAN_403(true, true),
+    BITMEX_BAN_403(true, true, 60 * 30), // 30 min
+    OKEX_BAN_403(true, true, 60 * 30), // 30 min
     PRICE_CHANGE_10(false, true),
-    BITMEX_DQL_OPEN_MIN(true, true),
-    OKEX_DQL_OPEN_MIN(true, true),
-    BITMEX_OUTSIDE_LIMITS(true, true),
-    OKEX_OUTSIDE_LIMITS(true, true),
+    BITMEX_DQL_OPEN_MIN(true, true, 60 * 30), // 30 min
+    OKEX_DQL_OPEN_MIN(true, true, 60 * 30), // 30 min
+    BITMEX_OUTSIDE_LIMITS(true, true, 60 * 30), // 30 min
+    OKEX_OUTSIDE_LIMITS(true, true, 60 * 30), // 30 min
     BITMEX_RECONNECT(false, false),
 
     BUSY_6_MIN(false, false),
@@ -39,6 +41,7 @@ public enum NotifyType {
     TRADE_SIGNAL(false, false),
     ;
 
-    private boolean throttled;
-    private boolean night;
+    private final boolean throttled;
+    private final boolean night;
+    private Integer throttleSec = 60 * 30; // 30 min
 }
