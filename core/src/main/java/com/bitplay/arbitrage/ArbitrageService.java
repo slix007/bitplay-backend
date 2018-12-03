@@ -1205,12 +1205,12 @@ public class ArbitrageService {
             }
 
             // notifications
-            // 1 < e_best bitmex / e_best okex < 2 - correct interval
+            // 0.5 < e_best bitmex / e_best okex < 1 - correct interval
             BigDecimal divRes = bEbest.divide(oEbest, 2, RoundingMode.HALF_UP);
-            if (divRes.subtract(BigDecimal.ONE).signum() <= 0 || divRes.subtract(BigDecimal.valueOf(2)).signum() >= 0) {
-                String divResStr = String.format("e_best_bitmex(%s)/e_best_okex(%s)=res(%s). Correct interval: 1 < res < 2",
+            if (divRes.subtract(BigDecimal.valueOf(0.5)).signum() <= 0 || divRes.subtract(BigDecimal.valueOf(1)).signum() >= 0) {
+                String divResStr = String.format("e_best_bitmex(%s)/e_best_okex(%s)=res(%s). Correct interval: 0.5 < res < 1",
                         bEbest, oEbest, divRes);
-                slackNotifications.sendNotify(NotifyType.E_BEST_VIOLATION, divResStr + " > 1");
+                slackNotifications.sendNotify(NotifyType.E_BEST_VIOLATION, divResStr);
             }
 
         }
