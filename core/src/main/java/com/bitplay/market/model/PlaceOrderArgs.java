@@ -30,6 +30,23 @@ public class PlaceOrderArgs {
     final private Instant lastObTime;
     final private ContractType contractType;
     final private AmountType amountType;
+    final private Instant preliqQueuedTime;
+
+    public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType, int attempt,
+            Long tradeId, String counterName, Instant lastObTime, ContractType contractType, AmountType amountType, Instant preliqQueuedTime) {
+        this.orderType = orderType;
+        this.amount = amount;
+        this.bestQuotes = bestQuotes;
+        this.placingType = placingType;
+        this.signalType = signalType;
+        this.attempt = attempt;
+        this.counterName = counterName;
+        this.tradeId = tradeId;
+        this.lastObTime = lastObTime;
+        this.contractType = contractType;
+        this.amountType = amountType;
+        this.preliqQueuedTime = preliqQueuedTime;
+    }
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType, int attempt,
             Long tradeId, String counterName, Instant lastObTime, ContractType contractType, AmountType amountType) {
@@ -44,6 +61,7 @@ public class PlaceOrderArgs {
         this.lastObTime = lastObTime;
         this.contractType = contractType;
         this.amountType = amountType;
+        this.preliqQueuedTime = null;
     }
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType, int attempt,
@@ -59,6 +77,7 @@ public class PlaceOrderArgs {
         this.lastObTime = lastObTime;
         this.contractType = contractType;
         this.amountType = null;
+        this.preliqQueuedTime = null;
     }
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType, int attempt,
@@ -74,6 +93,7 @@ public class PlaceOrderArgs {
         this.lastObTime = lastObTime;
         this.contractType = null;
         this.amountType = null;
+        this.preliqQueuedTime = null;
     }
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType,
@@ -89,11 +109,12 @@ public class PlaceOrderArgs {
         this.lastObTime = null;
         this.contractType = null;
         this.amountType = null;
+        this.preliqQueuedTime = null;
     }
 
     public static PlaceOrderArgs nextPlacingArgs(PlaceOrderArgs curr) {
         return new PlaceOrderArgs(curr.orderType, curr.amount, curr.bestQuotes, curr.placingType, curr.signalType,
-                curr.attempt + 1, curr.tradeId, curr.counterName, curr.lastObTime, curr.contractType, curr.amountType);
+                curr.attempt + 1, curr.tradeId, curr.counterName, curr.lastObTime, curr.contractType, curr.amountType, curr.preliqQueuedTime);
     }
 
 }

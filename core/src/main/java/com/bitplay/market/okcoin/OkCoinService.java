@@ -17,6 +17,7 @@ import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -40,6 +41,7 @@ import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import info.bitrich.xchangestream.okex.dto.Tool;
@@ -60,6 +62,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -92,6 +96,8 @@ import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.util.Pair;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -101,7 +107,7 @@ import si.mazi.rescu.HttpStatusIOException;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service("okcoin")
-public class OkCoinService extends MarketService {
+public class OkCoinService extends MarketServicePreliq {
 
     public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
@@ -229,6 +235,21 @@ public class OkCoinService extends MarketService {
         initWebSocketAndAllSubscribers();
         initDeferedPlacingOrder();
     }
+
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryBuilder().setNameFormat("okex-preliq-thread-%d").build());
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void init() {
+        scheduler.scheduleWithFixedDelay(() -> {
+            try {
+                checkForDecreasePosition();
+            } catch (Exception e) {
+                logger.error("Error on checkForDecreasePosition", e);
+            }
+        }, 30, 1, TimeUnit.SECONDS);
+    }
+
 
     private void initWebSocketAndAllSubscribers() {
         initWebSocketConnection();
@@ -1768,60 +1789,6 @@ public class OkCoinService extends MarketService {
         }
 
         return isOk;
-    }
-
-    @Scheduled(initialDelay = 30 * 1000, fixedDelay = 1000)
-    public void checkForDecreasePosition() {
-        Instant start = Instant.now();
-
-        if (isMarketStopped()) {
-            dtPreliq.stop();
-            return;
-        }
-
-        final BigDecimal oDQLCloseMin = persistenceService.fetchGuiLiqParams().getODQLCloseMin();
-        final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
-
-        if (liqInfo.getDqlCurr() != null
-                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
-                && liqInfo.getDqlCurr().compareTo(oDQLCloseMin) < 0
-                && pos.signum() != 0) {
-
-            dtPreliq.activate();
-
-            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-            if (corrParams.getPreliq().hasSpareAttempts()) {
-                final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPreliqDelaySec();
-                long secToReady = dtPreliq.secToReady(delaySec);
-                if (secToReady > 0) {
-                    String msg = "O_PRE_LIQ signal mainSet. Waiting delay(sec)=" + secToReady;
-                    logger.info(msg);
-                    warningLogger.info(msg);
-                    tradeLogger.info(msg);
-                } else {
-                    final String counterForLogs = getCounterName();
-                    String msg = String.format("#%s O_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
-                            counterForLogs,
-                            position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
-                            liqInfo.getDqlCurr().toPlainString(), oDQLCloseMin.toPlainString());
-                    tradeLogger.info(msg);
-                    warningLogger.info(msg);
-                    final BestQuotes bestQuotes = Utils.createBestQuotes(
-                            arbitrageService.getSecondMarketService().getOrderBook(),
-                            arbitrageService.getFirstMarketService().getOrderBook());
-                    if (pos.signum() > 0) {
-                        arbitrageService.startPreliqOnDelta2(SignalType.O_PRE_LIQ, bestQuotes);
-                    } else if (pos.signum() < 0) {
-                        arbitrageService.startPreliqOnDelta1(SignalType.O_PRE_LIQ, bestQuotes);
-                    }
-                    dtPreliq.stop();
-                }
-            }
-        } else {
-            dtPreliq.stop();
-        }
-        Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "checkForDecreasePosition");
     }
 
     @Override

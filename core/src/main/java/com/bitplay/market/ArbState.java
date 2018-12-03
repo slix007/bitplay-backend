@@ -6,4 +6,5 @@ package com.bitplay.market;
 public enum ArbState {
     READY,
     IN_PROGRESS,
+    PRELIQ,
 }

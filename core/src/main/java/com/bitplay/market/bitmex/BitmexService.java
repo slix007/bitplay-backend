@@ -19,6 +19,7 @@ import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.ExtrastopService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
@@ -46,6 +47,7 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
@@ -74,6 +76,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -101,6 +105,8 @@ import org.knowm.xchange.utils.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import si.mazi.rescu.HttpStatusIOException;
@@ -109,7 +115,7 @@ import si.mazi.rescu.HttpStatusIOException;
  * Created by Sergey Shurmin on 4/29/17.
  */
 @Service("bitmex")
-public class BitmexService extends MarketService {
+public class BitmexService extends MarketServicePreliq {
     private final static Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger ordersLogger = LoggerFactory.getLogger("BITMEX_ORDERS_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
@@ -2262,58 +2268,72 @@ public class BitmexService extends MarketService {
         return isOk;
     }
 
-    @Scheduled(initialDelay = 30 * 1000, fixedDelay = 1000)
-    public void checkForDecreasePosition() {
-        Instant start = Instant.now();
+//    @Scheduled(initialDelay = 30 * 1000, fixedDelay = 1000)
+//    public void checkForDecreasePosition() {
+//        Instant start = Instant.now();
+//
+//        if (isMarketStopped()) {
+//            dtPreliq.stop();
+//            return;
+//        }
+//
+//        final BigDecimal bDQLCloseMin = getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
+//        final BigDecimal pos = position.getPositionLong();
+//
+//        if (liqInfo.getDqlCurr() != null
+//                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
+//                && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) < 0
+//                && pos.signum() != 0) {
+//
+//            dtPreliq.activate();
+//
+//            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+//            if (corrParams.getPreliq().hasSpareAttempts()) {
+//                final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPreliqDelaySec();
+//                long secToReady = dtPreliq.secToReady(delaySec);
+//                if (secToReady > 0) {
+//                    String msg = "B_PRE_LIQ signal mainSet. Waiting delay(sec)=" + secToReady;
+//                    logger.info(msg);
+//                    warningLogger.info(msg);
+//                    tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
+//                } else {
+//                    final String counterForLogs = getCounterName();
+//                    String msg = String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
+//                            counterForLogs,
+//                            pos.toPlainString(),
+//                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString());
+//                    tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
+//                    warningLogger.info(msg);
+//                    final BestQuotes bestQuotes = Utils.createBestQuotes(
+//                            arbitrageService.getSecondMarketService().getOrderBook(),
+//                            arbitrageService.getFirstMarketService().getOrderBook());
+//                    if (pos.signum() > 0) {
+//                        arbitrageService.startPreliqOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
+//                    } else if (pos.signum() < 0) {
+//                        arbitrageService.startPreliqOnDelta2(SignalType.B_PRE_LIQ, bestQuotes);
+//                    }
+//                    dtPreliq.stop();
+//                }
+//            }
+//        } else {
+//            dtPreliq.stop();
+//        }
+//        Instant end = Instant.now();
+//        Utils.logIfLong(start, end, logger, "checkForDecreasePosition");
+//    }
 
-        if (isMarketStopped()) {
-            dtPreliq.stop();
-            return;
-        }
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryBuilder().setNameFormat("bitmex-preliq-thread-%d").build());
 
-        final BigDecimal bDQLCloseMin = getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
-        final BigDecimal pos = position.getPositionLong();
-
-        if (liqInfo.getDqlCurr() != null
-                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
-                && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) < 0
-                && pos.signum() != 0) {
-
-            dtPreliq.activate();
-
-            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-            if (corrParams.getPreliq().hasSpareAttempts()) {
-                final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPreliqDelaySec();
-                long secToReady = dtPreliq.secToReady(delaySec);
-                if (secToReady > 0) {
-                    String msg = "B_PRE_LIQ signal mainSet. Waiting delay(sec)=" + secToReady;
-                    logger.info(msg);
-                    warningLogger.info(msg);
-                    tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
-                } else {
-                    final String counterForLogs = getCounterName();
-                    String msg = String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
-                            counterForLogs,
-                            pos.toPlainString(),
-                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString());
-                    tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
-                    warningLogger.info(msg);
-                    final BestQuotes bestQuotes = Utils.createBestQuotes(
-                            arbitrageService.getSecondMarketService().getOrderBook(),
-                            arbitrageService.getFirstMarketService().getOrderBook());
-                    if (pos.signum() > 0) {
-                        arbitrageService.startPreliqOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
-                    } else if (pos.signum() < 0) {
-                        arbitrageService.startPreliqOnDelta2(SignalType.B_PRE_LIQ, bestQuotes);
-                    }
-                    dtPreliq.stop();
-                }
+    @EventListener(ApplicationReadyEvent.class)
+    public void init() {
+        scheduler.scheduleWithFixedDelay(() -> {
+            try {
+                checkForDecreasePosition();
+            } catch (Exception e) {
+                logger.error("Error on checkForDecreasePosition", e);
             }
-        } else {
-            dtPreliq.stop();
-        }
-        Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "checkForDecreasePosition");
+        }, 30, 1, TimeUnit.SECONDS);
     }
 
     public BitmexSwapService getBitmexSwapService() {

@@ -59,11 +59,15 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Sergey Shurmin on 4/16/17.
  */
 public abstract class MarketService extends MarketServiceOpenOrders {
+
+    private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
 
     protected static final int MAX_ATTEMPTS_CANCEL = 90;
 
@@ -285,6 +289,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             case MOVING:
             case STOPPED:
             case FORBIDDEN:
+            case PRELIQ:
                 if (flags != null && flags.length > 0 && (flags[0].equals("UI") || flags[0].equals("FORCE_RESET"))) {
                     logger.info("reset {} from " + flags[0], marketState);
                     setMarketState(MarketState.READY);
@@ -292,7 +297,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     if (getArbitrageService().getSignalType().isCorr()) {
                         getPosDiffService().finishCorr(tradeId);
                     }
-
                 }
                 break;
             case SYSTEM_OVERLOADED:
@@ -734,7 +738,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     protected void checkOpenOrdersForMoving(Instant startTime) {
 //        debugLog.info(getName() + ":checkOpenOrdersForMoving");
-        if (specialFlags != SpecialFlags.STOP_MOVING) {
+        if (!isMovingStopped()) {
             iterateOpenOrdersMove(startTime);
         }
     }
@@ -876,7 +880,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             }
         }
 
-        if (specialFlags == SpecialFlags.STOP_MOVING) {
+        if (isMovingStopped()) {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.WAITING_TIMEOUT, "");
         } else if ((limitOrder.getType() == Order.OrderType.ASK && limitOrder.getLimitPrice().compareTo(bestAsk) == 0)
                 || (limitOrder.getType() == Order.OrderType.BID && limitOrder.getLimitPrice().compareTo(bestBid) == 0)) {
@@ -961,7 +965,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }).share();
     }
 
-    public boolean isMovingStop() {
+    private boolean isMovingStopped() {
+        return specialFlags == SpecialFlags.STOP_MOVING || getArbitrageService().isArbStatePreliq();
+    }
+
+    public boolean getMovingStop() {
         return specialFlags == SpecialFlags.STOP_MOVING;
     }
 

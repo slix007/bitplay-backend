@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -37,8 +38,8 @@ public class TwoMarketStarter {
     private Config config;
     private ApplicationContext context;
 
-    private MarketService firstMarketService;
-    private MarketService secondMarketService;
+    private MarketServicePreliq firstMarketService;
+    private MarketServicePreliq secondMarketService;
     private PosDiffService posDiffService;
 
     private SlackNotifications slackNotifications;
@@ -88,7 +89,7 @@ public class TwoMarketStarter {
         CompletableFuture<Boolean> first = CompletableFuture.supplyAsync(() -> {
             try {
                 final String firstMarketName = config.getFirstMarketName();
-                firstMarketService = (MarketService) context.getBean(firstMarketName);
+                firstMarketService = (MarketServicePreliq) context.getBean(firstMarketName);
                 firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret(), bitmexContractType);
                 logger.info("MARKET1: " + firstMarketService);
                 return true;
@@ -106,7 +107,7 @@ public class TwoMarketStarter {
         CompletableFuture<Boolean> second = CompletableFuture.supplyAsync(() -> {
             try {
                 final String secondMarketName = config.getSecondMarketName();
-                secondMarketService = (MarketService) context.getBean(secondMarketName);
+                secondMarketService = (MarketServicePreliq) context.getBean(secondMarketName);
                 secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret(), okexContractType);
                 logger.info("MARKET2: " + secondMarketService);
                 return true;
@@ -135,11 +136,11 @@ public class TwoMarketStarter {
                 });
     }
 
-    public MarketService getFirstMarketService() {
+    public MarketServicePreliq getFirstMarketService() {
         return firstMarketService;
     }
 
-    public MarketService getSecondMarketService() {
+    public MarketServicePreliq getSecondMarketService() {
         return secondMarketService;
     }
 

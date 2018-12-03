@@ -408,8 +408,8 @@ public class PosDiffService {
 
     private void checkMdcExtraSet(String name, Integer delaySec, DelayTimer dt, BooleanSupplier isNeededFunc) {
         if (isNeededFunc.getAsBoolean()) {
-            dtExtraMdc.activate();
-            long secToReady = dtExtraMdc.secToReady(delaySec);
+            dt.activate();
+            long secToReady = dt.secToReady(delaySec);
             if (secToReady > 0) {
                 String msg = String.format("%s signal. Waiting delay(sec)=%s", name, secToReady);
                 log.info(msg);
@@ -427,12 +427,12 @@ public class PosDiffService {
                     arbitrageService.getFirstMarketService().stopAllActions();
                     arbitrageService.getSecondMarketService().stopAllActions();
                     arbitrageService.releaseArbInProgress("", "MDC extraSet");
-                    dtExtraMdc.stop();
+                    dt.stop();
                     slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS, "STOP_ALL_ACTIONS:" + msg);
                 }
             }
         } else {
-            dtExtraMdc.stop();
+            dt.stop();
         }
     }
 
@@ -569,34 +569,32 @@ public class PosDiffService {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
 
         // if all READY more than X sec
-        if (marketsReady() && isAdjViolated(getDcMainSet())) {
+        if (marketsReady() && isAdjViolated(getDcMainSet()) && corrParams.getAdj().hasSpareAttempts()) {
 
             dtAdj.activate();
 
-            if (corrParams.getAdj().hasSpareAttempts()) {
-                long secToReady = dtAdj.secToReady(delaySec);
-                if (secToReady > 0) {
-                    String msg = "Adj signal mainSet. Waiting delay(sec)=" + secToReady;
-                    log.info(msg);
-                    warningLogger.info(msg);
+            long secToReady = dtAdj.secToReady(delaySec);
+            if (secToReady > 0) {
+                String msg = "Adj signal mainSet. Waiting delay(sec)=" + secToReady;
+                log.info(msg);
+                warningLogger.info(msg);
+            } else {
+
+                String infoMsg = String.format("Double check before adjustment mainSet. %s fetchPosition:",
+                        arbitrageService.getMainSetStr());
+                slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
+                if (doubleFetchPositionFailed(infoMsg, false)) {
+                    return true;
+                }
+
+                if (marketsReady() && isAdjViolated(getDcMainSet())) {
+
+                    doCorrection(getHedgeAmountMainSet(), SignalType.ADJ);
+                    dtAdj.stop();
+
+                    return true; // started
                 } else {
-
-                    String infoMsg = String.format("Double check before adjustment mainSet. %s fetchPosition:",
-                            arbitrageService.getMainSetStr());
-                    slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
-                    if (doubleFetchPositionFailed(infoMsg, false)) {
-                        return true;
-                    }
-
-                    if (marketsReady() && isAdjViolated(getDcMainSet())) {
-
-                        doCorrection(getHedgeAmountMainSet(), SignalType.ADJ);
-                        dtAdj.stop();
-
-                        return true; // started
-                    } else {
-                        dtAdj.stop();
-                    }
+                    dtAdj.stop();
                 }
             }
         } else {
@@ -632,35 +630,33 @@ public class PosDiffService {
     private boolean adjExtraStartedOrFailed(CorrParams corrParams) throws Exception {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
         // if all READY more than X sec
-        if (marketsReady() && isAdjViolated(getDcExtraSet())) {
+        if (marketsReady() && isAdjViolated(getDcExtraSet()) && corrParams.getAdj().hasSpareAttempts()) {
 
             dtExtraAdj.activate();
 
-            if (corrParams.getAdj().hasSpareAttempts()) {
-                long secToReady = dtExtraAdj.secToReady(delaySec);
-                if (secToReady > 0) {
-                    String msg = "Adj signal extraSet. Waiting delay(sec)=" + secToReady;
-                    log.info(msg);
-                    warningLogger.info(msg);
+            long secToReady = dtExtraAdj.secToReady(delaySec);
+            if (secToReady > 0) {
+                String msg = "Adj signal extraSet. Waiting delay(sec)=" + secToReady;
+                log.info(msg);
+                warningLogger.info(msg);
+            } else {
+
+                String infoMsg = String.format("Double check before adjustment XBTUSD. %s fetchPosition:",
+                        arbitrageService.getExtraSetStr());
+                slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
+                if (doubleFetchPositionFailed(infoMsg, true)) {
+                    return true;
+                }
+
+                // Second check
+                if (marketsReady() && isAdjViolated(getDcExtraSet())) {
+
+                    doCorrection(getHedgeAmountExtraSet(), SignalType.ADJ_BTC);
+                    dtExtraAdj.stop();
+
+                    return true; // started
                 } else {
-
-                    String infoMsg = String.format("Double check before adjustment XBTUSD. %s fetchPosition:",
-                            arbitrageService.getExtraSetStr());
-                    slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
-                    if (doubleFetchPositionFailed(infoMsg, true)) {
-                        return true;
-                    }
-
-                    // Second check
-                    if (marketsReady() && isAdjViolated(getDcExtraSet())) {
-
-                        doCorrection(getHedgeAmountExtraSet(), SignalType.ADJ_BTC);
-                        dtExtraAdj.stop();
-
-                        return true; // started
-                    } else {
-                        dtExtraAdj.stop();
-                    }
+                    dtExtraAdj.stop();
                 }
             }
         } else {
@@ -670,35 +666,33 @@ public class PosDiffService {
     }
 
     private boolean corrStartedOrFailed(CorrParams corrParams) throws Exception {
-        if (marketsReady() && !isPosEqualByMaxAdj(getDcMainSet())) {
+        if (marketsReady() && !isPosEqualByMaxAdj(getDcMainSet()) && corrParams.getCorr().hasSpareAttempts()) {
 
             dtCorr.activate();
 
-            if (corrParams.getCorr().hasSpareAttempts()) {
-                final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
-                long secToReady = dtCorr.secToReady(delaySec);
-                if (secToReady > 0) {
-                    String msg = "Corr signal mainSet. Waiting delay(sec)=" + secToReady;
-                    log.info(msg);
-                    warningLogger.info(msg);
+            final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
+            long secToReady = dtCorr.secToReady(delaySec);
+            if (secToReady > 0) {
+                String msg = "Corr signal mainSet. Waiting delay(sec)=" + secToReady;
+                log.info(msg);
+                warningLogger.info(msg);
+            } else {
+
+                String infoMsg = String.format("Double check before correction mainSet. %s fetchPosition:",
+                        arbitrageService.getMainSetStr());
+                slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
+                if (doubleFetchPositionFailed(infoMsg, false)) {
+                    return true; // failed
+                }
+
+                // Second check
+                if (marketsReady() && !isPosEqualByMaxAdj(getDcMainSet())) {
+                    doCorrection(getHedgeAmountMainSet(), SignalType.CORR);
+                    dtCorr.stop();
+
+                    return true; // started
                 } else {
-
-                    String infoMsg = String.format("Double check before correction mainSet. %s fetchPosition:",
-                            arbitrageService.getMainSetStr());
-                    slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
-                    if (doubleFetchPositionFailed(infoMsg, false)) {
-                        return true; // failed
-                    }
-
-                    // Second check
-                    if (marketsReady() && !isPosEqualByMaxAdj(getDcMainSet())) {
-                        doCorrection(getHedgeAmountMainSet(), SignalType.CORR);
-                        dtCorr.stop();
-
-                        return true; // started
-                    } else {
-                        dtCorr.stop();
-                    }
+                    dtCorr.stop();
                 }
             }
 
@@ -710,34 +704,32 @@ public class PosDiffService {
 
     private boolean corrExtraStartedOrFailed(CorrParams corrParams) throws Exception {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
-        if (marketsReady() && !isPosEqualByMaxAdj(getDcExtraSet())) {
+        if (marketsReady() && !isPosEqualByMaxAdj(getDcExtraSet()) && corrParams.getCorr().hasSpareAttempts()) {
 
             dtExtraCorr.activate();
 
-            if (corrParams.getCorr().hasSpareAttempts()) {
-                long secToReady = dtExtraCorr.secToReady(delaySec);
-                if (secToReady > 0) {
-                    String msg = "Corr signal. Waiting delay(sec)=" + secToReady;
-                    log.info(msg);
-                    warningLogger.info(msg);
+            long secToReady = dtExtraCorr.secToReady(delaySec);
+            if (secToReady > 0) {
+                String msg = "Corr signal. Waiting delay(sec)=" + secToReady;
+                log.info(msg);
+                warningLogger.info(msg);
+            } else {
+
+                String info = String.format("Double check before correction XBTUSD. %s fetchPosition:",
+                        arbitrageService.getExtraSetStr());
+                slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, info);
+                if (doubleFetchPositionFailed(info, true)) {
+                    return true; // failed
+                }
+
+                // Second check
+                if (marketsReady() && !isPosEqualByMaxAdj(getDcExtraSet())) {
+                    doCorrection(getHedgeAmountExtraSet(), SignalType.CORR_BTC);
+                    dtExtraCorr.stop();
+
+                    return true; // started
                 } else {
-
-                    String info = String.format("Double check before correction XBTUSD. %s fetchPosition:",
-                            arbitrageService.getExtraSetStr());
-                    slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, info);
-                    if (doubleFetchPositionFailed(info, true)) {
-                        return true; // failed
-                    }
-
-                    // Second check
-                    if (marketsReady() && !isPosEqualByMaxAdj(getDcExtraSet())) {
-                        doCorrection(getHedgeAmountExtraSet(), SignalType.CORR_BTC);
-                        dtExtraCorr.stop();
-
-                        return true; // started
-                    } else {
-                        dtExtraCorr.stop();
-                    }
+                    dtExtraCorr.stop();
                 }
             }
 

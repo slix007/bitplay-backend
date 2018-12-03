@@ -25,7 +25,6 @@ import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalTimeService;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import com.bitplay.market.ArbState;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
@@ -358,26 +357,28 @@ public class CommonUIService {
 
     public MarketFlagsJson getStopMoving() {
         return new MarketFlagsJson(
-                arbitrageService.getFirstMarketService().isMovingStop(),
-                arbitrageService.getSecondMarketService().isMovingStop()
+                arbitrageService.getFirstMarketService().getMovingStop(),
+                arbitrageService.getSecondMarketService().getMovingStop()
         );
     }
 
     public MarketFlagsJson toggleStopMoving() {
-        arbitrageService.getFirstMarketService().setMovingStop(!arbitrageService.getFirstMarketService().isMovingStop());
-        arbitrageService.getSecondMarketService().setMovingStop(!arbitrageService.getSecondMarketService().isMovingStop());
+        arbitrageService.getFirstMarketService().setMovingStop(!arbitrageService.getFirstMarketService().getMovingStop());
+        arbitrageService.getSecondMarketService().setMovingStop(!arbitrageService.getSecondMarketService().getMovingStop());
         return new MarketFlagsJson(
-                arbitrageService.getFirstMarketService().isMovingStop(),
-                arbitrageService.getSecondMarketService().isMovingStop()
+                arbitrageService.getFirstMarketService().getMovingStop(),
+                arbitrageService.getSecondMarketService().getMovingStop()
         );
     }
 
     public MarketStatesJson getMarketsStates() {
-        String arbState = arbitrageService.getArbInProgress()
-                ? ArbState.IN_PROGRESS.toString()
-                : ArbState.READY.toString();
+        String arbState = arbitrageService.getArbState().toString();
+
         boolean reconnectInProgress = ((BitmexService) arbitrageService.getFirstMarketService()).isReconnectInProgress();
         String btmReconnectState = reconnectInProgress ? "IN_PROGRESS" : "NONE";
+
+        String btmPreliqQueue = String.valueOf(arbitrageService.getFirstMarketService().getPreliqQueue().size());
+        String okexPreliqQueue = String.valueOf(arbitrageService.getFirstMarketService().getPreliqQueue().size());
 
         DelayTimerJson corrDelay = getCorrDelay();
         DelayTimerJson posAdjustmentDelay = getPosAdjustmentDelay();
@@ -392,6 +393,8 @@ public class CommonUIService {
                 arbitrageService.getTimeToSignal(),
                 arbState,
                 btmReconnectState,
+                btmPreliqQueue,
+                okexPreliqQueue,
                 corrDelay,
                 posAdjustmentDelay,
                 preliqDelay

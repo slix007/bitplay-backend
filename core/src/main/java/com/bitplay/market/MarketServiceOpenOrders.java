@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class MarketServiceOpenOrders {
 
-    protected final static Logger logger = LoggerFactory.getLogger(MarketServiceOpenOrders.class);
+    private final static Logger logger = LoggerFactory.getLogger(MarketServiceOpenOrders.class);
     protected static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     protected final Object openOrdersLock = new Object();

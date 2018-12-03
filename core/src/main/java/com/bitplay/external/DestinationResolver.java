@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-@Log4j
+@Slf4j
 @Service
 public class DestinationResolver {
 

@@ -44,7 +44,13 @@ public class SignalService {
     @Autowired
     private SlackNotifications slackNotifications;
 
-    public void placeOkexOrderOnSignal(MarketService okexService, Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
+    @Autowired
+    private OkCoinService okexService;
+
+    @Autowired
+    private BitmexService bitmexService;
+
+    public void placeOkexOrderOnSignal(Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
             SignalType signalType, PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
 
         if (o_block.signum() <= 0) {
@@ -92,7 +98,7 @@ public class SignalService {
         }
     }
 
-    public void placeBitmexOrderOnSignal(MarketService bitmexService, Order.OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
+    public void placeBitmexOrderOnSignal(Order.OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
             SignalType signalType, PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
 
         executorService.submit(() -> {

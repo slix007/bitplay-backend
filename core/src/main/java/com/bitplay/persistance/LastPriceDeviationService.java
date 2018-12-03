@@ -10,7 +10,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.math.BigDecimal;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 /**
  * Created by Sergey Shurmin on 6/16/17.
  */
-@Log4j
+@Slf4j
 @Service
 public class LastPriceDeviationService {
 

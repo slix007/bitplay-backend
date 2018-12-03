@@ -665,9 +665,9 @@ public class BordersService {
         return null;
     }
 
-    enum TradeType {NONE, DELTA1_B_SELL_O_BUY, DELTA2_B_BUY_O_SELL}
+    public enum TradeType {NONE, DELTA1_B_SELL_O_BUY, DELTA2_B_BUY_O_SELL}
 
-    enum BorderVer {borderV1, borderV2, preliq}
+    public enum BorderVer {borderV1, borderV2, preliq}
 
     public static class TradingSignal {
         // params for the signal
@@ -685,7 +685,7 @@ public class BordersService {
         final public BigDecimal cm;
         final public BorderVer borderVer;
 
-        TradingSignal(BorderVer borderVer, PlacingBlocks.Ver ver, BigDecimal b_block, BigDecimal o_block, TradeType tradeType) {
+        public TradingSignal(BorderVer borderVer, PlacingBlocks.Ver ver, BigDecimal b_block, BigDecimal o_block, TradeType tradeType) {
             this.borderVer = borderVer;
             this.bitmexBlock = b_block.intValue();
             this.okexBlock = o_block.intValue();
@@ -753,6 +753,10 @@ public class BordersService {
             this.deltaVal = deltaVal;
             this.cm = cm;
             this.borderVer = borderVer;
+        }
+
+        public static TradingSignal none() {
+            return new TradingSignal(TradeType.NONE, 0, null, null, null, null, null, null);
         }
 
         TradingSignal changeBlocks(BigDecimal b_block, BigDecimal o_block) {

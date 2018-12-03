@@ -30,10 +30,12 @@ public class DelayTimer {
     }
 
 
-    public void activate() {
+    public boolean activate() {
         if (firstStart == null) {
             firstStart = Instant.now();
+            return true;
         }
+        return false;
     }
 
     public void stop() {
