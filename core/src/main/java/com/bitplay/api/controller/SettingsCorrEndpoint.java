@@ -1,12 +1,14 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ChangeRequestJson;
+import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.correction.Adj;
 import com.bitplay.persistance.domain.correction.Corr;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.Preliq;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +31,13 @@ public class SettingsCorrEndpoint {
     private final static Logger logger = LoggerFactory.getLogger(SettingsEndpoint.class);
 
     @Autowired
-    PersistenceService persistenceService;
+    private PersistenceService persistenceService;
+    @Autowired
+    private PosDiffService posDiffService;
+    @Autowired
+    private OkCoinService okCoinService;
+    @Autowired
+    private BitmexService bitmexService;
 
     @RequestMapping(value = "/corr", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public CorrParams getCorrParams() {
@@ -84,10 +92,14 @@ public class SettingsCorrEndpoint {
                 if (uPreliq.getMaxErrorCount() != null) {
                     corrParams.getPreliq().setMaxErrorCount(uPreliq.getMaxErrorCount());
                     persistenceService.saveCorrParams(corrParams);
+                    bitmexService.getDtPreliq().stop();
+                    okCoinService.getDtPreliq().stop();
                 }
                 if (uPreliq.getMaxTotalCount() != null) {
                     corrParams.getPreliq().setMaxTotalCount(uPreliq.getMaxTotalCount());
                     persistenceService.saveCorrParams(corrParams);
+                    bitmexService.getDtPreliq().stop();
+                    okCoinService.getDtPreliq().stop();
                 }
             }
             if (anUpdate.getCorr() != null) {
@@ -99,10 +111,12 @@ public class SettingsCorrEndpoint {
                 if (uCorr.getMaxErrorCount() != null) {
                     corrParams.getCorr().setMaxErrorCount(uCorr.getMaxErrorCount());
                     persistenceService.saveCorrParams(corrParams);
+                    posDiffService.stopTimer("corr");
                 }
                 if (uCorr.getMaxTotalCount() != null) {
                     corrParams.getCorr().setMaxTotalCount(uCorr.getMaxTotalCount());
                     persistenceService.saveCorrParams(corrParams);
+                    posDiffService.stopTimer("corr");
                 }
             }
             if (anUpdate.getAdj() != null) {
@@ -110,10 +124,12 @@ public class SettingsCorrEndpoint {
                 if (update.getMaxErrorCount() != null) {
                     corrParams.getAdj().setMaxErrorCount(update.getMaxErrorCount());
                     persistenceService.saveCorrParams(corrParams);
+                    posDiffService.stopTimer("adj");
                 }
                 if (update.getMaxTotalCount() != null) {
                     corrParams.getAdj().setMaxTotalCount(update.getMaxTotalCount());
                     persistenceService.saveCorrParams(corrParams);
+                    posDiffService.stopTimer("adj");
                 }
             }
         }
