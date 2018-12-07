@@ -491,6 +491,7 @@ public class PosDiffService {
 
         return arbitrageService.getFirstMarketService().isReadyForArbitrage()
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                && !arbitrageService.isArbStatePreliq()
                 && firstFullBalance.getAccountInfoContracts() != null
                 && firstFullBalance.getAccountInfoContracts().geteBest() != null
                 && firstFullBalance.getAccountInfoContracts().geteBest().signum() > 0
@@ -567,18 +568,25 @@ public class PosDiffService {
     }
 
     private boolean adjStartedOrFailed(CorrParams corrParams) throws Exception {
-        final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
 
         // if all READY more than X sec
-        if (marketsReady() && isAdjViolated(getDcMainSet()) && corrParams.getAdj().hasSpareAttempts()) {
+        final BigDecimal dcMainSet = getDcMainSet();
+        if (marketsReady() && isAdjViolated(dcMainSet) && corrParams.getAdj().hasSpareAttempts()) {
 
-            dtAdj.activate();
+            final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+            final long secToReady = dtAdj.secToReady(pa.getPosAdjustmentDelaySec());
 
-            long secToReady = dtAdj.secToReady(delaySec);
-            if (secToReady > 0) {
-                String msg = "Adj signal mainSet. Waiting delay(sec)=" + secToReady;
+            final boolean activated = dtAdj.activate();
+            if (activated) {
+                final BigDecimal max = pa.getPosAdjustmentMax();
+                final BigDecimal min = pa.getPosAdjustmentMin();
+                String msg = String.format("Adj signal mainSet. Waiting delay(sec)=%s, nt_usd=%s, posAdjMin/Max=%s/%s", secToReady, dcMainSet, min, max);
                 log.info(msg);
                 warningLogger.info(msg);
+            }
+
+            if (secToReady > 0) {
+                // do nothing
             } else {
 
                 String infoMsg = String.format("Double check before adjustment mainSet. %s fetchPosition:",
@@ -629,17 +637,24 @@ public class PosDiffService {
     }
 
     private boolean adjExtraStartedOrFailed(CorrParams corrParams) throws Exception {
-        final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec();
         // if all READY more than X sec
-        if (marketsReady() && isAdjViolated(getDcExtraSet()) && corrParams.getAdj().hasSpareAttempts()) {
+        final BigDecimal dcExtraSet = getDcExtraSet();
+        if (marketsReady() && isAdjViolated(dcExtraSet) && corrParams.getAdj().hasSpareAttempts()) {
 
-            dtExtraAdj.activate();
+            final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+            final long secToReady = dtExtraAdj.secToReady(pa.getPosAdjustmentDelaySec());
 
-            long secToReady = dtExtraAdj.secToReady(delaySec);
-            if (secToReady > 0) {
-                String msg = "Adj signal extraSet. Waiting delay(sec)=" + secToReady;
+            final boolean activated = dtExtraAdj.activate();
+            if (activated) {
+                final BigDecimal max = pa.getPosAdjustmentMax();
+                final BigDecimal min = pa.getPosAdjustmentMin();
+                String msg = String.format("Adj signal extraSet. Waiting delay(sec)=%s, nt_usd=%s, posAdjMin/Max=%s/%s", secToReady, dcExtraSet, min, max);
                 log.info(msg);
                 warningLogger.info(msg);
+            }
+
+            if (secToReady > 0) {
+                // do nothing
             } else {
 
                 String infoMsg = String.format("Double check before adjustment XBTUSD. %s fetchPosition:",
@@ -667,16 +682,22 @@ public class PosDiffService {
     }
 
     private boolean corrStartedOrFailed(CorrParams corrParams) throws Exception {
-        if (marketsReady() && !isPosEqualByMaxAdj(getDcMainSet()) && corrParams.getCorr().hasSpareAttempts()) {
+        final BigDecimal dcMainSet = getDcMainSet();
+        if (marketsReady() && !isPosEqualByMaxAdj(dcMainSet) && corrParams.getCorr().hasSpareAttempts()) {
 
-            dtCorr.activate();
+            final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+            final long secToReady = dtCorr.secToReady(pa.getCorrDelaySec());
 
-            final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
-            long secToReady = dtCorr.secToReady(delaySec);
-            if (secToReady > 0) {
-                String msg = "Corr signal mainSet. Waiting delay(sec)=" + secToReady;
+            final boolean activated = dtCorr.activate();
+            if (activated) {
+                final BigDecimal posAdjustmentMax = pa.getPosAdjustmentMax();
+                String msg = String.format("Corr signal mainSet. Waiting delay(sec)=%s, nt_usd=%s, posAdjMax=%s", secToReady, dcMainSet, posAdjustmentMax);
                 log.info(msg);
                 warningLogger.info(msg);
+            }
+
+            if (secToReady > 0) {
+                // do nothing
             } else {
 
                 String infoMsg = String.format("Double check before correction mainSet. %s fetchPosition:",
@@ -704,16 +725,22 @@ public class PosDiffService {
     }
 
     private boolean corrExtraStartedOrFailed(CorrParams corrParams) throws Exception {
-        final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
-        if (marketsReady() && !isPosEqualByMaxAdj(getDcExtraSet()) && corrParams.getCorr().hasSpareAttempts()) {
+        final BigDecimal dcExtraSet = getDcExtraSet();
+        if (marketsReady() && !isPosEqualByMaxAdj(dcExtraSet) && corrParams.getCorr().hasSpareAttempts()) {
 
-            dtExtraCorr.activate();
+            final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+            final long secToReady = dtExtraCorr.secToReady(pa.getCorrDelaySec());
 
-            long secToReady = dtExtraCorr.secToReady(delaySec);
-            if (secToReady > 0) {
-                String msg = "Corr signal. Waiting delay(sec)=" + secToReady;
+            final boolean activated = dtExtraCorr.activate();
+            if (activated) {
+                final BigDecimal posAdjustmentMax = pa.getPosAdjustmentMax();
+                String msg = String.format("Corr signal extraSet. Waiting delay(sec)=%s, nt_usd=%s, posAdjMax=%s", secToReady, dcExtraSet, posAdjustmentMax);
                 log.info(msg);
                 warningLogger.info(msg);
+            }
+
+            if (secToReady > 0) {
+                // do nothing
             } else {
 
                 String info = String.format("Double check before correction XBTUSD. %s fetchPosition:",
