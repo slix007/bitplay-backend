@@ -476,6 +476,7 @@ public class PosDiffService {
 
         return arbitrageService.getFirstMarketService().getMarketState().isStopped()
                 || arbitrageService.getSecondMarketService().getMarketState().isStopped()
+                || arbitrageService.isArbStatePreliq()
                 || firstFullBalance.getAccountInfoContracts() == null
                 || firstFullBalance.getAccountInfoContracts().geteBest() == null
                 || firstFullBalance.getAccountInfoContracts().geteBest().signum() <= 0
