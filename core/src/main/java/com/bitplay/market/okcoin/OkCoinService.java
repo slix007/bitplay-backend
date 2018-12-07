@@ -16,6 +16,7 @@ import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.LogService;
+import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
@@ -30,6 +31,7 @@ import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
@@ -465,32 +467,9 @@ public class OkCoinService extends MarketServicePreliq {
                         okexContractType.getFuturesContract());
         mergePosition(positionResult, null);
 
-        recalcWallet(); // TODO speed up position/wallet recalcs -> reduce synchronized blocs
-
         recalcAffordableContracts();
         recalcLiqInfo();
         return position != null ? position.toString() : "";
-    }
-
-    private synchronized void recalcWallet() {
-        final BigDecimal equity = accountInfoContracts.geteLast();
-        final BigDecimal realProfitLosses = position.getMarkValue() != null ? position.getMarkValue() : BigDecimal.ZERO;
-
-        BigDecimal wallet = equity != null && realProfitLosses != null
-                ? equity.subtract(realProfitLosses).setScale(8, 4)
-                : accountInfoContracts.getWallet();
-        accountInfoContracts = new AccountInfoContracts(
-                wallet,
-                accountInfoContracts.getAvailable(),
-                accountInfoContracts.geteMark(),
-                accountInfoContracts.geteLast(),
-                accountInfoContracts.geteBest(),
-                accountInfoContracts.geteAvg(),
-                accountInfoContracts.getMargin(),
-                accountInfoContracts.getUpl(),
-                accountInfoContracts.getRpl(),
-                accountInfoContracts.getRiskRate()
-        );
     }
 
     private synchronized void mergePosition(OkCoinPositionResult restUpdate, Position websocketUpdate) {
@@ -511,15 +490,12 @@ public class OkCoinService extends MarketServicePreliq {
             } else {
                 final BigDecimal forceLiquPrice = convertLiqPrice(restUpdate.getForceLiquPrice());
                 final OkCoinPosition okCoinPosition = restUpdate.getPositions()[0];
-                final BigDecimal realProfitLosses = (okCoinPosition.getBuyProfitReal() != null && okCoinPosition.getSellProfitReal() != null)
-                        ? okCoinPosition.getBuyProfitReal().add(okCoinPosition.getSellProfitReal())
-                        : BigDecimal.ZERO;
                 position = new Position(
                         okCoinPosition.getBuyAmount(),
                         okCoinPosition.getSellAmount(),
                         okCoinPosition.getRate(),
                         forceLiquPrice,
-                        realProfitLosses,
+                        BigDecimal.ZERO,
                         okCoinPosition.getBuyPriceAvg(),
                         okCoinPosition.getSellPriceAvg(),
                         okCoinPosition.toString()
@@ -562,18 +538,11 @@ public class OkCoinService extends MarketServicePreliq {
                     logger.debug("AccountInfo.Websocket: " + accountInfoContracts.toString());
 
                     synchronized (this) {
-                        final BigDecimal equity = newInfo.geteLast() != null ? newInfo.geteLast() : accountInfoContracts.geteLast();
-                        final BigDecimal realProfitLosses = position.getMarkValue() != null ? position.getMarkValue() : BigDecimal.ZERO;
-
-                        BigDecimal wallet = (equity != null && realProfitLosses != null)
-                                ? equity.subtract(realProfitLosses).setScale(8, 4)
-                                : accountInfoContracts.getWallet();
-
                         accountInfoContracts = new AccountInfoContracts(
-                                wallet,
+                                newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
                                 newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable(),
                                 BigDecimal.ZERO,
-                                equity,
+                                newInfo.geteLast() != null ? newInfo.geteLast() : accountInfoContracts.geteLast(),
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO,
                                 newInfo.getMargin() != null ? newInfo.getMargin() : accountInfoContracts.getMargin(),
