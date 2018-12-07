@@ -49,12 +49,12 @@ public class PreliqUtilsService {
 
             if (isCorrect) {
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
-                corrParams.getPreliq().incSuccesses();
+                corrParams.getPreliq().tryIncSuccessful();
                 persistenceService.saveCorrParams(corrParams);
                 arbitrageService.printToCurrentDeltaLog("Preliq succeed. " + corrParams.getPreliq().toString());
             } else {
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
-                corrParams.getPreliq().incFails();
+                corrParams.getPreliq().tryIncFailed();
                 persistenceService.saveCorrParams(corrParams);
                 arbitrageService.printToCurrentDeltaLog("Preliq failed. " + corrParams.getPreliq().toString());
             }

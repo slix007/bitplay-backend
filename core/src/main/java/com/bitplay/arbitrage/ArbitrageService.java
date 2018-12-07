@@ -325,9 +325,9 @@ public class ArbitrageService {
                             new DeltaLogWriter(tradeIdSnap, counterNameSnap, tradeService)
                     );
 
-                    if (signalTypeSnap.isPreliq()) {
-                        afterArbTask.preliqIsDone(); // sync ending
-                    }
+//                    if (signalTypeSnap.isPreliq()) {
+//                        afterArbTask.preliqIsDone(); // sync ending
+//                    }
 
                     afterArbService.addTask(afterArbTask); // async ending
 

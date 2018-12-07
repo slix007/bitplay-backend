@@ -17,7 +17,7 @@ import org.springframework.data.annotation.Transient;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Preliq {
+public class Preliq extends Counted {
 
     private Integer preliqBlockUsd;
     // attempts - resets after success
@@ -60,15 +60,18 @@ public class Preliq {
     }
 
     public void incTotalCount() {
+        super.incTotalCount();
         this.totalCount++;
     }
 
-    public void incSuccesses() {
+    @Override
+    protected void incSuccessful() {
         this.succeedCount++;
         this.currErrorCount = 0;
     }
 
-    public void incFails() {
+    @Override
+    protected void incFailed() {
         this.failedCount++;
         this.currErrorCount++;
     }

@@ -59,7 +59,15 @@ public abstract class MarketServicePreliq extends MarketService {
         final BigDecimal pos = getPos(position);
         final CorrParams corrParams = getPersistenceService().fetchCorrParams();
 
-        if (isDqlViolated(liqInfo, dqlCloseMin)
+        final boolean dqlViolated = isDqlViolated(liqInfo, dqlCloseMin);
+
+        if (!dqlViolated) {
+            if (corrParams.getPreliq().tryIncSuccessful()) {
+                getPersistenceService().saveCorrParams(corrParams);
+            }
+        }
+
+        if (dqlViolated
                 && pos.signum() != 0
                 && corrParams.getPreliq().hasSpareAttempts()
                 && preliqQueue.isEmpty()
@@ -88,10 +96,12 @@ public abstract class MarketServicePreliq extends MarketService {
                 log.info(msg);
                 warningLogger.info(msg);
                 getTradeLogger().info(msg);
-                final BestQuotes bestQuotes = Utils.createBestQuotes(
-                        getArbitrageService().getSecondMarketService().getOrderBook(),
-                        getArbitrageService().getFirstMarketService().getOrderBook());
-                preparePreliq(pos, bestQuotes);
+
+                if (corrParams.getPreliq().tryIncFailed()) {
+                    getPersistenceService().saveCorrParams(corrParams);
+                }
+                preparePreliq(pos);
+
                 dtPreliq.stop();
             }
         } else {
@@ -107,29 +117,32 @@ public abstract class MarketServicePreliq extends MarketService {
                 && liqInfo.getDqlCurr().compareTo(dqlCloseMin) < 0;
     }
 
-    private void preparePreliq(BigDecimal pos, BestQuotes bestQuotes) {
+    private void preparePreliq(BigDecimal pos) {
         if (getName().equals(BitmexService.NAME)) {
             if (pos.signum() > 0) {
-                preparePreliqOnDelta(SignalType.B_PRE_LIQ, DeltaName.B_DELTA, bestQuotes);
+                preparePreliqOnDelta(SignalType.B_PRE_LIQ, DeltaName.B_DELTA);
             } else if (pos.signum() < 0) {
-                preparePreliqOnDelta(SignalType.B_PRE_LIQ, DeltaName.O_DELTA, bestQuotes);
+                preparePreliqOnDelta(SignalType.B_PRE_LIQ, DeltaName.O_DELTA);
             }
         } else {
             if (pos.signum() > 0) {
-                preparePreliqOnDelta(SignalType.O_PRE_LIQ, DeltaName.O_DELTA, bestQuotes);
+                preparePreliqOnDelta(SignalType.O_PRE_LIQ, DeltaName.O_DELTA);
             } else if (pos.signum() < 0) {
-                preparePreliqOnDelta(SignalType.O_PRE_LIQ, DeltaName.B_DELTA, bestQuotes);
+                preparePreliqOnDelta(SignalType.O_PRE_LIQ, DeltaName.B_DELTA);
             }
         }
     }
 
-    private void preparePreliqOnDelta(SignalType signalType, DeltaName deltaName, BestQuotes bestQuotes) {
+    private void preparePreliqOnDelta(SignalType signalType, DeltaName deltaName) {
         // put message in a queue
         final PreliqBlocks preliqBlocks = getPreliqBlocks(deltaName);
         if (preliqBlocks == null) {
             log.info("No Preliq");
             return;
         }
+        final BestQuotes bestQuotes = Utils.createBestQuotes(
+                getArbitrageService().getSecondMarketService().getOrderBook(),
+                getArbitrageService().getFirstMarketService().getOrderBook());
 
         final Long tradeId = getArbitrageService().getLastTradeId();
 
@@ -158,17 +171,12 @@ public abstract class MarketServicePreliq extends MarketService {
                 counterName,
                 null, null, null, Instant.now());
 
-        incTotalCount();
+        final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+        corrParams.getPreliq().incTotalCount();
+        getPersistenceService().saveCorrParams(corrParams);
 
         getArbitrageService().getFirstMarketService().getPreliqQueue().add(btmArgs);
         getArbitrageService().getSecondMarketService().getPreliqQueue().add(okexArgs);
-
-    }
-
-    private void incTotalCount() {
-        CorrParams corrParams = getPersistenceService().fetchCorrParams();
-        corrParams.getPreliq().incTotalCount();
-        getPersistenceService().saveCorrParams(corrParams);
     }
 
     private BigDecimal getPos(Position position) {
