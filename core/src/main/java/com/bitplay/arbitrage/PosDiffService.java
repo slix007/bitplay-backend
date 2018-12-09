@@ -753,7 +753,9 @@ public class PosDiffService {
 
             BigDecimal bPXbtUsd = bitmexService.getPositionXBTUSD().getPositionLong();
             adaptExtraSetAdjByPos(corrObj, bPXbtUsd, dc);
-            adaptCorrByMaxVolCorr(corrObj, corrParams);
+            final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
+            corrParamsExtra.getCorr().setIsEth(false);
+            adaptCorrByMaxVolCorr(corrObj, corrParamsExtra);
 
         } else if (baseSignalType == SignalType.ADJ) {
 
@@ -762,9 +764,12 @@ public class PosDiffService {
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
 
+            @SuppressWarnings("Duplicates")
             BigDecimal bPXbtUsd = bitmexService.getPositionXBTUSD().getPositionLong();
             adaptExtraSetAdjByPos(corrObj, bPXbtUsd, dc);
-            adaptCorrByMaxVolCorr(corrObj, corrParams);
+            final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
+            corrParamsExtra.getCorr().setIsEth(false);
+            adaptCorrByMaxVolCorr(corrObj, corrParamsExtra);
 
         } else { // corr
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
