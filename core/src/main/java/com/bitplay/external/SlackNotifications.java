@@ -4,10 +4,13 @@ import com.bitplay.external.DestinationResolver.ToObj;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -37,6 +40,10 @@ public class SlackNotifications {
 
     private void sendSync(NotifyType notifyType, String message) {
         try {
+            if (shouldSkip(notifyType)) {
+                return;
+            }
+
             final ToObj toObj = destinationResolver.defineWhereToSend(notifyType);
 
             if (toObj.getChannel() != null) {
@@ -75,6 +82,30 @@ public class SlackNotifications {
         } catch (IOException e) {
             log.error("Can not send slack notification", e);
         }
+    }
+
+
+    private Map<String, Instant> toThrottle = new HashMap<>();
+
+    private boolean shouldSkip(NotifyType notifyType) {
+        if (!notifyType.isThrottled()) {
+            return false;
+        }
+
+        boolean skipThisOne = true;
+        String objectToThrottle = notifyType.name();
+
+        try {
+            Instant lastRun = toThrottle.get(objectToThrottle);
+            int waitingSec = notifyType.getThrottleSec();
+            if (lastRun == null || Duration.between(lastRun, Instant.now()).getSeconds() > waitingSec) {
+                skipThisOne = false;
+                toThrottle.put(objectToThrottle, Instant.now());
+            }
+        } catch (Exception e) {
+            log.error("Can not throttle slack notification", e);
+        }
+        return skipThisOne;
     }
 
 }
