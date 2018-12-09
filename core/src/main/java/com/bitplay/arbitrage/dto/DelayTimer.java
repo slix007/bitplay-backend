@@ -10,8 +10,16 @@ public class DelayTimer {
     public static final long NOT_STARTED = 999999;
 
     public long secToReady(int delaySec) {
+        return secToReadyCalc(delaySec, false);
+    }
+
+    public long secToReadyPresice(int delaySec) {
+        return secToReadyCalc(delaySec, true);
+    }
+
+    private long secToReadyCalc(int delaySec, boolean usePrecise) {
         if (firstStart == null) {
-            return NOT_STARTED;
+            return usePrecise ? delaySec : NOT_STARTED;
         }
 
         final long activateMs = firstStart.toEpochMilli();

@@ -59,7 +59,6 @@ public class PosDiffService {
     private boolean hasMDCStarted = false;
     private volatile boolean hasTimerStarted = false;
     private volatile boolean hasGeneralCorrStarted = false;
-    private volatile boolean corrInProgress = false;
     private final DelayTimer dtMdc = new DelayTimer();
     private final DelayTimer dtExtraMdc = new DelayTimer();
     private final DelayTimer dtMdcAdj = new DelayTimer();
@@ -169,146 +168,55 @@ public class PosDiffService {
         }
     }
 
-    public void finishCorr(Long tradeId) {
-        if (corrInProgress) {
-            corrInProgress = false;
-            final SignalType signalType = arbitrageService.getSignalType();
-            boolean isAdj = signalType.isAdj();
+    private void countOnStartCorr(final CorrParams corrParams, SignalType signalType) {
+        if (signalType.isAdjBtc()) {
+            corrParams.getAdj().incTotalCountExtra();
+        } else if (signalType.isAdj()) {
+            corrParams.getAdj().incTotalCount();
+        } else if (signalType.isCorrBtc()) {
+            corrParams.getCorr().incTotalCountExtra();
+        } else { // signalType.isCorr()
+            corrParams.getCorr().incTotalCount();
+        }
+        persistenceService.saveCorrParams(corrParams);
+    }
 
-            try {
-                boolean isCorrect = false;
+    private void countFailedOnStartCorr(final CorrParams corrParams, SignalType signalType) {
+        if (signalType.isAdjBtc()) {
+            corrParams.getAdj().tryIncFailedExtra();
+        } else if (signalType.isAdj()) {
+            corrParams.getAdj().tryIncFailed();
+        } else if (signalType.isCorrBtc()) {
+            corrParams.getCorr().tryIncFailedExtra();
+        } else { // signalType.isCorr()
+            corrParams.getCorr().tryIncFailed();
+        }
+        persistenceService.saveCorrParams(corrParams);
+    }
 
-                final int delaySec;
-                if (isAdj) {
-                    delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec() != null
-                            ? settingsRepositoryService.getSettings().getPosAdjustment().getPosAdjustmentDelaySec()
-                            : 14;
-                } else {
-                    delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec() != null
-                            ? settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec()
-                            : 14;
-                }
+    private void tryFinishPrevCorr(final CorrParams corrParams) {
+        final BigDecimal dcMainSet = getDcMainSet();
+        final BigDecimal dcExtraSet = getDcExtraSet();
 
-                BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
-                if (signalType.isAdjBtc()) {
-
-                    if (isExtraSetEqual()) {
-                        isCorrect = true;
-                    } else {
-                        Thread.sleep(1000);
-                        String infoMsg = "First check after adj: fetchPositionXBTUSD:";
-                        checkBitmexPosXBTUSD(infoMsg);
-                        if (isExtraSetEqual()) {
-                            isCorrect = true;
-                        } else {
-                            Thread.sleep(delaySec * 1000);
-                            infoMsg = "Second check after adj: fetchPositionXBTUSD:";
-                            checkBitmexPosXBTUSD(infoMsg);
-                            if (isExtraSetEqual()) {
-                                isCorrect = true;
-                            }
-                        }
-                    }
-
-                } else if (signalType.isCorrBtc()) {
-
-                    if (isPosEqualByMaxAdj(getDcExtraSet())) {
-                        isCorrect = true;
-                    } else {
-                        Thread.sleep(1000);
-                        String infoMsg = "First check after corr: fetchPositionXBTUSD:";
-                        checkBitmexPosXBTUSD(infoMsg);
-                        if (isPosEqualByMaxAdj(getDcExtraSet())) {
-                            isCorrect = true;
-                        } else {
-                            Thread.sleep(delaySec * 1000);
-                            infoMsg = "Second check after corr: fetchPositionXBTUSD:";
-                            checkBitmexPosXBTUSD(infoMsg);
-                            if (isPosEqualByMaxAdj(getDcExtraSet())) {
-                                isCorrect = true;
-                            }
-                        }
-                    }
-
-                } else {
-
-                    if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj(getDcMainSet()))) {
-                        isCorrect = true;
-                    } else {
-                        Thread.sleep(1000);
-                        String infoMsg = String.format("First check after %s: fetchPosition:", signalType);
-                        String pos1 = bitmexService.fetchPosition();
-                        String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
-                        log.info(infoMsg + "bitmex " + pos1);
-                        log.info(infoMsg + "okex " + pos2);
-                        if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj(getDcMainSet()))) {
-                            isCorrect = true;
-                        } else {
-                            Thread.sleep(delaySec * 1000);
-                            infoMsg = String.format("Second check after %s: fetchPosition:", signalType);
-                            pos1 = bitmexService.fetchPosition();
-                            pos2 = arbitrageService.getSecondMarketService().fetchPosition();
-                            log.info(infoMsg + "bitmex2 " + pos1);
-                            log.info(infoMsg + "okex2 " + pos2);
-                            if ((isAdj && isMainSetEqual()) || (!isAdj && isPosEqualByMaxAdj(getDcMainSet()))) {
-                                isCorrect = true;
-                            }
-                        }
-                    }
-
-                }
-
-                final CorrParams corrParams = persistenceService.fetchCorrParams();
-                if (isAdj) {
-                    if (isCorrect) {
-                        // correct++
-                        corrParams.getAdj().incSuccesses();
-                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog("Adj succeed. " + corrParams.getAdj().toString());
-//                        tradeService.setEndStatus(lastTradeId, TradeStatus.COMPLETED);
-                    } else {
-                        // error++
-                        corrParams.getAdj().incFails();
-                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Adj failed. %s. dc(main)=%s, dc(extra)=%s",
-                                corrParams.getCorr().toString(), getDcMainSet(), getDcExtraSet()));
-//                        tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
-                    }
-                } else {
-                    if (isCorrect) {
-                        // correct++
-                        corrParams.getCorr().incSuccesses();
-                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog("Correction succeed. " + corrParams.getCorr().toString());
-//                        tradeService.setEndStatus(lastTradeId, TradeStatus.COMPLETED);
-
-                    } else {
-                        // error++
-                        corrParams.getCorr().incFails();
-                        Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Correction failed. %s. dc(main)=%s, dc(extra)=%s",
-                                corrParams.getCorr().toString(), getDcMainSet(), getDcExtraSet()));
-//                        tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
-
-                    }
-                }
+        if (isPosEqualByMaxAdj(dcMainSet)) {
+            if (corrParams.getCorr().tryIncSuccessful()) {
                 persistenceService.saveCorrParams(corrParams);
-
-            } catch (Exception e) {
-                final String msg = String.format("Error on finish %s: %s", signalType, e.getMessage());
-                warningLogger.error(msg);
-                log.error(msg, e);
-
-                // error++
-                final CorrParams corrParams = persistenceService.fetchCorrParams();
-                if (isAdj) {
-                    corrParams.getAdj().incFails();
-                } else {
-                    corrParams.getCorr().incFails();
-                }
+            }
+        }
+        if (isPosEqualByMaxAdj(dcExtraSet)) {
+            if (corrParams.getCorr().tryIncSuccessfulExtra()) {
                 persistenceService.saveCorrParams(corrParams);
-                Long lastTradeId = arbitrageService.printToCurrentDeltaLog(String.format("Error on finish %s. %s. dc(main)=%s, dc(extra)=%s",
-                        signalType,
-                        isAdj ? corrParams.getAdj().toString() : corrParams.getCorr().toString(),
-                        getDcMainSet(),
-                        getDcExtraSet()));
-//                tradeService.setEndStatus(lastTradeId, TradeStatus.INTERRUPTED);
+            }
+        }
+
+        if (isPosEqualByMinAdj(dcMainSet)) {
+            if (corrParams.getAdj().tryIncSuccessful()) {
+                persistenceService.saveCorrParams(corrParams);
+            }
+        }
+        if (isPosEqualByMinAdj(dcExtraSet)) {
+            if (corrParams.getAdj().tryIncSuccessfulExtra()) {
+                persistenceService.saveCorrParams(corrParams);
             }
         }
     }
@@ -409,7 +317,7 @@ public class PosDiffService {
     private void checkMdcExtraSet(String name, Integer delaySec, DelayTimer dt, BooleanSupplier isNeededFunc) {
         if (isNeededFunc.getAsBoolean()) {
             dt.activate();
-            long secToReady = dt.secToReady(delaySec);
+            long secToReady = dt.secToReadyPresice(delaySec);
             if (secToReady > 0) {
                 String msg = String.format("%s signal. Waiting delay(sec)=%s", name, secToReady);
                 log.info(msg);
@@ -439,7 +347,7 @@ public class PosDiffService {
     private void checkMdcMainSet(String name, Integer delaySec, DelayTimer dt, BooleanSupplier isNeededFunc) throws Exception {
         if (isNeededFunc.getAsBoolean()) {
             dt.activate();
-            long secToReady = dt.secToReady(delaySec);
+            long secToReady = dt.secToReadyPresice(delaySec);
             if (secToReady > 0) {
                 String msg = String.format("%s signal. Waiting delay(sec)=%s", name, secToReady);
                 log.info(msg);
@@ -529,22 +437,22 @@ public class PosDiffService {
             return;
         }
 
-        arbitrageService.getParams().setLastCorrCheck(new Date());
-
         if (!checkInProgress) {
             checkInProgress = true;
 
             try {
+                arbitrageService.getParams().setLastCorrCheck(new Date());
 
                 updateTimerToImmediateCorr();
 
                 final CorrParams corrParams = persistenceService.fetchCorrParams();
+                tryFinishPrevCorr(corrParams);
 
                 if (corrStartedOrFailed(corrParams)) {
                     return;
                 }
-                boolean isEth = arbitrageService.getFirstMarketService().getContractType().isEth();
 
+                boolean isEth = arbitrageService.getFirstMarketService().getContractType().isEth();
                 if (isEth) {
                     if (corrExtraStartedOrFailed(corrParams)) {
                         return;
@@ -574,7 +482,7 @@ public class PosDiffService {
         if (marketsReady() && isAdjViolated(dcMainSet) && corrParams.getAdj().hasSpareAttempts()) {
 
             final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-            final long secToReady = dtAdj.secToReady(pa.getPosAdjustmentDelaySec());
+            final long secToReady = dtAdj.secToReadyPresice(pa.getPosAdjustmentDelaySec());
 
             final boolean activated = dtAdj.activate();
             if (activated) {
@@ -642,7 +550,7 @@ public class PosDiffService {
         if (marketsReady() && isAdjViolated(dcExtraSet) && corrParams.getAdj().hasSpareAttempts()) {
 
             final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-            final long secToReady = dtExtraAdj.secToReady(pa.getPosAdjustmentDelaySec());
+            final long secToReady = dtExtraAdj.secToReadyPresice(pa.getPosAdjustmentDelaySec());
 
             final boolean activated = dtExtraAdj.activate();
             if (activated) {
@@ -686,7 +594,7 @@ public class PosDiffService {
         if (marketsReady() && !isPosEqualByMaxAdj(dcMainSet) && corrParams.getCorr().hasSpareAttempts()) {
 
             final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-            final long secToReady = dtCorr.secToReady(pa.getCorrDelaySec());
+            final long secToReady = dtCorr.secToReadyPresice(pa.getCorrDelaySec());
 
             final boolean activated = dtCorr.activate();
             if (activated) {
@@ -729,7 +637,7 @@ public class PosDiffService {
         if (marketsReady() && !isPosEqualByMaxAdj(dcExtraSet) && corrParams.getCorr().hasSpareAttempts()) {
 
             final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-            final long secToReady = dtExtraCorr.secToReady(pa.getCorrDelaySec());
+            final long secToReady = dtExtraCorr.secToReadyPresice(pa.getCorrDelaySec());
 
             final boolean activated = dtExtraCorr.activate();
             if (activated) {
@@ -810,8 +718,14 @@ public class PosDiffService {
 //        }
 //    }
 
-    private synchronized void doCorrection(final BigDecimal hedgeAmount,
-            SignalType baseSignalType) {
+    private synchronized void doCorrection(final BigDecimal hedgeAmount, SignalType baseSignalType) {
+
+        final CorrParams corrParams = persistenceService.fetchCorrParams();
+        countFailedOnStartCorr(corrParams, baseSignalType);
+        if (hasNoSpareAttempts(baseSignalType, corrParams)) {
+            return;
+        }
+
         BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
         BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
         BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
@@ -821,7 +735,6 @@ public class PosDiffService {
         }
         stopTimerToImmediateCorrection(); // avoid double-correction
 
-        final CorrParams corrParams = persistenceService.fetchCorrParams();
         final BigDecimal cm = bitmexService.getCm();
         boolean isEth = bitmexService.getContractType().isEth();
 
@@ -875,8 +788,6 @@ public class PosDiffService {
             arbitrageService.setSignalType(signalType);
             marketService.setBusy();
 
-            corrInProgress = true;
-
             if (outsideLimits(marketService)) {
                 // do nothing
             } else {
@@ -895,6 +806,8 @@ public class PosDiffService {
                 String message = String.format("%s %s %s %s amount=%s c=%s", signalType, counterName, placingType, orderType, correctAmount, contractType);
                 slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, message);
 
+                countOnStartCorr(corrParams, signalType);
+
                 marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
                         placingType, signalType, 1, tradeId, counterName, null, contractType));
             }
@@ -910,6 +823,14 @@ public class PosDiffService {
             );
         }
 
+    }
+
+    private boolean hasNoSpareAttempts(SignalType baseSignalType, CorrParams corrParams) {
+        final boolean isAdj = baseSignalType == SignalType.ADJ || baseSignalType == SignalType.ADJ_BTC;
+        final boolean isCorr = baseSignalType == SignalType.CORR || baseSignalType == SignalType.CORR_BTC;
+        final boolean adjLimit = isAdj && !corrParams.getAdj().hasSpareAttempts();
+        final boolean corrLimit = isCorr && !corrParams.getCorr().hasSpareAttempts();
+        return adjLimit || corrLimit;
     }
 
     private void adaptCorrByMaxVolCorr(final CorrObj corrObj, final CorrParams corrParams) {
@@ -1152,8 +1073,13 @@ public class PosDiffService {
     private boolean isPosEqualByMaxAdj(BigDecimal dc) {
         final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
         final BigDecimal posAdjustmentMax = pa.getPosAdjustmentMax();
-
         return dc.abs().subtract(posAdjustmentMax).signum() <= 0;
+    }
+
+    public boolean isPosEqualByMinAdj(final BigDecimal dc) {
+        final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+        final BigDecimal posAdjustmentMin = pa.getPosAdjustmentMin();
+        return dc.abs().subtract(posAdjustmentMin).signum() <= 0;
     }
 
     private boolean isPosEqual() {
@@ -1161,19 +1087,15 @@ public class PosDiffService {
 //        final BigDecimal posAdjustmentMin = pa.getPosAdjustmentMin();
 //
 //        return getDc().abs().subtract(posAdjustmentMin).signum() <= 0;
-        return isMainSetEqual() && isExtraSetEqual();
+        return isPosEqualByMinAdj(getDcMainSet()) && isPosEqualByMinAdj(getDcExtraSet());
     }
 
     public boolean isMainSetEqual() {
-        final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-        final BigDecimal posAdjustmentMin = pa.getPosAdjustmentMin();
-        return getDcMainSet().abs().subtract(posAdjustmentMin).signum() <= 0;
+        return isPosEqualByMinAdj(getDcMainSet());
     }
 
     public boolean isExtraSetEqual() {
-        final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-        final BigDecimal posAdjustmentMin = pa.getPosAdjustmentMin();
-        return getDcExtraSet().abs().subtract(posAdjustmentMin).signum() <= 0;
+        return isPosEqualByMinAdj(getDcExtraSet());
     }
 
     private boolean isAdjViolated(BigDecimal dc) {

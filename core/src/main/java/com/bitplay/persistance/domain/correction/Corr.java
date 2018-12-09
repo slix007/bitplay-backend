@@ -17,13 +17,14 @@ import org.springframework.data.annotation.Transient;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Corr {
+public class Corr extends CountedWithExtra {
 
     private Integer maxVolCorrUsd;
     // attempts - resets after success
     private Integer currErrorCount;
     private Integer maxErrorCount;
     // all counts
+    private Integer totalCount;
     private Integer succeedCount;
     private Integer failedCount;
     private Integer maxTotalCount;
@@ -34,7 +35,7 @@ public class Corr {
     private Boolean isEth;
 
     public static Corr createDefault() {
-        return new Corr(1, 0, 3, 0, 0, 20,
+        return new Corr(1, 0, 3, 0, 0, 0, 0,
                 BigDecimal.valueOf(100), false);
     }
 
@@ -58,26 +59,37 @@ public class Corr {
         return hasSpareCurrent && hasSparePermanent;
     }
 
-    public Integer getTotalCount() {
-        return succeedCount + failedCount;
+    @Override
+    public void incTotalCount() {
+        super.incTotalCount();
+        this.totalCount++;
     }
 
-    public void incSuccesses() {
+    @Override
+    public void incTotalCountExtra() {
+        super.incTotalCountExtra();
+        this.totalCount++;
+    }
+
+    @Override
+    protected void incSuccessful() {
         this.succeedCount++;
         this.currErrorCount = 0;
     }
 
-    public void incFails() {
+    @Override
+    protected void incFailed() {
         this.failedCount++;
         this.currErrorCount++;
     }
 
     @Override
     public String toString() {
-        return String.format("Corr attempts(curr/max): %s/%s. Total(success+fail=total / max): %s+%s=%s / %s",
+        return String.format("Corr attempts(curr/max): %s/%s. Total(success+fail / total / max): %s+%s / %s / %s",
                 currErrorCount, maxErrorCount,
                 succeedCount, failedCount,
-                succeedCount + failedCount,
+                totalCount,
                 maxTotalCount);
     }
+
 }

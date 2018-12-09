@@ -294,9 +294,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                     logger.info("reset {} from " + flags[0], marketState);
                     setMarketState(MarketState.READY);
                     eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId)); // end arbitrage trigger s==> already ready.
-                    if (getArbitrageService().getSignalType().isCorr()) {
-                        getPosDiffService().finishCorr(tradeId);
-                    }
                 }
                 break;
             case SYSTEM_OVERLOADED:
@@ -312,9 +309,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 //            fetchPosition(); -- deadlock
                 setMarketState(MarketState.READY);
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId)); // end arbitrage trigger
-                if (getArbitrageService().getSignalType().isCorr()) {
-                    getPosDiffService().finishCorr(tradeId);
-                }
 
                 iterateOpenOrdersMove();
                 break;

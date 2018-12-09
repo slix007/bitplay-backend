@@ -65,6 +65,7 @@ public class SettingsCorrEndpoint {
         if (changeRequestJson.getCommand() != null) {
             corrParams.getCorr().setSucceedCount(0);
             corrParams.getCorr().setFailedCount(0);
+            corrParams.getCorr().setTotalCount(0);
             corrParams.getCorr().setCurrErrorCount(0);
             corrParams.getPreliq().setSucceedCount(0);
             corrParams.getPreliq().setTotalCount(0);
@@ -72,6 +73,7 @@ public class SettingsCorrEndpoint {
             corrParams.getPreliq().setCurrErrorCount(0);
             corrParams.getAdj().setSucceedCount(0);
             corrParams.getAdj().setFailedCount(0);
+            corrParams.getAdj().setTotalCount(0);
             corrParams.getAdj().setCurrErrorCount(0);
             persistenceService.saveCorrParams(corrParams);
         }

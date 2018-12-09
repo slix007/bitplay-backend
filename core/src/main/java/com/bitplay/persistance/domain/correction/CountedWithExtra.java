@@ -1,6 +1,7 @@
 package com.bitplay.persistance.domain.correction;
 
-public abstract class Counted {
+@SuppressWarnings("Duplicates")
+public abstract class CountedWithExtra {
 
     abstract void incFailed();
 
@@ -10,11 +11,13 @@ public abstract class Counted {
         inProgress = true;
     }
 
+    protected void incTotalCountExtra() {
+        inProgressExtra = true;
+    }
+
     private boolean inProgress;
 
-    public boolean tryIncOnFinish(boolean stillViolated) {
-        return stillViolated ? tryIncFailed() : tryIncSuccessful();
-    }
+    private boolean inProgressExtra;
 
     public boolean tryIncFailed() {
         boolean changed = false;
@@ -31,6 +34,26 @@ public abstract class Counted {
         if (inProgress) {
             this.incSuccessful();
             inProgress = false;
+            changed = true;
+        }
+        return changed;
+    }
+
+    public boolean tryIncFailedExtra() {
+        boolean changed = false;
+        if (inProgressExtra) {
+            this.incFailed();
+            inProgressExtra = false;
+            changed = true;
+        }
+        return changed;
+    }
+
+    public boolean tryIncSuccessfulExtra() {
+        boolean changed = false;
+        if (inProgressExtra) {
+            this.incSuccessful();
+            inProgressExtra = false;
             changed = true;
         }
         return changed;

@@ -14,18 +14,19 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Adj {
+public class Adj extends CountedWithExtra {
 
     // attempts - resets after success
     private Integer currErrorCount;
     private Integer maxErrorCount;
     // all counts
+    private Integer totalCount;
     private Integer succeedCount;
     private Integer failedCount;
     private Integer maxTotalCount;
 
     public static Adj createDefault() {
-        return new Adj(0, 3, 0, 0, 20);
+        return new Adj(0, 3, 0, 0, 0, 0);
     }
 
     public boolean hasSpareAttempts() {
@@ -34,26 +35,36 @@ public class Adj {
         return hasSpareCurrent && hasSparePermanent;
     }
 
-    public Integer getTotalCount() {
-        return succeedCount + failedCount;
+    @Override
+    public void incTotalCount() {
+        super.incTotalCount();
+        this.totalCount++;
     }
 
-    public void incSuccesses() {
+    @Override
+    public void incTotalCountExtra() {
+        super.incTotalCountExtra();
+        this.totalCount++;
+    }
+
+    @Override
+    protected void incSuccessful() {
         this.succeedCount++;
         this.currErrorCount = 0;
     }
 
-    public void incFails() {
+    @Override
+    protected void incFailed() {
         this.failedCount++;
         this.currErrorCount++;
     }
 
     @Override
     public String toString() {
-        return String.format("Adj attempts(curr/max): %s/%s. Total(success+fail=total / max): %s+%s=%s / %s",
+        return String.format("Adj attempts(curr/max): %s/%s. Total(success+fail / total / max): %s+%s / %s / %s",
                 currErrorCount, maxErrorCount,
                 succeedCount, failedCount,
-                succeedCount + failedCount,
+                totalCount,
                 maxTotalCount);
     }
 }

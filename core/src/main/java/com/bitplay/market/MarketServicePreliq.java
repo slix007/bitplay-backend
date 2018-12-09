@@ -80,7 +80,7 @@ public abstract class MarketServicePreliq extends MarketService {
             }
 
             final Integer delaySec = getPersistenceService().getSettingsRepositoryService().getSettings().getPosAdjustment().getPreliqDelaySec();
-            long secToReady = dtPreliq.secToReady(delaySec);
+            long secToReady = dtPreliq.secToReadyPresice(delaySec);
             if (secToReady > 0) {
                 String msg = getName() + "_PRE_LIQ signal mainSet. Waiting delay(sec)=" + secToReady;
                 log.info(msg);

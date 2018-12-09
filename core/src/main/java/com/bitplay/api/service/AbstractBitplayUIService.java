@@ -76,12 +76,13 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
             amountInBtc = inBtc != null ? inBtc.toPlainString() : "";
         }
 
+        final LimitOrder limO = (LimitOrder) o;
         return new OrderJson(
                 ord.getCounterName(),
                 ord.getOrderId(),
                 o.getStatus() != null ? o.getStatus().toString() : null,
-                o.getCurrencyPair() == null ? "" : o.getCurrencyPair().toString(),
-                ((LimitOrder) o).getLimitPrice().toPlainString(),
+                o.getCurrencyPair() != null ? o.getCurrencyPair().toString() : "",
+                limO.getLimitPrice() != null ? limO.getLimitPrice().toPlainString() : "",
                 o.getTradableAmount().toPlainString(),
                 o.getType() != null ? o.getType().toString() : "null",
                 o.getTimestamp() != null ? LocalDateTime.ofInstant(o.getTimestamp().toInstant(), ZoneId.systemDefault()).toLocalTime().toString() : null,
