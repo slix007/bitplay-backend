@@ -2,10 +2,12 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.dto.ThrottledWarn;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexUtils;
@@ -51,6 +53,8 @@ import org.springframework.stereotype.Service;
 public class PosDiffService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+    private final ThrottledWarn dqlWarn = new ThrottledWarn();
+    private final ThrottledWarn corrAdjWarn = new ThrottledWarn();
 
     private Disposable theTimerToImmediateCorr;
 
@@ -755,12 +759,12 @@ public class PosDiffService {
             adaptExtraSetAdjByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            adaptCorrByMaxVolCorr(corrObj, corrParamsExtra);
+            adaptCorrByMaxVolCorrAndDql(corrObj, corrParamsExtra);
 
         } else if (baseSignalType == SignalType.ADJ) {
 
             adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
-            adaptCorrByMaxVolCorr(corrObj, corrParams);
+            adaptCorrByMaxVolCorrAndDql(corrObj, corrParams);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
 
@@ -769,14 +773,14 @@ public class PosDiffService {
             adaptExtraSetAdjByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            adaptCorrByMaxVolCorr(corrObj, corrParamsExtra);
+            adaptCorrByMaxVolCorrAndDql(corrObj, corrParamsExtra);
 
         } else { // corr
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
             maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
 
             adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
-            adaptCorrByMaxVolCorr(corrObj, corrParams);
+            adaptCorrByMaxVolCorrAndDql(corrObj, corrParams);
 
         } // end corr
 
@@ -789,6 +793,9 @@ public class PosDiffService {
         // 3. check isAffordable
         boolean isAffordable = marketService.isAffordable(orderType, correctAmount);
         if (correctAmount.signum() > 0 && isAffordable) {
+
+            corrAdjWarn.reset();
+
 //                bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
             arbitrageService.setSignalType(signalType);
             marketService.setBusy();
@@ -817,15 +824,17 @@ public class PosDiffService {
                         placingType, signalType, 1, tradeId, counterName, null, contractType));
             }
         } else {
-            warningLogger.warn("No {}: amount={}, isAffordable={}, maxBtm={}, maxOk={}, dc={}, btmPos={}, okPos={}, hedge={}, signal={}",
-                    corrName,
-                    correctAmount, isAffordable,
-                    maxBtm, maxOkex, dc,
-                    arbitrageService.getFirstMarketService().getPosition().toString(),
-                    arbitrageService.getSecondMarketService().getPosition().toString(),
-                    hedgeAmount.toPlainString(),
-                    signalType
-            );
+            if (corrAdjWarn.isReadyToSend()) {
+                warningLogger.warn("No {}: amount={}, isAffordable={}, maxBtm={}, maxOk={}, dc={}, btmPos={}, okPos={}, hedge={}, signal={}",
+                        corrName,
+                        correctAmount, isAffordable,
+                        maxBtm, maxOkex, dc,
+                        arbitrageService.getFirstMarketService().getPosition().toString(),
+                        arbitrageService.getSecondMarketService().getPosition().toString(),
+                        hedgeAmount.toPlainString(),
+                        signalType
+                );
+            }
         }
 
     }
@@ -838,7 +847,7 @@ public class PosDiffService {
         return adjLimit || corrLimit;
     }
 
-    private void adaptCorrByMaxVolCorr(final CorrObj corrObj, final CorrParams corrParams) {
+    private void adaptCorrByMaxVolCorrAndDql(final CorrObj corrObj, final CorrParams corrParams) {
         if (corrObj.marketService.getName().equals(OkCoinService.NAME)) {
             BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
             if (corrObj.correctAmount.compareTo(okMax) > 0) {
@@ -848,6 +857,21 @@ public class PosDiffService {
             BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
             if (corrObj.correctAmount.compareTo(bMax) > 0) {
                 corrObj.correctAmount = bMax;
+            }
+        }
+        adaptCorrByDql(corrObj);
+    }
+
+    private void adaptCorrByDql(final CorrObj corrObj) {
+        if (corrObj.signalType.isIncreasePos()) {
+            final boolean dqlViolated = corrObj.marketService.isDqlViolated();
+            if (dqlViolated) {
+                corrObj.correctAmount = BigDecimal.ZERO;
+                if (dqlWarn.isReadyToSend()) {
+                    warningLogger.warn("No %s. DQL is violated", corrObj.signalType);
+                }
+            } else {
+                dqlWarn.reset();
             }
         }
     }
@@ -875,7 +899,7 @@ public class PosDiffService {
         SignalType signalType;
         OrderType orderType;
         BigDecimal correctAmount;
-        MarketService marketService;
+        MarketServicePreliq marketService;
         ContractType contractType;
     }
 

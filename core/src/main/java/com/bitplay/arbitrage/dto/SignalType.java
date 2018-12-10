@@ -73,4 +73,7 @@ public enum SignalType {
         return this == SignalType.B_PRE_LIQ || this == SignalType.O_PRE_LIQ;
 
     }
-}
+
+    public boolean isIncreasePos() {
+        return getCounterName().contains("increase");
+    }}

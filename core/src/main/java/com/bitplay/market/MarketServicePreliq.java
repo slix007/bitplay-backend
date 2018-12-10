@@ -111,6 +111,12 @@ public abstract class MarketServicePreliq extends MarketService {
         Utils.logIfLong(start, end, log, "checkForDecreasePosition");
     }
 
+    public boolean isDqlViolated() {
+        LiqInfo liqInfo = getLiqInfo();
+        final BigDecimal dqlCloseMin = getDqlCloseMin();
+        return isDqlViolated(liqInfo, dqlCloseMin);
+    }
+
     private boolean isDqlViolated(LiqInfo liqInfo, BigDecimal dqlCloseMin) {
         return liqInfo.getDqlCurr() != null
                 && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
