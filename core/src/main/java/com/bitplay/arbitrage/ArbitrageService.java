@@ -729,6 +729,7 @@ public class ArbitrageService {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
 
+        //noinspection Duplicates
         if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
                 && posDiffService.checkIsPositionsEqual()
                 && !firstMarketService.isMarketStopped() && !secondMarketService.isMarketStopped()
@@ -1192,6 +1193,8 @@ public class ArbitrageService {
                 firstMarketService.setMarketState(MarketState.FORBIDDEN);
                 secondMarketService.setMarketState(MarketState.FORBIDDEN);
                 slackNotifications.sendNotify(NotifyType.FORBIDDEN, "FORBIDDEN: " + msg);
+            } else {
+                slackNotifications.resetThrottled(NotifyType.FORBIDDEN);
             }
 
             // calc auto hedge

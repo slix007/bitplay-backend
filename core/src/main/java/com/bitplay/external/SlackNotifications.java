@@ -6,9 +6,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import lombok.extern.slf4j.Slf4j;
@@ -85,7 +85,7 @@ public class SlackNotifications {
     }
 
 
-    private Map<String, Instant> toThrottle = new HashMap<>();
+    private Map<String, Instant> toThrottle = new ConcurrentHashMap<>();
 
     private boolean shouldSkip(NotifyType notifyType) {
         if (!notifyType.isThrottled()) {
@@ -106,6 +106,16 @@ public class SlackNotifications {
             log.error("Can not throttle slack notification", e);
         }
         return skipThisOne;
+    }
+
+    public void resetThrottled(NotifyType notifyType) {
+        try {
+            String objectToThrottle = notifyType.name();
+            toThrottle.remove(objectToThrottle);
+        } catch (Exception e) {
+            log.error("Can not reset the throttled slack notification " + notifyType, e);
+        }
+
     }
 
 }

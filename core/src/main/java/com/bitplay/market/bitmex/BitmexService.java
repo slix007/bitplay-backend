@@ -2263,6 +2263,8 @@ public class BitmexService extends MarketServicePreliq {
         if (!isOk) {
             slackNotifications.sendNotify(NotifyType.BITMEX_DQL_OPEN_MIN,
                     String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), bDQLOpenMin));
+        } else {
+            slackNotifications.resetThrottled(NotifyType.BITMEX_DQL_OPEN_MIN);
         }
 
         return isOk;

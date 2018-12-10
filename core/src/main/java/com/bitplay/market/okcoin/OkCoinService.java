@@ -16,7 +16,6 @@ import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.LogService;
-import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
@@ -31,7 +30,6 @@ import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
@@ -1786,6 +1784,8 @@ public class OkCoinService extends MarketServicePreliq {
         if (!isOk) {
             slackNotifications.sendNotify(NotifyType.OKEX_DQL_OPEN_MIN,
                     String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), oDQLOpenMin));
+        } else {
+            slackNotifications.resetThrottled(NotifyType.OKEX_DQL_OPEN_MIN);
         }
 
         return isOk;
