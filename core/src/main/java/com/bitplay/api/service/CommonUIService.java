@@ -708,6 +708,12 @@ public class CommonUIService {
             toUpdate.setPercentage(update.getPercentage());
             lastPriceDeviationService.saveLastPriceDeviation(toUpdate);
         }
+        if (update.getDelaySec() != null) {
+            LastPriceDeviation toUpdate = lastPriceDeviationService.getLastPriceDeviation();
+            toUpdate.setDelaySec(update.getDelaySec());
+            lastPriceDeviationService.saveLastPriceDeviation(toUpdate);
+            lastPriceDeviationService.getDelayTimer().stop();
+        }
         return lastPriceDeviationService.getLastPriceDeviation();
     }
 

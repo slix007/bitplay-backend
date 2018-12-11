@@ -24,6 +24,7 @@ public class LastPriceDeviation extends AbstractParams {
     private BigDecimal bitmexExtra;
     private BigDecimal okexMain;
     private BigDecimal percentage;
+    private Integer delaySec;
 
     @Transient
     private BigDecimal bitmexMainCurr;

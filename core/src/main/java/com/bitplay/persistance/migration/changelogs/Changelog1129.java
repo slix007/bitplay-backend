@@ -20,4 +20,11 @@ public class Changelog1129 {
         mongoTemplate.save(lastPriceDeviation);
     }
 
+    @ChangeSet(order = "002", id = "2018-12-11: lastPriceDeviation timer", author = "SergeiShurmin")
+    public void change02(MongoTemplate mongoTemplate) {
+        final LastPriceDeviation lastPriceDeviation = mongoTemplate.findById(4L, LastPriceDeviation.class);
+        lastPriceDeviation.setDelaySec(3600);
+        mongoTemplate.save(lastPriceDeviation);
+    }
+
 }

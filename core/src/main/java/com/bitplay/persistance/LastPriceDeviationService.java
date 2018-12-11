@@ -1,5 +1,6 @@
 package com.bitplay.persistance;
 
+import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
@@ -41,6 +42,7 @@ public class LastPriceDeviationService {
     private MongoTemplate mongoTemplate;
 
     private volatile LastPriceDeviation cacheDev;
+    private volatile DelayTimer delayTimer = new DelayTimer();
 
     private final Executor checkerExecutor = Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat("LastPriceDevChecker-%d").build());
@@ -77,11 +79,13 @@ public class LastPriceDeviationService {
     }
 
     public void checkDeviationAsync() {
-        checkerExecutor.execute(this::checkDeviation);
+        checkerExecutor.execute(this::checkDeviation); // each(bitmex/okex) Ticker update
     }
 
     private void checkDeviation() {
-        LastPriceDeviation dev = fetchLastPriceDeviation();
+        LastPriceDeviation dev = getLastPriceDeviation();
+
+        timerTick(dev);
 
         setCurrLastPrice(dev);
 
@@ -120,6 +124,21 @@ public class LastPriceDeviationService {
         }
 
         saveLastPriceDeviation(dev);
+    }
+
+    private void timerTick(LastPriceDeviation dev) {
+        delayTimer.activate();
+        if (dev.getDelaySec() != null) {
+            final boolean readyByTime = delayTimer.isReadyByTime(dev.getDelaySec());
+            if (readyByTime) {
+                fixCurrentLastPrice();
+                delayTimer.stop();
+            }
+        }
+    }
+
+    public DelayTimer getDelayTimer() {
+        return delayTimer;
     }
 
     private void setCurrLastPrice(LastPriceDeviation dev) {
