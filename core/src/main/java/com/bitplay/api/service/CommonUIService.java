@@ -25,6 +25,8 @@ import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalTimeService;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.external.NotifyType;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
@@ -105,6 +107,9 @@ public class CommonUIService {
 
     @Autowired
     private LastPriceDeviationService lastPriceDeviationService;
+
+    @Autowired
+    private SlackNotifications slackNotifications;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -436,12 +441,17 @@ public class CommonUIService {
     }
 
     public MarketStatesJson setMarketsStates(MarketStatesJson marketStatesJson) {
-        arbitrageService.getFirstMarketService().setMarketState(
-                MarketState.valueOf(marketStatesJson.getFirstMarket())
-        );
-        arbitrageService.getSecondMarketService().setMarketState(
-                MarketState.valueOf(marketStatesJson.getSecondMarket())
-        );
+        final MarketState first = MarketState.valueOf(marketStatesJson.getFirstMarket());
+        final MarketState second = MarketState.valueOf(marketStatesJson.getSecondMarket());
+        arbitrageService.getFirstMarketService().setMarketState(first);
+        arbitrageService.getSecondMarketService().setMarketState(second);
+
+        if (first == MarketState.STOPPED || second == MarketState.STOPPED) {
+            slackNotifications.sendNotify(NotifyType.STOPPED, "STOPPED from UI");
+        }
+        if (first == MarketState.FORBIDDEN || second == MarketState.FORBIDDEN) {
+            slackNotifications.sendNotify(NotifyType.FORBIDDEN, "FORBIDDEN from UI");
+        }
 
         return new MarketStatesJson(
                 arbitrageService.getFirstMarketService().getMarketState().name(),

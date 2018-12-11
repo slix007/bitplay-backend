@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 @AllArgsConstructor
 @RequiredArgsConstructor
 public enum NotifyType {
-    //Список алармов для night:
+    //Список алармов для passive:
     //1. Stop all actions (MDC и signal limit) *
     //2. Preliq
     //3. Forbidden
@@ -20,28 +20,29 @@ public enum NotifyType {
     //9. Любая из бирж Outside limits
     //* - добавить также в дневной режим.
 
-    STOP_ALL_ACTIONS(false, true),
-    PRELIQ(false, true),
-    FORBIDDEN(true, true, 60 * 30), // 30 min
-    E_BEST_VIOLATION(true, true, 60 * 60), // 60 min
-    CORR_NOTIFY(false, true),
-    BITMEX_BAN_403(true, true, 60 * 30), // 30 min
-    OKEX_BAN_403(true, true, 60 * 30), // 30 min
-    PRICE_CHANGE_10(false, true),
-    BITMEX_DQL_OPEN_MIN(true, true, 60 * 30), // 30 min
-    OKEX_DQL_OPEN_MIN(true, true, 60 * 30), // 30 min
-    BITMEX_OUTSIDE_LIMITS(true, true, 60 * 30), // 30 min
-    OKEX_OUTSIDE_LIMITS(true, true, 60 * 30), // 30 min
-    BITMEX_RECONNECT(false, false),
+    STOP_ALL_ACTIONS_BY_MDC_TIMER(false),
+    PRELIQ(false),
+    FORBIDDEN(true, 60 * 30), // 30 min
+    E_BEST_VIOLATION(true, 60 * 60), // 60 min
+    CORR_NOTIFY(false),
+    ADJ_NOTIFY(false),
+    BITMEX_BAN_403(true, 60 * 30), // 30 min
+    OKEX_BAN_403(true, 60 * 30), // 30 min
+    LAST_PRICE_DEVIATION(false),
+    BITMEX_DQL_OPEN_MIN(true, 60 * 30), // 30 min
+    OKEX_DQL_OPEN_MIN(true, 60 * 30), // 30 min
+    BITMEX_OUTSIDE_LIMITS(true, 60 * 30), // 30 min
+    OKEX_OUTSIDE_LIMITS(true, 60 * 30), // 30 min
+    BITMEX_RECONNECT(false),
 
-    BUSY_6_MIN(false, false),
-    AT_STARTUP(false, false),
-    BITMEX_X_RATE_LIMIT(false, false),
-    TIMESTAMP_OLD(false, false),
-    TRADE_SIGNAL(false, false),
+    BUSY_6_MIN(false),
+    AT_STARTUP(false),
+    STOPPED(false),
+    BITMEX_X_RATE_LIMIT(false),
+    REBOOT_TIMESTAMP_OLD(false),
+    TRADE_SIGNAL(false),
     ;
 
     private final boolean throttled;
-    private final boolean night;
     private Integer throttleSec = 60 * 30; // 30 min
 }

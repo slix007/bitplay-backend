@@ -90,19 +90,24 @@ public class ExtrastopService {
             }
 
             if (isHanged()) {
-                warningLogger.warn("Stop markets and schedule restart in 30 sec. Set STOPPED.");
+                final String msg = "Set STOPPED. Stop markets and schedule restart in 30 sec.";
+                warningLogger.warn(msg);
 
                 bitmexService.setMarketState(MarketState.STOPPED);
                 okCoinService.setMarketState(MarketState.STOPPED);
+                slackNotifications.sendNotify(NotifyType.STOPPED, msg);
 
                 startTimerToRestart(details);
             }
 
         } catch (IllegalArgumentException e) {
-            log.error("Error on check times. Set STOPPED.", e);
+            final String msg = "Set STOPPED. Error on check times: " + e.getMessage();
+            log.error(msg, e);
 //            warningLogger.error("ERROR on check times", e);
             bitmexService.setMarketState(MarketState.STOPPED);
             okCoinService.setMarketState(MarketState.STOPPED);
+            slackNotifications.sendNotify(NotifyType.STOPPED, msg);
+
             startTimerToRestart(e.getMessage());
         } catch (Exception e) {
             log.error("on check times", e);
@@ -238,11 +243,11 @@ public class ExtrastopService {
 
     private void startTimerToRestart(String details) {
         log.info("deferred restart. " + details);
-        slackNotifications.sendNotify(NotifyType.TIMESTAMP_OLD, "STOPPED: OrderBook timestamps." + details);
+        slackNotifications.sendNotify(NotifyType.REBOOT_TIMESTAMP_OLD, "STOPPED: OrderBook timestamps." + details);
         scheduler.schedule(() -> {
             try {
                 if (isHanged()) {
-                    slackNotifications.sendNotify(NotifyType.TIMESTAMP_OLD, "RESTART: OrderBook timestamps.");
+                    slackNotifications.sendNotify(NotifyType.REBOOT_TIMESTAMP_OLD, "RESTART: OrderBook timestamps.");
                     restartService.doFullRestart("OrderBook timestamp diff(after flag STOPPED). " + details);
                 } else {
                     warningLogger.warn("No restart in 30 sec, back to READY. OrderBooks looks ok.");

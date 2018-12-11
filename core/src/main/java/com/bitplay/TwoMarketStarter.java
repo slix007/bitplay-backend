@@ -5,7 +5,6 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
@@ -99,7 +98,7 @@ public class TwoMarketStarter {
                 firstMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
                 firstMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
                 firstMarketService.setMarketState(MarketState.STOPPED);
-                slackNotifications.sendNotify(NotifyType.AT_STARTUP, BitmexService.NAME + " STOPPED: Initialization error.");
+                slackNotifications.sendNotify(NotifyType.STOPPED, BitmexService.NAME + " STOPPED: Initialization error.");
                 return false;
             }
         }, startExecutor);
@@ -117,7 +116,7 @@ public class TwoMarketStarter {
                 secondMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
                 secondMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
                 secondMarketService.setMarketState(MarketState.STOPPED);
-                slackNotifications.sendNotify(NotifyType.AT_STARTUP, OkCoinService.NAME + " STOPPED: Initialization error.");
+                slackNotifications.sendNotify(NotifyType.STOPPED, OkCoinService.NAME + " STOPPED: Initialization error.");
                 return false;
             }
         }, startExecutor);

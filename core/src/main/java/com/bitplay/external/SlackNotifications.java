@@ -46,11 +46,8 @@ public class SlackNotifications {
 
             final ToObj toObj = destinationResolver.defineWhereToSend(notifyType);
 
-            if (toObj.getChannel() != null) {
-                sendSync(toObj.getChannel(), toObj.getHostLabel(), message);
-                if (toObj.getNightChannel() != null) {
-                    sendSync(toObj.getNightChannel(), toObj.getHostLabel(), message);
-                }
+            for (String channel : toObj.getChannels()) {
+                sendSync(channel, toObj.getHostLabel(), message);
             }
 
         } catch (Exception e) {

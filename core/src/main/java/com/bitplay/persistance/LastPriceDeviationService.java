@@ -91,7 +91,7 @@ public class LastPriceDeviationService {
                     dev.getBitmexMain(),
                     dev.getPercentage()
             );
-            slackNotifications.sendNotify(NotifyType.PRICE_CHANGE_10, msg);
+            slackNotifications.sendNotify(NotifyType.LAST_PRICE_DEVIATION, msg);
             warningLogger.info(msg);
             log.info(msg);
             dev.setBitmexMain(dev.getBitmexMainCurr());
@@ -102,7 +102,7 @@ public class LastPriceDeviationService {
                     dev.getBitmexExtra(),
                     dev.getPercentage()
             );
-            slackNotifications.sendNotify(NotifyType.PRICE_CHANGE_10, msg);
+            slackNotifications.sendNotify(NotifyType.LAST_PRICE_DEVIATION, msg);
             warningLogger.info(msg);
             log.info(msg);
             dev.setBitmexExtra(dev.getBitmexExtraCurr());
@@ -113,7 +113,7 @@ public class LastPriceDeviationService {
                     dev.getOkexMain(),
                     dev.getPercentage()
             );
-            slackNotifications.sendNotify(NotifyType.PRICE_CHANGE_10, msg);
+            slackNotifications.sendNotify(NotifyType.LAST_PRICE_DEVIATION, msg);
             warningLogger.info(msg);
             log.info(msg);
             dev.setOkexMain(dev.getOkexMainCurr());

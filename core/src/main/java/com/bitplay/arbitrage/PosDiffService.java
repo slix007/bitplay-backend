@@ -239,7 +239,7 @@ public class PosDiffService {
                 .doOnComplete(() -> {
                     final String infoMsg = String.format("Double check before timer-state-reset mainSet. %s fetchPosition:",
                             arbitrageService.getMainSetStr());
-                    slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
+                    slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, infoMsg);
                     if (Thread.interrupted()) return;
                     final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                     if (Thread.interrupted()) return;
@@ -250,7 +250,7 @@ public class PosDiffService {
                     if (arbitrageService.getFirstMarketService().getContractType().isEth()) {
                         final String infoMsgXBTUSD = String.format("Double check before timer-state-reset XBTUSD. %s fetchPosition:",
                                 arbitrageService.getExtraSetStr());
-                        slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
+                        slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, infoMsg);
                         checkBitmexPosXBTUSD(infoMsgXBTUSD);
                     }
 
@@ -260,7 +260,7 @@ public class PosDiffService {
                         arbitrageService.getFirstMarketService().stopAllActions();
                         arbitrageService.getSecondMarketService().stopAllActions();
                         arbitrageService.releaseArbInProgress("", "timer-state-reset");
-                        slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS, "STOP_ALL_ACTIONS: timer-state-reset");
+                        slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER: timer-state-reset");
                     }
                 })
                 .doOnError(e -> {
@@ -340,7 +340,7 @@ public class PosDiffService {
                     arbitrageService.getSecondMarketService().stopAllActions();
                     arbitrageService.releaseArbInProgress("", "MDC extraSet");
                     dt.stop();
-                    slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS, "STOP_ALL_ACTIONS:" + msg);
+                    slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER:" + msg);
                 }
             }
         } else {
@@ -358,7 +358,7 @@ public class PosDiffService {
                 warningLogger.info(msg);
             } else {
                 String infoMsg = String.format("Double check before %s. %s fetchPosition:", name, arbitrageService.getMainSetStr());
-                slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
+                slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, infoMsg);
                 final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                 final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                 warningLogger.info(infoMsg + "bitmex " + pos1);
@@ -373,7 +373,7 @@ public class PosDiffService {
                     arbitrageService.getSecondMarketService().stopAllActions();
                     arbitrageService.releaseArbInProgress("", "MDC mainSet");
                     dt.stop();
-                    slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS, "STOP_ALL_ACTIONS: " + msg);
+                    slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER: " + msg);
                 }
             }
 
@@ -503,7 +503,7 @@ public class PosDiffService {
 
                 String infoMsg = String.format("Double check before adjustment mainSet. %s fetchPosition:",
                         arbitrageService.getMainSetStr());
-                slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
+                slackNotifications.sendNotify(NotifyType.ADJ_NOTIFY, infoMsg);
                 if (doubleFetchPositionFailed(infoMsg, false)) {
                     return true;
                 }
@@ -571,7 +571,7 @@ public class PosDiffService {
 
                 String infoMsg = String.format("Double check before adjustment XBTUSD. %s fetchPosition:",
                         arbitrageService.getExtraSetStr());
-                slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
+                slackNotifications.sendNotify(NotifyType.ADJ_NOTIFY, infoMsg);
                 if (doubleFetchPositionFailed(infoMsg, true)) {
                     return true;
                 }
@@ -816,7 +816,7 @@ public class PosDiffService {
                 final Long tradeId = arbitrageService.getLastTradeId();
 
                 String message = String.format("%s %s %s %s amount=%s c=%s", signalType, counterName, placingType, orderType, correctAmount, contractType);
-                slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, message);
+                slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
 
                 countOnStartCorr(corrParams, signalType);
 
