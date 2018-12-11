@@ -1769,20 +1769,22 @@ public class ArbitrageService {
 
     public void releaseArbInProgress(String counterName, String from) {
         String msg = "Arbitrage state was reset READY from " + from + ". ";
-        tradeService.warn(tradeId, counterName, msg);
         warningLogger.warn(msg);
         logger.warn(msg);
+        if (tradeId != null) {
+            tradeService.warn(tradeId, counterName, msg);
 
-        synchronized (arbStateLock) {
-            try {
-                onArbDone(tradeId, BitmexService.NAME);
-                onArbDone(tradeId, OkCoinService.NAME);
-            } catch (Exception e) {
-                logger.error("Error " + msg, e);
-                warningLogger.error("Error " + msg + e.toString());
+            synchronized (arbStateLock) {
+                try {
+                    onArbDone(tradeId, BitmexService.NAME);
+                    onArbDone(tradeId, OkCoinService.NAME);
+                } catch (Exception e) {
+                    logger.error("Error " + msg, e);
+                    warningLogger.error("Error " + msg + e.toString());
+                }
+
+                arbState = ArbState.READY;
             }
-
-            arbState = ArbState.READY;
         }
     }
 
