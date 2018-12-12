@@ -299,8 +299,8 @@ public abstract class MarketServiceOpenOrders {
             // TODO
             if (!hasOpenOrders()) {
                 logger.info("market-ready: " +
-                        "tradeId=" + tradeId +
-                        "limitOrders=" + limitOrderUpdates.stream()
+                        " tradeId=" + tradeId +
+                        " limitOrders=" + limitOrderUpdates.stream()
                         .map(LimitOrder::toString)
                         .collect(Collectors.joining("; ")));
                 setFree(tradeId);

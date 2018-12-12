@@ -536,8 +536,7 @@ public class PosDiffService {
             if (Thread.interrupted()) {
                 return true;
             }
-            warningLogger.info(infoMsg + "bitmex " + pos1);
-            warningLogger.info(infoMsg + "okex " + pos2);
+            warningLogger.info(infoMsg + "bitmex " + pos1 + "; okex " + pos2);
         } else {
             checkBitmexPosXBTUSD(infoMsg);
             if (Thread.interrupted()) {

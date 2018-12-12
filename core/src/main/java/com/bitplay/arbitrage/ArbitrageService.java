@@ -41,7 +41,6 @@ import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
-import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayTrade;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
@@ -360,11 +359,13 @@ public class ArbitrageService {
         setBusyStackChecker();
     }
 
-    private void setBusyStackChecker() {
+    public void setBusyStackChecker() {
 
         if (theCheckBusyTimer != null) {
             theCheckBusyTimer.dispose();
         }
+
+        logger.info("starting isBusy-6min-checker");
 
         theCheckBusyTimer = Completable.timer(6, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
@@ -387,8 +388,8 @@ public class ArbitrageService {
                                 firstMarketService.getOnlyOpenOrders().size(),
                                 secondMarketService.isBusy(),
                                 secondMarketService.getOnlyOpenOrders().size());
-                        tradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
+                        tradeService.warn(tradeId, counterName, logString);
 
                         firstMarketService.isReadyForArbitrageWithOOFetch();
 
@@ -442,6 +443,7 @@ public class ArbitrageService {
                     }
 
                 })
+                .doOnError(throwable -> logger.error("Error in isBusy-6min-checker", throwable))
                 .repeat()
                 .retry()
                 .subscribe();
@@ -707,17 +709,19 @@ public class ArbitrageService {
     public void setArbStatePreliq() {
         synchronized (arbStateLock) {
             arbStatePrevPreliq = arbState;
+            logger.info("set ArbState.PRELIQ");
             arbState = ArbState.PRELIQ;
         }
     }
 
     public void resetArbStatePreliq() {
         synchronized (arbStateLock) {
-            if (arbState == ArbState.PRELIQ && arbStatePrevPreliq != null) {
+            if (arbState == ArbState.PRELIQ) {
                 if (firstMarketService.noPreliq() && secondMarketService.noPreliq()) {
                     // do reset
-                    arbState = arbStatePrevPreliq;
+                    arbState = arbStatePrevPreliq != null ? arbStatePrevPreliq : ArbState.READY;
                     arbStatePrevPreliq = null;
+                    logger.info("reset ArbState from PRELIQ to " + arbState);
                 }
             }
         }
@@ -1086,11 +1090,11 @@ public class ArbitrageService {
             iterationMarker = "whole iteration";
         }
 
-        if (signalType.isPreliq()) {
-            CorrParams corrParams = persistenceService.fetchCorrParams();
-            corrParams.getPreliq().incTotalCount();
-            persistenceService.saveCorrParams(corrParams);
-        }
+//        if (signalType.isPreliq()) {
+//            CorrParams corrParams = persistenceService.fetchCorrParams();
+//            corrParams.getPreliq().incTotalCount();
+//            persistenceService.saveCorrParams(corrParams);
+//        }
         final String counterName = firstMarketService.getCounterName();
 
         fplayTrade = tradeService.createTrade(counterName, deltaName,
@@ -1210,11 +1214,13 @@ public class ArbitrageService {
 
             // notifications
             // 0.5 < e_best bitmex / e_best okex < 1 - correct interval
-            BigDecimal divRes = bEbest.divide(oEbest, 2, RoundingMode.HALF_UP);
-            if (divRes.subtract(BigDecimal.valueOf(0.4)).signum() <= 0 || divRes.subtract(BigDecimal.valueOf(1)).signum() >= 0) {
-                String divResStr = String.format("e_best_bitmex(%s)/e_best_okex(%s)=res(%s). Correct interval: 0.4 < res < 1",
-                        bEbest, oEbest, divRes);
-                slackNotifications.sendNotify(NotifyType.E_BEST_VIOLATION, divResStr);
+            if (oEbest.signum() != 0) {
+                BigDecimal divRes = bEbest.divide(oEbest, 2, RoundingMode.HALF_UP);
+                if (divRes.subtract(BigDecimal.valueOf(0.4)).signum() <= 0 || divRes.subtract(BigDecimal.valueOf(1)).signum() >= 0) {
+                    String divResStr = String.format("e_best_bitmex(%s)/e_best_okex(%s)=res(%s). Correct interval: 0.4 < res < 1",
+                            bEbest, oEbest, divRes);
+                    slackNotifications.sendNotify(NotifyType.E_BEST_VIOLATION, divResStr);
+                }
             }
 
         }
@@ -1771,10 +1777,10 @@ public class ArbitrageService {
         String msg = "Arbitrage state was reset READY from " + from + ". ";
         warningLogger.warn(msg);
         logger.warn(msg);
-        if (tradeId != null) {
-            tradeService.warn(tradeId, counterName, msg);
+        tradeService.warn(tradeId, counterName, msg);
 
-            synchronized (arbStateLock) {
+        synchronized (arbStateLock) {
+            if (tradeId != null) {
                 try {
                     onArbDone(tradeId, BitmexService.NAME);
                     onArbDone(tradeId, OkCoinService.NAME);
@@ -1782,10 +1788,11 @@ public class ArbitrageService {
                     logger.error("Error " + msg, e);
                     warningLogger.error("Error " + msg + e.toString());
                 }
-
-                arbState = ArbState.READY;
             }
+
+            arbState = ArbState.READY;
         }
+
     }
 
     public boolean isFirstDeltasCalculated() {

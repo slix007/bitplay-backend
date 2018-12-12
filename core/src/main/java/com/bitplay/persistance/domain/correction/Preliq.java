@@ -17,7 +17,7 @@ import org.springframework.data.annotation.Transient;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Preliq extends Counted {
+public class Preliq extends CountedPreliq {
 
     private Integer preliqBlockUsd;
     // attempts - resets after success
@@ -59,8 +59,8 @@ public class Preliq extends Counted {
         return hasSpareCurrent && hasSparePermanent;
     }
 
-    public void incTotalCount() {
-        super.incTotalCount();
+    public void incTotalCount(String marketName) {
+        super.incTotalCount(marketName);
         this.totalCount++;
     }
 

@@ -13,6 +13,7 @@ import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.ArbState;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.LogService;
@@ -498,6 +499,9 @@ public class OkCoinService extends MarketServicePreliq {
                         okCoinPosition.getSellPriceAvg(),
                         okCoinPosition.toString()
                 );
+//                if (okCoinPosition.getBuyAmount().subtract(okCoinPosition.getSellAmount()).signum() == 0) {
+//                    logger.info("restUpdate: pos==0. " + getName());
+//                }
             }
         } else if (websocketUpdate != null) { // TODO does it worth it
             position = new Position(websocketUpdate.getPositionLong(),
@@ -505,6 +509,10 @@ public class OkCoinService extends MarketServicePreliq {
                     this.position.getLeverage(),
                     BigDecimal.ZERO,
                     websocketUpdate.getRaw());
+//            if (websocketUpdate.getPositionLong().subtract(websocketUpdate.getPositionShort()).signum() == 0) {
+//                logger.info("websocketUpdate: pos==0. " + getName());
+//            }
+
         }
 
     }
@@ -1807,7 +1815,8 @@ public class OkCoinService extends MarketServicePreliq {
     protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED
                 || getMarketState() == MarketState.PLACING_ORDER
-                || isMarketStopped()) {
+                || isMarketStopped()
+                || getArbitrageService().getArbState() == ArbState.PRELIQ) {
             return;
         }
 

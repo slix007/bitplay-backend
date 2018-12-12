@@ -37,6 +37,9 @@ public class DelayTimer {
         return nowMs - activateMs > delaySec * 1000;
     }
 
+    public boolean isActive() {
+        return firstStart != null;
+    }
 
     public boolean activate() {
         if (firstStart == null) {

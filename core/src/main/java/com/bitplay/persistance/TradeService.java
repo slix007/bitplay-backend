@@ -48,27 +48,29 @@ public class TradeService {
     }
 
 
-    public void info(long tradeId, String counterName, String theLog) {
+    public void info(Long tradeId, String counterName, String theLog) {
         addLog(tradeId, counterName, LogLevel.INFO, theLog);
     }
 
-    public void warn(long tradeId, String counterName, String theLog) {
+    public void warn(Long tradeId, String counterName, String theLog) {
         addLog(tradeId, counterName, LogLevel.WARN, theLog);
     }
 
-    public void error(long tradeId, String counterName, String theLog) {
+    public void error(Long tradeId, String counterName, String theLog) {
         addLog(tradeId, counterName, LogLevel.ERROR, theLog);
     }
 
-    private void addLog(long tradeId, String counterName, LogLevel logLevel, String theLog) {
+    private void addLog(Long tradeId, String counterName, LogLevel logLevel, String theLog) {
         deltasLogger.info(String.format("%s::%s %s", tradeId, counterName, theLog));
 
-        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
-                new Update()
-                        .inc("version", 1)
-                        .set("updated", new Date())
-                        .push("deltaLog", new LogRow(logLevel, new Date(), theLog))
-                , FplayTrade.class);
+        if (tradeId != null) {
+            mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                    new Update()
+                            .inc("version", 1)
+                            .set("updated", new Date())
+                            .push("deltaLog", new LogRow(logLevel, new Date(), theLog))
+                    , FplayTrade.class);
+        }
 
     }
 

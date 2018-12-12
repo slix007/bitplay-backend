@@ -30,18 +30,26 @@ public abstract class MarketServicePreliq extends MarketService {
     public final BlockingQueue<PlaceOrderArgs> preliqQueue = new LinkedBlockingQueue<>();
 
     public boolean noPreliq() {
-        return preliqQueue.isEmpty();
+        return preliqQueue.isEmpty() && !dtPreliq.isActive();
     }
 
     public void setPreliqState() {
         prevPreliqMarketState = getMarketState();
         setMarketState(MarketState.PRELIQ);
+        getArbitrageService().setBusyStackChecker();
     }
 
     public void resetPreliqState() {
         if (prevPreliqMarketState != null) {
+            if (prevPreliqMarketState == MarketState.PRELIQ) {
+                log.warn("prevPreliqMarketState is PRELIQ");
+            }
             setMarketState(prevPreliqMarketState);
             prevPreliqMarketState = null;
+        }
+        if (getMarketState() == MarketState.PRELIQ) {
+            log.warn("resetPreliqState to PRELIQ. Change to READY.");
+            setMarketState(MarketState.READY);
         }
     }
 
@@ -62,7 +70,10 @@ public abstract class MarketServicePreliq extends MarketService {
         final boolean dqlViolated = isDqlViolated(liqInfo, dqlCloseMin);
 
         if (!dqlViolated) {
-            if (corrParams.getPreliq().tryIncSuccessful()) {
+            //TODO. Sometimes (DQL==na and pos==0) when it's not true.
+            // Sometimes (pos!=0 && DQL==n/a)
+            // It means okex-preliq-curr/max errors does not work
+            if (corrParams.getPreliq().tryIncSuccessful(getName())) {
                 getPersistenceService().saveCorrParams(corrParams);
             }
         }
@@ -72,39 +83,54 @@ public abstract class MarketServicePreliq extends MarketService {
                 && corrParams.getPreliq().hasSpareAttempts()
                 && preliqQueue.isEmpty()
         ) {
+            final PreliqParams preliqParams = getPreliqParams(pos);
+            if (preliqParams != null && preliqParams.getPreliqBlocks() != null
+                    && preliqParams.getPreliqBlocks().getB_block().signum() > 0
+                    && preliqParams.getPreliqBlocks().getO_block().signum() > 0) {
 
-            boolean gotActivated = dtPreliq.activate();
-            if (gotActivated) {
-                getArbitrageService().setArbStatePreliq();
-                setPreliqState();
-            }
-
-            final Integer delaySec = getPersistenceService().getSettingsRepositoryService().getSettings().getPosAdjustment().getPreliqDelaySec();
-            long secToReady = dtPreliq.secToReadyPresice(delaySec);
-            if (secToReady > 0) {
-                String msg = getName() + "_PRE_LIQ signal mainSet. Waiting delay(sec)=" + secToReady;
-                log.info(msg);
-                warningLogger.info(msg);
-                getTradeLogger().info(msg);
-            } else {
-                final String counterForLogs = getCounterName(); // example: 2:o_preliq
-                String msg = String.format("#%s %s_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
-                        counterForLogs,
-                        getName(),
-                        position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
-                        liqInfo.getDqlCurr().toPlainString(), dqlCloseMin.toPlainString());
-                log.info(msg);
-                warningLogger.info(msg);
-                getTradeLogger().info(msg);
-
-                if (corrParams.getPreliq().tryIncFailed()) {
-                    getPersistenceService().saveCorrParams(corrParams);
+                boolean gotActivated = dtPreliq.activate();
+                if (gotActivated) {
+                    setPreliqState();
+                    getArbitrageService().setArbStatePreliq();
                 }
-                preparePreliq(pos);
 
+                final Integer delaySec = getPersistenceService().getSettingsRepositoryService().getSettings().getPosAdjustment().getPreliqDelaySec();
+                long secToReady = dtPreliq.secToReadyPresice(delaySec);
+
+                final String counterForLogs = getCounterNameNext(preliqParams.getSignalType()) + "*"; // ex: 2:o_preliq* - the counter of the possible preliq
+                final String nameSymbol = getName().substring(0, 1).toUpperCase();
+                if (secToReady > 0) {
+                    String msg = String.format("#%s %s_PRE_LIQ signal mainSet. Waiting delay(sec)=%s", counterForLogs, nameSymbol, secToReady);
+                    log.info(msg);
+                    warningLogger.info(msg);
+                    getTradeLogger().info(msg);
+                } else {
+                    String msg = String.format("#%s %s_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
+                            counterForLogs,
+                            nameSymbol,
+                            position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
+                            liqInfo.getDqlCurr().toPlainString(), dqlCloseMin.toPlainString());
+                    log.info(msg);
+                    warningLogger.info(msg);
+                    getTradeLogger().info(msg);
+
+                    if (corrParams.getPreliq().tryIncFailed(getName())) {
+                        getPersistenceService().saveCorrParams(corrParams);
+                    }
+                    if (corrParams.getPreliq().hasSpareAttempts()) {
+                        putPreliqInQueue(preliqParams);
+                    } else {
+                        resetPreliqState();
+                    }
+
+                    dtPreliq.stop(); //after successful start
+                }
+            } else {
+                resetPreliqState();
                 dtPreliq.stop();
             }
         } else {
+            resetPreliqState();
             dtPreliq.stop();
         }
         Instant end = Instant.now();
@@ -123,37 +149,59 @@ public abstract class MarketServicePreliq extends MarketService {
                 && liqInfo.getDqlCurr().compareTo(dqlCloseMin) < 0;
     }
 
-    private void preparePreliq(BigDecimal pos) {
+    private PreliqParams getPreliqParams(BigDecimal pos) {
+        if (pos.signum() == 0) {
+            return null;
+        }
+        PreliqParams preliqParams = null;
+        SignalType signalType = null;
+        DeltaName deltaName = null;
         if (getName().equals(BitmexService.NAME)) {
             if (pos.signum() > 0) {
-                preparePreliqOnDelta(SignalType.B_PRE_LIQ, DeltaName.B_DELTA);
+                signalType = SignalType.B_PRE_LIQ;
+                deltaName = DeltaName.B_DELTA;
             } else if (pos.signum() < 0) {
-                preparePreliqOnDelta(SignalType.B_PRE_LIQ, DeltaName.O_DELTA);
+                signalType = SignalType.B_PRE_LIQ;
+                deltaName = DeltaName.O_DELTA;
             }
         } else {
             if (pos.signum() > 0) {
-                preparePreliqOnDelta(SignalType.O_PRE_LIQ, DeltaName.O_DELTA);
+                signalType = SignalType.O_PRE_LIQ;
+                deltaName = DeltaName.O_DELTA;
             } else if (pos.signum() < 0) {
-                preparePreliqOnDelta(SignalType.O_PRE_LIQ, DeltaName.B_DELTA);
+                signalType = SignalType.O_PRE_LIQ;
+                deltaName = DeltaName.B_DELTA;
             }
         }
+        if (deltaName != null) {
+            final PreliqBlocks preliqBlocks = getPreliqBlocks(deltaName);
+            if (preliqBlocks != null) {
+                preliqParams = new PreliqParams(signalType, deltaName, preliqBlocks);
+            } else {
+//                log.info("No Preliq: block is null");
+            }
+        }
+        return preliqParams;
     }
 
-    private void preparePreliqOnDelta(SignalType signalType, DeltaName deltaName) {
+    private void putPreliqInQueue(PreliqParams preliqParams) {
+        final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+        corrParams.getPreliq().incTotalCount(getName()); // counterName relates on it
+        getPersistenceService().saveCorrParams(corrParams);
+
+        final SignalType signalType = preliqParams.getSignalType();
+        final DeltaName deltaName = preliqParams.getDeltaName();
+        final PreliqBlocks preliqBlocks = preliqParams.getPreliqBlocks();
+        final BigDecimal b_block = preliqBlocks.b_block;
+        final BigDecimal o_block = preliqBlocks.o_block;
+
         // put message in a queue
-        final PreliqBlocks preliqBlocks = getPreliqBlocks(deltaName);
-        if (preliqBlocks == null) {
-            log.info("No Preliq");
-            return;
-        }
         final BestQuotes bestQuotes = Utils.createBestQuotes(
                 getArbitrageService().getSecondMarketService().getOrderBook(),
                 getArbitrageService().getFirstMarketService().getOrderBook());
 
         final Long tradeId = getArbitrageService().getLastTradeId();
 
-        final BigDecimal b_block = preliqBlocks.b_block;
-        final BigDecimal o_block = preliqBlocks.o_block;
         final String counterName = getCounterName(signalType);
 
         final PlaceOrderArgs btmArgs = new PlaceOrderArgs(
@@ -177,10 +225,7 @@ public abstract class MarketServicePreliq extends MarketService {
                 counterName,
                 null, null, null, Instant.now());
 
-        final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-        corrParams.getPreliq().incTotalCount();
-        getPersistenceService().saveCorrParams(corrParams);
-
+        getTradeLogger().info(String.format("%s put preliq orders into the queues(bitmex/okex)", counterName));
         getArbitrageService().getFirstMarketService().getPreliqQueue().add(btmArgs);
         getArbitrageService().getSecondMarketService().getPreliqQueue().add(okexArgs);
     }
@@ -205,10 +250,8 @@ public abstract class MarketServicePreliq extends MarketService {
         final Position bitmexPosition = getArbitrageService().getFirstMarketService().getPosition();
         final Position okexPosition = getArbitrageService().getSecondMarketService().getPosition();
 
-        BigDecimal b_block;
-        BigDecimal o_block;
-        b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
-        o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
+        BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
+        BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
 
         final BigDecimal btmPos = bitmexPosition.getPositionLong();
 //            if (btmPos.signum() == 0) {
@@ -236,7 +279,7 @@ public abstract class MarketServicePreliq extends MarketService {
 //                return this;
 //            }
         BigDecimal okMeaningPos = deltaName == DeltaName.B_DELTA ? okShort : okLong;
-        if (okMeaningPos.compareTo(o_block) < 0) {
+        if (okMeaningPos.signum() != 0 && okMeaningPos.compareTo(o_block) < 0) {
             o_block = okMeaningPos;
             b_block = o_block.multiply(cm).setScale(0, RoundingMode.HALF_UP);
         }
@@ -269,8 +312,9 @@ public abstract class MarketServicePreliq extends MarketService {
         if (isDqlViolated(okexLiqInfo, dqlCloseMin)) {
             String posDetails = String.format("Bitmex %s; Okex %s(dql=%s, dql_close_min=%s)",
                     bitmexPosition, okexPosition, okexLiqInfo.getDqlCurr(), dqlCloseMin);
-            log.error("WARNING: Preliq was not started. Can not increase position. Details:" + posDetails);
-            warningLogger.error("WARNING: Preliq was not started. Can not increase position. Details:" + posDetails);
+            final String msg = getName() + " WARNING: Preliq was not started. Can not increase position. Details:" + posDetails;
+            log.error(msg);
+            warningLogger.error(msg);
             return true;
         }
         return false;
@@ -280,10 +324,11 @@ public abstract class MarketServicePreliq extends MarketService {
         final BigDecimal dqlCloseMin = getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
         final LiqInfo btmLiqInfo = getArbitrageService().getFirstMarketService().getLiqInfo();
         if (isDqlViolated(btmLiqInfo, dqlCloseMin)) {
-            String posDetails = String.format("Bitmex %s(dql=%s, dql_close_min=%s); Okex %s",
-                    bitmexPosition, btmLiqInfo.getDqlCurr(), dqlCloseMin, okexPosition);
-            log.error("WARNING: Preliq was not started. Can not increase position. Details:" + posDetails);
-            warningLogger.error("WARNING: Preliq was not started. Can not increase position. Details:" + posDetails);
+            String posDetails = String
+                    .format("Bitmex %s(dql=%s, dql_close_min=%s); Okex %s", bitmexPosition, btmLiqInfo.getDqlCurr(), dqlCloseMin, okexPosition);
+            final String msg = getName() + " WARNING: Preliq was not started. Can not increase position. Details:" + posDetails;
+            log.error(msg);
+            warningLogger.error(msg);
             return true;
         }
         return false;
@@ -297,5 +342,12 @@ public abstract class MarketServicePreliq extends MarketService {
 
     }
 
+    @Data
+    private static class PreliqParams {
+
+        private final SignalType signalType;
+        private final DeltaName deltaName;
+        private final PreliqBlocks preliqBlocks;
+    }
 
 }

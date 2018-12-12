@@ -14,11 +14,11 @@ import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.ArbState;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.ExtrastopService;
 import com.bitplay.market.LogService;
-import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
@@ -36,7 +36,6 @@ import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.mon.Mon;
@@ -682,7 +681,8 @@ public class BitmexService extends MarketServicePreliq {
         final MarketState marketState = getMarketState();
         if (marketState == MarketState.SYSTEM_OVERLOADED
                 || marketState == MarketState.PLACING_ORDER
-                || isMarketStopped()) {
+                || isMarketStopped()
+                || getArbitrageService().getArbState() == ArbState.PRELIQ) {
             return;
         }
 
@@ -2269,60 +2269,6 @@ public class BitmexService extends MarketServicePreliq {
 
         return isOk;
     }
-
-//    @Scheduled(initialDelay = 30 * 1000, fixedDelay = 1000)
-//    public void checkForDecreasePosition() {
-//        Instant start = Instant.now();
-//
-//        if (isMarketStopped()) {
-//            dtPreliq.stop();
-//            return;
-//        }
-//
-//        final BigDecimal bDQLCloseMin = getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
-//        final BigDecimal pos = position.getPositionLong();
-//
-//        if (liqInfo.getDqlCurr() != null
-//                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
-//                && liqInfo.getDqlCurr().compareTo(bDQLCloseMin) < 0
-//                && pos.signum() != 0) {
-//
-//            dtPreliq.activate();
-//
-//            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-//            if (corrParams.getPreliq().hasSpareAttempts()) {
-//                final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPreliqDelaySec();
-//                long secToReady = dtPreliq.secToReady(delaySec);
-//                if (secToReady > 0) {
-//                    String msg = "B_PRE_LIQ signal mainSet. Waiting delay(sec)=" + secToReady;
-//                    logger.info(msg);
-//                    warningLogger.info(msg);
-//                    tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
-//                } else {
-//                    final String counterForLogs = getCounterName();
-//                    String msg = String.format("#%s B_PRE_LIQ starting: p%s/dql%s/dqlClose%s",
-//                            counterForLogs,
-//                            pos.toPlainString(),
-//                            liqInfo.getDqlCurr().toPlainString(), bDQLCloseMin.toPlainString());
-//                    tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
-//                    warningLogger.info(msg);
-//                    final BestQuotes bestQuotes = Utils.createBestQuotes(
-//                            arbitrageService.getSecondMarketService().getOrderBook(),
-//                            arbitrageService.getFirstMarketService().getOrderBook());
-//                    if (pos.signum() > 0) {
-//                        arbitrageService.startPreliqOnDelta1(SignalType.B_PRE_LIQ, bestQuotes);
-//                    } else if (pos.signum() < 0) {
-//                        arbitrageService.startPreliqOnDelta2(SignalType.B_PRE_LIQ, bestQuotes);
-//                    }
-//                    dtPreliq.stop();
-//                }
-//            }
-//        } else {
-//            dtPreliq.stop();
-//        }
-//        Instant end = Instant.now();
-//        Utils.logIfLong(start, end, logger, "checkForDecreasePosition");
-//    }
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("bitmex-preliq-thread-%d").build());

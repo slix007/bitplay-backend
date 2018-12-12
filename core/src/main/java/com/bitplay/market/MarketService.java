@@ -414,25 +414,31 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public String getCounterName() {
         final SignalType signalType = getArbitrageService().getSignalType();
-        return getCounterName(getArbitrageService().getCounter(), signalType);
+        return getCounterName(signalType, false);
+    }
+
+    private String getCounterNameNext() {
+        final SignalType signalType = getArbitrageService().getSignalType();
+        return getCounterName(signalType, true);
     }
 
     public String getCounterName(SignalType signalType) {
-        return getCounterName(getArbitrageService().getCounter(), signalType);
+        return getCounterName(signalType, false);
     }
 
-    protected String getCounterNameNext() {
-        final SignalType signalType = getArbitrageService().getSignalType();
-        return getCounterName(getArbitrageService().getCounter() + 1, signalType);
+    protected String getCounterNameNext(SignalType signalType) {
+        return getCounterName(signalType, true);
     }
 
-    private String getCounterName(final int counter, SignalType signalType) {
+    private String getCounterName(SignalType signalType, boolean isNext) {
         String value;
         if (signalType == SignalType.AUTOMATIC) {
-            value = String.valueOf(counter);
+            final int counter = getArbitrageService().getCounter();
+            value = String.valueOf(isNext ? counter + 1 : counter);
         } else if (signalType.isPreliq()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-            value = String.format("%s:%s", String.valueOf(corrParams.getPreliq().getTotalCount()), signalType.getCounterName());
+            final Integer counter = corrParams.getPreliq().getTotalCount();
+            value = String.format("%s:%s", String.valueOf(isNext ? counter + 1 : counter), signalType.getCounterName());
         } else if (signalType.isAdj()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();
             value = String.format("%s:%s", String.valueOf(corrParams.getAdj().getTotalCount()), signalType.getCounterName());

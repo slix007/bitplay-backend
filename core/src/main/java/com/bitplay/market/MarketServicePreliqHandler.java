@@ -16,6 +16,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -24,6 +26,8 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class MarketServicePreliqHandler {
+
+    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     @Autowired
     private BitmexService bitmexService;
@@ -68,6 +72,9 @@ public class MarketServicePreliqHandler {
             final String msg = "preliq is expired." + item;
             log.info(msg);
             marketService.getTradeLogger().info(msg);
+
+            marketService.resetPreliqState();
+
             preliqQueue.remove(item); // skip old
             return;
         }
@@ -88,10 +95,11 @@ public class MarketServicePreliqHandler {
         final BigDecimal block = placeOrderArgs.getAmount();
         final Long tradeId = placeOrderArgs.getTradeId();
         if (block.signum() <= 0) {
-            String warn = "WARNING: block=" + block + ". No order on signal";
+            String msg = "WARNING: NO PRELIQ: block=" + block;
             Thread.sleep(1000);
-            marketService.getTradeLogger().warn(warn);
-            log.warn(warn);
+            marketService.getTradeLogger().warn(msg);
+            log.warn(msg);
+            warningLogger.warn(marketService.getName() + " " + msg);
 
             marketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
             return;
