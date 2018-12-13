@@ -1,7 +1,6 @@
 package com.bitplay.persistance.domain;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,15 +20,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class LastPriceDeviation extends AbstractParams {
 
     private BigDecimal bitmexMain;
-    private BigDecimal bitmexExtra;
     private BigDecimal okexMain;
-    private BigDecimal percentage;
+    private BigDecimal maxDevUsd;
     private Integer delaySec;
 
     @Transient
     private BigDecimal bitmexMainCurr;
-    @Transient
-    private BigDecimal bitmexExtraCurr;
     @Transient
     private BigDecimal okexMainCurr;
 
@@ -37,25 +33,16 @@ public class LastPriceDeviation extends AbstractParams {
         return isExceed(bitmexMain, bitmexMainCurr);
     }
 
-    public boolean getBitmexExtraExceed() {
-        return isExceed(bitmexExtra, bitmexExtraCurr);
-    }
-
     public boolean getOkexMainExceed() {
         return isExceed(okexMain, okexMainCurr);
     }
 
     private boolean isExceed(BigDecimal base, BigDecimal current) {
-        if (base == null || current == null || percentage == null) {
+        if (base == null || current == null || maxDevUsd == null) {
             return false;
         }
-        // abs(curr/base*100 - 100) == persentage
-        BigDecimal currPercentage = (
-                (current.multiply(BigDecimal.valueOf(100)).divide(base, 2, RoundingMode.HALF_UP))
-                        .subtract(BigDecimal.valueOf(100))
-        ).abs();
-        return currPercentage.subtract(percentage).signum() > 0;
-
+        BigDecimal currDevUsd = bitmexMain.subtract(bitmexMainCurr).abs();
+        return currDevUsd.subtract(maxDevUsd).signum() > 0;
     }
 
 }

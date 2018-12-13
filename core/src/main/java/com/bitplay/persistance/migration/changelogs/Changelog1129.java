@@ -5,6 +5,9 @@ import com.github.mongobee.changeset.ChangeLog;
 import com.github.mongobee.changeset.ChangeSet;
 import java.math.BigDecimal;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 
 /**
  * Created by Sergey Shurmin on 3/31/18.
@@ -16,7 +19,7 @@ public class Changelog1129 {
     public void change01(MongoTemplate mongoTemplate) {
         LastPriceDeviation lastPriceDeviation = new LastPriceDeviation();
         lastPriceDeviation.setId(4L);
-        lastPriceDeviation.setPercentage(BigDecimal.valueOf(10));
+//        lastPriceDeviation.setPercentage(BigDecimal.valueOf(10)); // removed
         mongoTemplate.save(lastPriceDeviation);
     }
 
@@ -24,6 +27,20 @@ public class Changelog1129 {
     public void change02(MongoTemplate mongoTemplate) {
         final LastPriceDeviation lastPriceDeviation = mongoTemplate.findById(4L, LastPriceDeviation.class);
         lastPriceDeviation.setDelaySec(3600);
+        mongoTemplate.save(lastPriceDeviation);
+    }
+
+    @ChangeSet(order = "003", id = "2018-12-11: lastPriceDeviation maxDevUsd", author = "SergeiShurmin")
+    public void change03(MongoTemplate mongoTemplate) {
+        // remove old
+        Query query = new Query(Criteria.where("_id").is(4L));
+        Update update = new Update();
+        update.unset("percentage");
+        update.unset("bitmexExtra");
+        mongoTemplate.updateMulti(query, update, LastPriceDeviation.class);
+
+        final LastPriceDeviation lastPriceDeviation = mongoTemplate.findById(4L, LastPriceDeviation.class);
+        lastPriceDeviation.setMaxDevUsd(BigDecimal.valueOf(10));
         mongoTemplate.save(lastPriceDeviation);
     }
 

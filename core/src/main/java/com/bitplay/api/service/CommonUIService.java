@@ -703,9 +703,9 @@ public class CommonUIService {
     }
 
     public LastPriceDeviation updateLastPriceDeviation(LastPriceDeviation update) {
-        if (update.getPercentage() != null) {
+        if (update.getMaxDevUsd() != null) {
             LastPriceDeviation toUpdate = lastPriceDeviationService.getLastPriceDeviation();
-            toUpdate.setPercentage(update.getPercentage());
+            toUpdate.setMaxDevUsd(update.getMaxDevUsd());
             lastPriceDeviationService.saveLastPriceDeviation(toUpdate);
         }
         if (update.getDelaySec() != null) {
