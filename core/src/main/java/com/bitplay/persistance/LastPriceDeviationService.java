@@ -7,7 +7,6 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.math.BigDecimal;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
@@ -63,9 +62,6 @@ public class LastPriceDeviationService {
     public void fixCurrentLastPrice() {
 
         LastPriceDeviation lastPriceDeviation = fetchLastPriceDeviation();
-        if (lastPriceDeviation == null) {
-            lastPriceDeviation = LastPriceDeviation.builder().maxDevUsd(BigDecimal.valueOf(10)).build();
-        }
 
         setCurrLastPrice(lastPriceDeviation);
 
@@ -75,11 +71,11 @@ public class LastPriceDeviationService {
         saveLastPriceDeviation(lastPriceDeviation);
     }
 
-    public void checkDeviationAsync() {
-        checkerExecutor.execute(this::checkDeviation); // each(bitmex/okex) Ticker update
+    public void updateAndCheckDeviationAsync() {
+        checkerExecutor.execute(this::updateAndCheckDeviation); // each(bitmex/okex) Ticker update
     }
 
-    private void checkDeviation() {
+    private void updateAndCheckDeviation() {
         LastPriceDeviation dev = getLastPriceDeviation();
 
         timerTick(dev);
@@ -119,6 +115,7 @@ public class LastPriceDeviationService {
             if (readyByTime) {
                 fixCurrentLastPrice();
                 delayTimer.stop();
+                delayTimer.activate();
             }
         }
     }

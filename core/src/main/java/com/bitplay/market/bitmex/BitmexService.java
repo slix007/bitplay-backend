@@ -2085,7 +2085,7 @@ public class BitmexService extends MarketServicePreliq {
                                 BitmexContractIndex bitmexContractIndex = mergeContractIndex(this.contractIndex, contIndUpdate);
                                 this.contractIndex = bitmexContractIndex;
                                 this.ticker = new Ticker.Builder().last(bitmexContractIndex.getLastPrice()).timestamp(new Date()).build();
-                                lastPriceDeviationService.checkDeviationAsync();
+                                lastPriceDeviationService.updateAndCheckDeviationAsync();
 
                                 if (cm != null) {
                                     calcCM();

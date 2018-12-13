@@ -654,7 +654,7 @@ public class OkCoinService extends MarketServicePreliq {
                 .subscribe(ticker -> {
                     logger.debug(ticker.toString());
                     this.ticker = ticker;
-                    lastPriceDeviationService.checkDeviationAsync();
+                    lastPriceDeviationService.updateAndCheckDeviationAsync();
                 }, throwable -> {
                     logger.error("OkexFutureTicker.Exception: ", throwable);
                 });

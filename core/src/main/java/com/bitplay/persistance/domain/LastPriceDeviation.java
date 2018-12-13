@@ -28,6 +28,8 @@ public class LastPriceDeviation extends AbstractParams {
     private BigDecimal bitmexMainCurr;
     @Transient
     private BigDecimal okexMainCurr;
+    @Transient
+    private Integer toNextFix;
 
     public boolean getBitmexMainExceed() {
         return isExceed(bitmexMain, bitmexMainCurr);

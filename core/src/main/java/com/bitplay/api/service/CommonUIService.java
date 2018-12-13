@@ -24,6 +24,7 @@ import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.SignalTimeService;
+import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
@@ -692,7 +693,11 @@ public class CommonUIService {
     }
 
     public LastPriceDeviation getLastPriceDeviation() {
-        return lastPriceDeviationService.getLastPriceDeviation();
+        final LastPriceDeviation lpd = lastPriceDeviationService.getLastPriceDeviation();
+        final DelayTimer delayTimer = lastPriceDeviationService.getDelayTimer();
+        final long toNextFix = delayTimer.secToReadyPresice(lpd.getDelaySec());
+        lpd.setToNextFix((int) toNextFix);
+        return lpd;
     }
 
     public LastPriceDeviation fixLastPriceDeviation() {
