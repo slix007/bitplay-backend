@@ -8,7 +8,7 @@ import lombok.Getter;
 public enum ContractMode {
     MODE1_SET_BU11("M10", "set_bu11", BitmexContractType.XBTUSD, OkexContractType.BTC_ThisWeek),
     MODE2_SET_BU12("M11", "set_bu12", BitmexContractType.XBTUSD, OkexContractType.BTC_NextWeek),
-    MODE3_SET_BU23("M20", "set_bu23", BitmexContractType.XBTZ18, OkexContractType.BTC_Quarter),
+    MODE3_SET_BU23("M20", "set_bu23", BitmexContractType.XBTH19, OkexContractType.BTC_Quarter),
     MODE4_SET_BU10_SET_EU11("M21", "set_eu11", BitmexContractType.ETHUSD, OkexContractType.ETH_ThisWeek),
     MODE5_SET_BU10_SET_EU12("M22", "set_eu12", BitmexContractType.ETHUSD, OkexContractType.ETH_NextWeek);
 

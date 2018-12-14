@@ -15,6 +15,7 @@ public enum BitmexContractType implements ContractType {
     XBT7D_U105(new CurrencyPair("XBT", "7D_U105"), BigDecimal.valueOf(0.5), 1),
     XBTU18(new CurrencyPair("XBT", "U18"), BigDecimal.valueOf(0.5), 1),
     XBTZ18(new CurrencyPair("XBT", "Z18"), BigDecimal.valueOf(0.5), 1),
+    XBTH19(new CurrencyPair("XBT", "H19"), BigDecimal.valueOf(0.5), 1),
     ETHUSD(new CurrencyPair("ETH", "USD"), BigDecimal.valueOf(0.05), 2),
     ETHU18(new CurrencyPair("ETH", "U18"), BigDecimal.valueOf(0.05), 2),
     ;
