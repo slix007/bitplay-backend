@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.knowm.xchange.dto.Order;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 /**
  * Created by Sergey Shurmin on 12/23/17.
@@ -20,6 +22,8 @@ public class OrderDetail {
     private BigDecimal averagePrice;
     private CurrencyPairDetail currencyPair;
     private String id;
+    @Field
+    @Indexed(expireAfterSeconds = 3600 * 24 * 31) // one month
     private Date timestamp;
     private BigDecimal limitPrice;
 

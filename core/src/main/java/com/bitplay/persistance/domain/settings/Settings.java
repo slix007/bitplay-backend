@@ -2,6 +2,8 @@ package com.bitplay.persistance.domain.settings;
 
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.domain.AbstractDocument;
+import com.bitplay.persistance.domain.fluent.TradingModeState;
+import com.bitplay.persistance.domain.settings.SettingsVolatileMode.Field;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
@@ -64,6 +66,11 @@ public class Settings extends AbstractDocument {
     private BigDecimal hedgeEth;
     private Boolean hedgeAuto;
 
+    // Trading modes: Current/Volatile
+    private Boolean tradingModeAuto;
+    private SettingsVolatileMode settingsVolatileMode;
+    private TradingModeState tradingModeState;
+
     public static Settings createDefault() {
         final Settings settings = new Settings();
         settings.arbScheme = ArbScheme.SIM;
@@ -83,6 +90,8 @@ public class Settings extends AbstractDocument {
         settings.hedgeEth = BigDecimal.ZERO;
         settings.hedgeAuto = false;
         settings.okexFakeTakerDev = BigDecimal.ONE;
+        settings.tradingModeAuto = false;
+        settings.tradingModeState = new TradingModeState(TradingMode.CURRENT);
         settings.setId(1L);
         return settings;
     }
@@ -112,5 +121,59 @@ public class Settings extends AbstractDocument {
         this.contractModeCurrent = contractModeCurrent;
         this.mainSetNameCurrent = contractModeCurrent.getMainSetName();
         this.extraSetNameCurrent = contractModeCurrent.getExtraSetName();
+    }
+
+    // Volatile mode
+    public PlacingType getBitmexPlacingType() {
+        return tradingModeState != null && settingsVolatileMode != null
+                && tradingModeState.getTradingMode() == TradingMode.VOLATILE
+                && settingsVolatileMode.getActiveFields().contains(Field.bitmexPlacingType)
+                ? settingsVolatileMode.getBitmexPlacingType()
+                : bitmexPlacingType;
+    }
+
+    public PlacingType getOkexPlacingType() {
+        return tradingModeState != null && settingsVolatileMode != null
+                && tradingModeState.getTradingMode() == TradingMode.VOLATILE
+                && settingsVolatileMode.getActiveFields().contains(Field.okexPlacingType)
+                ? settingsVolatileMode.getOkexPlacingType()
+                : okexPlacingType;
+    }
+
+    public Integer getSignalDelayMs() {
+        return tradingModeState != null && settingsVolatileMode != null
+                && tradingModeState.getTradingMode() == TradingMode.VOLATILE
+                && settingsVolatileMode.getActiveFields().contains(Field.signalDelayMs)
+                ? settingsVolatileMode.getSignalDelayMs()
+                : signalDelayMs;
+    }
+
+    public PlacingBlocks getPlacingBlocks() {
+        return tradingModeState != null && settingsVolatileMode != null
+                && tradingModeState.getTradingMode() == TradingMode.VOLATILE
+                && settingsVolatileMode.getActiveFields().contains(Field.placingBlocks)
+                ? settingsVolatileMode.getPlacingBlocks()
+                : placingBlocks;
+    }
+
+    public PosAdjustment getPosAdjustment() {
+        if (tradingModeState != null && settingsVolatileMode != null
+                && tradingModeState.getTradingMode() == TradingMode.VOLATILE
+                && settingsVolatileMode.getActiveFields().contains(Field.posAdjustment)
+                && settingsVolatileMode.getPosAdjustment() != null) {
+            final PosAdjustment res = settingsVolatileMode.getPosAdjustment();
+            res.setPosAdjustmentPlacingType(settingsVolatileMode.getPosAdjustment().getPosAdjustmentPlacingType());
+            res.setPosAdjustmentMin(settingsVolatileMode.getPosAdjustment().getPosAdjustmentMin());
+            res.setPosAdjustmentMax(settingsVolatileMode.getPosAdjustment().getPosAdjustmentMax());
+        }
+        return posAdjustment;
+    }
+
+    public Boolean getAdjustByNtUsd() {
+        return tradingModeState != null && settingsVolatileMode != null
+                && tradingModeState.getTradingMode() == TradingMode.VOLATILE
+                && settingsVolatileMode.getActiveFields().contains(Field.adjustByNtUsd)
+                ? settingsVolatileMode.getAdjustByNtUsd()
+                : adjustByNtUsd;
     }
 }

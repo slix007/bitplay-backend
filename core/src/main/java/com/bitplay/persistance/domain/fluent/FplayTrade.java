@@ -11,7 +11,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.TypeAlias;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 /**
  * Created by Sergey Shurmin on 12/20/17.
@@ -32,6 +34,8 @@ public class FplayTrade {
     private Date startTimestamp;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss.SSS(z)", timezone = "Europe/Moscow")
+    @Field
+    @Indexed(expireAfterSeconds = 3600 * 24 * 31) // one month
     private Date updated;
     private Long version;
 

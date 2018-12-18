@@ -8,7 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 /**
  * Created by Sergey Shurmin on 2/25/18.
@@ -23,6 +25,8 @@ public class Dlt {
 
     private DeltaName name;
     @JsonFormat(pattern = "HH:mm:ss.SSS")
+    @Field
+    @Indexed(expireAfterSeconds = 3600 * 24 * 31) // one month
     private Date timestamp;
     /**
      * Delta value multiplied by 100.

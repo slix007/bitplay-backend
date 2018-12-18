@@ -12,6 +12,7 @@ import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.RestartSettings;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.persistance.domain.settings.SettingsVolatileMode;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.security.TraderPermissionsService;
 import org.slf4j.Logger;
@@ -91,7 +92,7 @@ public class SettingsEndpoint {
     @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public Settings updateSettings(@RequestBody Settings settingsUpdate) {
-        final Settings settings = settingsRepositoryService.getSettings();
+        Settings settings = settingsRepositoryService.getSettings();
         if (settingsUpdate.getBitmexPlacingType() != null) {
             settings.setBitmexPlacingType(settingsUpdate.getBitmexPlacingType());
             settingsRepositoryService.saveSettings(settings);
@@ -254,7 +255,108 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
         }
 
+        // TradingMode.VOLATILE
+        if (settingsUpdate.getTradingModeAuto() != null) {
+            settings.setTradingModeAuto(settingsUpdate.getTradingModeAuto());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getTradingModeState() != null && settingsUpdate.getTradingModeState().getTradingMode() != null) {
+            settings = settingsRepositoryService.updateTradingModeState(settingsUpdate.getTradingModeState().getTradingMode());
+        }
+        if (settingsUpdate.getSettingsVolatileMode() != null) {
+            final SettingsVolatileMode settingsVolatileMode = settings.getSettingsVolatileMode() != null
+                    ? settings.getSettingsVolatileMode() : new SettingsVolatileMode();
+            settings.setSettingsVolatileMode(settingsVolatileMode);
+            updateVolatileMode(settingsUpdate.getSettingsVolatileMode(), settingsVolatileMode, settings);
+        }
+
         return settings;
+    }
+
+    @SuppressWarnings("Duplicates")
+    private void updateVolatileMode(SettingsVolatileMode settingsUpdate, SettingsVolatileMode settings, Settings mainSettings) {
+        if (settingsUpdate.getFieldToRemove() != null) {
+            settings.getActiveFields().remove(settingsUpdate.getFieldToRemove());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getFieldToAdd() != null) {
+            settings.getActiveFields().add(settingsUpdate.getFieldToAdd());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+
+
+        if (settingsUpdate.getBitmexPlacingType() != null) {
+            settings.setBitmexPlacingType(settingsUpdate.getBitmexPlacingType());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getOkexPlacingType() != null) {
+            settings.setOkexPlacingType(settingsUpdate.getOkexPlacingType());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getSignalDelayMs() != null) {
+            settings.setSignalDelayMs(settingsUpdate.getSignalDelayMs());
+            settingsRepositoryService.saveSettings(mainSettings);
+            arbitrageService.restartSignalDelay();
+        }
+        if (settingsUpdate.getPlacingBlocks() != null) {
+            final PlacingBlocks current = settings.getPlacingBlocks();
+            final PlacingBlocks update = settingsUpdate.getPlacingBlocks();
+            current.setActiveVersion(update.getActiveVersion() != null ? update.getActiveVersion() : current.getActiveVersion());
+            current.setFixedBlockUsd(update.getFixedBlockUsd() != null ? update.getFixedBlockUsd() : current.getFixedBlockUsd());
+            current.setDynMaxBlockUsd(update.getDynMaxBlockUsd() != null ? update.getDynMaxBlockUsd() : current.getDynMaxBlockUsd());
+            settings.setPlacingBlocks(current);
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+
+        if (settingsUpdate.getPosAdjustment() != null) {
+            final PosAdjustment current = settings.getPosAdjustment();
+            final PosAdjustment update = settingsUpdate.getPosAdjustment();
+            current.setPosAdjustmentMin(update.getPosAdjustmentMin() != null ? update.getPosAdjustmentMin() : current.getPosAdjustmentMin());
+            current.setPosAdjustmentMax(update.getPosAdjustmentMax() != null ? update.getPosAdjustmentMax() : current.getPosAdjustmentMax());
+            current.setPosAdjustmentPlacingType(
+                    update.getPosAdjustmentPlacingType() != null ? update.getPosAdjustmentPlacingType() : current.getPosAdjustmentPlacingType());
+            if (update.getPosAdjustmentDelaySec() != null) {
+                current.setPosAdjustmentDelaySec(update.getPosAdjustmentDelaySec());
+                settingsRepositoryService.saveSettings(mainSettings);
+                posDiffService.stopTimer("adj");
+            }
+            if (update.getCorrDelaySec() != null) {
+                current.setCorrDelaySec(update.getCorrDelaySec());
+                settingsRepositoryService.saveSettings(mainSettings);
+                posDiffService.stopTimer("corr");
+            }
+            if (update.getPreliqDelaySec() != null) {
+                current.setPreliqDelaySec(update.getPreliqDelaySec());
+                settingsRepositoryService.saveSettings(mainSettings);
+                bitmexService.getDtPreliq().stop();
+                okCoinService.getDtPreliq().stop();
+            }
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getAdjustByNtUsd() != null) {
+            settings.setAdjustByNtUsd(settingsUpdate.getAdjustByNtUsd());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getBAddBorder() != null) {
+            settings.setBAddBorder(settingsUpdate.getBAddBorder());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getOAddBorder() != null) {
+            settings.setOAddBorder(settingsUpdate.getOAddBorder());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getVolatileDurationSec() != null) {
+            settings.setVolatileDurationSec(settingsUpdate.getVolatileDurationSec());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getBorderCrossDepth() != null) {
+            settings.setBorderCrossDepth(settingsUpdate.getBorderCrossDepth());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+
+        //    private BigDecimal bAddBorder;
+        //    private BigDecimal oAddBorder;
+        //volatileDurationSec
     }
 
     @Secured("ROLE_ADMIN")

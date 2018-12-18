@@ -1,11 +1,14 @@
 package com.bitplay.persistance;
 
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.persistance.domain.settings.SysOverloadArgs;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.repository.SettingsRepository;
+import com.mongodb.WriteResult;
+import java.util.Date;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -33,34 +36,34 @@ public class SettingsRepositoryService {
 
     private volatile Settings settings;
 
+    @EventListener(ApplicationReadyEvent.class)
+    public void init() {
+        settings = fetchSettings(); // in case of mongo ChangeSets
+    }
+
     public Settings getSettings() {
 
         if (settings == null) {
             settings = fetchSettings();
         }
 
+        setTransientCm();
+
+        return settings;
+    }
+
+    private void setTransientCm() {
         settings.getPlacingBlocks().setCm(bitmexService.getCm());
         boolean eth = bitmexService.getContractType() != null
                 ? bitmexService.getContractType().isEth() // current set
                 : settings.getContractMode().isEth(); // saved set
         settings.getPlacingBlocks().setEth(eth);
-
-        return settings;
     }
 
     private Settings fetchSettings() {
         Settings one = settingsRepository.findOne(1L);
         if (one == null) {
             one = Settings.createDefault();
-        }
-        if (one.getPlacingBlocks() == null) {
-            one.setPlacingBlocks(PlacingBlocks.createDefault());
-        }
-        if (one.getBitmexSysOverloadArgs() == null) {
-            one.setBitmexSysOverloadArgs(SysOverloadArgs.defaults());
-        }
-        if (one.getOkexSysOverloadArgs() == null) {
-            one.setOkexSysOverloadArgs(SysOverloadArgs.defaults());
         }
         return one;
     }
@@ -70,25 +73,19 @@ public class SettingsRepositoryService {
         this.settings = settings;
     }
 
-    public Settings updateSysOverloadArgs(SysOverloadArgs sysOverloadArgs) {
-
+    public Settings updateTradingModeState(TradingMode tradingMode) {
         Query query = new Query();
         query.addCriteria(Criteria
-                .where("documentId").exists(true)
-                .andOperator(Criteria.where("documentId").is(1L)));
-
+                .where("_id").exists(true)
+                .andOperator(Criteria.where("_id").is(1L)));
         Update update = new Update();
+        update.set("tradingModeState.timestamp", new Date());
+        update.set("tradingModeState.tradingMode", tradingMode);
+        final WriteResult writeResult = mongoOperation.updateFirst(query, update, Settings.class);
 
-        //update age to 11
-        update.set("sysOverloadArgs", sysOverloadArgs);
-
-        mongoOperation.upsert(query, update, Settings.class);
-
-        Settings settings = mongoOperation.findOne(query, Settings.class);
-
-//        System.out.println("settings - " + settings);
-
-        return settings;
+//        Settings settings = mongoOperation.findOne(query, Settings.class);
+        this.settings = fetchSettings();
+        return this.settings;
     }
 
 }
