@@ -43,7 +43,7 @@ public class LastPriceDeviation extends AbstractParams {
         if (base == null || current == null || maxDevUsd == null) {
             return false;
         }
-        BigDecimal currDevUsd = bitmexMain.subtract(bitmexMainCurr).abs();
+        BigDecimal currDevUsd = base.subtract(current).abs();
         return currDevUsd.subtract(maxDevUsd).signum() > 0;
     }
 

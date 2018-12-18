@@ -44,4 +44,15 @@ public class Changelog1129 {
         mongoTemplate.save(lastPriceDeviation);
     }
 
+    @ChangeSet(order = "004", id = "2018-12-11: lastPriceDeviation fix missed", author = "SergeiShurmin")
+    public void change04(MongoTemplate mongoTemplate) {
+        final LastPriceDeviation lastPriceDeviation = mongoTemplate.findById(4L, LastPriceDeviation.class);
+        if (lastPriceDeviation.getDelaySec() == null) {
+            lastPriceDeviation.setDelaySec(3600);
+        }
+        if (lastPriceDeviation.getMaxDevUsd() == null) {
+            lastPriceDeviation.setMaxDevUsd(BigDecimal.valueOf(10));
+        }
+        mongoTemplate.save(lastPriceDeviation);
+    }
 }

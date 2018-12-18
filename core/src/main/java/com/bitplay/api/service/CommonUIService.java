@@ -695,7 +695,14 @@ public class CommonUIService {
     public LastPriceDeviation getLastPriceDeviation() {
         final LastPriceDeviation lpd = lastPriceDeviationService.getLastPriceDeviation();
         final DelayTimer delayTimer = lastPriceDeviationService.getDelayTimer();
-        final long toNextFix = delayTimer.secToReadyPresice(lpd.getDelaySec());
+        if (lpd.getDelaySec() == null) {
+            lpd.setDelaySec(-1);
+        }
+        if (lpd.getMaxDevUsd() == null) {
+            lpd.setMaxDevUsd(BigDecimal.valueOf(10));
+        }
+        final Integer delaySec = lpd.getDelaySec();
+        final long toNextFix = delayTimer.secToReadyPresice(delaySec);
         lpd.setToNextFix((int) toNextFix);
         return lpd;
     }

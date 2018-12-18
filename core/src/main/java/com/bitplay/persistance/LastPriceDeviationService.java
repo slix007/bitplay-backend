@@ -53,7 +53,7 @@ public class LastPriceDeviationService {
         return cacheDev != null ? cacheDev : fetchLastPriceDeviation();
     }
 
-    private LastPriceDeviation fetchLastPriceDeviation() {
+    public LastPriceDeviation fetchLastPriceDeviation() {
         cacheDev = mongoTemplate.findById(4L, LastPriceDeviation.class);
         return cacheDev;
 
@@ -83,7 +83,7 @@ public class LastPriceDeviationService {
         setCurrLastPrice(dev);
 
         if (dev.getBitmexMainExceed()) {
-            String msg = String.format("bitmex last price deviation(curr=%s, base=%s) exceeded %s %%",
+            String msg = String.format("bitmex last price deviation(curr=%s, base=%s) exceeded $%s ",
                     dev.getBitmexMainCurr(),
                     dev.getBitmexMain(),
                     dev.getMaxDevUsd()
@@ -94,7 +94,7 @@ public class LastPriceDeviationService {
             dev.setBitmexMain(dev.getBitmexMainCurr());
         }
         if (dev.getOkexMainExceed()) {
-            String msg = String.format("okex last price deviation(curr=%s, base=%s) exceeded %s %%",
+            String msg = String.format("okex last price deviation(curr=%s, base=%s) exceeded $%s",
                     dev.getOkexMainCurr(),
                     dev.getOkexMain(),
                     dev.getMaxDevUsd()
