@@ -50,6 +50,7 @@ import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.domain.settings.UsdQuoteType;
 import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.bitplay.security.TraderPermissionsService;
@@ -540,6 +541,34 @@ public class ArbitrageService {
 
     }
 
+    private void checkVolatileMode(BigDecimal delta, BigDecimal border) {
+        // если delta1 plan - border1 >= Border cross depth или delta2 plan - border2 >= Border cross depth,
+        // то это триггер для переключения из Current mode в Volatile Mode.
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        final BigDecimal borderCrossDepth = settings.getSettingsVolatileMode().getBorderCrossDepth();
+        if (settings.getTradingModeAuto()
+                && borderCrossDepth.signum() > 0
+                && settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT
+                && delta.subtract(border).compareTo(borderCrossDepth) >= 0) {
+            persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
+            warningLogger.info("Set TradingMode.VOLATILE by auto select");
+        }
+    }
+
+    private void checkVolatileModeV2(final BordersService.TradingSignal tradingSignal) {
+        if (tradingSignal.borderValueList != null) {
+            BigDecimal minBorder = null;
+            for (BigDecimal x : tradingSignal.borderValueList) {
+                minBorder = (minBorder == null || minBorder.subtract(x).signum() > 0)
+                        ? x : minBorder;
+            }
+            if (minBorder != null && tradingSignal.deltaVal != null && !tradingSignal.deltaVal.isEmpty()) {
+                BigDecimal delta = new BigDecimal(tradingSignal.deltaVal);
+                checkVolatileMode(delta, minBorder);
+            }
+        }
+    }
+
     private BestQuotes calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
 
         final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
@@ -552,6 +581,8 @@ public class ArbitrageService {
             BigDecimal border2 = params.getBorder2();
 
             if (delta1.compareTo(border1) >= 0) {
+                checkVolatileMode(delta1, border1);
+
                 if (signalDelayActivateTime == null) {
                     startSignalDelay(0);
                 }
@@ -576,6 +607,8 @@ public class ArbitrageService {
                     return bestQuotes;
                 }
             } else if (delta2.compareTo(border2) >= 0) {
+                checkVolatileMode(delta2, border2);
+
                 if (signalDelayActivateTime == null) {
                     startSignalDelay(0);
                 }
@@ -609,6 +642,8 @@ public class ArbitrageService {
 
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(
                     bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs);
+
+            checkVolatileModeV2(tradingSignal);
 
             if (tradingSignal.okexBlock == 0) {
                 stopSignalDelay();

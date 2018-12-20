@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SettingsEndpoint {
 
     private final static Logger logger = LoggerFactory.getLogger(SettingsEndpoint.class);
+    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     @Autowired
     private Config config;
@@ -262,6 +263,7 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getTradingModeState() != null && settingsUpdate.getTradingModeState().getTradingMode() != null) {
             settings = settingsRepositoryService.updateTradingModeState(settingsUpdate.getTradingModeState().getTradingMode());
+            warningLogger.info("Set TradingMode." + settingsUpdate.getTradingModeState().getTradingMode() + " by manual");
         }
         if (settingsUpdate.getSettingsVolatileMode() != null) {
             final SettingsVolatileMode settingsVolatileMode = settings.getSettingsVolatileMode() != null
