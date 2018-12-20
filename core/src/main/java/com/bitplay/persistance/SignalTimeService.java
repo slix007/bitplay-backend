@@ -1,4 +1,4 @@
-package com.bitplay.arbitrage;
+package com.bitplay.persistance;
 
 import com.bitplay.persistance.domain.SignalTimeParams;
 import java.math.BigDecimal;

@@ -267,14 +267,14 @@ public class SettingsEndpoint {
             final SettingsVolatileMode settingsVolatileMode = settings.getSettingsVolatileMode() != null
                     ? settings.getSettingsVolatileMode() : new SettingsVolatileMode();
             settings.setSettingsVolatileMode(settingsVolatileMode);
-            updateVolatileMode(settingsUpdate.getSettingsVolatileMode(), settingsVolatileMode, settings);
+            settings = updateVolatileMode(settingsUpdate.getSettingsVolatileMode(), settingsVolatileMode, settings);
         }
 
         return settings;
     }
 
     @SuppressWarnings("Duplicates")
-    private void updateVolatileMode(SettingsVolatileMode settingsUpdate, SettingsVolatileMode settings, Settings mainSettings) {
+    private Settings updateVolatileMode(SettingsVolatileMode settingsUpdate, SettingsVolatileMode settings, Settings mainSettings) {
         if (settingsUpdate.getFieldToRemove() != null) {
             settings.getActiveFields().remove(settingsUpdate.getFieldToRemove());
             settingsRepositoryService.saveSettings(mainSettings);
@@ -346,8 +346,7 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(mainSettings);
         }
         if (settingsUpdate.getVolatileDurationSec() != null) {
-            settings.setVolatileDurationSec(settingsUpdate.getVolatileDurationSec());
-            settingsRepositoryService.saveSettings(mainSettings);
+            mainSettings = settingsRepositoryService.updateVolatileDurationSec(settingsUpdate.getVolatileDurationSec());
         }
         if (settingsUpdate.getBorderCrossDepth() != null) {
             settings.setBorderCrossDepth(settingsUpdate.getBorderCrossDepth());
@@ -357,6 +356,7 @@ public class SettingsEndpoint {
         //    private BigDecimal bAddBorder;
         //    private BigDecimal oAddBorder;
         //volatileDurationSec
+        return mainSettings;
     }
 
     @Secured("ROLE_ADMIN")

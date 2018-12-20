@@ -23,7 +23,6 @@ import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
-import com.bitplay.arbitrage.SignalTimeService;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
@@ -38,6 +37,7 @@ import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.SignalTimeService;
 import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiLiqParams;
@@ -49,6 +49,7 @@ import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.security.TraderPermissionsService;
+import com.bitplay.settings.TradingModeService;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -111,6 +112,9 @@ public class CommonUIService {
 
     @Autowired
     private SlackNotifications slackNotifications;
+
+    @Autowired
+    private TradingModeService tradingModeService;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -397,6 +401,7 @@ public class CommonUIService {
                 arbitrageService.getSecondMarketService().getTimeToReset(),
                 String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
                 arbitrageService.getTimeToSignal(),
+                tradingModeService.secToReset(),
                 arbState,
                 btmReconnectState,
                 btmPreliqQueue,

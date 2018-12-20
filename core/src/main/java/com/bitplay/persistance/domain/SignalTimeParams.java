@@ -1,6 +1,6 @@
 package com.bitplay.persistance.domain;
 
-import com.bitplay.arbitrage.SignalTimeService;
+import com.bitplay.persistance.SignalTimeService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import lombok.Getter;

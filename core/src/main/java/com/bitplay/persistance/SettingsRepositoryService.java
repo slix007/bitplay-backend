@@ -73,17 +73,25 @@ public class SettingsRepositoryService {
         this.settings = settings;
     }
 
+    public Settings updateVolatileDurationSec(Integer volatileDurationSec) {
+        return update(null, volatileDurationSec);
+    }
+
     public Settings updateTradingModeState(TradingMode tradingMode) {
-        Query query = new Query();
-        query.addCriteria(Criteria
-                .where("_id").exists(true)
-                .andOperator(Criteria.where("_id").is(1L)));
+        return update(tradingMode, null);
+    }
+
+    private Settings update(TradingMode tradingMode, Integer volatileDurationSec) {
+        Query query = new Query().addCriteria(Criteria.where("_id").exists(true).andOperator(Criteria.where("_id").is(1L)));
         Update update = new Update();
         update.set("tradingModeState.timestamp", new Date());
-        update.set("tradingModeState.tradingMode", tradingMode);
+        if (volatileDurationSec != null) {
+            update.set("settingsVolatileMode.volatileDurationSec", volatileDurationSec);
+        }
+        if (tradingMode != null) {
+            update.set("tradingModeState.tradingMode", tradingMode);
+        }
         final WriteResult writeResult = mongoOperation.updateFirst(query, update, Settings.class);
-
-//        Settings settings = mongoOperation.findOne(query, Settings.class);
         this.settings = fetchSettings();
         return this.settings;
     }

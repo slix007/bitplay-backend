@@ -19,6 +19,7 @@ public class MarketStatesJson {
     String secondTimeToReset;
     String signalDelay;
     String timeToSignal;
+    Long timeToResetTradingMode;
     String arbState;
     String bitmexReconnectState;
     String btmPreliqQueue;

@@ -33,6 +33,7 @@ import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.SignalTimeService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
