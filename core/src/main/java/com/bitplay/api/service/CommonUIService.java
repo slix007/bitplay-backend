@@ -20,6 +20,7 @@ import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.domain.pos.PosDiffJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
+import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
@@ -94,6 +95,9 @@ public class CommonUIService {
 
     @Autowired
     private PersistenceService persistenceService;
+
+    @Autowired
+    private BordersService bordersService;
 
     @Autowired
     private DeltaMinService deltaMinService;
@@ -320,8 +324,8 @@ public class CommonUIService {
         return new DeltasJson(
                 arbitrageService.getDelta1().toPlainString(),
                 arbitrageService.getDelta2().toPlainString(),
-                guiParams.getBorder1().toPlainString(),
-                guiParams.getBorder2().toPlainString(),
+                arbitrageService.getBorder1().toPlainString(),
+                arbitrageService.getBorder2().toPlainString(),
                 cumParams.getCumDelta().toPlainString(),
                 cumParams.getCumAstDelta1().add(cumParams.getCumAstDelta2()).setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 guiParams.getLastDelta(),
@@ -691,7 +695,7 @@ public class CommonUIService {
         final String deltaMinTimerStr = deltaMinService.getTimerString();
 
         final String bordersTimerStr = bordersCalcScheduler.getUpdateBordersTimerString();
-        final BorderParams borderParams = persistenceService.fetchBorders();
+        final BorderParams borderParams = bordersService.getBorderParams();
         final int bordersTableHashCode = borderParams.getBordersV2().getBorderTableHashCode();
 
         return new TimersJson(startSignalTimerStr, deltaMinTimerStr, bordersTimerStr, String.valueOf(bordersTableHashCode));

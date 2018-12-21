@@ -541,7 +541,7 @@ public class ArbitrageService {
 
     }
 
-    private void checkVolatileMode(BigDecimal delta, BigDecimal border) {
+    private void trySwitchToVolatileMode(BigDecimal delta, BigDecimal border) {
         // если delta1 plan - border1 >= Border cross depth или delta2 plan - border2 >= Border cross depth,
         // то это триггер для переключения из Current mode в Volatile Mode.
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
@@ -555,8 +555,10 @@ public class ArbitrageService {
         }
     }
 
-    private void checkVolatileModeV2(final BordersService.TradingSignal tradingSignal) {
-        if (tradingSignal.borderValueList != null) {
+    private void trySwitchToVolatileModeV2(final BordersService.TradingSignal tradingSignal) {
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        if (settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT
+                && tradingSignal.borderValueList != null) {
             BigDecimal minBorder = null;
             for (BigDecimal x : tradingSignal.borderValueList) {
                 minBorder = (minBorder == null || minBorder.subtract(x).signum() > 0)
@@ -564,9 +566,26 @@ public class ArbitrageService {
             }
             if (minBorder != null && tradingSignal.deltaVal != null && !tradingSignal.deltaVal.isEmpty()) {
                 BigDecimal delta = new BigDecimal(tradingSignal.deltaVal);
-                checkVolatileMode(delta, minBorder);
+                trySwitchToVolatileMode(delta, minBorder);
             }
         }
+    }
+
+    private BigDecimal borderAdj(Settings settings, BigDecimal addBorder, BigDecimal source) {
+        if (settings.getTradingModeState().getTradingMode() == TradingMode.VOLATILE && addBorder != null && addBorder.signum() > 0) {
+            return source.add(addBorder);
+        }
+        return source;
+    }
+
+    public BigDecimal getBorder1() {
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        return borderAdj(settings, settings.getSettingsVolatileMode().getBAddBorder(), params.getBorder1());
+    }
+
+    public BigDecimal getBorder2() {
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        return borderAdj(settings, settings.getSettingsVolatileMode().getOAddBorder(), params.getBorder2());
     }
 
     private BestQuotes calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
@@ -577,11 +596,11 @@ public class ArbitrageService {
 
         final BorderParams borderParams = persistenceService.fetchBorders();
         if (borderParams == null || borderParams.getActiveVersion() == Ver.V1) {
-            BigDecimal border1 = params.getBorder1();
-            BigDecimal border2 = params.getBorder2();
+            BigDecimal border1 = getBorder1();
+            BigDecimal border2 = getBorder2();
 
             if (delta1.compareTo(border1) >= 0) {
-                checkVolatileMode(delta1, border1);
+                trySwitchToVolatileMode(delta1, border1);
 
                 if (signalDelayActivateTime == null) {
                     startSignalDelay(0);
@@ -607,7 +626,7 @@ public class ArbitrageService {
                     return bestQuotes;
                 }
             } else if (delta2.compareTo(border2) >= 0) {
-                checkVolatileMode(delta2, border2);
+                trySwitchToVolatileMode(delta2, border2);
 
                 if (signalDelayActivateTime == null) {
                     startSignalDelay(0);
@@ -643,7 +662,7 @@ public class ArbitrageService {
             final BordersService.TradingSignal tradingSignal = bordersService.checkBorders(
                     bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs);
 
-            checkVolatileModeV2(tradingSignal);
+            trySwitchToVolatileModeV2(tradingSignal);
 
             if (tradingSignal.okexBlock == 0) {
                 stopSignalDelay();
@@ -880,7 +899,7 @@ public class ArbitrageService {
         firstMarketService.setBusy();
         secondMarketService.setBusy();
 
-        final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, params.getBorder1(), delta1, DeltaName.B_DELTA);
+        final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, DeltaName.B_DELTA);
 
         if (dynamicDeltaLogs != null) {
             tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
@@ -895,8 +914,8 @@ public class ArbitrageService {
         synchronized (dealPrices) {
             dealPrices.setBtmPlacingType(btmPlacingType);
             dealPrices.setOkexPlacingType(okexPlacingType);
-            dealPrices.setBorder1(params.getBorder1());
-            dealPrices.setBorder2(params.getBorder2());
+            dealPrices.setBorder1(getBorder1());
+            dealPrices.setBorder2(getBorder2());
             dealPrices.setbBlock(b_block);
             dealPrices.setoBlock(o_block);
             dealPrices.setDelta1Plan(delta1);
@@ -1046,8 +1065,8 @@ public class ArbitrageService {
         synchronized (dealPrices) {
             dealPrices.setBtmPlacingType(btmPlacingType);
             dealPrices.setOkexPlacingType(okexPlacingType);
-            dealPrices.setBorder1(params.getBorder1());
-            dealPrices.setBorder2(params.getBorder2());
+            dealPrices.setBorder1(getBorder1());
+            dealPrices.setBorder2(getBorder2());
             dealPrices.setoBlock(o_block);
             dealPrices.setbBlock(b_block);
             dealPrices.setDelta1Plan(delta1);

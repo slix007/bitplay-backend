@@ -10,6 +10,8 @@ import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingBlocks.Ver;
+import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class BordersService {
+
     private static final Logger logger = LoggerFactory.getLogger(BordersService.class);
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
@@ -40,6 +43,76 @@ public class BordersService {
     private BitmexService bitmexService;
 
     private volatile static BorderParams.PosMode theMode = BorderParams.PosMode.OK_MODE;
+
+    public BorderParams getBorderParams() {
+        final BorderParams borderParams = persistenceService.fetchBorders();
+        adjValuesForVolatile(borderParams);
+        return borderParams;
+    }
+
+    public List<BorderTable> getBorderTableList(BorderParams borderParams) {
+        adjValuesForVolatile(borderParams);
+        return borderParams.getBordersV2().getBorderTableList();
+    }
+
+    private void adjValuesForVolatile(final BorderParams borderParams) {
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        if (settings.getTradingModeState() != null
+                && settings.getTradingModeState().getTradingMode() != null
+                && settings.getTradingModeState().getTradingMode() == TradingMode.VOLATILE) {
+            final List<BorderTable> borderTableList = borderParams.getBordersV2().getBorderTableList();
+            for (BorderTable borderTable : borderTableList) {
+                // b_br_open, b_br_close, o_br_open, o_br_close
+                {
+                    final BigDecimal bAddBorder = settings.getSettingsVolatileMode().getBAddBorder();
+                    if (bAddBorder != null && bAddBorder.signum() > 0) {
+                        if (borderTable.getBorderName().equals("b_br_open") || borderTable.getBorderName().equals("b_br_close")) {
+                            for (BorderItem borderItem : borderTable.getBorderItemList()) {
+                                borderItem.setValue(borderItem.getValue().add(bAddBorder));
+                            }
+                        }
+                    }
+                }
+                final BigDecimal oAddBorder = settings.getSettingsVolatileMode().getOAddBorder();
+                if (oAddBorder != null && oAddBorder.signum() > 0) {
+                    if (borderTable.getBorderName().equals("o_br_open") || borderTable.getBorderName().equals("o_br_close")) {
+                        for (BorderItem borderItem : borderTable.getBorderItemList()) {
+                            borderItem.setValue(borderItem.getValue().add(oAddBorder));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void adjBackValuesForVolatile(final BorderParams borderParams) {
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        if (settings.getTradingModeState().getTradingMode() == TradingMode.VOLATILE) {
+            final List<BorderTable> borderTableList = borderParams.getBordersV2().getBorderTableList();
+            for (BorderTable borderTable : borderTableList) {
+                // b_br_open, b_br_close, o_br_open, o_br_close
+                {
+                    final BigDecimal bAddBorder = settings.getSettingsVolatileMode().getBAddBorder();
+                    if (bAddBorder != null && bAddBorder.signum() > 0) {
+                        if (borderTable.getBorderName().equals("b_br_open") || borderTable.getBorderName().equals("b_br_close")) {
+                            for (BorderItem borderItem : borderTable.getBorderItemList()) {
+                                borderItem.setValue(borderItem.getValue().subtract(bAddBorder));
+                            }
+                        }
+                    }
+                }
+                final BigDecimal oAddBorder = settings.getSettingsVolatileMode().getOAddBorder();
+                if (oAddBorder != null && oAddBorder.signum() > 0) {
+                    if (borderTable.getBorderName().equals("o_br_open") || borderTable.getBorderName().equals("o_br_close")) {
+                        for (BorderItem borderItem : borderTable.getBorderItemList()) {
+                            borderItem.setValue(borderItem.getValue().subtract(oAddBorder));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     public static int usdToCont(int limInUsd, BorderParams.PosMode posMode, boolean isEth, BigDecimal cm) {
         if (posMode == BorderParams.PosMode.BTM_MODE) {
@@ -79,7 +152,7 @@ public class BordersService {
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
         BigDecimal cm = placingBlocks.getCm();
 
-        final BorderParams borderParams = persistenceService.fetchBorders();
+        final BorderParams borderParams = getBorderParams();
         final BordersV2 bordersV2 = borderParams.getBordersV2();
 
         if (borderParams.getPosMode() != null) {

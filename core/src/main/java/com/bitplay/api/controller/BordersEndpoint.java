@@ -2,6 +2,7 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.arbitrage.BordersCalcScheduler;
+import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.persistance.DeltaRepositoryService;
@@ -38,6 +39,9 @@ public class BordersEndpoint {
     private PersistenceService persistenceService;
 
     @Autowired
+    private BordersService bordersService;
+
+    @Autowired
     private BordersCalcScheduler bordersCalcScheduler;
 
     @Autowired
@@ -51,13 +55,13 @@ public class BordersEndpoint {
 
     @RequestMapping(value = "/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public BorderParams getBorders() {
-        final BorderParams borderParams = persistenceService.fetchBorders();
+        final BorderParams borderParams = bordersService.getBorderParams();
         return BorderUtils.withPlm(borderParams);
     }
 
     @RequestMapping(value = "/tables", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<BorderTable> getBorderTables() {
-        final BorderParams borderParams = persistenceService.fetchBorders();
+        final BorderParams borderParams = bordersService.getBorderParams();
         return (borderParams != null && borderParams.getBordersV2() != null)
                 ? BorderUtils.withPlm(borderParams).getBordersV2().getBorderTableList() : new ArrayList<>();
     }
@@ -144,6 +148,8 @@ public class BordersEndpoint {
             });
 
         }
+
+        bordersService.adjBackValuesForVolatile(borderParams);
 
         persistenceService.saveBorderParams(borderParams);
 
