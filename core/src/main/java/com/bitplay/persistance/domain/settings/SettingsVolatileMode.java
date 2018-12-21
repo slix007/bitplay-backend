@@ -35,6 +35,9 @@ public class SettingsVolatileMode {
 
     private BigDecimal borderCrossDepth;
 
+    private Integer corrMaxTotalCount;
+    private Integer adjMaxTotalCount;
+
     //TODO corr max total, corr max adj: общее количество коррекций/подгонок (0=off);
 
     public enum Field {

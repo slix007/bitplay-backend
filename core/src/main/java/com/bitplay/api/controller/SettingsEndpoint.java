@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
@@ -58,6 +59,9 @@ public class SettingsEndpoint {
     @Autowired
     private TraderPermissionsService traderPermissionsService;
 
+    @Autowired
+    private SettingsCorrEndpoint settingsCorrEndpoint;
+
     /**
      * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
      */
@@ -83,6 +87,10 @@ public class SettingsEndpoint {
                     okCoinService.getFuturesContractName());
             settings.setContractModeCurrent(contractMode);
             settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
+
+            final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
+            settings.setCorrParams(corrParams);
+
         } catch (Exception e) {
             final String error = String.format("Failed to get settings %s", e.toString());
             logger.error(error, e);
@@ -272,6 +280,9 @@ public class SettingsEndpoint {
             settings = updateVolatileMode(settingsUpdate.getSettingsVolatileMode(), settingsVolatileMode, settings);
         }
 
+        final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
+        settings.setCorrParams(corrParams);
+
         return settings;
     }
 
@@ -352,6 +363,14 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getBorderCrossDepth() != null) {
             settings.setBorderCrossDepth(settingsUpdate.getBorderCrossDepth());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getCorrMaxTotalCount() != null) {
+            settings.setCorrMaxTotalCount(settingsUpdate.getCorrMaxTotalCount());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getAdjMaxTotalCount() != null) {
+            settings.setAdjMaxTotalCount(settingsUpdate.getAdjMaxTotalCount());
             settingsRepositoryService.saveSettings(mainSettings);
         }
 

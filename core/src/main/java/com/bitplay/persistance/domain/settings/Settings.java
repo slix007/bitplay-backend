@@ -2,6 +2,7 @@ package com.bitplay.persistance.domain.settings;
 
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.domain.AbstractDocument;
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.TradingModeState;
 import com.bitplay.persistance.domain.settings.SettingsVolatileMode.Field;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -70,6 +71,9 @@ public class Settings extends AbstractDocument {
     private Boolean tradingModeAuto;
     private SettingsVolatileMode settingsVolatileMode;
     private TradingModeState tradingModeState;
+
+    @Transient
+    private CorrParams corrParams;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();

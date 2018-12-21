@@ -16,7 +16,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 @ChangeLog
 public class Changelog1217 {
 
-    @ChangeSet(order = "001", id = "2018-12-17: add TradingMode.VOLATILE with params", author = "SergeiShurmin")
+    @ChangeSet(order = "001", id = "2018-12-17: add TradingMode.VOLATILE with params.Update10", author = "SergeiShurmin")
     public void change01(MongoTemplate mongoTemplate) {
         final Settings settings = mongoTemplate.findById(1L, Settings.class);
         settings.setTradingModeAuto(false);
@@ -33,6 +33,8 @@ public class Changelog1217 {
         vm.setAdjustByNtUsd(false);
         vm.setVolatileDurationSec(0);
         vm.setBorderCrossDepth(BigDecimal.ZERO);
+        vm.setCorrMaxTotalCount(0);
+        vm.setAdjMaxTotalCount(0);
         settings.setSettingsVolatileMode(vm);
 
         mongoTemplate.save(settings);
