@@ -68,7 +68,9 @@ public class BordersService {
                     if (bAddBorder != null && bAddBorder.signum() > 0) {
                         if (borderTable.getBorderName().equals("b_br_open") || borderTable.getBorderName().equals("b_br_close")) {
                             for (BorderItem borderItem : borderTable.getBorderItemList()) {
-                                borderItem.setValue(borderItem.getValue().add(bAddBorder));
+                                if (borderItem.getValue() != null) {
+                                    borderItem.setValue(borderItem.getValue().add(bAddBorder));
+                                }
                             }
                         }
                     }
@@ -77,7 +79,9 @@ public class BordersService {
                 if (oAddBorder != null && oAddBorder.signum() > 0) {
                     if (borderTable.getBorderName().equals("o_br_open") || borderTable.getBorderName().equals("o_br_close")) {
                         for (BorderItem borderItem : borderTable.getBorderItemList()) {
-                            borderItem.setValue(borderItem.getValue().add(oAddBorder));
+                            if (borderItem.getValue() != null) {
+                                borderItem.setValue(borderItem.getValue().add(oAddBorder));
+                            }
                         }
                     }
                 }
@@ -96,7 +100,9 @@ public class BordersService {
                     if (bAddBorder != null && bAddBorder.signum() > 0) {
                         if (borderTable.getBorderName().equals("b_br_open") || borderTable.getBorderName().equals("b_br_close")) {
                             for (BorderItem borderItem : borderTable.getBorderItemList()) {
-                                borderItem.setValue(borderItem.getValue().subtract(bAddBorder));
+                                if (borderItem.getValue() != null) {
+                                    borderItem.setValue(borderItem.getValue().subtract(bAddBorder));
+                                }
                             }
                         }
                     }
@@ -105,7 +111,9 @@ public class BordersService {
                 if (oAddBorder != null && oAddBorder.signum() > 0) {
                     if (borderTable.getBorderName().equals("o_br_open") || borderTable.getBorderName().equals("o_br_close")) {
                         for (BorderItem borderItem : borderTable.getBorderItemList()) {
-                            borderItem.setValue(borderItem.getValue().subtract(oAddBorder));
+                            if (borderItem.getValue() != null) {
+                                borderItem.setValue(borderItem.getValue().subtract(oAddBorder));
+                            }
                         }
                     }
                 }
