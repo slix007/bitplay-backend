@@ -719,6 +719,7 @@ public class CommonUIService {
     public LastPriceDeviation fixLastPriceDeviation() {
 
         lastPriceDeviationService.fixCurrentLastPrice();
+        lastPriceDeviationService.getDelayTimer().stop();
 
         return lastPriceDeviationService.getLastPriceDeviation();
     }

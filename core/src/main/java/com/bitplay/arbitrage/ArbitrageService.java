@@ -960,6 +960,9 @@ public class ArbitrageService {
         }
 
         tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
+
+        slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(b_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
+
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, signalType, okexPlacingType,
                 counterName, tradeId, lastObTime);
@@ -1111,6 +1114,9 @@ public class ArbitrageService {
         }
 
         tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
+
+        slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(o_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
+
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, signalType, okexPlacingType,
                 counterName, tradeId, lastObTime);

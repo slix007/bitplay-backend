@@ -78,7 +78,7 @@ public class SignalService {
                     signalType, 1, tradeId, counterName, lastObTime);
 
             if (settings.getArbScheme() == ArbScheme.CON_B_O) {
-                ((OkCoinService) okexService).deferredPlaceOrderOnSignal(placeOrderArgs);
+                okexService.deferredPlaceOrderOnSignal(placeOrderArgs);
             } else {
                 executorService.submit(() -> {
                     try {
@@ -103,8 +103,6 @@ public class SignalService {
 
         executorService.submit(() -> {
             try {
-
-                slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s signal placeOrder bitmex %s a=%s", counterName, orderType, b_block));
 
                 if (b_block.signum() <= 0) {
                     Thread.sleep(1000);

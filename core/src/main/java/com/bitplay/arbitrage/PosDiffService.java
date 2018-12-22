@@ -239,7 +239,6 @@ public class PosDiffService {
                 .doOnComplete(() -> {
                     final String infoMsg = String.format("Double check before timer-state-reset mainSet. %s fetchPosition:",
                             arbitrageService.getMainSetStr());
-                    slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, infoMsg);
                     if (Thread.interrupted()) return;
                     final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                     if (Thread.interrupted()) return;
@@ -250,7 +249,6 @@ public class PosDiffService {
                     if (arbitrageService.getFirstMarketService().getContractType().isEth()) {
                         final String infoMsgXBTUSD = String.format("Double check before timer-state-reset XBTUSD. %s fetchPosition:",
                                 arbitrageService.getExtraSetStr());
-                        slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, infoMsg);
                         checkBitmexPosXBTUSD(infoMsgXBTUSD);
                     }
 
@@ -334,7 +332,7 @@ public class PosDiffService {
                 if (isNeededFunc.getAsBoolean()) {
                     final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
                     final BigDecimal positionsDiffWithHedge = getDcExtraSet();
-                    String msg = String.format("MDC extraSet posWithHedge={} > mdc={}", positionsDiffWithHedge, maxDiffCorr);
+                    String msg = String.format("MDC extraSet posWithHedge=%s > mdc=%s", positionsDiffWithHedge, maxDiffCorr);
                     warningLogger.info(msg);
                     arbitrageService.getFirstMarketService().stopAllActions();
                     arbitrageService.getSecondMarketService().stopAllActions();
@@ -358,7 +356,6 @@ public class PosDiffService {
                 warningLogger.info(msg);
             } else {
                 String infoMsg = String.format("Double check before %s. %s fetchPosition:", name, arbitrageService.getMainSetStr());
-                slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, infoMsg);
                 final String pos1 = arbitrageService.getFirstMarketService().fetchPosition();
                 final String pos2 = arbitrageService.getSecondMarketService().fetchPosition();
                 warningLogger.info(infoMsg + "bitmex " + pos1);
@@ -503,7 +500,6 @@ public class PosDiffService {
 
                 String infoMsg = String.format("Double check before adjustment mainSet. %s fetchPosition:",
                         arbitrageService.getMainSetStr());
-                slackNotifications.sendNotify(NotifyType.ADJ_NOTIFY, infoMsg);
                 if (doubleFetchPositionFailed(infoMsg, false)) {
                     return true;
                 }
@@ -570,7 +566,6 @@ public class PosDiffService {
 
                 String infoMsg = String.format("Double check before adjustment XBTUSD. %s fetchPosition:",
                         arbitrageService.getExtraSetStr());
-                slackNotifications.sendNotify(NotifyType.ADJ_NOTIFY, infoMsg);
                 if (doubleFetchPositionFailed(infoMsg, true)) {
                     return true;
                 }
@@ -613,7 +608,6 @@ public class PosDiffService {
 
                 String infoMsg = String.format("Double check before correction mainSet. %s fetchPosition:",
                         arbitrageService.getMainSetStr());
-                slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, infoMsg);
                 if (doubleFetchPositionFailed(infoMsg, false)) {
                     return true; // failed
                 }
@@ -656,7 +650,6 @@ public class PosDiffService {
 
                 String info = String.format("Double check before correction XBTUSD. %s fetchPosition:",
                         arbitrageService.getExtraSetStr());
-                slackNotifications.sendNotify(NotifyType.CORR_NOTIFY, info);
                 if (doubleFetchPositionFailed(info, true)) {
                     return true; // failed
                 }

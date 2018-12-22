@@ -44,6 +44,7 @@ public class DestinationResolver {
     //11. Stop all actions (MDC и signal limit)
     //12. Last price deviation
     //13. Reconnect / resubscribe Bitmex.
+    // UPDATE1: Добавить в Trader active, All test и All prod alarm: началась любая сделка по сигналу ( по кнопке не надо).
     private final static EnumSet<NotifyType> traderActive = EnumSet.of(
             NotifyType.CORR_NOTIFY, NotifyType.ADJ_NOTIFY,
             NotifyType.BITMEX_X_RATE_LIMIT,
@@ -57,7 +58,8 @@ public class DestinationResolver {
             NotifyType.BITMEX_OUTSIDE_LIMITS, NotifyType.OKEX_OUTSIDE_LIMITS,
             NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER,
             NotifyType.LAST_PRICE_DEVIATION,
-            NotifyType.BITMEX_RECONNECT
+            NotifyType.BITMEX_RECONNECT,
+            NotifyType.TRADE_SIGNAL
     );
     //2) Trader passive: сервера 662, 669, 659, 667, 668
     //1. Stop all actions (MDC и signal limit)
