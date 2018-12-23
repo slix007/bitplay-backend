@@ -13,7 +13,7 @@ public class AccountInfoJson {
     private String wallet;
     private String available;
     private String margin;
-    private String position;
+    private String positionStr;
     private String upl;
     private String leverage;
     private String availableForLong;
@@ -38,13 +38,13 @@ public class AccountInfoJson {
         this.raw = raw;
     }
 
-    public AccountInfoJson(String wallet, String available, String margin, String position, String upl, String leverage,
+    public AccountInfoJson(String wallet, String available, String margin, String positionStr, String upl, String leverage,
             String availableForLong, String availableForShort, String quAvg, String ethBtcBid1, String liqPrice, String eMark,
             String eLast, String eBest, String eAvg, String entryPrice, String raw) {
         this.wallet = wallet;
         this.available = available;
         this.margin = margin;
-        this.position = position;
+        this.positionStr = positionStr;
         this.upl = upl;
         this.leverage = leverage;
         this.availableForLong = availableForLong;
