@@ -711,7 +711,7 @@ public class CommonUIService {
             lpd.setMaxDevUsd(BigDecimal.valueOf(10));
         }
         final Integer delaySec = lpd.getDelaySec();
-        final long toNextFix = delayTimer.secToReadyPresice(delaySec);
+        final long toNextFix = delayTimer.secToReadyPrecise(delaySec);
         lpd.setToNextFix((int) toNextFix);
         return lpd;
     }

@@ -72,6 +72,9 @@ public class Settings extends AbstractDocument {
     private SettingsVolatileMode settingsVolatileMode;
     private TradingModeState tradingModeState;
 
+    // Bitmex change on SO
+    private BitmexChangeOnSo bitmexChangeOnSo;
+
     @Transient
     private CorrParams corrParams;
 
@@ -96,6 +99,7 @@ public class Settings extends AbstractDocument {
         settings.okexFakeTakerDev = BigDecimal.ONE;
         settings.tradingModeAuto = false;
         settings.tradingModeState = new TradingModeState(TradingMode.CURRENT);
+        settings.bitmexChangeOnSo = new BitmexChangeOnSo();
         settings.setId(1L);
         return settings;
     }

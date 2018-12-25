@@ -319,7 +319,7 @@ public class PosDiffService {
     private void checkMdcExtraSet(String name, Integer delaySec, DelayTimer dt, BooleanSupplier isNeededFunc) {
         if (isNeededFunc.getAsBoolean()) {
             dt.activate();
-            long secToReady = dt.secToReadyPresice(delaySec);
+            long secToReady = dt.secToReadyPrecise(delaySec);
             if (secToReady > 0) {
                 String msg = String.format("%s signal. Waiting delay(sec)=%s", name, secToReady);
                 log.info(msg);
@@ -349,7 +349,7 @@ public class PosDiffService {
     private void checkMdcMainSet(String name, Integer delaySec, DelayTimer dt, BooleanSupplier isNeededFunc) throws Exception {
         if (isNeededFunc.getAsBoolean()) {
             dt.activate();
-            long secToReady = dt.secToReadyPresice(delaySec);
+            long secToReady = dt.secToReadyPrecise(delaySec);
             if (secToReady > 0) {
                 String msg = String.format("%s signal. Waiting delay(sec)=%s", name, secToReady);
                 log.info(msg);
@@ -483,7 +483,7 @@ public class PosDiffService {
         if (marketsReady() && isAdjViolated(dcMainSet) && corrParams.getAdj().hasSpareAttempts()) {
 
             final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-            final long secToReady = dtAdj.secToReadyPresice(pa.getPosAdjustmentDelaySec());
+            final long secToReady = dtAdj.secToReadyPrecise(pa.getPosAdjustmentDelaySec());
 
             final boolean activated = dtAdj.activate();
             if (activated) {
@@ -549,7 +549,7 @@ public class PosDiffService {
         if (marketsReady() && isAdjViolated(dcExtraSet) && corrParams.getAdj().hasSpareAttempts()) {
 
             final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-            final long secToReady = dtExtraAdj.secToReadyPresice(pa.getPosAdjustmentDelaySec());
+            final long secToReady = dtExtraAdj.secToReadyPrecise(pa.getPosAdjustmentDelaySec());
 
             final boolean activated = dtExtraAdj.activate();
             if (activated) {
@@ -592,7 +592,7 @@ public class PosDiffService {
         if (marketsReady() && !isPosEqualByMaxAdj(dcMainSet) && corrParams.getCorr().hasSpareAttempts()) {
 
             final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-            final long secToReady = dtCorr.secToReadyPresice(pa.getCorrDelaySec());
+            final long secToReady = dtCorr.secToReadyPrecise(pa.getCorrDelaySec());
 
             final boolean activated = dtCorr.activate();
             if (activated) {
@@ -634,7 +634,7 @@ public class PosDiffService {
         if (marketsReady() && !isPosEqualByMaxAdj(dcExtraSet) && corrParams.getCorr().hasSpareAttempts()) {
 
             final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
-            final long secToReady = dtExtraCorr.secToReadyPresice(pa.getCorrDelaySec());
+            final long secToReady = dtExtraCorr.secToReadyPrecise(pa.getCorrDelaySec());
 
             final boolean activated = dtExtraCorr.activate();
             if (activated) {

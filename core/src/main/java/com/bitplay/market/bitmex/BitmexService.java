@@ -44,6 +44,7 @@ import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
+import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -135,6 +136,7 @@ public class BitmexService extends MarketServicePreliq {
     private static final int MAX_MOVING_TIMEOUT_SEC = 2;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
+    private volatile AtomicInteger soAttempts = new AtomicInteger(0);
     private volatile BitmexXRateLimit xRateLimit = BitmexXRateLimit.initValue();
 
     private volatile BigDecimal prevCumulativeAmount;
@@ -188,6 +190,8 @@ public class BitmexService extends MarketServicePreliq {
     private ExtrastopService extrastopService;
     @Autowired
     private MonitoringDataService monitoringDataService;
+    @Autowired
+    private BitmexChangeOnSoService bitmexChangeOnSoService;
 
     private String key;
     private String secret;
@@ -692,90 +696,99 @@ public class BitmexService extends MarketServicePreliq {
             logger.error(logString);
         }
         movingInProgress = true;
-        scheduledMoveInProgressReset = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
 
-        Instant startMoving = (iterateArgs != null && iterateArgs.length > 0 && iterateArgs[0] != null)
-                ? (Instant) iterateArgs[0]
-                : null;
-        Instant beforeLock = Instant.now();
+        try {
+            scheduledMoveInProgressReset = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
 
-        synchronized (openOrdersLock) {
-            if (hasOpenOrders()) {
-                Long tradeId = null;
+            Instant startMoving = (iterateArgs != null && iterateArgs.length > 0 && iterateArgs[0] != null)
+                    ? (Instant) iterateArgs[0]
+                    : null;
+            Instant beforeLock = Instant.now();
 
-                Long waitingPrevMs = Instant.now().toEpochMilli() - beforeLock.toEpochMilli();
+            synchronized (openOrdersLock) {
+                if (hasOpenOrders()) {
 
-                final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
-                final Integer maxAttempts = sysOverloadArgs.getMovingErrorsForOverload();
+                    Long tradeId = null;
 
-                distinctOpenOrders();
+                    Long waitingPrevMs = Instant.now().toEpochMilli() - beforeLock.toEpochMilli();
 
-                List<FplayOrder> resultOOList = new ArrayList<>();
+                    final SysOverloadArgs sysOverloadArgs = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs();
+                    final Integer maxAttempts = sysOverloadArgs.getMovingErrorsForOverload();
 
-                for (FplayOrder openOrder : openOrders) {
+                    distinctOpenOrders();
 
-                    if (openOrder == null || openOrder.getOrderId() == null
-                            || openOrder.getOrderId().equals("0")
-                            || openOrder.getOrder().getId().equals("0")) {
-                        warningLogger.warn("OO is null. " + openOrder);
-                        // empty, do not add
+                    List<FplayOrder> resultOOList = new ArrayList<>();
 
-                    } else if (openOrder.getOrder().getType() == null) {
-                        warningLogger.warn("OO type is null. " + openOrder.toString());
-                        // keep the order
-                        resultOOList.add(openOrder);
+                    for (FplayOrder openOrder : openOrders) {
 
-                    } else if (openOrder.getOrderDetail().getOrderStatus() != OrderStatus.NEW
-                            && openOrder.getOrderDetail().getOrderStatus() != OrderStatus.PENDING_NEW
-                            && openOrder.getOrderDetail().getOrderStatus() != OrderStatus.PARTIALLY_FILLED) {
-                        // keep the order
-                        resultOOList.add(openOrder);
-
-                    } else {
-                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, startMoving, waitingPrevMs);
-
-                        List<FplayOrder> orderList = handleMovingResponse(response, maxAttempts, openOrder);
-
-                        // update all fplayOrders
-                        for (FplayOrder resultOO : orderList) {
-                            final LimitOrder order = resultOO.getLimitOrder();
-                            arbitrageService.getDealPrices().getbPriceFact()
-                                    .addPriceItem(resultOO.getCounterName(), order.getId(),
-                                            order.getCumulativeAmount(),
-                                            order.getAveragePrice(), order.getStatus());
-                            resultOOList.add(resultOO);
+                        if (bitmexChangeOnSoService.isActive()) {
+                            cancelAndPlace(openOrder); // set status 'CANCELLED' if it is successful
                         }
 
+                        if (openOrder == null || openOrder.getOrderId() == null
+                                || openOrder.getOrderId().equals("0")
+                                || openOrder.getOrder().getId().equals("0")) {
+                            warningLogger.warn("OO is null. " + openOrder);
+                            // empty, do not add
+
+                        } else if (openOrder.getOrder().getType() == null) {
+                            warningLogger.warn("OO type is null. " + openOrder.toString());
+                            // keep the order
+                            resultOOList.add(openOrder);
+
+                        } else if (openOrder.getOrderDetail().getOrderStatus() != OrderStatus.NEW
+                                && openOrder.getOrderDetail().getOrderStatus() != OrderStatus.PENDING_NEW
+                                && openOrder.getOrderDetail().getOrderStatus() != OrderStatus.PARTIALLY_FILLED) {
+                            // keep the order
+                            resultOOList.add(openOrder);
+
+                        } else {
+                            final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, startMoving, waitingPrevMs);
+
+                            List<FplayOrder> orderList = handleMovingResponse(response, maxAttempts, openOrder);
+
+                            // update all fplayOrders
+                            for (FplayOrder resultOO : orderList) {
+                                final LimitOrder order = resultOO.getLimitOrder();
+                                arbitrageService.getDealPrices().getbPriceFact()
+                                        .addPriceItem(resultOO.getCounterName(), order.getId(),
+                                                order.getCumulativeAmount(),
+                                                order.getAveragePrice(), order.getStatus());
+                                resultOOList.add(resultOO);
+                            }
+
+                        }
                     }
+
+                    for (FplayOrder resultOO : resultOOList) {
+                        tradeId = Utils.lastTradeId(tradeId, resultOO.getTradeId());
+                    }
+                    this.openOrders = resultOOList;
+
+                    if (!hasOpenOrders()) {
+                        tradeLogger.warn("Free by iterateOpenOrdersMove");
+                        logger.warn("Free by iterateOpenOrdersMove");
+                        eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
+                    }
+
                 }
 
-                for (FplayOrder resultOO : resultOOList) {
-                    tradeId = Utils.lastTradeId(tradeId, resultOO.getTradeId());
-                }
-                this.openOrders = resultOOList;
-
-                if (!hasOpenOrders()) {
-                    tradeLogger.warn("Free by iterateOpenOrdersMove");
-                    logger.warn("Free by iterateOpenOrdersMove");
-                    eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
-                }
-
-            }
-
-        } // synchronized (openOrdersLock)
-
-        movingInProgress = false;
+            } // synchronized (openOrdersLock)
+        } finally {
+            movingInProgress = false;
+        }
     }
 
-    private List<FplayOrder> handleMovingResponse(final MoveResponse response, Integer maxAttempts, FplayOrder openOrder) {
+    private List<FplayOrder> handleMovingResponse(final MoveResponse response, Integer maxAttempts, FplayOrder initialOpenOrder) {
         List<FplayOrder> resultOOList = new ArrayList<>(); // default - the same
-        String contractType = openOrder.getOrderDetail().getContractType();
+        String contractType = initialOpenOrder.getOrderDetail().getContractType();
 
         try {
             //TODO keep an eye on 'hang open orders'
             if (overloadByXRateLimit()) {
                 movingErrorsOverloaded.set(0);
-                resultOOList.add(openOrder); // keep the same
+                soAttempts.set(0);
+                resultOOList.add(initialOpenOrder); // keep the same
 
             } else if (response.getMoveOrderStatus() == MoveOrderStatus.ALREADY_CLOSED) {
                 // update the status
@@ -786,6 +799,7 @@ public class BitmexService extends MarketServicePreliq {
 
             } else if (response.getMoveOrderStatus() == MoveOrderStatus.MOVED) {
                 movingErrorsOverloaded.set(0);
+                soAttempts.set(0);
                 resultOOList.add(response.getNewFplayOrder());
 
             } else if (response.getMoveOrderStatus() == MoveOrderStatus.ONLY_CANCEL) { // update cancelled and place new
@@ -793,71 +807,49 @@ public class BitmexService extends MarketServicePreliq {
                 if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
                     setOverloaded(null);
                     movingErrorsOverloaded.set(0);
-                    resultOOList.add(openOrder); // keep the same
+                    soAttempts.set(0);
+                    resultOOList.add(initialOpenOrder); // keep the same
 
                 } else {
 
                     // place new order instead of 'cancelled-on-moving'
                     final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
                     if (cancelledFplayOrder == null) {
-                        resultOOList.add(openOrder); // keep the same
+                        resultOOList.add(initialOpenOrder); // keep the same
                     } else {
-                        final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
-
                         // 1. old order
                         resultOOList.add(cancelledFplayOrder);
 
-                        // PLACE ORDER instead of cancelled on moving.
-                        final BitmexContractType cntType = BitmexContractType.parse(cancelledOrder.getCurrencyPair());
-                        if (cntType == null) {
-                            String msg = String.format("no moving. Can not determinate contractType! %s", cancelledFplayOrder.toString());
-                            warningLogger.warn("Error on moving: " + msg);
-                            logger.warn("Error on moving: " + msg);
-                        } else {
+                        final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
+                        final BigDecimal amountLeft = cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount());
 
-                            final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
-                                    cancelledOrder.getType(),
-                                    cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount()),
-                                    openOrder.getBestQuotes(),
-                                    openOrder.getPlacingType(),
-                                    openOrder.getSignalType(),
-                                    1,
-                                    cancelledFplayOrder.getTradeId(),
-                                    cancelledFplayOrder.getCounterName(),
-                                    null,
-                                    cntType));
-
-                            // 2. new order
-                            final LimitOrder placedOrder = tradeResponse.getLimitOrder();
-                            if (placedOrder != null) {
-                                resultOOList.add(new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
-                                        placedOrder, openOrder.getBestQuotes(),
-                                        openOrder.getPlacingType(), openOrder.getSignalType()));
-                            }
-
-                            // 3. failed on placing
-                            for (LimitOrder limitOrder : tradeResponse.getCancelledOrders()) {
-                                resultOOList.add(new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
-                                        limitOrder, openOrder.getBestQuotes(),
-                                        openOrder.getPlacingType(), openOrder.getSignalType()));
-                            }
-
-                            scheduledMoveInProgressReset = scheduler.schedule(() -> movingErrorsOverloaded.set(0),
-                                    MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
-                        } // end PLACE ORDER instead of cancelled on moving.
+                        final PlacingType placingType = initialOpenOrder.getPlacingType();
+                        final FplayOrder placedFplayOrder = placeOrderInsteadOfCancelled(initialOpenOrder, amountLeft, placingType);
+                        if (placedFplayOrder != null) {
+                            resultOOList.add(placedFplayOrder);
+                        }
                     }
                 }
 
             } else if (response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 
+                bitmexChangeOnSoService.tryActivate(soAttempts.incrementAndGet());
+                if (bitmexChangeOnSoService.isActive()) {
+                    cancelAndPlace(initialOpenOrder); // set status 'CANCELLED' if it is successful
+                }
+
                 if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
                     setOverloaded(null);
                     movingErrorsOverloaded.set(0);
+                    soAttempts.set(0);
                 } else {
-                    scheduledMoveInProgressReset = scheduler.schedule(() -> movingErrorsOverloaded.set(0),
+                    scheduledMoveInProgressReset = scheduler.schedule(() -> {
+                                movingErrorsOverloaded.set(0);
+                                soAttempts.set(0);
+                            },
                             MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
                 }
-                resultOOList.add(openOrder); // keep the same
+                resultOOList.add(initialOpenOrder); // keep the same
 
 
             } else if (response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION
@@ -866,10 +858,10 @@ public class BitmexService extends MarketServicePreliq {
             ) {
                 tradeLogger.warn("MovingException: " + response.getDescription(), contractType);
                 logger.warn("MovingException: " + response.getDescription());
-                resultOOList.add(openOrder); // keep the same
+                resultOOList.add(initialOpenOrder); // keep the same
 
             } else {
-                resultOOList.add(openOrder); // keep the same
+                resultOOList.add(initialOpenOrder); // keep the same
             }
 
         } catch (Exception e) {
@@ -878,9 +870,94 @@ public class BitmexService extends MarketServicePreliq {
             logger.warn("Error on moving", e);
 
             resultOOList = new ArrayList<>();
-            resultOOList.add(openOrder); // keep the same
+            resultOOList.add(initialOpenOrder); // keep the same
         }
         return resultOOList;
+    }
+
+    private FplayOrder placeOrderInsteadOfCancelled(FplayOrder openOrder, BigDecimal amountLeft, PlacingType placingType) {
+        FplayOrder res = null;
+
+        // PLACE ORDER instead of cancelled on moving.
+        final BitmexContractType cntType = BitmexContractType.parse(openOrder.getOrder().getCurrencyPair());
+        if (cntType == null) {
+            String msg = String.format("no moving. Can not determinate contractType! %s", openOrder.toString());
+            warningLogger.warn("Error on moving: " + msg);
+            logger.warn("Error on moving: " + msg);
+        } else {
+
+            final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
+                    openOrder.getLimitOrder().getType(),
+                    amountLeft,
+                    openOrder.getBestQuotes(),
+                    placingType,
+                    openOrder.getSignalType(),
+                    1,
+                    openOrder.getTradeId(),
+                    openOrder.getCounterName(),
+                    null,
+                    cntType));
+
+            // 2. new order
+            final LimitOrder placedOrder = tradeResponse.getLimitOrder();
+            if (placedOrder != null) {
+                res = new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
+                        placedOrder, openOrder.getBestQuotes(),
+                        placingType, openOrder.getSignalType());
+            }
+
+            // 3. failed on placing
+            for (LimitOrder limitOrder : tradeResponse.getCancelledOrders()) {
+                res = new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
+                        limitOrder, openOrder.getBestQuotes(),
+                        placingType, openOrder.getSignalType());
+            }
+
+            scheduledMoveInProgressReset = scheduler.schedule(() -> {
+                        movingErrorsOverloaded.set(0);
+                        soAttempts.set(0);
+                    },
+                    MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
+        } // end PLACE ORDER instead of cancelled on moving.
+
+        return res;
+    }
+
+    @SuppressWarnings("Duplicates")
+    private FplayOrder cancelAndPlace(FplayOrder openOrder) {
+        FplayOrder placedFplayOrder = null;
+        // 1. cancel current
+        final String counterForLogs = getCounterName();
+        LimitOrder cancelledOrder = null;
+        if (getMarketState() != MarketState.SYSTEM_OVERLOADED) {
+            final String orderId = openOrder.getOrderId();
+            final int attemptCount = soAttempts.get();
+            try {
+                BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
+                cancelledOrder = tradeService.cancelLimitOrder(orderId);
+
+                getTradeLogger().info(String.format("#%s/%s bitmexChangeOnSo cancelled id=%s", counterForLogs, attemptCount, orderId));
+
+            } catch (HttpStatusIOException e) {
+                updateXRateLimit(e);
+                overloadByXRateLimit();
+
+                logger.error("#{}/{} error cancel order id={}", counterForLogs, attemptCount, orderId, e);
+                getTradeLogger().error(String.format("#%s/%s error cancel order id=%s: %s", counterForLogs, attemptCount, orderId, e.toString()));
+            } catch (Exception e) {
+                logger.error("#{}/{} error cancel order id={}", counterForLogs, attemptCount, orderId, e);
+                getTradeLogger().error(String.format("#%s/%s error cancel order id=%s: %s", counterForLogs, attemptCount, orderId, e.toString()));
+            }
+
+            // 2. place taker
+            if (cancelledOrder != null) {
+                openOrder.getOrderDetail().setOrderStatus(OrderStatus.CANCELED);
+                final BigDecimal amountLeft = cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount());
+                placedFplayOrder = placeOrderInsteadOfCancelled(openOrder, amountLeft, PlacingType.TAKER);
+            }
+        }
+
+        return placedFplayOrder;
     }
 
     private BitmexStreamingExchange initExchange(String key, String secret) {
@@ -1527,7 +1604,7 @@ public class BitmexService extends MarketServicePreliq {
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
         final BigDecimal amount = BitmexUtils.amountInContracts(placeOrderArgs, cm);
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
-        PlacingType placingType = placeOrderArgs.getPlacingType();
+        PlacingType placingTypeInitial = placeOrderArgs.getPlacingType();
         final SignalType signalType = placeOrderArgs.getSignalType();
         final Long tradeId = placeOrderArgs.getTradeId();
         final String counterName = placeOrderArgs.getCounterName();
@@ -1538,10 +1615,12 @@ public class BitmexService extends MarketServicePreliq {
         final Instant startPlacing = Instant.now();
         final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
 
-        if (placingType == null) {
+        if (placingTypeInitial == null) {
             tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs, contractTypeStr);
-            placingType = settings.getBitmexPlacingType();
+            placingTypeInitial = settings.getBitmexPlacingType();
         }
+
+        PlacingType placingType = placingTypeInitial;
 
         MarketState nextMarketState = getMarketState();
         arbitrageService.setSignalType(signalType);
@@ -1573,6 +1652,10 @@ public class BitmexService extends MarketServicePreliq {
                     } else {
                         orderBook = getOrderBook();
                     }
+
+                    bitmexChangeOnSoService.tryActivate(attemptCount);
+
+                    placingType = bitmexChangeOnSoService.isActive() ? PlacingType.TAKER : placingTypeInitial;
 
                     if (placingType != PlacingType.TAKER) {
 

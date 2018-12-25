@@ -95,7 +95,7 @@ public abstract class MarketServicePreliq extends MarketService {
                 }
 
                 final Integer delaySec = getPersistenceService().getSettingsRepositoryService().getSettings().getPosAdjustment().getPreliqDelaySec();
-                long secToReady = dtPreliq.secToReadyPresice(delaySec);
+                long secToReady = dtPreliq.secToReadyPrecise(delaySec);
 
                 final String counterForLogs = getCounterNameNext(preliqParams.getSignalType()) + "*"; // ex: 2:o_preliq* - the counter of the possible preliq
                 final String nameSymbol = getName().substring(0, 1).toUpperCase();

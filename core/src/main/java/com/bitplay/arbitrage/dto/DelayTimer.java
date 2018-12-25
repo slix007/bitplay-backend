@@ -13,7 +13,7 @@ public class DelayTimer {
         return secToReadyCalc(delaySec, false);
     }
 
-    public long secToReadyPresice(int delaySec) {
+    public long secToReadyPrecise(int delaySec) {
         return secToReadyCalc(delaySec, true);
     }
 

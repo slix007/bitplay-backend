@@ -7,6 +7,7 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
 import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
@@ -16,6 +17,7 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SettingsVolatileMode;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.security.TraderPermissionsService;
+import com.bitplay.settings.BitmexChangeOnSoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +64,9 @@ public class SettingsEndpoint {
     @Autowired
     private SettingsCorrEndpoint settingsCorrEndpoint;
 
+    @Autowired
+    private BitmexChangeOnSoService bitmexChangeOnSoService;
+
     /**
      * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
      */
@@ -83,19 +88,29 @@ public class SettingsEndpoint {
         Settings settings = new Settings();
         try {
             settings = settingsRepositoryService.getSettings();
-            final ContractMode contractMode = ContractMode.parse(bitmexService.getFuturesContractName(),
-                    okCoinService.getFuturesContractName());
-            settings.setContractModeCurrent(contractMode);
-            settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
 
-            final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
-            settings.setCorrParams(corrParams);
+            setTransientFields(settings);
 
         } catch (Exception e) {
             final String error = String.format("Failed to get settings %s", e.toString());
             logger.error(error, e);
         }
         return settings;
+    }
+
+    private void setTransientFields(Settings settings) {
+        // Contract names
+        final ContractMode contractMode = ContractMode.parse(bitmexService.getFuturesContractName(), okCoinService.getFuturesContractName());
+        settings.setContractModeCurrent(contractMode);
+        settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
+
+        // Corr
+        final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
+        settings.setCorrParams(corrParams);
+
+        // BitmexChangeOnSo
+        final BitmexChangeOnSo bitmexChangeOnSo = settings.getBitmexChangeOnSo();
+        bitmexChangeOnSo.setSecToReset(bitmexChangeOnSoService.getSecToReset());
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -279,11 +294,36 @@ public class SettingsEndpoint {
             settings.setSettingsVolatileMode(settingsVolatileMode);
             settings = updateVolatileMode(settingsUpdate.getSettingsVolatileMode(), settingsVolatileMode, settings);
         }
+        if (settingsUpdate.getBitmexChangeOnSo() != null) {
+            updateBitmexChangeOnSo(settingsUpdate.getBitmexChangeOnSo(), settings);
+        }
 
         final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
         settings.setCorrParams(corrParams);
 
         return settings;
+    }
+
+    private void updateBitmexChangeOnSo(BitmexChangeOnSo update, Settings mainSettings) {
+        // set new if
+        mainSettings.setBitmexChangeOnSo(mainSettings.getBitmexChangeOnSo() != null ? mainSettings.getBitmexChangeOnSo() : new BitmexChangeOnSo());
+        final BitmexChangeOnSo current = mainSettings.getBitmexChangeOnSo();
+
+        if (update.getAuto() != null) {
+            current.setAuto(update.getAuto());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (update.getCountToActivate() != null) {
+            current.setCountToActivate(update.getCountToActivate());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (update.getDurationSec() != null) {
+            current.setDurationSec(update.getDurationSec());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (update.getResetFromUi() != null) {
+            bitmexChangeOnSoService.reset();
+        }
     }
 
     @SuppressWarnings("Duplicates")

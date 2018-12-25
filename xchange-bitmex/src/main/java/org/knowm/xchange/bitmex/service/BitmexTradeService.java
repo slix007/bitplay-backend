@@ -175,6 +175,23 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
     }
 
     @SuppressWarnings("unchecked")
+    public LimitOrder cancelLimitOrder(String orderId)
+            throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+        final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
+                .getExchangeSpecificParametersItem("currencyToScale");
+        final List<io.swagger.client.model.Order> orders = bitmexAuthenitcatedApi.deleteOrder(
+                exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
+                orderId,
+                "",
+                "");
+
+        return orders.stream()
+                .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order, true, currencyToScale))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @SuppressWarnings("unchecked")
     public List<LimitOrder> cancelAllOrders() throws ExchangeException, IOException {
         final String symbol = (String) exchange.getExchangeSpecification().getExchangeSpecificParametersItem("Symbol");
         final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
