@@ -50,6 +50,7 @@ import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.security.TraderPermissionsService;
+import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.settings.TradingModeService;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -119,6 +120,9 @@ public class CommonUIService {
 
     @Autowired
     private TradingModeService tradingModeService;
+
+    @Autowired
+    private BitmexChangeOnSoService bitmexChangeOnSoService;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -406,6 +410,7 @@ public class CommonUIService {
                 String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
                 arbitrageService.getTimeToSignal(),
                 tradingModeService.secToReset(),
+                bitmexChangeOnSoService.getSecToReset(),
                 arbState,
                 btmReconnectState,
                 btmPreliqQueue,

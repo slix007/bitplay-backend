@@ -110,6 +110,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import si.mazi.rescu.HttpStatusIOException;
+import si.mazi.rescu.InvocationResult;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
@@ -1671,6 +1672,7 @@ public class BitmexService extends MarketServicePreliq {
 
                         // metrics
                         final Instant startReq = Instant.now();
+                        throwTestingException();
                         final LimitOrder resultOrder = bitmexTradeService.placeLimitOrderBitmex(
                                 new LimitOrder(orderType, amount, currencyPair, "0", new Date(), thePrice),
                                 participateDoNotInitiate, symbol, scale);
@@ -1725,6 +1727,7 @@ public class BitmexService extends MarketServicePreliq {
 
                         // metrics
                         final Instant startReq = Instant.now();
+                        throwTestingException();
                         final MarketOrder resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol);
                         final Instant endReq = Instant.now();
                         final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
@@ -1910,8 +1913,8 @@ public class BitmexService extends MarketServicePreliq {
             assert bestMakerPrice.compareTo(limitOrder.getLimitPrice()) != 0;
 
             Instant startReq = Instant.now();
-            final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService())
-                    .moveLimitOrder(limitOrder, bestMakerPrice);
+            throwTestingException();
+            final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService()).moveLimitOrder(limitOrder, bestMakerPrice);
             Instant endReq = Instant.now();
 
             if (movedLimitOrder != null) {
@@ -2047,6 +2050,22 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         return moveResponse;
+    }
+
+    private void throwTestingException() throws HttpStatusIOException, InterruptedException {
+        if (bitmexChangeOnSoService.isTestingSo()) {
+            final String httpBody = "{\"error\": {"
+                    + "  \"message\": \"The system is currently overloaded. Please try again later\","
+                    + "  \"name\": \"Error\""
+                    + "}}";
+            final InvocationResult invocationResult = new InvocationResult(httpBody, 500);
+            final HttpStatusIOException exception = new HttpStatusIOException("system overloaded", invocationResult);
+            exception.setResponseHeaders(new HashMap<>());
+
+            Thread.sleep(1000);
+
+            throw exception;
+        }
     }
 
     private String setQuotesForArbLogs(String counterName, LimitOrder limitOrder, BigDecimal openPrice, boolean showDiff) {

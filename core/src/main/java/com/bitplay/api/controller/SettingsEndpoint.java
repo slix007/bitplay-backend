@@ -301,6 +301,8 @@ public class SettingsEndpoint {
         final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
         settings.setCorrParams(corrParams);
 
+        setTransientFields(settings);
+
         return settings;
     }
 
@@ -323,6 +325,10 @@ public class SettingsEndpoint {
         }
         if (update.getResetFromUi() != null) {
             bitmexChangeOnSoService.reset();
+        }
+        if (update.getTestingSo() != null) {
+            bitmexChangeOnSoService.setTestingSo(update.getTestingSo());
+            current.setTestingSo(update.getTestingSo());
         }
     }
 

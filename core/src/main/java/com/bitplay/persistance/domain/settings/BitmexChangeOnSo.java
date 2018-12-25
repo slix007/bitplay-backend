@@ -11,9 +11,12 @@ public class BitmexChangeOnSo {
     private Integer durationSec;
 
     @Transient
-    private String secToReset;
+    private Long secToReset;
 
     @Transient
     private Boolean resetFromUi;
+
+    @Transient
+    private Boolean testingSo;
 
 }

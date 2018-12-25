@@ -1,5 +1,6 @@
 package com.bitplay.settings;
 
+import com.bitplay.market.bitmex.BitmexTradeLogger;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -10,6 +11,8 @@ import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +21,12 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 public class BitmexChangeOnSoService {
+
+    private volatile boolean testingSo = false;
+    private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+
+    @Autowired
+    private BitmexTradeLogger tradeLogger;
 
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
@@ -28,11 +37,10 @@ public class BitmexChangeOnSoService {
 
     private volatile ScheduledFuture toResetTask;
 
-    public String getSecToReset() {
-        final long secToReset = isActive()
+    public long getSecToReset() {
+        return isActive()
                 ? toResetTask.getDelay(TimeUnit.SECONDS)
                 : 0;
-        return String.valueOf(secToReset);
     }
 
     public boolean isActive() {
@@ -53,14 +61,25 @@ public class BitmexChangeOnSoService {
     public void reset() {
         if (isActive()) {
             toResetTask.cancel(false);
-            log.info("BitmexChangeOnSo deactivated manually");
+            final String msg = "BitmexChangeOnSo deactivated manually";
+            log.info(msg);
+            warningLogger.info(msg);
+            tradeLogger.info(msg);
         }
     }
 
     private void activate() {
-        log.info("BitmexChangeOnSo activated");
+        final String msgStart = "BitmexChangeOnSo activated";
+        log.info(msgStart);
+        warningLogger.info(msgStart);
+        tradeLogger.info(msgStart);
         final Integer durationSec = settingsRepositoryService.getSettings().getBitmexChangeOnSo().getDurationSec();
-        toResetTask = executor.schedule(() -> log.info("BitmexChangeOnSo deactivated"),
+        toResetTask = executor.schedule(() -> {
+                    final String msg = "BitmexChangeOnSo deactivated";
+                    log.info(msg);
+                    warningLogger.info(msg);
+                    tradeLogger.info(msg);
+                },
                 durationSec, TimeUnit.SECONDS);
 
     }
