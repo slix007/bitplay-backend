@@ -160,6 +160,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         return new FutureIndexJson(
                 indexString,
+                indexPrice.toPlainString(),
                 timestamp,
                 fundingRate,
                 fundingCost,

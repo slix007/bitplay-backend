@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
-import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,8 +98,9 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
 
     public FutureIndexJson getFutureIndex() {
         final ContractIndex contractIndex = getBusinessService().getContractIndex();
+        final String indexVal = contractIndex.getIndexPrice().toPlainString();
         final String indexString = String.format("%s (1c=%sbtc)",
-                contractIndex.getIndexPrice().toPlainString(),
+                indexVal,
                 getBusinessService().calcBtcInContract());
         final Date timestamp = contractIndex.getTimestamp();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -111,7 +111,8 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         String ethBtcBal = service.getEthBtcTicker() == null ? ""
                 : "Quote ETH/BTC: " + service.getEthBtcTicker().getBid().toPlainString();
 
-        return new FutureIndexJson(indexString, sdf.format(timestamp), limitsJson, ethBtcBal);
+        final String okexEstimatedDeliveryPrice = service.getForecastPrice().toPlainString();
+        return new FutureIndexJson(indexString, indexVal, sdf.format(timestamp), limitsJson, ethBtcBal, okexEstimatedDeliveryPrice);
     }
 
 }

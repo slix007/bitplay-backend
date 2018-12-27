@@ -18,7 +18,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <xchange-stream.version>4.2.3-bts</xchange-stream.version>
-        <xchange.version>4.2.1-bts</xchange.version>
+        <xchange.version>4.2.2-bts-SNAPSHOT</xchange.version>
     </properties>
 
     <dependencies>
@@ -104,7 +104,7 @@
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-okcoin</artifactId>
-            <version>4.2.1-bts</version>
+            <version>${xchange.version}</version>
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>

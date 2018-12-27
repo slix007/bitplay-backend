@@ -10,6 +10,7 @@ import lombok.Setter;
 @Setter
 public class FutureIndexJson {
     private String index;
+    private String indexVal;
     private String timestamp;
     private String fundingRate;
     private String fundingCost;
@@ -21,24 +22,28 @@ public class FutureIndexJson {
     private String timeCompareUpdating;
     private LimitsJson limits;
     private ContractExtraJson contractExtraJson = new ContractExtraJson();
+    private String okexEstimatedDeliveryPrice;
     private String twoMarketsIndexDiff;
 
     public static FutureIndexJson empty() {
-        return new FutureIndexJson("", "", new LimitsJson(), null);
+        return new FutureIndexJson("", "", "", new LimitsJson(), null, null);
     }
 
-    public FutureIndexJson(String index, String timestamp, LimitsJson limits, String ethBtcBal) {
+    public FutureIndexJson(String index, String indexVal, String timestamp, LimitsJson limits, String ethBtcBal, String okexEstimatedDeliveryPrice) {
         this.index = index;
+        this.indexVal = indexVal;
         this.timestamp = timestamp;
         this.limits = limits;
         this.contractExtraJson.setEthBtcBal(ethBtcBal);
+        this.okexEstimatedDeliveryPrice = okexEstimatedDeliveryPrice;
     }
 
-    public FutureIndexJson(String index, String timestamp, String fundingRate,
+    public FutureIndexJson(String index, String indexVal, String timestamp, String fundingRate,
                            String fundingCost,
                            String position, String swapTime, String timeToSwap, String swapType,
             String timeCompareString, String timeCompareUpdating, LimitsJson limits, String bxbtBal, String twoMarketsIndexDiff) {
         this.index = index;
+        this.indexVal = indexVal;
         this.timestamp = timestamp;
         this.fundingRate = fundingRate;
         this.fundingCost = fundingCost;

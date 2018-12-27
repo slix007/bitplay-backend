@@ -85,9 +85,11 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.OkCoinAdapters;
 import org.knowm.xchange.okcoin.OkCoinUtils;
+import org.knowm.xchange.okcoin.dto.marketdata.OkcoinForecastPrice;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPositionResult;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
+import org.knowm.xchange.okcoin.service.OkCoinFuturesMarketDataService;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesTradeService;
 import org.knowm.xchange.okcoin.service.OkCoinTradeService;
 import org.knowm.xchange.okcoin.service.OkCoinTradeServiceRaw;
@@ -129,6 +131,12 @@ public class OkCoinService extends MarketServicePreliq {
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
 
     private volatile String ifDisconnetedString = "";
+
+    private volatile BigDecimal forecastPrice = BigDecimal.ZERO;
+
+    public BigDecimal getForecastPrice() {
+        return forecastPrice;
+    }
 
     @Autowired
     private SlackNotifications slackNotifications;
@@ -444,6 +452,21 @@ public class OkCoinService extends MarketServicePreliq {
         }
         Instant end = Instant.now();
         Utils.logIfLong(start, end, logger, "requestAccountInfo");
+    }
+
+    @Scheduled(fixedDelay = 2000) // Request frequency 20 times/2s
+    public void fetchEstimatedDeliveryPrice() {
+        Instant start = Instant.now();
+        try {
+            final OkcoinForecastPrice result = ((OkCoinFuturesMarketDataService) exchange.getMarketDataService())
+                    .getFuturesForecastPrice(okexContractType.getCurrencyPair());
+            forecastPrice = result.getPrice() != null ? result.getPrice() : BigDecimal.ZERO;
+
+        } catch (Exception e) {
+            logger.error("On fetchEstimatedDeliveryPrice", e);
+        }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
     }
 
     @Scheduled(fixedDelay = 2000)
