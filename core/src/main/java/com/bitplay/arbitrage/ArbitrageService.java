@@ -54,6 +54,7 @@ import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.domain.settings.UsdQuoteType;
 import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.bitplay.security.TraderPermissionsService;
+import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
@@ -133,6 +134,8 @@ public class ArbitrageService {
     private SlackNotifications slackNotifications;
     @Autowired
     private HedgeService hedgeService;
+    @Autowired
+    private BitmexChangeOnSoService bitmexChangeOnSoService;
 
 
     //    private Disposable schdeduleUpdateBorders;
@@ -907,7 +910,8 @@ public class ArbitrageService {
 
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final PlacingType okexPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getOkexPlacingType();
-        final PlacingType btmPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
+        PlacingType btmPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
+        btmPlacingType = bitmexChangeOnSoService.isActive() ? PlacingType.TAKER : btmPlacingType;
 
         final BigDecimal bPricePlan = bid1_p;
         final BigDecimal oPricePlan = ask1_o;
@@ -1061,7 +1065,8 @@ public class ArbitrageService {
 
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final PlacingType okexPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getOkexPlacingType();
-        final PlacingType btmPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
+        PlacingType btmPlacingType = predefinedPlacingType != null ? predefinedPlacingType : settings.getBitmexPlacingType();
+        btmPlacingType = bitmexChangeOnSoService.isActive() ? PlacingType.TAKER : btmPlacingType;
 
         final BigDecimal bPricePlan = ask1_p;
         final BigDecimal oPricePlan = bid1_o;
