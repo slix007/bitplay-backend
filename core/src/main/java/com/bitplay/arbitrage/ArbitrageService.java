@@ -1449,37 +1449,52 @@ public class ArbitrageService {
         BigDecimal usdQuote;
         switch (usdQuoteType) {
             case BITMEX:
-                usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBookXBTUSD());
+                if (firstMarketService == null || !firstMarketService.isStarted()) {
+                    usdQuote = BigDecimal.ZERO;
+                } else {
+                    usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBookXBTUSD());
+                }
                 break;
             case OKEX:
-                usdQuote = Utils.calcQuAvg(secondMarketService.getOrderBookXBTUSD());
+                if (secondMarketService == null || !secondMarketService.isStarted()) {
+                    usdQuote = BigDecimal.ZERO;
+                } else {
+                    usdQuote = Utils.calcQuAvg(secondMarketService.getOrderBookXBTUSD());
+                }
                 break;
             case INDEX_BITMEX:
-                if (firstMarketService.getContractType().isEth()) {
-                    usdQuote = firstMarketService.getBtcContractIndex() != null && firstMarketService.getBtcContractIndex().getIndexPrice() != null
-                            ? firstMarketService.getBtcContractIndex().getIndexPrice()
-                            : BigDecimal.ZERO;
-                } else {
-                    usdQuote = firstMarketService.getContractIndex() != null && firstMarketService.getContractIndex().getIndexPrice() != null
-                            ? firstMarketService.getContractIndex().getIndexPrice()
-                            : BigDecimal.ZERO;
-                }
+                usdQuote = getOneMarketUsdQuote(firstMarketService);
                 break;
             case INDEX_OKEX:
-                if (secondMarketService.getContractType().isEth()) {
-                    usdQuote = secondMarketService.getBtcContractIndex() != null && secondMarketService.getBtcContractIndex().getIndexPrice() != null
-                            ? secondMarketService.getBtcContractIndex().getIndexPrice()
-                            : BigDecimal.ZERO;
-                } else {
-                    usdQuote = secondMarketService.getContractIndex() != null && secondMarketService.getContractIndex().getIndexPrice() != null
-                            ? secondMarketService.getContractIndex().getIndexPrice()
-                            : BigDecimal.ZERO;
-                }
+                usdQuote = getOneMarketUsdQuote(secondMarketService);
                 break;
             case AVG:
             default:
-                usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBookXBTUSD(), secondMarketService.getOrderBookXBTUSD());
+                if (firstMarketService == null || !firstMarketService.isStarted()
+                        || secondMarketService == null || !secondMarketService.isStarted()) {
+                    usdQuote = BigDecimal.ZERO;
+                } else {
+                    usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBookXBTUSD(), secondMarketService.getOrderBookXBTUSD());
+                }
                 break;
+        }
+        return usdQuote;
+    }
+
+    private BigDecimal getOneMarketUsdQuote(MarketService marketService) {
+        BigDecimal usdQuote;
+        if (marketService == null || !marketService.isStarted()) {
+            usdQuote = BigDecimal.ZERO;
+        } else {
+            if (marketService.getContractType().isEth()) {
+                usdQuote = marketService.getBtcContractIndex() != null && marketService.getBtcContractIndex().getIndexPrice() != null
+                        ? marketService.getBtcContractIndex().getIndexPrice()
+                        : BigDecimal.ZERO;
+            } else {
+                usdQuote = marketService.getContractIndex() != null && marketService.getContractIndex().getIndexPrice() != null
+                        ? marketService.getContractIndex().getIndexPrice()
+                        : BigDecimal.ZERO;
+            }
         }
         return usdQuote;
     }

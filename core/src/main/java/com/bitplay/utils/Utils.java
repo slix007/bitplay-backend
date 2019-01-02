@@ -140,7 +140,7 @@ public class Utils {
     }
 
     public static BigDecimal calcQuAvg(OrderBook orderBook) {
-        if (orderBook.getAsks().size() == 0 || orderBook.getBids().size() == 0) {
+        if (orderBook == null || orderBook.getAsks().size() == 0 || orderBook.getBids().size() == 0) {
             return BigDecimal.ZERO;
         }
 //        qu_avg = (b_bid[1] + b_ask[1]) / 2;
@@ -150,7 +150,8 @@ public class Utils {
     }
 
     public static BigDecimal calcQuAvg(OrderBook orderBookFirst, OrderBook orderBookSecond) {
-        if (orderBookFirst.getBids().size() == 0|| orderBookSecond.getBids().size() == 0) {
+        if (orderBookFirst == null || orderBookSecond == null
+                || orderBookFirst.getBids().size() == 0 || orderBookSecond.getBids().size() == 0) {
             return BigDecimal.ZERO;
         }
 //        qu_avg = (b_bid[1] + b_ask[1] + o_bid[1] + o_ask[1]) / 4;
