@@ -37,19 +37,24 @@ public abstract class MarketServicePreliq extends MarketService {
         prevPreliqMarketState = getMarketState();
         setMarketState(MarketState.PRELIQ);
         getArbitrageService().setBusyStackChecker();
+        log.info(getName() + "_PRELIQ: save prev market state to " + prevPreliqMarketState);
     }
 
-    public void resetPreliqState() {
-        if (prevPreliqMarketState != null) {
-            if (prevPreliqMarketState == MarketState.PRELIQ) {
-                log.warn("prevPreliqMarketState is PRELIQ");
+    public void resetPreliqState(boolean forced) {
+        if (forced || !getArbitrageService().isArbStatePreliq()) {
+            final MarketState prevState = this.prevPreliqMarketState;
+            if (prevState != null) {
+                if (prevState == MarketState.PRELIQ) {
+                    log.warn(getName() + "_PRELIQ: prevPreliqMarketState is PRELIQ");
+                }
+                log.info(getName() + "_PRELIQ: revert market state to " + prevState);
+                setMarketState(prevState);
+                this.prevPreliqMarketState = null;
             }
-            setMarketState(prevPreliqMarketState);
-            prevPreliqMarketState = null;
-        }
-        if (getMarketState() == MarketState.PRELIQ) {
-            log.warn("resetPreliqState to PRELIQ. Change to READY.");
-            setMarketState(MarketState.READY);
+            if (getMarketState() == MarketState.PRELIQ) {
+                log.warn(getName() + "_PRELIQ: resetPreliqState to READY.");
+                setMarketState(MarketState.READY);
+            }
         }
     }
 
@@ -90,7 +95,7 @@ public abstract class MarketServicePreliq extends MarketService {
 
                 boolean gotActivated = dtPreliq.activate();
                 if (gotActivated) {
-                    setPreliqState();
+//                    setPreliqState(); // only current Market!
                     getArbitrageService().setArbStatePreliq();
                 }
 
@@ -120,17 +125,17 @@ public abstract class MarketServicePreliq extends MarketService {
                     if (corrParams.getPreliq().hasSpareAttempts()) {
                         putPreliqInQueue(preliqParams);
                     } else {
-                        resetPreliqState();
+                        resetPreliqState(false);
                     }
 
                     dtPreliq.stop(); //after successful start
                 }
             } else {
-                resetPreliqState();
+                resetPreliqState(false);
                 dtPreliq.stop();
             }
         } else {
-            resetPreliqState();
+            resetPreliqState(false);
             dtPreliq.stop();
         }
         Instant end = Instant.now();

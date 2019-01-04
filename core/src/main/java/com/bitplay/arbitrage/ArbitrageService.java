@@ -769,6 +769,8 @@ public class ArbitrageService {
             arbStatePrevPreliq = arbState;
             logger.info("set ArbState.PRELIQ");
             arbState = ArbState.PRELIQ;
+            firstMarketService.setPreliqState();
+            secondMarketService.setPreliqState();
         }
     }
 

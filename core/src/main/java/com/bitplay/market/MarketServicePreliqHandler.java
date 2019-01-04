@@ -73,7 +73,7 @@ public class MarketServicePreliqHandler {
             log.info(msg);
             marketService.getTradeLogger().info(msg);
 
-            marketService.resetPreliqState();
+            marketService.resetPreliqState(true);
 
             preliqQueue.remove(item); // skip old
             return;
@@ -81,7 +81,7 @@ public class MarketServicePreliqHandler {
 
         doPreliqOrder(item, marketService);
 
-        marketService.resetPreliqState();
+        marketService.resetPreliqState(true);
 
         preliqQueue.remove(item); // end "transaction"
     }

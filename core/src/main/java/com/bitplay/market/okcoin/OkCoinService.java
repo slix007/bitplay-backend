@@ -999,12 +999,23 @@ public class OkCoinService extends MarketServicePreliq {
                 ooHangedCheckerService.startChecker();
                 setMarketState(MarketState.ARBITRAGE, counterName);
             } else {
-                if (nextState == MarketState.WAITING_ARB) {
+                if ((nextState == MarketState.WAITING_ARB && placeOrderArgsRef.get() == null)
+                        || nextState == MarketState.PLACING_ORDER
+                        || nextState == MarketState.MOVING
+                        || nextState == MarketState.STOPPED
+                        || nextState == MarketState.FORBIDDEN
+                        || nextState == MarketState.ARBITRAGE
+                ) {
                     nextState = MarketState.ARBITRAGE;
                 }
+                // fix WAITING_ARB -> PRELIQ -> WAITING_ARB
+                if (nextState == MarketState.PRELIQ && placeOrderArgsRef.get() != null) {
+                    nextState = MarketState.WAITING_ARB;
+                }
+
                 setMarketState(nextState, counterName); // should be READY
                 if (tradeResponse.getOrderId() != null) {
-                    setFree(placeOrderArgs.getTradeId()); // ARBGITRAGE->READY and iterateOOToMove
+                    setFree(placeOrderArgs.getTradeId()); // ARBITRAGE->READY and iterateOOToMove
                 }
             }
         }
@@ -1824,7 +1835,11 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     protected void onReadyState() {
-        placeOrderArgsRef.set(null);
+        final PlaceOrderArgs prevArgs = placeOrderArgsRef.getAndSet(null);
+        if (prevArgs != null) {
+            logger.warn("WAITING_ARB was reset by onReadyState");
+            tradeLogger.warn("WAITING_ARB was reset by onReadyState");
+        }
         ooHangedCheckerService.stopChecker();
         iterateOpenOrdersMove();
     }
