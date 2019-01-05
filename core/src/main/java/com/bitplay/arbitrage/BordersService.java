@@ -145,12 +145,13 @@ public class BordersService {
         return new BordersService.TradingSignal(tradingSignal.tradeType, block,
                 tradingSignal.borderName,
                 tradingSignal.borderValue + ";adjusted by affordable. okexBlock was " + tradingSignal.okexBlock,
-                Collections.unmodifiableList(tradingSignal.borderValueList),
+                Collections.unmodifiableList(tradingSignal.borderValueList != null ? tradingSignal.borderValueList : new ArrayList<>()),
                 tradingSignal.deltaVal,
                 tradingSignal.ver, tradingSignal.posMode, cm);
     }
 
-    public TradingSignal checkBorders(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL,
+    TradingSignal checkBordersForTests(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP,
+            BigDecimal oPL,
             BigDecimal oPS) {
         return checkBorders(bitmexOrderBook, okexOrderBook, b_delta, o_delta, bP, oPL, oPS, true);
     }

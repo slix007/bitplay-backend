@@ -2,6 +2,7 @@ package com.bitplay.persistance.domain.borders;
 
 import com.bitplay.persistance.domain.AbstractDocument;
 
+import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.TypeAlias;
@@ -23,6 +24,8 @@ public class BorderParams extends AbstractDocument {
     private Integer recalcPeriodSec;
     private Integer deltaMinFixPeriodSec;
     private BorderDelta borderDelta;
+    private BigDecimal maxBorder;
+    private Boolean onlyOpen;
 
     public BorderParams(Ver activeVersion, BordersV1 bordersV1, BordersV2 bordersV2) {
         this.setId(1L);

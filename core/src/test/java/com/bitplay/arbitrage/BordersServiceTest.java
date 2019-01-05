@@ -176,7 +176,7 @@ public class BordersServiceTest {
         final BigDecimal bP = BigDecimal.valueOf(2000 * 100);
         final BigDecimal oPL = BigDecimal.valueOf(1900);
         final BigDecimal oPS = BigDecimal.valueOf(0);
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+        final BordersService.TradingSignal signal = bordersService.checkBordersForTests(bOb, oOb, delta1, delta2, bP, oPL, oPS);
 
         System.out.println(signal.toString());
 
@@ -197,7 +197,7 @@ public class BordersServiceTest {
         final BigDecimal bP = BigDecimal.valueOf(2000 * 100);
         final BigDecimal oPL = BigDecimal.valueOf(400); // +400 -2300  (-1900)
         final BigDecimal oPS = BigDecimal.valueOf(2300);
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+        final BordersService.TradingSignal signal = bordersService.checkBordersForTests(bOb, oOb, delta1, delta2, bP, oPL, oPS);
 
         assertEquals("b_br_close", signal.borderName);
         assertEquals(17, signal.okexBlock);
@@ -254,7 +254,7 @@ public class BordersServiceTest {
         final BigDecimal bP = BigDecimal.valueOf(2000 * 100);
         final BigDecimal oPL = BigDecimal.valueOf(400); // +400 -2300  (-1900)
         final BigDecimal oPS = BigDecimal.valueOf(2300);
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+        final BordersService.TradingSignal signal = bordersService.checkBordersForTests(bOb, oOb, delta1, delta2, bP, oPL, oPS);
 
 //        assertEquals("b_br_open", signal.borderName);
 //        assertEquals(2, signal.okexBlock);
@@ -312,7 +312,7 @@ public class BordersServiceTest {
         final BigDecimal bP = BigDecimal.valueOf(-150000);
         final BigDecimal oPL = BigDecimal.valueOf(900);
         final BigDecimal oPS = BigDecimal.valueOf(0);
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+        final BordersService.TradingSignal signal = bordersService.checkBordersForTests(bOb, oOb, delta1, delta2, bP, oPL, oPS);
 
 //        assertEquals("o_br_open", signal.borderName);
 //        assertEquals(40, signal.okexBlock);
@@ -370,7 +370,7 @@ public class BordersServiceTest {
         final BigDecimal bP = BigDecimal.valueOf(-150000);
         final BigDecimal oPL = BigDecimal.valueOf(1300);
         final BigDecimal oPS = BigDecimal.valueOf(0);
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+        final BordersService.TradingSignal signal = bordersService.checkBordersForTests(bOb, oOb, delta1, delta2, bP, oPL, oPS);
 
         assertEquals("o_br_close", signal.borderName);
         assertEquals(20, signal.okexBlock);
@@ -417,7 +417,7 @@ public class BordersServiceTest {
         final BigDecimal bP = BigDecimal.valueOf(-150000);
         final BigDecimal oPL = BigDecimal.valueOf(1100);
         final BigDecimal oPS = BigDecimal.ZERO;
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+        final BordersService.TradingSignal signal = bordersService.checkBordersForTests(bOb, oOb, delta1, delta2, bP, oPL, oPS);
 
         System.out.println(signal.toString());
 
@@ -474,7 +474,7 @@ public class BordersServiceTest {
         final BigDecimal bP = BigDecimal.valueOf(-1595);
         final BigDecimal oPL = BigDecimal.valueOf(171);
         final BigDecimal oPS = BigDecimal.valueOf(0);
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+        final BordersService.TradingSignal signal = bordersService.checkBordersForTests(bOb, oOb, delta1, delta2, bP, oPL, oPS);
 
         System.out.println(signal.toString());
         System.out.println(signal.okexBlock);

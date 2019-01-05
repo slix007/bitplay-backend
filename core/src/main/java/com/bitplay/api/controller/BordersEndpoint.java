@@ -241,6 +241,15 @@ public class BordersEndpoint {
                 deltaRepositoryService.recreateSavingListener(bP.getBorderDelta());
             }
 
+            if (update.maxBorder != null) {
+                bP.setMaxBorder(new BigDecimal(update.maxBorder));
+                respDetails = "OK";
+            }
+            if (update.onlyOpen != null) {
+                bP.setOnlyOpen(update.onlyOpen);
+                respDetails = "OK";
+            }
+
             deltasCalcService.setBorderDelta(bP.getBorderDelta());
 
         } catch (Exception e) {
@@ -260,6 +269,8 @@ public class BordersEndpoint {
         public String borderV1SumDelta;
         public String doResetDeltaHistPer;
         public BorderDelta borderDelta;
+        public String maxBorder;
+        public Boolean onlyOpen;
     }
 
     @RequestMapping(value = "/settingsV2", method = RequestMethod.POST,
