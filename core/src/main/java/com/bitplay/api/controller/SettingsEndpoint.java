@@ -298,6 +298,11 @@ public class SettingsEndpoint {
             updateBitmexChangeOnSo(settingsUpdate.getBitmexChangeOnSo(), settings);
         }
 
+        if (settingsUpdate.getOkexEbestElast() != null) {
+            settings.setOkexEbestElast(settingsUpdate.getOkexEbestElast());
+            settingsRepositoryService.saveSettings(settings);
+        }
+
         final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
         settings.setCorrParams(corrParams);
 

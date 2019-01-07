@@ -2,6 +2,7 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.model.FullBalance;
+import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.utils.Utils;
 import java.math.BigDecimal;
@@ -11,6 +12,7 @@ import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,6 +22,9 @@ import org.springframework.stereotype.Component;
 public class OkcoinBalanceService implements BalanceService {
 
     private static final Logger logger = LoggerFactory.getLogger(OkcoinBalanceService.class);
+
+    @Autowired
+    private SettingsRepositoryService settingsRepositoryService;
 
 //    private volatile Instant prevTime = Instant.now();
 //    private volatile FullBalance fullBalance;
@@ -92,6 +97,11 @@ public class OkcoinBalanceService implements BalanceService {
         if (contractType.isEth()) {
             tempValues += "<br>";
         }
+
+        final boolean okexEbestElast = settingsRepositoryService.getSettings().getOkexEbestElast() != null
+                ? settingsRepositoryService.getSettings().getOkexEbestElast()
+                : false;
+        eBest = okexEbestElast ? eLast : eBest;
 
         return new FullBalance(new AccountInfoContracts(
                 accountInfoContracts.getWallet(),

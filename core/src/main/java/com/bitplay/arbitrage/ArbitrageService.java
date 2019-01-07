@@ -350,6 +350,10 @@ public class ArbitrageService {
         return secondMarketService;
     }
 
+    public boolean isInitialized() {
+        return getFirstMarketService() != null && getSecondMarketService() != null;
+    }
+
     private void setTimeoutAfterStartTrading() {
 //        isReadyForTheArbitrage = false;
 //        if (theTimer != null) {

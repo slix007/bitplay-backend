@@ -96,6 +96,10 @@ public class DebugEndpoints {
 
     @RequestMapping(value = "/mon/all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public MonAllJson checkDeadlocks() {
+        if (!arbitrageService.isInitialized()) {
+            return new MonAllJson();
+        }
+
         final ResultJson resultJson = detectDeadlock();
 //        arbitrageService.getParams()
 

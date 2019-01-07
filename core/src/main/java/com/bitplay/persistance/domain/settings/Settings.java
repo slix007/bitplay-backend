@@ -75,6 +75,8 @@ public class Settings extends AbstractDocument {
     // Bitmex change on SO
     private BitmexChangeOnSo bitmexChangeOnSo;
 
+    private Boolean okexEbestElast;
+
     @Transient
     private CorrParams corrParams;
 
@@ -100,6 +102,7 @@ public class Settings extends AbstractDocument {
         settings.tradingModeAuto = false;
         settings.tradingModeState = new TradingModeState(TradingMode.CURRENT);
         settings.bitmexChangeOnSo = new BitmexChangeOnSo();
+        settings.okexEbestElast = false;
         settings.setId(1L);
         return settings;
     }

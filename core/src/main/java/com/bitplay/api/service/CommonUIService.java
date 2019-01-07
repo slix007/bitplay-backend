@@ -373,7 +373,14 @@ public class CommonUIService {
         );
     }
 
+    private boolean isInitialized() {
+        return arbitrageService.getFirstMarketService() != null && arbitrageService.getSecondMarketService() != null;
+    }
+
     public MarketFlagsJson getStopMoving() {
+        if (!isInitialized()) {
+            return new MarketFlagsJson(null, null);
+        }
         return new MarketFlagsJson(
                 arbitrageService.getFirstMarketService().getMovingStop(),
                 arbitrageService.getSecondMarketService().getMovingStop()
@@ -381,6 +388,9 @@ public class CommonUIService {
     }
 
     public MarketFlagsJson toggleStopMoving() {
+        if (!isInitialized()) {
+            return new MarketFlagsJson(null, null);
+        }
         arbitrageService.getFirstMarketService().setMovingStop(!arbitrageService.getFirstMarketService().getMovingStop());
         arbitrageService.getSecondMarketService().setMovingStop(!arbitrageService.getSecondMarketService().getMovingStop());
         return new MarketFlagsJson(
@@ -390,6 +400,9 @@ public class CommonUIService {
     }
 
     public MarketStatesJson getMarketsStates() {
+        if (!isInitialized()) {
+            return new MarketStatesJson();
+        }
         String arbState = arbitrageService.getArbState().toString();
 
         boolean reconnectInProgress = ((BitmexService) arbitrageService.getFirstMarketService()).isReconnectInProgress();
@@ -515,6 +528,10 @@ public class CommonUIService {
     }
 
     public SumBalJson getSumBal() {
+        if (!isInitialized()) {
+            return new SumBalJson();
+        }
+
         final String sumBalString = arbitrageService.getSumBalString();
         final String sumEBest = arbitrageService.getSumEBestUsd().toPlainString();
         Settings settings = settingsRepositoryService.getSettings();
@@ -525,6 +542,10 @@ public class CommonUIService {
     }
 
     public PosDiffJson getPosDiff() {
+        if (!arbitrageService.isInitialized()) {
+            return PosDiffJson.notInitialized();
+        }
+
         PosDiffJson posDiff;
         try {
             final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
