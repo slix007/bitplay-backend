@@ -691,8 +691,7 @@ public class ArbitrageService {
                 return bestQuotes;
             }
 
-            if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY
-                    || tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
+            if (tradingSignal.tradeType != TradeType.NONE) {
                 if (signalDelayActivateTime == null) {
                     startSignalDelay(0);
                 }
@@ -703,7 +702,7 @@ public class ArbitrageService {
                                 BigDecimal.valueOf(tradingSignal.okexBlock));
                         if (bl.getBlockOkex().signum() > 0) {
                             final BordersService.TradingSignal ts = bordersService.setNewBlock(tradingSignal, bl.getBlockOkex().intValueExact());
-                            final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
+                            @SuppressWarnings("Duplicates") final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
                             final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
                             if (b_block.signum() > 0 && o_block.signum() > 0) {
                                 final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
@@ -724,9 +723,8 @@ public class ArbitrageService {
                                 tradingSignal, null, null, false, lastObTime);
                         return bestQuotes;
                     }
-                }
 
-                if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
+                } else if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
                     if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
                         final PlBlocks bl = dynBlockDecriseByAffordable(DeltaName.O_DELTA, BigDecimal.valueOf(tradingSignal.bitmexBlock),
                                 BigDecimal.valueOf(tradingSignal.okexBlock));
@@ -757,6 +755,8 @@ public class ArbitrageService {
             } else {
                 stopSignalDelay();
             }
+        } else {
+            stopSignalDelay();
         }
 
         return bestQuotes;

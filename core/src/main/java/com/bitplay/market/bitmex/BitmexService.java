@@ -12,6 +12,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.ArbState;
@@ -683,11 +684,15 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private void iterateOpenOrdersMoveSync(Object[] iterateArgs) {
-        final MarketState marketState = getMarketState();
-        if (marketState == MarketState.SYSTEM_OVERLOADED
-                || marketState == MarketState.PLACING_ORDER
-                || isMarketStopped()
-                || getArbitrageService().getArbState() == ArbState.PRELIQ) {
+        try {
+            final MarketState marketState = getMarketState();
+            if (marketState == MarketState.SYSTEM_OVERLOADED
+                    || marketState == MarketState.PLACING_ORDER
+                    || isMarketStopped()
+                    || getArbitrageService().getArbState() == ArbState.PRELIQ) {
+                return;
+            }
+        } catch (NotYetInitializedException e) {
             return;
         }
 

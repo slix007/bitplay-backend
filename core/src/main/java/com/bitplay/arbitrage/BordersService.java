@@ -218,8 +218,7 @@ public class BordersService {
                     placingBlocks.getActiveVersion(), cm);
         }
 
-        return signal != null ? signal :
-                new TradingSignal(TradeType.NONE, 0, "", "", null, "", placingBlocks.getActiveVersion(), cm);
+        return signal != null ? signal : TradingSignal.none();
     }
 
     private TradingSignal bDeltaBorderClose(BigDecimal b_delta, int block, int pos, BordersV2 bordersV2, PlacingBlocks placingBlocks, OrderBook bitmexOrderBook,
@@ -229,7 +228,7 @@ public class BordersService {
         final Optional<BorderTable> b_br_close = bordersV2.getBorderTableByName(borderName);
         if (!b_br_close.isPresent()) {
             writeLogs(withLogs, String.format("No %s is present", borderName));
-            return new TradingSignal(TradeType.NONE, 0, borderName, "", null, "", placingBlocks.getActiveVersion(), cm);
+            return TradingSignal.none();
         }
         final List<BorderItem> btm_br_close = b_br_close.get().getBorderItemList();
         final int btm_br_close_cnt = btm_br_close.size();
@@ -362,7 +361,7 @@ public class BordersService {
         final Optional<BorderTable> b_br_open = bordersV2.getBorderTableByName(borderName);
         if (!b_br_open.isPresent()) {
             writeLogs(withLogs, String.format("No %s is present", borderName));
-            return new TradingSignal(TradeType.NONE, 0, borderName, "", null, "", placingBlocks.getActiveVersion(), cm);
+            return TradingSignal.none();
         }
         final List<BorderItem> btm_br_open = b_br_open.get().getBorderItemList();
         final int btm_br_open_cnt = btm_br_open.size();
@@ -502,7 +501,7 @@ public class BordersService {
         final Optional<BorderTable> o_br_close = bordersV2.getBorderTableByName(borderName);
         if (!o_br_close.isPresent()) {
             writeLogs(withLogs, String.format("No %s is present", borderName));
-            return new TradingSignal(TradeType.NONE, 0, borderName, "", null, "", placingBlocks.getActiveVersion(), cm);
+            return TradingSignal.none();
         }
         final List<BorderItem> ok_br_close = o_br_close.get().getBorderItemList();
         final int ok_br_close_cnt = ok_br_close.size();
@@ -629,7 +628,7 @@ public class BordersService {
         final Optional<BorderTable> o_br_open = bordersV2.getBorderTableByName(borderName);
         if (!o_br_open.isPresent()) {
             writeLogs(withLogs, String.format("No %s is present", borderName));
-            return new TradingSignal(TradeType.NONE, 0, borderName, "", null, "", placingBlocks.getActiveVersion(), cm);
+            return TradingSignal.none();
         }
         final List<BorderItem> ok_br_open = o_br_open.get().getBorderItemList();
         final int ok_br_open_cnt = ok_br_open.size();
@@ -781,6 +780,7 @@ public class BordersService {
             this.cm = null;
         }
 
+        @SuppressWarnings("Duplicates")
         TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, List<BigDecimal> borderValueList, String deltaVal,
                 PlacingBlocks.Ver ver, BigDecimal cm) {
             this.tradeType = tradeType;
@@ -801,6 +801,7 @@ public class BordersService {
             this.borderVer = BorderVer.borderV2;
         }
 
+        @SuppressWarnings("Duplicates")
         TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, List<BigDecimal> borderValueList, String deltaVal,
                 PlacingBlocks.Ver ver, BorderParams.PosMode theMode, BigDecimal cm) {
             this.tradeType = tradeType;
@@ -821,6 +822,7 @@ public class BordersService {
             this.borderVer = BorderVer.borderV2;
         }
 
+        @SuppressWarnings("Duplicates")
         private TradingSignal(TradeType tradeType, int bitmexBlock, int okexBlock, Ver ver,
                 PosMode posMode, String borderName, String borderValue, List<BigDecimal> borderValueList, String deltaVal, BigDecimal cm,
                 BorderVer borderVer) {
@@ -838,7 +840,7 @@ public class BordersService {
         }
 
         public static TradingSignal none() {
-            return new TradingSignal(TradeType.NONE, 0, null, null, null, null, null, null);
+            return new TradingSignal(TradeType.NONE, 0, null, null, null, null, null, BigDecimal.valueOf(100));
         }
 
         TradingSignal changeBlocks(BigDecimal b_block, BigDecimal o_block) {
