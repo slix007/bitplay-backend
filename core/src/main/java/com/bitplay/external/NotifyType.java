@@ -41,6 +41,7 @@ public enum NotifyType {
     BITMEX_X_RATE_LIMIT(false),
     REBOOT_TIMESTAMP_OLD(false),
     TRADE_SIGNAL(false),
+    ROUND_IS_NOT_DONE(false),
     ;
 
     private final boolean throttled;

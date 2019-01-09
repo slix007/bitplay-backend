@@ -326,7 +326,8 @@ public class ArbitrageService {
                             preliqUtilsService,
                             persistenceService,
                             this,
-                            new DeltaLogWriter(tradeIdSnap, counterNameSnap, tradeService)
+                            new DeltaLogWriter(tradeIdSnap, counterNameSnap, tradeService),
+                            slackNotifications
                     );
 
 //                    if (signalTypeSnap.isPreliq()) {

@@ -6,6 +6,8 @@ import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.external.NotifyType;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.PersistenceService;
@@ -54,6 +56,7 @@ public class AfterArbTask implements Runnable {
     private final PersistenceService persistenceService;
     private final ArbitrageService arbitrageService;
     private final DeltaLogWriter deltaLogWriter;
+    private final SlackNotifications slackNotifications;
 
     @Override
     public void run() {
@@ -80,13 +83,21 @@ public class AfterArbTask implements Runnable {
             deltaLogWriter.setEndStatus(TradeStatus.COMPLETED);
 
         } catch (RoundIsNotDoneException e) {
-            deltaLogWriter.info("Round is not done. Error: " + e.getMessage());
+            deltaLogWriter.info(String.format("Round is not done: RoundIsNotDoneException: %s. %s. %s", e.getMessage(),
+                    arbitrageService.getMainSetStr(),
+                    arbitrageService.getExtraSetStr()));
             deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
-            log.error("Round is not done", e);
+            final String msg = String.format("%s::#%s Round is not done: RoundIsNotDoneException: %s", tradeId, counterName, e.getMessage());
+            log.error(msg, e);
+            slackNotifications.sendNotify(NotifyType.ROUND_IS_NOT_DONE, msg);
         } catch (Exception e) {
-            deltaLogWriter.info("Round is not done. Write logs error: " + e.getMessage());
+            deltaLogWriter.info(String.format("Round is not done: Exception:: %s. %s. %s", e.getMessage(),
+                    arbitrageService.getMainSetStr(),
+                    arbitrageService.getExtraSetStr()));
             deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
-            log.error("Round is not done. Write logs error", e);
+            final String msg = String.format("%s::#%s Round is not done: Exception: %s", tradeId, counterName, e.getMessage());
+            log.error(msg, e);
+            slackNotifications.sendNotify(NotifyType.ROUND_IS_NOT_DONE, msg);
         }
     }
 
@@ -105,33 +116,6 @@ public class AfterArbTask implements Runnable {
         if (hasZero) {
             deltaLogWriter.info("Round has zero orders.");
             log.error("Round has zero orders.");
-        }
-    }
-
-    public void preliqIsDone() {
-        if (!signalType.isPreliq()) {
-            return;
-        }
-
-        try {
-            validateAvgPrice(dealPrices.getbPriceFact());
-            validateAvgPrice(dealPrices.getoPriceFact());
-
-            preliqUtilsService.preliqCountersOnRoundDone(true, guiLiqParams, signalType,
-                    bitmexService, okCoinService);
-
-        } catch (RoundIsNotDoneException e) {
-            deltaLogWriter.info("Round is not done. Error: " + e.getMessage());
-            deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
-            log.error("Round is not done", e);
-            preliqUtilsService.preliqCountersOnRoundDone(false, guiLiqParams, signalType,
-                    bitmexService, okCoinService);
-        } catch (Exception e) {
-            deltaLogWriter.info("Round is not done. Write logs error: " + e.getMessage());
-            deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
-            log.error("Round is not done. Write logs error", e);
-            preliqUtilsService.preliqCountersOnRoundDone(false, guiLiqParams, signalType,
-                    bitmexService, okCoinService);
         }
     }
 

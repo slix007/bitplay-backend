@@ -59,7 +59,8 @@ public class DestinationResolver {
             NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER,
             NotifyType.LAST_PRICE_DEVIATION,
             NotifyType.BITMEX_RECONNECT,
-            NotifyType.TRADE_SIGNAL
+            NotifyType.TRADE_SIGNAL,
+            NotifyType.ROUND_IS_NOT_DONE
     );
     //2) Trader passive: сервера 662, 669, 659, 667, 668
     //1. Stop all actions (MDC и signal limit)
