@@ -1287,8 +1287,13 @@ public class BitmexService extends MarketServicePreliq {
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                 .filter(ob -> ob.getBids().size() != 0 && ob.getAsks().size() != 0)
                 .doOnError(throwable -> {
-                    logger.error("can not convert orderBook", throwable);
-                    warningLogger.error("can not convert orderBook", throwable);
+                    if (throwable instanceof NotConnectedException) {
+                        logger.error("can not convert orderBook " + throwable.getMessage()); //
+                        warningLogger.error("can not convert orderBook " + throwable.getMessage());
+                    } else {
+                        logger.error("can not convert orderBook", throwable); //
+                        warningLogger.error("can not convert orderBook", throwable);
+                    }
                     orderBookErrors.incrementAndGet();
                 })
                 .retry()
@@ -1309,7 +1314,7 @@ public class BitmexService extends MarketServicePreliq {
                     logger.error("can not merge orderBook exception", throwable);
                     warningLogger.error("can not merge orderBook", throwable);
                     orderBookErrors.incrementAndGet();
-                    checkForRestart();
+                    requestReconnect(true);
                 });
     }
 
@@ -2119,6 +2124,7 @@ public class BitmexService extends MarketServicePreliq {
     private void handleSubscriptionError(Throwable throwable, String errorMessage) {
         if (throwable instanceof NotConnectedException) {
             logger.error(errorMessage + ". " + throwable.getMessage());
+            requestReconnect(false);
         } else {
             logger.error(errorMessage, throwable);
             requestReconnect(true);
