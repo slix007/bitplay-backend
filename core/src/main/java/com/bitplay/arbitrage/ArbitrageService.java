@@ -58,6 +58,7 @@ import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.micrometer.core.instrument.Metrics;
 import io.reactivex.Completable;
 import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
@@ -137,6 +138,9 @@ public class ArbitrageService {
     private HedgeService hedgeService;
     @Autowired
     private BitmexChangeOnSoService bitmexChangeOnSoService;
+
+//    @Autowired // WARNING - this leads to "successfully sent 23 metrics to InfluxDB." should be over 70 metrics.
+//    private MeterRegistry meterRegistry;
 
 
     //    private Disposable schdeduleUpdateBorders;
@@ -500,6 +504,12 @@ public class ArbitrageService {
 
                 delta1 = delta1Update;
                 delta2 = delta2Update;
+//                Metrics.counter("fplay.b_delta").increment(delta1Update.doubleValue());
+//                Set<Tag> tags = Sets.newHashSet(new ImmutableTag("o_delta", "o_delta"));
+//                Metrics.gauge("fplay.b_delta", delta1Update.doubleValue());
+//                Metrics.gauge("fplay.o_delta", delta2Update.doubleValue());
+//                meterRegistry.gauge(Dictionary.B_DELTA, delta1Update.doubleValue());
+//                meterRegistry.gauge(Dictionary.O_DELTA, delta2Update.doubleValue());
 
                 if (delta1.compareTo(deltaParams.getBDeltaMin()) < 0) {
                     deltaParams.setBDeltaMin(delta1);
@@ -1255,6 +1265,10 @@ public class ArbitrageService {
 
     @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)
     public void calcSumBalForGui() {
+        if (firstMarketService == null || secondMarketService == null) {
+            return; // NotYetInitializedException
+        }
+
         lastCalcSumBal = Instant.now();
         final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
         final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();

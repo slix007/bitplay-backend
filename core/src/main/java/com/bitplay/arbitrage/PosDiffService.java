@@ -469,7 +469,9 @@ public class PosDiffService {
     }
 
     private void checkPosDiff() throws Exception {
-        if (!hasGeneralCorrStarted || !arbitrageService.getFirstMarketService().isStarted()) {
+        if (!hasGeneralCorrStarted
+                || arbitrageService.getFirstMarketService() == null
+                || !arbitrageService.getFirstMarketService().isStarted()) {
             return;
         }
 

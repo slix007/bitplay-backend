@@ -1,5 +1,8 @@
 ## Monitoring tools installation
 
+See installation instruction at https://portal.influxdata.com/downloads/ 
+https://portal.influxdata.com/downloads/
+
 #### influxdb
 
 See https://portal.influxdata.com/downloads
@@ -11,6 +14,9 @@ sudo dpkg -i influxdb_1.6.3_amd64.deb
 sudo systemctl start influxdb.service
 sudo systemctl enable influxdb.service
 ```
+
+#### chronograph
+...
 
 #### telegraf
 ```bash

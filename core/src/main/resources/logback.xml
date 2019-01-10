@@ -262,9 +262,13 @@
     </logger>
 
 
-    <!-- Logging api requests for poloniex -->
+    <!-- Logging all REST api requests -->
     <logger name="si.mazi.rescu" level="trace" additivity="false">
         <appender-ref ref="HTTP_APPENDER"/>
+    </logger>
+
+    <logger name="io.micrometer" level="debug" additivity="false">
+        <appender-ref ref="CONSOLE_APPENDER"/>
     </logger>
 
     <!--<logger name="info.bitrich.xchangestream.bitmex.netty" level="debug">-->

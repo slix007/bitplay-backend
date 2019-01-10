@@ -46,6 +46,7 @@ import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import info.bitrich.xchangestream.okex.dto.Tool;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
+import io.micrometer.core.annotation.Timed;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -442,6 +443,8 @@ public class OkCoinService extends MarketServicePreliq {
         }
     }
 
+    @Timed("requestAccountInfo")
+    @Timed(value = "long.requestAccountInfo", longTask = true)
     @Scheduled(initialDelay = 5 * 1000, fixedRate = 2000)
     public void requestAccountInfo() {
         lastRequestAccountInfo = Instant.now();

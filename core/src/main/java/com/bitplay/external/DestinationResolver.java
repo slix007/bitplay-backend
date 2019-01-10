@@ -1,7 +1,5 @@
 package com.bitplay.external;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -9,11 +7,15 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 public class DestinationResolver {
+
+    @Autowired
+    private HostResolver hostResolver;
 
     private final static List<String> testServers = Arrays.asList(
             "658",
@@ -115,12 +117,10 @@ public class DestinationResolver {
     private final static String ALL_PROD_CHANNEL = "all-prod";
     private final static String ALL_TEST_CHANNEL = "all-test";
 
-    ToObj defineWhereToSend(NotifyType notifyType) throws UnknownHostException {
-        final String localHostName = InetAddress.getLocalHost().getHostName();
+    ToObj defineWhereToSend(NotifyType notifyType) {
+        final String hostLabel = hostResolver.getHostname();
         final List<String> channels = new ArrayList<>();
-        String hostLabel = localHostName.substring(0, 3);
-        if (localHostName.equals("sergei-XPS-15-9560")) { // local development workaround
-            hostLabel = "localhost";
+        if (hostLabel.equals(HostResolver.LOCALHOST) || hostLabel.equals(HostResolver.UNKNOWN)) { // local development workaround
             channels.add(LOCAL_CHANNEL);
         } else if (testServers.contains(hostLabel)) {
             channels.add(ALL_TEST_CHANNEL);
