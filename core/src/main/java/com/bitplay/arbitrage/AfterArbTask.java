@@ -89,7 +89,7 @@ public class AfterArbTask implements Runnable {
             deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
             final String msg = String.format("%s::#%s Round is not done: RoundIsNotDoneException: %s", tradeId, counterName, e.getMessage());
             log.error(msg, e);
-            slackNotifications.sendNotify(NotifyType.ROUND_IS_NOT_DONE, msg);
+            slackNotifications.sendNotify(NotifyType.ROUND_IS_NOT_DONE, String.format("%s Round is not done", counterName));
         } catch (Exception e) {
             deltaLogWriter.info(String.format("Round is not done: Exception:: %s. %s. %s", e.getMessage(),
                     arbitrageService.getMainSetStr(),
@@ -97,7 +97,7 @@ public class AfterArbTask implements Runnable {
             deltaLogWriter.setEndStatus(TradeStatus.INTERRUPTED);
             final String msg = String.format("%s::#%s Round is not done: Exception: %s", tradeId, counterName, e.getMessage());
             log.error(msg, e);
-            slackNotifications.sendNotify(NotifyType.ROUND_IS_NOT_DONE, msg);
+            slackNotifications.sendNotify(NotifyType.ROUND_IS_NOT_DONE, String.format("%s Round is not done", counterName));
         }
     }
 
