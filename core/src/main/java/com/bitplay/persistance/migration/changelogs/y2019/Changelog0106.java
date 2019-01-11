@@ -13,10 +13,11 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 @ChangeLog
 public class Changelog0106 {
 
-    @ChangeSet(order = "001", id = "2019-01-06: max border", author = "SergeiShurmin")
+    @ChangeSet(order = "001", id = "2019-01-06: max delta", author = "SergeiShurmin")
     public void change01(MongoTemplate mongoTemplate) {
         final BorderParams borderParams = mongoTemplate.findById(1L, BorderParams.class);
-        borderParams.setMaxBorder(BigDecimal.valueOf(9999));
+        borderParams.setBtmMaxDelta(BigDecimal.valueOf(9999));
+        borderParams.setOkMaxDelta(BigDecimal.valueOf(9999));
         borderParams.setOnlyOpen(false);
         mongoTemplate.save(borderParams);
     }

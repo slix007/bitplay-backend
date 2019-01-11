@@ -579,10 +579,13 @@ public class ArbitrageService {
         }
     }
 
-    private BordersService.TradingSignal applyMaxBorder(final BordersService.TradingSignal tradingSignal, BigDecimal maxBorder, Boolean onlyOpen) {
+    private BordersService.TradingSignal applyMaxBorder(final BordersService.TradingSignal tradingSignal,
+            BigDecimal btmMaxDelta, BigDecimal okMaxDelta, Boolean onlyOpen) {
         if (tradingSignal.tradeType != TradeType.NONE && tradingSignal.deltaVal != null && !tradingSignal.deltaVal.isEmpty()) {
             final BigDecimal delta = new BigDecimal(tradingSignal.deltaVal);
-            if (delta.compareTo(maxBorder) >= 0) {
+            boolean btmMaxDeltaViolate = (tradingSignal.tradeType == TradeType.DELTA1_B_SELL_O_BUY && delta.compareTo(btmMaxDelta) >= 0);
+            boolean okMaxDeltaViolate = (tradingSignal.tradeType == TradeType.DELTA2_B_BUY_O_SELL && delta.compareTo(okMaxDelta) >= 0);
+            if (btmMaxDeltaViolate || okMaxDeltaViolate) {
                 boolean applyForOnlyOpen = onlyOpen != null ? onlyOpen : false;
                 boolean isClose = tradingSignal.borderName != null && tradingSignal.borderName.contains("close");
                 if (applyForOnlyOpen && isClose) { // don't apply MaxBorder  when 'onlyOpen' with 'close signal'
@@ -618,13 +621,15 @@ public class ArbitrageService {
         final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
 
         final BorderParams borderParams = persistenceService.fetchBorders();
-        final BigDecimal maxBorder = (borderParams == null || borderParams.getMaxBorder() == null) ? BigDecimal.valueOf(9999) : borderParams.getMaxBorder();
+        final BigDecimal btmMaxDelta =
+                (borderParams == null || borderParams.getBtmMaxDelta() == null) ? BigDecimal.valueOf(9999) : borderParams.getBtmMaxDelta();
+        final BigDecimal okMaxDelta = (borderParams == null || borderParams.getOkMaxDelta() == null) ? BigDecimal.valueOf(9999) : borderParams.getOkMaxDelta();
 
         if (borderParams == null || borderParams.getActiveVersion() == Ver.V1) {
             BigDecimal border1 = getBorder1();
             BigDecimal border2 = getBorder2();
 
-            if (delta1.compareTo(border1) >= 0 && delta1.compareTo(maxBorder) < 0) {
+            if (delta1.compareTo(border1) >= 0 && delta1.compareTo(btmMaxDelta) < 0) {
                 trySwitchToVolatileMode(delta1, border1);
 
                 if (signalDelayActivateTime == null) {
@@ -650,7 +655,7 @@ public class ArbitrageService {
                             tradingSignal, dynDeltaLogs, null, false, lastObTime);
                     return bestQuotes;
                 }
-            } else if (delta2.compareTo(border2) >= 0 && delta2.compareTo(maxBorder) < 0) {
+            } else if (delta2.compareTo(border2) >= 0 && delta2.compareTo(okMaxDelta) < 0) {
                 trySwitchToVolatileMode(delta2, border2);
 
                 if (signalDelayActivateTime == null) {
@@ -687,7 +692,7 @@ public class ArbitrageService {
             final BordersService.TradingSignal trSig = bordersService.checkBorders(
                     bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs);
 
-            final BordersService.TradingSignal tradingSignal = applyMaxBorder(trSig, maxBorder, borderParams.getOnlyOpen());
+            final BordersService.TradingSignal tradingSignal = applyMaxBorder(trSig, btmMaxDelta, okMaxDelta, borderParams.getOnlyOpen());
 
             trySwitchToVolatileModeBorderV2(tradingSignal);
 
