@@ -74,6 +74,7 @@ public class BitmexLimitsService {
                 minPrice,
                 maxPrice,
                 insideLimits,
+                null,
                 limits.getIgnoreLimits());
     }
 

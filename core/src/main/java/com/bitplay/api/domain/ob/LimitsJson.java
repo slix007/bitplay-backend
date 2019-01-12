@@ -1,7 +1,6 @@
 package com.bitplay.api.domain.ob;
 
 import java.math.BigDecimal;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,5 +22,6 @@ public class LimitsJson {
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
     private Boolean insideLimits;
+    private InsideLimitsEx insideLimitsEx;
     private Boolean ignoreLimits;
 }

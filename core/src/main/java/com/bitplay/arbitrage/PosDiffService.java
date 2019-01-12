@@ -788,20 +788,20 @@ public class PosDiffService {
 
             corrAdjWarn.reset();
 
-//                bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
-            arbitrageService.setSignalType(signalType);
-            marketService.setBusy();
+            final PlacingType placingType;
+            if (!signalType.isAdj()) {
+                placingType = PlacingType.TAKER; // correction is only taker
+            } else {
+                final PosAdjustment posAdjustment = settingsRepositoryService.getSettings().getPosAdjustment();
+                placingType = posAdjustment.getPosAdjustmentPlacingType();
+            }
 
-            if (outsideLimits(marketService)) {
+            if (outsideLimits(marketService, orderType, placingType, signalType)) {
                 // do nothing
             } else {
-                final PlacingType placingType;
-                if (!signalType.isAdj()) {
-                    placingType = PlacingType.TAKER; // correction is only taker
-                } else {
-                    final PosAdjustment posAdjustment = settingsRepositoryService.getSettings().getPosAdjustment();
-                    placingType = posAdjustment.getPosAdjustmentPlacingType();
-                }
+                //                bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
+                arbitrageService.setSignalType(signalType);
+                marketService.setBusy();
 
                 // Market specific params
                 final String counterName = marketService.getCounterName(signalType);
@@ -1065,12 +1065,12 @@ public class PosDiffService {
         }
     }
 
-    private boolean outsideLimits(MarketService marketService) {
+    private boolean outsideLimits(MarketService marketService, OrderType orderType, PlacingType placingType, SignalType signalType) {
         if (marketService.getName().equals(BitmexService.NAME) && bitmexLimitsService.outsideLimits()) {
             warningLogger.error("Attempt of correction when outside limits. " + bitmexLimitsService.getLimitsJson());
             return true;
         }
-        if (marketService.getName().equals(OkCoinService.NAME) && okexLimitsService.outsideLimits()) {
+        if (marketService.getName().equals(OkCoinService.NAME) && okexLimitsService.outsideLimits(orderType, placingType, signalType)) {
             warningLogger.error("Attempt of correction when outside limits. " + okexLimitsService.getLimitsJson());
             return true;
         }

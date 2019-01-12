@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,8 +51,8 @@ public class SignalService {
     @Autowired
     private BitmexService bitmexService;
 
-    public void placeOkexOrderOnSignal(Order.OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-            SignalType signalType, PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
+    public void placeOkexOrderOnSignal(OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
+            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
 
         if (o_block.signum() <= 0) {
             executorService.execute(() -> {
@@ -75,7 +76,7 @@ public class SignalService {
             final Settings settings = settingsRepositoryService.getSettings();
             final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
                     placingType,
-                    signalType, 1, tradeId, counterName, lastObTime);
+                    SignalType.AUTOMATIC, 1, tradeId, counterName, lastObTime);
 
             if (settings.getArbScheme() == ArbScheme.CON_B_O) {
                 okexService.deferredPlaceOrderOnSignal(placeOrderArgs);
@@ -98,8 +99,8 @@ public class SignalService {
         }
     }
 
-    public void placeBitmexOrderOnSignal(Order.OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-            SignalType signalType, PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
+    public void placeBitmexOrderOnSignal(OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
+            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
 
         executorService.submit(() -> {
             try {
@@ -114,7 +115,7 @@ public class SignalService {
                     return;
                 }
 
-                final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, signalType, 1,
+                final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, SignalType.AUTOMATIC, 1,
                         tradeId, counterName, lastObTime);
 
                 tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);

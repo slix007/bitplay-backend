@@ -1,12 +1,21 @@
 package com.bitplay.market.okcoin;
 
+import com.bitplay.api.domain.ob.InsideLimitsEx;
 import com.bitplay.api.domain.ob.LimitsJson;
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.Limits;
+import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
+import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.slf4j.Logger;
@@ -17,6 +26,7 @@ import org.springframework.stereotype.Service;
 /**
  * Created by Sergey Shurmin on 4/8/18.
  */
+@Slf4j
 @Service
 public class OkexLimitsService {
 
@@ -31,49 +41,188 @@ public class OkexLimitsService {
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
-    private volatile boolean insideLimitsSavedStatus = true;
+    private final AtomicBoolean insLimBtmDelta_Buy = new AtomicBoolean(true);
+    private final AtomicBoolean insLimOkDelta_Sell = new AtomicBoolean(true);
+    private final AtomicBoolean insLimAdjBuy = new AtomicBoolean(true);
+    private final AtomicBoolean insLimAdjSell = new AtomicBoolean(true);
+    private final AtomicBoolean insLimCorrBuy = new AtomicBoolean(true);
+    private final AtomicBoolean insLimCorrSell = new AtomicBoolean(true);
 
-    public LimitsJson getLimitsJson() {
+    @AllArgsConstructor
+    static class Params {
+
+        Boolean ignoreLimits;
+        BigDecimal okexLimitPriceNumber;
+        BigDecimal limitBid;
+        BigDecimal limitAsk;
+        BigDecimal minPrice;
+        BigDecimal maxPrice;
+    }
+
+    public Params getParams() {
         final Ticker ticker = okCoinService.getTicker();
         if (ticker == null) {
             throw new NotYetInitializedException();
         }
-        final BigDecimal minPrice = ticker.getLow();
         final BigDecimal maxPrice = ticker.getHigh();
+        final BigDecimal minPrice = ticker.getLow();
 
         final Limits limits = settingsRepositoryService.getSettings().getLimits();
-        final BigDecimal okexLimitPrice = limits.getOkexLimitPrice();
-        final int ind = okexLimitPrice.intValue() - 1;
+        final BigDecimal okexLimitPriceNumber = limits.getOkexLimitPrice(); // Limit price, #n
+        final int ind = okexLimitPriceNumber.intValue() - 1;
         final OrderBook ob = okCoinService.getOrderBook();
         final BigDecimal limitBid = ob.getBids().get(ind).getLimitPrice();
         final BigDecimal limitAsk = ob.getAsks().get(ind).getLimitPrice();
-
-        // insideLimits: Limit Ask < Max price && Limit bid > Min price
-        final boolean insideLimits = (limitAsk.compareTo(maxPrice) < 0 && limitBid.compareTo(minPrice) > 0);
-
-        if (insideLimitsSavedStatus != insideLimits) {
-            insideLimitsSavedStatus = insideLimits;
-            String status = insideLimits ? "Inside limits" : "Outside limits";
-            final String limitsStr = String.format("Limit ask / Max price = %s / %s ; Limit bid / Min price = %s / %s",
-                    limitAsk.toPlainString(),
-                    maxPrice.toPlainString(),
-                    limitBid.toPlainString(),
-                    minPrice.toPlainString());
-            warningLogger.warn(String.format("Change okex limits to %s. %s", status, limitsStr));
-        }
-
-        return new LimitsJson(okexLimitPrice, limitAsk, limitBid, minPrice, maxPrice, insideLimits, limits.getIgnoreLimits());
+        return new Params(limits.getIgnoreLimits(), okexLimitPriceNumber, limitBid, limitAsk, minPrice, maxPrice);
     }
 
-    public boolean outsideLimits() {
-        final LimitsJson limits = getLimitsJson();
-        final Boolean doCheck = !limits.getIgnoreLimits();
-        final Boolean outsideLimits = !limits.getInsideLimits();
-        if (outsideLimits) {
+    public LimitsJson getLimitsJson() {
+        final Params p = getParams();
+        // insideLimits: Limit Ask < Max price && Limit bid > Min price
+//        final boolean insideLimits = (limitAsk.compareTo(maxPrice) < 0 && limitBid.compareTo(minPrice) > 0);
+        final Settings settings = settingsRepositoryService.getSettings();
+        final PlacingType placingType = settings.getOkexPlacingType();
+        final PlacingType adjPlacingType = settings.getPosAdjustment().getPosAdjustmentPlacingType();
+
+        final InsideLimitsEx insideLimitsEx = new InsideLimitsEx();
+        final boolean adjBuy = !outsideLimits(OrderType.BID, adjPlacingType, SignalType.ADJ, p);
+        final boolean adjSell = !outsideLimits(OrderType.ASK, adjPlacingType, SignalType.ADJ, p);
+        final boolean btmDeltaBuy = !outsideLimits(OrderType.BID, placingType, SignalType.AUTOMATIC, p);
+        final boolean okDeltaSell = !outsideLimits(OrderType.ASK, placingType, SignalType.AUTOMATIC, p);
+        final boolean corrBuy = !outsideLimits(OrderType.BID, PlacingType.TAKER, SignalType.CORR, p);
+        final boolean corrSell = !outsideLimits(OrderType.ASK, PlacingType.TAKER, SignalType.CORR, p);
+        insideLimitsEx.setBtmDelta(btmDeltaBuy);
+        insideLimitsEx.setOkDelta(okDeltaSell);
+        insideLimitsEx.setAdjBuy(adjBuy);
+        insideLimitsEx.setAdjSell(adjSell);
+        insideLimitsEx.setCorrBuy(corrBuy);
+        insideLimitsEx.setCorrSell(corrSell);
+        final boolean insideLimits = btmDeltaBuy && okDeltaSell && adjBuy && adjSell && corrBuy && corrSell;
+        insideLimitsEx.setMain(insideLimits);
+        if (insideLimits) {
+            slackNotifications.resetThrottled(NotifyType.OKEX_OUTSIDE_LIMITS);
+        }
+
+        return new LimitsJson(p.okexLimitPriceNumber, p.limitAsk, p.limitBid, p.minPrice, p.maxPrice,
+                insideLimits, insideLimitsEx, p.ignoreLimits);
+    }
+
+    public boolean outsideLimits(OrderType orderType, PlacingType placingType, SignalType signalType) {
+
+        return outsideLimits(orderType, placingType, signalType == null ? SignalType.AUTOMATIC : signalType, getParams());
+    }
+
+    public boolean outsideLimitsOnSignal(DeltaName deltaName, PlacingType placingType) {
+        return outsideLimits(deltaName, placingType, SignalType.AUTOMATIC, getParams());
+    }
+
+    private boolean outsideLimits(OrderType orderType, PlacingType placingType, SignalType signalType, Params p) {
+        //DELTA1_B_SELL_O_BUY
+        //DELTA2_B_BUY_O_SELL
+        DeltaName deltaName = (orderType == OrderType.BID || orderType == OrderType.EXIT_ASK)
+                ? DeltaName.B_DELTA
+                : DeltaName.O_DELTA;
+        return outsideLimits(deltaName, placingType, signalType, p);
+    }
+
+    private boolean outsideLimits(DeltaName deltaName, PlacingType placingType, SignalType signalType, Params p) {
+        boolean isOutside = false;
+        if (deltaName == DeltaName.B_DELTA) {
+            //1) OPOT == TAKER or HYBRID, Max price < ask[1];
+            //2) OPOT == MAKER, Max price < bid[1];
+            //3) OPOT == HYBRID_TICK, Max price < ask[1] - Tick size Okex;
+            if (placingType == PlacingType.TAKER || placingType == PlacingType.HYBRID) {
+                if (p.maxPrice.compareTo(p.limitAsk) < 0) {
+                    isOutside = true;
+                }
+            } else if (placingType == PlacingType.MAKER) {
+                if (p.maxPrice.compareTo(p.limitBid) < 0) {
+                    isOutside = true;
+                }
+            } else if (placingType == PlacingType.HYBRID_TICK) {
+                final BigDecimal tickSize = okCoinService.getContractType().getTickSize();
+                if (p.maxPrice.compareTo(p.limitAsk.subtract(tickSize)) < 0) {
+                    isOutside = true;
+                }
+            }
+        } else if (deltaName == DeltaName.O_DELTA) {
+            //1) OPOT == TAKER or HYBRID, Min price > bid[1];
+            //2) OPOT == MAKER, Min price > ask[1];
+            //3) OPOT == HYBRID_TICK, Min price > bid[1] + Tick size Okex;
+            if (placingType == PlacingType.TAKER || placingType == PlacingType.HYBRID) {
+                if (p.minPrice.compareTo(p.limitBid) > 0) {
+                    isOutside = true;
+                }
+            } else if (placingType == PlacingType.MAKER) {
+                if (p.minPrice.compareTo(p.limitAsk) > 0) {
+                    isOutside = true;
+                }
+            } else if (placingType == PlacingType.HYBRID_TICK) {
+                final BigDecimal tickSize = okCoinService.getContractType().getTickSize();
+                if (p.minPrice.compareTo(p.limitBid.add(tickSize)) > 0) {
+                    isOutside = true;
+                }
+            }
+        }
+
+        printLogs(isOutside, p, deltaName, signalType);
+        // send notification
+        if (isOutside) {
             slackNotifications.sendNotify(NotifyType.OKEX_OUTSIDE_LIMITS, OkCoinService.NAME + " outsideLimits");
         }
 
-        return doCheck && outsideLimits;
+        return isOutside;
     }
 
+    private void printLogs(boolean isOutside, Params p, DeltaName deltaName, SignalType signalType) {
+        StringBuilder partName = new StringBuilder();
+        AtomicBoolean insideLimitsArg = definePart(deltaName, signalType, partName);
+
+        printLogs(isOutside, p, insideLimitsArg, partName.toString());
+    }
+
+    private AtomicBoolean definePart(DeltaName deltaName, SignalType signalType, StringBuilder partName) {
+        //DELTA1_B_SELL_O_BUY
+        //DELTA2_B_BUY_O_SELL
+        if (deltaName == DeltaName.B_DELTA) {
+            if (signalType == null || signalType == SignalType.AUTOMATIC) {
+                partName.append("b_delta");
+                return insLimBtmDelta_Buy;
+            } else if (signalType.isAdj()) {
+                partName.append("adj_buy");
+                return insLimAdjBuy;
+            } else { // is corr
+                partName.append("corr_buy");
+                return insLimCorrBuy;
+            }
+        } else if (deltaName == DeltaName.O_DELTA) {
+            if (signalType == null || signalType == SignalType.AUTOMATIC) {
+                partName.append("o_delta");
+                return insLimOkDelta_Sell;
+            } else if (signalType.isAdj()) {
+                partName.append("adj_sell");
+                return insLimAdjSell;
+            } else { // is corr
+                partName.append("corr_sell");
+                return insLimCorrSell;
+            }
+        }
+        return new AtomicBoolean();
+    }
+
+    private void printLogs(boolean isOutside, Params p, AtomicBoolean insideLimitsArg, String partName) {
+        final boolean insideLimits = !isOutside;
+
+        if (insideLimitsArg.compareAndSet(!insideLimits, insideLimits)) {
+            String status = insideLimits ? "Inside limits" : "Outside limits";
+            final String limitsStr = String.format("Limit ask / Max price = %s / %s ; Limit bid / Min price = %s / %s",
+                    p.limitAsk.toPlainString(),
+                    p.maxPrice.toPlainString(),
+                    p.limitBid.toPlainString(),
+                    p.minPrice.toPlainString());
+            final String msg = String.format("%s: change okex limits to %s. %s", partName, status, limitsStr);
+            warningLogger.warn(msg);
+            log.warn(msg);
+        }
+    }
 }

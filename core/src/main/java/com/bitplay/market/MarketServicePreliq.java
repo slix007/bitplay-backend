@@ -119,7 +119,7 @@ public abstract class MarketServicePreliq extends MarketService {
                     warningLogger.info(msg);
                     getTradeLogger().info(msg);
 
-                    if (corrParams.getPreliq().tryIncFailed(getName())) {
+                    if (corrParams.getPreliq().tryIncFailed(getName())) { // previous preliq counter
                         getPersistenceService().saveCorrParams(corrParams);
                     }
                     if (corrParams.getPreliq().hasSpareAttempts()) {

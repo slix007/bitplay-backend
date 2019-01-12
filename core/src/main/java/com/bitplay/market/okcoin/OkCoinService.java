@@ -207,7 +207,11 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public boolean isMarketStopped() {
-        return getMarketState().isStopped() || okexLimitsService.outsideLimits();
+        return getMarketState().isStopped();
+    }
+
+    public OkexLimitsService getOkexLimitsService() {
+        return okexLimitsService;
     }
 
     @Override
@@ -1884,7 +1888,7 @@ public class OkCoinService extends MarketServicePreliq {
 //                        resultOOList = Collections.singletonList(openOrder); // default -> keep the order
 
                         if (openOrder == null) {
-                            warningLogger.warn("OO is null. " + openOrder);
+                            warningLogger.warn("OO is null. ");
                             // empty, do not add
                             continue;
 
@@ -1900,34 +1904,38 @@ public class OkCoinService extends MarketServicePreliq {
                             resultOOList.add(openOrder);
 
                         } else {
+                            final boolean okexOutsideLimits = okexLimitsService.outsideLimits(openOrder.getLimitOrder().getType(), openOrder.getPlacingType(),
+                                    openOrder.getSignalType());
+                            if (okexOutsideLimits) {
+                                resultOOList.add(openOrder); // keep the same
+                            } else {
+                                try {
+                                    Instant lastObTime = (iterateArgs != null && iterateArgs.length > 0)
+                                            ? (Instant) iterateArgs[0]
+                                            : null;
 
-                            try {
-                                Instant lastObTime = (iterateArgs != null && iterateArgs.length > 0)
-                                        ? (Instant) iterateArgs[0]
-                                        : null;
+                                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, lastObTime);
+                                    //TODO keep an eye on 'hang open orders'
+                                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                                            || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL // do nothing on such exception
+                                            || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION // do nothing on such exception
+                                    ) {
+                                        // update the status
+                                        final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
+                                        if (cancelledFplayOrder != null) {
+                                            // update the order
+                                            resultOOList.add(cancelledFplayOrder);
+                                        }
+                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
+                                        final FplayOrder newOrder = response.getNewFplayOrder();
+                                        final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
 
-                                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, lastObTime);
-                                //TODO keep an eye on 'hang open orders'
-                                if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                                        || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL // do nothing on such exception
-                                        || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION // do nothing on such exception
-                                ) {
-                                    // update the status
-                                    final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
-                                    if (cancelledFplayOrder != null) {
-                                        // update the order
-                                        resultOOList.add(cancelledFplayOrder);
-                                    }
-                                } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
-                                    final FplayOrder newOrder = response.getNewFplayOrder();
-                                    final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
-
-                                    resultOOList.add(cancelledOrder);
-                                    resultOOList.add(newOrder);
+                                        resultOOList.add(cancelledOrder);
+                                        resultOOList.add(newOrder);
 //                                            movingErrorsOverloaded.set(0);
-                                } else {
-                                    resultOOList.add(openOrder); // keep the same
-                                }
+                                    } else {
+                                        resultOOList.add(openOrder); // keep the same
+                                    }
 //                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 //
 //                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
@@ -1936,18 +1944,18 @@ public class OkCoinService extends MarketServicePreliq {
 //                                            }
 //                                        }
 
-                                final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
-                                if (cancelledOrder != null && cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
-                                    writeAvgPriceLog();
+                                    final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+                                    if (cancelledOrder != null && cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
+                                        writeAvgPriceLog();
+                                    }
+
+                                } catch (Exception e) {
+                                    // use default OO
+                                    warningLogger.warn("Error on moving: " + e.getMessage());
+                                    logger.warn("Error on moving", e);
+
+                                    resultOOList.add(openOrder); // keep the same
                                 }
-
-                            } catch (Exception e) {
-                                // use default OO
-                                warningLogger.warn("Error on moving: " + e.getMessage());
-                                logger.warn("Error on moving", e);
-
-                                resultOOList = new ArrayList<>();
-                                resultOOList.add(openOrder); // keep the same
                             }
                         }
 
