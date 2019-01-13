@@ -42,6 +42,9 @@ public class OkexLimitsService implements LimitsService {
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
+    private BigDecimal minPriceForTest;
+    private BigDecimal maxPriceForTest;
+
     private final AtomicBoolean insLimBtmDelta_Buy = new AtomicBoolean(true);
     private final AtomicBoolean insLimOkDelta_Sell = new AtomicBoolean(true);
     private final AtomicBoolean insLimAdjBuy = new AtomicBoolean(true);
@@ -65,8 +68,8 @@ public class OkexLimitsService implements LimitsService {
         if (ticker == null) {
             throw new NotYetInitializedException();
         }
-        final BigDecimal maxPrice = ticker.getHigh();
-        final BigDecimal minPrice = ticker.getLow();
+        final BigDecimal maxPrice = maxPriceForTest != null ? maxPriceForTest : ticker.getHigh();
+        final BigDecimal minPrice = minPriceForTest != null ? minPriceForTest : ticker.getLow();
 
         final Limits limits = settingsRepositoryService.getSettings().getLimits();
         final BigDecimal okexLimitPriceNumber = limits.getOkexLimitPrice(); // Limit price, #n
@@ -105,7 +108,7 @@ public class OkexLimitsService implements LimitsService {
         }
 
         return new LimitsJson(p.okexLimitPriceNumber, p.limitAsk, p.limitBid, p.minPrice, p.maxPrice,
-                insideLimits, insideLimitsEx, p.ignoreLimits);
+                insideLimits, insideLimitsEx, p.ignoreLimits, minPriceForTest, maxPriceForTest);
     }
 
     public boolean outsideLimits(OrderType orderType, PlacingType placingType, SignalType signalType) {
@@ -231,5 +234,13 @@ public class OkexLimitsService implements LimitsService {
     public boolean outsideLimitsForPreliq(BigDecimal currentPos) {
         final OrderType orderType = currentPos.signum() > 0 ? OrderType.ASK : OrderType.BID;
         return outsideLimits(orderType, PlacingType.TAKER, SignalType.CORR);
+    }
+
+    public void setMinPriceForTest(BigDecimal minPriceForTest) {
+        this.minPriceForTest = minPriceForTest.signum() == 0 ? null : minPriceForTest;
+    }
+
+    public void setMaxPriceForTest(BigDecimal maxPriceForTest) {
+        this.maxPriceForTest = maxPriceForTest.signum() == 0 ? null : maxPriceForTest;
     }
 }

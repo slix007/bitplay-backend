@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
@@ -66,6 +67,9 @@ public class SettingsEndpoint {
 
     @Autowired
     private BitmexChangeOnSoService bitmexChangeOnSoService;
+
+    @Autowired
+    private OkexLimitsService okexLimitsService;
 
     /**
      * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
@@ -222,6 +226,13 @@ public class SettingsEndpoint {
             settings.getLimits().setBitmexLimitPrice(l.getBitmexLimitPrice() != null ? l.getBitmexLimitPrice() : settings.getLimits().getBitmexLimitPrice());
             settings.getLimits().setOkexLimitPrice(l.getOkexLimitPrice() != null ? l.getOkexLimitPrice() : settings.getLimits().getOkexLimitPrice());
             settingsRepositoryService.saveSettings(settings);
+
+            if (settingsUpdate.getLimits().getOkexMinPriceForTest() != null) {
+                okexLimitsService.setMinPriceForTest(settingsUpdate.getLimits().getOkexMinPriceForTest());
+            }
+            if (settingsUpdate.getLimits().getOkexMaxPriceForTest() != null) {
+                okexLimitsService.setMaxPriceForTest(settingsUpdate.getLimits().getOkexMaxPriceForTest());
+            }
         }
 
         if (settingsUpdate.getRestartSettings() != null) {

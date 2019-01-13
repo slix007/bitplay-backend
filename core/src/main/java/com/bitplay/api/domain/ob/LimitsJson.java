@@ -24,4 +24,20 @@ public class LimitsJson {
     private Boolean insideLimits;
     private InsideLimitsEx insideLimitsEx;
     private Boolean ignoreLimits;
+    private BigDecimal minPriceForTest;
+    private BigDecimal maxPriceForTest;
+
+    public LimitsJson(BigDecimal limitPrice, BigDecimal limitAsk, BigDecimal limitBid, BigDecimal minPrice, BigDecimal maxPrice, Boolean insideLimits,
+            InsideLimitsEx insideLimitsEx, Boolean ignoreLimits) {
+        this.limitPrice = limitPrice;
+        this.limitAsk = limitAsk;
+        this.limitBid = limitBid;
+        this.minPrice = minPrice;
+        this.maxPrice = maxPrice;
+        this.insideLimits = insideLimits;
+        this.insideLimitsEx = insideLimitsEx;
+        this.ignoreLimits = ignoreLimits;
+    }
+
+
 }
