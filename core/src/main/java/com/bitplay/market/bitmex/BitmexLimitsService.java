@@ -4,11 +4,13 @@ import com.bitplay.api.domain.ob.LimitsJson;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.LimitsService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,8 +20,9 @@ import org.springframework.stereotype.Service;
 /**
  * Created by Sergey Shurmin on 4/8/18.
  */
+@Slf4j
 @Service
-public class BitmexLimitsService {
+public class BitmexLimitsService implements LimitsService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
@@ -64,7 +67,9 @@ public class BitmexLimitsService {
                     maxPrice.toPlainString(),
                     limitBid.toPlainString(),
                     minPrice.toPlainString());
-            warningLogger.warn(String.format("Change bitmex limits to %s. %s", status, limitsStr));
+            final String msg = String.format("Change bitmex limits to %s. %s", status, limitsStr);
+            warningLogger.warn(msg);
+            log.info(msg);
         }
 
         return new LimitsJson(
@@ -89,4 +94,8 @@ public class BitmexLimitsService {
         return doCheck && outsideLimits;
     }
 
+    @Override
+    public boolean outsideLimitsForPreliq(BigDecimal currentPos) {
+        return outsideLimits();
+    }
 }

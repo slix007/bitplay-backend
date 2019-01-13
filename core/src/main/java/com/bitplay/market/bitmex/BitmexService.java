@@ -19,6 +19,7 @@ import com.bitplay.market.ArbState;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.ExtrastopService;
+import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketState;
@@ -267,6 +268,11 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public String getFuturesContractName() {
         return bitmexContractType.getSymbol();
+    }
+
+    @Override
+    protected LimitsService getLimitsService() {
+        return bitmexLimitsService;
     }
 
     public BigDecimal getCm() {

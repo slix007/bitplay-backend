@@ -16,6 +16,7 @@ import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.ArbState;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
+import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketState;
@@ -227,6 +228,11 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     protected Exchange getExchange() {
         return exchange;
+    }
+
+    @Override
+    protected LimitsService getLimitsService() {
+        return okexLimitsService;
     }
 
     @Override

@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.LimitsService;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.DeltaName;
@@ -28,7 +29,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
-public class OkexLimitsService {
+public class OkexLimitsService implements LimitsService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
@@ -192,7 +193,7 @@ public class OkexLimitsService {
                 partName.append("adj_buy");
                 return insLimAdjBuy;
             } else { // is corr
-                partName.append("corr_buy");
+                partName.append("corr/preliq_buy");
                 return insLimCorrBuy;
             }
         } else if (deltaName == DeltaName.O_DELTA) {
@@ -203,7 +204,7 @@ public class OkexLimitsService {
                 partName.append("adj_sell");
                 return insLimAdjSell;
             } else { // is corr
-                partName.append("corr_sell");
+                partName.append("corr/preliq_sell");
                 return insLimCorrSell;
             }
         }
@@ -224,5 +225,11 @@ public class OkexLimitsService {
             warningLogger.warn(msg);
             log.warn(msg);
         }
+    }
+
+    @Override
+    public boolean outsideLimitsForPreliq(BigDecimal currentPos) {
+        final OrderType orderType = currentPos.signum() > 0 ? OrderType.ASK : OrderType.BID;
+        return outsideLimits(orderType, PlacingType.TAKER, SignalType.CORR);
     }
 }

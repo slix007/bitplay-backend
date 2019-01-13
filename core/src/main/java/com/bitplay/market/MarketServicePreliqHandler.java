@@ -16,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.dto.account.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +80,11 @@ public class MarketServicePreliqHandler {
             return;
         }
 
+        if (outsideLimits(marketService)) {
+            // no order, but let to be '#isExpired'
+            return;
+        }
+
         doPreliqOrder(item, marketService);
 
         marketService.resetPreliqState(true);
@@ -112,5 +118,11 @@ public class MarketServicePreliqHandler {
         ));
 
         marketService.placeOrder(placeOrderArgs);
+    }
+
+    private boolean outsideLimits(MarketServicePreliq marketService) {
+        final Position position = marketService.getPosition();
+        final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
+        return marketService.getLimitsService().outsideLimitsForPreliq(pos);
     }
 }

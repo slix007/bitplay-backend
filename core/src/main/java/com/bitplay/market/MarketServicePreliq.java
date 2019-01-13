@@ -29,6 +29,8 @@ public abstract class MarketServicePreliq extends MarketService {
 
     public final BlockingQueue<PlaceOrderArgs> preliqQueue = new LinkedBlockingQueue<>();
 
+    protected abstract LimitsService getLimitsService();
+
     public boolean noPreliq() {
         return preliqQueue.isEmpty() && !dtPreliq.isActive();
     }
@@ -83,7 +85,10 @@ public abstract class MarketServicePreliq extends MarketService {
             }
         }
 
+        final boolean outsideLimits = getLimitsService().outsideLimitsForPreliq(pos);
+
         if (dqlViolated
+                && !outsideLimits
                 && pos.signum() != 0
                 && corrParams.getPreliq().hasSpareAttempts()
                 && preliqQueue.isEmpty()
@@ -289,6 +294,7 @@ public abstract class MarketServicePreliq extends MarketService {
             b_block = o_block.multiply(cm).setScale(0, RoundingMode.HALF_UP);
         }
 
+        // Check the other market.
         // increasing position only when DQL is ok
         if (deltaName == DeltaName.B_DELTA) {
             // bitmex sell, okex buy
