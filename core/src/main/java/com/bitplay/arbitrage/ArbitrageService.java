@@ -860,7 +860,7 @@ public class ArbitrageService {
             }
 
         } else {
-            stopSignalDelay();
+//            stopSignalDelay(); - do not use. It reset the signalDelay during a signal.
             bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
         }
     }
@@ -1049,7 +1049,7 @@ public class ArbitrageService {
             }
 
         } else {
-            stopSignalDelay();
+//            stopSignalDelay(); - do not use. It reset the signalDelay during a signal.
             bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
         }
     }
