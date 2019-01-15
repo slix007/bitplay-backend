@@ -143,7 +143,7 @@ public class OkexLimitsService implements LimitsService {
                 if (p.maxPrice.compareTo(p.limitBid) < 0) {
                     isOutside = true;
                 }
-            } else if (placingType == PlacingType.HYBRID_TICK) {
+            } else if (placingType == PlacingType.HYBRID_TICK || placingType == PlacingType.MAKER_TICK) {
                 final BigDecimal tickSize = okCoinService.getContractType().getTickSize();
                 if (p.maxPrice.compareTo(p.limitAsk.subtract(tickSize)) < 0) {
                     isOutside = true;
@@ -161,7 +161,7 @@ public class OkexLimitsService implements LimitsService {
                 if (p.minPrice.compareTo(p.limitAsk) > 0) {
                     isOutside = true;
                 }
-            } else if (placingType == PlacingType.HYBRID_TICK) {
+            } else if (placingType == PlacingType.HYBRID_TICK || placingType == PlacingType.MAKER_TICK) {
                 final BigDecimal tickSize = okCoinService.getContractType().getTickSize();
                 if (p.minPrice.compareTo(p.limitBid.add(tickSize)) > 0) {
                     isOutside = true;
