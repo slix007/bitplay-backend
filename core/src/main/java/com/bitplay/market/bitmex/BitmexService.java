@@ -271,7 +271,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
-    protected LimitsService getLimitsService() {
+    public LimitsService getLimitsService() {
         return bitmexLimitsService;
     }
 

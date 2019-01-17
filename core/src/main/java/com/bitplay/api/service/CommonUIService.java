@@ -2,8 +2,6 @@ package com.bitplay.api.service;
 
 import com.bitplay.Config;
 import com.bitplay.api.domain.BorderUpdateJson;
-import com.bitplay.api.domain.DelayTimerBuilder;
-import com.bitplay.api.domain.DelayTimerJson;
 import com.bitplay.api.domain.DeltalUpdateJson;
 import com.bitplay.api.domain.DeltasJson;
 import com.bitplay.api.domain.DeltasMinMaxJson;
@@ -11,13 +9,17 @@ import com.bitplay.api.domain.DeltasMinMaxJson.MinMaxData;
 import com.bitplay.api.domain.DeltasMinMaxJson.SignalData;
 import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
-import com.bitplay.api.domain.MarketStatesJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TimersJson;
 import com.bitplay.api.domain.TradeLogJson;
 import com.bitplay.api.domain.pos.PosDiffJson;
+import com.bitplay.api.domain.states.DelayTimerBuilder;
+import com.bitplay.api.domain.states.DelayTimerJson;
+import com.bitplay.api.domain.states.MarketStatesJson;
+import com.bitplay.api.domain.states.SignalPartsJson;
+import com.bitplay.api.domain.states.SignalPartsJson.Status;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.BordersService;
@@ -28,6 +30,7 @@ import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.ArbState;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
@@ -46,6 +49,7 @@ import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -60,6 +64,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -403,7 +408,9 @@ public class CommonUIService {
         if (!isInitialized()) {
             return new MarketStatesJson();
         }
-        String arbState = arbitrageService.getArbState().toString();
+        final ArbState arbState = arbitrageService.getArbState();
+        final MarketState btmState = arbitrageService.getFirstMarketService().getMarketState();
+        final MarketState okState = arbitrageService.getSecondMarketService().getMarketState();
 
         boolean reconnectInProgress = ((BitmexService) arbitrageService.getFirstMarketService()).isReconnectInProgress();
         String btmReconnectState = reconnectInProgress ? "IN_PROGRESS" : "NONE";
@@ -415,24 +422,92 @@ public class CommonUIService {
         DelayTimerJson posAdjustmentDelay = getPosAdjustmentDelay();
         DelayTimerJson preliqDelay = getPreliqDelay();
 
+        final String timeToSignal = arbitrageService.getTimeToSignal();
+
+        // SignalPartsJson
+        final SignalPartsJson signalPartsJson = new SignalPartsJson();
+        signalPartsJson.setSignalDelay(timeToSignal.equals("_ready_") ? Status.OK : (timeToSignal.equals("_none_") ? Status.WRONG : Status.STARTED));
+        signalPartsJson.setBtmMaxDelta(arbitrageService.isMaxDeltaOk(DeltaName.B_DELTA) ? Status.OK : Status.WRONG);
+        signalPartsJson.setOkMaxDelta(arbitrageService.isMaxDeltaOk(DeltaName.O_DELTA) ? Status.OK : Status.WRONG);
+        final PosDiffJson posDiff = getPosDiff();
+        signalPartsJson.setNtUsd(posDiff.isMainSetEqual() && posDiff.isExtraSetEqual() ? Status.OK : Status.WRONG);
+        signalPartsJson.setStates(arbState == ArbState.READY && btmState == MarketState.READY && okState == MarketState.READY ? Status.OK : Status.WRONG);
+        final BigDecimal posBtm = bitmexService.getPosition().getPositionLong().subtract(bitmexService.getPosition().getPositionShort());
+        final BigDecimal posOk = okCoinService.getPosition().getPositionLong().subtract(okCoinService.getPosition().getPositionShort());
+        signalPartsJson.setBtmDqlOpen(getDqlOpenStatus(bitmexService, posBtm));
+        signalPartsJson.setOkDqlOpen(getDqlOpenStatus(okCoinService, posOk));
+        setAffordableStatus(signalPartsJson);
+        final boolean btmLim = bitmexService.getLimitsService().outsideLimitsForPreliq(posBtm);
+        final boolean okLim = okCoinService.getLimitsService().outsideLimitsForPreliq(posOk);
+
+        signalPartsJson.setPriceLimits(!btmLim && !okLim ? Status.OK : Status.WRONG);
+
         return new MarketStatesJson(
-                arbitrageService.getFirstMarketService().getMarketState().name(),
-                arbitrageService.getSecondMarketService().getMarketState().name(),
+                btmState.toString(),
+                okState.toString(),
                 arbitrageService.getFirstMarketService().getTimeToReset(),
                 arbitrageService.getSecondMarketService().getTimeToReset(),
                 String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
-                arbitrageService.getTimeToSignal(),
+                timeToSignal,
                 tradingModeService.secToReset(),
                 bitmexChangeOnSoService.getSecToReset(),
-                arbState,
+                arbState.toString(),
                 btmReconnectState,
                 btmPreliqQueue,
                 okexPreliqQueue,
                 corrDelay,
                 posAdjustmentDelay,
-                preliqDelay
+                preliqDelay,
+                signalPartsJson,
+                posDiff
         );
     }
+
+    private Status getDqlOpenStatus(MarketService marketService, final BigDecimal pos) {
+        boolean isOk = true;
+        if (pos.signum() > 0) {
+            isOk = marketService.checkLiquidationEdge(OrderType.BID);
+        } else if (pos.signum() < 0) {
+            isOk = marketService.checkLiquidationEdge(OrderType.ASK);
+        }
+        return isOk ? Status.OK : Status.WRONG;
+    }
+
+    private void setAffordableStatus(final SignalPartsJson signalPartsJson) {
+        final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
+
+        BigDecimal btmBlock;
+        BigDecimal okBlock;
+        if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
+            btmBlock = placingBlocks.getFixedBlockBitmex();
+            okBlock = placingBlocks.getFixedBlockOkex();
+        } else {
+            // the minimum is 1 okex contract
+            okBlock = BigDecimal.valueOf(1);
+            final BigDecimal usd = PlacingBlocks.okexContToUsd(okBlock, placingBlocks.isEth());
+            btmBlock = PlacingBlocks.toBitmexCont(usd, placingBlocks.isEth(), placingBlocks.getCm());
+        }
+
+        final BigDecimal posBtm = bitmexService.getPosition().getPositionLong().subtract(bitmexService.getPosition().getPositionShort());
+        final BigDecimal posOk = okCoinService.getPosition().getPositionLong().subtract(okCoinService.getPosition().getPositionShort());
+        final boolean isBtmAffordable = isAffordable(btmBlock, posBtm, bitmexService);
+        final boolean isOkAffordable = isAffordable(okBlock, posOk, okCoinService);
+        signalPartsJson.setBtmAffordable(isBtmAffordable ? Status.OK : Status.WRONG);
+        signalPartsJson.setOkAffordable(isOkAffordable ? Status.OK : Status.WRONG);
+    }
+
+    private boolean isAffordable(BigDecimal block, BigDecimal pos, MarketService marketService) {
+        boolean isOk;
+        if (pos.signum() > 0) {
+            isOk = marketService.isAffordable(OrderType.BID, block);
+        } else if (pos.signum() < 0) {
+            isOk = marketService.isAffordable(OrderType.ASK, block);
+        } else {
+            isOk = marketService.isAffordable(OrderType.BID, block);
+        }
+        return isOk;
+    }
+
 
     private DelayTimerJson getCorrDelay() {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();

@@ -1,4 +1,4 @@
-package com.bitplay.api.domain;
+package com.bitplay.api.domain.states;
 
 import com.bitplay.arbitrage.dto.DelayTimer;
 import java.util.ArrayList;

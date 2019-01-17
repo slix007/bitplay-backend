@@ -161,7 +161,6 @@
             <version>${xchange-stream.version}</version>
         </dependency>
 
-        <!--TODO move it into xchange-stream -->
         <dependency>
             <groupId>com.bitplay</groupId>
             <artifactId>xchange-bitmex-stream</artifactId>

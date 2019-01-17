@@ -16,8 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class LogsEndpoint {
 
-    //TODO move all relevant methods to SettingsEndpoint
-
     @Autowired
     private CommonUIService commonUIService;
 

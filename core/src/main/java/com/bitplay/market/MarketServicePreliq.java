@@ -29,7 +29,7 @@ public abstract class MarketServicePreliq extends MarketService {
 
     public final BlockingQueue<PlaceOrderArgs> preliqQueue = new LinkedBlockingQueue<>();
 
-    protected abstract LimitsService getLimitsService();
+    public abstract LimitsService getLimitsService();
 
     public boolean noPreliq() {
         return preliqQueue.isEmpty() && !dtPreliq.isActive();

@@ -615,6 +615,21 @@ public class ArbitrageService {
         return borderAdj(settings, settings.getSettingsVolatileMode().getOAddBorder(), params.getBorder2());
     }
 
+    public boolean isMaxDeltaOk(DeltaName deltaName) {
+        // borders V1 only
+        final BorderParams borderParams = persistenceService.fetchBorders();
+        if (deltaName == DeltaName.B_DELTA) {
+            final BigDecimal btmMaxDelta = (borderParams == null || borderParams.getBtmMaxDelta() == null)
+                    ? BigDecimal.valueOf(9999) : borderParams.getBtmMaxDelta();
+            return delta1.compareTo(btmMaxDelta) < 0;
+        } else if (deltaName == DeltaName.O_DELTA) {
+            final BigDecimal okMaxDelta = (borderParams == null || borderParams.getOkMaxDelta() == null)
+                    ? BigDecimal.valueOf(9999) : borderParams.getOkMaxDelta();
+            return delta2.compareTo(okMaxDelta) < 0;
+        }
+        return false;
+    }
+
     private BestQuotes calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
 
         final BigDecimal bP = firstMarketService.getPosition().getPositionLong();

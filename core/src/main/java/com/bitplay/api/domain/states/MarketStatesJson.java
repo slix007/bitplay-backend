@@ -1,5 +1,6 @@
-package com.bitplay.api.domain;
+package com.bitplay.api.domain.states;
 
+import com.bitplay.api.domain.pos.PosDiffJson;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,6 +29,8 @@ public class MarketStatesJson {
     DelayTimerJson corrDelay;
     DelayTimerJson posAdjustmentDelay;
     DelayTimerJson preliqDelay;
+    SignalPartsJson signalParts;
+    PosDiffJson posDiffJson;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;

@@ -87,5 +87,12 @@ public class PlacingBlocks {
         return usd.divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
     }
 
+    public static BigDecimal okexContToUsd(BigDecimal cont, boolean isEth) {
+        if (isEth) {
+            return cont.multiply(BigDecimal.valueOf(10));
+        }
+        return cont.multiply(BigDecimal.valueOf(100));
+    }
+
     public enum Ver {FIXED, DYNAMIC,}
 }

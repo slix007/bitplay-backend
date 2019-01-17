@@ -231,7 +231,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    protected LimitsService getLimitsService() {
+    public LimitsService getLimitsService() {
         return okexLimitsService;
     }
 

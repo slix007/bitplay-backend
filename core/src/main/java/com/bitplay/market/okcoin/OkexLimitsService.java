@@ -130,6 +130,11 @@ public class OkexLimitsService implements LimitsService {
     }
 
     private boolean outsideLimits(DeltaName deltaName, PlacingType placingType, SignalType signalType, Params p) {
+        final Limits limits = settingsRepositoryService.getSettings().getLimits();
+        if (limits.getIgnoreLimits()) {
+            return false;
+        }
+
         boolean isOutside = false;
         if (deltaName == DeltaName.B_DELTA) {
             //1) OPOT == TAKER or HYBRID, Max price < ask[1];

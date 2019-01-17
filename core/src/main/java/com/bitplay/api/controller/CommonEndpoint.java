@@ -8,7 +8,7 @@ import com.bitplay.api.domain.DeltasMinMaxJson;
 import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketList;
-import com.bitplay.api.domain.MarketStatesJson;
+import com.bitplay.api.domain.states.MarketStatesJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
@@ -33,8 +33,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Secured("ROLE_TRADER")
 @RestController
 public class CommonEndpoint {
-
-    //TODO move all relevant methods to SettingsEndpoint
 
     @Autowired
     private CommonUIService commonUIService;
@@ -146,10 +144,10 @@ public class CommonEndpoint {
         return commonUIService.getSumBal();
     }
 
-    @RequestMapping(value = "/market/pos-diff", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public PosDiffJson getPositionEquality() {
-        return commonUIService.getPosDiff();
-    }
+//    @RequestMapping(value = "/market/pos-diff", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    public PosDiffJson getPositionEquality() {
+//        return commonUIService.getPosDiff();
+//    }
 
     @RequestMapping(value = "/market/pos-corr",
             method = RequestMethod.POST,
