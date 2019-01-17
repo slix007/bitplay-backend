@@ -20,6 +20,7 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.correction.CountedWithExtra;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.repository.FplayTradeRepository;
@@ -71,6 +72,9 @@ public class PosDiffService {
     private final DelayTimer dtExtraCorr = new DelayTimer();
     private final DelayTimer dtAdj = new DelayTimer();
     private final DelayTimer dtExtraAdj = new DelayTimer();
+
+    private volatile Long prevTradeId;
+    private volatile String prevCounterName;
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -186,43 +190,74 @@ public class PosDiffService {
     }
 
     private void countFailedOnStartCorr(final CorrParams corrParams, SignalType signalType) {
+        boolean justFinished;
+        CountedWithExtra obj;
         if (signalType.isAdjBtc()) {
-            corrParams.getAdj().tryIncFailedExtra();
+            justFinished = corrParams.getAdj().tryIncFailedExtra();
+            obj = corrParams.getAdj();
         } else if (signalType.isAdj()) {
-            corrParams.getAdj().tryIncFailed();
+            justFinished = corrParams.getAdj().tryIncFailed();
+            obj = corrParams.getAdj();
         } else if (signalType.isCorrBtc()) {
-            corrParams.getCorr().tryIncFailedExtra();
+            justFinished = corrParams.getCorr().tryIncFailedExtra();
+            obj = corrParams.getCorr();
         } else { // signalType.isCorr()
-            corrParams.getCorr().tryIncFailed();
+            justFinished = corrParams.getCorr().tryIncFailed();
+            obj = corrParams.getCorr();
         }
         persistenceService.saveCorrParams(corrParams);
+
+        if (justFinished) {
+            final Long tradeId = prevTradeId != null ? prevTradeId : arbitrageService.getLastTradeId();
+            final String counterName = prevCounterName != null ? prevCounterName : signalType.getCounterName();
+            tradeService.info(tradeId, counterName, String.format("#%s fail. %s", counterName, obj.toString()));
+        }
+
     }
 
     private void tryFinishPrevCorr(final CorrParams corrParams) {
         final BigDecimal dcMainSet = getDcMainSet();
         final BigDecimal dcExtraSet = getDcExtraSet();
 
+        boolean justFinished = false;
+        CountedWithExtra obj = null;
         if (isPosEqualByMaxAdj(dcMainSet)) {
             if (corrParams.getCorr().tryIncSuccessful()) {
                 persistenceService.saveCorrParams(corrParams);
+                justFinished = true;
+                obj = corrParams.getCorr();
             }
         }
         if (isPosEqualByMaxAdj(dcExtraSet)) {
             if (corrParams.getCorr().tryIncSuccessfulExtra()) {
                 persistenceService.saveCorrParams(corrParams);
+                justFinished = true;
+                obj = corrParams.getCorr();
             }
         }
 
         if (isPosEqualByMinAdj(dcMainSet)) {
             if (corrParams.getAdj().tryIncSuccessful()) {
                 persistenceService.saveCorrParams(corrParams);
+                justFinished = true;
+                obj = corrParams.getAdj();
             }
         }
         if (isPosEqualByMinAdj(dcExtraSet)) {
             if (corrParams.getAdj().tryIncSuccessfulExtra()) {
                 persistenceService.saveCorrParams(corrParams);
+                justFinished = true;
+                obj = corrParams.getAdj();
             }
         }
+
+        if (justFinished) {
+            final Long tradeId = prevTradeId != null ? prevTradeId : arbitrageService.getLastTradeId();
+            final String counterName = prevCounterName != null ? prevCounterName : "";
+            final String currAttemptsStr = obj != null ? obj.toString() : "";
+            tradeService.info(tradeId, counterName, String.format("#%s success. %s", counterName, currAttemptsStr));
+        }
+
     }
 
     private void startTimerToImmediateCorrection() {
@@ -748,31 +783,31 @@ public class PosDiffService {
         if (baseSignalType == SignalType.ADJ_BTC) {
 
             BigDecimal bPXbtUsd = bitmexService.getPositionXBTUSD().getPositionLong();
-            adaptExtraSetAdjByPos(corrObj, bPXbtUsd, dc);
+            adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            adaptCorrByMaxVolCorrAndDql(corrObj, corrParamsExtra);
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParamsExtra);
 
         } else if (baseSignalType == SignalType.ADJ) {
 
-            adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
-            adaptCorrByMaxVolCorrAndDql(corrObj, corrParams);
+            adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
 
             @SuppressWarnings("Duplicates")
             BigDecimal bPXbtUsd = bitmexService.getPositionXBTUSD().getPositionLong();
-            adaptExtraSetAdjByPos(corrObj, bPXbtUsd, dc);
+            adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            adaptCorrByMaxVolCorrAndDql(corrObj, corrParamsExtra);
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParamsExtra);
 
         } else { // corr
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
             maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
 
-            adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
-            adaptCorrByMaxVolCorrAndDql(corrObj, corrParams);
+            adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams);
 
         } // end corr
 
@@ -807,13 +842,23 @@ public class PosDiffService {
                 final String counterName = marketService.getCounterName(signalType);
                 final Long tradeId = arbitrageService.getLastTradeId();
 
-                String message = String.format("%s %s %s %s amount=%s c=%s", signalType, counterName, placingType, orderType, correctAmount, contractType);
+                String message = String.format("#%s %s %s amount=%s c=%s", counterName, placingType, orderType, correctAmount, contractType);
                 slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
 
                 countOnStartCorr(corrParams, signalType);
 
+                if (signalType.getCounterName().contains("btc")) {
+                    tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, arbitrageService.getExtraSetStr()));
+                } else {
+                    tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, arbitrageService.getMainSetStr()));
+                }
+                tradeService.info(tradeId, counterName, message);
+                prevTradeId = tradeId;
+                prevCounterName = counterName;
+
                 marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
                         placingType, signalType, 1, tradeId, counterName, null, contractType));
+
             }
         } else {
             if (corrAdjWarn.isReadyToSend()) {
@@ -839,7 +884,7 @@ public class PosDiffService {
         return adjLimit || corrLimit;
     }
 
-    private void adaptCorrByMaxVolCorrAndDql(final CorrObj corrObj, final CorrParams corrParams) {
+    private void adaptCorrAdjByMaxVolCorrAndDql(final CorrObj corrObj, final CorrParams corrParams) {
         if (corrObj.marketService.getName().equals(OkCoinService.NAME)) {
             BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
             if (corrObj.correctAmount.compareTo(okMax) > 0) {
@@ -895,10 +940,9 @@ public class PosDiffService {
         ContractType contractType;
     }
 
-    private void adaptCorrByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
+    private void adaptCorrAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
             final BigDecimal dc, final BigDecimal cm, final boolean isEth) {
 
-        corrObj.contractType = null;
         final BigDecimal okexUsd = isEth
                 ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
                 : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
@@ -997,9 +1041,11 @@ public class PosDiffService {
                 }
             }
         }
+
+        corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
     }
 
-    private void adaptExtraSetAdjByPos(final CorrObj corrObj, final BigDecimal bPXbtUsd, final BigDecimal dc) {
+    private void adaptCorrAdjExtraSetByPos(final CorrObj corrObj, final BigDecimal bPXbtUsd, final BigDecimal dc) {
         corrObj.contractType = BitmexService.bitmexContractTypeXBTUSD;
         corrObj.marketService = arbitrageService.getFirstMarketService();
         corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.DOWN);
