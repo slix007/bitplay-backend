@@ -87,6 +87,7 @@ import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.OkCoinAdapters;
 import org.knowm.xchange.okcoin.OkCoinUtils;
 import org.knowm.xchange.okcoin.dto.marketdata.OkcoinForecastPrice;
+import org.knowm.xchange.okcoin.dto.marketdata.OkcoinMarkPrice;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPositionResult;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
@@ -133,7 +134,12 @@ public class OkCoinService extends MarketServicePreliq {
 
     private volatile String ifDisconnetedString = "";
 
+    private volatile BigDecimal markPrice = BigDecimal.ZERO;
     private volatile BigDecimal forecastPrice = BigDecimal.ZERO;
+
+    public BigDecimal getMarkPrice() {
+        return markPrice;
+    }
 
     public BigDecimal getForecastPrice() {
         return forecastPrice;
@@ -479,6 +485,23 @@ public class OkCoinService extends MarketServicePreliq {
         Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
     }
 
+    @Scheduled(fixedDelay = 1000) // Request frequency 20 times/2s
+    public void fetchMarkPrice() {
+        Instant start = Instant.now();
+        try {
+            final OkcoinMarkPrice result = ((OkCoinFuturesMarketDataService) exchange.getMarketDataService())
+                    .getFuturesMarkPrice(okexContractType.getCurrencyPair());
+            if (result.getMarkPrice() != null) {
+                markPrice = result.getMarkPrice();
+            }
+
+        } catch (Exception e) {
+            logger.error("On fetchEstimatedDeliveryPrice", e);
+        }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
+    }
+
     @Scheduled(fixedDelay = 2000)
     public void fetchPositionScheduled() {
         Instant start = Instant.now();
@@ -574,22 +597,22 @@ public class OkCoinService extends MarketServicePreliq {
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(newInfo -> {
-                    logger.debug("AccountInfo.Websocket: " + accountInfoContracts.toString());
+                    AccountInfoContracts current = this.accountInfoContracts;
+                    logger.debug("AccountInfo.Websocket: " + current.toString());
 
-                    synchronized (this) {
-                        accountInfoContracts = new AccountInfoContracts(
-                                newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
-                                newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable(),
-                                BigDecimal.ZERO,
-                                newInfo.geteLast() != null ? newInfo.geteLast() : accountInfoContracts.geteLast(),
-                                BigDecimal.ZERO,
-                                BigDecimal.ZERO,
-                                newInfo.getMargin() != null ? newInfo.getMargin() : accountInfoContracts.getMargin(),
-                                newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
-                                newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
-                                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
-                        );
-                    }
+                    BigDecimal eLast = newInfo.geteLast() != null ? newInfo.geteLast() : current.geteLast();
+                    this.accountInfoContracts = new AccountInfoContracts(
+                            newInfo.getWallet() != null ? newInfo.getWallet() : current.getWallet(),
+                            newInfo.getAvailable() != null ? newInfo.getAvailable() : current.getAvailable(),
+                            eLast,
+                            eLast,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            newInfo.getMargin() != null ? newInfo.getMargin() : current.getMargin(),
+                            newInfo.getUpl() != null ? newInfo.getUpl() : current.getUpl(),
+                            newInfo.getRpl() != null ? newInfo.getRpl() : current.getRpl(),
+                            newInfo.getRiskRate() != null ? newInfo.getRiskRate() : current.getRiskRate()
+                    );
 
                 }, throwable -> {
                     logger.error("AccountInfo.Websocket.Exception: ", throwable);
@@ -1715,7 +1738,7 @@ public class OkCoinService extends MarketServicePreliq {
         final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
         final BigDecimal equity = accountInfoContracts.geteLast();
         final BigDecimal margin = accountInfoContracts.getMargin();
-        final BigDecimal m = ticker != null ? ticker.getLast() : null;
+        final BigDecimal m = markPrice;//ticker != null ? ticker.getLast() : null;
 
         if (equity != null && margin != null && oMrLiq != null
                 && position.getPriceAvgShort() != null
