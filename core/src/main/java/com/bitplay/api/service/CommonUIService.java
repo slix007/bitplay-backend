@@ -474,39 +474,39 @@ public class CommonUIService {
     }
 
     private void setAffordableStatus(final SignalPartsJson signalPartsJson) {
-        final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
+//        final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
 
-        BigDecimal btmBlock;
-        BigDecimal okBlock;
-        if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-            btmBlock = placingBlocks.getFixedBlockBitmex();
-            okBlock = placingBlocks.getFixedBlockOkex();
-        } else {
-            // the minimum is 1 okex contract
-            okBlock = BigDecimal.valueOf(1);
-            final BigDecimal usd = PlacingBlocks.okexContToUsd(okBlock, placingBlocks.isEth());
-            btmBlock = PlacingBlocks.toBitmexCont(usd, placingBlocks.isEth(), placingBlocks.getCm());
-        }
+//        BigDecimal btmBlock;
+//        BigDecimal okBlock;
+//        if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
+//            btmBlock = placingBlocks.getFixedBlockBitmex();
+//            okBlock = placingBlocks.getFixedBlockOkex();
+//        } else {
+//            // the minimum is 1 okex contract
+//            okBlock = BigDecimal.valueOf(1);
+//            final BigDecimal usd = PlacingBlocks.okexContToUsd(okBlock, placingBlocks.isEth());
+//            btmBlock = PlacingBlocks.toBitmexCont(usd, placingBlocks.isEth(), placingBlocks.getCm());
+//        }
 
-        final BigDecimal posBtm = bitmexService.getPosition().getPositionLong().subtract(bitmexService.getPosition().getPositionShort());
-        final BigDecimal posOk = okCoinService.getPosition().getPositionLong().subtract(okCoinService.getPosition().getPositionShort());
-        final boolean isBtmAffordable = isAffordable(btmBlock, posBtm, bitmexService);
-        final boolean isOkAffordable = isAffordable(okBlock, posOk, okCoinService);
+//        final BigDecimal posBtm = bitmexService.getPosition().getPositionLong().subtract(bitmexService.getPosition().getPositionShort());
+//        final BigDecimal posOk = okCoinService.getPosition().getPositionLong().subtract(okCoinService.getPosition().getPositionShort());
+        final boolean isBtmAffordable = arbitrageService.isAffordableBitmex();
+        final boolean isOkAffordable = arbitrageService.isAffordableOkex();
         signalPartsJson.setBtmAffordable(isBtmAffordable ? Status.OK : Status.WRONG);
         signalPartsJson.setOkAffordable(isOkAffordable ? Status.OK : Status.WRONG);
     }
 
-    private boolean isAffordable(BigDecimal block, BigDecimal pos, MarketService marketService) {
-        boolean isOk;
-        if (pos.signum() > 0) {
-            isOk = marketService.isAffordable(OrderType.BID, block);
-        } else if (pos.signum() < 0) {
-            isOk = marketService.isAffordable(OrderType.ASK, block);
-        } else {
-            isOk = marketService.isAffordable(OrderType.BID, block);
-        }
-        return isOk;
-    }
+//    private boolean isAffordable(BigDecimal block, BigDecimal pos, MarketService marketService) {
+//        boolean isOk;
+//        if (pos.signum() > 0) {
+//            isOk = marketService.isAffordable(OrderType.BID, block);
+//        } else if (pos.signum() < 0) {
+//            isOk = marketService.isAffordable(OrderType.ASK, block);
+//        } else {
+//            isOk = marketService.isAffordable(OrderType.BID, block);
+//        }
+//        return isOk;
+//    }
 
 
     private DelayTimerJson getCorrDelay() {
