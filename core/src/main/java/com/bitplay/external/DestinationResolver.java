@@ -127,8 +127,8 @@ public class DestinationResolver {
         } else if (prodServers.contains(hostLabel)) {
             channels.add(ALL_PROD_CHANNEL);
 
-            // Trader active: сервера 662, 669, 659.
-            if (prodActiveServers.contains(hostLabel) && traderActive.contains(notifyType)) {
+            // Trader active: сервера 662, 669, 659, 667, 668
+            if (prodServers.contains(hostLabel) && traderActive.contains(notifyType)) {
                 channels.add(TRADER_ACTIVE_CHANNEL);
             }
 
