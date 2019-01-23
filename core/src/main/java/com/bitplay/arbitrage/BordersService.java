@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -219,6 +220,163 @@ public class BordersService {
         }
 
         return signal != null ? signal : TradingSignal.none();
+    }
+
+    @SuppressWarnings("Duplicates")
+    public Borders getMinBorders(BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
+        final BorderParams borderParams = getBorderParams();
+        final BordersV2 bordersV2 = borderParams.getBordersV2();
+
+        if (borderParams.getPosMode() != null) {
+            theMode = borderParams.getPosMode();
+        }
+
+        final int pos = theMode == BorderParams.PosMode.BTM_MODE
+                ? bP.intValueExact()
+                : oPL.intValueExact() - oPS.intValueExact();
+
+        BigDecimal btmMinBorder = BigDecimal.ZERO;
+        BigDecimal okMinBorder = BigDecimal.ZERO;
+        {
+            final String borderName = "b_br_close";
+            final Optional<BorderTable> b_br_close = bordersV2.getBorderTableByName(borderName);
+            final List<BorderItem> btm_br_close = b_br_close.get().getBorderItemList();
+            final int btm_br_close_cnt = btm_br_close.size();
+            int minBorderDiff = Integer.MAX_VALUE;
+            if (pos != 0) {
+                for (int i = 0; i < btm_br_close_cnt; i++) {
+                    final BorderItem borderItem = btm_br_close.get(i);
+                    if (borderItem.getId() != 0) {
+                        final BigDecimal value = borderItem.getValue();
+                        if (b_delta.compareTo(value) >= 0) { // >=
+                            if (theMode == BorderParams.PosMode.BTM_MODE) {
+                                int posLongLimit = usdToCont(borderItem.getPosLongLimit());
+                                if (pos > 0 && pos > posLongLimit) {
+                                    int diff = pos - posLongLimit;
+                                    if (diff < minBorderDiff) {
+                                        minBorderDiff = diff;
+                                        btmMinBorder = value;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                            if (theMode == BorderParams.PosMode.OK_MODE) {
+                                int posShortLimit = usdToCont(borderItem.getPosShortLimit());
+                                if (pos < 0 && -pos > posShortLimit) {
+                                    int diff = (-pos) - posShortLimit;
+                                    if (diff < minBorderDiff) {
+                                        minBorderDiff = diff;
+                                        btmMinBorder = value;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } // b_br_close
+        {
+            final String borderName = "b_br_open";
+            final Optional<BorderTable> b_br_open = bordersV2.getBorderTableByName(borderName);
+            final List<BorderItem> btm_br_open = b_br_open.get().getBorderItemList();
+            final int btm_br_open_cnt = btm_br_open.size();
+            for (int i = 0; i < btm_br_open_cnt; i++) {
+                BorderItem borderItem = btm_br_open.get(i);
+                if (borderItem.getId() != 0) {
+                    final BigDecimal value = borderItem.getValue();
+                    if (b_delta.compareTo(borderItem.getValue()) >= 0) { // >=
+                        if (theMode == BorderParams.PosMode.OK_MODE) {
+                            int posLongLimit = usdToCont(borderItem.getPosLongLimit());
+                            if (pos >= 0 && pos < posLongLimit) {
+                                btmMinBorder = value;
+                                break;
+                            }
+                        }
+                        if (theMode == BorderParams.PosMode.BTM_MODE) {
+                            int posShortLimit = usdToCont(borderItem.getPosShortLimit());
+                            if (pos <= 0 && -pos < posShortLimit) {
+                                btmMinBorder = value;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } // b_br_open
+        {
+            final String borderName = "o_br_close";
+            final Optional<BorderTable> o_br_close = bordersV2.getBorderTableByName(borderName);
+            final List<BorderItem> ok_br_close = o_br_close.get().getBorderItemList();
+            final int ok_br_close_cnt = ok_br_close.size();
+            int minBorderDiff = Integer.MAX_VALUE;
+            if (pos != 0) {
+                for (int i = 0; i < ok_br_close_cnt; i++) {
+                    final BorderItem borderItem = ok_br_close.get(i);
+                    if (borderItem.getId() != 0) {
+                        final BigDecimal value = borderItem.getValue();
+                        if (o_delta.compareTo(borderItem.getValue()) >= 0) {
+                            if (theMode == BorderParams.PosMode.OK_MODE) {
+                                int posLongLimit = usdToCont(borderItem.getPosLongLimit());
+                                if (pos > 0 && pos > posLongLimit) {
+                                    int diff = pos - posLongLimit;
+                                    if (diff < minBorderDiff) {
+                                        minBorderDiff = diff;
+                                        okMinBorder = value;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                            if (theMode == BorderParams.PosMode.BTM_MODE) {
+                                int posShortLimit = usdToCont(borderItem.getPosShortLimit());
+                                if (pos < 0 && -pos > posShortLimit) {
+                                    int diff = (-pos) - posShortLimit;
+                                    if (diff < minBorderDiff) {
+                                        minBorderDiff = diff;
+                                        okMinBorder = value;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } // o_br_close
+        {
+            final String borderName = "o_br_open";
+            final Optional<BorderTable> o_br_open = bordersV2.getBorderTableByName(borderName);
+            final List<BorderItem> ok_br_open = o_br_open.get().getBorderItemList();
+            final int ok_br_open_cnt = ok_br_open.size();
+            for (int i = 0; i < ok_br_open_cnt; i++) {
+                BorderItem borderItem = ok_br_open.get(i);
+                if (borderItem.getId() != 0) {
+                    final BigDecimal value = borderItem.getValue();
+                    if (o_delta.compareTo(borderItem.getValue()) >= 0) {
+                        if (theMode == BorderParams.PosMode.BTM_MODE) {
+                            int posLongLimit = usdToCont(borderItem.getPosLongLimit());
+                            if (pos >= 0 && pos < posLongLimit) {
+                                okMinBorder = value;
+                                break;
+                            }
+                        }
+                        if (theMode == BorderParams.PosMode.OK_MODE) {
+                            int posShortLimit = usdToCont(borderItem.getPosShortLimit());
+                            if (pos <= 0 && -pos < posShortLimit) {
+                                okMinBorder = value;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+        } // o_br_open
+        return new Borders(btmMinBorder, okMinBorder);
     }
 
     private TradingSignal bDeltaBorderClose(BigDecimal b_delta, int block, int pos, BordersV2 bordersV2, PlacingBlocks placingBlocks, OrderBook bitmexOrderBook,
@@ -749,6 +907,13 @@ public class BordersService {
     public enum TradeType {NONE, DELTA1_B_SELL_O_BUY, DELTA2_B_BUY_O_SELL}
 
     public enum BorderVer {borderV1, borderV2, preliq}
+
+    @AllArgsConstructor
+    public static class Borders {
+
+        final public BigDecimal b_border;
+        final public BigDecimal o_border;
+    }
 
     public static class TradingSignal {
         // params for the signal

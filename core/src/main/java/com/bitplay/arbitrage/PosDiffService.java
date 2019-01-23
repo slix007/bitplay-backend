@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.BordersService.Borders;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.dto.ThrottledWarn;
@@ -19,10 +20,13 @@ import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
+import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.CountedWithExtra;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
@@ -75,6 +79,10 @@ public class PosDiffService {
 
     private volatile Long prevTradeId;
     private volatile String prevCounterName;
+    private volatile CorrObj prevCorrObj;
+
+    @Autowired
+    private BordersService bordersService;
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -211,6 +219,10 @@ public class PosDiffService {
             final Long tradeId = prevTradeId != null ? prevTradeId : arbitrageService.getLastTradeId();
             final String counterName = prevCounterName != null ? prevCounterName : signalType.getCounterName();
             tradeService.info(tradeId, counterName, String.format("#%s fail. %s", counterName, obj.toString()));
+            if (prevCorrObj != null && prevCorrObj.marketService != null) {
+                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s fail. %s", counterName, arbitrageService.getMainSetStr()));
+                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s fail. %s", counterName, arbitrageService.getExtraSetStr()));
+            }
         }
 
     }
@@ -256,6 +268,10 @@ public class PosDiffService {
             final String counterName = prevCounterName != null ? prevCounterName : "";
             final String currAttemptsStr = obj != null ? obj.toString() : "";
             tradeService.info(tradeId, counterName, String.format("#%s success. %s", counterName, currAttemptsStr));
+            if (prevCorrObj != null && prevCorrObj.marketService != null) {
+                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s success. %s", counterName, arbitrageService.getMainSetStr()));
+                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s success. %s", counterName, arbitrageService.getExtraSetStr()));
+            }
         }
 
     }
@@ -792,7 +808,7 @@ public class PosDiffService {
 
         } else if (baseSignalType == SignalType.ADJ) {
 
-            adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+            adaptAdjByPos(corrObj, bP, oPL, oPS, dc, cm, isEth);
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
@@ -808,7 +824,7 @@ public class PosDiffService {
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
             maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
 
-            adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+            adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams);
 
         } // end corr
@@ -857,6 +873,7 @@ public class PosDiffService {
                 tradeService.info(tradeId, counterName, message);
                 prevTradeId = tradeId;
                 prevCounterName = counterName;
+                prevCorrObj = corrObj;
 
                 marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
                         placingType, signalType, 1, tradeId, counterName, null, contractType));
@@ -942,7 +959,7 @@ public class PosDiffService {
         ContractType contractType;
     }
 
-    private void adaptCorrAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
+    private void adaptCorrByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
             final BigDecimal dc, final BigDecimal cm, final boolean isEth) {
 
         final BigDecimal okexUsd = isEth
@@ -1045,6 +1062,159 @@ public class PosDiffService {
         }
 
         corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
+    }
+
+    @SuppressWarnings("Duplicates")
+    private void adaptAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS,
+            final BigDecimal dc, final BigDecimal cm, final boolean isEth) {
+
+        Settings settings = settingsRepositoryService.getSettings();
+        PlacingType placingType = settings.getPosAdjustment().getPosAdjustmentPlacingType();
+        final BigDecimal b_com = settings.getBFee(placingType);
+        final BigDecimal o_com = settings.getOFee(placingType);
+        final BigDecimal ntUsd = dc;
+        final BorderParams borderParams = persistenceService.fetchBorders();
+
+        BigDecimal b_border;
+        BigDecimal o_border;
+        BigDecimal b_delta = arbitrageService.getDelta1();
+        BigDecimal o_delta = arbitrageService.getDelta2();
+        if (borderParams.getActiveVersion() == Ver.V1) {
+            b_border = arbitrageService.getParams().getBorder1();
+            o_border = arbitrageService.getParams().getBorder2();
+        } else {
+            Borders minBorders = bordersService.getMinBorders(b_delta, o_delta, bP, oPL, oPS);
+            b_border = minBorders.b_border;
+            o_border = minBorders.o_border;
+        }
+        String adjName = "";
+        if (ntUsd.signum() < 0) {
+            //if (nt_usd < 0) {
+            //if (b_border - (b_delta + b_com) >= o_border - (o_delta + o_com)
+            //adj = o_delta_adj;
+            //else
+            //adj = b_delta_adj;
+            //}
+            // b_delta_adj означает что подгонку делаем по b_delta, то есть при nt_usd < 0 adj-сделку sell делаем на bitmex, при nt_usd > 0 adj-сделку buy делаем на okex.
+            // o_delta_adj означает что подгонку делаем по o_delta, то есть при nt_usd < 0 adj-сделку sell делаем на okex, при nt_usd > 0 adj-сделку buy делаем на bitmex.
+            if (b_border.subtract(b_delta.add(b_com)).compareTo(o_border.subtract(o_delta.add(o_com))) >= 0) {
+                adjName = "o_delta_adj";
+                // sell делаем на okex
+                // okcoin sell
+                defineCorrectAmountOkex(corrObj, dc, isEth);
+                if (oPL.signum() > 0 && oPL.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_BID
+                    corrObj.correctAmount = oPL;
+                }
+                if (corrObj.signalType == SignalType.ADJ) {
+                    if ((oPL.subtract(oPS)).signum() <= 0) {
+                        corrObj.signalType = SignalType.O_ADJ_INCREASE_POS;
+                    } else {
+                        corrObj.signalType = SignalType.O_ADJ;
+                    }
+                }
+                corrObj.marketService = arbitrageService.getSecondMarketService();
+            } else {
+                adjName = "b_delta_adj";
+                // sell делаем на bitmex
+                // bitmex sell
+                defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
+                corrObj.marketService = arbitrageService.getFirstMarketService();
+                if (corrObj.signalType == SignalType.CORR) {
+                    if (bP.signum() <= 0) {
+                        corrObj.signalType = SignalType.B_CORR_INCREASE_POS;
+                    } else {
+                        corrObj.signalType = SignalType.B_CORR;
+                    }
+                }
+                if (corrObj.signalType == SignalType.ADJ) {
+                    if (bP.signum() <= 0) {
+                        corrObj.signalType = SignalType.B_ADJ_INCREASE_POS;
+                    } else {
+                        corrObj.signalType = SignalType.B_ADJ;
+                    }
+                }
+            }
+        } else if (ntUsd.signum() > 0) { //
+            //if (nt_usd > 0) {
+            //if (b_border - (b_delta + o_com) >= o_border - (o_delta + b_com)
+            //adj = o_delta_adj;
+            //else
+            //adj = b_delta_adj;
+            //}
+            // b_delta_adj означает что подгонку делаем по b_delta, то есть при nt_usd < 0 adj-сделку sell делаем на bitmex, при nt_usd > 0 adj-сделку buy делаем на okex.
+            // o_delta_adj означает что подгонку делаем по o_delta, то есть при nt_usd < 0 adj-сделку sell делаем на okex, при nt_usd > 0 adj-сделку buy делаем на bitmex.
+            if (b_border.subtract(b_delta.add(o_com)).compareTo(o_border.subtract(o_delta.add(b_com))) >= 0) {
+                adjName = "o_delta_adj";
+                // buy делаем на bitmex
+                // bitmex buy
+                defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
+                corrObj.marketService = arbitrageService.getFirstMarketService();
+                if (corrObj.signalType == SignalType.CORR) {
+                    if (bP.signum() >= 0) {
+                        corrObj.signalType = SignalType.B_CORR_INCREASE_POS;
+                    } else {
+                        corrObj.signalType = SignalType.B_CORR;
+                    }
+                }
+                if (corrObj.signalType == SignalType.ADJ) {
+                    if (bP.signum() >= 0) {
+                        corrObj.signalType = SignalType.B_ADJ_INCREASE_POS;
+                    } else {
+                        corrObj.signalType = SignalType.B_ADJ;
+                    }
+                }
+            } else {
+                adjName = "b_delta_adj";
+                // buy делаем на okex
+                // okcoin buy
+                defineCorrectAmountOkex(corrObj, dc, isEth);
+                if (oPS.signum() > 0 && oPS.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_ASK
+                    corrObj.correctAmount = oPS;
+                }
+
+                corrObj.marketService = arbitrageService.getSecondMarketService();
+                if (corrObj.signalType == SignalType.CORR) {
+                    if ((oPL.subtract(oPS)).signum() >= 0) {
+                        corrObj.signalType = SignalType.O_CORR_INCREASE_POS;
+                    } else {
+                        corrObj.signalType = SignalType.O_CORR;
+                    }
+                }
+                if (corrObj.signalType == SignalType.B_ADJ) {
+                    if ((oPL.subtract(oPS)).signum() >= 0) {
+                        corrObj.signalType = SignalType.O_ADJ_INCREASE_POS;
+                    } else {
+                        corrObj.signalType = SignalType.O_ADJ;
+                    }
+                }
+            }
+        }
+
+        corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
+        //для nt_usd < 0:
+        //b_delta_adj, b_border - (b_delta + b_com), или
+        //o_delta_adj, o_border - (o_delta + o_com), или
+        //для nt_usd > 0:
+        //b_delta_adj, b_border - (b_delta + o_com), или
+        //o_delta_adj, o_border - (o_delta + b_com),
+        // Example:
+        // b_delta_adj, 2 - (1.2 + (-0.030) = 0,83.
+        BigDecimal borderVal = adjName.equals("b_delta_adj") ? b_border : o_border;
+        BigDecimal deltaVal = adjName.equals("b_delta_adj") ? b_delta : o_delta;
+        BigDecimal comVal = ntUsd.signum() < 0
+                ? (adjName.equals("b_delta_adj") ? b_com : o_com)
+                : (adjName.equals("b_delta_adj") ? o_com : b_com);
+        String msg = String.format("%s, %s - (%s + %s) = %s",
+                adjName,
+                borderVal,
+                deltaVal,
+                comVal,
+                borderVal.subtract(deltaVal.add(comVal))
+        );
+//        warningLogger.info(msg);
+        if (corrObj.marketService != null) {
+            corrObj.marketService.getTradeLogger().info(msg);
+        }
     }
 
     private void adaptCorrAdjExtraSetByPos(final CorrObj corrObj, final BigDecimal bPXbtUsd, final BigDecimal dc) {
