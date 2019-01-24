@@ -803,11 +803,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         } else if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
             thePrice = Utils.getBestAsk(orderBook).getLimitPrice();
         }
-        if (thePrice.signum() == 0) {
-            getTradeLogger().info("WARNING: PRICE IS 0");
-            warningLogger.warn(getName() + " WARNING: PRICE IS 0");
-            logger.warn(getName() + " WARNING: PRICE IS 0");
-        }
+        tryPrintZeroPriceWarning(thePrice);
         return thePrice;
     }
 
@@ -820,11 +816,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             BigDecimal bid = Utils.getBestBid(orderBook).getLimitPrice();
             thePrice = bid.add(tickSize);
         }
-        if (thePrice.signum() == 0) {
-            getTradeLogger().info("WARNING: PRICE IS 0");
-            warningLogger.warn(getName() + " WARNING: PRICE IS 0");
-            logger.warn(getName() + " WARNING: PRICE IS 0");
-        }
+        tryPrintZeroPriceWarning(thePrice);
 
         return thePrice;
     }
@@ -840,10 +832,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             BigDecimal bidTick = bid.add(tickSize);
             thePrice = bidTick.compareTo(ask) < 0 ? bidTick : bid;
         }
-        if (thePrice.signum() == 0) {
-            getTradeLogger().info("WARNING: PRICE IS 0");
-            logger.warn(getName() + " WARNING: PRICE IS 0");
-        }
+        tryPrintZeroPriceWarning(thePrice);
 
         return thePrice;
     }
@@ -857,13 +846,17 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 || orderType == Order.OrderType.EXIT_BID) {
             thePrice = Utils.getBestBid(orderBook).getLimitPrice();
         }
+        tryPrintZeroPriceWarning(thePrice);
+
+        return thePrice;
+    }
+
+    private void tryPrintZeroPriceWarning(BigDecimal thePrice) {
         if (thePrice.signum() == 0) {
             getTradeLogger().info("WARNING: PRICE IS 0");
             warningLogger.warn(getName() + " WARNING: PRICE IS 0");
             logger.warn(getName() + " WARNING: PRICE IS 0");
         }
-
-        return thePrice;
     }
 
     protected MoveResponse moveMakerOrderIfNotFirst(FplayOrder fplayOrder, Object... reqMovingArgs) {

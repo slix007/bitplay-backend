@@ -1,9 +1,6 @@
 package com.bitplay.metrics;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.external.HostResolver;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.spring.autoconfigure.MeterRegistryCustomizer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
@@ -14,8 +11,8 @@ public class Dictionary {
     public static final String B_DELTA = "fplay.b_delta";
     public static final String O_DELTA = "fplay.o_delta";
 
-    @Autowired
-    private HostResolver hostResolver;
+//    @Autowired
+//    private HostResolver hostResolver;
 
     @Autowired
     private ArbitrageService arbitrageService;
@@ -28,10 +25,10 @@ public class Dictionary {
 //        registry.gaugeCollectionSize("dictionary.size", Tags.empty(), this.words);
 //    }
 
-    @Bean
-    MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
-        return registry -> registry.config().commonTags("host", hostResolver.getHostname());
-    }
+//    @Bean
+//    MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
+//        return registry -> registry.config().commonTags("host", hostResolver.getHostname());
+//    }
 
     @Bean
     FplayMetrics fplayMetrics() {
