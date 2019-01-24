@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -860,7 +861,7 @@ public class PosDiffService {
                 final String counterName = marketService.getCounterName(signalType);
                 final Long tradeId = arbitrageService.getLastTradeId();
 
-                String message = String.format("#%s %s %s amount=%s c=%s", counterName, placingType, orderType, correctAmount, contractType);
+                final String message = String.format("#%s %s %s amount=%s c=%s. ", counterName, placingType, orderType, correctAmount, contractType);
                 slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
 
                 countOnStartCorr(corrParams, signalType);
@@ -875,8 +876,10 @@ public class PosDiffService {
                 prevCounterName = counterName;
                 prevCorrObj = corrObj;
 
-                marketService.placeOrder(new PlaceOrderArgs(orderType, correctAmount, null,
-                        placingType, signalType, 1, tradeId, counterName, null, contractType));
+                PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, correctAmount, null, placingType, signalType,
+                        1, tradeId, counterName, null, contractType);
+                marketService.getTradeLogger().info(message + placeOrderArgs.toString());
+                marketService.placeOrder(placeOrderArgs);
 
             }
         } else {
@@ -946,6 +949,7 @@ public class PosDiffService {
         }
     }
 
+    @ToString
     private class CorrObj {
 
         CorrObj(SignalType signalType) {
@@ -1072,7 +1076,7 @@ public class PosDiffService {
         PlacingType placingType = settings.getPosAdjustment().getPosAdjustmentPlacingType();
         final BigDecimal b_com = settings.getBFee(placingType);
         final BigDecimal o_com = settings.getOFee(placingType);
-        final BigDecimal ntUsd = dc;
+        final BigDecimal ntUsd = dc.negate();
         final BorderParams borderParams = persistenceService.fetchBorders();
 
         BigDecimal b_border;
@@ -1099,8 +1103,9 @@ public class PosDiffService {
             // o_delta_adj означает что подгонку делаем по o_delta, то есть при nt_usd < 0 adj-сделку sell делаем на okex, при nt_usd > 0 adj-сделку buy делаем на bitmex.
             if (b_border.subtract(b_delta.add(b_com)).compareTo(o_border.subtract(o_delta.add(o_com))) >= 0) {
                 adjName = "o_delta_adj";
-                // sell делаем на okex
-                // okcoin sell
+                // okex sell
+                corrObj.marketService = arbitrageService.getSecondMarketService();
+                corrObj.orderType = OrderType.ASK;
                 defineCorrectAmountOkex(corrObj, dc, isEth);
                 if (oPL.signum() > 0 && oPL.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_BID
                     corrObj.correctAmount = oPL;
@@ -1112,13 +1117,12 @@ public class PosDiffService {
                         corrObj.signalType = SignalType.O_ADJ;
                     }
                 }
-                corrObj.marketService = arbitrageService.getSecondMarketService();
             } else {
                 adjName = "b_delta_adj";
-                // sell делаем на bitmex
                 // bitmex sell
-                defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
                 corrObj.marketService = arbitrageService.getFirstMarketService();
+                corrObj.orderType = OrderType.ASK;
+                defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
                 if (corrObj.signalType == SignalType.CORR) {
                     if (bP.signum() <= 0) {
                         corrObj.signalType = SignalType.B_CORR_INCREASE_POS;
@@ -1145,10 +1149,10 @@ public class PosDiffService {
             // o_delta_adj означает что подгонку делаем по o_delta, то есть при nt_usd < 0 adj-сделку sell делаем на okex, при nt_usd > 0 adj-сделку buy делаем на bitmex.
             if (b_border.subtract(b_delta.add(o_com)).compareTo(o_border.subtract(o_delta.add(b_com))) >= 0) {
                 adjName = "o_delta_adj";
-                // buy делаем на bitmex
                 // bitmex buy
-                defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
                 corrObj.marketService = arbitrageService.getFirstMarketService();
+                corrObj.orderType = OrderType.BID;
+                defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
                 if (corrObj.signalType == SignalType.CORR) {
                     if (bP.signum() >= 0) {
                         corrObj.signalType = SignalType.B_CORR_INCREASE_POS;
@@ -1165,14 +1169,13 @@ public class PosDiffService {
                 }
             } else {
                 adjName = "b_delta_adj";
-                // buy делаем на okex
                 // okcoin buy
+                corrObj.marketService = arbitrageService.getSecondMarketService();
+                corrObj.orderType = OrderType.BID;
                 defineCorrectAmountOkex(corrObj, dc, isEth);
                 if (oPS.signum() > 0 && oPS.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_ASK
                     corrObj.correctAmount = oPS;
                 }
-
-                corrObj.marketService = arbitrageService.getSecondMarketService();
                 if (corrObj.signalType == SignalType.CORR) {
                     if ((oPL.subtract(oPS)).signum() >= 0) {
                         corrObj.signalType = SignalType.O_CORR_INCREASE_POS;
@@ -1204,16 +1207,20 @@ public class PosDiffService {
         BigDecimal comVal = ntUsd.signum() < 0
                 ? (adjName.equals("b_delta_adj") ? b_com : o_com)
                 : (adjName.equals("b_delta_adj") ? o_com : b_com);
-        String msg = String.format("%s, %s - (%s + %s) = %s",
-                adjName,
-                borderVal,
-                deltaVal,
-                comVal,
-                borderVal.subtract(deltaVal.add(comVal))
-        );
-//        warningLogger.info(msg);
         if (corrObj.marketService != null) {
+            final String counterName = corrObj.marketService.getCounterName(corrObj.signalType);
+            final String msg = String.format("#%s %s, %s - (%s + %s) = %s",
+                    counterName,
+                    adjName,
+                    borderVal,
+                    deltaVal,
+                    comVal,
+                    borderVal.subtract(deltaVal.add(comVal))
+            );
+            warningLogger.info(msg);
             corrObj.marketService.getTradeLogger().info(msg);
+        } else {
+            warningLogger.info("adaptAdjByPos failed. " + corrObj);
         }
     }
 
