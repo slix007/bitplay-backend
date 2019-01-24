@@ -11,7 +11,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PosAdjustment {
+public class PosAdjustment implements Cloneable {
 
     private BigDecimal posAdjustmentMin;
     private BigDecimal posAdjustmentMax;
@@ -31,4 +31,15 @@ public class PosAdjustment {
         return adj;
     }
 
+    @Override
+    protected PosAdjustment clone() {
+        PosAdjustment clone = new PosAdjustment();
+        clone.setPosAdjustmentMin(this.posAdjustmentMin);
+        clone.setPosAdjustmentMax(this.posAdjustmentMax);
+        clone.setPosAdjustmentPlacingType(this.posAdjustmentPlacingType);
+        clone.setPosAdjustmentDelaySec(this.posAdjustmentDelaySec);
+        clone.setCorrDelaySec(this.corrDelaySec);
+        clone.setPreliqDelaySec(this.preliqDelaySec);
+        return clone;
+    }
 }

@@ -172,10 +172,11 @@ public class Settings extends AbstractDocument {
                 && tradingModeState.getTradingMode() == TradingMode.VOLATILE
                 && settingsVolatileMode.getActiveFields().contains(Field.posAdjustment)
                 && settingsVolatileMode.getPosAdjustment() != null) {
-            final PosAdjustment res = settingsVolatileMode.getPosAdjustment();
+            final PosAdjustment res = this.posAdjustment.clone();
             res.setPosAdjustmentPlacingType(settingsVolatileMode.getPosAdjustment().getPosAdjustmentPlacingType());
             res.setPosAdjustmentMin(settingsVolatileMode.getPosAdjustment().getPosAdjustmentMin());
             res.setPosAdjustmentMax(settingsVolatileMode.getPosAdjustment().getPosAdjustmentMax());
+            return res;
         }
         return posAdjustment;
     }
