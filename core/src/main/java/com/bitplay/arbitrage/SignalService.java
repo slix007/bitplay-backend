@@ -2,9 +2,7 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.MarketService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -17,11 +15,11 @@ import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
+import io.micrometer.core.instrument.util.NamedThreadFactory;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +33,8 @@ import org.springframework.stereotype.Service;
 public class SignalService {
 
     private static final Logger logger = LoggerFactory.getLogger(SignalService.class);
-    final ExecutorService executorService = Executors.newFixedThreadPool(2);
+    final ExecutorService executorService = Executors.newFixedThreadPool(2,
+            new NamedThreadFactory("signal-service"));
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
@@ -119,7 +118,7 @@ public class SignalService {
                         tradeId, counterName, lastObTime);
 
                 tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-                ((BitmexService) bitmexService).placeOrderToOpenOrders(placeOrderArgs);
+                bitmexService.placeOrderToOpenOrders(placeOrderArgs);
 
             } catch (Exception e) {
                 logger.error("Error on placeOrderOnSignal", e);

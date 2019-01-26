@@ -1010,8 +1010,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }
     }
 
-    public boolean cancelAllOrders(String logInfoId) {
-        return false;
+    /**
+     * @return cancelled order id list
+     */
+    public List<LimitOrder> cancelAllOrders(String logInfoId) {
+        return new ArrayList<>();
     }
 
     public boolean isStarted() {

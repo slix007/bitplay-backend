@@ -127,6 +127,7 @@ public class BitmexService extends MarketServicePreliq {
 
     private BitmexStreamingExchange exchange;
 
+    protected static final int MAX_ATTEMPTS_CANCEL_BITMEX = 3;
     private static final int MAX_RECONNECTS_BEFORE_RESTART = 1;
     private static final int MAX_WAITING_OB_CHECKS = 5; // each sleep 1 sec. // Bitmex min delay is 2,5 sec: https://blog.bitmex.com/ru_ru-update-to-our-realtime-apis-image-delivery/
     private static final int MAX_RESUBSCRIBES = 5;
@@ -2659,7 +2660,7 @@ public class BitmexService extends MarketServicePreliq {
         final String counterForLogs = getCounterName();
 
         int attemptCount = 0;
-        while (attemptCount < MAX_ATTEMPTS_CANCEL && getMarketState() != MarketState.SYSTEM_OVERLOADED) {
+        while (attemptCount < MAX_ATTEMPTS_CANCEL_BITMEX && getMarketState() != MarketState.SYSTEM_OVERLOADED) {
             attemptCount++;
             try {
                 if (attemptCount > 1) {
@@ -2690,12 +2691,12 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
-    public boolean cancelAllOrders(String logInfoId) {
+    public List<LimitOrder> cancelAllOrders(String logInfoId) {
         final String counterForLogs = getCounterName();
         String contractTypeStr = "";
 
         int attemptCount = 0;
-        while (attemptCount < MAX_ATTEMPTS_CANCEL && getMarketState() != MarketState.SYSTEM_OVERLOADED) {
+        while (attemptCount < MAX_ATTEMPTS_CANCEL_BITMEX && getMarketState() != MarketState.SYSTEM_OVERLOADED) {
             attemptCount++;
             try {
                 if (attemptCount > 1) {
@@ -2717,7 +2718,7 @@ public class BitmexService extends MarketServicePreliq {
 
                 updateOpenOrders(limitOrders);
 
-                return true;
+                return limitOrders;
 
             } catch (HttpStatusIOException e) {
                 updateXRateLimit(e);
@@ -2730,6 +2731,6 @@ public class BitmexService extends MarketServicePreliq {
                 getTradeLogger().error(String.format("#%s/%s error cancel orders: %s", counterForLogs, attemptCount, e.toString()), contractTypeStr);
             }
         }
-        return false;
+        return new ArrayList<>();
     }
 }

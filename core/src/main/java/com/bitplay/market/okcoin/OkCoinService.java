@@ -1539,12 +1539,12 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public boolean cancelAllOrders(String logInfoId) {
-        List<Boolean> res = new ArrayList<>();
+    public List<LimitOrder> cancelAllOrders(String logInfoId) {
+        List<LimitOrder> res = new ArrayList<>();
         final String counterForLogs = getCounterName();
         synchronized (openOrdersLock) {
             openOrders.stream()
-                    .map(FplayOrder::getOrder)
+                    .map(FplayOrder::getLimitOrder)
                     .filter(order -> order.getStatus() == Order.OrderStatus.NEW
                             || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
                             || order.getStatus() == Order.OrderStatus.PENDING_NEW
@@ -1576,6 +1576,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                         if (result.isResult() || result.getDetails().contains("20015") /* "Order does not exist"*/) {
                             order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
+                            res.add(order);
                             break;
                         }
                     } catch (Exception e) {
@@ -1586,7 +1587,7 @@ public class OkCoinService extends MarketServicePreliq {
             });
         }
 
-        return res.size() > 0 && !res.contains(Boolean.FALSE);
+        return res;
     }
 
     private String getErrorCodeTranslation(OkCoinTradeResult result) {

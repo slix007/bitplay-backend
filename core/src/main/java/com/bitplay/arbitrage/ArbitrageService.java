@@ -114,6 +114,8 @@ public class ArbitrageService {
     @Autowired
     private SignalService signalService;
     @Autowired
+    private SignalVolatileModeService signalVolatileModeService;
+    @Autowired
     private DiffFactBrService diffFactBrService;
     @Autowired
     private DeltasCalcService deltasCalcService;
@@ -575,17 +577,16 @@ public class ArbitrageService {
                 && delta.subtract(border).compareTo(borderCrossDepth) >= 0) {
             persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
             warningLogger.info("Set TradingMode.VOLATILE by auto select");
+            signalVolatileModeService.justSetVolatileMode();
         }
     }
 
     private void trySwitchToVolatileModeBorderV2(final BordersService.TradingSignal tradingSignal) {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        if (settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT
-                && tradingSignal.borderValueList != null) {
+        if (settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT && tradingSignal.borderValueList != null) {
             BigDecimal minBorder = null;
             for (BigDecimal x : tradingSignal.borderValueList) {
-                minBorder = (minBorder == null || minBorder.subtract(x).signum() > 0)
-                        ? x : minBorder;
+                minBorder = (minBorder == null || minBorder.subtract(x).signum() > 0) ? x : minBorder;
             }
             if (minBorder != null && tradingSignal.deltaVal != null && !tradingSignal.deltaVal.isEmpty()) {
                 BigDecimal delta = new BigDecimal(tradingSignal.deltaVal);
