@@ -427,8 +427,8 @@ public class CommonUIService {
         // SignalPartsJson
         final SignalPartsJson signalPartsJson = new SignalPartsJson();
         signalPartsJson.setSignalDelay(timeToSignal.equals("_ready_") ? Status.OK : (timeToSignal.equals("_none_") ? Status.WRONG : Status.STARTED));
-        signalPartsJson.setBtmMaxDelta(arbitrageService.isMaxDeltaOk(DeltaName.B_DELTA) ? Status.OK : Status.WRONG);
-        signalPartsJson.setOkMaxDelta(arbitrageService.isMaxDeltaOk(DeltaName.O_DELTA) ? Status.OK : Status.WRONG);
+        signalPartsJson.setBtmMaxDelta(arbitrageService.isMaxDeltaViolated(DeltaName.B_DELTA) ? Status.WRONG : Status.OK);
+        signalPartsJson.setOkMaxDelta(arbitrageService.isMaxDeltaViolated(DeltaName.O_DELTA) ? Status.WRONG : Status.OK);
         final PosDiffJson posDiff = getPosDiff();
         signalPartsJson.setNtUsd(posDiff.isMainSetEqual() && posDiff.isExtraSetEqual() ? Status.OK : Status.WRONG);
         signalPartsJson.setStates(arbState == ArbState.READY && btmState == MarketState.READY && okState == MarketState.READY ? Status.OK : Status.WRONG);
