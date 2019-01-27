@@ -180,6 +180,7 @@ public class ArbitrageService {
             new ThreadFactoryBuilder().setNameFormat("signal-delay-thread-%d").build());
     // Signal delay end
     // Affordable for UI
+    private volatile DeltaName signalStatusDelta = null;
     private volatile boolean isAffordableBitmex = true;
     private volatile boolean isAffordableOkex = true;
     // Affordable for UI end
@@ -682,6 +683,7 @@ public class ArbitrageService {
 
             if (delta1.compareTo(border1) >= 0 && delta1.compareTo(btmMaxDelta) < 0) {
                 trySwitchToVolatileMode(delta1, border1);
+                signalStatusDelta = DeltaName.B_DELTA;
 
                 if (signalDelayActivateTime == null) {
                     startSignalDelay(0);
@@ -714,6 +716,7 @@ public class ArbitrageService {
                 }
             } else if (delta2.compareTo(border2) >= 0 && delta2.compareTo(okMaxDelta) < 0) {
                 trySwitchToVolatileMode(delta2, border2);
+                signalStatusDelta = DeltaName.O_DELTA;
 
                 if (signalDelayActivateTime == null) {
                     startSignalDelay(0);
@@ -770,6 +773,7 @@ public class ArbitrageService {
                 }
 
                 if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
+                    signalStatusDelta = DeltaName.B_DELTA;
                     if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
                         final PlBlocks bl = dynBlockDecreaseByAffordable(DeltaName.B_DELTA, BigDecimal.valueOf(tradingSignal.bitmexBlock),
                                 BigDecimal.valueOf(tradingSignal.okexBlock));
@@ -803,6 +807,7 @@ public class ArbitrageService {
                     }
 
                 } else if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
+                    signalStatusDelta = DeltaName.O_DELTA;
                     if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
                         final PlBlocks bl = dynBlockDecreaseByAffordable(DeltaName.O_DELTA, BigDecimal.valueOf(tradingSignal.bitmexBlock),
                                 BigDecimal.valueOf(tradingSignal.okexBlock));
@@ -976,6 +981,7 @@ public class ArbitrageService {
         if (futureSignal != null && !futureSignal.isDone()) {
             futureSignal.cancel(false);
         }
+        signalStatusDelta = null;
         isAffordableBitmex = true;
         isAffordableOkex = true;
     }
@@ -2026,5 +2032,9 @@ public class ArbitrageService {
 
     public boolean isAffordableOkex() {
         return isAffordableOkex;
+    }
+
+    public DeltaName getSignalStatusDelta() {
+        return signalStatusDelta;
     }
 }

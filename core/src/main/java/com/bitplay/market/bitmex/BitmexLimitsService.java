@@ -37,6 +37,7 @@ public class BitmexLimitsService implements LimitsService {
 
     private volatile boolean insideLimitsSavedStatus = true;
 
+    @Override
     public LimitsJson getLimitsJson() {
         final BitmexContractIndex contractIndex;
         try {

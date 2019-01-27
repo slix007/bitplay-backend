@@ -14,6 +14,7 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TimersJson;
 import com.bitplay.api.domain.TradeLogJson;
+import com.bitplay.api.domain.ob.LimitsJson;
 import com.bitplay.api.domain.pos.PosDiffJson;
 import com.bitplay.api.domain.states.DelayTimerBuilder;
 import com.bitplay.api.domain.states.DelayTimerJson;
@@ -33,6 +34,7 @@ import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.ArbState;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketState;
+import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -437,10 +439,23 @@ public class CommonUIService {
         signalPartsJson.setBtmDqlOpen(getDqlOpenStatus(bitmexService, posBtm));
         signalPartsJson.setOkDqlOpen(getDqlOpenStatus(okCoinService, posOk));
         setAffordableStatus(signalPartsJson);
-        final boolean btmLim = bitmexService.getLimitsService().outsideLimitsForPreliq(posBtm);
-        final boolean okLim = okCoinService.getLimitsService().outsideLimitsForPreliq(posOk);
+        final boolean btmLimOut = ((BitmexLimitsService) bitmexService.getLimitsService()).outsideLimits();
+        final DeltaName signalStatusDelta = arbitrageService.getSignalStatusDelta();
+        boolean okLimOut = false;
+        if (signalStatusDelta != null) {
+            final LimitsJson limitsJson = okCoinService.getLimitsService().getLimitsJson();
+            if (limitsJson.getIgnoreLimits()) {
+                okLimOut = false;
+            } else {
+                if (signalStatusDelta == DeltaName.B_DELTA) {
+                    okLimOut = !limitsJson.getInsideLimitsEx().getBtmDelta();
+                } else {
+                    okLimOut = !limitsJson.getInsideLimitsEx().getOkDelta();
+                }
+            }
+        }
 
-        signalPartsJson.setPriceLimits(!btmLim && !okLim ? Status.OK : Status.WRONG);
+        signalPartsJson.setPriceLimits(!btmLimOut && !okLimOut ? Status.OK : Status.WRONG);
 
         return new MarketStatesJson(
                 btmState.toString(),

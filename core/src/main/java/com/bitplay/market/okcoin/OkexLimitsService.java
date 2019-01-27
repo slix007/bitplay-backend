@@ -80,6 +80,7 @@ public class OkexLimitsService implements LimitsService {
         return new Params(limits.getIgnoreLimits(), okexLimitPriceNumber, limitBid, limitAsk, minPrice, maxPrice);
     }
 
+    @Override
     public LimitsJson getLimitsJson() {
         final Params p = getParams();
         // insideLimits: Limit Ask < Max price && Limit bid > Min price
