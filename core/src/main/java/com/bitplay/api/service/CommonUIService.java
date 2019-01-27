@@ -454,6 +454,7 @@ public class CommonUIService {
                 }
             }
         }
+        signalPartsJson.setDeltaName(signalStatusDelta == null ? "_" : signalStatusDelta.getDeltaSymbol());
 
         signalPartsJson.setPriceLimits(!btmLimOut && !okLimOut ? Status.OK : Status.WRONG);
 

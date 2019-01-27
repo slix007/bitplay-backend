@@ -9,11 +9,12 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum DeltaName {
-    B_DELTA("1"),
-    O_DELTA("2"),
+    B_DELTA("1", "b"),
+    O_DELTA("2", "o"),
     ;
 
     private String deltaNumber;
+    private String deltaSymbol;
 
     public String getNameWithNumber() {
         return "delta" + deltaNumber;

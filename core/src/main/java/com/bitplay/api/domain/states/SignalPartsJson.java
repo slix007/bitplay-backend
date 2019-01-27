@@ -9,6 +9,7 @@ public class SignalPartsJson {
         OK, WRONG, STARTED
     }
 
+    private String deltaName;
     private Status signalDelay;
     private Status btmMaxDelta;
     private Status okMaxDelta;
