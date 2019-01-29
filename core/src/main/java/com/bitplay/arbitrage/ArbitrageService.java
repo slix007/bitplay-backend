@@ -32,6 +32,7 @@ import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
+import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SignalTimeService;
@@ -139,6 +140,9 @@ public class ArbitrageService {
     private HedgeService hedgeService;
     @Autowired
     private BitmexChangeOnSoService bitmexChangeOnSoService;
+    @Autowired
+    private MetricsDictionary metricsDictionary;
+
 
 //    @Autowired // WARNING - this leads to "successfully sent 23 metrics to InfluxDB." should be over 70 metrics.
 //    private MeterRegistry meterRegistry;
@@ -506,6 +510,7 @@ public class ArbitrageService {
 
                 delta1 = delta1Update;
                 delta2 = delta2Update;
+                metricsDictionary.setDeltas(delta1Update, delta2Update);
 //                Metrics.counter("fplay.b_delta").increment(delta1Update.doubleValue());
 //                Set<Tag> tags = Sets.newHashSet(new ImmutableTag("o_delta", "o_delta"));
 //                Metrics.gauge("fplay.b_delta", delta1Update.doubleValue());

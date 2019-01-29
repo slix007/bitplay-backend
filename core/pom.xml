@@ -19,6 +19,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <xchange-stream.version>4.2.3-bts</xchange-stream.version>
         <xchange.version>4.2.2-bts-SNAPSHOT</xchange.version>
+        <micrometer.version>1.1.2</micrometer.version>
     </properties>
 
     <dependencies>
@@ -220,16 +221,22 @@
         <!--</dependency>-->
 
         <!-- https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-influx -->
+<!--        <dependency>-->
+<!--            <groupId>io.micrometer</groupId>-->
+<!--            <artifactId>micrometer-registry-influx</artifactId>-->
+<!--            <version>${micrometer.version}</version>-->
+<!--        </dependency>-->
+
         <dependency>
             <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-influx</artifactId>
-            <version>1.1.1</version>
+            <artifactId>micrometer-registry-statsd</artifactId>
+            <version>${micrometer.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-spring-legacy</artifactId>
-            <version>1.1.1</version>
+            <version>${micrometer.version}</version>
         </dependency>
 
 
