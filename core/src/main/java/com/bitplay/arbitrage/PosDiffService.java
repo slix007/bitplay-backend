@@ -219,10 +219,16 @@ public class PosDiffService {
         if (justFinished) {
             final Long tradeId = prevTradeId != null ? prevTradeId : arbitrageService.getLastTradeId();
             final String counterName = prevCounterName != null ? prevCounterName : signalType.getCounterName();
-            tradeService.info(tradeId, counterName, String.format("#%s fail. %s", counterName, obj.toString()));
+            final String attemptsStr = obj != null ? obj.toString() : "";
+            final String mainSetStr = arbitrageService.getMainSetStr();
+            final String extraSetStr = arbitrageService.getExtraSetStr();
+            tradeService.info(tradeId, counterName, String.format("#%s fail. %s", counterName, attemptsStr));
+            tradeService.info(tradeId, counterName, String.format("#%s fail. %s", counterName, mainSetStr));
+            tradeService.info(tradeId, counterName, String.format("#%s fail. %s", counterName, extraSetStr));
             if (prevCorrObj != null && prevCorrObj.marketService != null) {
-                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s fail. %s", counterName, arbitrageService.getMainSetStr()));
-                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s fail. %s", counterName, arbitrageService.getExtraSetStr()));
+                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s fail. %s", counterName, attemptsStr));
+                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s fail. %s", counterName, mainSetStr));
+                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s fail. %s", counterName, extraSetStr));
             }
         }
 
@@ -268,10 +274,15 @@ public class PosDiffService {
             final Long tradeId = prevTradeId != null ? prevTradeId : arbitrageService.getLastTradeId();
             final String counterName = prevCounterName != null ? prevCounterName : "";
             final String currAttemptsStr = obj != null ? obj.toString() : "";
+            final String mainSetStr = arbitrageService.getMainSetStr();
+            final String extraSetStr = arbitrageService.getExtraSetStr();
             tradeService.info(tradeId, counterName, String.format("#%s success. %s", counterName, currAttemptsStr));
+            tradeService.info(tradeId, counterName, String.format("#%s success. %s", counterName, mainSetStr));
+            tradeService.info(tradeId, counterName, String.format("#%s success. %s", counterName, extraSetStr));
             if (prevCorrObj != null && prevCorrObj.marketService != null) {
-                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s success. %s", counterName, arbitrageService.getMainSetStr()));
-                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s success. %s", counterName, arbitrageService.getExtraSetStr()));
+                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s success. %s", counterName, currAttemptsStr));
+                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s success. %s", counterName, mainSetStr));
+                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s success. %s", counterName, extraSetStr));
             }
         }
 
@@ -1209,7 +1220,7 @@ public class PosDiffService {
                 : (adjName.equals("b_delta_adj") ? o_com : b_com);
         if (corrObj.marketService != null) {
             final String counterName = corrObj.marketService.getCounterName(corrObj.signalType);
-            final String msg = String.format("#%s %s, %s - (%s + %s) = %s",
+            final String msg = String.format("#%s starting %s, %s - (%s + %s) = %s",
                     counterName,
                     adjName,
                     borderVal,
@@ -1217,7 +1228,8 @@ public class PosDiffService {
                     comVal,
                     borderVal.subtract(deltaVal.add(comVal))
             );
-            warningLogger.info(msg);
+            final Long tradeId = prevTradeId != null ? prevTradeId : arbitrageService.getLastTradeId();
+            tradeService.info(tradeId, counterName, msg);
             corrObj.marketService.getTradeLogger().info(msg);
         } else {
             warningLogger.info("adaptAdjByPos failed. " + corrObj);
