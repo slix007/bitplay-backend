@@ -60,9 +60,6 @@ public class SettingsEndpoint {
     private PosDiffService posDiffService;
 
     @Autowired
-    private TraderPermissionsService traderPermissionsService;
-
-    @Autowired
     private SettingsCorrEndpoint settingsCorrEndpoint;
 
     @Autowired

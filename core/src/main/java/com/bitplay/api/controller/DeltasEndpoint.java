@@ -1,7 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.persistance.DeltaRepositoryService;
-import com.bitplay.persistance.domain.fluent.Delta;
+import com.bitplay.api.domain.Delta;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.Dlt;
 import java.math.BigDecimal;

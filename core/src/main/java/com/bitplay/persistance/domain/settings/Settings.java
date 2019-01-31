@@ -80,6 +80,8 @@ public class Settings extends AbstractDocument {
     @Transient
     private CorrParams corrParams;
 
+    private String currentPreset;
+
     public static Settings createDefault() {
         final Settings settings = new Settings();
         settings.arbScheme = ArbScheme.SIM;

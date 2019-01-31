@@ -1,4 +1,4 @@
-package com.bitplay.persistance.migration.changelogs;
+package com.bitplay.persistance.migration.changelogs.y2018;
 
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;

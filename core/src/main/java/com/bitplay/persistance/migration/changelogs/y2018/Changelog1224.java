@@ -1,4 +1,4 @@
-package com.bitplay.persistance.migration.changelogs;
+package com.bitplay.persistance.migration.changelogs.y2018;
 
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
 import com.bitplay.persistance.domain.settings.Settings;

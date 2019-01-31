@@ -1,4 +1,4 @@
-package com.bitplay.persistance.domain.fluent;
+package com.bitplay.api.domain;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -10,7 +10,6 @@ import java.util.Date;
 /**
  * Created by Sergey Shurmin on 2/25/18.
  */
-@Document(collection = "deltasSeries")
 public class Delta {
 
     @JsonFormat(pattern="HH:mm:ss.SSS")

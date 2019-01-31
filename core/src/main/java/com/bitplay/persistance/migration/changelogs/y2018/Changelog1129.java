@@ -1,4 +1,4 @@
-package com.bitplay.persistance.migration.changelogs;
+package com.bitplay.persistance.migration.changelogs.y2018;
 
 import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.github.mongobee.changeset.ChangeLog;
