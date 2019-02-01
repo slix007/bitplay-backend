@@ -11,6 +11,7 @@ public class HostResolver {
     public static final String UNKNOWN = "unknown";
 
     private String hostname;
+    private String hostnameForMetrics;
 
     public String getHostname() {
         if (hostname == null) {
@@ -19,16 +20,25 @@ public class HostResolver {
         return hostname;
     }
 
+    public String getHostnameForMetrics() {
+        if (hostnameForMetrics == null) {
+            resolveHostname();
+        }
+        return hostnameForMetrics;
+    }
+
     private void resolveHostname() {
         final String localHostName;
         try {
             localHostName = InetAddress.getLocalHost().getHostName();
             hostname = localHostName.substring(0, 3);
+            hostnameForMetrics = localHostName.split("\\.")[0];
             if (localHostName.equals("sergei-XPS-15-9560")) {
                 hostname = LOCALHOST;
             }
         } catch (UnknownHostException e) {
             hostname = UNKNOWN;
+            hostnameForMetrics = UNKNOWN;
         }
     }
 
