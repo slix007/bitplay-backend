@@ -17,7 +17,7 @@ public class Changelog1017 {
     public void change02(MongoTemplate mongoTemplate) {
         final Settings settings = mongoTemplate.findById(1L, Settings.class);
         final GuiParams guiParams = mongoTemplate.findById(1L, GuiParams.class);
-        settings.setHedgeBtc(guiParams.getHedgeAmount());
+        settings.setHedgeBtc(BigDecimal.ZERO);
         settings.setHedgeEth(BigDecimal.ZERO);
         settings.setHedgeAuto(false);
         mongoTemplate.save(settings);

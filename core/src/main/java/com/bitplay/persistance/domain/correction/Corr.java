@@ -39,6 +39,12 @@ public class Corr extends CountedWithExtra {
                 BigDecimal.valueOf(100), false);
     }
 
+    void setSettingsParts(Corr corr) {
+        this.maxVolCorrUsd = corr.maxVolCorrUsd;
+        this.maxErrorCount = corr.maxErrorCount;
+        this.maxTotalCount = corr.maxTotalCount;
+    }
+
     public Integer getMaxVolCorrBitmex() {
         if (isEth == null || cm == null) {
             return 0;

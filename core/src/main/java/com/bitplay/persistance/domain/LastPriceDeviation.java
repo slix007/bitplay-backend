@@ -47,4 +47,10 @@ public class LastPriceDeviation extends AbstractParams {
         return currDevUsd.subtract(maxDevUsd).signum() > 0;
     }
 
+    public void setSettingsParts(LastPriceDeviation lpd) {
+        this.bitmexMain = lpd.bitmexMain;
+        this.okexMain = lpd.okexMain;
+        this.maxDevUsd = lpd.maxDevUsd;
+        this.delaySec = lpd.delaySec;
+    }
 }

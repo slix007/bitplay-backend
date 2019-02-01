@@ -32,4 +32,10 @@ public class CorrParams extends ExchangePairDocument {
         corrParams.setExchangePair(ExchangePair.BITMEX_OKEX);
         return corrParams;
     }
+
+    public void setSettingsParts(CorrParams corrParams) {
+        this.corr.setSettingsParts(corrParams.corr);
+        this.preliq.setSettingsParts(corrParams.preliq);
+        this.adj.setSettingsParts(corrParams.adj);
+    }
 }

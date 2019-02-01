@@ -29,6 +29,12 @@ public class Adj extends CountedWithExtra {
         return new Adj(0, 3, 0, 0, 0, 0);
     }
 
+    void setSettingsParts(Adj adj) {
+        this.maxErrorCount = adj.maxErrorCount;
+        this.maxTotalCount = adj.maxTotalCount;
+    }
+
+
     public boolean hasSpareAttempts() {
         boolean hasSpareCurrent = currErrorCount < maxErrorCount;
         boolean hasSparePermanent = getTotalCount() < maxTotalCount;

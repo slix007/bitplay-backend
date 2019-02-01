@@ -39,6 +39,13 @@ public class Preliq extends CountedPreliq {
                 BigDecimal.valueOf(100), false);
     }
 
+    void setSettingsParts(Preliq preliq) {
+        this.preliqBlockUsd = preliq.preliqBlockUsd;
+        this.maxErrorCount = preliq.maxErrorCount;
+        this.maxTotalCount = preliq.maxTotalCount;
+    }
+
+
     public Integer getPreliqBlockBitmex() {
         if (isEth == null || cm == null) {
             return 0;

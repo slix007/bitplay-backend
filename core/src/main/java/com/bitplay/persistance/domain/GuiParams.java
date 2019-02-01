@@ -33,7 +33,6 @@ public class GuiParams extends AbstractParams {
     private BigDecimal reserveBtc1 = BigDecimal.valueOf(0.00001);
     private BigDecimal reserveBtc2 = BigDecimal.valueOf(0.00001);
 
-    private BigDecimal hedgeAmount = BigDecimal.ZERO;
     private BigDecimal maxDiffCorr = BigDecimal.valueOf(1000);
     private Long periodToCorrection = 30L;
 
@@ -43,4 +42,13 @@ public class GuiParams extends AbstractParams {
     private Date lastCorrCheck;
     private Date lastMDCCheck;
 
+    public void setSettingsParts(GuiParams guiParams) {
+        this.border1 = guiParams.border1;
+        this.border2 = guiParams.border2;
+        this.reserveBtc1 = guiParams.reserveBtc1;
+        this.reserveBtc2 = guiParams.reserveBtc2;
+        this.maxDiffCorr = guiParams.maxDiffCorr;
+        this.periodToCorrection = guiParams.periodToCorrection;
+        this.fundingRateFee = guiParams.fundingRateFee;
+    }
 }

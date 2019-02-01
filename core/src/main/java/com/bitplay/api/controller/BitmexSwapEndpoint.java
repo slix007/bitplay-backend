@@ -5,7 +5,6 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.persistance.domain.SwapV2;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.annotation.Secured;
@@ -30,14 +29,14 @@ public class BitmexSwapEndpoint {
 
     @RequestMapping(value = "", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public SwapParams getSwapParams() {
-        return persistenceService.fetchSwapParams("bitmex");
+        return persistenceService.fetchSwapParams(BitmexService.NAME);
     }
 
     @RequestMapping(value = "/settings", method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson updateBordersSettings(@RequestBody SwapSettings settings) {
-        final SwapParams swapParams = persistenceService.fetchSwapParams("bitmex");
+        final SwapParams swapParams = persistenceService.fetchSwapParams(BitmexService.NAME);
 
         String respDetails = "";
         try {
