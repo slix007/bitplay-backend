@@ -205,6 +205,8 @@ public class CommonUIService {
         }
         arbitrageService.saveParamsToDb();
 
+        persistenceService.resetSettingsPreset();
+
         return convertToDeltasJson();
     }
 
@@ -270,12 +272,15 @@ public class CommonUIService {
         }
         if (deltalUpdateJson.getReserveBtc1() != null) {
             guiParams.setReserveBtc1(new BigDecimal(deltalUpdateJson.getReserveBtc1()));
+            persistenceService.resetSettingsPreset();
         }
         if (deltalUpdateJson.getReserveBtc2() != null) {
             guiParams.setReserveBtc2(new BigDecimal(deltalUpdateJson.getReserveBtc2()));
+            persistenceService.resetSettingsPreset();
         }
         if (deltalUpdateJson.getFundingRateFee() != null) {
             guiParams.setFundingRateFee(new BigDecimal(deltalUpdateJson.getFundingRateFee()));
+            persistenceService.resetSettingsPreset();
         }
         if (deltalUpdateJson.getSlip() != null) {
             cumParams.setSlip(new BigDecimal(deltalUpdateJson.getSlip()));
@@ -681,6 +686,9 @@ public class CommonUIService {
             posDiffService.setPeriodToCorrection(posCorrJson.getPeriodToCorrection());
         }
         arbitrageService.saveParamsToDb();
+
+        persistenceService.resetSettingsPreset();
+
         return new PosCorrJson("",
                 arbitrageService.getParams().getPeriodToCorrection(),
                 arbitrageService.getParams().getMaxDiffCorr().toPlainString());
@@ -718,6 +726,8 @@ public class CommonUIService {
         }
 
         persistenceService.saveGuiLiqParams(guiLiqParams);
+
+        persistenceService.resetSettingsPreset();
 
         final GuiLiqParams saved = persistenceService.fetchGuiLiqParams();
 
@@ -853,6 +863,9 @@ public class CommonUIService {
             lastPriceDeviationService.saveLastPriceDeviation(toUpdate);
             lastPriceDeviationService.getDelayTimer().stop();
         }
+        
+        persistenceService.resetSettingsPreset();
+
         return lastPriceDeviationService.getLastPriceDeviation();
     }
 

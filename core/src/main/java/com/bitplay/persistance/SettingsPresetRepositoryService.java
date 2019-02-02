@@ -42,7 +42,8 @@ public class SettingsPresetRepositoryService {
             settingsPreset.setId(nextId);
             settingsPreset.setName(name);
         }
-        fillPresetWithCurrentSettings(settingsPreset);
+        fillPresetWithCurrentSettings(settingsPreset, name);
+        settingsRepositoryService.saveSettings(settingsPreset.getSettings()); // save currentActive preset name
         settingsPresetRepository.save(settingsPreset);
 
         return settingsPreset;
@@ -50,6 +51,11 @@ public class SettingsPresetRepositoryService {
 
     public boolean deletePreset(String name) {
         final List<SettingsPreset> deleted = settingsPresetRepository.deleteByName(name);
+        final Settings settings = settingsRepositoryService.getSettings();
+        if (name.equals(settings.getCurrentPreset())) {
+            settings.setCurrentPreset("");
+            settingsRepositoryService.saveSettings(settings);
+        }
         return CollectionUtils.isEmpty(deleted);
     }
 
@@ -60,8 +66,9 @@ public class SettingsPresetRepositoryService {
 
     public SettingsPresetsJson getPresets() {
         final List<SettingsPreset> all = getAll();
+        final String currentPreset = settingsRepositoryService.getSettings().getCurrentPreset();
 
-        return new SettingsPresetsJson("", all);
+        return new SettingsPresetsJson(currentPreset, all);
     }
 
     public boolean setPreset(String name) {
@@ -88,7 +95,7 @@ public class SettingsPresetRepositoryService {
         return true;
     }
 
-    private void fillPresetWithCurrentSettings(SettingsPreset settingsPreset) {
+    private void fillPresetWithCurrentSettings(SettingsPreset settingsPreset, String name) {
         final Settings settings = settingsRepositoryService.getSettings();
         final BorderParams borderParams = persistenceService.fetchBorders();
         final CorrParams corrParams = persistenceService.fetchCorrParams();
@@ -96,6 +103,7 @@ public class SettingsPresetRepositoryService {
         final LastPriceDeviation lastPriceDeviation = persistenceService.fetchLastPriceDeviation();
         final SwapParams swapParams = persistenceService.fetchSwapParams(BitmexService.NAME);
 
+        settings.setCurrentPreset(name);
         settingsPreset.setSettings(settings);
         settingsPreset.setBorderParams(borderParams);
         settingsPreset.setCorrParams(corrParams); // min/max values

@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
+import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
@@ -17,7 +18,6 @@ import com.bitplay.persistance.domain.settings.RestartSettings;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SettingsVolatileMode;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
-import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +43,9 @@ public class SettingsEndpoint {
 
     @Autowired
     private Config config;
+
+    @Autowired
+    private PersistenceService persistenceService;
 
     @Autowired
     SettingsRepositoryService settingsRepositoryService;
@@ -311,6 +314,8 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
         }
 
+        persistenceService.resetSettingsPreset();
+
         final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
         settings.setCorrParams(corrParams);
 
@@ -451,6 +456,9 @@ public class SettingsEndpoint {
             settings.setEBestMin(settingsUpdate.getEBestMin());
             settingsRepositoryService.saveSettings(settings);
         }
+
+        persistenceService.resetSettingsPreset();
+
         return settings;
     }
 }

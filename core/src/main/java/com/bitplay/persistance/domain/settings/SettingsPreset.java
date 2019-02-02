@@ -27,8 +27,6 @@ public class SettingsPreset extends AbstractDocument {
     private String name;
     private Settings settings;
     private BorderParams borderParams;
-
-    //TODO
     private CorrParams corrParams; // min/max values
     private GuiParams guiParams;
     private GuiLiqParams guiLiqParams;

@@ -7,6 +7,6 @@ import lombok.Data;
 @Data
 public class SettingsPresetsJson {
 
-    private final String activeName;
+    private final String currentPreset;
     private final List<SettingsPreset> settingsPresets;
 }

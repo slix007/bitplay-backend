@@ -135,6 +135,9 @@ public class SettingsCorrEndpoint {
                 }
             }
         }
+
+        persistenceService.resetSettingsPreset();
+
         return corrParams;
     }
 

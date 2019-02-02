@@ -189,4 +189,10 @@ public class PersistenceService {
     public OrderRepositoryService getOrderRepositoryService() {
         return orderRepositoryService;
     }
+
+    public void resetSettingsPreset() {
+        final Settings settings = settingsRepositoryService.getSettings();
+        settings.setCurrentPreset("");
+        settingsRepositoryService.saveSettings(settings);
+    }
 }

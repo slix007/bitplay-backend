@@ -153,6 +153,8 @@ public class BordersEndpoint {
 
         persistenceService.saveBorderParams(borderParams);
 
+        persistenceService.resetSettingsPreset();
+
         return new ResultJson("OK", "");
     }
 
@@ -262,6 +264,8 @@ public class BordersEndpoint {
 
         persistenceService.saveBorderParams(bP);
 
+        persistenceService.resetSettingsPreset();
+
         return new ResultJson(respDetails, respDetails, bP);
     }
 
@@ -328,6 +332,8 @@ public class BordersEndpoint {
         }
 
         persistenceService.saveBorderParams(bP);
+
+        persistenceService.resetSettingsPreset();
 
         return new ResultJson(result, result);
     }
