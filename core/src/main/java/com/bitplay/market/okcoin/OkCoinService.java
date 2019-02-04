@@ -1870,6 +1870,13 @@ public class OkCoinService extends MarketServicePreliq {
         return isOk;
     }
 
+    public void resetWaitingArb() {
+        if (getMarketState() == MarketState.WAITING_ARB) {
+            placeOrderArgsRef.set(null);
+            setMarketState(MarketState.READY);
+        }
+    }
+
     @Override
     protected void onReadyState() {
         final PlaceOrderArgs prevArgs = placeOrderArgsRef.getAndSet(null);

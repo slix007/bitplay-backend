@@ -33,6 +33,7 @@ import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
@@ -1874,6 +1875,9 @@ public class BitmexService extends MarketServicePreliq {
 //            }
 //        } finally {
             setMarketState(nextMarketState, counterName);
+        if (nextMarketState == MarketState.SYSTEM_OVERLOADED) {
+            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+        }
 //        }
 
         // metrics
@@ -2674,6 +2678,8 @@ public class BitmexService extends MarketServicePreliq {
                         logInfoId,
                         orderId));
 
+                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+
                 return res;
 
             } catch (HttpStatusIOException e) {
@@ -2717,6 +2723,8 @@ public class BitmexService extends MarketServicePreliq {
                         limitOrders.stream().map(Order::getId).reduce((acc, item) -> acc + "," + item)), contractTypeStr);
 
                 updateOpenOrders(limitOrders);
+
+                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
 
                 return limitOrders;
 
