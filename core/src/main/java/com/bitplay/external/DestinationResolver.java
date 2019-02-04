@@ -17,19 +17,10 @@ public class DestinationResolver {
     @Autowired
     private HostResolver hostResolver;
 
-    private final static List<String> testServers = Arrays.asList(
-            "658",
-            "660");
-    private final static List<String> prodServers = Arrays.asList(
-            "659",
-            "662",
-            "667",
-            "668",
-            "669");
-    private final static List<String> prodActiveServers = Arrays.asList(
-            "662",
-            "669",
-            "659");
+    private final static List<String> testServers = Arrays.asList("658", "660");
+    private final static List<String> prodServers = Arrays.asList("659", "662", "667", "668", "669", "661");
+    private final static List<String> prodTraderPassiveServers = Arrays.asList("659", "662", "667", "668", "669");
+    private final static List<String> prodCoordinatorServers = Arrays.asList("662", "669", "659");
 
     // Trader active: сервера 662, 669, 659.
     //Список алармов:
@@ -127,18 +118,18 @@ public class DestinationResolver {
         } else if (prodServers.contains(hostLabel)) {
             channels.add(ALL_PROD_CHANNEL);
 
-            // Trader active: сервера 662, 669, 659, 667, 668
+            // Trader active: сервера 662, 669, 659, 667, 668, 661
             if (prodServers.contains(hostLabel) && traderActive.contains(notifyType)) {
                 channels.add(TRADER_ACTIVE_CHANNEL);
             }
 
             //2) Trader passive: сервера 662, 669, 659, 667, 668
-            if (prodServers.contains(hostLabel) && traderPassive.contains(notifyType)) {
+            if (prodTraderPassiveServers.contains(hostLabel) && traderPassive.contains(notifyType)) {
                 channels.add(TRADER_PASSIVE_CHANNEL);
             }
 
             //3) Coordinator: сервера 662, 669, 659,
-            if (prodActiveServers.contains(hostLabel) && coordinator.contains(notifyType)) {
+            if (prodCoordinatorServers.contains(hostLabel) && coordinator.contains(notifyType)) {
                 channels.add(COORDINATOR_CHANNEL);
             }
         }
