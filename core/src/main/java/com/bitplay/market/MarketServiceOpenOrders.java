@@ -301,7 +301,6 @@ public abstract class MarketServiceOpenOrders {
                         .map(FplayOrder::toString)
                         .reduce((s, s2) -> s + ";;;" + s2));
                 tradeId = getPersistenceService().getOrderRepositoryService().findTradeId(limitOrderUpdates);
-                logger.warn("found tradeId==" + tradeId);
             }
 
             // WORKAROUND2: use FplayTrades

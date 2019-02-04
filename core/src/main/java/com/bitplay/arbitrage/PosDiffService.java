@@ -28,6 +28,7 @@ import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.repository.FplayTradeRepository;
+import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
@@ -46,6 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.Position;
+import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1083,10 +1085,16 @@ public class PosDiffService {
     private void adaptAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS,
             final BigDecimal dc, final BigDecimal cm, final boolean isEth) {
 
+        final OrderBook btmOb = arbitrageService.getFirstMarketService().getOrderBook();
+        final OrderBook okOb = arbitrageService.getSecondMarketService().getOrderBook();
+        final BigDecimal btmAvg = Utils.calcQuAvg(btmOb, 3);
+        final BigDecimal okAvg = Utils.calcQuAvg(okOb, 3);
+
         Settings settings = settingsRepositoryService.getSettings();
         PlacingType placingType = settings.getPosAdjustment().getPosAdjustmentPlacingType();
-        final BigDecimal b_com = settings.getBFee(placingType);
-        final BigDecimal o_com = settings.getOFee(placingType);
+        // com_pts = com / 100 * b_best_sam
+        final BigDecimal b_com = (settings.getBFee(placingType)).multiply(btmAvg).divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
+        final BigDecimal o_com = (settings.getOFee(placingType)).multiply(okAvg).divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
         final BigDecimal ntUsd = dc.negate();
         final BorderParams borderParams = persistenceService.fetchBorders();
 
@@ -1105,14 +1113,14 @@ public class PosDiffService {
         String adjName = "";
         if (ntUsd.signum() < 0) {
             //if (nt_usd < 0) {
-            //if (b_border - (b_delta + b_com) >= o_border - (o_delta + o_com)
+            //if (b_border - (b_delta - b_com) >= o_border - (o_delta - o_com)
             //adj = o_delta_adj;
             //else
             //adj = b_delta_adj;
             //}
             // b_delta_adj означает что подгонку делаем по b_delta, то есть при nt_usd < 0 adj-сделку sell делаем на bitmex, при nt_usd > 0 adj-сделку buy делаем на okex.
             // o_delta_adj означает что подгонку делаем по o_delta, то есть при nt_usd < 0 adj-сделку sell делаем на okex, при nt_usd > 0 adj-сделку buy делаем на bitmex.
-            if (b_border.subtract(b_delta.add(b_com)).compareTo(o_border.subtract(o_delta.add(o_com))) >= 0) {
+            if (b_border.subtract(b_delta.subtract(b_com)).compareTo(o_border.subtract(o_delta.subtract(o_com))) >= 0) {
                 adjName = "o_delta_adj";
                 // okex sell
                 corrObj.marketService = arbitrageService.getSecondMarketService();
@@ -1151,14 +1159,14 @@ public class PosDiffService {
             }
         } else if (ntUsd.signum() > 0) { //
             //if (nt_usd > 0) {
-            //if (b_border - (b_delta + o_com) >= o_border - (o_delta + b_com)
+            //if (b_border - (b_delta + o_com) >= o_border - (o_delta - b_com)
             //adj = o_delta_adj;
             //else
             //adj = b_delta_adj;
             //}
             // b_delta_adj означает что подгонку делаем по b_delta, то есть при nt_usd < 0 adj-сделку sell делаем на bitmex, при nt_usd > 0 adj-сделку buy делаем на okex.
             // o_delta_adj означает что подгонку делаем по o_delta, то есть при nt_usd < 0 adj-сделку sell делаем на okex, при nt_usd > 0 adj-сделку buy делаем на bitmex.
-            if (b_border.subtract(b_delta.add(o_com)).compareTo(o_border.subtract(o_delta.add(b_com))) >= 0) {
+            if (b_border.subtract(b_delta.subtract(o_com)).compareTo(o_border.subtract(o_delta.subtract(b_com))) >= 0) {
                 adjName = "o_delta_adj";
                 // bitmex buy
                 corrObj.marketService = arbitrageService.getFirstMarketService();
