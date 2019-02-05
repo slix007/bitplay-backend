@@ -1228,7 +1228,7 @@ public class PosDiffService {
                 : (adjName.equals("b_delta_adj") ? o_com : b_com);
         if (corrObj.marketService != null) {
             final String counterName = corrObj.marketService.getCounterName(corrObj.signalType);
-            final String msg = String.format("#%s starting %s, %s - (%s + %s) = %s",
+            final String msg = String.format("#%s starting %s, %s - (%s - %s) = %s",
                     counterName,
                     adjName,
                     borderVal,
