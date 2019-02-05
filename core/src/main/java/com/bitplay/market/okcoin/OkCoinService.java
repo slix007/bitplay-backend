@@ -1872,8 +1872,9 @@ public class OkCoinService extends MarketServicePreliq {
 
     public void resetWaitingArb() {
         if (getMarketState() == MarketState.WAITING_ARB) {
-            placeOrderArgsRef.set(null);
+            final PlaceOrderArgs placeOrderArgs = placeOrderArgsRef.getAndSet(null);
             setMarketState(MarketState.READY);
+            setFree(placeOrderArgs.getTradeId()); // we should reset ArbitrageState to READY
         }
     }
 
