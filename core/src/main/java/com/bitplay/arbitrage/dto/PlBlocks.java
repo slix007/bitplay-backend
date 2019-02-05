@@ -15,6 +15,13 @@ public class PlBlocks {
     final private PlacingBlocks.Ver ver;
     final private String debugLog;
 
+    public PlBlocks(BigDecimal blockBitmex, BigDecimal blockOkex) {
+        this.blockBitmex = blockBitmex;
+        this.blockOkex = blockOkex;
+        this.ver = null;
+        this.debugLog = "";
+    }
+
     public PlBlocks(BigDecimal blockBitmex, BigDecimal blockOkex, PlacingBlocks.Ver ver) {
         this.blockBitmex = blockBitmex;
         this.blockOkex = blockOkex;

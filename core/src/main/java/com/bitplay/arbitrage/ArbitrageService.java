@@ -714,7 +714,7 @@ public class ArbitrageService {
                     final TradingSignal tradingSignal = new TradingSignal(BorderVer.borderV1, plBlocks.getVer(),
                             plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA1_B_SELL_O_BUY);
                     checkAndStartTradingOnDelta1(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
-                            tradingSignal, dynDeltaLogs, lastObTime);
+                            tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
                     return bestQuotes;
                 } else {
                     isAffordableBitmex = false;
@@ -746,7 +746,7 @@ public class ArbitrageService {
                     final TradingSignal tradingSignal = new TradingSignal(BorderVer.borderV1, plBlocks.getVer(),
                             plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA2_B_BUY_O_SELL);
                     checkAndStartTradingOnDelta2(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
-                            tradingSignal, dynDeltaLogs, lastObTime);
+                            tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
                     return bestQuotes;
                 } else {
                     isAffordableBitmex = false;
@@ -792,7 +792,7 @@ public class ArbitrageService {
                                         + bl.getDebugLog();
                                 Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
                                 checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
-                                        tradingSignal, dynDeltaLogs, lastObTime);
+                                        tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
                                 return bestQuotes;
                             } else {
                                 isAffordableBitmex = false;
@@ -808,7 +808,7 @@ public class ArbitrageService {
                         final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
                         Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
                         checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
-                                tradingSignal, null, lastObTime);
+                                tradingSignal, null, lastObTime, oPL, oPS);
                         return bestQuotes;
                     }
 
@@ -826,7 +826,7 @@ public class ArbitrageService {
                                         + bl.getDebugLog();
                                 Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
                                 checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
-                                        tradingSignal, dynDeltaLogs, lastObTime);
+                                        tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
                                 return bestQuotes;
                             } else {
                                 isAffordableBitmex = false;
@@ -842,7 +842,7 @@ public class ArbitrageService {
                         final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
                         Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
                         checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
-                                tradingSignal, null, lastObTime);
+                                tradingSignal, null, lastObTime, oPL, oPS);
                         return bestQuotes;
                     }
                 }
@@ -902,7 +902,7 @@ public class ArbitrageService {
 
     private void checkAndStartTradingOnDelta1(BorderParams borderParams, final BestQuotes bestQuotes, final BigDecimal b_block_input,
             final BigDecimal o_block_input, final TradingSignal tradingSignal, String dynamicDeltaLogs,
-            final Instant lastObTime) {
+            final Instant lastObTime, BigDecimal oPL, BigDecimal oPS) {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
 
@@ -918,8 +918,8 @@ public class ArbitrageService {
                 && secondMarketService.checkLiquidationEdge(OrderType.BID)
         ) {
 
-            final PlBlocks plBlocks = adjustByNtUsd(DeltaName.B_DELTA, b_block_input, o_block_input);
-                final BigDecimal b_block = plBlocks.getBlockBitmex();
+            final PlBlocks plBlocks = adjustByNtUsd(DeltaName.B_DELTA, b_block_input, o_block_input, oPL, oPS);
+            final BigDecimal b_block = plBlocks.getBlockBitmex();
             final BigDecimal o_block = plBlocks.getBlockOkex();
             final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
 
@@ -1093,7 +1093,7 @@ public class ArbitrageService {
     private void checkAndStartTradingOnDelta2(BorderParams borderParams,
             final BestQuotes bestQuotes, final BigDecimal b_block_input, final BigDecimal o_block_input,
             final TradingSignal tradingSignal, String dynamicDeltaLogs,
-            final Instant lastObTime) {
+            final Instant lastObTime, BigDecimal oPL, BigDecimal oPS) {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
@@ -1110,7 +1110,7 @@ public class ArbitrageService {
                 && secondMarketService.checkLiquidationEdge(OrderType.ASK)
         ) {
 
-            final PlBlocks plBlocks = adjustByNtUsd(DeltaName.O_DELTA, b_block_input, o_block_input);
+            final PlBlocks plBlocks = adjustByNtUsd(DeltaName.O_DELTA, b_block_input, o_block_input, oPL, oPS);
             final BigDecimal b_block = plBlocks.getBlockBitmex();
             final BigDecimal o_block = plBlocks.getBlockOkex();
             final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
@@ -1752,10 +1752,10 @@ public class ArbitrageService {
         return new PlBlocks(b1, b2, PlacingBlocks.Ver.DYNAMIC, debugLog);
     }
 
-    private PlBlocks adjustByNtUsd(DeltaName deltaRef, BigDecimal blockSize1, BigDecimal blockSize2) {
+    private PlBlocks adjustByNtUsd(DeltaName deltaRef, BigDecimal blockSize1, BigDecimal blockSize2, BigDecimal oPL, BigDecimal oPS) {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         if (settings.getAdjustByNtUsd() == null || !settings.getAdjustByNtUsd()) {
-            return new PlBlocks(blockSize1, blockSize2, PlacingBlocks.Ver.FIXED);
+            return new PlBlocks(blockSize1, blockSize2);
         }
 
         final BigDecimal cm = settings.getPlacingBlocks().getCm();
@@ -1772,23 +1772,24 @@ public class ArbitrageService {
             o_block_usd = blockSize2.multiply(BigDecimal.valueOf(100));
         }
 
+        // do the adjustment
         BigDecimal multiplicity = settings.getNtUsdMultiplicityOkex();
         BigDecimal ntUsd = getNtUsd();
         if (ntUsd.signum() > 0) {
             if (deltaRef == DeltaName.B_DELTA) {
-                b_block_usd = b_block_usd;
+//                b_block_usd = b_block_usd;
                 final BigDecimal ntUsdOkex = getNtUsdMult(ntUsd, multiplicity);
                 o_block_usd = o_block_usd.add(ntUsdOkex);
             } else if (deltaRef == DeltaName.O_DELTA) {
                 b_block_usd = b_block_usd.add(ntUsd);
-                o_block_usd = o_block_usd;
+//                o_block_usd = o_block_usd;
             }
         } else if (ntUsd.signum() < 0) {
             if (deltaRef == DeltaName.B_DELTA) {
                 b_block_usd = b_block_usd.subtract(ntUsd);
-                o_block_usd = o_block_usd;
+//                o_block_usd = o_block_usd;
             } else if (deltaRef == DeltaName.O_DELTA) {
-                b_block_usd = b_block_usd;
+//                b_block_usd = b_block_usd;
                 final BigDecimal ntUsdOkex = getNtUsdMult(ntUsd, multiplicity);
                 o_block_usd = o_block_usd.subtract(ntUsdOkex);
             }
@@ -1808,7 +1809,28 @@ public class ArbitrageService {
         b_block = b_block.signum() < 0 ? BigDecimal.ZERO : b_block;
         o_block = o_block.signum() < 0 ? BigDecimal.ZERO : o_block;
 
-        return new PlBlocks(b_block, o_block, PlacingBlocks.Ver.FIXED);
+        // if okex cross zero, we set okex block without ntUsd adj
+        if (deltaRef == DeltaName.B_DELTA && oPS.signum() > 0 && o_block.subtract(oPS).signum() > 0) { // okex buy
+            o_block = oPS;
+            b_block = getBitmexBlockByOkexBlock(cm, isEth, o_block);
+        } else if (deltaRef == DeltaName.O_DELTA && oPL.signum() > 0 && o_block.subtract(oPL).signum() > 0) { // okex sell
+            o_block = oPL;
+            b_block = getBitmexBlockByOkexBlock(cm, isEth, o_block);
+        }
+
+        return new PlBlocks(b_block, o_block);
+    }
+
+    private BigDecimal getBitmexBlockByOkexBlock(BigDecimal cm, boolean isEth, BigDecimal o_block) {
+        BigDecimal b_block;
+        if (isEth) {
+            final BigDecimal usd = o_block.multiply(BigDecimal.valueOf(10)); // okexCont to usd
+            b_block = usd.multiply(cm).divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP); // usd to bitmexCont
+        } else {
+            final BigDecimal usd = o_block.multiply(BigDecimal.valueOf(100)); // okexCont to usd
+            b_block = usd.setScale(0, RoundingMode.HALF_UP); // usd to bitmexCont
+        }
+        return b_block;
     }
 
     private BigDecimal getNtUsdMult(BigDecimal ntUsd, BigDecimal multiplicity) {
