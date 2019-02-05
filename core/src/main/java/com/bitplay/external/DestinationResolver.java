@@ -17,10 +17,10 @@ public class DestinationResolver {
     @Autowired
     private HostResolver hostResolver;
 
-    private final static List<String> testServers = Arrays.asList("658", "660");
-    private final static List<String> prodServers = Arrays.asList("659", "662", "667", "668", "669", "661");
-    private final static List<String> prodTraderPassiveServers = Arrays.asList("659", "662", "667", "668", "669");
-    private final static List<String> prodCoordinatorServers = Arrays.asList("662", "669", "659");
+    private final static List<String> testServers = Arrays.asList("658", "660", "661");
+    private final static List<String> testServersTraderActiveEx = Arrays.asList("661");// all from testServers
+    private final static List<String> prodServers = Arrays.asList("659", "662", "667", "668", "669");
+    private final static List<String> prodServersCoordinator = Arrays.asList("662", "669", "659"); // all from prodServers
 
     // Trader active: сервера 662, 669, 659.
     //Список алармов:
@@ -103,6 +103,7 @@ public class DestinationResolver {
     private final static String LOCAL_CHANNEL = "app-local";
     //    private final static String TEST_CHANNEL_NIGHT = "app-test-night";
     private final static String TRADER_ACTIVE_CHANNEL = "trader-active";
+    private final static String TRADER_ACTIVE_661_CHANNEL = "trader-active-661";
     private final static String TRADER_PASSIVE_CHANNEL = "trader-passive";
     private final static String COORDINATOR_CHANNEL = "coordinator";
     private final static String ALL_PROD_CHANNEL = "all-prod";
@@ -115,21 +116,26 @@ public class DestinationResolver {
             channels.add(LOCAL_CHANNEL);
         } else if (testServers.contains(hostLabel)) {
             channels.add(ALL_TEST_CHANNEL);
+
+            if (testServersTraderActiveEx.contains(hostLabel) && traderActive.contains(notifyType)) {
+                channels.add(TRADER_ACTIVE_661_CHANNEL);
+            }
+
         } else if (prodServers.contains(hostLabel)) {
             channels.add(ALL_PROD_CHANNEL);
 
-            // Trader active: сервера 662, 669, 659, 667, 668, 661
-            if (prodServers.contains(hostLabel) && traderActive.contains(notifyType)) {
+            // Trader active: сервера 662, 669, 659, 667, 668
+            if (traderActive.contains(notifyType)) {
                 channels.add(TRADER_ACTIVE_CHANNEL);
             }
 
             //2) Trader passive: сервера 662, 669, 659, 667, 668
-            if (prodTraderPassiveServers.contains(hostLabel) && traderPassive.contains(notifyType)) {
+            if (traderPassive.contains(notifyType)) {
                 channels.add(TRADER_PASSIVE_CHANNEL);
             }
 
             //3) Coordinator: сервера 662, 669, 659,
-            if (prodCoordinatorServers.contains(hostLabel) && coordinator.contains(notifyType)) {
+            if (prodServersCoordinator.contains(hostLabel) && coordinator.contains(notifyType)) {
                 channels.add(COORDINATOR_CHANNEL);
             }
         }
