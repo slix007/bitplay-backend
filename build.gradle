@@ -90,6 +90,7 @@ task deployHost662 << { sshRun(remotes.host662, remoteHomeDir, remoteInstallDir)
 task deployHost667 << { sshRun(remotes.host667, remoteHomeDir, remoteInstallDir) }
 task deployHost668 << { sshRun(remotes.host668, remoteHomeDir, remoteInstallDir) }
 task deployHost669 << { sshRun(remotes.host669, remoteHomeDir, remoteInstallDir) }
+task deployHost661 << { sshRun(remotes.host661, remoteHomeDir, remoteInstallDir) }
 task deployTest << { sshRun(remotes.test, remoteHomeDir, remoteInstallDir) }
 task deployProd << { sshRun(remotes.prod, remoteHomeDir, remoteInstallDir) }
 task deployDemo << { sshRun(remotes.demo, remoteHomeDir, remoteInstallDir) }
