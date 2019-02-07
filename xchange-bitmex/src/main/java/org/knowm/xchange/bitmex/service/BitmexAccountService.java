@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.bitmex.BitmexExchange;
-import org.knowm.xchange.bitmex.dto.PositionListWithHeaders;
+import org.knowm.xchange.bitmex.dto.ArrayListWithHeaders;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Position;
@@ -37,7 +37,7 @@ public class BitmexAccountService extends BitmexAccountServiceRaw implements Acc
     }
 
     public Position fetchPositionInfo(String symbol) throws IOException {
-        final PositionListWithHeaders positions;
+        final ArrayListWithHeaders<io.swagger.client.model.Position> positions;
         try {
             positions = bitmexAuthenitcatedApi.position(exchange.getExchangeSpecification().getApiKey(),
                     signatureCreator,

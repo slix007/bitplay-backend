@@ -10,8 +10,7 @@ import java.util.stream.Collectors;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.bitmex.BitmexExchange;
-import org.knowm.xchange.bitmex.dto.ExecutionListWithHeaders;
-import org.knowm.xchange.bitmex.dto.OrderListWithHeaders;
+import org.knowm.xchange.bitmex.dto.ArrayListWithHeaders;
 import org.knowm.xchange.bitmex.dto.OrderWithHeaders;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
@@ -200,7 +199,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
             throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
                 .getExchangeSpecificParametersItem("currencyToScale");
-        final OrderListWithHeaders orders;
+        final ArrayListWithHeaders<io.swagger.client.model.Order> orders;
         try {
             orders = bitmexAuthenitcatedApi.deleteOrder(
                     exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
@@ -227,7 +226,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
                 .getExchangeSpecificParametersItem("currencyToScale");
 
-        final OrderListWithHeaders orders;
+        final ArrayListWithHeaders<io.swagger.client.model.Order> orders;
         try {
             orders = bitmexAuthenitcatedApi.deleteAllOrders(
                     exchange.getExchangeSpecification().getApiKey(), signatureCreator, exchange.getNonceFactory(),
@@ -273,7 +272,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
 
     @SuppressWarnings("unchecked")
     private Collection<Order> fetchOrders(String filter, String count) throws IOException {
-        final OrderListWithHeaders orders;
+        final ArrayListWithHeaders<io.swagger.client.model.Order> orders;
         final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
                 .getExchangeSpecificParametersItem("currencyToScale");
 
@@ -299,7 +298,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
 
     public Collection<Execution> getOrderParts(String orderId) throws IOException {
         String filter = "{\"orderID\":\"" + orderId + "\"}"; //{"orderID": "0c8f1e6f-5a06-a8a8-6abf-96ebdecea95f"};
-        final ExecutionListWithHeaders executionList;
+        final ArrayListWithHeaders<Execution> executionList;
         try {
             executionList = bitmexAuthenitcatedApi.getTradeHistory(
                     exchange.getExchangeSpecification().getApiKey(),
