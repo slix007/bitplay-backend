@@ -2,9 +2,10 @@ package org.knowm.xchange.bitmex.service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.List;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.bitmex.BitmexAdapters;
+import org.knowm.xchange.bitmex.BitmexExchange;
+import org.knowm.xchange.bitmex.dto.PositionListWithHeaders;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Position;
@@ -12,6 +13,7 @@ import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.exceptions.NotAvailableFromExchangeException;
 import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
 import org.knowm.xchange.service.account.AccountService;
+import si.mazi.rescu.HttpStatusIOException;
 
 /**
  * Created by Sergey Shurmin on 5/3/17.
@@ -35,9 +37,18 @@ public class BitmexAccountService extends BitmexAccountServiceRaw implements Acc
     }
 
     public Position fetchPositionInfo(String symbol) throws IOException {
-        final List<io.swagger.client.model.Position> positions = bitmexAuthenitcatedApi.position(exchange.getExchangeSpecification().getApiKey(),
-                signatureCreator,
-                exchange.getNonceFactory());
+        final PositionListWithHeaders positions;
+        try {
+            positions = bitmexAuthenitcatedApi.position(exchange.getExchangeSpecification().getApiKey(),
+                    signatureCreator,
+                    exchange.getNonceFactory());
+        } catch (HttpStatusIOException e) {
+            final BitmexStateService bitmexStateService = ((BitmexExchange) exchange).getBitmexStateService();
+            bitmexStateService.setXrateLimit(e);
+            throw e;
+        }
+        final BitmexStateService bitmexStateService = ((BitmexExchange) exchange).getBitmexStateService();
+        bitmexStateService.setXrateLimit(positions);
 
         io.swagger.client.model.Position pos = positions.stream()
                 .filter(position -> position.getSymbol() != null && position.getSymbol().equals(symbol))

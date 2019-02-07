@@ -5,7 +5,6 @@ import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.okcoin.OOHangedCheckerService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.MonitoringDataService;
@@ -15,9 +14,12 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.bitmex.dto.BitmexXRateLimit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,9 +123,11 @@ public class DebugEndpoints {
         final BitmexService bs = (BitmexService) (arbitrageService.getFirstMarketService());
         final BitmexXRateLimit bitmexXRateLimit = bs.getxRateLimit();
         if (bitmexXRateLimit != null) {
-            final Integer theLimit = bitmexXRateLimit.getxRateLimit();
+            final int theLimit = bitmexXRateLimit.getxRateLimit();
+            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
+            final String timestamp = formatter.format(bitmexXRateLimit.getLastUpdate());
             monAllHtml += "<br>xRateLimit=" + (theLimit == 301 ? "no info" : theLimit)
-                    + "; lastUpdate: " + sdf.format(bitmexXRateLimit.getLastUpdate());
+                    + "; lastUpdate: " + timestamp;
         }
 
         monAllHtml += "<br>OOHangedChecker: " + ooHangedCheckerService.getStatus();

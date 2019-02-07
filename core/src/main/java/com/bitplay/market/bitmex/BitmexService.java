@@ -27,7 +27,6 @@ import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
-import com.bitplay.market.model.BitmexXRateLimit;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -88,6 +87,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.PreDestroy;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.bitmex.dto.BitmexXRateLimit;
 import org.knowm.xchange.bitmex.service.BitmexAccountService;
 import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -142,7 +142,6 @@ public class BitmexService extends MarketServicePreliq {
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
     private volatile AtomicInteger soAttempts = new AtomicInteger(0);
-    private volatile BitmexXRateLimit xRateLimit = BitmexXRateLimit.initValue();
 
     private volatile BigDecimal prevCumulativeAmount;
 
@@ -328,7 +327,6 @@ public class BitmexService extends MarketServicePreliq {
                 );
 
             } catch (HttpStatusIOException e) {
-                updateXRateLimit(e);
 
                 overloadByXRateLimit();
 
@@ -617,8 +615,6 @@ public class BitmexService extends MarketServicePreliq {
             recalcLiqInfo();
 
         } catch (HttpStatusIOException e) {
-            updateXRateLimit(e);
-
             overloadByXRateLimit();
 
             if (e.getMessage().contains("HTTP status code was not OK: 429")) {
@@ -953,7 +949,6 @@ public class BitmexService extends MarketServicePreliq {
                 getTradeLogger().info(String.format("#%s/%s bitmexChangeOnSo cancelled id=%s", counterForLogs, attemptCount, orderId));
 
             } catch (HttpStatusIOException e) {
-                updateXRateLimit(e);
                 overloadByXRateLimit();
 
                 logger.error("#{}/{} error cancel order id={}", counterForLogs, attemptCount, orderId, e);
@@ -2422,12 +2417,12 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     public BitmexXRateLimit getxRateLimit() {
-        return xRateLimit;
+        return exchange.getBitmexStateService().getxRateLimit();
     }
 
     @Override
     protected void postOverload() {
-        xRateLimit = BitmexXRateLimit.initValue();
+        exchange.getBitmexStateService().resetXrateLimit();
     }
 
     /**
@@ -2522,8 +2517,8 @@ public class BitmexService extends MarketServicePreliq {
                     }
 
                 } catch (HttpStatusIOException e) {
-                    updateXRateLimit(e);
 
+                    final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
                     final String rateLimitStr = String.format(" X-RateLimit-Remaining=%s ", xRateLimit.getxRateLimit());
 
                     logger.info(String.format("%s %s updateAvgPriceError.", logMsg, rateLimitStr), e);
@@ -2569,18 +2564,8 @@ public class BitmexService extends MarketServicePreliq {
                 contractTypeStr);
     }
 
-    private void updateXRateLimit(HttpStatusIOException e) {
-        final Map<String, List<String>> responseHeaders = e.getResponseHeaders();
-        final List<String> rateLimitValues = responseHeaders.get("X-RateLimit-Remaining");
-        if (rateLimitValues != null && rateLimitValues.size() > 0) {
-            xRateLimit = new BitmexXRateLimit(
-                    Integer.valueOf(rateLimitValues.get(0)),
-                    new Date()
-            );
-        }
-    }
-
     private boolean overloadByXRateLimit() {
+        final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
         boolean isExceeded = xRateLimit.getxRateLimit() <= 0;
         if (isExceeded) {
             String msg = String.format(" xRateLimit=%s(updated=%s). Stop!", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
@@ -2616,8 +2601,7 @@ public class BitmexService extends MarketServicePreliq {
         public HttpStatusIOExceptionHandler invoke() {
             try {
 
-                updateXRateLimit(e);
-
+                final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
                 final String rateLimitStr = String.format(" X-RateLimit-Remaining=%s ", xRateLimit.getxRateLimit());
 
                 final String marketResponseMessage;
@@ -2683,7 +2667,6 @@ public class BitmexService extends MarketServicePreliq {
                 return res;
 
             } catch (HttpStatusIOException e) {
-                updateXRateLimit(e);
                 overloadByXRateLimit();
 
                 logger.error("#{}/{} error cancel order id={}", counterForLogs, attemptCount, orderId, e);
@@ -2729,7 +2712,6 @@ public class BitmexService extends MarketServicePreliq {
                 return limitOrders;
 
             } catch (HttpStatusIOException e) {
-                updateXRateLimit(e);
                 overloadByXRateLimit();
 
                 logger.error("#{}/{} error cancel orders", counterForLogs, attemptCount, e);

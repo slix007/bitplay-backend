@@ -5,7 +5,7 @@ import java.util.Date;
 /**
  * Created by Sergey Shurmin on 10/27/17.
  */
-public class BitmexInfoDto {
+public class BitmexInfoDto implements HeadersAware {
 
     String name;
     String version;

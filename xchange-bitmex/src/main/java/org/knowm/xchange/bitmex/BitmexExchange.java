@@ -5,9 +5,9 @@ import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.bitmex.service.BitmexAccountService;
 import org.knowm.xchange.bitmex.service.BitmexMarketDataService;
+import org.knowm.xchange.bitmex.service.BitmexStateService;
 import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.utils.nonce.TimestampIncrementingNonceFactory;
-
 import si.mazi.rescu.SynchronizedValueFactory;
 
 /**
@@ -16,6 +16,8 @@ import si.mazi.rescu.SynchronizedValueFactory;
 public class BitmexExchange extends BaseExchange implements Exchange {
 
     private SynchronizedValueFactory<Long> nonceFactory = new TimestampIncrementingNonceFactory();
+
+    private final BitmexStateService bitmexStateService = new BitmexStateService();
 
     @Override
     protected void initServices() {
@@ -41,4 +43,7 @@ public class BitmexExchange extends BaseExchange implements Exchange {
         return nonceFactory;
     }
 
+    public BitmexStateService getBitmexStateService() {
+        return bitmexStateService;
+    }
 }
