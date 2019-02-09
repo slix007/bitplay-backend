@@ -47,16 +47,16 @@ public class BordersService {
 
     public BorderParams getBorderParams() {
         final BorderParams borderParams = persistenceService.fetchBorders();
-        adjValuesForVolatile(borderParams);
+        adjBorderV2Values(borderParams);
         return borderParams;
     }
 
     public List<BorderTable> getBorderTableList(BorderParams borderParams) {
-        adjValuesForVolatile(borderParams);
+        adjBorderV2Values(borderParams);
         return borderParams.getBordersV2().getBorderTableList();
     }
 
-    private void adjValuesForVolatile(final BorderParams borderParams) {
+    private void adjBorderV2Values(final BorderParams borderParams) {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         if (settings.getTradingModeState() != null
                 && settings.getTradingModeState().getTradingMode() != null
