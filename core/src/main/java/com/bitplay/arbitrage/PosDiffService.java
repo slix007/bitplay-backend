@@ -20,7 +20,7 @@ import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
-import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.CountedWithExtra;
@@ -822,7 +822,19 @@ public class PosDiffService {
 
         } else if (baseSignalType == SignalType.ADJ) {
 
-            adaptAdjByPos(corrObj, bP, oPL, oPS, dc, cm, isEth);
+            final Borders minBorders;
+            if (persistenceService.fetchBorders().getActiveVersion() == Ver.V1) {
+                final GuiParams guiParams = arbitrageService.getParams();
+                minBorders = new Borders(guiParams.getBorder1(), guiParams.getBorder2());
+            } else {
+                minBorders = bordersService.getMinBordersV2(bP, oPL, oPS);
+            }
+
+            if (minBorders != null) {
+                adaptAdjByPos(corrObj, bP, oPL, oPS, dc, cm, isEth, minBorders);
+            } else {
+                adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+            }
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
@@ -838,7 +850,7 @@ public class PosDiffService {
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
             maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
 
-            adaptCorrByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+            adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams);
 
         } // end corr
@@ -976,7 +988,10 @@ public class PosDiffService {
         ContractType contractType;
     }
 
-    private void adaptCorrByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
+    /**
+     * Corr/adj by 'trying decreasing pos'.
+     */
+    private void adaptCorrAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
             final BigDecimal dc, final BigDecimal cm, final boolean isEth) {
 
         final BigDecimal okexUsd = isEth
@@ -1081,35 +1096,30 @@ public class PosDiffService {
         corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
     }
 
+    /**
+     * Adj by 'how close to a border'.
+     */
     @SuppressWarnings("Duplicates")
     private void adaptAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS,
-            final BigDecimal dc, final BigDecimal cm, final boolean isEth) {
+            final BigDecimal dc, final BigDecimal cm, final boolean isEth, final Borders minBorders) {
 
         final OrderBook btmOb = arbitrageService.getFirstMarketService().getOrderBook();
         final OrderBook okOb = arbitrageService.getSecondMarketService().getOrderBook();
         final BigDecimal btmAvg = Utils.calcQuAvg(btmOb, 3);
         final BigDecimal okAvg = Utils.calcQuAvg(okOb, 3);
 
-        Settings settings = settingsRepositoryService.getSettings();
-        PlacingType placingType = settings.getPosAdjustment().getPosAdjustmentPlacingType();
+        final Settings settings = settingsRepositoryService.getSettings();
+        final PlacingType placingType = settings.getPosAdjustment().getPosAdjustmentPlacingType();
         // com_pts = com / 100 * b_best_sam
         final BigDecimal b_com = (settings.getBFee(placingType)).multiply(btmAvg).divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
         final BigDecimal o_com = (settings.getOFee(placingType)).multiply(okAvg).divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
         final BigDecimal ntUsd = dc.negate();
-        final BorderParams borderParams = persistenceService.fetchBorders();
 
-        BigDecimal b_border;
-        BigDecimal o_border;
-        BigDecimal b_delta = arbitrageService.getDelta1();
-        BigDecimal o_delta = arbitrageService.getDelta2();
-        if (borderParams.getActiveVersion() == Ver.V1) {
-            b_border = arbitrageService.getParams().getBorder1();
-            o_border = arbitrageService.getParams().getBorder2();
-        } else {
-            Borders minBorders = bordersService.getMinBorders(b_delta, o_delta, bP, oPL, oPS);
-            b_border = minBorders.b_border;
-            o_border = minBorders.o_border;
-        }
+        final BigDecimal b_border = minBorders.b_border;
+        final BigDecimal o_border = minBorders.o_border;
+        final BigDecimal b_delta = arbitrageService.getDelta1();
+        final BigDecimal o_delta = arbitrageService.getDelta2();
+
         String adjName = "";
         if (ntUsd.signum() < 0) {
             //if (nt_usd < 0) {

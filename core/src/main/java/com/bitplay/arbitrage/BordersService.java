@@ -223,7 +223,7 @@ public class BordersService {
     }
 
     @SuppressWarnings("Duplicates")
-    public Borders getMinBorders(BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
+    public Borders getMinBordersV2(BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
         final BorderParams borderParams = getBorderParams();
         final BordersV2 bordersV2 = borderParams.getBordersV2();
 
@@ -235,8 +235,8 @@ public class BordersService {
                 ? bP.intValueExact()
                 : oPL.intValueExact() - oPS.intValueExact();
 
-        BigDecimal btmMinBorder = BigDecimal.ZERO;
-        BigDecimal okMinBorder = BigDecimal.ZERO;
+        BigDecimal btmMinBorder = null;
+        BigDecimal okMinBorder = null;
         {
             final String borderName = "b_br_close";
             final Optional<BorderTable> b_br_close = bordersV2.getBorderTableByName(borderName);
@@ -368,7 +368,7 @@ public class BordersService {
             }
 
         } // o_br_open
-        return new Borders(btmMinBorder, okMinBorder);
+        return (btmMinBorder != null && okMinBorder != null) ? new Borders(btmMinBorder, okMinBorder) : null;
     }
 
     @SuppressWarnings("Duplicates")
