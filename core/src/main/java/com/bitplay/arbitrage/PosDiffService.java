@@ -9,6 +9,7 @@ import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexUtils;
@@ -445,33 +446,61 @@ public class PosDiffService {
     }
 
     private boolean marketsStopped() {
-        final FullBalance firstFullBalance = arbitrageService.getFirstMarketService().calcFullBalance();
-        final FullBalance secondFullBalance = arbitrageService.getSecondMarketService().calcFullBalance();
-
         return arbitrageService.getFirstMarketService().getMarketState().isStopped()
                 || arbitrageService.getSecondMarketService().getMarketState().isStopped()
                 || arbitrageService.isArbStatePreliq()
-                || firstFullBalance.getAccountInfoContracts() == null
-                || firstFullBalance.getAccountInfoContracts().geteBest() == null
-                || firstFullBalance.getAccountInfoContracts().geteBest().signum() <= 0
-                || secondFullBalance.getAccountInfoContracts() == null
-                || secondFullBalance.getAccountInfoContracts().geteBest() == null
-                || secondFullBalance.getAccountInfoContracts().geteBest().signum() <= 0;
+                || !fullBalanceIsOk();
     }
 
     private boolean marketsReady() {
-        final FullBalance firstFullBalance = arbitrageService.getFirstMarketService().calcFullBalance();
-        final FullBalance secondFullBalance = arbitrageService.getSecondMarketService().calcFullBalance();
 
         return arbitrageService.getFirstMarketService().isReadyForArbitrage()
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                 && !arbitrageService.isArbStatePreliq()
-                && firstFullBalance.getAccountInfoContracts() != null
+                && fullBalanceIsOk();
+    }
+
+    private boolean marketsReadyForAdj() {
+
+        final boolean btmSO = arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED;
+        final boolean btmReady = arbitrageService.getFirstMarketService().isReadyForArbitrage()
+                || (btmSO && adjOnOkex() && !arbitrageService.getFirstMarketService().hasOpenOrders());
+
+        return btmReady
+                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                && !arbitrageService.isArbStatePreliq()
+                && fullBalanceIsOk();
+    }
+
+    private boolean fullBalanceIsOk() {
+        final FullBalance firstFullBalance = arbitrageService.getFirstMarketService().calcFullBalance();
+        final FullBalance secondFullBalance = arbitrageService.getSecondMarketService().calcFullBalance();
+        return firstFullBalance.getAccountInfoContracts() != null
                 && firstFullBalance.getAccountInfoContracts().geteBest() != null
                 && firstFullBalance.getAccountInfoContracts().geteBest().signum() > 0
                 && secondFullBalance.getAccountInfoContracts() != null
                 && secondFullBalance.getAccountInfoContracts().geteBest() != null
                 && secondFullBalance.getAccountInfoContracts().geteBest().signum() > 0;
+    }
+
+    private boolean adjOnOkex() {
+        BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
+        BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
+        BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+
+        final BigDecimal cm = bitmexService.getCm();
+        boolean isEth = bitmexService.getContractType().isEth();
+        final BigDecimal dc = getDcMainSet().setScale(2, RoundingMode.HALF_UP);
+        final CorrObj corrObj = new CorrObj(SignalType.ADJ);
+        final BigDecimal hedgeAmount = getHedgeAmountMainSet();
+
+        fillCorrObjForAdj(corrObj, hedgeAmount, bP, oPL, oPS, cm, isEth, dc, false);
+
+        if (corrObj.marketService != null && corrObj.marketService.getName().equals(OkCoinService.NAME)) {
+            return true;
+        }
+
+        return false;
     }
 
     private boolean isMdcNeededMainSet() {
@@ -547,7 +576,7 @@ public class PosDiffService {
 
         // if all READY more than X sec
         final BigDecimal dcMainSet = getDcMainSet();
-        if (marketsReady() && isAdjViolated(dcMainSet) && corrParams.getAdj().hasSpareAttempts()) {
+        if (marketsReadyForAdj() && isAdjViolated(dcMainSet) && corrParams.getAdj().hasSpareAttempts()) {
 
             final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
             final long secToReady = dtAdj.secToReadyPrecise(pa.getPosAdjustmentDelaySec());
@@ -571,7 +600,7 @@ public class PosDiffService {
                     return true;
                 }
 
-                if (marketsReady() && isAdjViolated(getDcMainSet())) {
+                if (marketsReadyForAdj() && isAdjViolated(getDcMainSet())) {
 
                     doCorrection(getHedgeAmountMainSet(), SignalType.ADJ);
                     dtAdj.stop();
@@ -822,19 +851,7 @@ public class PosDiffService {
 
         } else if (baseSignalType == SignalType.ADJ) {
 
-            final Borders minBorders;
-            if (persistenceService.fetchBorders().getActiveVersion() == Ver.V1) {
-                final GuiParams guiParams = arbitrageService.getParams();
-                minBorders = new Borders(guiParams.getBorder1(), guiParams.getBorder2());
-            } else {
-                minBorders = bordersService.getMinBordersV2(bP, oPL, oPS);
-            }
-
-            if (minBorders != null) {
-                adaptAdjByPos(corrObj, bP, oPL, oPS, dc, cm, isEth, minBorders);
-            } else {
-                adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
-            }
+            fillCorrObjForAdj(corrObj, hedgeAmount, bP, oPL, oPS, cm, isEth, dc, true);
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
@@ -886,16 +903,15 @@ public class PosDiffService {
                 final String counterName = marketService.getCounterName(signalType);
                 final Long tradeId = arbitrageService.getLastTradeId();
 
-                final String message = String.format("#%s %s %s amount=%s c=%s. ", counterName, placingType, orderType, correctAmount, contractType);
+                final String soMark = isOAdjSo(corrObj) ? " o_adj_SO" : "";
+
+                final String message = String.format("#%s%s %s %s amount=%s c=%s. ", counterName, soMark, placingType, orderType, correctAmount, contractType);
                 slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
 
                 countOnStartCorr(corrParams, signalType);
 
-                if (signalType.getCounterName().contains("btc")) {
-                    tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, arbitrageService.getExtraSetStr()));
-                } else {
-                    tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, arbitrageService.getMainSetStr()));
-                }
+                final String setStr = signalType.getCounterName().contains("btc") ? arbitrageService.getExtraSetStr() : arbitrageService.getMainSetStr();
+                tradeService.info(tradeId, counterName, String.format("#%s%s %s", counterName, soMark, setStr));
                 tradeService.info(tradeId, counterName, message);
                 prevTradeId = tradeId;
                 prevCounterName = counterName;
@@ -921,6 +937,32 @@ public class PosDiffService {
             }
         }
 
+    }
+
+    private boolean isOAdjSo(CorrObj corrObj) {
+        if (corrObj.marketService != null && corrObj.signalType != null
+                && corrObj.marketService.getName().equals(OkCoinService.NAME)
+                && corrObj.signalType.isAdj()
+                && arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+            return true;
+        }
+        return false;
+    }
+
+    private void fillCorrObjForAdj(CorrObj corrObj, BigDecimal hedgeAmount, BigDecimal bP, BigDecimal oPL, BigDecimal oPS, BigDecimal cm, boolean isEth,
+            BigDecimal dc, boolean withLogs) {
+        final Borders minBorders;
+        if (persistenceService.fetchBorders().getActiveVersion() == Ver.V1) {
+            final GuiParams guiParams = arbitrageService.getParams();
+            minBorders = new Borders(guiParams.getBorder1(), guiParams.getBorder2());
+        } else {
+            minBorders = bordersService.getMinBordersV2(bP, oPL, oPS);
+        }
+        if (minBorders != null) {
+            adaptAdjByPos(corrObj, bP, oPL, oPS, dc, cm, isEth, minBorders, withLogs);
+        } else {
+            adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+        }
     }
 
     private boolean hasNoSpareAttempts(SignalType baseSignalType, CorrParams corrParams) {
@@ -1101,7 +1143,7 @@ public class PosDiffService {
      */
     @SuppressWarnings("Duplicates")
     private void adaptAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS,
-            final BigDecimal dc, final BigDecimal cm, final boolean isEth, final Borders minBorders) {
+            final BigDecimal dc, final BigDecimal cm, final boolean isEth, final Borders minBorders, boolean withLogs) {
 
         final OrderBook btmOb = arbitrageService.getFirstMarketService().getOrderBook();
         final OrderBook okOb = arbitrageService.getSecondMarketService().getOrderBook();
@@ -1223,6 +1265,13 @@ public class PosDiffService {
         }
 
         corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
+        if (withLogs) {
+            printLogsAdjByPos(corrObj, b_com, o_com, ntUsd, b_border, o_border, b_delta, o_delta, adjName);
+        }
+    }
+
+    private void printLogsAdjByPos(CorrObj corrObj, BigDecimal b_com, BigDecimal o_com, BigDecimal ntUsd, BigDecimal b_border, BigDecimal o_border,
+            BigDecimal b_delta, BigDecimal o_delta, String adjName) {
         //для nt_usd < 0:
         //b_delta_adj, b_border - (b_delta + b_com), или
         //o_delta_adj, o_border - (o_delta + o_com), или
