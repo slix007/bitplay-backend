@@ -3,6 +3,7 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.BordersService.Borders;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.dto.SignalTypeEx;
 import com.bitplay.arbitrage.dto.ThrottledWarn;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
@@ -453,20 +454,34 @@ public class PosDiffService {
     }
 
     private boolean marketsReady() {
-
         return arbitrageService.getFirstMarketService().isReadyForArbitrage()
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                 && !arbitrageService.isArbStatePreliq()
                 && fullBalanceIsOk();
     }
 
+    @SuppressWarnings("Duplicates")
+    private boolean marketsReadyForCorr() {
+        final MarketServicePreliq bitmexService = arbitrageService.getFirstMarketService();
+        final boolean btmReady = bitmexService.getMarketState() == MarketState.READY;
+        final boolean btmSo = bitmexService.getMarketState() == MarketState.SYSTEM_OVERLOADED;  // when SO, then corr on okex
+        final boolean btmReadyForCorr = !bitmexService.hasOpenOrders() && (btmReady || btmSo);
+
+        return btmReadyForCorr
+                && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                && !arbitrageService.isArbStatePreliq()
+                && fullBalanceIsOk();
+    }
+
+    @SuppressWarnings("Duplicates")
     private boolean marketsReadyForAdj() {
+        final MarketServicePreliq bitmexService = arbitrageService.getFirstMarketService();
+        final boolean btmReady = bitmexService.getMarketState() == MarketState.READY;
+        final boolean btmSo = bitmexService.getMarketState() == MarketState.SYSTEM_OVERLOADED;
+        final boolean btmSoReady = btmSo && adjOnOkex();
+        final boolean btmReadyForAdj = !bitmexService.hasOpenOrders() && (btmReady || btmSoReady);
 
-        final boolean btmSO = arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED;
-        final boolean btmReady = arbitrageService.getFirstMarketService().isReadyForArbitrage()
-                || (btmSO && adjOnOkex() && !arbitrageService.getFirstMarketService().hasOpenOrders());
-
-        return btmReady
+        return btmReadyForAdj
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                 && !arbitrageService.isArbStatePreliq()
                 && fullBalanceIsOk();
@@ -685,7 +700,7 @@ public class PosDiffService {
 
     private boolean corrStartedOrFailed(CorrParams corrParams) throws Exception {
         final BigDecimal dcMainSet = getDcMainSet();
-        if (marketsReady() && !isPosEqualByMaxAdj(dcMainSet) && corrParams.getCorr().hasSpareAttempts()) {
+        if (marketsReadyForCorr() && !isPosEqualByMaxAdj(dcMainSet) && corrParams.getCorr().hasSpareAttempts()) {
 
             final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
             final long secToReady = dtCorr.secToReadyPrecise(pa.getCorrDelaySec());
@@ -709,7 +724,7 @@ public class PosDiffService {
                 }
 
                 // Second check
-                if (marketsReady() && !isPosEqualByMaxAdj(getDcMainSet())) {
+                if (marketsReadyForCorr() && !isPosEqualByMaxAdj(getDcMainSet())) {
                     doCorrection(getHedgeAmountMainSet(), SignalType.CORR);
                     dtCorr.stop();
 
@@ -867,7 +882,11 @@ public class PosDiffService {
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
             maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
 
-            adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+            if (arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+                adaptCorrByPosOnBtmSo(corrObj, oPL, oPS, dc, isEth);
+            } else {
+                adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+            }
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams);
 
         } // end corr
@@ -903,15 +922,17 @@ public class PosDiffService {
                 final String counterName = marketService.getCounterName(signalType);
                 final Long tradeId = arbitrageService.getLastTradeId();
 
-                final String soMark = isOAdjSo(corrObj) ? " o_adj_SO" : "";
+                final String soMark = getSoMark(corrObj);
+                final SignalTypeEx signalTypeEx = new SignalTypeEx(signalType, soMark);
 
-                final String message = String.format("#%s%s %s %s amount=%s c=%s. ", counterName, soMark, placingType, orderType, correctAmount, contractType);
+                final String message = String
+                        .format("#%s %s %s amount=%s c=%s. ", signalTypeEx.getCounterName(), placingType, orderType, correctAmount, contractType);
                 slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
 
                 countOnStartCorr(corrParams, signalType);
 
                 final String setStr = signalType.getCounterName().contains("btc") ? arbitrageService.getExtraSetStr() : arbitrageService.getMainSetStr();
-                tradeService.info(tradeId, counterName, String.format("#%s%s %s", counterName, soMark, setStr));
+                tradeService.info(tradeId, counterName, String.format("#%s %s", signalTypeEx.getCounterName(), setStr));
                 tradeService.info(tradeId, counterName, message);
                 prevTradeId = tradeId;
                 prevCounterName = counterName;
@@ -939,14 +960,22 @@ public class PosDiffService {
 
     }
 
-    private boolean isOAdjSo(CorrObj corrObj) {
-        if (corrObj.marketService != null && corrObj.signalType != null
-                && corrObj.marketService.getName().equals(OkCoinService.NAME)
-                && corrObj.signalType.isAdj()
-                && arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED) {
-            return true;
+    private String getSoMark(CorrObj corrObj) {
+        if (corrObj.marketService != null && corrObj.signalType != null) {
+            if (corrObj.signalType.isAdj()) {
+                if (corrObj.marketService.getName().equals(OkCoinService.NAME)
+                        && arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+                    return "_SO";
+                }
+            } else { // isCorr
+                if (corrObj.marketService.getName().equals(OkCoinService.NAME)
+                        && corrObj.signalType.isIncreasePos()
+                        && arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+                    return "_SO";
+                }
+            }
         }
-        return false;
+        return "";
     }
 
     private void fillCorrObjForAdj(CorrObj corrObj, BigDecimal hedgeAmount, BigDecimal bP, BigDecimal oPL, BigDecimal oPS, BigDecimal cm, boolean isEth,
@@ -1033,6 +1062,7 @@ public class PosDiffService {
     /**
      * Corr/adj by 'trying decreasing pos'.
      */
+    @SuppressWarnings("Duplicates")
     private void adaptCorrAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
             final BigDecimal dc, final BigDecimal cm, final boolean isEth) {
 
@@ -1136,6 +1166,44 @@ public class PosDiffService {
         }
 
         corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
+    }
+
+    /**
+     * Corr by 'trying decreasing pos' with handling bitmex==SYSTEM_OVERLOADED.
+     */
+    @SuppressWarnings("Duplicates")
+    private void adaptCorrByPosOnBtmSo(final CorrObj corrObj, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal dc, final boolean isEth) {
+
+        if (dc.signum() < 0) {
+            // okcoin buy
+            corrObj.orderType = Order.OrderType.BID;
+            defineCorrectAmountOkex(corrObj, dc, isEth);
+            if (oPS.signum() > 0 && oPS.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_ASK
+                corrObj.correctAmount = oPS;
+            }
+
+            if ((oPL.subtract(oPS)).signum() >= 0) {
+                corrObj.signalType = SignalType.O_CORR_INCREASE_POS;
+            } else {
+                corrObj.signalType = SignalType.O_CORR;
+            }
+        } else {
+            // okcoin sell
+            corrObj.orderType = Order.OrderType.ASK;
+            defineCorrectAmountOkex(corrObj, dc, isEth);
+            if (oPL.signum() > 0 && oPL.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_BID
+                corrObj.correctAmount = oPL;
+            }
+
+            if ((oPL.subtract(oPS)).signum() <= 0) {
+                corrObj.signalType = SignalType.O_CORR_INCREASE_POS;
+            } else {
+                corrObj.signalType = SignalType.O_CORR;
+            }
+        }
+
+        corrObj.marketService = arbitrageService.getSecondMarketService();
+        corrObj.contractType = corrObj.marketService.getContractType();
     }
 
     /**
