@@ -31,9 +31,11 @@ public class PlaceOrderArgs {
     final private ContractType contractType;
     final private AmountType amountType;
     final private Instant preliqQueuedTime;
+    final private String preliqMarketName;
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType, int attempt,
-            Long tradeId, String counterName, Instant lastObTime, ContractType contractType, AmountType amountType, Instant preliqQueuedTime) {
+            Long tradeId, String counterName, Instant lastObTime, ContractType contractType, AmountType amountType, Instant preliqQueuedTime,
+            String preliqMarketName) {
         this.orderType = orderType;
         this.amount = amount;
         this.bestQuotes = bestQuotes;
@@ -46,6 +48,7 @@ public class PlaceOrderArgs {
         this.contractType = contractType;
         this.amountType = amountType;
         this.preliqQueuedTime = preliqQueuedTime;
+        this.preliqMarketName = preliqMarketName;
     }
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType, int attempt,
@@ -62,6 +65,7 @@ public class PlaceOrderArgs {
         this.contractType = contractType;
         this.amountType = amountType;
         this.preliqQueuedTime = null;
+        this.preliqMarketName = null;
     }
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType, int attempt,
@@ -78,6 +82,7 @@ public class PlaceOrderArgs {
         this.contractType = contractType;
         this.amountType = null;
         this.preliqQueuedTime = null;
+        this.preliqMarketName = null;
     }
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType, int attempt,
@@ -94,6 +99,7 @@ public class PlaceOrderArgs {
         this.contractType = null;
         this.amountType = null;
         this.preliqQueuedTime = null;
+        this.preliqMarketName = null;
     }
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType,
@@ -110,11 +116,13 @@ public class PlaceOrderArgs {
         this.contractType = null;
         this.amountType = null;
         this.preliqQueuedTime = null;
+        this.preliqMarketName = null;
     }
 
     public static PlaceOrderArgs nextPlacingArgs(PlaceOrderArgs curr) {
         return new PlaceOrderArgs(curr.orderType, curr.amount, curr.bestQuotes, curr.placingType, curr.signalType,
-                curr.attempt + 1, curr.tradeId, curr.counterName, curr.lastObTime, curr.contractType, curr.amountType, curr.preliqQueuedTime);
+                curr.attempt + 1, curr.tradeId, curr.counterName, curr.lastObTime, curr.contractType, curr.amountType, curr.preliqQueuedTime,
+                curr.preliqMarketName);
     }
 
 }

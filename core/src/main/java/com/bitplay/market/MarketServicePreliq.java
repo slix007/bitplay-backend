@@ -224,7 +224,7 @@ public abstract class MarketServicePreliq extends MarketService {
                 1,
                 tradeId,
                 counterName,
-                null, null, null, Instant.now());
+                null, null, null, Instant.now(), getName());
         final PlaceOrderArgs okexArgs = new PlaceOrderArgs(
                 deltaName == DeltaName.B_DELTA ? OrderType.BID : OrderType.ASK,
                 o_block,
@@ -234,7 +234,7 @@ public abstract class MarketServicePreliq extends MarketService {
                 1,
                 tradeId,
                 counterName,
-                null, null, null, Instant.now());
+                null, null, null, Instant.now(), getName());
 
         getTradeLogger().info(String.format("%s put preliq orders into the queues(bitmex/okex)", counterName));
         getArbitrageService().getFirstMarketService().getPreliqQueue().add(btmArgs);

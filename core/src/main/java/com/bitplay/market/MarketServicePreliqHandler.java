@@ -80,6 +80,16 @@ public class MarketServicePreliqHandler {
             return;
         }
 
+        // by b_DQL -> bitmex do preliq immediate
+        // by o_DQL -> bitmex waiting for SO
+        if (marketService.getName().equals(BitmexService.NAME)) {
+            if (item.getPreliqMarketName() != null
+                    && item.getPreliqMarketName().equals(OkCoinService.NAME)
+                    && marketService.getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+                return; // wait while SYSTEM_OVERLOADED
+            }
+        } // else okex do preliq immediate
+
         if (outsideLimits(marketService)) {
             // no order, but let to be '#isExpired'
             return;
