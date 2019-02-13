@@ -578,19 +578,22 @@ public class ArbitrageService {
         final BigDecimal borderCrossDepth = settings.getSettingsVolatileMode().getBorderCrossDepth();
         if (settings.getTradingModeAuto()
                 && borderCrossDepth.signum() > 0
-                && settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT
                 && delta.subtract(border).compareTo(borderCrossDepth) >= 0) {
-            persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
-            warningLogger.info("Set TradingMode.VOLATILE by auto select");
-            signalVolatileModeService.justSetVolatileMode();
-            return true;
+            if (settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
+                persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
+                warningLogger.info("Set TradingMode.VOLATILE by auto select");
+                signalVolatileModeService.justSetVolatileMode();
+                return true;
+            } else {
+                // already VOLATILE mode, but need to update timestamp
+                persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
+            }
         }
         return false;
     }
 
     private boolean trySwitchToVolatileModeBorderV2(final BordersService.TradingSignal tradingSignal) {
-        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        if (settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT && tradingSignal.borderValueList != null) {
+        if (tradingSignal.borderValueList != null) {
             BigDecimal minBorder = null;
             for (BigDecimal x : tradingSignal.borderValueList) {
                 minBorder = (minBorder == null || minBorder.subtract(x).signum() > 0) ? x : minBorder;
@@ -691,7 +694,7 @@ public class ArbitrageService {
             BigDecimal border2 = getBorder2();
 
             if (delta1.compareTo(border1) >= 0 && delta1.compareTo(btmMaxDelta) < 0) {
-                trySwitchToVolatileMode(delta1, border1);
+                    trySwitchToVolatileMode(delta1, border1);
                 signalStatusDelta = DeltaName.B_DELTA;
 
                 if (signalDelayActivateTime == null) {
