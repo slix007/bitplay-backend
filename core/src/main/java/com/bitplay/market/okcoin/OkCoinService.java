@@ -1153,10 +1153,6 @@ public class OkCoinService extends MarketServicePreliq {
 
         BigDecimal thePrice;
 
-        final String message = Utils.getTenAskBid(getOrderBook(), counterName, String.format("Before %s placing", placingSubType));
-        logger.info(message);
-        tradeLogger.info(message);
-
         if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
 
             tradeResponse.setErrorCode("Not enough amount left. amount=" + tradeableAmount.toPlainString());
@@ -1164,6 +1160,11 @@ public class OkCoinService extends MarketServicePreliq {
         } else {
             // USING REST API
             orderType = adjustOrderType(orderType, tradeableAmount);
+
+            final String message = Utils.getTenAskBid(getOrderBook(), counterName,
+                    String.format("Before %s placing, orderType=%s,", placingSubType, Utils.convertOrderTypeName(orderType)));
+            logger.info(message);
+            tradeLogger.info(message);
 
             if (placingSubType == null || placingSubType == PlacingType.TAKER) {
                 tradeLogger.warn("placing maker, but subType is " + placingSubType);
