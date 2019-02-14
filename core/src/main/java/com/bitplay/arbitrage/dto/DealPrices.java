@@ -7,6 +7,7 @@ import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -41,6 +42,12 @@ public class DealPrices implements Serializable {
     private BigDecimal border2;
     private PlacingType okexPlacingType;
     private PlacingType btmPlacingType;
+    private TradingMode tradingMode;
+    private int volatileModeCounter;
+
+    public synchronized void incVolatileModeCounter() {
+        volatileModeCounter++;
+    }
 
     public synchronized BigDecimal getBorder1() {
         return border1;

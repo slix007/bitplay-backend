@@ -2,6 +2,7 @@ package com.bitplay.persistance.domain.fluent;
 
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -46,6 +47,8 @@ public class FplayTrade {
     private List<String> tradeStatusUpdates;
     private List<String> bitmexStatusUpdates;
     private List<String> okexStatusUpdates;
+
+    private TradingMode tradingMode;
 
     private BitmexContractType bitmexContractType;
     private OkexContractType okexContractType;

@@ -585,6 +585,8 @@ public class ArbitrageService {
                 synchronized (dealPrices) {
                     dealPrices.setBtmPlacingType(btmPlacingType);
                     dealPrices.setOkexPlacingType(okexPlacingType);
+                    dealPrices.setTradingMode(TradingMode.CURRENT_VOLATILE);
+                    dealPrices.setVolatileModeCounter(1);
                 }
 
                 signalVolatileModeService.justSetVolatileMode(); // replace-limit-orders
@@ -1058,6 +1060,11 @@ public class ArbitrageService {
             tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
         }
 
+        // Borders are always from Current mode (not volatile)
+        final BorderParams borderParamsForCurrentMode = persistenceService.fetchBorders(); // not volatile
+        final BigDecimal border1 = params.getBorder1();
+        final BigDecimal border2 = params.getBorder2();
+
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final PlacingType okexPlacingType = settings.getOkexPlacingType();
         PlacingType btmPlacingType = settings.getBitmexPlacingType();
@@ -1066,8 +1073,8 @@ public class ArbitrageService {
         synchronized (dealPrices) {
             dealPrices.setBtmPlacingType(btmPlacingType);
             dealPrices.setOkexPlacingType(okexPlacingType);
-            dealPrices.setBorder1(getBorder1());
-            dealPrices.setBorder2(getBorder2());
+            dealPrices.setBorder1(border1);
+            dealPrices.setBorder2(border2);
             dealPrices.setbBlock(b_block);
             dealPrices.setoBlock(o_block);
             dealPrices.setDelta1Plan(delta1);
@@ -1082,7 +1089,7 @@ public class ArbitrageService {
             dealPrices.setbPriceFact(new AvgPrice(counterName, b_block, "bitmex", bitmexScale));
             dealPrices.setoPriceFact(new AvgPrice(counterName, o_block, "okex", okexScale));
 
-            dealPrices.setBorderParamsOnStart(borderParams);
+            dealPrices.setBorderParamsOnStart(borderParamsForCurrentMode);
             dealPrices.setPos_bo(pos_bo);
             dealPrices.calcPlanPosAo(b_block_input, o_block_input);
 
@@ -1105,8 +1112,21 @@ public class ArbitrageService {
                 avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
                 dealPrices.setoPriceFact(avgPrice);
             }
+
+            if (settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
+                dealPrices.setTradingMode(TradingMode.CURRENT); // volatile mode is set by #trySwitchToVolatile
+            } else {
+                if (dealPrices.getVolatileModeCounter() == 1) {
+                    dealPrices.setTradingMode(TradingMode.CURRENT_VOLATILE);
+                } else {
+                    dealPrices.setTradingMode(TradingMode.VOLATILE);
+                }
+                dealPrices.incVolatileModeCounter();
+            }
+            tradeService.setTradingMode(tradeId, dealPrices.getTradingMode());
         }
 
+        tradeService.info(tradeId, counterName, String.format("#%s Trading mode = %s", counterName, dealPrices.getTradingMode().getFullName()));
         tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
     }
 
@@ -1171,7 +1191,6 @@ public class ArbitrageService {
         }
     }
 
-    //    @SuppressWarnings("Duplicates")
     private void startTradingOnDelta2(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_p, BigDecimal bid1_o,
             Instant lastObTime,

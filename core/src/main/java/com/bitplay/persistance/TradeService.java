@@ -9,6 +9,7 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.repository.FplayTradeRepository;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -72,6 +73,15 @@ public class TradeService {
                     , FplayTrade.class);
         }
 
+    }
+
+    public void setTradingMode(Long tradeId, TradingMode tradingMode) {
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                new Update()
+                        .inc("version", 1)
+                        .set("updated", new Date())
+                        .set("tradingMode", tradingMode),
+                FplayTrade.class);
     }
 
     public void setEndStatus(Long tradeId, TradeStatus tradeStatus) {

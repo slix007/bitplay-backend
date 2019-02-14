@@ -7,8 +7,9 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum TradingMode {
-    CURRENT("Current mode"),
-    VOLATILE("Volatile mode");
+    CURRENT("current"),
+    VOLATILE("volatile"),
+    CURRENT_VOLATILE("current-volatile"); // only for fplayTrade logs in DB
 
     private String fullName;
 }
