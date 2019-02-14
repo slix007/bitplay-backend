@@ -17,7 +17,6 @@ public class DeltasJson {
     private String border2;
     private String cumDelta;
     private String cumAstDelta;
-    private String lastDelta;
     private String cumDeltaFact;
     private String cumAstDeltaFact;
     private String cumDiffFactBr;

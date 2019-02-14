@@ -25,8 +25,6 @@ public class GuiParams extends AbstractParams {
     private BigDecimal border1 = BigDecimal.valueOf(10000);
     private BigDecimal border2 = BigDecimal.valueOf(10000);
 
-    private String lastDelta = null;
-
     private int counter1 = 0;
     private int counter2 = 0;
 

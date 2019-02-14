@@ -13,7 +13,6 @@ import lombok.Setter;
 public class DeltalUpdateJson {
 
     private String cumDelta;
-    private String lastDelta;
     private String cumDeltaFact;
     private String cumDiffFactBr;
     private String cumDiffFact1;

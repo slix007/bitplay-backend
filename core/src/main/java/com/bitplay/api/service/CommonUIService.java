@@ -219,9 +219,6 @@ public class CommonUIService {
             cumParams.setCumAstDelta1(new BigDecimal(deltalUpdateJson.getCumDelta()));
             cumParams.setCumAstDelta2(new BigDecimal(deltalUpdateJson.getCumDelta()));
         }
-        if (deltalUpdateJson.getLastDelta() != null) {
-            guiParams.setLastDelta(deltalUpdateJson.getLastDelta());
-        }
         if (deltalUpdateJson.getCumDeltaFact() != null) {
             cumParams.setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
             cumParams.setCumAstDeltaFact1(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
@@ -344,7 +341,6 @@ public class CommonUIService {
                 arbitrageService.getBorder2().toPlainString(),
                 cumParams.getCumDelta().toPlainString(),
                 cumParams.getCumAstDelta1().add(cumParams.getCumAstDelta2()).setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                guiParams.getLastDelta(),
                 cumParams.getCumDeltaFact().toPlainString(),
                 cumParams.getCumAstDeltaFact1().add(cumParams.getCumAstDeltaFact2()).setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 cumParams.getCumDiffFactBr().toPlainString(),

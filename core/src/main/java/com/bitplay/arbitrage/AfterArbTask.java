@@ -45,7 +45,6 @@ public class AfterArbTask implements Runnable {
     private final DealPrices dealPrices;
     private final SignalType signalType;
     private final GuiLiqParams guiLiqParams;
-    private final DeltaName deltaName;
     private final Long tradeId;
     private final String counterName;
     private final Settings settings;
@@ -130,7 +129,7 @@ public class AfterArbTask implements Runnable {
         deltaLogWriter.info(String.format("#%s Params for calc: con=%s, b_bid=%s, b_ask=%s, ok_bid=%s, ok_ask=%s, b_price_fact=%s, ok_price_fact=%s",
                 counterName, con, b_bid, b_ask, ok_bid, ok_ask, b_price_fact, ok_price_fact));
 
-        if (deltaName == DeltaName.B_DELTA) {
+        if (dealPrices.getDeltaName() == DeltaName.B_DELTA) {
             cumParams.setCompletedCounter1(cumParams.getCompletedCounter1() + 1);
 
             cumParams.setCumDelta(cumParams.getCumDelta().add(dealPrices.getDelta1Plan()));
@@ -173,7 +172,7 @@ public class AfterArbTask implements Runnable {
 
             printOAvgPrice();
 
-        } else if (deltaName == DeltaName.O_DELTA) {
+        } else if (dealPrices.getDeltaName() == DeltaName.O_DELTA) {
             cumParams.setCompletedCounter2(cumParams.getCompletedCounter2() + 1);
 
             cumParams.setCumDelta(cumParams.getCumDelta().add(dealPrices.getDelta2Plan()));
@@ -333,7 +332,7 @@ public class AfterArbTask implements Runnable {
         } else {
             BorderParams borderParams = dealPrices.getBorderParamsOnStart();
             if (borderParams.getActiveVersion() == Ver.V1) {
-                BigDecimal wam_br = dealPrices.getDeltaName().equals(DeltaName.B_DELTA)
+                BigDecimal wam_br = dealPrices.getDeltaName() == DeltaName.B_DELTA
                         ? dealPrices.getBorder1()
                         : dealPrices.getBorder2();
 

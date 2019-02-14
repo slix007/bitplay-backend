@@ -323,7 +323,6 @@ public class ArbitrageService {
                     final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
                     // todo separate startSignalParams with endSignalParams (cumParams)
                     final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
-                    final DeltaName deltaName = params.getLastDelta().equals(DELTA1) ? DeltaName.B_DELTA : DeltaName.O_DELTA;
                     final Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
                             .toBuilder().build();
                     final Position okexPosition = secondMarketService.getPosition();
@@ -331,7 +330,6 @@ public class ArbitrageService {
                     AfterArbTask afterArbTask = new AfterArbTask(dealPricesSnap,
                             signalTypeSnap,
                             guiLiqParams,
-                            deltaName,
                             tradeIdSnap,
                             counterNameSnap,
                             settings,
@@ -574,15 +572,25 @@ public class ArbitrageService {
     private boolean trySwitchToVolatileMode(BigDecimal delta, BigDecimal border) {
         // если delta1 plan - border1 >= Border cross depth или delta2 plan - border2 >= Border cross depth,
         // то это триггер для переключения из Current mode в Volatile Mode.
-        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        final BigDecimal borderCrossDepth = settings.getSettingsVolatileMode().getBorderCrossDepth();
-        if (settings.getTradingModeAuto()
+        final Settings settingsInit = persistenceService.getSettingsRepositoryService().getSettings();
+        final BigDecimal borderCrossDepth = settingsInit.getSettingsVolatileMode().getBorderCrossDepth();
+        if (settingsInit.getTradingModeAuto()
                 && borderCrossDepth.signum() > 0
                 && delta.subtract(border).compareTo(borderCrossDepth) >= 0) {
-            if (settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
-                persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
+            if (settingsInit.getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
+                final Settings settingsChanged = persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
                 warningLogger.info("Set TradingMode.VOLATILE by auto select");
-                signalVolatileModeService.justSetVolatileMode();
+
+                // if we replace-limit-orders then fix commissions for current signal.
+                final PlacingType okexPlacingType = settingsChanged.getOkexPlacingType();
+                PlacingType btmPlacingType = settingsChanged.getBitmexPlacingType();
+                btmPlacingType = bitmexChangeOnSoService.isActive() ? PlacingType.TAKER : btmPlacingType;
+                synchronized (dealPrices) {
+                    dealPrices.setBtmPlacingType(btmPlacingType);
+                    dealPrices.setOkexPlacingType(okexPlacingType);
+                }
+
+                signalVolatileModeService.justSetVolatileMode(); // replace-limit-orders
                 return true;
             } else {
                 // already VOLATILE mode, but need to update timestamp
@@ -1013,7 +1021,6 @@ public class ArbitrageService {
         return Instant.now().toEpochMilli() - signalDelayActivateTime > signalDelayMs;
     }
 
-    @SuppressWarnings("Duplicates")
     private void startTradingOnDelta1(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_o, BigDecimal bid1_p,
             Instant lastObTime,
@@ -1022,16 +1029,33 @@ public class ArbitrageService {
         logger.info("START SIGNAL 1");
         startSignalTime = Instant.now();
 
-        int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
+        final DeltaName deltaName = DeltaName.B_DELTA;
+        final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName);
 
-        bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
-        setSignalType(SignalType.AUTOMATIC);
-        params.setLastDelta(DELTA1);
+        setParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, bid1_p, ask1_o, b_block_input, o_block_input, deltaName, counterName);
+
+        slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(b_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
+
+        // in scheme MT2 Okex should be the first
+        signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
+                counterName, tradeId, lastObTime);
+        signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
+                counterName, tradeId, lastObTime);
+
+        setTimeoutAfterStartTrading();
+
+        saveParamsToDb();
+    }
+
+    private void setParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
+            BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input, DeltaName deltaName, String counterName) {
+        int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
         firstMarketService.setBusy();
         secondMarketService.setBusy();
 
-        final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, DeltaName.B_DELTA);
+        bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
+        setSignalType(SignalType.AUTOMATIC);
 
         if (dynamicDeltaLogs != null) {
             tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
@@ -1042,8 +1066,6 @@ public class ArbitrageService {
         PlacingType btmPlacingType = settings.getBitmexPlacingType();
         btmPlacingType = bitmexChangeOnSoService.isActive() ? PlacingType.TAKER : btmPlacingType;
 
-        final BigDecimal bPricePlan = bid1_p;
-        final BigDecimal oPricePlan = ask1_o;
         synchronized (dealPrices) {
             dealPrices.setBtmPlacingType(btmPlacingType);
             dealPrices.setOkexPlacingType(okexPlacingType);
@@ -1055,7 +1077,7 @@ public class ArbitrageService {
             dealPrices.setDelta2Plan(delta2);
             dealPrices.setbPricePlan(bPricePlan);
             dealPrices.setoPricePlan(oPricePlan);
-            dealPrices.setDeltaName(DeltaName.B_DELTA);
+            dealPrices.setDeltaName(deltaName);
             dealPrices.setBestQuotes(bestQuotes);
 
             Integer bitmexScale = firstMarketService.getContractType().getScale();
@@ -1089,18 +1111,6 @@ public class ArbitrageService {
         }
 
         tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
-
-        slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(b_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
-
-        // in scheme MT2 Okex should be the first
-        signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, okexPlacingType,
-                counterName, tradeId, lastObTime);
-        signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, btmPlacingType,
-                counterName, tradeId, lastObTime);
-
-        setTimeoutAfterStartTrading();
-
-        saveParamsToDb();
     }
 
     private void checkAndStartTradingOnDelta2(BorderParams borderParams,
@@ -1164,7 +1174,7 @@ public class ArbitrageService {
         }
     }
 
-    @SuppressWarnings("Duplicates")
+    //    @SuppressWarnings("Duplicates")
     private void startTradingOnDelta2(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_p, BigDecimal bid1_o,
             Instant lastObTime,
@@ -1173,80 +1183,17 @@ public class ArbitrageService {
         logger.info("START SIGNAL 2");
         startSignalTime = Instant.now();
 
-        int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
+        final DeltaName deltaName = DeltaName.O_DELTA;
+        final String counterName = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName);
 
-        bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
-        setSignalType(SignalType.AUTOMATIC);
-        params.setLastDelta(DELTA2);
-
-        firstMarketService.setBusy();
-        secondMarketService.setBusy();
-
-        final String counterName = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, params.getBorder2(), delta2, DeltaName.O_DELTA);
-
-        if (dynamicDeltaLogs != null) {
-            tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
-        }
-
-        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        final PlacingType okexPlacingType = settings.getOkexPlacingType();
-        PlacingType btmPlacingType = settings.getBitmexPlacingType();
-        btmPlacingType = bitmexChangeOnSoService.isActive() ? PlacingType.TAKER : btmPlacingType;
-
-        final BigDecimal bPricePlan = ask1_p;
-        final BigDecimal oPricePlan = bid1_o;
-        synchronized (dealPrices) {
-            dealPrices.setBtmPlacingType(btmPlacingType);
-            dealPrices.setOkexPlacingType(okexPlacingType);
-            dealPrices.setBorder1(getBorder1());
-            dealPrices.setBorder2(getBorder2());
-            dealPrices.setoBlock(o_block);
-            dealPrices.setbBlock(b_block);
-            dealPrices.setDelta1Plan(delta1);
-            dealPrices.setDelta2Plan(delta2);
-            dealPrices.setbPricePlan(bPricePlan);
-            dealPrices.setoPricePlan(oPricePlan);
-            dealPrices.setDeltaName(DeltaName.O_DELTA);
-            dealPrices.setBestQuotes(bestQuotes);
-
-            Integer bitmexScale = firstMarketService.getContractType().getScale();
-            Integer okexScale = secondMarketService.getContractType().getScale();
-            dealPrices.setbPriceFact(new AvgPrice(counterName, b_block, "bitmex", bitmexScale));
-            dealPrices.setoPriceFact(new AvgPrice(counterName, o_block, "okex", okexScale));
-
-            dealPrices.setBorderParamsOnStart(borderParams);
-            dealPrices.setPos_bo(pos_bo);
-            dealPrices.calcPlanPosAo(b_block_input, o_block_input);
-
-            if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
-                tradeService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
-                warningLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
-            }
-
-            if (b_block.signum() == 0) {
-                dealPrices.setbBlock(b_block_input);
-                AvgPrice avgPrice = new AvgPrice(counterName, b_block_input, "bitmex", bitmexScale);
-                avgPrice.setOpenPrice(bPricePlan);
-                avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, b_block_input, bPricePlan, OrderStatus.FILLED);
-                dealPrices.setbPriceFact(avgPrice);
-            }
-            if (o_block.signum() == 0) {
-                dealPrices.setoBlock(o_block_input);
-                AvgPrice avgPrice = new AvgPrice(counterName, o_block_input, "okex", okexScale);
-                avgPrice.setOpenPrice(oPricePlan);
-                avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
-                dealPrices.setoPriceFact(avgPrice);
-            }
-        }
-
-        tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
+        setParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, ask1_p, bid1_o, b_block_input, o_block_input, deltaName, counterName);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(o_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
         // in scheme MT2 Okex should be the first
-        signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, okexPlacingType,
+        signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
                 counterName, tradeId, lastObTime);
-        signalService.placeBitmexOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, btmPlacingType,
+        signalService.placeBitmexOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
                 counterName, tradeId, lastObTime);
 
         setTimeoutAfterStartTrading();
