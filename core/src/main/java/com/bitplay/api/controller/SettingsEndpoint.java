@@ -313,6 +313,10 @@ public class SettingsEndpoint {
             settings.setOkexEbestElast(settingsUpdate.getOkexEbestElast());
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getDql() != null && settingsUpdate.getDql().getDqlLevel() != null) {
+            settings.getDql().setDqlLevel(settingsUpdate.getDql().getDqlLevel());
+            settingsRepositoryService.saveSettings(settings);
+        }
 
         persistenceService.resetSettingsPreset();
 

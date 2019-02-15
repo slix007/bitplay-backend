@@ -51,7 +51,6 @@ public class AfterArbTask implements Runnable {
     private final Position okPosition;
     private final BitmexService bitmexService;
     private final OkCoinService okCoinService;
-    private final PreliqUtilsService preliqUtilsService;
     private final PersistenceService persistenceService;
     private final ArbitrageService arbitrageService;
     private final DeltaLogWriter deltaLogWriter;

@@ -154,9 +154,10 @@ public abstract class MarketServicePreliq extends MarketService {
     }
 
     private boolean isDqlViolated(LiqInfo liqInfo, BigDecimal dqlCloseMin) {
+        final BigDecimal dqlLevel = getPersistenceService().getSettingsRepositoryService().getSettings().getDql().getDqlLevel();
         return liqInfo.getDqlCurr() != null
-                && liqInfo.getDqlCurr().compareTo(BigDecimal.valueOf(-30)) > 0 // workaround when DQL is less zero
-                && liqInfo.getDqlCurr().compareTo(dqlCloseMin) < 0;
+                && liqInfo.getDqlCurr().compareTo(dqlLevel) >= 0 // workaround when DQL is less zero
+                && liqInfo.getDqlCurr().compareTo(dqlCloseMin) <= 0;
     }
 
     private PreliqParams getPreliqParams(BigDecimal pos) {

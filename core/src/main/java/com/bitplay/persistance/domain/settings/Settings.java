@@ -82,6 +82,8 @@ public class Settings extends AbstractDocument {
 
     private String currentPreset;
 
+    private Dql dql;
+
     public static Settings createDefault() {
         final Settings settings = new Settings();
         settings.arbScheme = ArbScheme.SIM;
@@ -105,6 +107,8 @@ public class Settings extends AbstractDocument {
         settings.tradingModeState = new TradingModeState(TradingMode.CURRENT);
         settings.bitmexChangeOnSo = new BitmexChangeOnSo();
         settings.okexEbestElast = false;
+        settings.dql = new Dql();
+        settings.dql.setDqlLevel(BigDecimal.ZERO);
         settings.setId(1L);
         return settings;
     }

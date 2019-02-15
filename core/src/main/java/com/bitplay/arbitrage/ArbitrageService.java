@@ -127,8 +127,6 @@ public class ArbitrageService {
     @Autowired
     private AfterArbService afterArbService;
     @Autowired
-    private PreliqUtilsService preliqUtilsService;
-    @Autowired
     private SignalTimeService signalTimeService;
     @Autowired
     private TradeService tradeService;
@@ -336,7 +334,6 @@ public class ArbitrageService {
                             okexPosition,
                             (BitmexService) getFirstMarketService(),
                             (OkCoinService) getSecondMarketService(),
-                            preliqUtilsService,
                             persistenceService,
                             this,
                             new DeltaLogWriter(tradeIdSnap, counterNameSnap, tradeService),
