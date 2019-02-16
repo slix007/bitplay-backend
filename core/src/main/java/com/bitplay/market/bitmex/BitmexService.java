@@ -732,7 +732,7 @@ public class BitmexService extends MarketServicePreliq {
                     for (FplayOrder openOrder : openOrders) {
 
                         if (bitmexChangeOnSoService.isActive()) {
-                            cancelAndPlace(openOrder); // set status 'CANCELLED' if it is successful
+                            cancelAndPlaceOnSo(openOrder); // set status 'CANCELLED' if it is successful
                         }
 
                         if (openOrder == null || openOrder.getOrderId() == null
@@ -834,9 +834,10 @@ public class BitmexService extends MarketServicePreliq {
                         final BigDecimal amountLeft = cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount());
 
                         final PlacingType placingType = initialOpenOrder.getPlacingType();
-                        final FplayOrder placedFplayOrder = placeOrderInsteadOfCancelled(initialOpenOrder, amountLeft, placingType);
-                        if (placedFplayOrder != null) {
-                            resultOOList.add(placedFplayOrder);
+                        final List<FplayOrder> orderList = placeOrderInsteadOfCancelled(initialOpenOrder, amountLeft, placingType);
+                        resultOOList.addAll(orderList);
+                        if (orderList.stream().noneMatch(FplayOrder::isOpen)) {
+                            logger.warn("placeOrderInsteadOfCancelled returned no new order.");
                         }
                     }
                 }
@@ -845,7 +846,7 @@ public class BitmexService extends MarketServicePreliq {
 
                 bitmexChangeOnSoService.tryActivate(soAttempts.incrementAndGet());
                 if (bitmexChangeOnSoService.isActive()) {
-                    cancelAndPlace(initialOpenOrder); // set status 'CANCELLED' if it is successful
+                    cancelAndPlaceOnSo(initialOpenOrder); // set status 'CANCELLED' if it is successful
                 }
 
                 if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
@@ -885,8 +886,12 @@ public class BitmexService extends MarketServicePreliq {
         return resultOOList;
     }
 
-    private FplayOrder placeOrderInsteadOfCancelled(FplayOrder openOrder, BigDecimal amountLeft, PlacingType placingType) {
-        FplayOrder res = null;
+    /**
+     * @return the list may have<br>- the placed order<br>- several cancelled orders(because of participateDoNotInitiate).
+     */
+    private List<FplayOrder> placeOrderInsteadOfCancelled(FplayOrder openOrder, BigDecimal amountLeft, PlacingType placingType) {
+//        FplayOrder res = null;
+        List<FplayOrder> res = new ArrayList<>();
 
         // PLACE ORDER instead of cancelled on moving.
         final BitmexContractType cntType = BitmexContractType.parse(openOrder.getOrder().getCurrencyPair());
@@ -911,16 +916,18 @@ public class BitmexService extends MarketServicePreliq {
             // 2. new order
             final LimitOrder placedOrder = tradeResponse.getLimitOrder();
             if (placedOrder != null) {
-                res = new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
+                final FplayOrder fplayOrder = new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
                         placedOrder, openOrder.getBestQuotes(),
                         placingType, openOrder.getSignalType());
+                res.add(fplayOrder);
             }
 
             // 3. failed on placing
             for (LimitOrder limitOrder : tradeResponse.getCancelledOrders()) {
-                res = new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
+                final FplayOrder fplayOrder = new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
                         limitOrder, openOrder.getBestQuotes(),
                         placingType, openOrder.getSignalType());
+                res.add(fplayOrder);
             }
 
             scheduledMoveInProgressReset = scheduler.schedule(() -> {
@@ -933,8 +940,7 @@ public class BitmexService extends MarketServicePreliq {
         return res;
     }
 
-    @SuppressWarnings("Duplicates")
-    private FplayOrder cancelAndPlace(FplayOrder openOrder) {
+    private void cancelAndPlaceOnSo(FplayOrder openOrder) {
         FplayOrder placedFplayOrder = null;
         // 1. cancel current
         final String counterForLogs = getCounterName();
@@ -962,11 +968,11 @@ public class BitmexService extends MarketServicePreliq {
             if (cancelledOrder != null) {
                 openOrder.getOrderDetail().setOrderStatus(OrderStatus.CANCELED);
                 final BigDecimal amountLeft = cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount());
-                placedFplayOrder = placeOrderInsteadOfCancelled(openOrder, amountLeft, PlacingType.TAKER);
+                final List<FplayOrder> orderList = placeOrderInsteadOfCancelled(openOrder, amountLeft, PlacingType.TAKER);
             }
         }
 
-        return placedFplayOrder;
+//        return placedFplayOrder;
     }
 
     private BitmexStreamingExchange initExchange(String key, String secret) {
@@ -1869,7 +1875,9 @@ public class BitmexService extends MarketServicePreliq {
 //                eventBus.send(BtsEvent.MARKET_FREE);
 //            }
 //        } finally {
-            setMarketState(nextMarketState, counterName);
+
+        logger.info("restore marketState to " + nextMarketState);
+        setMarketState(nextMarketState, counterName);
         if (nextMarketState == MarketState.SYSTEM_OVERLOADED) {
             ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
         }

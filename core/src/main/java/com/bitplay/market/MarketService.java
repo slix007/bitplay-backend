@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -986,13 +987,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 StringBuilder orderIds = new StringBuilder();
                 synchronized (openOrdersLock) {
                     openOrders.stream()
+                            .filter(Objects::nonNull)
+                            .filter(FplayOrder::isOpen)
                             .map(FplayOrder::getOrder)
-                            .filter(order -> order.getStatus() == Order.OrderStatus.NEW
-                                    || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
-                                    || order.getStatus() == Order.OrderStatus.PENDING_NEW
-                                    || order.getStatus() == Order.OrderStatus.PENDING_CANCEL
-                                    || order.getStatus() == Order.OrderStatus.PENDING_REPLACE
-                            ).forEach(order -> orderIds.append(order.getId()).append(","));
+                            .forEach(order -> orderIds.append(order.getId()).append(","));
                 }
 
                 String msg = String.format("%s: StopAllActions: CancelAllOpenOrders=%s", getName(), orderIds.toString());

@@ -62,6 +62,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -1545,13 +1546,10 @@ public class OkCoinService extends MarketServicePreliq {
         final String counterForLogs = getCounterName();
         synchronized (openOrdersLock) {
             openOrders.stream()
+                    .filter(Objects::nonNull)
+                    .filter(FplayOrder::isOpen)
                     .map(FplayOrder::getLimitOrder)
-                    .filter(order -> order.getStatus() == Order.OrderStatus.NEW
-                            || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
-                            || order.getStatus() == Order.OrderStatus.PENDING_NEW
-                            || order.getStatus() == Order.OrderStatus.PENDING_CANCEL
-                            || order.getStatus() == Order.OrderStatus.PENDING_REPLACE
-                    ).forEach(order -> {
+                    .forEach(order -> {
 
                 final String orderId = order.getId();
                 int attemptCount = 0;

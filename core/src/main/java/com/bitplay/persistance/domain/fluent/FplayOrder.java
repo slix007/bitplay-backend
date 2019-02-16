@@ -7,6 +7,7 @@ import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.TypeAlias;
@@ -67,6 +68,21 @@ public class FplayOrder {
 
     public void setOrder(Order order) {
         this.orderDetail = FplayOrderConverter.convert(order);
+    }
+
+    public boolean isOpen() {
+        if (orderDetail == null) { // todo should not be null
+            return false;
+        }
+        return isOpen(orderDetail.getOrderStatus());
+    }
+
+    public static boolean isOpen(OrderStatus orderStatus) {
+        return orderStatus == Order.OrderStatus.NEW
+                || orderStatus == Order.OrderStatus.PARTIALLY_FILLED
+                || orderStatus == Order.OrderStatus.PENDING_NEW
+                || orderStatus == Order.OrderStatus.PENDING_CANCEL
+                || orderStatus == Order.OrderStatus.PENDING_REPLACE;
     }
 
 }

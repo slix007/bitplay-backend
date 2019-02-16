@@ -66,14 +66,9 @@ public abstract class MarketServiceOpenOrders {
             limitOrders = openOrders == null
                     ? new ArrayList<>()
                     : openOrders.stream()
-                            .map(FplayOrder::getOrder)
                             .filter(Objects::nonNull)
-                            .filter(order -> order.getStatus() == Order.OrderStatus.NEW
-                                    || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
-                                    || order.getStatus() == Order.OrderStatus.PENDING_NEW
-                                    || order.getStatus() == Order.OrderStatus.PENDING_CANCEL
-                                    || order.getStatus() == Order.OrderStatus.PENDING_REPLACE)
-                            .map(LimitOrder.class::cast)
+                            .filter(FplayOrder::isOpen)
+                            .map(FplayOrder::getLimitOrder)
                             .collect(Collectors.toList());
         }
         return limitOrders;
@@ -87,11 +82,7 @@ public abstract class MarketServiceOpenOrders {
                     : openOrders.stream()
                             .filter(Objects::nonNull)
                             .filter(o -> o.getLimitOrder() != null)
-                            .filter(o -> o.getLimitOrder().getStatus() == Order.OrderStatus.NEW
-                                    || o.getLimitOrder().getStatus() == Order.OrderStatus.PARTIALLY_FILLED
-                                    || o.getLimitOrder().getStatus() == Order.OrderStatus.PENDING_NEW
-                                    || o.getLimitOrder().getStatus() == Order.OrderStatus.PENDING_CANCEL
-                                    || o.getLimitOrder().getStatus() == Order.OrderStatus.PENDING_REPLACE)
+                            .filter(FplayOrder::isOpen)
                             .collect(Collectors.toList());
         }
         return orderList;
@@ -104,14 +95,7 @@ public abstract class MarketServiceOpenOrders {
             validateOpenOrders(); // removes wrong
 
             hasOO = openOrders.stream()
-                    .map(FplayOrder::getOrder)
-                    .anyMatch(order -> order.getStatus() == Order.OrderStatus.NEW
-                            || order.getStatus() == Order.OrderStatus.PARTIALLY_FILLED
-                            || order.getStatus() == Order.OrderStatus.PENDING_NEW
-                            || order.getStatus() == Order.OrderStatus.PENDING_CANCEL
-                            || order.getStatus() == Order.OrderStatus.PENDING_REPLACE
-                    );
-
+                    .anyMatch(FplayOrder::isOpen);
         }
         return hasOO;
     }
