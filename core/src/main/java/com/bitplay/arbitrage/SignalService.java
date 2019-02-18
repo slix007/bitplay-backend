@@ -15,6 +15,7 @@ import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.settings.BitmexChangeOnSoService;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -50,6 +51,9 @@ public class SignalService {
     @Autowired
     private BitmexService bitmexService;
 
+    @Autowired
+    private BitmexChangeOnSoService bitmexChangeOnSoService;
+
     public void placeOkexOrderOnSignal(OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
             PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
 
@@ -77,7 +81,10 @@ public class SignalService {
                     placingType,
                     SignalType.AUTOMATIC, 1, tradeId, counterName, lastObTime);
 
-            if (settings.getArbScheme() == ArbScheme.CON_B_O) {
+            final boolean isConBo = settings.getArbScheme() == ArbScheme.CON_B_O
+                    || bitmexChangeOnSoService.toConBoActive();
+
+            if (isConBo) {
                 okexService.deferredPlaceOrderOnSignal(placeOrderArgs);
             } else {
                 executorService.submit(() -> {

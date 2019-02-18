@@ -333,8 +333,12 @@ public class SettingsEndpoint {
         mainSettings.setBitmexChangeOnSo(mainSettings.getBitmexChangeOnSo() != null ? mainSettings.getBitmexChangeOnSo() : new BitmexChangeOnSo());
         final BitmexChangeOnSo current = mainSettings.getBitmexChangeOnSo();
 
-        if (update.getAuto() != null) {
-            current.setAuto(update.getAuto());
+        if (update.getToTaker() != null) {
+            current.setToTaker(update.getToTaker());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (update.getToConBo() != null) {
+            current.setToConBo(update.getToConBo());
             settingsRepositoryService.saveSettings(mainSettings);
         }
         if (update.getCountToActivate() != null) {

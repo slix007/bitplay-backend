@@ -17,7 +17,6 @@ public class Changelog1224 {
         final Settings settings = mongoTemplate.findById(1L, Settings.class);
 
         final BitmexChangeOnSo bitmexChangeOnSo = new BitmexChangeOnSo();
-        bitmexChangeOnSo.setAuto(false);
         bitmexChangeOnSo.setCountToActivate(50);
         bitmexChangeOnSo.setDurationSec(60);
         settings.setBitmexChangeOnSo(bitmexChangeOnSo);

@@ -731,7 +731,7 @@ public class BitmexService extends MarketServicePreliq {
 
                     for (FplayOrder openOrder : openOrders) {
 
-                        if (bitmexChangeOnSoService.isActive()) {
+                        if (bitmexChangeOnSoService.toTakerActive()) {
                             cancelAndPlaceOnSo(openOrder); // set status 'CANCELLED' if it is successful
                         }
 
@@ -845,7 +845,7 @@ public class BitmexService extends MarketServicePreliq {
             } else if (response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 
                 bitmexChangeOnSoService.tryActivate(soAttempts.incrementAndGet());
-                if (bitmexChangeOnSoService.isActive()) {
+                if (bitmexChangeOnSoService.toTakerActive()) {
                     cancelAndPlaceOnSo(initialOpenOrder); // set status 'CANCELLED' if it is successful
                 }
 
@@ -1675,7 +1675,7 @@ public class BitmexService extends MarketServicePreliq {
 
                     bitmexChangeOnSoService.tryActivate(attemptCount);
 
-                    placingType = bitmexChangeOnSoService.isActive() ? PlacingType.TAKER : placingTypeInitial;
+                    placingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : placingTypeInitial;
 
                     if (placingType != PlacingType.TAKER) {
 

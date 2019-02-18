@@ -40,6 +40,7 @@ import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
@@ -175,6 +176,8 @@ public class OkCoinService extends MarketServicePreliq {
     private DefaultLogService defaultLogger;
     @Autowired
     private MonitoringDataService monitoringDataService;
+    @Autowired
+    private BitmexChangeOnSoService bitmexChangeOnSoService;
 
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
@@ -927,8 +930,10 @@ public class OkCoinService extends MarketServicePreliq {
 
                         if (signalEvent == SignalEvent.MT2_BITMEX_ORDER_FILLED) {
                             final Settings settings = settingsRepositoryService.getSettings();
-                            if (settings.getArbScheme() == ArbScheme.CON_B_O
-                                    && getMarketState() == MarketState.WAITING_ARB) {
+                            final boolean isConBo = settings.getArbScheme() == ArbScheme.CON_B_O
+                                    || bitmexChangeOnSoService.toConBoActive();
+
+                            if (isConBo && getMarketState() == MarketState.WAITING_ARB) {
 
                                 final PlaceOrderArgs currArgs = placeOrderArgsRef.getAndSet(null);
                                 if (currArgs != null) {

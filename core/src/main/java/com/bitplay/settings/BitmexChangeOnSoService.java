@@ -43,13 +43,21 @@ public class BitmexChangeOnSoService {
                 : 0;
     }
 
+    public boolean toTakerActive() {
+        return isActive() && settingsRepositoryService.getSettings().getBitmexChangeOnSo().getToTaker();
+    }
+
+    public boolean toConBoActive() {
+        return isActive() && settingsRepositoryService.getSettings().getBitmexChangeOnSo().getToConBo();
+    }
+
     public boolean isActive() {
         return toResetTask != null && !toResetTask.isDone();
     }
 
     public void tryActivate(Integer attempt) {
         final BitmexChangeOnSo bitmexChangeOnSo = settingsRepositoryService.getSettings().getBitmexChangeOnSo();
-        final boolean isAuto = bitmexChangeOnSo.getAuto() != null && bitmexChangeOnSo.getAuto();
+        final boolean isAuto = bitmexChangeOnSo.getAuto();
         if (isAuto && !isActive()) {
             final Integer countToActivate = bitmexChangeOnSo.getCountToActivate();
             if (attempt >= countToActivate) {
