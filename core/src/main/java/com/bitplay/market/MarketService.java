@@ -298,7 +298,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 }
                 break;
             case SYSTEM_OVERLOADED:
-                if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
+                if (flags != null && flags.length > 0 && (flags[0].equals("UI") || flags[0].equals("FORCE_RESET"))) { // only UI and 6 min flag
                     logger.info("reset SYSTEM_OVERLOADED from UI");
                     resetOverload();
                 } else {
@@ -353,20 +353,37 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         final SysOverloadArgs sysOverloadArgs = getPersistenceService().getSettingsRepositoryService()
                 .getSettings().getBitmexSysOverloadArgs();
 
-        scheduledOverloadReset = scheduler.schedule(this::resetOverload, sysOverloadArgs.getOverloadTimeSec(), TimeUnit.SECONDS);
+        scheduledOverloadReset = scheduler.schedule(this::resetOverloadCycled, sysOverloadArgs.getOverloadTimeSec(), TimeUnit.SECONDS);
     }
 
     protected abstract void postOverload();
 
+    private void resetOverloadCycled() {
+        try {
+            resetOverload();
+
+            if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+                scheduledOverloadReset = scheduler.schedule(this::resetOverloadCycled, 1, TimeUnit.SECONDS);
+            }
+        } catch (Exception e) {
+            logger.error("can not resetOverloaded.", e);
+        }
+    }
+
     private void resetOverload() {
+        logger.info("resetOverload: starting");
         postOverload();
 
         final MarketState currMarketState = getMarketState();
+        logger.info("resetOverload: currMarketState=" + currMarketState);
+
         if (isMarketStopped()) {
+            logger.info(String.format("resetOverload: skip. Market is stopped. state=%s, ", currMarketState));
             // do nothing
             return;
+        }
 
-        } else if (currMarketState == MarketState.SYSTEM_OVERLOADED) {
+        if (currMarketState == MarketState.SYSTEM_OVERLOADED) {
 
             MarketState marketStateToSet;
             synchronized (openOrdersLock) {
