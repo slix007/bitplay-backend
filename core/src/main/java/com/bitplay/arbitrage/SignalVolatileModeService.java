@@ -38,7 +38,7 @@ public class SignalVolatileModeService {
     @Autowired
     private BitmexService bitmexService;
 
-    public void justSetVolatileMode() {
+    public void justSetVolatileMode(Long tradeId) {
         final List<FplayOrder> bitmexOO = bitmexService.getOnlyOpenFplayOrders();
         final List<FplayOrder> okexOO = okexService.getOnlyOpenFplayOrders();
 
@@ -55,14 +55,14 @@ public class SignalVolatileModeService {
 //             OK while VolatileMode has no 'Arbitrage version'
 //        }
         if (bitmexOO.size() > 0) {
-            executorService.execute(() -> replaceLimitOrdersBitmex(bitmexOO));
+            executorService.execute(() -> replaceLimitOrdersBitmex(bitmexOO, tradeId));
         }
         if (okexOO.size() > 0) {
-            executorService.execute(() -> replaceLimitOrdersOkex(okexOO));
+            executorService.execute(() -> replaceLimitOrdersOkex(okexOO, tradeId));
         }
     }
 
-    private void replaceLimitOrdersBitmex(List<FplayOrder> bitmexOO) {
+    private void replaceLimitOrdersBitmex(List<FplayOrder> bitmexOO, Long tradeId) {
         while (bitmexService.getMarketState() == MarketState.SYSTEM_OVERLOADED) {
             try {
                 Thread.sleep(500);
@@ -76,16 +76,19 @@ public class SignalVolatileModeService {
         }
 
         final PlacingType placingType = settingsRepositoryService.getSettings().getBitmexPlacingType();
-        replaceLimitOrders(bitmexService, placingType, bitmexOO);
+        replaceLimitOrders(bitmexService, placingType, bitmexOO, tradeId);
     }
 
-    private void replaceLimitOrdersOkex(List<FplayOrder> okexOO) {
+    private void replaceLimitOrdersOkex(List<FplayOrder> okexOO, Long tradeId) {
         final PlacingType placingType = settingsRepositoryService.getSettings().getOkexPlacingType();
-        replaceLimitOrders(okexService, placingType, okexOO);
+        replaceLimitOrders(okexService, placingType, okexOO, tradeId);
     }
 
-    private void replaceLimitOrders(MarketService marketService, PlacingType placingType, List<FplayOrder> currOrders) {
+    private void replaceLimitOrders(MarketService marketService, PlacingType placingType, List<FplayOrder> currOrders, Long tradeId) {
         if (placingType != PlacingType.MAKER && placingType != PlacingType.MAKER_TICK) {
+
+            marketService.getArbitrageService().setCurrentVolatile(tradeId);
+
             // 1. cancel
             final List<LimitOrder> orders = marketService.cancelAllOrders("VolatileMode activated: CancelAllOpenOrders");
             final BigDecimal amountLeft = orders.stream()

@@ -316,6 +316,7 @@ public class ArbitrageService {
                     // use snapshot of Params
                     final DealPrices dealPricesSnap;
                     synchronized (dealPrices) {
+                        dealPrices.setTradeId(tradeId);
                         dealPricesSnap = SerializationUtils.clone(dealPrices);
                     }
                     final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
@@ -566,6 +567,30 @@ public class ArbitrageService {
 
     }
 
+    void setCurrentVolatile(Long tradeId) {
+        synchronized (dealPrices) {
+            dealPrices.setTradingMode(TradingMode.CURRENT_VOLATILE);
+            tradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
+            dealPrices.setTradeId(tradeId);
+        }
+    }
+
+    private void setTradingMode(Long tradeId, TradingMode tradingMode) {
+        synchronized (dealPrices) {
+            // do not change if this tradeId was set with TradingMode.CURRENT_VOLATILE
+            if (dealPrices.getTradeId() != null
+                    && dealPrices.getTradeId().equals(tradeId)
+                    && dealPrices.getTradingMode() != null
+                    && dealPrices.getTradingMode() == TradingMode.CURRENT_VOLATILE) {
+                // do nothing
+            } else {
+                tradeService.setTradingMode(tradeId, tradingMode);
+                dealPrices.setTradingMode(tradingMode);
+                dealPrices.setTradeId(tradeId);
+            }
+        }
+    }
+
     private boolean trySwitchToVolatileMode(BigDecimal delta, BigDecimal border) {
         // если delta1 plan - border1 >= Border cross depth или delta2 plan - border2 >= Border cross depth,
         // то это триггер для переключения из Current mode в Volatile Mode.
@@ -585,11 +610,10 @@ public class ArbitrageService {
                 synchronized (dealPrices) {
                     dealPrices.setBtmPlacingType(btmPlacingType);
                     dealPrices.setOkexPlacingType(okexPlacingType);
-                    dealPrices.setTradingMode(TradingMode.CURRENT_VOLATILE);
-                    dealPrices.setVolatileModeCounter(1);
+                    dealPrices.setTradingMode(TradingMode.VOLATILE);
                 }
 
-                signalVolatileModeService.justSetVolatileMode(); // replace-limit-orders
+                signalVolatileModeService.justSetVolatileMode(tradeId); // replace-limit-orders. it may set CURRENT_VOLATILE
                 return true;
             } else {
                 // already VOLATILE mode, but need to update timestamp
@@ -701,7 +725,7 @@ public class ArbitrageService {
             BigDecimal border2 = getBorder2();
 
             if (delta1.compareTo(border1) >= 0 && delta1.compareTo(btmMaxDelta) < 0) {
-                    trySwitchToVolatileMode(delta1, border1);
+                trySwitchToVolatileMode(delta1, border1);
                 signalStatusDelta = DeltaName.B_DELTA;
 
                 if (signalDelayActivateTime == null) {
@@ -1112,18 +1136,9 @@ public class ArbitrageService {
                 avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
                 dealPrices.setoPriceFact(avgPrice);
             }
+            final TradingMode tradingMode = settings.getTradingModeState().getTradingMode();
+            setTradingMode(tradeId, tradingMode);
 
-            if (settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
-                dealPrices.setTradingMode(TradingMode.CURRENT); // volatile mode is set by #trySwitchToVolatile
-            } else {
-                if (dealPrices.getVolatileModeCounter() == 1) {
-                    dealPrices.setTradingMode(TradingMode.CURRENT_VOLATILE);
-                } else {
-                    dealPrices.setTradingMode(TradingMode.VOLATILE);
-                }
-                dealPrices.incVolatileModeCounter();
-            }
-            tradeService.setTradingMode(tradeId, dealPrices.getTradingMode());
         }
 
         tradeService.info(tradeId, counterName, String.format("#%s Trading mode = %s", counterName, dealPrices.getTradingMode().getFullName()));

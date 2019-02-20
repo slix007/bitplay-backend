@@ -43,11 +43,7 @@ public class DealPrices implements Serializable {
     private PlacingType okexPlacingType;
     private PlacingType btmPlacingType;
     private TradingMode tradingMode;
-    private int volatileModeCounter;
-
-    public synchronized void incVolatileModeCounter() {
-        volatileModeCounter++;
-    }
+    private Long tradeId;
 
     public synchronized BigDecimal getBorder1() {
         return border1;
