@@ -94,6 +94,7 @@ import org.knowm.xchange.okcoin.dto.marketdata.OkcoinMarkPrice;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPositionResult;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
+import org.knowm.xchange.okcoin.service.OkCoinFuturesAccountService;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesMarketDataService;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesTradeService;
 import org.knowm.xchange.okcoin.service.OkCoinTradeService;
@@ -183,7 +184,7 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable orderBookSubscription;
     private Disposable orderBookBTCUSDSubscription;
     private Disposable privateDataSubscription;
-    private Disposable accountInfoSubscription;
+    //    private Disposable accountInfoSubscription;
     private Disposable futureIndexSubscription;
     private Disposable btcUsdFutureIndexSubscription;
     private Disposable tickerSubscription;
@@ -299,7 +300,7 @@ public class OkCoinService extends MarketServicePreliq {
         }
 
         privateDataSubscription = startPrivateDataListener();
-        accountInfoSubscription = startAccountInfoSubscription();
+//        accountInfoSubscription = startAccountInfoSubscription();
         futureIndexSubscription = startFutureIndexListener();
         tickerSubscription = startTickerListener();
         if (okexContractType.getBaseTool() == Tool.ETH) {
@@ -318,7 +319,7 @@ public class OkCoinService extends MarketServicePreliq {
         }
 //        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
         privateDataSubscription.dispose();
-        accountInfoSubscription.dispose();
+//        accountInfoSubscription.dispose();
         futureIndexSubscription.dispose();
         if (btcUsdFutureIndexSubscription != null) {
             btcUsdFutureIndexSubscription.dispose();
@@ -437,45 +438,45 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
 
-    private volatile Instant lastRequestAccountInfo = Instant.now();
-    private void requestAccountInfoThrottled() {
-        if (Duration.between(lastRequestAccountInfo, Instant.now()).getSeconds() < 1) {
-            logger.info("nothing");
-        } else {
-            logger.info("run");
-            requestAccountInfo();
-        }
-    }
+//    private volatile Instant lastRequestAccountInfo = Instant.now();
+//    private void requestAccountInfoThrottled() {
+//        if (Duration.between(lastRequestAccountInfo, Instant.now()).getSeconds() < 1) {
+//            logger.info("nothing");
+//        } else {
+//            logger.info("run");
+//            requestAccountInfo();
+//        }
+//    }
 
-    @Timed("requestAccountInfo")
-    @Timed(value = "long.requestAccountInfo", longTask = true)
-    @Scheduled(initialDelay = 5 * 1000, fixedRate = 2000)
-    public void requestAccountInfo() {
-        lastRequestAccountInfo = Instant.now();
-
-        Instant start = Instant.now();
-        try {
-            exchange.getStreamingAccountInfoService().requestAccountInfo();
-        } catch (NotConnectedException e) {
-            logger.error("AccountInfo request error: NotConnectedException", e);
-            closeAllSubscibers()
-                    .doOnComplete(this::initWebSocketAndAllSubscribers)
-                    .subscribe(() -> logger.warn("Closing okcoin subscribers was done"),
-                            throwable -> {
-                                logger.error("ERROR on Closing okcoin subscribers", throwable);
-                                final String TOO_MANY_OPEN_FILES = "Too many open files";
-                                if (throwable.getCause().getMessage().equals(TOO_MANY_OPEN_FILES)
-                                        || throwable.getCause().getCause().getMessage().equals(TOO_MANY_OPEN_FILES)) {
-                                    restartService.doFullRestart(TOO_MANY_OPEN_FILES);
-                                }
-                            });
-
-        } catch (IOException e) {
-            logger.error("AccountInfo request error", e);
-        }
-        Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "requestAccountInfo");
-    }
+//    @Timed("requestAccountInfo")
+//    @Timed(value = "long.requestAccountInfo", longTask = true)
+//    @Scheduled(initialDelay = 5 * 1000, fixedRate = 2000)
+//    public void requestAccountInfo() {
+//        lastRequestAccountInfo = Instant.now();
+//
+//        Instant start = Instant.now();
+//        try {
+//            exchange.getStreamingAccountInfoService().requestAccountInfo();
+//        } catch (NotConnectedException e) {
+//            logger.error("AccountInfo request error: NotConnectedException", e);
+//            closeAllSubscibers()
+//                    .doOnComplete(this::initWebSocketAndAllSubscribers)
+//                    .subscribe(() -> logger.warn("Closing okcoin subscribers was done"),
+//                            throwable -> {
+//                                logger.error("ERROR on Closing okcoin subscribers", throwable);
+//                                final String TOO_MANY_OPEN_FILES = "Too many open files";
+//                                if (throwable.getCause().getMessage().equals(TOO_MANY_OPEN_FILES)
+//                                        || throwable.getCause().getCause().getMessage().equals(TOO_MANY_OPEN_FILES)) {
+//                                    restartService.doFullRestart(TOO_MANY_OPEN_FILES);
+//                                }
+//                            });
+//
+//        } catch (IOException e) {
+//            logger.error("AccountInfo request error", e);
+//        }
+//        Instant end = Instant.now();
+//        Utils.logIfLong(start, end, logger, "requestAccountInfo");
+//    }
 
     @Scheduled(fixedDelay = 2000) // Request frequency 20 times/2s
     public void fetchEstimatedDeliveryPrice() {
@@ -532,6 +533,27 @@ public class OkCoinService extends MarketServicePreliq {
         recalcAffordableContracts();
         recalcLiqInfo();
         return position != null ? position.toString() : "";
+    }
+
+    @Scheduled(fixedDelay = 500) // URL https://www.okex.com/api/v1/future_userinfo.do Request frequency 5 times/2s
+    public void fetchUserInfoScheduled() {
+        Instant start = Instant.now();
+        try {
+            fetchUserInfoContracts();
+        } catch (Exception e) {
+            logger.error("On fetchPositionScheduled", e);
+        }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "fetchPositionScheduled");
+    }
+
+    @SuppressWarnings("Duplicates")
+    private void fetchUserInfoContracts() throws IOException {
+
+        final AccountInfoContracts accountInfoContracts = ((OkCoinFuturesAccountService) exchange.getAccountService())
+                .getAccountInfoContracts(okexContractType.getCurrencyPair().base);
+
+        mergeAccountInfoContracts(accountInfoContracts);
     }
 
     private synchronized void mergePosition(OkCoinPositionResult restUpdate, Position websocketUpdate) {
@@ -591,39 +613,23 @@ public class OkCoinService extends MarketServicePreliq {
         return res;
     }
 
-    private Disposable startAccountInfoSubscription() {
-        return exchange.getStreamingAccountInfoService()
-                .accountInfoObservable(okexContractType.getBaseTool())
-                .doOnError(throwable -> {
-                    if (throwable.getMessage().contains("Request timeout,Please try again later")) {
-                        logger.error("Error on AccountInfo.Websocket observing: " + throwable);
-                    } else {
-                        logger.error("Error on AccountInfo.Websocket observing", throwable);
-                    }
-                })
-                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
-                .subscribeOn(Schedulers.io())
-                .subscribe(newInfo -> {
-                    AccountInfoContracts current = this.accountInfoContracts;
-                    logger.debug("AccountInfo.Websocket: " + current.toString());
+    private void mergeAccountInfoContracts(AccountInfoContracts newInfo) {
+        AccountInfoContracts current = this.accountInfoContracts;
+        logger.debug("AccountInfo.Websocket: " + current.toString());
 
-                    BigDecimal eLast = newInfo.geteLast() != null ? newInfo.geteLast() : current.geteLast();
-                    this.accountInfoContracts = new AccountInfoContracts(
-                            newInfo.getWallet() != null ? newInfo.getWallet() : current.getWallet(),
-                            newInfo.getAvailable() != null ? newInfo.getAvailable() : current.getAvailable(),
-                            eLast,
-                            eLast,
-                            BigDecimal.ZERO,
-                            BigDecimal.ZERO,
-                            newInfo.getMargin() != null ? newInfo.getMargin() : current.getMargin(),
-                            newInfo.getUpl() != null ? newInfo.getUpl() : current.getUpl(),
-                            newInfo.getRpl() != null ? newInfo.getRpl() : current.getRpl(),
-                            newInfo.getRiskRate() != null ? newInfo.getRiskRate() : current.getRiskRate()
-                    );
-
-                }, throwable -> {
-                    logger.error("AccountInfo.Websocket.Exception: ", throwable);
-                });
+        BigDecimal eLast = newInfo.geteLast() != null ? newInfo.geteLast() : current.geteLast();
+        this.accountInfoContracts = new AccountInfoContracts(
+                newInfo.getWallet() != null ? newInfo.getWallet() : current.getWallet(),
+                newInfo.getAvailable() != null ? newInfo.getAvailable() : current.getAvailable(),
+                eLast,
+                eLast,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                newInfo.getMargin() != null ? newInfo.getMargin() : current.getMargin(),
+                newInfo.getUpl() != null ? newInfo.getUpl() : current.getUpl(),
+                newInfo.getRpl() != null ? newInfo.getRpl() : current.getRpl(),
+                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : current.getRiskRate()
+        );
     }
 
     private Disposable startPrivateDataListener() {
@@ -637,7 +643,8 @@ public class OkCoinService extends MarketServicePreliq {
                 .subscribe(privateData -> {
                     logger.debug(privateData.toString());
                     if (privateData.getAccountInfoContracts() != null) {
-                        requestAccountInfoThrottled();
+//                        requestAccountInfoThrottled();
+//                        mergeAccountInfoContracts(privateData.getAccountInfoContracts());
                     }
                     final Position positionInfo = privateData.getPositionInfo();
                     if (positionInfo != null) {
