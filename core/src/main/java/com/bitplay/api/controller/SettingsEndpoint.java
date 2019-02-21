@@ -1,8 +1,8 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.Config;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
@@ -42,7 +42,7 @@ public class SettingsEndpoint {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     @Autowired
-    private Config config;
+    private VolatileModeSwitcherService volatileModeSwitcherService;
 
     @Autowired
     private PersistenceService persistenceService;
@@ -432,6 +432,11 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getVolatileDurationSec() != null) {
             mainSettings = settingsRepositoryService.updateVolatileDurationSec(settingsUpdate.getVolatileDurationSec());
+        }
+        if (settingsUpdate.getVolatileDelayMs() != null) {
+            volatileModeSwitcherService.restartVolatileDelay(settings.getVolatileDelayMs(), settingsUpdate.getVolatileDelayMs());
+            settings.setVolatileDelayMs(settingsUpdate.getVolatileDelayMs());
+            settingsRepositoryService.saveSettings(mainSettings);
         }
         if (settingsUpdate.getBorderCrossDepth() != null) {
             settings.setBorderCrossDepth(settingsUpdate.getBorderCrossDepth());

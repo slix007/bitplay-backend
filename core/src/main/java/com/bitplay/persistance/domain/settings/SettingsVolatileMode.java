@@ -32,6 +32,7 @@ public class SettingsVolatileMode {
      * 0 or negative - means infinite
      */
     private Integer volatileDurationSec;
+    private Integer volatileDelayMs;
 
     private BigDecimal borderCrossDepth;
 

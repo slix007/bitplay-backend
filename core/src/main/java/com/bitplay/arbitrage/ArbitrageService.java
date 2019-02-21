@@ -1,6 +1,5 @@
 package com.bitplay.arbitrage;
 
-import com.bitplay.Config;
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.BordersService.BorderVer;
 import com.bitplay.arbitrage.BordersService.TradeType;
@@ -33,7 +32,6 @@ import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.metrics.MetricsDictionary;
-import com.bitplay.persistance.DeltaRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SignalTimeService;
 import com.bitplay.persistance.TradeService;
@@ -76,6 +74,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import javax.validation.constraints.NotNull;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.SerializationUtils;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
@@ -92,15 +91,12 @@ import org.springframework.stereotype.Service;
 /**
  * Created by Sergey Shurmin on 4/18/17.
  */
+@Slf4j
 @Service
 public class ArbitrageService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
-    private static final Logger signalLogger = LoggerFactory.getLogger("SIGNAL_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    public static final String DELTA1 = "delta1";
-    public static final String DELTA2 = "delta2";
     private static final Object calcLock = new Object();
     private final DealPrices dealPrices = new DealPrices();
     private boolean firstDeltasCalculated = false;
@@ -111,19 +107,15 @@ public class ArbitrageService {
     @Autowired
     private PersistenceService persistenceService;
     @Autowired
-    private DeltaRepositoryService deltaRepositoryService;
-    @Autowired
     private SignalService signalService;
     @Autowired
-    private SignalVolatileModeService signalVolatileModeService;
+    private VolatileModeAfterService volatileModeAfterService;
     @Autowired
     private DiffFactBrService diffFactBrService;
     @Autowired
     private DeltasCalcService deltasCalcService;
     @Autowired
     private TraderPermissionsService traderPermissionsService;
-    @Autowired
-    private Config config;
     @Autowired
     private AfterArbService afterArbService;
     @Autowired
@@ -140,6 +132,8 @@ public class ArbitrageService {
     private BitmexChangeOnSoService bitmexChangeOnSoService;
     @Autowired
     private MetricsDictionary metricsDictionary;
+    @Autowired
+    private VolatileModeSwitcherService volatileModeSwitcherService;
 
 
 //    @Autowired // WARNING - this leads to "successfully sent 23 metrics to InfluxDB." should be over 70 metrics.
@@ -228,11 +222,11 @@ public class ArbitrageService {
                     } catch (NotYetInitializedException e) {
                         // do nothing
                     } catch (Exception e) {
-                        logger.error("ERROR: signalEventBus errorOnEvent", e);
+                        log.error("ERROR: signalEventBus errorOnEvent", e);
 //                        warningLogger.error("ERROR: signalEventBus errorOnEvent. Signals may not work at all." + e.toString());
                     }
                 }, throwable -> {
-                    logger.error("signalEventBus errorOnEvent", throwable);
+                    log.error("signalEventBus errorOnEvent", throwable);
                     initSignalEventBus();
                 });
     }
@@ -264,18 +258,18 @@ public class ArbitrageService {
                             }
                         }
                     } catch (Exception e) {
-                        logger.error("On arb-done handling", e);
+                        log.error("On arb-done handling", e);
 //                        deltasLogger.error("ERROR on arb-done handling" + e.toString());
                         warningLogger.error("ERROR on arb-done handling" + e.toString());
                     }
-                }, throwable -> logger.error("On event handling", throwable));
+                }, throwable -> log.error("On event handling", throwable));
     }
 
     private void onArbDone(@NotNull Long doneTradeId, String marketName) {
 
         // marketState may be not set yet because of race condition
 //        if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
-        logger.info(String.format("onArbDone(%s, %s)", doneTradeId, marketName));
+        log.info(String.format("onArbDone(%s, %s)", doneTradeId, marketName));
 
         long signalTimeSec = startSignalTime == null ? -1 : Duration.between(startSignalTime, Instant.now()).getSeconds();
 
@@ -283,7 +277,7 @@ public class ArbitrageService {
                 // The other option is "doing stateSnapshot before doing set arbInProgress=false"
 
             if (fplayTrade == null) {
-                logger.info(String.format("onArbDone(%s, %s) finished fplayTrade == null", doneTradeId, marketName));
+                log.info(String.format("onArbDone(%s, %s) finished fplayTrade == null", doneTradeId, marketName));
                 return;
             }
 
@@ -311,7 +305,7 @@ public class ArbitrageService {
                     final String arbIsDoneMsg = String.format("#%s is done. SignalTime=%s sec. tradeId(curr/done): %s / %s---",
                             counterNameSnap, signalTimeSec, tradeIdSnap, doneTradeId);
                     tradeService.info(tradeIdSnap, counterNameSnap, arbIsDoneMsg);
-                    logger.info(arbIsDoneMsg);
+                    log.info(arbIsDoneMsg);
 
                     // use snapshot of Params
                     final DealPrices dealPricesSnap;
@@ -350,7 +344,7 @@ public class ArbitrageService {
                 }
             }
         }
-        logger.info(String.format("onArbDone(%s, %s) finished", doneTradeId, marketName));
+        log.info(String.format("onArbDone(%s, %s) finished", doneTradeId, marketName));
     }
 
 
@@ -373,7 +367,7 @@ public class ArbitrageService {
 //        }
 //        theTimer = Completable.timer(100, TimeUnit.MILLISECONDS)
 //                .doOnComplete(() -> isReadyForTheArbitrage = true)
-//                .doOnError(throwable -> logger.error("onError timer", throwable))
+//                .doOnError(throwable -> log.error("onError timer", throwable))
 //                .repeat()
 //                .retry()
 //                .subscribe();
@@ -386,7 +380,7 @@ public class ArbitrageService {
             theCheckBusyTimer.dispose();
         }
 
-        logger.info("starting isBusy-6min-checker");
+        log.info("starting isBusy-6min-checker");
 
         theCheckBusyTimer = Completable.timer(6, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
@@ -431,13 +425,13 @@ public class ArbitrageService {
                         if (firstHanged && noOrders) {
                             tradeService.warn(tradeId, counterName, "Warning: Free Bitmex");
                             warningLogger.warn("Warning: Free Bitmex");
-                            logger.warn("Warning: Free Bitmex");
+                            log.warn("Warning: Free Bitmex");
                             firstMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, firstMarketService.tryFindLastTradeId()));
                         }
                         if (secondHanged && noOrders) {
                             tradeService.warn(tradeId, counterName, "Warning: Free Okcoin");
                             warningLogger.warn("Warning: Free Okcoin");
-                            logger.warn("Warning: Free Okcoin");
+                            log.warn("Warning: Free Okcoin");
                             secondMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, secondMarketService.tryFindLastTradeId()));
                         }
 
@@ -448,7 +442,7 @@ public class ArbitrageService {
                                 secondMarketService.isReadyForArbitrage(), secondMarketService.getOnlyOpenOrders().size());
                         tradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
-                        logger.warn(logString);
+                        log.warn(logString);
                         slackNotifications.sendNotify(NotifyType.BUSY_6_MIN, logString);
                     }
 
@@ -464,7 +458,7 @@ public class ArbitrageService {
                     }
 
                 })
-                .doOnError(throwable -> logger.error("Error in isBusy-6min-checker", throwable))
+                .doOnError(throwable -> log.error("Error in isBusy-6min-checker", throwable))
                 .repeat()
                 .retry()
                 .subscribe();
@@ -485,7 +479,7 @@ public class ArbitrageService {
             if (!bestQuotes.hasEmpty()) {
                 if (!firstDeltasCalculated) {
                     firstDeltasCalculated = true;
-                    logger.info("Started: First delta calculated");
+                    log.info("Started: First delta calculated");
                     warningLogger.info("Started: First delta calculated");
                     slackNotifications.sendNotify(NotifyType.AT_STARTUP, "Started: First delta calculated");
                 }
@@ -549,7 +543,7 @@ public class ArbitrageService {
             // do not stopSignalDelay
         } else {
             if (Thread.holdsLock(calcLock)) {
-                logger.warn("calcLock is in progress");
+                log.warn("calcLock is in progress");
             }
             synchronized (calcLock) {
 
@@ -567,7 +561,7 @@ public class ArbitrageService {
 
     }
 
-    void setCurrentVolatile(Long tradeId) {
+    void setTradeParamTradingModeCurrentVolatile(Long tradeId) {
         synchronized (dealPrices) {
             dealPrices.setTradingMode(TradingMode.CURRENT_VOLATILE);
             tradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
@@ -575,7 +569,7 @@ public class ArbitrageService {
         }
     }
 
-    private void setTradingMode(Long tradeId, TradingMode tradingMode) {
+    private void setTradeParamTradingMode(Long tradeId, TradingMode tradingMode) {
         synchronized (dealPrices) {
             // do not change if this tradeId was set with TradingMode.CURRENT_VOLATILE
             if (dealPrices.getTradeId() != null
@@ -591,50 +585,23 @@ public class ArbitrageService {
         }
     }
 
-    private boolean trySwitchToVolatileMode(BigDecimal delta, BigDecimal border) {
-        // если delta1 plan - border1 >= Border cross depth или delta2 plan - border2 >= Border cross depth,
-        // то это триггер для переключения из Current mode в Volatile Mode.
-        final Settings settingsInit = persistenceService.getSettingsRepositoryService().getSettings();
-        final BigDecimal borderCrossDepth = settingsInit.getSettingsVolatileMode().getBorderCrossDepth();
-        if (settingsInit.getTradingModeAuto()
-                && borderCrossDepth.signum() > 0
-                && delta.subtract(border).compareTo(borderCrossDepth) >= 0) {
-            if (settingsInit.getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
-                final Settings settingsChanged = persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
-                warningLogger.info("Set TradingMode.VOLATILE by auto select");
+    void activateVolatileMode() {
+        if (persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
+            final Settings settings = persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
+            warningLogger.info("Set TradingMode.VOLATILE automatically");
 
-                // if we replace-limit-orders then fix commissions for current signal.
-                final PlacingType okexPlacingType = settingsChanged.getOkexPlacingType();
-                PlacingType btmPlacingType = settingsChanged.getBitmexPlacingType();
-                btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : btmPlacingType;
-                synchronized (dealPrices) {
-                    dealPrices.setBtmPlacingType(btmPlacingType);
-                    dealPrices.setOkexPlacingType(okexPlacingType);
-                    dealPrices.setTradingMode(TradingMode.VOLATILE);
-                }
-
-                signalVolatileModeService.justSetVolatileMode(tradeId); // replace-limit-orders. it may set CURRENT_VOLATILE
-                return true;
-            } else {
-                // already VOLATILE mode, but need to update timestamp
-                persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
+            // if we replace-limit-orders then fix commissions for current signal.
+            final PlacingType okexPlacingType = settings.getOkexPlacingType();
+            PlacingType btmPlacingType = settings.getBitmexPlacingType();
+            btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : btmPlacingType;
+            synchronized (dealPrices) {
+                dealPrices.setBtmPlacingType(btmPlacingType);
+                dealPrices.setOkexPlacingType(okexPlacingType);
+                dealPrices.setTradingMode(TradingMode.VOLATILE);
             }
+
+            volatileModeAfterService.justSetVolatileMode(tradeId); // replace-limit-orders. it may set CURRENT_VOLATILE
         }
-        return false;
-    }
-
-    private boolean trySwitchToVolatileModeBorderV2(final BordersService.TradingSignal tradingSignal) {
-        if (tradingSignal.borderValueList != null) {
-            BigDecimal minBorder = null;
-            for (BigDecimal x : tradingSignal.borderValueList) {
-                minBorder = (minBorder == null || minBorder.subtract(x).signum() > 0) ? x : minBorder;
-            }
-            if (minBorder != null && tradingSignal.deltaVal != null && !tradingSignal.deltaVal.isEmpty()) {
-                BigDecimal delta = new BigDecimal(tradingSignal.deltaVal);
-                return trySwitchToVolatileMode(delta, minBorder);
-            }
-        }
-        return false;
     }
 
     private BordersService.TradingSignal applyMaxDelta(final BordersService.TradingSignal tradingSignal,
@@ -725,7 +692,7 @@ public class ArbitrageService {
             BigDecimal border2 = getBorder2();
 
             if (delta1.compareTo(border1) >= 0 && delta1.compareTo(btmMaxDelta) < 0) {
-                trySwitchToVolatileMode(delta1, border1);
+                volatileModeSwitcherService.trySwitchToVolatileMode(delta1, border1);
                 signalStatusDelta = DeltaName.B_DELTA;
 
                 if (signalDelayActivateTime == null) {
@@ -758,7 +725,7 @@ public class ArbitrageService {
                     isAffordableOkex = false;
                 }
             } else if (delta2.compareTo(border2) >= 0 && delta2.compareTo(okMaxDelta) < 0) {
-                trySwitchToVolatileMode(delta2, border2);
+                volatileModeSwitcherService.trySwitchToVolatileMode(delta2, border2);
                 signalStatusDelta = DeltaName.O_DELTA;
 
                 if (signalDelayActivateTime == null) {
@@ -802,7 +769,7 @@ public class ArbitrageService {
             tradingSignal = bordersService.checkBorders(bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs);
             tradingSignal = applyMaxDelta(tradingSignal, btmMaxDelta, okMaxDelta, borderParams.getOnlyOpen());
 
-            final boolean justGotVolatileMode = trySwitchToVolatileModeBorderV2(tradingSignal);
+            final boolean justGotVolatileMode = volatileModeSwitcherService.trySwitchToVolatileModeBorderV2(tradingSignal);
             if (justGotVolatileMode) {
                 borderParams = bordersService.getBorderParams();
                 defaultMax = BigDecimal.valueOf(9999);
@@ -924,7 +891,7 @@ public class ArbitrageService {
     public void setArbStatePreliq() {
         synchronized (arbStateLock) {
             arbStatePrevPreliq = arbState;
-            logger.info("set ArbState.PRELIQ");
+            log.info("set ArbState.PRELIQ");
             arbState = ArbState.PRELIQ;
             firstMarketService.setPreliqState();
             secondMarketService.setPreliqState();
@@ -938,7 +905,7 @@ public class ArbitrageService {
                     // do reset
                     arbState = arbStatePrevPreliq != null ? arbStatePrevPreliq : ArbState.READY;
                     arbStatePrevPreliq = null;
-                    logger.info("reset ArbState from PRELIQ to " + arbState);
+                    log.info("reset ArbState from PRELIQ to " + arbState);
                 }
             }
         }
@@ -1034,6 +1001,8 @@ public class ArbitrageService {
         signalStatusDelta = null;
         isAffordableBitmex = true;
         isAffordableOkex = true;
+
+        volatileModeSwitcherService.stopVmTimer();
     }
 
     private boolean isSignalDelayExceeded() {
@@ -1049,13 +1018,14 @@ public class ArbitrageService {
             Instant lastObTime,
             BigDecimal b_block_input, BigDecimal o_block_input) {
 
-        logger.info("START SIGNAL 1");
+        log.info("START SIGNAL 1");
         startSignalTime = Instant.now();
 
         final DeltaName deltaName = DeltaName.B_DELTA;
         final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName);
 
-        setParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, bid1_p, ask1_o, b_block_input, o_block_input, deltaName, counterName);
+        setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, bid1_p, ask1_o, b_block_input, o_block_input, deltaName,
+                counterName);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(b_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
@@ -1070,7 +1040,7 @@ public class ArbitrageService {
         saveParamsToDb();
     }
 
-    private void setParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
+    private void setTradeParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
             BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input, DeltaName deltaName, String counterName) {
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
@@ -1137,7 +1107,7 @@ public class ArbitrageService {
                 dealPrices.setoPriceFact(avgPrice);
             }
             final TradingMode tradingMode = settings.getTradingModeState().getTradingMode();
-            setTradingMode(tradeId, tradingMode);
+            setTradeParamTradingMode(tradeId, tradingMode);
 
         }
 
@@ -1202,7 +1172,7 @@ public class ArbitrageService {
 
             String msg = String.format("adjustByNtUsd. Before: b=%s, o=%s. After: b=%s, o=%s. ntUsd=%s, ntUsdMultiplicityOkex=%s",
                     b_block_input, o_block_input, b_block, o_block, getNtUsd(), multiplicity);
-            logger.info(msg);
+            log.info(msg);
         }
     }
 
@@ -1211,13 +1181,14 @@ public class ArbitrageService {
             Instant lastObTime,
             BigDecimal b_block_input, BigDecimal o_block_input) {
 
-        logger.info("START SIGNAL 2");
+        log.info("START SIGNAL 2");
         startSignalTime = Instant.now();
 
         final DeltaName deltaName = DeltaName.O_DELTA;
         final String counterName = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName);
 
-        setParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, ask1_p, bid1_o, b_block_input, o_block_input, deltaName, counterName);
+        setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, ask1_p, bid1_o, b_block_input, o_block_input, deltaName,
+                counterName);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(o_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
@@ -1395,7 +1366,7 @@ public class ArbitrageService {
         }
 
         Instant end = Instant.now();
-        Utils.logIfLong(lastCalcSumBal, end, logger, "calcSumBalForGui");
+        Utils.logIfLong(lastCalcSumBal, end, log, "calcSumBalForGui");
     }
 
     public Long printToCurrentDeltaLog(String msg) {
@@ -1409,7 +1380,7 @@ public class ArbitrageService {
         if (tradeId == null) {
             tradeId = this.tradeId;
             if (tradeId == null) {
-                logger.warn("printSumBal with tradeId==null");
+                log.warn("printSumBal with tradeId==null");
                 return;
             }
         }
@@ -1543,7 +1514,7 @@ public class ArbitrageService {
             }
         } catch (Exception e) {
             tradeService.error(tradeId, counterName, "Error on printSumBal");
-            logger.error("Error on printSumBal", e);
+            log.error("Error on printSumBal", e);
         }
     }
 
@@ -1986,7 +1957,7 @@ public class ArbitrageService {
     public void releaseArbInProgress(String counterName, String from) {
         String msg = "Arbitrage state was reset READY from " + from + ". ";
         warningLogger.warn(msg);
-        logger.warn(msg);
+        log.warn(msg);
         tradeService.warn(tradeId, counterName, msg);
 
         synchronized (arbStateLock) {
@@ -1995,7 +1966,7 @@ public class ArbitrageService {
                     onArbDone(tradeId, BitmexService.NAME);
                     onArbDone(tradeId, OkCoinService.NAME);
                 } catch (Exception e) {
-                    logger.error("Error " + msg, e);
+                    log.error("Error " + msg, e);
                     warningLogger.error("Error " + msg + e.toString());
                 }
             }

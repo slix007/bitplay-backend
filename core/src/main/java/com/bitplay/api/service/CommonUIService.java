@@ -27,6 +27,7 @@ import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
@@ -127,6 +128,9 @@ public class CommonUIService {
 
     @Autowired
     private TradingModeService tradingModeService;
+
+    @Autowired
+    private VolatileModeSwitcherService volatileModeSwitcherService;
 
     @Autowired
     private BitmexChangeOnSoService bitmexChangeOnSoService;
@@ -467,6 +471,7 @@ public class CommonUIService {
                 String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
                 timeToSignal,
                 tradingModeService.secToReset(),
+                volatileModeSwitcherService.timeToVolatileMode(),
                 bitmexChangeOnSoService.getSecToReset(),
                 arbState.toString(),
                 btmReconnectState,

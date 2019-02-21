@@ -9,7 +9,7 @@ import lombok.Getter;
 public enum TradingMode {
     CURRENT("current"),
     VOLATILE("volatile"),
-    CURRENT_VOLATILE("current-volatile"); // only for fplayTrade logs in DB
+    CURRENT_VOLATILE("current-volatile"); // only for fplayTrade logs in DB and dealPrices
 
     private String fullName;
 }

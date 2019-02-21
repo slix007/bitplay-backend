@@ -22,10 +22,10 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-public class SignalVolatileModeService {
+public class VolatileModeAfterService {
 
     final ExecutorService executorService = Executors.newFixedThreadPool(2,
-            new NamedThreadFactory("volatile-mode-service"));
+            new NamedThreadFactory("volatile-mode-after"));
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
@@ -38,7 +38,7 @@ public class SignalVolatileModeService {
     @Autowired
     private BitmexService bitmexService;
 
-    public void justSetVolatileMode(Long tradeId) {
+    void justSetVolatileMode(Long tradeId) {
         final List<FplayOrder> bitmexOO = bitmexService.getOnlyOpenFplayOrders();
         final List<FplayOrder> okexOO = okexService.getOnlyOpenFplayOrders();
 
@@ -87,8 +87,6 @@ public class SignalVolatileModeService {
     private void replaceLimitOrders(MarketService marketService, PlacingType placingType, List<FplayOrder> currOrders, Long tradeId) {
         if (placingType != PlacingType.MAKER && placingType != PlacingType.MAKER_TICK) {
 
-            marketService.getArbitrageService().setCurrentVolatile(tradeId);
-
             // 1. cancel
             final List<LimitOrder> orders = marketService.cancelAllOrders("VolatileMode activated: CancelAllOpenOrders");
             final BigDecimal amountLeft = orders.stream()
@@ -100,6 +98,9 @@ public class SignalVolatileModeService {
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             // 2. place
             if (amountLeft.signum() != 0) {
+
+                marketService.getArbitrageService().setTradeParamTradingModeCurrentVolatile(tradeId);
+
                 final OrderType orderType = amountLeft.signum() > 0 ? OrderType.BID : OrderType.ASK;
                 BestQuotes bestQuotes = getBestQuotes(currOrders);
 
