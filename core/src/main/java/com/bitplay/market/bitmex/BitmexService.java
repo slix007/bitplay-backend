@@ -1637,7 +1637,7 @@ public class BitmexService extends MarketServicePreliq {
 
         if (placingTypeInitial == null) {
             tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs, contractTypeStr);
-            placingTypeInitial = settings.getBitmexPlacingType();
+            placingTypeInitial = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : settings.getBitmexPlacingType();
         }
 
         PlacingType placingType = placingTypeInitial;

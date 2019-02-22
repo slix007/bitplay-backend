@@ -592,8 +592,7 @@ public class ArbitrageService {
 
             // if we replace-limit-orders then fix commissions for current signal.
             final PlacingType okexPlacingType = settings.getOkexPlacingType();
-            PlacingType btmPlacingType = settings.getBitmexPlacingType();
-            btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : btmPlacingType;
+            final PlacingType btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : settings.getBitmexPlacingType();
             synchronized (dealPrices) {
                 dealPrices.setBtmPlacingType(btmPlacingType);
                 dealPrices.setOkexPlacingType(okexPlacingType);
@@ -1061,8 +1060,7 @@ public class ArbitrageService {
 
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final PlacingType okexPlacingType = settings.getOkexPlacingType();
-        PlacingType btmPlacingType = settings.getBitmexPlacingType();
-        btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : btmPlacingType;
+        final PlacingType btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : settings.getBitmexPlacingType();
 
         synchronized (dealPrices) {
             dealPrices.setBtmPlacingType(btmPlacingType);

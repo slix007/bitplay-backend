@@ -8,6 +8,7 @@ import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.settings.BitmexChangeOnSoService;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import java.math.BigDecimal;
 import java.util.List;
@@ -37,6 +38,9 @@ public class VolatileModeAfterService {
 
     @Autowired
     private BitmexService bitmexService;
+
+    @Autowired
+    private BitmexChangeOnSoService bitmexChangeOnSoService;
 
     void justSetVolatileMode(Long tradeId) {
         final List<FplayOrder> bitmexOO = bitmexService.getOnlyOpenFplayOrders();
@@ -75,8 +79,10 @@ public class VolatileModeAfterService {
             }
         }
 
-        final PlacingType placingType = settingsRepositoryService.getSettings().getBitmexPlacingType();
-        replaceLimitOrders(bitmexService, placingType, bitmexOO, tradeId);
+        final PlacingType btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER
+                : settingsRepositoryService.getSettings().getBitmexPlacingType();
+
+        replaceLimitOrders(bitmexService, btmPlacingType, bitmexOO, tradeId);
     }
 
     private void replaceLimitOrdersOkex(List<FplayOrder> okexOO, Long tradeId) {
