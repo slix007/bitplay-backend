@@ -4,6 +4,8 @@ import com.bitplay.market.bitmex.BitmexTradeLogger;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -77,11 +79,19 @@ public class BitmexChangeOnSoService {
     }
 
     private void activate() {
-        final String msgStart = "BitmexChangeOnSo activated";
+        final BitmexChangeOnSo bitmexChangeOnSo = settingsRepositoryService.getSettings().getBitmexChangeOnSo();
+        List<String> arr = new ArrayList<>();
+        if (bitmexChangeOnSo.getToTaker()) {
+            arr.add("ALWAYS_TAKER");
+        }
+        if (bitmexChangeOnSo.getToConBo()) {
+            arr.add("CON_B_O");
+        }
+        final String msgStart = "BitmexChangeOnSo activated " + String.join(", ", arr);
         log.info(msgStart);
         warningLogger.info(msgStart);
         tradeLogger.info(msgStart);
-        final Integer durationSec = settingsRepositoryService.getSettings().getBitmexChangeOnSo().getDurationSec();
+        final Integer durationSec = bitmexChangeOnSo.getDurationSec();
         toResetTask = executor.schedule(() -> {
                     final String msg = "BitmexChangeOnSo deactivated";
                     log.info(msg);
