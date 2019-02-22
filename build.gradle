@@ -78,22 +78,27 @@ remotes {
 def remoteInstallDir = '/opt/bitplay/bitmex-okcoin'
 def remoteHomeDir = '/home/' + bpUser
 
-task clean << { delete project.buildDir }
+task cleanLogs {
+    doLast {
+        println "delete $project.projectDir/logs"
+        delete "$project.projectDir/logs"
+    }
+}
 
 // Test servers
-task deployHost658 << { sshRun(remotes.host658, remoteHomeDir, remoteInstallDir) }
-task deployHost660 << { sshRun(remotes.host660, remoteHomeDir, remoteInstallDir) }
+task deployHost658 { doLast { sshRun(remotes.host658, remoteHomeDir, remoteInstallDir) } }
+task deployHost660 { doLast { sshRun(remotes.host660, remoteHomeDir, remoteInstallDir) } }
 
 // Prod servers
-task deployHost659 << { sshRun(remotes.host659, remoteHomeDir, remoteInstallDir) }
-task deployHost662 << { sshRun(remotes.host662, remoteHomeDir, remoteInstallDir) }
-task deployHost667 << { sshRun(remotes.host667, remoteHomeDir, remoteInstallDir) }
-task deployHost668 << { sshRun(remotes.host668, remoteHomeDir, remoteInstallDir) }
-task deployHost669 << { sshRun(remotes.host669, remoteHomeDir, remoteInstallDir) }
-task deployHost661 << { sshRun(remotes.host661, remoteHomeDir, remoteInstallDir) }
-task deployTest << { sshRun(remotes.test, remoteHomeDir, remoteInstallDir) }
-task deployProd << { sshRun(remotes.prod, remoteHomeDir, remoteInstallDir) }
-task deployDemo << { sshRun(remotes.demo, remoteHomeDir, remoteInstallDir) }
+task deployHost659 { doLast { sshRun(remotes.host659, remoteHomeDir, remoteInstallDir) } }
+task deployHost662 { doLast { sshRun(remotes.host662, remoteHomeDir, remoteInstallDir) } }
+task deployHost667 { doLast { sshRun(remotes.host667, remoteHomeDir, remoteInstallDir) } }
+task deployHost668 { doLast { sshRun(remotes.host668, remoteHomeDir, remoteInstallDir) } }
+task deployHost669 { doLast { sshRun(remotes.host669, remoteHomeDir, remoteInstallDir) } }
+task deployHost661 { doLast { sshRun(remotes.host661, remoteHomeDir, remoteInstallDir) } }
+task deployTest { doLast { sshRun(remotes.test, remoteHomeDir, remoteInstallDir) } }
+task deployProd { doLast { sshRun(remotes.prod, remoteHomeDir, remoteInstallDir) } }
+task deployDemo { doLast { sshRun(remotes.demo, remoteHomeDir, remoteInstallDir) } }
 
 private void sshRun(hostName, remoteHomeDir, remoteInstallDir) {
     ssh.run {
