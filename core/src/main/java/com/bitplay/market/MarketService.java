@@ -882,12 +882,13 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
         if (limitOrder.getLimitPrice() == null) {
             final FplayOrder one = getPersistenceService().getOrderRepositoryService().findOne(limitOrder.getId());
-            if (one != null) {
-                final LimitOrder fromDb = (LimitOrder) one.getOrder();
-                if (fromDb.getLimitPrice() == null) {
+            if (one == null) {
+                return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null");
+            } else {
+                limitOrder = (LimitOrder) one.getOrder();
+                if (limitOrder.getLimitPrice() == null) {
                     return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null");
                 }
-                limitOrder = fromDb;
             }
         }
 
