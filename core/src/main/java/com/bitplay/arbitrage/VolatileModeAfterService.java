@@ -58,6 +58,10 @@ public class VolatileModeAfterService {
 //            executorService.execute(() -> replaceLimitOrdersBitmex(bitmexOO));
 //             OK while VolatileMode has no 'Arbitrage version'
 //        }
+
+        final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getOkexPlacingType();
+        okexService.changeDeferredPlacingType(okexPlacingType);
+
         if (bitmexOO.size() > 0) {
             executorService.execute(() -> replaceLimitOrdersBitmex(bitmexOO, tradeId));
         }
@@ -86,8 +90,8 @@ public class VolatileModeAfterService {
     }
 
     private void replaceLimitOrdersOkex(List<FplayOrder> okexOO, Long tradeId) {
-        final PlacingType placingType = settingsRepositoryService.getSettings().getOkexPlacingType();
-        replaceLimitOrders(okexService, placingType, okexOO, tradeId);
+        final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getOkexPlacingType();
+        replaceLimitOrders(okexService, okexPlacingType, okexOO, tradeId);
     }
 
     private void replaceLimitOrders(MarketService marketService, PlacingType placingType, List<FplayOrder> currOrders, Long tradeId) {

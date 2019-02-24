@@ -46,8 +46,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 import info.bitrich.xchangestream.okex.dto.Tool;
-import info.bitrich.xchangestream.service.exception.NotConnectedException;
-import io.micrometer.core.annotation.Timed;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -55,7 +53,6 @@ import io.reactivex.schedulers.Schedulers;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -262,7 +259,7 @@ public class OkCoinService extends MarketServicePreliq {
         loadLiqParams();
 
         initWebSocketAndAllSubscribers();
-        initDeferedPlacingOrder();
+        initDeferredPlacingOrder();
     }
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
@@ -927,7 +924,16 @@ public class OkCoinService extends MarketServicePreliq {
         return isAffordable;
     }
 
-    private void initDeferedPlacingOrder() {
+    public void changeDeferredPlacingType(PlacingType placingType) {
+        placeOrderArgsRef.getAndUpdate(placeOrderArgs -> {
+            if (placeOrderArgs == null) {
+                return null;
+            }
+            return placeOrderArgs.cloneWithPlacingType(placingType);
+        });
+    }
+
+    private void initDeferredPlacingOrder() {
         getArbitrageService().getSignalEventBus().toObserverable()
                 .subscribe(eventQuant -> {
                     try {

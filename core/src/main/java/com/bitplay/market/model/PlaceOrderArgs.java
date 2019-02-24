@@ -125,4 +125,11 @@ public class PlaceOrderArgs {
                 curr.preliqMarketName);
     }
 
+    public PlaceOrderArgs cloneWithPlacingType(PlacingType placingType) {
+        return new PlaceOrderArgs(this.orderType, this.amount, this.bestQuotes,
+                placingType,
+                this.signalType, this.attempt, this.tradeId, this.counterName, this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
+                this.preliqMarketName);
+    }
+
 }
