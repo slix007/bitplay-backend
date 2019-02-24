@@ -33,6 +33,7 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
@@ -196,6 +197,8 @@ public class BitmexService extends MarketServicePreliq {
     private MonitoringDataService monitoringDataService;
     @Autowired
     private BitmexChangeOnSoService bitmexChangeOnSoService;
+    @Autowired
+    private MetricsDictionary metricsDictionary;
 
     private String key;
     private String secret;
@@ -560,6 +563,8 @@ public class BitmexService extends MarketServicePreliq {
     private void reconnectOrRestart() {
         final Integer maxBitmexReconnects = settingsRepositoryService.getSettings().getRestartSettings().getMaxBitmexReconnects();
         int currReconnectCount = reconnectCount.incrementAndGet();
+        metricsDictionary.incBitmexReconnects();
+
         if (currReconnectCount >= maxBitmexReconnects) {
             doRestart(String.format("Warning: Bitmex max reconnects(%s) is reached.", currReconnectCount));
             return;

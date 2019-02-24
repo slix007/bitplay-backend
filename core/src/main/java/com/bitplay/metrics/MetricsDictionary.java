@@ -2,6 +2,7 @@ package com.bitplay.metrics;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.external.HostResolver;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -17,6 +18,7 @@ public class MetricsDictionary {
 
     private DistributionSummary bitmexDelta;
     private DistributionSummary okexDelta;
+    private Counter bitmexReconnectsCounter;
 //    private Timer bitmexDeltaTimer;
 //    private Timer okexDeltaTimer;
 
@@ -76,6 +78,15 @@ public class MetricsDictionary {
 //                    .sla(Duration.ofMillis(100))
 //                    .minimumExpectedValue(Duration.ofMillis(1))
 //                    .maximumExpectedValue(Duration.ofSeconds(10));
+
+            bitmexReconnectsCounter = registry.counter("bitmexReconnectsCounter");
+
+//            FunctionCounter counter = FunctionCounter
+//                    .builder("counter", state, state -> state.count())
+//                    .baseUnit("beans") // optional
+//                    .description("a description of what this counter does") // optional
+//                    .tags("region", "test") // optional
+//                    .register(registry);
         };
     }
 
@@ -86,5 +97,9 @@ public class MetricsDictionary {
         okexDelta.record(d2);
 //        bitmexDeltaTimer.record((long) (d1 * 100), TimeUnit.MILLISECONDS);
 //        okexDeltaTimer.record((long) (d2 * 100), TimeUnit.MILLISECONDS);
+    }
+
+    public void incBitmexReconnects() {
+        bitmexReconnectsCounter.increment();
     }
 }

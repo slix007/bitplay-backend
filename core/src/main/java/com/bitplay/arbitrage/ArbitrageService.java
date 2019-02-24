@@ -1575,6 +1575,7 @@ public class ArbitrageService {
         return getMainSetStr() + getMainSetSource() + getExtraSetStr() + getExtraSetSource();
     }
 
+    @SuppressWarnings("Duplicates")
     public String getMainSetStr() {
         // nt_usd = b_pos * 10 / CM + o_pos * 10 - ha;
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
@@ -1809,6 +1810,7 @@ public class ArbitrageService {
         return num.multiply(mult);
     }
 
+    @SuppressWarnings("Duplicates")
     private BigDecimal getNtUsd() {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final BigDecimal cm = settings.getPlacingBlocks().getCm();
@@ -1828,6 +1830,7 @@ public class ArbitrageService {
         final BigDecimal okexUsd = isEth
                 ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
                 : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
+        //noinspection UnnecessaryLocalVariable
         final BigDecimal notionalUsd = (bitmexUsd.add(okexUsd).subtract(ha)).negate();
         return notionalUsd;
     }
