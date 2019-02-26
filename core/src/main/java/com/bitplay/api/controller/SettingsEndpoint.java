@@ -465,6 +465,10 @@ public class SettingsEndpoint {
             settings.setColdStorageBtc(settingsUpdate.getColdStorageBtc());
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getColdStorageEth() != null) {
+            settings.setColdStorageEth(settingsUpdate.getColdStorageEth());
+            settingsRepositoryService.saveSettings(settings);
+        }
         if (settingsUpdate.getEBestMin() != null) {
             settings.setEBestMin(settingsUpdate.getEBestMin());
             settingsRepositoryService.saveSettings(settings);

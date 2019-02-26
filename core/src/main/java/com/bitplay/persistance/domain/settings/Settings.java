@@ -45,6 +45,7 @@ public class Settings extends AbstractDocument {
     private RestartSettings restartSettings;
     private Integer signalDelayMs;
     private BigDecimal coldStorageBtc;
+    private BigDecimal coldStorageEth;
     private Integer eBestMin;
     private UsdQuoteType usdQuoteType;
     private BigDecimal okexFakeTakerDev;//deviation of fake taker price
@@ -98,6 +99,7 @@ public class Settings extends AbstractDocument {
         settings.signalDelayMs = 1000;
         settings.contractMode = ContractMode.MODE1_SET_BU11;
         settings.coldStorageBtc = BigDecimal.ZERO;
+        settings.coldStorageEth = BigDecimal.ZERO;
         settings.eBestMin = 0;
         settings.hedgeBtc = BigDecimal.ZERO;
         settings.hedgeEth = BigDecimal.ZERO;

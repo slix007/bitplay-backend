@@ -634,8 +634,9 @@ public class CommonUIService {
         Settings settings = settingsRepositoryService.getSettings();
         final String sumEBestMin = settings.getEBestMin().toString();
         final String timeToForbidden = traderPermissionsService.getTimeToForbidden();
-        final String coldStorage = settings.getColdStorageBtc().toPlainString();
-        return new SumBalJson(sumBalString, sumEBest, sumEBestMin, timeToForbidden, coldStorage);
+        final String coldStorageBtc = settings.getColdStorageBtc().toPlainString();
+        final String coldStorageEth = settings.isEth() ? settings.getColdStorageEth().toPlainString() : null;
+        return new SumBalJson(sumBalString, sumEBest, sumEBestMin, timeToForbidden, coldStorageBtc, coldStorageEth);
     }
 
     public PosDiffJson getPosDiff() {

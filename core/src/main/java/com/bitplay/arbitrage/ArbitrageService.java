@@ -1256,6 +1256,7 @@ public class ArbitrageService {
         return counterName;
     }
 
+    @SuppressWarnings("Duplicates")
     @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)
     public void calcSumBalForGui() {
         if (firstMarketService == null || secondMarketService == null) {
@@ -1288,11 +1289,20 @@ public class ArbitrageService {
 
             boolean isEth = secondMarketService.getEthBtcTicker() != null && firstMarketService.getContractType().isEth();
 
+            BigDecimal oEbestWithColdStorageEth = oEbest;
             if (isEth) {
+                final BigDecimal coldStorageEth = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageEth();
+                oW = oW.add(coldStorageEth);
+                oELast = oELast.add(coldStorageEth);
+                oEbestWithColdStorageEth = oEbest.add(coldStorageEth);
+                oEAvg = oEAvg.add(coldStorageEth);
+
+                // okex: convert eth to btc
                 BigDecimal ethBtcBid1 = secondMarketService.getEthBtcTicker().getBid();
                 oW = oW.multiply(ethBtcBid1);
                 oELast = oELast.multiply(ethBtcBid1);
                 oEbest = oEbest.multiply(ethBtcBid1);
+                oEbestWithColdStorageEth = oEbestWithColdStorageEth.multiply(ethBtcBid1);
                 oEAvg = oEAvg.multiply(ethBtcBid1);
                 oM = oM.multiply(ethBtcBid1);
                 oU = oU.multiply(ethBtcBid1);
@@ -1302,7 +1312,7 @@ public class ArbitrageService {
             final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
             final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumE = bEMark.add(oELast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumEBest = bEbest.add(oEbest).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal sumEBest = bEbest.add(oEbestWithColdStorageEth).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumEAvg = bEAvg.add(oEAvg).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumUpl = bU.add(oU).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
@@ -1341,7 +1351,7 @@ public class ArbitrageService {
 
             // calc auto hedge
             if (firstMarketService.getContractType().isEth()) {
-                BigDecimal he_usd = oEbest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
+                BigDecimal he_usd = oEbestWithColdStorageEth.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
                 hedgeService.setHedgeEth(he_usd);
                 BigDecimal hb_usd = (bEbest.add(coldStorageBtc)).multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
                 hedgeService.setHedgeBtc(hb_usd);
@@ -1374,6 +1384,7 @@ public class ArbitrageService {
         return tradeIdSnap;
     }
 
+    @SuppressWarnings("Duplicates")
     public void printSumBal(Long tradeId, String counterName) {
         if (tradeId == null) {
             tradeId = this.tradeId;
@@ -1427,11 +1438,22 @@ public class ArbitrageService {
                 BigDecimal oM = secondAccount.getMargin();
                 BigDecimal oU = secondAccount.getUpl();
                 BigDecimal oA = secondAccount.getAvailable();
-                if (secondMarketService.getEthBtcTicker() != null) {
+
+                boolean isEth = secondMarketService.getEthBtcTicker() != null && firstMarketService.getContractType().isEth();
+                BigDecimal oEbestWithColdStorageEth = oEbest;
+                if (isEth) {
+                    final BigDecimal coldStorageEth = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageEth();
+                    oW = oW.add(coldStorageEth);
+                    oElast = oElast.add(coldStorageEth);
+                    oEbestWithColdStorageEth = oEbest.add(coldStorageEth);
+                    oEavg = oEavg.add(coldStorageEth);
+
+                    // okex: convert eth to btc
                     BigDecimal ethBtcBid1 = secondMarketService.getEthBtcTicker().getBid();
                     oW = oW.multiply(ethBtcBid1);
                     oElast = oElast.multiply(ethBtcBid1);
                     oEbest = oEbest.multiply(ethBtcBid1);
+                    oEbestWithColdStorageEth = oEbestWithColdStorageEth.multiply(ethBtcBid1);
                     oEavg = oEavg.multiply(ethBtcBid1);
                     oM = oM.multiply(ethBtcBid1);
                     oU = oU.multiply(ethBtcBid1);
@@ -1468,7 +1490,7 @@ public class ArbitrageService {
                 final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
                 final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumE = bEmark.add(oElast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
-                final BigDecimal sumEBest = bEbest.add(oEbest).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumEBest = bEbest.add(oEbestWithColdStorageEth).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumEavg = bEavg.add(oEavg).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumUpl = bU.add(oU).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
