@@ -26,6 +26,12 @@ public class Utils {
         return value.signum() < 0 ? value.toPlainString() : ("+" + value.toPlainString());
     }
 
+    public static boolean isObOk(OrderBook orderBook) {
+        final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
+        final LimitOrder bestBid = Utils.getBestBid(orderBook);
+        return bestBid.compareTo(bestAsk) < 0;
+    }
+
     public static LimitOrder getBestBid(OrderBook orderBook) {
         return getBestBids(orderBook, 1).get(0);
     }

@@ -59,6 +59,7 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.settings.TradingModeService;
+import com.bitplay.utils.Utils;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -462,6 +463,10 @@ public class CommonUIService {
         signalPartsJson.setDeltaName(signalStatusDelta == null ? "_" : signalStatusDelta.getDeltaSymbol());
 
         signalPartsJson.setPriceLimits(!btmLimOut && !okLimOut ? Status.OK : Status.WRONG);
+
+        signalPartsJson.setBtmOrderBook(Utils.isObOk(bitmexService.getOrderBook()) ? Status.OK : Status.WRONG);
+        signalPartsJson.setBtmOrderBookXBTUSD(Utils.isObOk(bitmexService.getOrderBookXBTUSD()) ? Status.OK : Status.WRONG);
+        signalPartsJson.setOkOrderBook(Utils.isObOk(okCoinService.getOrderBook()) ? Status.OK : Status.WRONG);
 
         return new MarketStatesJson(
                 btmState.toString(),

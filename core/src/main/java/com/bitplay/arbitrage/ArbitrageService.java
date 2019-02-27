@@ -550,6 +550,8 @@ public class ArbitrageService {
                 if (firstMarketService.isStarted()
                         && bitmexOrderBook != null
                         && okCoinOrderBook != null
+                        && Utils.isObOk(bitmexOrderBook)
+                        && Utils.isObOk(okCoinOrderBook)
                         && firstMarketService.getAccountInfoContracts() != null
                         && secondMarketService.getAccountInfoContracts() != null) {
                     calcAndDoArbitrage(bestQuotes, bitmexOrderBook, okCoinOrderBook);
