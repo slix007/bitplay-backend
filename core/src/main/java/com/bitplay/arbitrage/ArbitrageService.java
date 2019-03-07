@@ -1231,6 +1231,7 @@ public class ArbitrageService {
 //            corrParams.getPreliq().incTotalCount();
 //            persistenceService.saveCorrParams(corrParams);
 //        }
+        setSignalType(SignalType.AUTOMATIC);
         final String counterName = firstMarketService.getCounterName();
 
         fplayTrade = tradeService.createTrade(counterName, deltaName,

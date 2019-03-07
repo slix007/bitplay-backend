@@ -257,12 +257,16 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public void setBusy() {
+        setBusy(getCounterName());
+    }
+
+    public void setBusy(String counterName) {
         if (isMarketStopped()) {
             return;
         }
         if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (!isBusy()) {
-                getTradeLogger().info(String.format("#%s %s: busy, %s", getCounterNameNext(), getName(), getArbitrageService().getFullPosDiff()));
+                getTradeLogger().info(String.format("#%s %s: busy, %s", counterName, getName(), getArbitrageService().getFullPosDiff()));
             }
             this.marketState = MarketState.ARBITRAGE;
         }
@@ -444,7 +448,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return getCounterName(signalType, false);
     }
 
-    protected String getCounterNameNext(SignalType signalType) {
+    public String getCounterNameNext(SignalType signalType) {
         return getCounterName(signalType, true);
     }
 
@@ -459,10 +463,12 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             value = String.format("%s:%s", String.valueOf(isNext ? counter + 1 : counter), signalType.getCounterName());
         } else if (signalType.isAdj()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-            value = String.format("%s:%s", String.valueOf(corrParams.getAdj().getTotalCount()), signalType.getCounterName());
+            Integer counter = corrParams.getAdj().getTotalCount();
+            value = String.format("%s:%s", String.valueOf(isNext ? counter + 1 : counter), signalType.getCounterName());
         } else if (signalType.isCorr()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-            value = String.format("%s:%s", String.valueOf(corrParams.getCorr().getTotalCount()), signalType.getCounterName());
+            Integer counter = corrParams.getCorr().getTotalCount();
+            value = String.format("%s:%s", String.valueOf(isNext ? counter + 1 : counter), signalType.getCounterName());
         } else {
             value = signalType.getCounterName();
         }

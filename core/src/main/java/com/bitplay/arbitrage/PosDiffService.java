@@ -914,19 +914,19 @@ public class PosDiffService {
             if (outsideLimits(marketService, orderType, placingType, signalType)) {
                 // do nothing
             } else {
-                //                bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
+
                 arbitrageService.setSignalType(signalType);
-                marketService.setBusy();
 
                 // Market specific params
-                final String counterName = marketService.getCounterName(signalType);
+                final String counterName = marketService.getCounterNameNext(signalType);
+                marketService.setBusy(counterName);
+
                 final Long tradeId = arbitrageService.getLastTradeId();
 
                 final String soMark = getSoMark(corrObj);
                 final SignalTypeEx signalTypeEx = new SignalTypeEx(signalType, soMark);
 
-                final String message = String
-                        .format("#%s %s %s amount=%s c=%s. ", signalTypeEx.getCounterName(), placingType, orderType, correctAmount, contractType);
+                final String message = String.format("#%s %s %s amount=%s c=%s. ", counterName, placingType, orderType, correctAmount, contractType);
                 slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
 
                 countOnStartCorr(corrParams, signalType);
