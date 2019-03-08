@@ -1561,7 +1561,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public List<LimitOrder> cancelAllOrders(String logInfoId) {
+    public List<LimitOrder> cancelAllOrders(String logInfoId, boolean beforePlacing) {
         List<LimitOrder> res = new ArrayList<>();
         final String counterForLogs = getCounterName();
         synchronized (openOrdersLock) {
@@ -1604,6 +1604,10 @@ public class OkCoinService extends MarketServicePreliq {
                     }
                 }
             });
+            final boolean cnlSuccess = res.size() > 0;
+            if (beforePlacing && cnlSuccess) {
+                setMarketState(MarketState.PLACING_ORDER);
+            }
         }
 
         return res;

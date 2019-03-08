@@ -97,9 +97,10 @@ public class VolatileModeAfterService {
     private void replaceLimitOrders(MarketService marketService, PlacingType placingType, List<FplayOrder> currOrders, Long tradeId) {
         if (placingType != PlacingType.MAKER && placingType != PlacingType.MAKER_TICK) {
 
-            // 1. cancel
-            final List<LimitOrder> orders = marketService.cancelAllOrders("VolatileMode activated: CancelAllOpenOrders");
-            final BigDecimal amountLeft = orders.stream()
+            final MarketState prevState = marketService.getMarketState();
+            // 1. cancel and set marketState=PLACING_ORDER
+            final List<LimitOrder> orders = marketService.cancelAllOrders("VolatileMode activated: CancelAllOpenOrders", true);
+            final BigDecimal amountDiff = orders.stream()
                     .map(o -> {
                         final BigDecimal am = o.getTradableAmount().subtract(o.getCumulativeAmount());
                         final boolean sellType = o.getType() == OrderType.ASK || o.getType() == OrderType.EXIT_BID;
@@ -107,11 +108,12 @@ public class VolatileModeAfterService {
                     })
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             // 2. place
-            if (amountLeft.signum() != 0) {
+            if (amountDiff.signum() != 0) {
 
                 marketService.getArbitrageService().setTradeParamTradingModeCurrentVolatile(tradeId);
 
-                final OrderType orderType = amountLeft.signum() > 0 ? OrderType.BID : OrderType.ASK;
+                final OrderType orderType = amountDiff.signum() > 0 ? OrderType.BID : OrderType.ASK;
+                final BigDecimal amountLeft = amountDiff.abs();
                 BestQuotes bestQuotes = getBestQuotes(currOrders);
 
                 if (marketService.getName().equals(BitmexService.NAME)) {
@@ -131,6 +133,10 @@ public class VolatileModeAfterService {
                             null
                     );
                 }
+            } else {
+                log.warn("VolatileMode activated: no amountLeft.");
+                marketService.getTradeLogger().warn("VolatileMode activated: no amountLeft.");
+                marketService.setMarketState(prevState);
             }
         }
     }

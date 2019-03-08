@@ -1881,6 +1881,9 @@ public class BitmexService extends MarketServicePreliq {
 //            }
 //        } finally {
 
+        if (nextMarketState == MarketState.PLACING_ORDER) {
+            nextMarketState = MarketState.ARBITRAGE;
+        }
         logger.info("restore marketState to " + nextMarketState);
         setMarketState(nextMarketState, counterName);
         if (nextMarketState == MarketState.SYSTEM_OVERLOADED) {
@@ -2693,7 +2696,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
-    public List<LimitOrder> cancelAllOrders(String logInfoId) {
+    public List<LimitOrder> cancelAllOrders(String logInfoId, boolean beforePlacing) {
         final String counterForLogs = getCounterName();
         String contractTypeStr = "";
 
@@ -2713,14 +2716,16 @@ public class BitmexService extends MarketServicePreliq {
                         .findFirst()
                         .orElse("");
 
-                getTradeLogger().info(String.format("#%s/%s %s cancelled id=%s",
-                        counterForLogs, attemptCount,
-                        logInfoId,
-                        limitOrders.stream().map(Order::getId).reduce((acc, item) -> acc + "," + item)), contractTypeStr);
+                getTradeLogger().info(String.format("#%s/%s %s cancelled. %s", counterForLogs, attemptCount, logInfoId,
+                        limitOrders.stream().map(LimitOrder::toString).reduce((acc, item) -> acc + "; " + item)),
+                        contractTypeStr);
 
-                updateOpenOrders(limitOrders);
-
-                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                if (beforePlacing) {
+                    setMarketState(MarketState.PLACING_ORDER);
+                } else {
+                    updateOpenOrders(limitOrders);
+                    ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                }
 
                 return limitOrders;
 

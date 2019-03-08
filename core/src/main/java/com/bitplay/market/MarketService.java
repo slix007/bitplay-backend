@@ -889,11 +889,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         if (limitOrder.getLimitPrice() == null) {
             final FplayOrder one = getPersistenceService().getOrderRepositoryService().findOne(limitOrder.getId());
             if (one == null) {
-                return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null");
+                return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null, id=" + limitOrder.getId());
             } else {
                 limitOrder = (LimitOrder) one.getOrder();
                 if (limitOrder.getLimitPrice() == null) {
-                    return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null");
+                    return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null, id=" + limitOrder.getId());
                 }
             }
         }
@@ -1021,7 +1021,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 warningLogger.info(msg);
                 getTradeLogger().info(msg);
 
-                cancelAllOrders("StopAllActions: CancelAllOpenOrders");
+                cancelAllOrders("StopAllActions: CancelAllOpenOrders", false);
             }
         } catch (Exception e) {
             logger.error("stopAllActions error", e);
@@ -1035,7 +1035,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     /**
      * @return cancelled order id list
      */
-    public List<LimitOrder> cancelAllOrders(String logInfoId) {
+    public List<LimitOrder> cancelAllOrders(String logInfoId, boolean beforePlacing) {
         return new ArrayList<>();
     }
 
