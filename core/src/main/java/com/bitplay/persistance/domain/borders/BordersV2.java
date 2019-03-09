@@ -21,8 +21,8 @@ public class BordersV2 implements Serializable {
     private Boolean autoBaseLvl;
     private Integer baseLvlCnt; // base level, starting point
     private BaseLvlType baseLvlType;
-    private Integer step; // between levels
-    private Integer gapStep; // between tables
+    private BigDecimal step; // between levels
+    private BigDecimal gapStep; // between tables
     private BigDecimal bAddDelta;
     private BigDecimal okAddDelta;
     private BigDecimal plm; // position limit multiplier

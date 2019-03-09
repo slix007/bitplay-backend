@@ -107,6 +107,7 @@ public class BordersRecalcService {
         }
     }
 
+    @SuppressWarnings("Duplicates")
     private void recalculateBordersV2(BorderParams borderParams, BigDecimal b_delta, BigDecimal o_delta) {
         final BordersV2 bordersV2 = borderParams.getBordersV2();
 
@@ -122,8 +123,8 @@ public class BordersRecalcService {
         final Integer base_lvl = bordersV2.getBaseLvlCnt();
         final Integer max_lvl = bordersV2.getMaxLvl();
         final BordersV2.BaseLvlType base_lvl_type = bordersV2.getBaseLvlType();
-        final Integer step = bordersV2.getStep();
-        final Integer gap_step = bordersV2.getGapStep();
+        final BigDecimal step = bordersV2.getStep();
+        final BigDecimal gap_step = bordersV2.getGapStep();
 
         if (b_add_delta.signum() == 0 && ok_add_delta.signum() == 0) {
             return;
@@ -153,8 +154,8 @@ public class BordersRecalcService {
                     .ifPresent(borderTable -> {
                         final List<BorderItem> items = borderTable.getBorderItemList();
                         for (int i = 0; i < max_lvl && i < items.size(); i++) {
-                            int currStep = step * (i + 1 - base_lvl); // val *_br_open:0,1,2,3
-                            final BigDecimal val = b_baseVal.add(BigDecimal.valueOf(currStep));
+                            final BigDecimal currStep = step.multiply(BigDecimal.valueOf(i + 1 - base_lvl)); // val *_br_open:0,1,2,3
+                            final BigDecimal val = b_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
                         }
@@ -167,10 +168,10 @@ public class BordersRecalcService {
                         final List<BorderItem> items = borderTable.getBorderItemList();
                         for (int i = 0; i < max_lvl && i < items.size(); i++) {
                             // val *_br_open:0,1,2,3 ... gap ...*_br_close:  -10,-11,-12,-13
-                            int stepToZeroThat = step * (1 - base_lvl);
-                            int stepToZeroThis = stepToZeroThat - gap_step;
-                            int currStep = stepToZeroThis + step * (-i);
-                            final BigDecimal val = b_baseVal.add(BigDecimal.valueOf(currStep));
+                            final BigDecimal stepToZeroThat = step.multiply(BigDecimal.valueOf(1 - base_lvl));
+                            final BigDecimal stepToZeroThis = stepToZeroThat.subtract(gap_step);
+                            final BigDecimal currStep = stepToZeroThis.add(step.multiply(BigDecimal.valueOf((-i))));
+                            final BigDecimal val = b_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
                         }
@@ -182,8 +183,8 @@ public class BordersRecalcService {
                     .ifPresent(borderTable -> {
                         final List<BorderItem> items = borderTable.getBorderItemList();
                         for (int i = 0; i < max_lvl && i < items.size(); i++) {
-                            int currStep = step * (base_lvl - i - 1); // val X_br_open:0,-1,-2,-3
-                            final BigDecimal val = ok_baseVal.add(BigDecimal.valueOf(currStep));
+                            final BigDecimal currStep = step.multiply(BigDecimal.valueOf(base_lvl - i - 1)); // val X_br_open:0,-1,-2,-3
+                            final BigDecimal val = ok_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
                         }
@@ -196,10 +197,10 @@ public class BordersRecalcService {
                         final List<BorderItem> items = borderTable.getBorderItemList();
                         for (int i = 0; i < max_lvl && i < items.size(); i++) {
                             // X_br_close:5,0,-5,-10 ... gap(20) ...X_br_open:  25,30,35,40
-                            int stepToZeroThat = step * (base_lvl - 1);
-                            int stepToZeroThis = stepToZeroThat + gap_step;
-                            int currStep = stepToZeroThis + step * i;
-                            final BigDecimal val = ok_baseVal.add(BigDecimal.valueOf(currStep));
+                            final BigDecimal stepToZeroThat = step.multiply(BigDecimal.valueOf(base_lvl - 1));
+                            final BigDecimal stepToZeroThis = stepToZeroThat.add(gap_step);
+                            final BigDecimal currStep = stepToZeroThis.add(step.multiply(BigDecimal.valueOf(i)));
+                            final BigDecimal val = ok_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
                         }
@@ -213,8 +214,8 @@ public class BordersRecalcService {
                     .ifPresent(borderTable -> {
                         final List<BorderItem> items = borderTable.getBorderItemList();
                         for (int i = 0; i < max_lvl && i < items.size(); i++) {
-                            int currStep = step * (i + 1 - base_lvl); // val *_br_open:0,1,2,3
-                            final BigDecimal val = ok_baseVal.add(BigDecimal.valueOf(currStep));
+                            final BigDecimal currStep = step.multiply(BigDecimal.valueOf(i + 1 - base_lvl)); // val *_br_open:0,1,2,3
+                            final BigDecimal val = ok_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
                         }
@@ -227,10 +228,10 @@ public class BordersRecalcService {
                         final List<BorderItem> items = borderTable.getBorderItemList();
                         for (int i = 0; i < max_lvl && i < items.size(); i++) {
                             // val *_br_open:0,1,2,3 ... gap ...*_br_close:  -10,-11,-12,-13
-                            int stepToZeroThat = step * (1 - base_lvl);
-                            int stepToZeroThis = stepToZeroThat - gap_step;
-                            int currStep = stepToZeroThis + step * (-i);
-                            final BigDecimal val = ok_baseVal.add(BigDecimal.valueOf(currStep));
+                            final BigDecimal stepToZeroThat = step.multiply(BigDecimal.valueOf(1 - base_lvl));
+                            final BigDecimal stepToZeroThis = stepToZeroThat.subtract(gap_step);
+                            final BigDecimal currStep = stepToZeroThis.add(step.multiply(BigDecimal.valueOf(-i)));
+                            final BigDecimal val = ok_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
                         }
@@ -242,8 +243,8 @@ public class BordersRecalcService {
                     .ifPresent(borderTable -> {
                         final List<BorderItem> items = borderTable.getBorderItemList();
                         for (int i = 0; i < max_lvl && i < items.size(); i++) {
-                            int currStep = step * (base_lvl - i - 1); // val X_br_open:0,-1,-2,-3
-                            final BigDecimal val = b_baseVal.add(BigDecimal.valueOf(currStep));
+                            final BigDecimal currStep = step.multiply(BigDecimal.valueOf(base_lvl - i - 1)); // val X_br_open:0,-1,-2,-3
+                            final BigDecimal val = b_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
                         }
@@ -256,10 +257,10 @@ public class BordersRecalcService {
                         final List<BorderItem> items = borderTable.getBorderItemList();
                         for (int i = 0; i < max_lvl && i < items.size(); i++) {
                             // X_br_close:5,0,-5,-10 ... gap(20) ...X_br_open:  25,30,35,40
-                            int stepToZeroThat = step * (base_lvl - 1);
-                            int stepToZeroThis = stepToZeroThat + gap_step;
-                            int currStep = stepToZeroThis + step * i;
-                            final BigDecimal val = b_baseVal.add(BigDecimal.valueOf(currStep));
+                            final BigDecimal stepToZeroThat = step.multiply(BigDecimal.valueOf(base_lvl - 1));
+                            final BigDecimal stepToZeroThis = stepToZeroThat.add(gap_step);
+                            final BigDecimal currStep = stepToZeroThis.add(step.multiply(BigDecimal.valueOf(i)));
+                            final BigDecimal val = b_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
                         }
@@ -276,6 +277,7 @@ public class BordersRecalcService {
         recalcBaseLvlCnt(borderParams);
     }
 
+    @SuppressWarnings("Duplicates")
     private void recalcBaseLvlType(BorderParams borderParams) {
         final BigDecimal b_pos = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal ok_pos_long = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
@@ -299,6 +301,7 @@ public class BordersRecalcService {
         }
     }
 
+    @SuppressWarnings("Duplicates")
     private void recalcBaseLvlCnt(BorderParams borderParams) {
         final BigDecimal b_pos = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
         final BigDecimal ok_pos_long = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
