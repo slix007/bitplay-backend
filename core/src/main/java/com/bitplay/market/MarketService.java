@@ -72,7 +72,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     protected static final int MAX_ATTEMPTS_CANCEL = 90;
 
-    private static final int ORDERBOOK_MAX_SIZE = 20;
+    private static final int ORDERBOOK_MAX_SIZE = 5;
     protected BigDecimal bestBid = BigDecimal.ZERO;
     protected BigDecimal bestAsk = BigDecimal.ZERO;
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
@@ -121,13 +121,13 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     Disposable openOrdersMovingSubscription;
 
-    public void init(String key, String secret, ContractType contractType) {
+    public void init(String key, String secret, ContractType contractType, Object... exArgs) {
         initEventBus();
         initOpenOrdersMovingSubscription();
-        initializeMarket(key, secret, contractType);
+        initializeMarket(key, secret, contractType, exArgs);
     }
 
-    protected abstract void initializeMarket(String key, String secret, ContractType contractType);
+    protected abstract void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs);
 
     public abstract UserTrades fetchMyTradeHistory();
 

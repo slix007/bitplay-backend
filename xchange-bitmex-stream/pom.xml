@@ -8,7 +8,7 @@
 
     <properties>
         <xchange.version>4.2.1-bts</xchange.version>
-        <xchange-stream.version>4.2.3-bts</xchange-stream.version>
+        <xchange-stream.version>4.3.16-bts-SNAPSHOT</xchange-stream.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -21,9 +21,14 @@
     <artifactId>xchange-bitmex-stream</artifactId>
 
     <dependencies>
+<!--        <dependency>-->
+<!--            <groupId>info.bitrich.xchange-stream</groupId>-->
+<!--            <artifactId>xchange-stream-core</artifactId>-->
+<!--            <version>${xchange-stream.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>info.bitrich.xchange-stream</groupId>
-            <artifactId>xchange-stream-core</artifactId>
+            <artifactId>xchange-okcoin-v3</artifactId>
             <version>${xchange-stream.version}</version>
         </dependency>
         <!--<dependency>-->

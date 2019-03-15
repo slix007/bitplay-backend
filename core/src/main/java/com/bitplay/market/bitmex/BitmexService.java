@@ -416,7 +416,7 @@ public class BitmexService extends MarketServicePreliq {
 
 
     @Override
-    public void initializeMarket(String key, String secret, ContractType contractType) {
+    public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
         bitmexContractType = (BitmexContractType) contractType;
 
         currencyToScale.put(bitmexContractType.getCurrencyPair(), bitmexContractType.getScale());

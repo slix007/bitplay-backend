@@ -1,6 +1,5 @@
 package com.bitplay.persistance.domain.settings;
 
-import info.bitrich.xchangestream.okex.dto.Tool;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -26,22 +25,32 @@ public enum OkexContractType implements ContractType {
     private BigDecimal tickSize;
     private Integer scale;
 
-    public Tool getBaseTool() {
-        String baseTool = currencyPair.base.getCurrencyCode();
-        return Tool.valueOf(baseTool);
+    /**
+     * BTC or ETH.
+     */
+    public String getBaseTool() {
+        return currencyPair.base.getCurrencyCode().toUpperCase();
     }
 
     /**
      * Examples: BTC0907, ETH0831
      */
     public String getContractName() {
-        String toolName = getBaseTool().toString().toUpperCase();
+        String toolName = getBaseTool();
         final LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        final String dayString = getExpString(now);
+        final String dayString = getExpString(now, false);
         return toolName + dayString;
     }
 
-    String getExpString(LocalDateTime now) {
+    /**
+     * Examples: 190907, 190831
+     */
+    public String getContractNameWithYear() {
+        final LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        return getExpString(now, true);
+    }
+
+    String getExpString(LocalDateTime now, boolean withYear) {
         // The last four digits of a futures contract name indicate the delivery date.
         // The form is (20180928)(month,date).Contracts will be settled every Friday at 800 AM UTC (400 PM China CST).
         LocalDateTime expTime;
@@ -71,6 +80,14 @@ public enum OkexContractType implements ContractType {
         }
         int monthValue = expTime.getMonthValue();
         int dayOfMonth = expTime.getDayOfMonth();
+        if (withYear) {
+            final String yearTwoDigits = String.valueOf(expTime.getYear()).substring(2);
+            return String.format("%s%s%s",
+                    yearTwoDigits,
+                    monthValue < 10 ? "0" + monthValue : monthValue,
+                    dayOfMonth < 10 ? "0" + dayOfMonth : dayOfMonth
+            );
+        }
         return String.format("%s%s",
                 monthValue < 10 ? "0" + monthValue : monthValue,
                 dayOfMonth < 10 ? "0" + dayOfMonth : dayOfMonth

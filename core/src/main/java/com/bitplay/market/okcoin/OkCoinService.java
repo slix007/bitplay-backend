@@ -43,9 +43,9 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import info.bitrich.xchangestream.okex.OkExStreamingExchange;
-import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
-import info.bitrich.xchangestream.okex.dto.Tool;
+import info.bitrich.xchangestream.okexv3.OkExStreamingExchange;
+import info.bitrich.xchangestream.okexv3.OkExStreamingMarketDataService;
+import info.bitrich.xchangestream.okexv3.dto.InstrumentDto;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -87,7 +87,6 @@ import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.okcoin.OkCoinAdapters;
 import org.knowm.xchange.okcoin.OkCoinUtils;
 import org.knowm.xchange.okcoin.dto.marketdata.OkcoinForecastPrice;
-import org.knowm.xchange.okcoin.dto.marketdata.OkcoinMarkPrice;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinPositionResult;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
@@ -99,6 +98,7 @@ import org.knowm.xchange.okcoin.service.OkCoinTradeServiceRaw;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -106,6 +106,9 @@ import org.springframework.data.util.Pair;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import si.mazi.rescu.HttpStatusIOException;
+
+//import info.bitrich.xchangestream.okex.OkExStreamingExchange;
+//import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
@@ -134,6 +137,8 @@ public class OkCoinService extends MarketServicePreliq {
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
 
     private volatile String ifDisconnetedString = "";
+    private volatile boolean shutdown = false;
+    private Disposable onDisconnectHook;
 
     private volatile BigDecimal markPrice = BigDecimal.ZERO;
     private volatile BigDecimal forecastPrice = BigDecimal.ZERO;
@@ -179,13 +184,13 @@ public class OkCoinService extends MarketServicePreliq {
 
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
-    private Disposable orderBookBTCUSDSubscription;
-    private Disposable privateDataSubscription;
-    //    private Disposable accountInfoSubscription;
-    private Disposable futureIndexSubscription;
-    private Disposable btcUsdFutureIndexSubscription;
+    private Disposable userPositionSub;
+    private Disposable userAccountSub;
+    private Disposable userOrderSub;
+    private Disposable markPriceSubscription;
     private Disposable tickerSubscription;
     private Disposable tickerEthSubscription;
+    private Disposable indexPriceSub;
     private Observable<OrderBook> orderBookObservable;
     private OkexContractType okexContractType;
     private OkexContractType okexContractTypeBTCUSD = OkexContractType.BTC_ThisWeek;
@@ -245,7 +250,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public void initializeMarket(String key, String secret, ContractType contractType) {
+    public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
         okexContractType = (OkexContractType) contractType;
         logger.info("Starting okex with " + okexContractType);
         tradeLogger.info("Starting okex with " + okexContractType);
@@ -255,7 +260,7 @@ public class OkCoinService extends MarketServicePreliq {
             this.usdInContract = 100;
         }
 
-        exchange = initExchange(key, secret);
+        exchange = initExchange(key, secret, exArgs);
         loadLiqParams();
 
         initWebSocketAndAllSubscribers();
@@ -290,58 +295,45 @@ public class OkCoinService extends MarketServicePreliq {
             logger.error("FetchPositionError", e);
         }
 
-        createOrderBookObservable();
         subscribeOnOrderBook();
-        if (okexContractType != okexContractTypeBTCUSD) {
-            subscribeOnOrderBookBTCUSD();
-        }
 
-        privateDataSubscription = startPrivateDataListener();
-//        accountInfoSubscription = startAccountInfoSubscription();
-        futureIndexSubscription = startFutureIndexListener();
+        userPositionSub = startUserPositionSub();
+        userAccountSub = startAccountInfoSubscription();
+        userOrderSub = startUserOrderSub();
+        markPriceSubscription = startMarkPriceListener();
         tickerSubscription = startTickerListener();
-        if (okexContractType.getBaseTool() == Tool.ETH) {
+        if (okexContractType.getBaseTool().equals("ETH")) {
             tickerEthSubscription = startEthTickerListener();
-            btcUsdFutureIndexSubscription = startBtcUsdFutureIndexListener();
         }
-
+        indexPriceSub = startIndexPriceSub();
         fetchOpenOrders();
+
+        try {
+            fetchUserInfoContracts();
+        } catch (Exception e) {
+            logger.error("On fetchUserInfoContracts", e);
+        }
     }
 
     private Completable closeAllSubscibers() {
         // Unsubscribe from data order book.
         orderBookSubscription.dispose();
-        if (orderBookBTCUSDSubscription != null) {
-            orderBookBTCUSDSubscription.dispose();
-        }
+
 //        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
-        privateDataSubscription.dispose();
-//        accountInfoSubscription.dispose();
-        futureIndexSubscription.dispose();
-        if (btcUsdFutureIndexSubscription != null) {
-            btcUsdFutureIndexSubscription.dispose();
+        userPositionSub.dispose();
+        userAccountSub.dispose();
+        if (markPriceSubscription != null) {
+            markPriceSubscription.dispose();
         }
         tickerSubscription.dispose();
         if (tickerEthSubscription != null) {
             tickerEthSubscription.dispose();
         }
-        final Completable com = exchange.disconnect(); // not invoked here
-        return com;
+        indexPriceSub.dispose();
+        return exchange.disconnect();
     }
 
-    private void createOrderBookObservable() {
-        orderBookObservable = ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
-                .getOrderBook(okexContractType.getCurrencyPair(),
-                        okexContractType.getFuturesContract(),
-                        OkExStreamingMarketDataService.Depth.DEPTH_20)
-                .doOnDispose(() -> logger.info("okcoin subscription doOnDispose"))
-                .doOnTerminate(() -> logger.info("okcoin subscription doOnTerminate"))
-                .doOnError(throwable -> logger.error("okcoin onError orderBook", throwable))
-                .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS))
-                .share();
-    }
-
-    private OkExStreamingExchange initExchange(String key, String secret) {
+    private OkExStreamingExchange initExchange(String key, String secret, Object... exArgs) {
         ExchangeSpecification spec = new ExchangeSpecification(OkExStreamingExchange.class);
         spec.setApiKey(key);
         spec.setSecretKey(secret);
@@ -351,6 +343,16 @@ public class OkCoinService extends MarketServicePreliq {
         spec.setExchangeSpecificParametersItem("Futures_Contract", okexContractType.getFuturesContract());
         spec.setExchangeSpecificParametersItem("Futures_Leverage", "20");
 
+        if (exArgs != null && exArgs.length == 3) {
+            String exKey = (String) exArgs[0];
+            String exSecret = (String) exArgs[1];
+            String exPassphrase = (String) exArgs[2];
+            spec.setExchangeSpecificParametersItem("okex-v3-as-extra", true);
+            spec.setExchangeSpecificParametersItem("okex-v3-key", exKey);
+            spec.setExchangeSpecificParametersItem("okex-v3-secret", exSecret);
+            spec.setExchangeSpecificParametersItem("okex-v3-passphrase", exPassphrase);
+        }
+
         return (OkExStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
     }
 
@@ -359,11 +361,16 @@ public class OkCoinService extends MarketServicePreliq {
         exchange.connect().blockingAwait();
 
         // Retry on disconnect. (It's disconneced each 5 min)
-        exchange.onDisconnect().doOnComplete(() -> {
-            ifDisconnetedString += " okex disconnected at " + LocalTime.now();
-            logger.warn("onClientDisconnect okCoinService");
-            initWebSocketAndAllSubscribers();
-        }).subscribe();
+        onDisconnectHook = exchange.onDisconnect()
+                .doOnComplete(() -> {
+                    if (!shutdown) {
+                        ifDisconnetedString += " okex disconnected at " + LocalTime.now();
+                        logger.warn("onClientDisconnect okCoinService");
+                        initWebSocketAndAllSubscribers();
+                    }
+                    logger.info("Exchange Disconnect finished");
+                })
+                .subscribe();
     }
 
     public String getIfDisconnetedString() {
@@ -371,43 +378,63 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private void subscribeOnOrderBook() {
-        //TODO subscribe on updates only to increase the speed
+
+        List<InstrumentDto> instrumentDtos = getInstrumentDtos();
+
+        orderBookObservable = ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                .getOrderBooks(instrumentDtos, true)
+                .doOnDispose(() -> logger.info("okex orderBook subscription doOnDispose"))
+                .doOnTerminate(() -> logger.info("okex orderBook subscription doOnTerminate"))
+                .doOnError(throwable -> logger.error("okex orderBook onError", throwable))
+                .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS));
+
         orderBookSubscription = orderBookObservable
                 .subscribeOn(Schedulers.io())
                 .subscribe(orderBook -> {
-                    final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
-                    final LimitOrder bestBid = Utils.getBestBid(orderBook);
+                    boolean isExtra = isObExtra(orderBook);
+                    if (isExtra) {
+                        this.orderBookXBTUSD = orderBook;
+                    } else {
+                        this.orderBook = orderBook;
 
-                    this.orderBook = orderBook;
+                        final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
+                        final LimitOrder bestBid = Utils.getBestBid(orderBook);
 
-                    if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
-                            && this.bestAsk.compareTo(bestAsk.getLimitPrice()) != 0
-                            && this.bestBid.compareTo(bestBid.getLimitPrice()) != 0) {
-                        recalcAffordableContracts();
+                        if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
+                                && this.bestAsk.compareTo(bestAsk.getLimitPrice()) != 0
+                                && this.bestBid.compareTo(bestBid.getLimitPrice()) != 0) {
+                            recalcAffordableContracts();
+                        }
+                        this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
+                        this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
+                        logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
+
+                        Instant lastObTime = Instant.now();
+                        getArbitrageService().getSignalEventBus().send(new SignalEventEx(SignalEvent.O_ORDERBOOK_CHANGED, lastObTime));
                     }
-                    this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
-                    this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
-                    logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
-
-                    Instant lastObTime = Instant.now();
-                    getArbitrageService().getSignalEventBus().send(new SignalEventEx(SignalEvent.O_ORDERBOOK_CHANGED, lastObTime));
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
     }
 
-    private void subscribeOnOrderBookBTCUSD() {
-        orderBookBTCUSDSubscription = ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
-                .getOrderBook(okexContractTypeBTCUSD.getCurrencyPair(),
-                        okexContractTypeBTCUSD.getFuturesContract(),
-                        OkExStreamingMarketDataService.Depth.DEPTH_20)
-                .doOnDispose(() -> logger.info("orderBookXBTUSD doOnDispose"))
-                .doOnTerminate(() -> logger.info("orderBookXBTUSD doOnTerminate"))
-                .doOnError(throwable -> logger.error("okcoin onError orderBookXBTUSD", throwable))
-                .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS))
-                .subscribeOn(Schedulers.io())
-                .subscribe(orderBook -> {
-                    this.orderBookXBTUSD = orderBook;
-                }, throwable -> logger.error("ERROR of getting orderBookXBTUSD: ", throwable));
+    private List<InstrumentDto> getInstrumentDtos() {
+        List<InstrumentDto> instrumentDtos = new ArrayList<>();
+        instrumentDtos.add(new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract()));
+        if (okexContractType != okexContractTypeBTCUSD) {
+            instrumentDtos.add(new InstrumentDto(okexContractTypeBTCUSD.getCurrencyPair(), okexContractTypeBTCUSD.getFuturesContract()));
+        }
+        return instrumentDtos;
+    }
+
+    private boolean isObExtra(OrderBook orderBook) {
+        if (okexContractType == okexContractTypeBTCUSD) {
+            return false;
+        }
+        return orderBook.getAsks().stream()
+                .findAny()
+                .map(Order::getCurrencyPair)
+                .map(currencyPair -> currencyPair.base.getCurrencyCode())
+                .map(baseCode -> baseCode.equals(okexContractTypeBTCUSD.getCurrencyPair().base.getCurrencyCode()))
+                .orElse(false);
     }
 
     @Override
@@ -430,50 +457,10 @@ public class OkCoinService extends MarketServicePreliq {
 
     @PreDestroy
     public void preDestroy() {
+        shutdown = true;
         // Disconnect from exchange (non-blocking)
         closeAllSubscibers().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
-
-
-//    private volatile Instant lastRequestAccountInfo = Instant.now();
-//    private void requestAccountInfoThrottled() {
-//        if (Duration.between(lastRequestAccountInfo, Instant.now()).getSeconds() < 1) {
-//            logger.info("nothing");
-//        } else {
-//            logger.info("run");
-//            requestAccountInfo();
-//        }
-//    }
-
-//    @Timed("requestAccountInfo")
-//    @Timed(value = "long.requestAccountInfo", longTask = true)
-//    @Scheduled(initialDelay = 5 * 1000, fixedRate = 2000)
-//    public void requestAccountInfo() {
-//        lastRequestAccountInfo = Instant.now();
-//
-//        Instant start = Instant.now();
-//        try {
-//            exchange.getStreamingAccountInfoService().requestAccountInfo();
-//        } catch (NotConnectedException e) {
-//            logger.error("AccountInfo request error: NotConnectedException", e);
-//            closeAllSubscibers()
-//                    .doOnComplete(this::initWebSocketAndAllSubscribers)
-//                    .subscribe(() -> logger.warn("Closing okcoin subscribers was done"),
-//                            throwable -> {
-//                                logger.error("ERROR on Closing okcoin subscribers", throwable);
-//                                final String TOO_MANY_OPEN_FILES = "Too many open files";
-//                                if (throwable.getCause().getMessage().equals(TOO_MANY_OPEN_FILES)
-//                                        || throwable.getCause().getCause().getMessage().equals(TOO_MANY_OPEN_FILES)) {
-//                                    restartService.doFullRestart(TOO_MANY_OPEN_FILES);
-//                                }
-//                            });
-//
-//        } catch (IOException e) {
-//            logger.error("AccountInfo request error", e);
-//        }
-//        Instant end = Instant.now();
-//        Utils.logIfLong(start, end, logger, "requestAccountInfo");
-//    }
 
     @Scheduled(fixedDelay = 2000) // Request frequency 20 times/2s
     public void fetchEstimatedDeliveryPrice() {
@@ -490,24 +477,28 @@ public class OkCoinService extends MarketServicePreliq {
         Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
     }
 
-    @Scheduled(fixedDelay = 1000) // Request frequency 20 times/2s
-    public void fetchMarkPrice() {
-        Instant start = Instant.now();
-        try {
-            final OkcoinMarkPrice result = ((OkCoinFuturesMarketDataService) exchange.getMarketDataService())
-                    .getFuturesMarkPrice(okexContractType.getCurrencyPair());
-            if (result.getMarkPrice() != null) {
-                markPrice = result.getMarkPrice();
-            }
+//    @Scheduled(fixedDelay = 1000) // Request frequency 20 times/2s
+//    public void fetchIndexPrice() {
+//        Instant start = Instant.now();
+//        try {
+//            final OkcoinIndexPrice mainIndexPrice = ((OkCoinFuturesMarketDataService) exchange.getMarketDataService())
+//                    .getFuturesIndexPrice(okexContractType.getCurrencyPair());
+//            this.contractIndex = new ContractIndex(mainIndexPrice.getIndexPrice().setScale(2, RoundingMode.HALF_UP), new Date());
+//
+//            if (okexContractType != okexContractTypeBTCUSD) {
+//                final OkcoinIndexPrice exIndexPrice = ((OkCoinFuturesMarketDataService) exchange.getMarketDataService())
+//                        .getFuturesIndexPrice(okexContractTypeBTCUSD.getCurrencyPair());
+//
+//                this.btcContractIndex = new ContractIndex(exIndexPrice.getIndexPrice().setScale(2, RoundingMode.HALF_UP), new Date());
+//            }
+//        } catch (Exception e) {
+//            logger.error("On fetchEstimatedDeliveryPrice", e);
+//        }
+//        Instant end = Instant.now();
+//        Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
+//    }
 
-        } catch (Exception e) {
-            logger.error("On fetchEstimatedDeliveryPrice", e);
-        }
-        Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
-    }
-
-    @Scheduled(fixedDelay = 2000)
+//    @Scheduled(fixedDelay = 2000)
     public void fetchPositionScheduled() {
         Instant start = Instant.now();
         try {
@@ -532,7 +523,7 @@ public class OkCoinService extends MarketServicePreliq {
         return position != null ? position.toString() : "";
     }
 
-    @Scheduled(fixedDelay = 500) // URL https://www.okex.com/api/v1/future_userinfo.do Request frequency 5 times/2s
+    //    @Scheduled(fixedDelay = 500) // URL https://www.okex.com/api/v1/future_userinfo.do Request frequency 5 times/2s
     public void fetchUserInfoScheduled() {
         Instant start = Instant.now();
         try {
@@ -586,10 +577,14 @@ public class OkCoinService extends MarketServicePreliq {
 //                }
             }
         } else if (websocketUpdate != null) { // TODO does it worth it
-            position = new Position(websocketUpdate.getPositionLong(),
+            position = new Position(
+                    websocketUpdate.getPositionLong(),
                     websocketUpdate.getPositionShort(),
-                    this.position.getLeverage(),
-                    BigDecimal.ZERO,
+                    websocketUpdate.getLeverage(),
+                    websocketUpdate.getLiquidationPrice(),
+                    websocketUpdate.getMarkValue(),
+                    websocketUpdate.getPriceAvgLong(),
+                    websocketUpdate.getPriceAvgShort(),
                     websocketUpdate.getRaw());
 //            if (websocketUpdate.getPositionLong().subtract(websocketUpdate.getPositionShort()).signum() == 0) {
 //                logger.info("websocketUpdate: pos==0. " + getName());
@@ -610,6 +605,7 @@ public class OkCoinService extends MarketServicePreliq {
         return res;
     }
 
+    @SuppressWarnings("Duplicates")
     private void mergeAccountInfoContracts(AccountInfoContracts newInfo) {
         AccountInfoContracts current = this.accountInfoContracts;
         logger.debug("AccountInfo.Websocket: " + current.toString());
@@ -629,92 +625,111 @@ public class OkCoinService extends MarketServicePreliq {
         );
     }
 
-    private Disposable startPrivateDataListener() {
-        String baseTool = okexContractType.getCurrencyPair().base.getCurrencyCode().toLowerCase();
-        final String contractName = okexContractType.getContractName();
+    private Disposable startUserPositionSub() {
+        final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
+
         return exchange.getStreamingPrivateDataService()
-                .getAllPrivateDataObservable(baseTool, contractName)
+                .getPositionObservable(instrumentDto)
                 .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
-                .subscribe(privateData -> {
-                    logger.debug(privateData.toString());
-                    if (privateData.getAccountInfoContracts() != null) {
-//                        requestAccountInfoThrottled();
-//                        mergeAccountInfoContracts(privateData.getAccountInfoContracts());
-                    }
-                    final Position positionInfo = privateData.getPositionInfo();
-                    if (positionInfo != null) {
-                        mergePosition(null, positionInfo);
-                        recalcAffordableContracts();
-                        recalcLiqInfo();
-                    }
-                    if (privateData.getTrades() != null && privateData.getTrades().size() > 0) {
-
-                        synchronized (openOrdersLock) {
-                            // do not repeat for already 'FILLED' orders.
-                            privateData.getTrades()
-                                    .forEach(update -> openOrders.stream()
-                                            .filter(o -> o.getOrderId().equals(update.getId()))
-                                            .filter(o -> o.getOrder().getStatus() != Order.OrderStatus.FILLED)
-                                            .forEach(o -> {
-                                                arbitrageService.getDealPrices().getoPriceFact()
-                                                        .addPriceItem(o.getCounterName(),
-                                                                update.getId(),
-                                                                update.getCumulativeAmount(),
-                                                                update.getAveragePrice(),
-                                                                update.getStatus());
-                                                writeAvgPriceLog();
-                                            })
-                                    );
-                        }
-
-                        final Long tradeId = arbitrageService.getTradeId();
-                        final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, getCounterName(),
-                                null,
-                                null,
-                                null);
-                        updateOpenOrders(privateData.getTrades(), fPlayOrderStub);
-                    }
-                }, throwable -> {
-                    logger.error("PrivateData.Exception: ", throwable);
-                });
+                .subscribe(positionInfo -> {
+                    logger.debug(positionInfo.toString());
+                    final Position pos = new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "");
+                    BeanUtils.copyProperties(positionInfo, pos);
+                    mergePosition(null, pos);
+                    recalcAffordableContracts();
+                    recalcLiqInfo();
+                }, throwable -> logger.error("PositionObservable.Exception: ", throwable));
     }
 
-    private Disposable startFutureIndexListener() {
-        return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
-                .getFutureIndex(okexContractType.getCurrencyPair())
-                .doOnError(throwable -> logger.error("Error on FutureIndex observing", throwable))
-                .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
+    @SuppressWarnings("Duplicates")
+    private Disposable startAccountInfoSubscription() {
+        return exchange.getStreamingPrivateDataService()
+                .getAccountInfoObservable(okexContractType.getCurrencyPair())
+                .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
-                .subscribe(futureIndex -> {
-                    logger.debug(futureIndex.toString());
-                    BigDecimal index = futureIndex.getIndex() != null ? futureIndex.getIndex().setScale(2, RoundingMode.HALF_UP) : null;
-                    this.contractIndex = new ContractIndex(index,
-                            futureIndex.getTimestamp());
-                }, throwable -> {
-                    logger.error("FutureIndex.Exception: ", throwable);
-                });
+                .subscribe(newInfo -> {
+                    logger.debug(newInfo.toString());
+//                    AccountInfoContracts newInfo = new AccountInfoContracts();
+//                    BeanUtils.copyProperties(userAccountInfo, newInfo);
+//                    mergeAccountInfoContracts(newInfo);
+                    AccountInfoContracts current = this.accountInfoContracts;
+                    logger.debug("AccountInfo.Websocket: " + current.toString());
+
+                    BigDecimal eLast = newInfo.geteLast() != null ? newInfo.geteLast() : current.geteLast();
+                    this.accountInfoContracts = new AccountInfoContracts(
+                            newInfo.getWallet() != null ? newInfo.getWallet() : current.getWallet(),
+                            newInfo.getAvailable() != null ? newInfo.getAvailable() : current.getAvailable(),
+                            eLast,
+                            eLast,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            newInfo.getMargin() != null ? newInfo.getMargin() : current.getMargin(),
+                            newInfo.getUpl() != null ? newInfo.getUpl() : current.getUpl(),
+                            newInfo.getRpl() != null ? newInfo.getRpl() : current.getRpl(),
+                            newInfo.getRiskRate() != null ? newInfo.getRiskRate() : current.getRiskRate()
+                    );
+
+                }, throwable -> logger.error("AccountInfoObservable.Exception: ", throwable));
     }
 
-    private Disposable startBtcUsdFutureIndexListener() {
+    private Disposable startUserOrderSub() {
+        final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
+
+        return exchange.getStreamingPrivateDataService()
+                .getTradesObservable(instrumentDto)
+                .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.io())
+                .subscribe(limitOrders -> {
+                    logger.debug("got open orders: " + limitOrders.size());
+                    synchronized (openOrdersLock) {
+                        // do not repeat for already 'FILLED' orders.
+                        limitOrders
+                                .forEach(update -> openOrders.stream()
+                                        .filter(o -> o.getOrderId().equals(update.getId()))
+                                        .filter(o -> o.getOrder().getStatus() != Order.OrderStatus.FILLED)
+                                        .forEach(o -> {
+                                            arbitrageService.getDealPrices().getoPriceFact()
+                                                    .addPriceItem(o.getCounterName(),
+                                                            update.getId(),
+                                                            update.getCumulativeAmount(),
+                                                            update.getAveragePrice(),
+                                                            update.getStatus());
+                                            writeAvgPriceLog();
+                                        })
+                                );
+                    }
+
+                    final Long tradeId = arbitrageService.getTradeId();
+                    final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, getCounterName(),
+                            null,
+                            null,
+                            null);
+                    updateOpenOrders(limitOrders, fPlayOrderStub);
+                }, throwable -> logger.error("TradesObservable.Exception: ", throwable));
+    }
+
+    private Disposable startMarkPriceListener() {
+        List<InstrumentDto> instrumentDtos = new ArrayList<>();
+        instrumentDtos.add(new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract()));
         return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
-                .getFutureIndex(okexContractTypeBTCUSD.getCurrencyPair())
-                .doOnError(throwable -> logger.error("Error on FutureIndex observing", throwable))
+                .getMarkPrices(instrumentDtos)
+                .doOnError(throwable -> logger.error("Error on MarkPrice observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
-                .subscribe(btcFutureIndex -> {
-                    logger.debug(btcFutureIndex.toString());
-                    this.btcContractIndex = new ContractIndex(btcFutureIndex.getIndex(),
-                            btcFutureIndex.getTimestamp());
-                }, throwable -> {
-                    logger.error("FutureIndex.Exception: ", throwable);
-                });
+                .subscribe(markPriceDto -> {
+                    logger.debug(markPriceDto.toString());
+                    markPrice = markPriceDto.getMarkPrice();
+                }, throwable -> logger.error("MarkPrice.Exception: ", throwable));
     }
 
     private Disposable startTickerListener() {
+        final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
         return exchange.getStreamingMarketDataService()
-                .getTicker(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract())
+                .getTicker(okexContractType.getCurrencyPair(), instrumentDto)
                 .doOnError(throwable -> logger.error("Error on Ticker observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
@@ -722,14 +737,12 @@ public class OkCoinService extends MarketServicePreliq {
                     logger.debug(ticker.toString());
                     this.ticker = ticker;
                     lastPriceDeviationService.updateAndCheckDeviationAsync();
-                }, throwable -> {
-                    logger.error("OkexFutureTicker.Exception: ", throwable);
-                });
+                }, throwable -> logger.error("OkexFutureTicker.Exception: ", throwable));
     }
 
     private Disposable startEthTickerListener() {
         return exchange.getStreamingMarketDataService()
-                .getTicker(CurrencyPair.ETH_BTC, null, "eth_btc")
+                .getTicker(CurrencyPair.ETH_BTC, null, "ETH-BTC")
                 .doOnError(throwable -> logger.error("Error on Ticker observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
@@ -739,6 +752,29 @@ public class OkCoinService extends MarketServicePreliq {
                 );
     }
 
+    private Disposable startIndexPriceSub() {
+        List<CurrencyPair> pairs = new ArrayList<>();
+        pairs.add(okexContractType.getCurrencyPair());
+        if (okexContractType.isEth()) {
+            pairs.add(okexContractTypeBTCUSD.getCurrencyPair());
+        }
+        return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                .getIndexTickers(pairs)
+                .doOnError(throwable -> logger.error("Error on Ticker observing", throwable))
+                .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.io())
+                .subscribe(indexTick -> {
+                            final CurrencyPair currencyPair = indexTick.getCurrencyPair();
+                            final BigDecimal indexPrice = indexTick.getLast();
+                            if (currencyPair.equals(okexContractType.getCurrencyPair())) {
+                                this.contractIndex = new ContractIndex(indexPrice.setScale(2, RoundingMode.HALF_UP), new Date());
+                            } else {
+                                    this.btcContractIndex = new ContractIndex(indexPrice.setScale(2, RoundingMode.HALF_UP), new Date());
+                            }
+                        },
+                        throwable -> logger.error("OkexSpotTicker.Exception: ", throwable)
+                );
+    }
 
     @Scheduled(fixedDelay = 2000)
     public void openOrdersCleaner() {

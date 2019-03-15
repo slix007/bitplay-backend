@@ -27,6 +27,13 @@ public class Config {
     @Value("${market.second.secret}")
     private String secondMarketSecret;
 
+    @Value("${market.second.ex.key:DEFAULT}")
+    private String secondMarketExKey;
+    @Value("${market.second.ex.secret:DEFAULT}")
+    private String secondMarketExSecret;
+    @Value("${market.second.ex.passphrase:DEFAULT}")
+    private String secondMarketExPassphrase;
+
     @Value("${ui.password.trader}")
     private String uiPasswordForTrader;
     @Value("${ui.password.admin}")

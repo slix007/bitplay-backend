@@ -165,7 +165,7 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    public void initializeMarket(String key, String secret, ContractType contractType) {
+    public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
         exchange = initExchange(key, secret);
 //        fetchOrderBook();
         initWebSocketConnection();
@@ -208,26 +208,26 @@ public class PoloniexService extends MarketService {
                 });
     }
 
-    private void subscribeOnOrderBookUpdates(PoloniexStreamingMarketDataService streamingMarketDataService) {
-        orderBookSubscription = streamingMarketDataService
-                .getOrderBookUpdate(CURRENCY_PAIR_USDT_BTC)
-                .subscribe(poloniexWebSocketDepth -> {
-                    // Do something
-                    logger.debug(poloniexWebSocketDepth.toString());
-
-                    orderBook = PoloniexOrderBookMerger.merge(orderBook, poloniexWebSocketDepth);
-                    bestAsk = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
-                    bestBid = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
-
-
-//                    updates.add(poloniexWebSocketDepth);
-
-//                    updates.stream().filter(depth -> depth.getData().getRate().compareTo(new BigDecimal("1206.0"))==0).collect(Collectors.toList())
-//                    webSocketEndpoint.sendLogMessage(poloniexWebSocketDepth.toString());
-
-                    //IT DOSN"T WORK WELL orderBook.update(poloniexWebSocketDepth);
-                });
-    }
+//    private void subscribeOnOrderBookUpdates(PoloniexStreamingMarketDataService streamingMarketDataService) {
+//        orderBookSubscription = streamingMarketDataService
+//                .getOrderBookUpdate(CURRENCY_PAIR_USDT_BTC)
+//                .subscribe(poloniexWebSocketDepth -> {
+//                    // Do something
+//                    logger.debug(poloniexWebSocketDepth.toString());
+//
+//                    orderBook = PoloniexOrderBookMerger.merge(orderBook, poloniexWebSocketDepth);
+//                    bestAsk = Utils.getBestAsks(getOrderBook(), 1).get(0).getLimitPrice();
+//                    bestBid = Utils.getBestBids(getOrderBook(), 1).get(0).getLimitPrice();
+//
+//
+////                    updates.add(poloniexWebSocketDepth);
+//
+////                    updates.stream().filter(depth -> depth.getData().getRate().compareTo(new BigDecimal("1206.0"))==0).collect(Collectors.toList())
+////                    webSocketEndpoint.sendLogMessage(poloniexWebSocketDepth.toString());
+//
+//                    //IT DOSN"T WORK WELL orderBook.update(poloniexWebSocketDepth);
+//                });
+//    }
 
     @PreDestroy
     public void preDestroy() {

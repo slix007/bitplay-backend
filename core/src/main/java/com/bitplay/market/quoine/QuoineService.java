@@ -70,7 +70,7 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public void initializeMarket(String key, String secret, ContractType contractType) {
+    public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
 
     }
 

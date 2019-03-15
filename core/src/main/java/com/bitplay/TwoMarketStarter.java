@@ -107,7 +107,10 @@ public class TwoMarketStarter {
             try {
                 final String secondMarketName = config.getSecondMarketName();
                 secondMarketService = (MarketServicePreliq) context.getBean(secondMarketName);
-                secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret(), okexContractType);
+                secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret(), okexContractType,
+                        config.getSecondMarketExKey(),
+                        config.getSecondMarketExSecret(),
+                        config.getSecondMarketExPassphrase());
                 logger.info("MARKET2: " + secondMarketService);
                 return true;
             } catch (Exception e) {

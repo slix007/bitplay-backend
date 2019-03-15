@@ -17,7 +17,7 @@
         <java.version>1.8</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <xchange-stream.version>4.2.3-bts</xchange-stream.version>
+        <xchange-stream.version>4.3.16-bts-SNAPSHOT</xchange-stream.version>
         <xchange.version>4.2.2-bts-SNAPSHOT</xchange.version>
         <micrometer.version>1.1.2</micrometer.version>
     </properties>
@@ -158,7 +158,7 @@
         </dependency>
         <dependency>
             <groupId>info.bitrich.xchange-stream</groupId>
-            <artifactId>xchange-okcoin</artifactId>
+            <artifactId>xchange-okcoin-v3</artifactId>
             <version>${xchange-stream.version}</version>
         </dependency>
 

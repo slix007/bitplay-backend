@@ -2,7 +2,6 @@ package com.bitplay.utils;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import info.bitrich.xchangestream.okex.dto.Tool;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -101,29 +100,29 @@ public class Utils {
         return new BestQuotes(ask1_o, ask1_p, bid1_o, bid1_p);
     }
 
-    public static BigDecimal createPriceForTaker(OrderBook orderBook, OrderType orderType, Tool baseTool) {
-        BigDecimal thePrice = BigDecimal.ZERO;
-        BigDecimal extraPrice = baseTool == Tool.BTC ? BigDecimal.valueOf(50) : BigDecimal.valueOf(5);
-
-        if (orderType == Order.OrderType.ASK
-                || orderType == Order.OrderType.EXIT_BID) {
-
-            final List<LimitOrder> bids = orderBook.getBids();
-            synchronized (bids) {
-                thePrice = bids.get(bids.size() - 1).getLimitPrice().subtract(extraPrice);
-            }
-
-        } else if (orderType == Order.OrderType.BID
-                || orderType == Order.OrderType.EXIT_ASK) {
-
-            final List<LimitOrder> asks = orderBook.getAsks();
-            synchronized (asks) {
-                thePrice = asks.get(asks.size() - 1).getLimitPrice().add(extraPrice);
-            }
-        }
-
-        return thePrice;
-    }
+//    public static BigDecimal createPriceForTaker(OrderBook orderBook, OrderType orderType, Tool baseTool) {
+//        BigDecimal thePrice = BigDecimal.ZERO;
+//        BigDecimal extraPrice = baseTool == Tool.BTC ? BigDecimal.valueOf(50) : BigDecimal.valueOf(5);
+//
+//        if (orderType == Order.OrderType.ASK
+//                || orderType == Order.OrderType.EXIT_BID) {
+//
+//            final List<LimitOrder> bids = orderBook.getBids();
+//            synchronized (bids) {
+//                thePrice = bids.get(bids.size() - 1).getLimitPrice().subtract(extraPrice);
+//            }
+//
+//        } else if (orderType == Order.OrderType.BID
+//                || orderType == Order.OrderType.EXIT_ASK) {
+//
+//            final List<LimitOrder> asks = orderBook.getAsks();
+//            synchronized (asks) {
+//                thePrice = asks.get(asks.size() - 1).getLimitPrice().add(extraPrice);
+//            }
+//        }
+//
+//        return thePrice;
+//    }
 
     public static BigDecimal createPriceForTaker(OrderType orderType, Ticker ticker, BigDecimal okexFakeTakerDev) {
         //Fake taker price при buy-ордере (open long или close short):
