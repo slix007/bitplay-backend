@@ -40,9 +40,11 @@ public class GuiParams extends AbstractParams {
     private Date lastCorrCheck;
     private Date lastMDCCheck;
 
-    public void setSettingsParts(GuiParams guiParams) {
-        this.border1 = guiParams.border1;
-        this.border2 = guiParams.border2;
+    public void setSettingsParts(GuiParams guiParams, Boolean noExceptions) {
+        if (noExceptions) {
+            this.border1 = guiParams.border1;
+            this.border2 = guiParams.border2;
+        }
         this.reserveBtc1 = guiParams.reserveBtc1;
         this.reserveBtc2 = guiParams.reserveBtc2;
         this.maxDiffCorr = guiParams.maxDiffCorr;

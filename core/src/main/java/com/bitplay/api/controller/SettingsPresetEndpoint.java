@@ -1,5 +1,6 @@
 package com.bitplay.api.controller;
 
+import com.bitplay.api.domain.ChangePresetJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SettingsPresetsJson;
 import com.bitplay.persistance.SettingsPresetRepositoryService;
@@ -40,11 +41,11 @@ public class SettingsPresetEndpoint {
 
     @RequestMapping(value = "/preset-set", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
-    public ResultJson setPreset(@RequestBody String settingsPresetName) {
-        if (settingsPresetName == null) {
+    public ResultJson setPreset(@RequestBody ChangePresetJson changePresetJson) {
+        if (changePresetJson == null) {
             return null;
         }
-        final boolean isOk = settingsPresetRepositoryService.setPreset(settingsPresetName);
+        final boolean isOk = settingsPresetRepositoryService.setPreset(changePresetJson.getPresetName(), changePresetJson.getNoExceptions());
         return new ResultJson(isOk ? "OK" : "exception", "");
     }
 

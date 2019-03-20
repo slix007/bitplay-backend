@@ -1,12 +1,14 @@
 package com.bitplay.persistance;
 
 import com.bitplay.api.domain.SettingsPresetsJson;
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.dao.SequenceDao;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SettingsPreset;
@@ -33,6 +35,9 @@ public class SettingsPresetRepositoryService {
 
     @Autowired
     private PersistenceService persistenceService;
+
+    @Autowired
+    private ArbitrageService arbitrageService;
 
     public SettingsPreset saveAsPreset(String name) {
         SettingsPreset settingsPreset = settingsPresetRepository.findFirstByName(name);
@@ -71,26 +76,64 @@ public class SettingsPresetRepositoryService {
         return new SettingsPresetsJson(currentPreset, all);
     }
 
-    public boolean setPreset(String name) {
+    @SuppressWarnings("Duplicates")
+    public boolean setPreset(String name, Boolean noExceptions) {
         final SettingsPreset preset = settingsPresetRepository.findFirstByName(name);
         if (preset == null) {
             return false;
         }
-        settingsRepositoryService.saveSettings(preset.getSettings());
-        persistenceService.saveBorderParams(preset.getBorderParams());
 
-        final CorrParams corrParams = persistenceService.fetchCorrParams();
-        corrParams.setSettingsParts(preset.getCorrParams());
-        persistenceService.saveCorrParams(corrParams);
-        final GuiParams guiParams = persistenceService.fetchGuiParams();
-        guiParams.setSettingsParts(preset.getGuiParams());
-        persistenceService.saveGuiParams(guiParams);
-        final LastPriceDeviation lastPriceDeviation = persistenceService.fetchLastPriceDeviation();
-        lastPriceDeviation.setSettingsParts(preset.getLastPriceDeviation());
-        persistenceService.saveLastPriceDeviation(lastPriceDeviation);
-        final SwapParams swapParams = persistenceService.fetchSwapParams(BitmexService.NAME);
-        swapParams.setSettingsParts(preset.getSwapParams());
-        persistenceService.saveSwapParams(swapParams, BitmexService.NAME);
+        if (noExceptions) {
+            settingsRepositoryService.saveSettings(preset.getSettings());
+            persistenceService.saveBorderParams(preset.getBorderParams());
+
+            final CorrParams corrParams = persistenceService.fetchCorrParams();
+            corrParams.setSettingsParts(preset.getCorrParams());
+            persistenceService.saveCorrParams(corrParams);
+            final GuiParams guiParams = persistenceService.fetchGuiParams();
+            guiParams.setSettingsParts(preset.getGuiParams(), true);
+            persistenceService.saveGuiParams(guiParams);
+            arbitrageService.setParams(guiParams);
+
+            final LastPriceDeviation lastPriceDeviation = persistenceService.fetchLastPriceDeviation();
+            lastPriceDeviation.setSettingsParts(preset.getLastPriceDeviation());
+            persistenceService.saveLastPriceDeviation(lastPriceDeviation);
+            final SwapParams swapParams = persistenceService.fetchSwapParams(BitmexService.NAME);
+            swapParams.setSettingsParts(preset.getSwapParams());
+            persistenceService.saveSwapParams(swapParams, BitmexService.NAME);
+        } else {
+            // default Exceptions: borders V1, sum_delta V1, borders V2, b_add_delta, ok_add_delta.
+
+            settingsRepositoryService.saveSettings(preset.getSettings());
+
+            final BorderParams presetBp = preset.getBorderParams();
+            final BorderParams currBp = persistenceService.fetchBorders();
+            presetBp.setBordersV1(currBp.getBordersV1()); // sum_delta V1
+            final BordersV2 currBpBordersV2 = currBp.getBordersV2();
+            final BordersV2 presetBpBordersV2 = presetBp.getBordersV2();
+            presetBpBordersV2.setBorderTableList(currBpBordersV2.getBorderTableList()); // borders V2
+            presetBpBordersV2.setbAddDelta(currBpBordersV2.getbAddDelta()); // b_add_delta
+            presetBpBordersV2.setOkAddDelta(currBpBordersV2.getOkAddDelta()); //ok_add_delta
+            presetBp.setBordersV2(currBpBordersV2);
+            persistenceService.saveBorderParams(presetBp);
+
+            final CorrParams corrParams = persistenceService.fetchCorrParams();
+            corrParams.setSettingsParts(preset.getCorrParams());
+            persistenceService.saveCorrParams(corrParams);
+            final GuiParams guiParams = persistenceService.fetchGuiParams();
+            guiParams.setSettingsParts(preset.getGuiParams(), false); // borders V1
+            persistenceService.saveGuiParams(guiParams);
+            arbitrageService.setParams(guiParams);
+            final LastPriceDeviation lastPriceDeviation = persistenceService.fetchLastPriceDeviation();
+            lastPriceDeviation.setSettingsParts(preset.getLastPriceDeviation());
+            persistenceService.saveLastPriceDeviation(lastPriceDeviation);
+            final SwapParams swapParams = persistenceService.fetchSwapParams(BitmexService.NAME);
+            swapParams.setSettingsParts(preset.getSwapParams());
+            persistenceService.saveSwapParams(swapParams, BitmexService.NAME);
+
+            // preset name is still 'custom'
+            persistenceService.resetSettingsPreset();
+        }
 
         return true;
     }
@@ -112,16 +155,4 @@ public class SettingsPresetRepositoryService {
         settingsPreset.setSwapParams(swapParams);
     }
 
-    private String defineCurrentName(List<SettingsPreset> list) {
-        final Settings settings = settingsRepositoryService.getSettings();
-        final BorderParams borderParams = persistenceService.fetchBorders();
-
-        for (SettingsPreset settingsPreset : list) {
-            //TODO
-//            settings.get
-
-
-        }
-        return "";
-    }
 }
