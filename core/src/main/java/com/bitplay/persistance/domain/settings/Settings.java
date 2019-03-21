@@ -196,4 +196,12 @@ public class Settings extends AbstractDocument {
                 ? settingsVolatileMode.getAdjustByNtUsd()
                 : adjustByNtUsd;
     }
+
+    public ArbScheme getArbScheme() {
+        return tradingModeState != null && settingsVolatileMode != null
+                && tradingModeState.getTradingMode() == TradingMode.VOLATILE
+                && settingsVolatileMode.getActiveFields().contains(Field.arb_scheme)
+                ? settingsVolatileMode.getArbScheme()
+                : arbScheme;
+    }
 }

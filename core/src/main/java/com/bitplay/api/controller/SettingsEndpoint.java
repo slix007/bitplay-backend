@@ -450,6 +450,10 @@ public class SettingsEndpoint {
             settings.setAdjMaxTotalCount(settingsUpdate.getAdjMaxTotalCount());
             settingsRepositoryService.saveSettings(mainSettings);
         }
+        if (settingsUpdate.getArbScheme() != null) {
+            settings.setArbScheme(settingsUpdate.getArbScheme());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
 
         //    private BigDecimal bAddBorder;
         //    private BigDecimal oAddBorder;

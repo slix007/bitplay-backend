@@ -39,6 +39,8 @@ public class SettingsVolatileMode {
     private Integer corrMaxTotalCount;
     private Integer adjMaxTotalCount;
 
+    private ArbScheme arbScheme;
+
     //TODO corr max total, corr max adj: общее количество коррекций/подгонок (0=off);
 
     public enum Field {
@@ -48,6 +50,7 @@ public class SettingsVolatileMode {
         placingBlocks,
         posAdjustment,
         adjustByNtUsd,
-        corr_adj
+        corr_adj,
+        arb_scheme
     }
 }
