@@ -452,11 +452,14 @@ public class AfterArbTask implements Runnable {
     private void printCom(CumParams cumParams, DealPrices dealPrices) {
         final BigDecimal bFee = settings.getBFee(dealPrices.getBtmPlacingType());
         final BigDecimal oFee = settings.getOFee(dealPrices.getOkexPlacingType());
+        final Integer modeScale = settings.getContractMode().getModeScale();
 
         final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
         final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
-        final BigDecimal com1 = b_price_fact.multiply(bFee).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
-        final BigDecimal com2 = ok_price_fact.multiply(oFee).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal com1 = b_price_fact.multiply(bFee).divide(BigDecimal.valueOf(100), 16, BigDecimal.ROUND_HALF_UP)
+                .setScale(modeScale, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal com2 = ok_price_fact.multiply(oFee).divide(BigDecimal.valueOf(100), 16, BigDecimal.ROUND_HALF_UP)
+                .setScale(modeScale, BigDecimal.ROUND_HALF_UP);
         cumParams.setCom1(com1);
         cumParams.setCom2(com2);
         final BigDecimal con = dealPrices.getbBlock();

@@ -64,4 +64,12 @@ public enum ContractMode {
     public String getExtraSetName() {
         return isEth() ? "set_bu10" : "";
     }
+
+    public Integer getModeScale() {
+        return bitmexContractType.getScale() > okexContractType.getScale()
+                ? bitmexContractType.getScale()
+                : okexContractType.getScale();
+    }
+
+
 }
