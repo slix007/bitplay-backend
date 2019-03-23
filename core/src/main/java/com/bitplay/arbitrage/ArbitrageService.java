@@ -1055,8 +1055,8 @@ public class ArbitrageService {
             tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
         }
 
-        // Borders are always from Current mode (not volatile)
-        final BorderParams borderParamsForCurrentMode = persistenceService.fetchBorders(); // not volatile
+        // persistenceService.fetchBorders(); // this is for Current mode (not volatile)
+        final BorderParams borderParamsForCurrentMode = bordersService.getBorderParams(); // current/volatile
         final BigDecimal border1 = params.getBorder1();
         final BigDecimal border2 = params.getBorder2();
 
