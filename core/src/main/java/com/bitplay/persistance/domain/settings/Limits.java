@@ -23,7 +23,6 @@ public class Limits {
         final Limits limits = new Limits();
         limits.ignoreLimits = true;
         limits.bitmexLimitPrice = BigDecimal.ONE;
-        limits.okexLimitPrice = BigDecimal.ONE;
         return limits;
     }
 }

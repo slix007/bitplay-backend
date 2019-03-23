@@ -72,7 +72,7 @@ public class OkexLimitsService implements LimitsService {
         final BigDecimal minPrice = minPriceForTest != null ? minPriceForTest : ticker.getLow();
 
         final Limits limits = settingsRepositoryService.getSettings().getLimits();
-        final BigDecimal okexLimitPriceNumber = limits.getOkexLimitPrice(); // Limit price, #n
+        final BigDecimal okexLimitPriceNumber = BigDecimal.ONE; // always 1st //limits.getOkexLimitPrice(); // Limit price, #n
         final int ind = okexLimitPriceNumber.intValue() - 1;
         final OrderBook ob = okCoinService.getOrderBook();
         final BigDecimal limitBid = ob.getBids().get(ind).getLimitPrice();
