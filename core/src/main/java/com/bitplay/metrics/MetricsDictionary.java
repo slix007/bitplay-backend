@@ -6,9 +6,11 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.spring.autoconfigure.MeterRegistryCustomizer;
 import java.math.BigDecimal;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
@@ -19,8 +21,7 @@ public class MetricsDictionary {
     private DistributionSummary bitmexDelta;
     private DistributionSummary okexDelta;
     private Counter bitmexReconnectsCounter;
-//    private Timer bitmexDeltaTimer;
-//    private Timer okexDeltaTimer;
+    private Timer okexPing;
 
     @Autowired
     private HostResolver hostResolver;
@@ -67,6 +68,11 @@ public class MetricsDictionary {
                     .baseUnit("quote")
                     .register(registry);
 
+            okexPing = Timer.builder("fplay.timer.okexPing")
+//                    .publishPercentiles(0.5, 0.95) // median and 95th percentile
+//                    .publishPercentileHistogram()
+                    .register(registry);
+
 //            bitmexDeltaTimer = Timer.builder("fplay.timer_delta1")
 //                    .publishPercentiles(0.5, 0.95) // median and 95th percentile
 //                    .publishPercentileHistogram()
@@ -102,4 +108,9 @@ public class MetricsDictionary {
     public void incBitmexReconnects() {
         bitmexReconnectsCounter.increment();
     }
+
+    public void setOkexPing(long ms) {
+        okexPing.record(ms, TimeUnit.MILLISECONDS);
+    }
+
 }

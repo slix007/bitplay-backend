@@ -27,6 +27,7 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
@@ -46,6 +47,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import info.bitrich.xchangestream.okexv3.OkExStreamingExchange;
 import info.bitrich.xchangestream.okexv3.OkExStreamingMarketDataService;
 import info.bitrich.xchangestream.okexv3.dto.InstrumentDto;
+import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -181,12 +183,15 @@ public class OkCoinService extends MarketServicePreliq {
     private MonitoringDataService monitoringDataService;
     @Autowired
     private BitmexChangeOnSoService bitmexChangeOnSoService;
+    @Autowired
+    private MetricsDictionary metricsDictionary;
 
     private OkExStreamingExchange exchange;
     private Disposable orderBookSubscription;
     private Disposable userPositionSub;
     private Disposable userAccountSub;
     private Disposable userOrderSub;
+    private Disposable pingStatSub;
     private Disposable markPriceSubscription;
     private Disposable tickerSubscription;
     private Disposable tickerEthSubscription;
@@ -300,6 +305,7 @@ public class OkCoinService extends MarketServicePreliq {
         userPositionSub = startUserPositionSub();
         userAccountSub = startAccountInfoSubscription();
         userOrderSub = startUserOrderSub();
+        pingStatSub = startPingStatSub();
         markPriceSubscription = startMarkPriceListener();
         tickerSubscription = startTickerListener();
         if (okexContractType.getBaseTool().equals("ETH")) {
@@ -322,6 +328,8 @@ public class OkCoinService extends MarketServicePreliq {
 //        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
         userPositionSub.dispose();
         userAccountSub.dispose();
+        userOrderSub.dispose();
+        pingStatSub.dispose();
         if (markPriceSubscription != null) {
             markPriceSubscription.dispose();
         }
@@ -710,6 +718,13 @@ public class OkCoinService extends MarketServicePreliq {
                             null);
                     updateOpenOrders(limitOrders, fPlayOrderStub);
                 }, throwable -> logger.error("TradesObservable.Exception: ", throwable));
+    }
+
+    private Disposable startPingStatSub() {
+        return exchange.subscribePingStats()
+                .map(PingStatEvent::getPingPongMs)
+                .subscribe(ms -> metricsDictionary.setOkexPing(ms),
+                        e -> logger.error("ping stats error", e));
     }
 
     private Disposable startMarkPriceListener() {
