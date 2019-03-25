@@ -1,9 +1,10 @@
 package com.bitplay.arbitrage;
 
+import static com.bitplay.arbitrage.TestingMocks.toUsd;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
-import static com.bitplay.arbitrage.TestingMocks.*;
 
+import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.PersistenceService;
@@ -181,6 +182,36 @@ public class BordersServiceTest {
         System.out.println(signal.toString());
 
     }
+
+    /**
+     * bug https://trello.com/c/quiQP31L/622-26ma19-%D0%BD%D0%B5%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9-fixed-block fixed block обрезается
+     * до ближайшей ступени. Этого не должно быть.
+     *
+     * Fixed block включает все попадающие уровни.
+     */
+    @Test
+    public void test_Fixed_okMode_several_steps() {
+//        B_delta: +52
+//        O_delta: -54
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.FIXED);
+        settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(700 * 100)); // max 2000, but we can do only 600.
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(50);
+        final BigDecimal delta2 = BigDecimal.valueOf(-10);
+        System.out.println("D1=" + delta1 + ", D2=" + delta2);
+        final BigDecimal bP = BigDecimal.valueOf(2000 * 100);
+        final BigDecimal oPL = BigDecimal.valueOf(1400); // take id=3 to 1500 ; id=4 to 2000 (stop here because there is no id=5)
+        final BigDecimal oPS = BigDecimal.valueOf(0);
+        final BordersService.TradingSignal signal = bordersService.checkBordersForTests(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+
+        System.out.println(signal.toString());
+
+        assertEquals(signal.tradeType, TradeType.DELTA1_B_SELL_O_BUY);
+        assertEquals(signal.okexBlock, 600);
+    }
+
     @Test
     public void test_Dynamic_b_br_close() {
 //        B_delta: +52

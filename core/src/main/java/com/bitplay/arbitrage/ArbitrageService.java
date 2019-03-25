@@ -1056,7 +1056,7 @@ public class ArbitrageService {
         }
 
         // persistenceService.fetchBorders(); // this is for Current mode (not volatile)
-        final BorderParams borderParamsForCurrentMode = bordersService.getBorderParams(); // current/volatile
+//        final BorderParams borderParamsForCurrentMode = bordersService.getBorderParams(); // current/volatile
         final BigDecimal border1 = params.getBorder1();
         final BigDecimal border2 = params.getBorder2();
 
@@ -1083,7 +1083,7 @@ public class ArbitrageService {
             dealPrices.setbPriceFact(new AvgPrice(counterName, b_block, "bitmex", bitmexScale));
             dealPrices.setoPriceFact(new AvgPrice(counterName, o_block, "okex", okexScale));
 
-            dealPrices.setBorderParamsOnStart(borderParamsForCurrentMode);
+            dealPrices.setBorderParamsOnStart(borderParams);
             dealPrices.setPos_bo(pos_bo);
             dealPrices.calcPlanPosAo(b_block_input, o_block_input);
 
@@ -1250,9 +1250,13 @@ public class ArbitrageService {
                 bid1_X.toPlainString(), ask1_X.toPlainString(),
                 deltaX.toPlainString(),
                 (tradingSignal == null || tradingSignal.borderVer != BorderVer.borderV2)
-                        ? (String.format("b%s=%s, %s: ", deltaName.getDeltaNumber(), borderX.toPlainString(), tradingSignal.toString()))
+                        ? (String.format("b%s=%s, %s: ", deltaName.getDeltaNumber(), borderX.toPlainString(), tradingSignal))
                         : ("borderV2:" + tradingSignal.toString())
         ));
+
+        if (tradingSignal.blockOnceWarn != null && tradingSignal.blockOnceWarn.length() > 0) {
+            warningLogger.warn("block_once warn: " + tradingSignal.blockOnceWarn + "; " + tradingSignal.toString());
+        }
 
         printSumBal(tradeId, counterName);
 
