@@ -49,6 +49,7 @@ import info.bitrich.xchangestream.okexv3.OkExStreamingExchange;
 import info.bitrich.xchangestream.okexv3.OkExStreamingMarketDataService;
 import info.bitrich.xchangestream.okexv3.dto.InstrumentDto;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkCoinDepth;
+import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
@@ -148,6 +149,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     private volatile BigDecimal markPrice = BigDecimal.ZERO;
     private volatile BigDecimal forecastPrice = BigDecimal.ZERO;
+    private volatile OkcoinPriceRange priceRange;
 
     public BigDecimal getMarkPrice() {
         return markPrice;
@@ -155,6 +157,10 @@ public class OkCoinService extends MarketServicePreliq {
 
     public BigDecimal getForecastPrice() {
         return forecastPrice;
+    }
+
+    public OkcoinPriceRange getPriceRange() {
+        return priceRange;
     }
 
     @Autowired
@@ -198,6 +204,7 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable pingStatSub;
     private Disposable markPriceSubscription;
     private Disposable tickerSubscription;
+    private Disposable priceRangeSub;
     private Disposable tickerEthSubscription;
     private Disposable indexPriceSub;
     private Observable<OkCoinDepth> orderBookObservable;
@@ -337,6 +344,7 @@ public class OkCoinService extends MarketServicePreliq {
         pingStatSub = startPingStatSub();
         markPriceSubscription = startMarkPriceListener();
         tickerSubscription = startTickerListener();
+        priceRangeSub = startPriceRangeListener();
         if (okexContractType.getBaseTool().equals("ETH")) {
             tickerEthSubscription = startEthTickerListener();
         }
@@ -365,6 +373,7 @@ public class OkCoinService extends MarketServicePreliq {
             markPriceSubscription.dispose();
         }
         tickerSubscription.dispose();
+        priceRangeSub.dispose();
         if (tickerEthSubscription != null) {
             tickerEthSubscription.dispose();
         }
@@ -773,6 +782,19 @@ public class OkCoinService extends MarketServicePreliq {
                 }, throwable -> logger.error("OkexFutureTicker.Exception: ", throwable));
     }
 
+    private Disposable startPriceRangeListener() {
+        final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
+        return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
+                .getPriceRange(instrumentDto)
+                .doOnError(throwable -> logger.error("Error on PriceRange observing", throwable))
+                .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
+                .subscribeOn(Schedulers.io())
+                .subscribe(priceRange -> {
+                    logger.debug(priceRange.toString());
+                    this.priceRange = priceRange;
+                }, throwable -> logger.error("OkexPriceRange.Exception: ", throwable));
+    }
+
     // spot ticker
     private Disposable startEthTickerListener() {
         return exchange.getStreamingMarketDataService()
@@ -850,7 +872,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             // Option 2: FAKE LIMIT ORDER
             BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
-            BigDecimal thePrice = Utils.createPriceForTaker(orderType, ticker, okexFakeTakerDev);
+            BigDecimal thePrice = Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
             getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
             final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), "123", new Date(), thePrice);
 

@@ -12,13 +12,13 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.Settings;
+import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
 import java.math.BigDecimal;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.marketdata.Ticker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,12 +64,12 @@ public class OkexLimitsService implements LimitsService {
     }
 
     public Params getParams() {
-        final Ticker ticker = okCoinService.getTicker();
-        if (ticker == null) {
+        final OkcoinPriceRange priceRange = okCoinService.getPriceRange();
+        if (priceRange == null) {
             throw new NotYetInitializedException();
         }
-        final BigDecimal maxPrice = maxPriceForTest != null ? maxPriceForTest : ticker.getHigh();
-        final BigDecimal minPrice = minPriceForTest != null ? minPriceForTest : ticker.getLow();
+        final BigDecimal maxPrice = maxPriceForTest != null ? maxPriceForTest : priceRange.getHighest();
+        final BigDecimal minPrice = minPriceForTest != null ? minPriceForTest : priceRange.getLowest();
 
         final Limits limits = settingsRepositoryService.getSettings().getLimits();
         final BigDecimal okexLimitPriceNumber = BigDecimal.ONE; // always 1st //limits.getOkexLimitPrice(); // Limit price, #n

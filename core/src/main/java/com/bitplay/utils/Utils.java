@@ -2,6 +2,7 @@ package com.bitplay.utils;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -11,7 +12,6 @@ import java.util.List;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
 import org.springframework.data.util.Pair;
@@ -124,16 +124,16 @@ public class Utils {
 //        return thePrice;
 //    }
 
-    public static BigDecimal createPriceForTaker(OrderType orderType, Ticker ticker, BigDecimal okexFakeTakerDev) {
+    public static BigDecimal createPriceForTaker(OrderType orderType, OkcoinPriceRange okcoinPriceRange, BigDecimal okexFakeTakerDev) {
         //Fake taker price при buy-ордере (open long или close short):
         //FTP = max_price - FTPD, // FTPD = fake taker price dev, usd
         //Fake taker price при sell-ордере (open short или close long):
         //FTP = min_price + FTPD.
-        if (ticker == null) {
+        if (okcoinPriceRange == null) {
             throw new NotYetInitializedException();
         }
-        final BigDecimal minPrice = ticker.getLow();
-        final BigDecimal maxPrice = ticker.getHigh();
+        final BigDecimal minPrice = okcoinPriceRange.getLowest();
+        final BigDecimal maxPrice = okcoinPriceRange.getHighest();
 
         BigDecimal thePrice = BigDecimal.ZERO;
         if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
