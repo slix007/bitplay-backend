@@ -317,9 +317,23 @@ public class OkCoinService extends MarketServicePreliq {
 
         subscribeOnOrderBook();
 
-        userPositionSub = startUserPositionSub();
-        userAccountSub = startAccountInfoSubscription();
-        userOrderSub = startUserOrderSub();
+        final boolean loginSuccess = exchange.getStreamingPrivateDataService()
+                .login()
+                .blockingAwait(5, TimeUnit.SECONDS);
+        logger.info("Login success=" + loginSuccess);
+
+        try {
+            // workaround. some waiting after login.
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            logger.error("error while sleep after login");
+        }
+
+        if (loginSuccess) {
+            userPositionSub = startUserPositionSub();
+            userAccountSub = startAccountInfoSubscription();
+            userOrderSub = startUserOrderSub();
+        }
         pingStatSub = startPingStatSub();
         markPriceSubscription = startMarkPriceListener();
         tickerSubscription = startTickerListener();
@@ -329,10 +343,12 @@ public class OkCoinService extends MarketServicePreliq {
         indexPriceSub = startIndexPriceSub();
         fetchOpenOrders();
 
-        try {
-            fetchUserInfoContracts();
-        } catch (Exception e) {
-            logger.error("On fetchUserInfoContracts", e);
+        if (loginSuccess) {
+            try {
+                fetchUserInfoContracts();
+            } catch (Exception e) {
+                logger.error("On fetchUserInfoContracts", e);
+            }
         }
     }
 
