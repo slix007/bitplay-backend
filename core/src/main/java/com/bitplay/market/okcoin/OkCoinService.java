@@ -532,7 +532,7 @@ public class OkCoinService extends MarketServicePreliq {
 //        Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
 //    }
 
-//    @Scheduled(fixedDelay = 2000)
+    @Scheduled(fixedDelay = 2000)
     public void fetchPositionScheduled() {
         Instant start = Instant.now();
         try {
@@ -557,7 +557,7 @@ public class OkCoinService extends MarketServicePreliq {
         return position != null ? position.toString() : "";
     }
 
-    //    @Scheduled(fixedDelay = 500) // URL https://www.okex.com/api/v1/future_userinfo.do Request frequency 5 times/2s
+    @Scheduled(fixedDelay = 500) // URL https://www.okex.com/api/v1/future_userinfo.do Request frequency 5 times/2s
     public void fetchUserInfoScheduled() {
         Instant start = Instant.now();
         try {
