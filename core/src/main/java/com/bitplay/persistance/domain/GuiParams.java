@@ -1,6 +1,7 @@
 package com.bitplay.persistance.domain;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Date;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,6 +40,7 @@ public class GuiParams extends AbstractParams {
     private Date lastOBChange;
     private Date lastCorrCheck;
     private Date lastMDCCheck;
+    private LocalDate lastDateLogs;
 
     public void setSettingsParts(GuiParams guiParams, Boolean noExceptions) {
         if (noExceptions) {
