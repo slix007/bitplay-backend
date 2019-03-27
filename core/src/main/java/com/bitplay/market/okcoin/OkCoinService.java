@@ -37,7 +37,6 @@ import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.mon.Mon;
-import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -207,6 +206,7 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable priceRangeSub;
     private Disposable tickerEthSubscription;
     private Disposable indexPriceSub;
+    private Disposable deferredPlacingOrdersListener;
     private Observable<OkCoinDepth> orderBookObservable;
     private OkexContractType okexContractType;
     private OkexContractType okexContractTypeBTCUSD = OkexContractType.BTC_ThisWeek;
@@ -291,7 +291,7 @@ public class OkCoinService extends MarketServicePreliq {
         loadLiqParams();
 
         initWebSocketAndAllSubscribers();
-        initDeferredPlacingOrder();
+        deferredPlacingOrdersListener = initDeferredPlacingOrder();
     }
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
@@ -492,7 +492,10 @@ public class OkCoinService extends MarketServicePreliq {
     @PreDestroy
     public void preDestroy() {
         shutdown = true;
+
+        deferredPlacingOrdersListener.dispose();
         // Disconnect from exchange (non-blocking)
+        //noinspection ResultOfMethodCallIgnored
         closeAllSubscibers().subscribe(() -> logger.info("Disconnected from the Exchange"));
     }
 
@@ -1025,8 +1028,8 @@ public class OkCoinService extends MarketServicePreliq {
         });
     }
 
-    private void initDeferredPlacingOrder() {
-        getArbitrageService().getSignalEventBus().toObserverable()
+    private Disposable initDeferredPlacingOrder() {
+        return getArbitrageService().getSignalEventBus().toObserverable()
                 .subscribe(eventQuant -> {
                     try {
                         SignalEvent signalEvent = eventQuant instanceof SignalEventEx
@@ -1034,12 +1037,7 @@ public class OkCoinService extends MarketServicePreliq {
                                 : (SignalEvent) eventQuant;
 
                         if (signalEvent == SignalEvent.MT2_BITMEX_ORDER_FILLED) {
-                            final Settings settings = settingsRepositoryService.getSettings();
-                            final boolean isConBo = settings.getArbScheme() == ArbScheme.CON_B_O
-                                    || bitmexChangeOnSoService.toConBoActive();
-
-                            if (isConBo && getMarketState() == MarketState.WAITING_ARB) {
-
+                            if (getMarketState() == MarketState.WAITING_ARB) {
                                 final PlaceOrderArgs currArgs = placeOrderArgsRef.getAndSet(null);
                                 if (currArgs != null) {
                                     setMarketState(MarketState.ARBITRAGE);
@@ -1047,6 +1045,10 @@ public class OkCoinService extends MarketServicePreliq {
 
                                     fplayTradeService.setOkexStatus(currArgs.getTradeId(), TradeMStatus.IN_PROGRESS);
                                     placeOrder(currArgs);
+                                } else {
+                                    logger.error("WAITING_ARB: no deferred order. Set READY.");
+                                    warningLogger.error("WAITING_ARB: no deferred order. Set READY.");
+                                    arbitrageService.releaseArbInProgress("", "WAITING_ARB deferred-placing-order");
                                 }
 
                             }

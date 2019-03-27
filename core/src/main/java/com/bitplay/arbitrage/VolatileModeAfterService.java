@@ -130,8 +130,8 @@ public class VolatileModeAfterService {
                             placingType,
                             okexService.getCounterName(),
                             okexService.getArbitrageService().getTradeId(),
-                            null
-                    );
+                            null,
+                            false);
                 }
             } else {
                 log.warn("VolatileMode activated: no amountLeft.");

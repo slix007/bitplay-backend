@@ -7,11 +7,6 @@ package com.bitplay.persistance.domain.settings;
  */
 public enum ArbScheme {
     /**
-     * TODO remove it. (only for backword compatibility)
-     */
-    MT,MT2,TT,
-
-    /**
      * Consistently bitmex then okex.
      */
     CON_B_O,

@@ -2,7 +2,6 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -10,12 +9,8 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
-import com.bitplay.persistance.domain.settings.ArbScheme;
-import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.settings.BitmexChangeOnSoService;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -36,14 +31,9 @@ public class SignalService {
     private static final Logger logger = LoggerFactory.getLogger(SignalService.class);
     final ExecutorService executorService = Executors.newFixedThreadPool(2,
             new NamedThreadFactory("signal-service"));
-    @Autowired
-    private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
     private TradeService tradeService;
-
-    @Autowired
-    private SlackNotifications slackNotifications;
 
     @Autowired
     private OkCoinService okexService;
@@ -51,17 +41,14 @@ public class SignalService {
     @Autowired
     private BitmexService bitmexService;
 
-    @Autowired
-    private BitmexChangeOnSoService bitmexChangeOnSoService;
-
     public void placeOkexOrderOnSignal(OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
+            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo) {
 
         if (o_block.signum() <= 0) {
             executorService.execute(() -> {
 
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(1000); // let the other market finish it's placing, before set to READY.
                     String warn = "WARNING: o_block=" + o_block + ". No order on signal";
                     okexService.getTradeLogger().warn(warn);
                     logger.warn(warn);
@@ -76,13 +63,9 @@ public class SignalService {
 
         } else {
 
-            final Settings settings = settingsRepositoryService.getSettings();
             final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
                     placingType,
                     SignalType.AUTOMATIC, 1, tradeId, counterName, lastObTime);
-
-            final boolean isConBo = settings.getArbScheme() == ArbScheme.CON_B_O
-                    || bitmexChangeOnSoService.toConBoActive();
 
             if (isConBo) {
                 okexService.deferredPlaceOrderOnSignal(placeOrderArgs);

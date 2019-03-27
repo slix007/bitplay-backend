@@ -46,6 +46,7 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayTrade;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
+import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
@@ -1014,6 +1015,12 @@ public class ArbitrageService {
         return Instant.now().toEpochMilli() - signalDelayActivateTime > signalDelayMs;
     }
 
+    private boolean getIsConBo() {
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        return settings.getArbScheme() == ArbScheme.CON_B_O
+                || bitmexChangeOnSoService.toConBoActive();
+    }
+
     private void startTradingOnDelta1(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_o, BigDecimal bid1_p,
             Instant lastObTime,
@@ -1032,7 +1039,7 @@ public class ArbitrageService {
 
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, lastObTime);
+                counterName, tradeId, lastObTime, getIsConBo());
         signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
                 counterName, tradeId, lastObTime);
 
@@ -1194,7 +1201,7 @@ public class ArbitrageService {
 
         // in scheme MT2 Okex should be the first
         signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, lastObTime);
+                counterName, tradeId, lastObTime, getIsConBo());
         signalService.placeBitmexOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
                 counterName, tradeId, lastObTime);
 
