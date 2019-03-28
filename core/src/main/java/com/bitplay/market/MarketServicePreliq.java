@@ -100,8 +100,7 @@ public abstract class MarketServicePreliq extends MarketService {
 
                 boolean gotActivated = dtPreliq.activate();
                 if (gotActivated) {
-//                    setPreliqState(); // only current Market!
-                    getArbitrageService().setArbStatePreliq();
+                    getArbitrageService().setArbStatePreliq(); // do setPreliqState for arbState and both markets
                 }
 
                 final Integer delaySec = getPersistenceService().getSettingsRepositoryService().getSettings().getPosAdjustment().getPreliqDelaySec();
@@ -115,14 +114,8 @@ public abstract class MarketServicePreliq extends MarketService {
                     warningLogger.info(msg);
                     getTradeLogger().info(msg);
                 } else {
-                    String msg = String.format("#%s %s_PRE_LIQ starting: p(%s-%s)/dql%s/dqlClose%s",
-                            counterForLogs,
-                            nameSymbol,
-                            position.getPositionLong().toPlainString(), position.getPositionShort().toPlainString(),
-                            liqInfo.getDqlCurr().toPlainString(), dqlCloseMin.toPlainString());
-                    log.info(msg);
-                    warningLogger.info(msg);
-                    getTradeLogger().info(msg);
+
+                    printPreliqStarting(counterForLogs, nameSymbol);
 
                     if (corrParams.getPreliq().tryIncFailed(getName())) { // previous preliq counter
                         getPersistenceService().saveCorrParams(corrParams);
@@ -145,6 +138,45 @@ public abstract class MarketServicePreliq extends MarketService {
         }
         Instant end = Instant.now();
         Utils.logIfLong(start, end, log, "checkForDecreasePosition");
+    }
+
+    private void printPreliqStarting(String counterForLogs, String nameSymbol) {
+        try {
+            final String prefix = String.format("#%s %s_PRE_LIQ starting: ", counterForLogs, nameSymbol);
+            final MarketServicePreliq thatMarket = getName().equals(BitmexService.NAME)
+                    ? getArbitrageService().getSecondMarketService()
+                    : getArbitrageService().getFirstMarketService();
+
+            final String thisMarketStr = prefix + getPreliqStartingStr();
+            final String thatMarketStr = prefix + thatMarket.getPreliqStartingStr();
+
+            log.info(thisMarketStr);
+            log.info(thatMarketStr);
+            warningLogger.info(thisMarketStr);
+            warningLogger.info(thatMarketStr);
+            getTradeLogger().info(thisMarketStr);
+            getTradeLogger().info(thatMarketStr);
+            thatMarket.getTradeLogger().info(thisMarketStr);
+            thatMarket.getTradeLogger().info(thatMarketStr);
+        } catch (Exception e) {
+            log.error("Error in printPreliqStarting", e);
+            final String err = "Error in printPreliqStarting " + e.toString();
+            warningLogger.error(err);
+            getTradeLogger().error(err);
+        }
+    }
+
+    private String getPreliqStartingStr() {
+        final Position position = getPosition();
+        final LiqInfo liqInfo = getLiqInfo();
+        final BigDecimal dqlCloseMin = getDqlCloseMin();
+        final String dqlCurrStr = liqInfo != null && liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr().toPlainString() : "null";
+        final String dqlCloseMinStr = dqlCloseMin != null ? dqlCloseMin.toPlainString() : "null";
+        return String.format("%s p(%s-%s)/dql%s/dqlClose%s",
+                getName(),
+                position.getPositionLong().toPlainString(),
+                position.getPositionShort().toPlainString(),
+                dqlCurrStr, dqlCloseMinStr);
     }
 
     public boolean isDqlViolated() {
