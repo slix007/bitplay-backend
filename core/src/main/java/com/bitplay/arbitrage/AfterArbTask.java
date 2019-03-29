@@ -166,6 +166,7 @@ public class AfterArbTask implements Runnable {
             final BigDecimal ast_diff_fact2 = ((con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_ask, 16, RoundingMode.HALF_UP)))
                     .setScale(8, RoundingMode.HALF_UP);
 
+            printDiff2ConBo(DeltaName.B_DELTA, cumParams);
             printP3DeltaFact(cumParams, dealPrices.getDelta1Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
                     cumParams.getAstDelta1(), cumParams.getAstDeltaFact1(), dealPrices.getDelta1Plan());
 
@@ -208,6 +209,8 @@ public class AfterArbTask implements Runnable {
                     .setScale(8, RoundingMode.HALF_UP);
             final BigDecimal ast_diff_fact2 = ((con.divide(ok_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)))
                     .setScale(8, RoundingMode.HALF_UP);
+
+            printDiff2ConBo(DeltaName.O_DELTA, cumParams);
             printP3DeltaFact(cumParams, dealPrices.getDelta2Fact(), deltaFactStr, ast_diff_fact1, ast_diff_fact2,
                     cumParams.getAstDelta2(), cumParams.getAstDeltaFact2(), dealPrices.getDelta2Plan());
 
@@ -304,6 +307,33 @@ public class AfterArbTask implements Runnable {
         if (avgPrice.isItemsEmpty()) {
             throw new RoundIsNotDoneException(avgPrice.getMarketName() + " has no orders");
         }
+    }
+
+    private void printDiff2ConBo(DeltaName deltaName, CumParams cumParams) {
+        // В дельта-логах добавить в параметр diff2_con_bo, в формате
+        //  diff2_con_bo = diff2_pre + diff2_post, где:
+        //     для delta1:
+        //      diff2_pre = price_plan - place_order_price;
+        //      diff2_post = place_order_price - price_fact;
+        //     для delta2:
+        //      diff2_pre = place_order_price - price_plan;
+        //      diff2_post = price_fact - place_order_price;
+        final BigDecimal price_fact = dealPrices.getoPriceFact() != null ? dealPrices.getoPriceFact().getAvg() : BigDecimal.ZERO;
+        final BigDecimal diff2_pre;
+        final BigDecimal diff2_post;
+        if (deltaName == DeltaName.B_DELTA) {
+            diff2_pre = dealPrices.getoPricePlan().subtract(dealPrices.getoPricePlanOnStart());
+            diff2_post = dealPrices.getoPricePlanOnStart().subtract(price_fact);
+        } else {
+            diff2_pre = dealPrices.getoPricePlanOnStart().subtract(dealPrices.getoPricePlan());
+            diff2_post = price_fact.subtract(dealPrices.getoPricePlanOnStart());
+        }
+        final BigDecimal diff2_con_bo = diff2_pre.add(diff2_post);
+        cumParams.setCumDiff2Pre(cumParams.getCumDiff2Pre().add(diff2_pre));
+        cumParams.setCumDiff2Post(cumParams.getCumDiff2Post().add(diff2_post));
+
+        deltaLogWriter.info(String.format("#%s okex diff2_pre=%s, diff2_post=%s, diff2_con_bo=%s; (price_plan=%s, price_plan_on_start=%s)",
+                counterName, diff2_pre, diff2_post, diff2_con_bo, dealPrices.getoPricePlan(), dealPrices.getoPricePlanOnStart()));
     }
 
     private void printP3DeltaFact(CumParams cumParams,

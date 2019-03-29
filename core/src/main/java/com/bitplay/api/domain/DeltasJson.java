@@ -23,6 +23,8 @@ public class DeltasJson {
     private String cumDiffFact1;
     private String cumDiffFact2;
     private String cumDiffFact;
+    private String cumDiff2Pre;
+    private String cumDiff2Post;
     private String cumAstDiffFact1;
     private String cumAstDiffFact2;
     private String cumAstDiffFact;

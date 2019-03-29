@@ -18,6 +18,8 @@ public class DeltalUpdateJson {
     private String cumDiffFact1;
     private String cumDiffFact2;
     private String cumDiffFact;
+    private String cumDiff2Pre;
+    private String cumDiff2Post;
     private String cumAstDiffFact;
     private String cumCom1;
     private String cumCom2;

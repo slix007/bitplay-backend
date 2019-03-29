@@ -27,6 +27,8 @@ public class CumParams extends AbstractParams {
     private BigDecimal cumDiffFact2 = BigDecimal.ZERO;
     private BigDecimal cumDiffFact = BigDecimal.ZERO;
     private BigDecimal cumDiffFactBr = BigDecimal.ZERO;
+    private BigDecimal cumDiff2Pre = BigDecimal.ZERO;
+    private BigDecimal cumDiff2Post = BigDecimal.ZERO;
     private BigDecimal cumAstDiffFact1 = BigDecimal.ZERO;
     private BigDecimal cumAstDiffFact2 = BigDecimal.ZERO;
     private BigDecimal cumAstDiffFact = BigDecimal.ZERO;

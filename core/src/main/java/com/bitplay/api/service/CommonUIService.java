@@ -244,6 +244,12 @@ public class CommonUIService {
             cumParams.setCumDiffFact(new BigDecimal(deltalUpdateJson.getCumDiffFact()));
             cumParams.setCumAstDiffFact(new BigDecimal(deltalUpdateJson.getCumDiffFact()));
         }
+        if (deltalUpdateJson.getCumDiff2Pre() != null) {
+            cumParams.setCumDiff2Pre(new BigDecimal(deltalUpdateJson.getCumDiff2Pre()));
+        }
+        if (deltalUpdateJson.getCumDiff2Post() != null) {
+            cumParams.setCumDiff2Post(new BigDecimal(deltalUpdateJson.getCumDiff2Post()));
+        }
         if (deltalUpdateJson.getCumAstDiffFact() != null) {
             cumParams.setCumAstDiffFact1(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
             cumParams.setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
@@ -297,6 +303,8 @@ public class CommonUIService {
             cumParams.setCumAstDeltaFact2(BigDecimal.ZERO);
             cumParams.setCumDiffFactBr(BigDecimal.ZERO);
             cumParams.setCumDiffFact1(BigDecimal.ZERO);
+            cumParams.setCumDiff2Pre(BigDecimal.ZERO);
+            cumParams.setCumDiff2Post(BigDecimal.ZERO);
             cumParams.setCumAstDiffFact1(BigDecimal.ZERO);
             cumParams.setCumDiffFact2(BigDecimal.ZERO);
             cumParams.setCumAstDiffFact2(BigDecimal.ZERO);
@@ -352,6 +360,8 @@ public class CommonUIService {
                 cumParams.getCumDiffFact1().toPlainString(),
                 cumParams.getCumDiffFact2().toPlainString(),
                 cumParams.getCumDiffFact().toPlainString(),
+                cumParams.getCumDiff2Pre().toPlainString(),
+                cumParams.getCumDiff2Post().toPlainString(),
                 cumParams.getCumAstDiffFact1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 cumParams.getCumAstDiffFact2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 cumParams.getCumAstDiffFact().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),

@@ -1082,6 +1082,7 @@ public class ArbitrageService {
             dealPrices.setDelta2Plan(delta2);
             dealPrices.setbPricePlan(bPricePlan);
             dealPrices.setoPricePlan(oPricePlan);
+            dealPrices.setoPricePlanOnStart(oPricePlan);
             dealPrices.setDeltaName(deltaName);
             dealPrices.setBestQuotes(bestQuotes);
 

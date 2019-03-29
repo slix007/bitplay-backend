@@ -1043,6 +1043,16 @@ public class OkCoinService extends MarketServicePreliq {
                                     setMarketState(MarketState.ARBITRAGE);
                                     tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
 
+                                    {// set oPricePlanOnStart
+                                        final BigDecimal oPricePlanOnStart;
+                                        if (currArgs.getOrderType() == OrderType.BID || currArgs.getOrderType() == OrderType.EXIT_ASK) {
+                                            oPricePlanOnStart = Utils.getBestAsk(orderBook).getLimitPrice(); // buy -> use the opposite price.
+                                        } else {
+                                            oPricePlanOnStart = Utils.getBestBid(orderBook).getLimitPrice(); // do sell -> use the opposite price.
+                                        }
+                                        arbitrageService.getDealPrices().setoPricePlanOnStart(oPricePlanOnStart);
+                                    }
+
                                     fplayTradeService.setOkexStatus(currArgs.getTradeId(), TradeMStatus.IN_PROGRESS);
                                     placeOrder(currArgs);
                                 } else {

@@ -31,12 +31,13 @@ public class DealPrices implements Serializable {
     private BigDecimal delta2Plan = BigDecimal.ZERO;
     private BigDecimal bPricePlan = BigDecimal.ZERO;
     private BigDecimal oPricePlan = BigDecimal.ZERO;
+    private BigDecimal oPricePlanOnStart = BigDecimal.ZERO; // with CON_B_O, the plan and plan_start can be different.
     private AvgPrice bPriceFact = new AvgPrice("", BigDecimal.ZERO, "bitmex", 2);
     private AvgPrice oPriceFact = new AvgPrice("", BigDecimal.ZERO, "okex", 2);
     private DeltaName deltaName = DeltaName.B_DELTA;
     private BestQuotes bestQuotes;
-    private Integer pos_bo;
-    private Integer plan_pos_ao;
+    private Integer pos_bo; // before order
+    private Integer plan_pos_ao; // after order
     private BorderParams borderParamsOnStart;
     private BigDecimal border1;
     private BigDecimal border2;
@@ -236,6 +237,14 @@ public class DealPrices implements Serializable {
 
     public synchronized void setPlan_pos_ao(Integer plan_pos_ao) {
         this.plan_pos_ao = plan_pos_ao;
+    }
+
+    public synchronized BigDecimal getoPricePlanOnStart() {
+        return oPricePlanOnStart;
+    }
+
+    public synchronized void setoPricePlanOnStart(BigDecimal oPricePlanOnStart) {
+        this.oPricePlanOnStart = oPricePlanOnStart;
     }
 
     public static class Details {
