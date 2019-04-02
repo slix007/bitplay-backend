@@ -1043,7 +1043,7 @@ public class OkCoinService extends MarketServicePreliq {
                                     setMarketState(MarketState.ARBITRAGE);
                                     tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
 
-                                    {// set oPricePlanOnStart
+                                    if (currArgs.getPlacingType() == PlacingType.TAKER) {// set oPricePlanOnStart for Taker
                                         final BigDecimal oPricePlanOnStart;
                                         if (currArgs.getOrderType() == OrderType.BID || currArgs.getOrderType() == OrderType.EXIT_ASK) {
                                             oPricePlanOnStart = Utils.getBestAsk(orderBook).getLimitPrice(); // buy -> use the opposite price.
@@ -1054,6 +1054,7 @@ public class OkCoinService extends MarketServicePreliq {
                                     }
 
                                     fplayTradeService.setOkexStatus(currArgs.getTradeId(), TradeMStatus.IN_PROGRESS);
+                                    currArgs.setPricePlanOnStart(true);
                                     placeOrder(currArgs);
                                 } else {
                                     logger.error("WAITING_ARB: no deferred order. Set READY.");
@@ -1104,7 +1105,8 @@ public class OkCoinService extends MarketServicePreliq {
                 }
 
                 if (placingType != PlacingType.TAKER) {
-                    tradeResponse = placeNonTakerOrder(tradeId, orderType, amountLeft, bestQuotes, false, signalType, placingType, counterName);
+                    tradeResponse = placeNonTakerOrder(tradeId, orderType, amountLeft, bestQuotes, false, signalType, placingType, counterName,
+                            placeOrderArgs.isPricePlanOnStart());
                 } else {
                     tradeResponse = takerOrder(tradeId, orderType, amountLeft, bestQuotes, signalType, counterName);
                     if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
@@ -1273,7 +1275,8 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private TradeResponse placeNonTakerOrder(Long tradeId, Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-                                          boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName) throws IOException {
+            boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName,
+            boolean pricePlanOnStart) throws IOException {
         final TradeResponse tradeResponse = new TradeResponse();
 
         BigDecimal thePrice;
@@ -1363,6 +1366,10 @@ public class OkCoinService extends MarketServicePreliq {
 //                    }
 
 //                    debugLog.debug("placeOrder3 " + msg);
+                }
+
+                if (pricePlanOnStart) { // set oPricePlanOnStart for non-Taker
+                    arbitrageService.getDealPrices().setoPricePlanOnStart(thePrice);
                 }
 
                 arbitrageService.getDealPrices().setSecondOpenPrice(thePrice);
@@ -1596,7 +1603,8 @@ public class OkCoinService extends MarketServicePreliq {
                     placingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
                 }
 
-                tradeResponse = placeNonTakerOrder(tradeId, limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType, counterName);
+                tradeResponse = placeNonTakerOrder(tradeId, limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType, counterName,
+                        false);
 
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info(String.format("#%s/%s Moving3:Failed %s amount=%s,quote=%s,id=%s,attempt=%s. Error: %s",
