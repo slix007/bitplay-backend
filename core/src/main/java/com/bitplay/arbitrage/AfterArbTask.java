@@ -332,8 +332,11 @@ public class AfterArbTask implements Runnable {
         cumParams.setCumDiff2Pre(cumParams.getCumDiff2Pre().add(diff2_pre));
         cumParams.setCumDiff2Post(cumParams.getCumDiff2Post().add(diff2_post));
 
-        deltaLogWriter.info(String.format("#%s okex diff2_pre=%s, diff2_post=%s, diff2_con_bo=%s; (price_plan=%s, price_plan_on_start=%s)",
-                counterName, diff2_pre, diff2_post, diff2_con_bo, dealPrices.getoPricePlan(), dealPrices.getoPricePlanOnStart()));
+        deltaLogWriter.info(String.format("#%s okex diff2_pre=%s, diff2_post=%s, diff2_con_bo=%s; (plan_price=%s, place_order_price=%s);"
+                        + "cum_diff2_pre=%s, cum_diff2_post=%s",
+                counterName, diff2_pre, diff2_post, diff2_con_bo, dealPrices.getoPricePlan(), dealPrices.getoPricePlanOnStart(),
+                cumParams.getCumDiff2Pre().toPlainString(),
+                cumParams.getCumDiff2Post().toPlainString()));
     }
 
     private void printP3DeltaFact(CumParams cumParams,
