@@ -122,7 +122,7 @@ public class ArbitrageService {
     @Autowired
     private SignalTimeService signalTimeService;
     @Autowired
-    private TradeService tradeService;
+    private TradeService fplayTradeService;
     @Autowired
     private FplayTradeRepository fplayTradeRepository;
     @Autowired
@@ -284,14 +284,14 @@ public class ArbitrageService {
 
             if (marketName.equals(BitmexService.NAME)) {
                 fplayTrade.setBitmexStatus(TradeMStatus.FINISHED);
-                tradeService.setBitmexStatus(doneTradeId, TradeMStatus.FINISHED);
+                fplayTradeService.setBitmexStatus(doneTradeId, TradeMStatus.FINISHED);
             } else {
                 fplayTrade.setOkexStatus(TradeMStatus.FINISHED);
-                tradeService.setOkexStatus(doneTradeId, TradeMStatus.FINISHED);
+                fplayTradeService.setOkexStatus(doneTradeId, TradeMStatus.FINISHED);
             }
 
             // read from DB to check isReadyToComplete
-            if (tradeId != null && tradeService.isReadyToComplete(tradeId)) {
+            if (tradeId != null && fplayTradeService.isReadyToComplete(tradeId)) {
 
                 if (arbState == ArbState.IN_PROGRESS) {
                     arbState = ArbState.READY;
@@ -305,7 +305,7 @@ public class ArbitrageService {
                     // start writeLogArbitrageIsDone();
                     final String arbIsDoneMsg = String.format("#%s is done. SignalTime=%s sec. tradeId(curr/done): %s / %s---",
                             counterNameSnap, signalTimeSec, tradeIdSnap, doneTradeId);
-                    tradeService.info(tradeIdSnap, counterNameSnap, arbIsDoneMsg);
+                    fplayTradeService.info(tradeIdSnap, counterNameSnap, arbIsDoneMsg);
                     log.info(arbIsDoneMsg);
 
                     // use snapshot of Params
@@ -332,7 +332,7 @@ public class ArbitrageService {
                             (OkCoinService) getSecondMarketService(),
                             persistenceService,
                             this,
-                            new DeltaLogWriter(tradeIdSnap, counterNameSnap, tradeService),
+                            new DeltaLogWriter(tradeIdSnap, counterNameSnap, fplayTradeService),
                             slackNotifications
                     );
 
@@ -405,7 +405,7 @@ public class ArbitrageService {
                                 secondMarketService.isBusy(),
                                 secondMarketService.getOnlyOpenOrders().size());
                         warningLogger.warn(logString);
-                        tradeService.warn(tradeId, counterName, logString);
+                        fplayTradeService.warn(tradeId, counterName, logString);
 
                         firstMarketService.isReadyForArbitrageWithOOFetch();
 
@@ -415,7 +415,7 @@ public class ArbitrageService {
                                 firstMarketService.getOnlyOpenOrders().size(),
                                 secondMarketService.isBusy(),
                                 secondMarketService.getOnlyOpenOrders().size());
-                        tradeService.warn(tradeId, counterName, logString);
+                        fplayTradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
 
                         slackNotifications.sendNotify(NotifyType.BUSY_6_MIN, logString);
@@ -424,13 +424,13 @@ public class ArbitrageService {
                         boolean secondHanged = secondMarketService.isBusy() && !secondMarketService.hasOpenOrders();
                         boolean noOrders = !firstMarketService.hasOpenOrders() && !secondMarketService.hasOpenOrders();
                         if (firstHanged && noOrders) {
-                            tradeService.warn(tradeId, counterName, "Warning: Free Bitmex");
+                            fplayTradeService.warn(tradeId, counterName, "Warning: Free Bitmex");
                             warningLogger.warn("Warning: Free Bitmex");
                             log.warn("Warning: Free Bitmex");
                             firstMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, firstMarketService.tryFindLastTradeId()));
                         }
                         if (secondHanged && noOrders) {
-                            tradeService.warn(tradeId, counterName, "Warning: Free Okcoin");
+                            fplayTradeService.warn(tradeId, counterName, "Warning: Free Okcoin");
                             warningLogger.warn("Warning: Free Okcoin");
                             log.warn("Warning: Free Okcoin");
                             secondMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, secondMarketService.tryFindLastTradeId()));
@@ -441,7 +441,7 @@ public class ArbitrageService {
                                 getCounter(),
                                 firstMarketService.isReadyForArbitrage(), firstMarketService.getOnlyOpenOrders().size(),
                                 secondMarketService.isReadyForArbitrage(), secondMarketService.getOnlyOpenOrders().size());
-                        tradeService.warn(tradeId, counterName, logString);
+                        fplayTradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
                         log.warn(logString);
                         slackNotifications.sendNotify(NotifyType.BUSY_6_MIN, logString);
@@ -567,7 +567,7 @@ public class ArbitrageService {
     void setTradeParamTradingModeCurrentVolatile(Long tradeId) {
         synchronized (dealPrices) {
             dealPrices.setTradingMode(TradingMode.CURRENT_VOLATILE);
-            tradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
+            fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
             dealPrices.setTradeId(tradeId);
         }
     }
@@ -581,7 +581,7 @@ public class ArbitrageService {
                     && dealPrices.getTradingMode() == TradingMode.CURRENT_VOLATILE) {
                 // do nothing
             } else {
-                tradeService.setTradingMode(tradeId, tradingMode);
+                fplayTradeService.setTradingMode(tradeId, tradingMode);
                 dealPrices.setTradingMode(tradingMode);
                 dealPrices.setTradeId(tradeId);
             }
@@ -1059,7 +1059,7 @@ public class ArbitrageService {
         setSignalType(SignalType.AUTOMATIC);
 
         if (dynamicDeltaLogs != null) {
-            tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
+            fplayTradeService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
         }
 
         // persistenceService.fetchBorders(); // this is for Current mode (not volatile)
@@ -1095,7 +1095,7 @@ public class ArbitrageService {
             dealPrices.calcPlanPosAo(b_block_input, o_block_input);
 
             if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
-                tradeService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
+                fplayTradeService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
                 warningLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
             }
 
@@ -1118,8 +1118,8 @@ public class ArbitrageService {
 
         }
 
-        tradeService.info(tradeId, counterName, String.format("#%s Trading mode = %s", counterName, dealPrices.getTradingMode().getFullName()));
-        tradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
+        fplayTradeService.info(tradeId, counterName, String.format("#%s Trading mode = %s", counterName, dealPrices.getTradingMode().getFullName()));
+        fplayTradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
     }
 
     private void checkAndStartTradingOnDelta2(BorderParams borderParams,
@@ -1241,18 +1241,18 @@ public class ArbitrageService {
         setSignalType(SignalType.AUTOMATIC);
         final String counterName = firstMarketService.getCounterName();
 
-        fplayTrade = tradeService.createTrade(counterName, deltaName,
+        fplayTrade = fplayTradeService.createTrade(counterName, deltaName,
                 ((BitmexContractType) firstMarketService.getContractType()),
                 ((OkexContractType) secondMarketService.getContractType()));
         tradeId = fplayTrade.getId();
-        tradeService.info(tradeId, counterName, "------------------------------------------");
+        fplayTradeService.info(tradeId, counterName, "------------------------------------------");
 
-        tradeService.info(tradeId, counterName, String.format("count=%s+%s=%s(completed=%s+%s=%s) %s",
+        fplayTradeService.info(tradeId, counterName, String.format("count=%s+%s=%s(completed=%s+%s=%s) %s",
                 counter1, counter2, counter1 + counter2,
                 cc1, cc2, cc1 + cc2,
                 iterationMarker));
 
-        tradeService.info(tradeId, counterName, String.format("delta%s=%s-%s=%s; %s",
+        fplayTradeService.info(tradeId, counterName, String.format("delta%s=%s-%s=%s; %s",
                 deltaName.getDeltaNumber(),
                 bid1_X.toPlainString(), ask1_X.toPlainString(),
                 deltaX.toPlainString(),
@@ -1394,7 +1394,7 @@ public class ArbitrageService {
     public Long printToCurrentDeltaLog(String msg) {
         final Long tradeIdSnap = getLastTradeId();
         final String counterName = firstMarketService.getCounterName();
-        tradeService.info(tradeIdSnap, counterName, msg);
+        fplayTradeService.info(tradeIdSnap, counterName, msg);
         return tradeIdSnap;
     }
 
@@ -1426,7 +1426,7 @@ public class ArbitrageService {
                 final OrderBook bOrderBook = firstMarketService.getOrderBook();
                 final BigDecimal bBestAsk = Utils.getBestAsks(bOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal bBestBid = Utils.getBestBids(bOrderBook, 1).get(0).getLimitPrice();
-                tradeService.info(tradeId, counterName, String.format(
+                fplayTradeService.info(tradeId, counterName, String.format(
                         "#%s b_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
                         bW.toPlainString(), bW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1482,7 +1482,7 @@ public class ArbitrageService {
                 final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
 
-                tradeService.info(tradeId, counterName, String.format(
+                fplayTradeService.info(tradeId, counterName, String.format(
                         "#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
                         oW.toPlainString(), oW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1525,7 +1525,7 @@ public class ArbitrageService {
                         sumM.toPlainString(), sumM.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         sumA.toPlainString(), sumA.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         usdQuote.toPlainString());
-                tradeService.info(tradeId, counterName, sBalStr);
+                fplayTradeService.info(tradeId, counterName, sBalStr);
 
                 final String bDQLMin;
                 final String oDQLMin;
@@ -1538,16 +1538,16 @@ public class ArbitrageService {
                     oDQLMin = String.format("o_DQL_open_min=%s", guiLiqParams.getODQLOpenMin());
                 }
 
-                tradeService.info(tradeId, counterName, String.format("#%s %s", counterName, getFullPosDiff()));
+                fplayTradeService.info(tradeId, counterName, String.format("#%s %s", counterName, getFullPosDiff()));
                 final LiqInfo bLiqInfo = getFirstMarketService().getLiqInfo();
-                tradeService
+                fplayTradeService
                         .info(tradeId, counterName, String.format("#%s %s; %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString(), bDQLMin));
                 final LiqInfo oLiqInfo = getSecondMarketService().getLiqInfo();
-                tradeService
+                fplayTradeService
                         .info(tradeId, counterName, String.format("#%s %s; %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString(), oDQLMin));
             }
         } catch (Exception e) {
-            tradeService.error(tradeId, counterName, "Error on printSumBal");
+            fplayTradeService.error(tradeId, counterName, "Error on printSumBal");
             log.error("Error on printSumBal", e);
         }
     }
@@ -1995,7 +1995,7 @@ public class ArbitrageService {
         String msg = "Arbitrage state was reset READY from " + from + ". ";
         warningLogger.warn(msg);
         log.warn(msg);
-        tradeService.warn(tradeId, counterName, msg);
+        fplayTradeService.warn(tradeId, counterName, msg);
 
         synchronized (arbStateLock) {
             if (tradeId != null) {

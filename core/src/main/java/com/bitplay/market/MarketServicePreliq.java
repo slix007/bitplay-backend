@@ -158,11 +158,14 @@ public abstract class MarketServicePreliq extends MarketService {
             getTradeLogger().info(thatMarketStr);
             thatMarket.getTradeLogger().info(thisMarketStr);
             thatMarket.getTradeLogger().info(thatMarketStr);
+            getArbitrageService().printToCurrentDeltaLog(thisMarketStr);
+            getArbitrageService().printToCurrentDeltaLog(thatMarketStr);
         } catch (Exception e) {
             log.error("Error in printPreliqStarting", e);
             final String err = "Error in printPreliqStarting " + e.toString();
             warningLogger.error(err);
             getTradeLogger().error(err);
+            getArbitrageService().printToCurrentDeltaLog(err);
         }
     }
 
