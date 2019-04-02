@@ -820,7 +820,20 @@ public class BitmexService extends MarketServicePreliq {
             } else if (response.getMoveOrderStatus() == MoveOrderStatus.ONLY_CANCEL) { // update cancelled and place new
 
                 if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
-                    setOverloaded(null);
+                    {
+                        final FplayOrder ord = response.getCancelledFplayOrder() != null
+                                ? response.getCancelledFplayOrder() : initialOpenOrder;
+                        final LimitOrder lo = ord.getLimitOrder();
+                        final BigDecimal amountLeft = lo.getTradableAmount().subtract(lo.getCumulativeAmount());
+
+                        final BigDecimal okexAm = ArbitrageService.getOkexBlockByBitmexBlock(cm, ord.isEth(), amountLeft);
+                        if (okexAm.signum() > 0) {
+                            ((OkCoinService) getArbitrageService().getSecondMarketService()).changeDeferredAmount(okexAm);
+                            setOverloaded(null);
+                        } else {
+                            setOverloaded(null, true);
+                        }
+                    }
                     movingErrorsOverloaded.set(0);
                     soAttempts.set(0);
                     resultOOList.add(initialOpenOrder); // keep the same
@@ -835,7 +848,7 @@ public class BitmexService extends MarketServicePreliq {
                         // 1. old order
                         resultOOList.add(cancelledFplayOrder);
 
-                        final LimitOrder cancelledOrder = (LimitOrder) cancelledFplayOrder.getOrder();
+                        final LimitOrder cancelledOrder = cancelledFplayOrder.getLimitOrder();
                         final BigDecimal amountLeft = cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount());
 
                         final PlacingType placingType = initialOpenOrder.getPlacingType();
@@ -1801,7 +1814,7 @@ public class BitmexService extends MarketServicePreliq {
 
                     HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "PlaceOrderError", attemptCount).invoke();
 
-                    if (overloadByXRateLimit()) {
+                    if (overloadByXRateLimit(true)) {
                         nextMarketState = MarketState.SYSTEM_OVERLOADED;
                         tradeResponse.setErrorCode(e.getMessage());
                         break;
@@ -1812,7 +1825,7 @@ public class BitmexService extends MarketServicePreliq {
                         if (attemptCount < maxAttempts) {
 //                            Thread.sleep(200);
                         } else {
-                            setOverloaded(null);
+                            setOverloaded(null, true);
                             nextMarketState = MarketState.SYSTEM_OVERLOADED;
                             tradeResponse.setErrorCode(e.getMessage());
                             break;
@@ -2581,6 +2594,10 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private boolean overloadByXRateLimit() {
+        return overloadByXRateLimit(false);
+    }
+
+    private boolean overloadByXRateLimit(boolean withResetWaitingArb) {
         final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
         boolean isExceeded = xRateLimit.getxRateLimit() <= 0;
         if (isExceeded) {
@@ -2589,7 +2606,7 @@ public class BitmexService extends MarketServicePreliq {
             tradeLogger.info(msg);
             warningLogger.info(msg);
             slackNotifications.sendNotify(NotifyType.BITMEX_X_RATE_LIMIT, NAME + msg);
-            setOverloaded(null);
+            setOverloaded(null, withResetWaitingArb);
         }
         return isExceeded;
     }

@@ -1831,6 +1831,17 @@ public class ArbitrageService {
         return b_block;
     }
 
+    public static BigDecimal getOkexBlockByBitmexBlock(BigDecimal cm, boolean isEth, BigDecimal b_block) {
+        BigDecimal o_block;
+        if (isEth) {
+            final BigDecimal usd = b_block.multiply(BigDecimal.valueOf(10)).divide(cm, 8, RoundingMode.HALF_UP); // BitmexCont to usd
+            o_block = usd.divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP); // usd to okexCont
+        } else {
+            o_block = b_block.divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        }
+        return o_block;
+    }
+
     private BigDecimal getNtUsdMult(BigDecimal ntUsd, BigDecimal multiplicity) {
         if (multiplicity == null || multiplicity.signum() <= 0) {
             return ntUsd;

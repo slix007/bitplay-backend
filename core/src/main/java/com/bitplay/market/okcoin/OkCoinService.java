@@ -1028,6 +1028,15 @@ public class OkCoinService extends MarketServicePreliq {
         });
     }
 
+    public void changeDeferredAmount(BigDecimal amount) {
+        placeOrderArgsRef.getAndUpdate(placeOrderArgs -> {
+            if (placeOrderArgs == null) {
+                return null;
+            }
+            return placeOrderArgs.cloneWithAmount(amount);
+        });
+    }
+
     private Disposable initDeferredPlacingOrder() {
         return getArbitrageService().getSignalEventBus().toObserverable()
                 .subscribe(eventQuant -> {

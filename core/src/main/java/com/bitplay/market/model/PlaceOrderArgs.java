@@ -127,9 +127,13 @@ public class PlaceOrderArgs {
     }
 
     public PlaceOrderArgs cloneWithPlacingType(PlacingType placingType) {
-        return new PlaceOrderArgs(this.orderType, this.amount, this.bestQuotes,
-                placingType,
-                this.signalType, this.attempt, this.tradeId, this.counterName, this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
+        return new PlaceOrderArgs(this.orderType, this.amount, this.bestQuotes, placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
+                this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime, this.preliqMarketName);
+    }
+
+    public PlaceOrderArgs cloneWithAmount(BigDecimal amount) {
+        return new PlaceOrderArgs(this.orderType, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
+                this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
                 this.preliqMarketName);
     }
 

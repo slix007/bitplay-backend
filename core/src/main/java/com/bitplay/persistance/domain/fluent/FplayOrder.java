@@ -85,4 +85,8 @@ public class FplayOrder {
                 || orderStatus == Order.OrderStatus.PENDING_REPLACE;
     }
 
+    public boolean isEth() {
+        return orderDetail.getContractType().contains("ETH");
+    }
+
 }

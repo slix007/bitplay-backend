@@ -336,6 +336,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     protected void setOverloaded(final PlaceOrderArgs placeOrderArgs) {
+        setOverloaded(placeOrderArgs, false);
+    }
+
+    protected void setOverloaded(final PlaceOrderArgs placeOrderArgs, boolean withResetWaitingArb) {
         final MarketState currMarketState = getMarketState();
         if (isMarketStopped()) {
             // do nothing
@@ -353,6 +357,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
         setMarketState(MarketState.SYSTEM_OVERLOADED);
         this.placeOrderArgs = placeOrderArgs;
+
+        if (withResetWaitingArb) {
+            ((OkCoinService) getArbitrageService().getSecondMarketService()).resetWaitingArb();
+        }
 
         final SysOverloadArgs sysOverloadArgs = getPersistenceService().getSettingsRepositoryService()
                 .getSettings().getBitmexSysOverloadArgs();
@@ -374,7 +382,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         }
     }
 
-    private void resetOverload() {
+    private synchronized void resetOverload() {
         logger.info("resetOverload: starting");
         postOverload();
 
