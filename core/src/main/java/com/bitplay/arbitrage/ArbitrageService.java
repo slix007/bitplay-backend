@@ -108,6 +108,8 @@ public class ArbitrageService {
     @Autowired
     private PersistenceService persistenceService;
     @Autowired
+    private CumService cumService;
+    @Autowired
     private SignalService signalService;
     @Autowired
     private VolatileModeAfterService volatileModeAfterService;
@@ -330,7 +332,7 @@ public class ArbitrageService {
                             okexPosition,
                             (BitmexService) getFirstMarketService(),
                             (OkCoinService) getSecondMarketService(),
-                            persistenceService,
+                            cumService,
                             this,
                             new DeltaLogWriter(tradeIdSnap, counterNameSnap, fplayTradeService),
                             slackNotifications
@@ -1214,20 +1216,17 @@ public class ArbitrageService {
     private String createCounterOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final TradingSignal tradingSignal,
             final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName) {
 
-        Integer counter1 = params.getCounter1();
-        Integer counter2 = params.getCounter2();
+        if (deltaName.getDeltaNumber().equals("1")) {
+            cumService.incCounter1(dealPrices.getTradingMode());
+        } else {
+            cumService.incCounter2(dealPrices.getTradingMode());
+        }
 
-        final CumParams cumParams = persistenceService.fetchCumParams();
+        final CumParams cumParams = cumService.getTotalCommon();
+        final Integer counter1 = cumParams.getCounter1();
+        final Integer counter2 = cumParams.getCounter2();
         final Integer cc1 = cumParams.getCompletedCounter1();
         final Integer cc2 = cumParams.getCompletedCounter2();
-
-        if (deltaName.getDeltaNumber().equals("1")) {
-            counter1 += 1;
-            params.setCounter1(counter1);
-        } else {
-            counter2 += 1;
-            params.setCounter2(counter2);
-        }
 
         String iterationMarker = "";
         if (counter1.equals(counter2)) {
@@ -1262,7 +1261,7 @@ public class ArbitrageService {
                         : ("borderV2:" + tradingSignal.toString())
         ));
 
-        if (tradingSignal.blockOnceWarn != null && tradingSignal.blockOnceWarn.length() > 0) {
+        if (tradingSignal != null && tradingSignal.blockOnceWarn != null && tradingSignal.blockOnceWarn.length() > 0) {
             warningLogger.warn("block_once warn: " + tradingSignal.blockOnceWarn + "; " + tradingSignal.toString());
         }
 
@@ -1963,7 +1962,8 @@ public class ArbitrageService {
     }
 
     public int getCounter() {
-        return params.getCounter1() + params.getCounter2();
+        final CumParams totalCommon = cumService.getTotalCommon();
+        return totalCommon.getCounter1() + totalCommon.getCounter2();
     }
 
     public String getSumBalString() {

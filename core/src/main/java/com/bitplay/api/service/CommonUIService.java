@@ -40,6 +40,7 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.PersistenceService;
@@ -105,6 +106,9 @@ public class CommonUIService {
 
     @Autowired
     private PersistenceService persistenceService;
+
+    @Autowired
+    private CumPersistenceService cumPersistenceService;
 
     @Autowired
     private BordersService bordersService;
@@ -218,66 +222,6 @@ public class CommonUIService {
     //TODO move some params from Deltas to separate Data Object
     public DeltasJson updateMakerDelta(DeltalUpdateJson deltalUpdateJson) {
         GuiParams guiParams = arbitrageService.getParams();
-        CumParams cumParams = persistenceService.fetchCumParams();
-        if (deltalUpdateJson.getCumDelta() != null) {
-            cumParams.setCumDelta(new BigDecimal(deltalUpdateJson.getCumDelta()));
-            cumParams.setCumAstDelta1(new BigDecimal(deltalUpdateJson.getCumDelta()));
-            cumParams.setCumAstDelta2(new BigDecimal(deltalUpdateJson.getCumDelta()));
-        }
-        if (deltalUpdateJson.getCumDeltaFact() != null) {
-            cumParams.setCumDeltaFact(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
-            cumParams.setCumAstDeltaFact1(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
-            cumParams.setCumAstDeltaFact2(new BigDecimal(deltalUpdateJson.getCumDeltaFact()));
-        }
-        if (deltalUpdateJson.getCumDiffFactBr() != null) {
-            cumParams.setCumDiffFactBr(new BigDecimal(deltalUpdateJson.getCumDiffFactBr()));
-        }
-        if (deltalUpdateJson.getCumDiffFact1() != null) {
-            cumParams.setCumDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
-            cumParams.setCumAstDiffFact1(new BigDecimal(deltalUpdateJson.getCumDiffFact1()));
-        }
-        if (deltalUpdateJson.getCumDiffFact2() != null) {
-            cumParams.setCumDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
-            cumParams.setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumDiffFact2()));
-        }
-        if (deltalUpdateJson.getCumDiffFact() != null) {
-            cumParams.setCumDiffFact(new BigDecimal(deltalUpdateJson.getCumDiffFact()));
-            cumParams.setCumAstDiffFact(new BigDecimal(deltalUpdateJson.getCumDiffFact()));
-        }
-        if (deltalUpdateJson.getCumDiff2Pre() != null) {
-            cumParams.setCumDiff2Pre(new BigDecimal(deltalUpdateJson.getCumDiff2Pre()));
-        }
-        if (deltalUpdateJson.getCumDiff2Post() != null) {
-            cumParams.setCumDiff2Post(new BigDecimal(deltalUpdateJson.getCumDiff2Post()));
-        }
-        if (deltalUpdateJson.getCumAstDiffFact() != null) {
-            cumParams.setCumAstDiffFact1(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
-            cumParams.setCumAstDiffFact2(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
-            cumParams.setCumAstDiffFact(new BigDecimal(deltalUpdateJson.getCumAstDiffFact()));
-        }
-        if (deltalUpdateJson.getCumCom1() != null) {
-            cumParams.setCumCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
-            cumParams.setCumAstCom1(new BigDecimal(deltalUpdateJson.getCumCom1()));
-        }
-        if (deltalUpdateJson.getCumCom2() != null) {
-            cumParams.setCumCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
-            cumParams.setCumAstCom2(new BigDecimal(deltalUpdateJson.getCumCom2()));
-        }
-        if (deltalUpdateJson.getCount1() != null) {
-            guiParams.setCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
-            cumParams.setCompletedCounter1(Integer.parseInt(deltalUpdateJson.getCount1()));
-        }
-        if (deltalUpdateJson.getCount2() != null) {
-            guiParams.setCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
-            cumParams.setCompletedCounter2(Integer.parseInt(deltalUpdateJson.getCount2()));
-        }
-        if (deltalUpdateJson.getDiffFactBrFailsCount() != null) {
-            cumParams.setDiffFactBrFailsCount(Integer.parseInt(deltalUpdateJson.getDiffFactBrFailsCount()));
-        }
-        if (deltalUpdateJson.getCumBitmexMCom() != null) {
-            cumParams.setCumBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
-            cumParams.setCumAstBitmexMCom(new BigDecimal(deltalUpdateJson.getCumBitmexMCom()));
-        }
         if (deltalUpdateJson.getReserveBtc1() != null) {
             guiParams.setReserveBtc1(new BigDecimal(deltalUpdateJson.getReserveBtc1()));
             persistenceService.resetSettingsPreset();
@@ -290,44 +234,6 @@ public class CommonUIService {
             guiParams.setFundingRateFee(new BigDecimal(deltalUpdateJson.getFundingRateFee()));
             persistenceService.resetSettingsPreset();
         }
-        if (deltalUpdateJson.getSlip() != null) {
-            cumParams.setSlip(new BigDecimal(deltalUpdateJson.getSlip()));
-            cumParams.setSlipBr(new BigDecimal(deltalUpdateJson.getSlip()));
-        }
-        if (deltalUpdateJson.getResetAllCumValues() != null && deltalUpdateJson.getResetAllCumValues()) {
-            cumParams.setCumDelta(BigDecimal.ZERO);
-            cumParams.setCumAstDelta1(BigDecimal.ZERO);
-            cumParams.setCumAstDelta2(BigDecimal.ZERO);
-            cumParams.setCumDeltaFact(BigDecimal.ZERO);
-            cumParams.setCumAstDeltaFact1(BigDecimal.ZERO);
-            cumParams.setCumAstDeltaFact2(BigDecimal.ZERO);
-            cumParams.setCumDiffFactBr(BigDecimal.ZERO);
-            cumParams.setCumDiffFact1(BigDecimal.ZERO);
-            cumParams.setCumDiff2Pre(BigDecimal.ZERO);
-            cumParams.setCumDiff2Post(BigDecimal.ZERO);
-            cumParams.setCumAstDiffFact1(BigDecimal.ZERO);
-            cumParams.setCumDiffFact2(BigDecimal.ZERO);
-            cumParams.setCumAstDiffFact2(BigDecimal.ZERO);
-            cumParams.setCumDiffFact(BigDecimal.ZERO);
-            cumParams.setCumAstDiffFact(BigDecimal.ZERO);
-            cumParams.setCumAstDiffFact1(BigDecimal.ZERO);
-            cumParams.setCumAstDiffFact2(BigDecimal.ZERO);
-            cumParams.setCumAstDiffFact(BigDecimal.ZERO);
-            cumParams.setCumCom1(BigDecimal.ZERO);
-            cumParams.setCumAstCom1(BigDecimal.ZERO);
-            cumParams.setCumCom2(BigDecimal.ZERO);
-            cumParams.setCumAstCom2(BigDecimal.ZERO);
-            cumParams.setCumBitmexMCom(BigDecimal.ZERO);
-            cumParams.setCumAstBitmexMCom(BigDecimal.ZERO);
-            cumParams.setSlipBr(BigDecimal.ZERO);
-            cumParams.setSlip(BigDecimal.ZERO);
-            guiParams.setCounter1(0);
-            guiParams.setCounter2(0);
-            cumParams.setCompletedCounter1(0);
-            cumParams.setCompletedCounter2(0);
-            cumParams.setDiffFactBrFailsCount(0);
-        }
-        persistenceService.saveCumParams(cumParams);
         arbitrageService.saveParamsToDb();
 
         return convertToDeltasJson();
@@ -337,7 +243,6 @@ public class CommonUIService {
         final BorderParams borderParams = persistenceService.fetchBorders();
         final Integer delta_hist_per = borderParams.getBorderDelta().getDeltaCalcPast();
         final String deltaSmaUpdateIn = deltasCalcService.getDeltaSmaUpdateIn(delta_hist_per);
-        final CumParams cumParams = persistenceService.fetchCumParams();
         final GuiParams guiParams = arbitrageService.getParams();
         final String delta1Sma = deltasCalcService.getB_delta_sma().toPlainString();
         final String delta2Sma = deltasCalcService.getO_delta_sma().toPlainString();
@@ -352,36 +257,10 @@ public class CommonUIService {
                 arbitrageService.getDelta2().toPlainString(),
                 arbitrageService.getBorder1().toPlainString(),
                 arbitrageService.getBorder2().toPlainString(),
-                cumParams.getCumDelta().toPlainString(),
-                cumParams.getCumAstDelta1().add(cumParams.getCumAstDelta2()).setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                cumParams.getCumDeltaFact().toPlainString(),
-                cumParams.getCumAstDeltaFact1().add(cumParams.getCumAstDeltaFact2()).setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                cumParams.getCumDiffFactBr().toPlainString(),
-                cumParams.getCumDiffFact1().toPlainString(),
-                cumParams.getCumDiffFact2().toPlainString(),
-                cumParams.getCumDiffFact().toPlainString(),
-                cumParams.getCumDiff2Pre().toPlainString(),
-                cumParams.getCumDiff2Post().toPlainString(),
-                cumParams.getCumAstDiffFact1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                cumParams.getCumAstDiffFact2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                cumParams.getCumAstDiffFact().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                cumParams.getCumCom1().toPlainString(),
-                cumParams.getCumCom2().toPlainString(),
-                cumParams.getCumAstCom1().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                cumParams.getCumAstCom2().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                String.valueOf(guiParams.getCounter1()),
-                String.valueOf(guiParams.getCounter2()),
-                String.valueOf(cumParams.getCompletedCounter1()),
-                String.valueOf(cumParams.getCompletedCounter2()),
-                String.valueOf(cumParams.getDiffFactBrFailsCount()),
-                cumParams.getCumBitmexMCom().toPlainString(),
-                cumParams.getCumAstBitmexMCom().setScale(4, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 guiParams.getReserveBtc1().toPlainString(),
                 guiParams.getReserveBtc2().toPlainString(),
                 "deprecated. use settings",
                 guiParams.getFundingRateFee().toPlainString(),
-                cumParams.getSlipBr().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),
-                cumParams.getSlip().setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 delta1Sma,
                 delta2Sma,
                 delta1MinInstant,
@@ -884,6 +763,24 @@ public class CommonUIService {
         persistenceService.resetSettingsPreset();
 
         return lastPriceDeviationService.getLastPriceDeviation();
+    }
+
+    public List<CumParams> getCumParamsList() {
+        return cumPersistenceService.fetchAllCum();
+    }
+
+    public List<CumParams> resetCumParams(CumParams cumParams) {
+        final CumParams toReset = cumPersistenceService.fetchCum(cumParams.getCumType(), cumParams.getCumTimeType());
+        toReset.setDefaults();
+        cumPersistenceService.saveCumParams(toReset);
+        return cumPersistenceService.fetchAllCum();
+    }
+
+    public List<CumParams> updateCumParams(CumParams cumParams) {
+        final CumParams toUpdate = cumPersistenceService.fetchCum(cumParams.getCumType(), cumParams.getCumTimeType());
+        toUpdate.update(cumParams);
+        cumPersistenceService.saveCumParams(toUpdate);
+        return cumPersistenceService.fetchAllCum();
     }
 
 }

@@ -8,16 +8,17 @@ import com.bitplay.api.domain.DeltasMinMaxJson;
 import com.bitplay.api.domain.LiqParamsJson;
 import com.bitplay.api.domain.MarketFlagsJson;
 import com.bitplay.api.domain.MarketList;
-import com.bitplay.api.domain.states.MarketStatesJson;
 import com.bitplay.api.domain.PosCorrJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.SumBalJson;
 import com.bitplay.api.domain.TimersJson;
-import com.bitplay.api.domain.pos.PosDiffJson;
+import com.bitplay.api.domain.states.MarketStatesJson;
 import com.bitplay.api.service.CommonUIService;
 import com.bitplay.market.MarketService;
+import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.security.TraderPermissionsService;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.annotation.Secured;
@@ -64,6 +65,11 @@ public class CommonEndpoint {
         return new MarketList(firstName, secondName, firstFuturesContractName, secondFuturesContract);
     }
 
+    @RequestMapping(value = "/market/deltas", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public DeltasJson deltas() {
+        return commonUIService.getDeltas();
+    }
+
     @RequestMapping(value = "/market/update-borders",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -78,6 +84,29 @@ public class CommonEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public DeltasJson updateMakerDelta(@RequestBody DeltalUpdateJson deltalUpdateJson) {
         return commonUIService.updateMakerDelta(deltalUpdateJson);
+    }
+
+    @RequestMapping(value = "/market/cum-params", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<CumParams> cumParamsList() {
+        return commonUIService.getCumParamsList();
+    }
+
+    @RequestMapping(value = "/market/cum-params/reset",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public List<CumParams> resetCumParams(@RequestBody CumParams cumParams) {
+        return commonUIService.resetCumParams(cumParams);
+    }
+
+    @RequestMapping(value = "/market/cum-params/update",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public List<CumParams> updateCumParams(@RequestBody CumParams cumParams) {
+        return commonUIService.updateCumParams(cumParams);
     }
 
     @RequestMapping(value = "/market/stop-moving", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

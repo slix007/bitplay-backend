@@ -49,9 +49,5 @@ public class LogsEndpoint {
         return commonUIService.getDebugLog(date);
     }
 
-    @RequestMapping(value = "/market/deltas", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public DeltasJson deltas() {
-        return commonUIService.getDeltas();
-    }
 
 }

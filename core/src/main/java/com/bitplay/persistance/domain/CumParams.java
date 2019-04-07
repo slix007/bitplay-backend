@@ -9,9 +9,6 @@ import lombok.Setter;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-/**
- * Created by Sergey Shurmin on 4/18/17.
- */
 @Document(collection = "guiParamsCollection")
 @TypeAlias("CumParams")
 @Getter
@@ -21,49 +18,142 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Builder(toBuilder = true)
 public class CumParams extends AbstractParams {
 
-    private BigDecimal cumDelta = BigDecimal.ZERO;
-    private BigDecimal cumDeltaFact = BigDecimal.ZERO;
-    private BigDecimal cumDiffFact1 = BigDecimal.ZERO;
-    private BigDecimal cumDiffFact2 = BigDecimal.ZERO;
-    private BigDecimal cumDiffFact = BigDecimal.ZERO;
-    private BigDecimal cumDiffFactBr = BigDecimal.ZERO;
-    private BigDecimal cumDiff2Pre = BigDecimal.ZERO;
-    private BigDecimal cumDiff2Post = BigDecimal.ZERO;
-    private BigDecimal cumAstDiffFact1 = BigDecimal.ZERO;
-    private BigDecimal cumAstDiffFact2 = BigDecimal.ZERO;
-    private BigDecimal cumAstDiffFact = BigDecimal.ZERO;
-    private BigDecimal diffFact = BigDecimal.ZERO;
-    private BigDecimal com1 = BigDecimal.ZERO;
-    private BigDecimal com2 = BigDecimal.ZERO;
-    private BigDecimal bitmexMCom = BigDecimal.ZERO;
-    private BigDecimal cumBitmexMCom = BigDecimal.ZERO;
-    private BigDecimal cumCom1 = BigDecimal.ZERO;
-    private BigDecimal cumCom2 = BigDecimal.ZERO;
+    private CumType cumType;
+    private CumTimeType cumTimeType;
 
-    private BigDecimal astDelta1 = BigDecimal.ZERO;
-    private BigDecimal astDelta2 = BigDecimal.ZERO;
-    private BigDecimal cumAstDelta1 = BigDecimal.ZERO;
-    private BigDecimal cumAstDelta2 = BigDecimal.ZERO;
-    private BigDecimal astDeltaFact1 = BigDecimal.ZERO;
-    private BigDecimal astDeltaFact2 = BigDecimal.ZERO;
-    private BigDecimal cumAstDeltaFact1 = BigDecimal.ZERO;
-    private BigDecimal cumAstDeltaFact2 = BigDecimal.ZERO;
-    private BigDecimal astCom1 = BigDecimal.ZERO;
-    private BigDecimal astCom2 = BigDecimal.ZERO;
-    private BigDecimal astCom = BigDecimal.ZERO;
-    private BigDecimal cumAstCom1 = BigDecimal.ZERO;
-    private BigDecimal cumAstCom2 = BigDecimal.ZERO;
-    private BigDecimal cumAstCom = BigDecimal.ZERO;
-    private BigDecimal astBitmexMCom = BigDecimal.ZERO;
-    private BigDecimal cumAstBitmexMCom = BigDecimal.ZERO;
-    private BigDecimal slip = BigDecimal.ZERO;
-    private BigDecimal slipBr = BigDecimal.ZERO;
+    private BigDecimal cumDelta;
+    private BigDecimal cumDeltaFact;
+    private BigDecimal cumDiffFact1;
+    private BigDecimal cumDiffFact2;
+    private BigDecimal cumDiffFact;
+    private BigDecimal cumDiffFactBr;
+    private BigDecimal cumDiff2Pre;
+    private BigDecimal cumDiff2Post;
+    private BigDecimal cumAstDiffFact1;
+    private BigDecimal cumAstDiffFact2;
+    private BigDecimal cumAstDiffFact;
+    private BigDecimal diffFact;
+    private BigDecimal com1;
+    private BigDecimal com2;
+    private BigDecimal bitmexMCom;
+    private BigDecimal cumBitmexMCom;
+    private BigDecimal cumCom1;
+    private BigDecimal cumCom2;
+
+    private BigDecimal astDelta1;
+    private BigDecimal astDelta2;
+    private BigDecimal cumAstDelta1;
+    private BigDecimal cumAstDelta2;
+    private BigDecimal astDeltaFact1;
+    private BigDecimal astDeltaFact2;
+    private BigDecimal cumAstDeltaFact1;
+    private BigDecimal cumAstDeltaFact2;
+    private BigDecimal astCom1;
+    private BigDecimal astCom2;
+    private BigDecimal astCom;
+    private BigDecimal cumAstCom1;
+    private BigDecimal cumAstCom2;
+    private BigDecimal cumAstCom;
+    private BigDecimal astBitmexMCom;
+    private BigDecimal cumAstBitmexMCom;
+    private BigDecimal slip;
+    private BigDecimal slipBr;
 
     private Integer diffFactBrFailsCount;
-    //    private int counter1 = 0;
+    private Integer counter1 = 0;
     private Integer completedCounter1;
-    //    private int counter2 = 0;
+    private Integer counter2 = 0;
     private Integer completedCounter2;
 
+    public void setDefaults() {
+        this.cumDelta = BigDecimal.ZERO;
+        this.cumDeltaFact = BigDecimal.ZERO;
+        this.cumDiffFact1 = BigDecimal.ZERO;
+        this.cumDiffFact2 = BigDecimal.ZERO;
+        this.cumDiffFact = BigDecimal.ZERO;
+        this.cumDiffFactBr = BigDecimal.ZERO;
+        this.cumDiff2Pre = BigDecimal.ZERO;
+        this.cumDiff2Post = BigDecimal.ZERO;
+        this.cumAstDiffFact1 = BigDecimal.ZERO;
+        this.cumAstDiffFact2 = BigDecimal.ZERO;
+        this.cumAstDiffFact = BigDecimal.ZERO;
+        this.diffFact = BigDecimal.ZERO;
+        this.com1 = BigDecimal.ZERO;
+        this.com2 = BigDecimal.ZERO;
+        this.bitmexMCom = BigDecimal.ZERO;
+        this.cumBitmexMCom = BigDecimal.ZERO;
+        this.cumCom1 = BigDecimal.ZERO;
+        this.cumCom2 = BigDecimal.ZERO;
 
+        this.astDelta1 = BigDecimal.ZERO;
+        this.astDelta2 = BigDecimal.ZERO;
+        this.cumAstDelta1 = BigDecimal.ZERO;
+        this.cumAstDelta2 = BigDecimal.ZERO;
+        this.astDeltaFact1 = BigDecimal.ZERO;
+        this.astDeltaFact2 = BigDecimal.ZERO;
+        this.cumAstDeltaFact1 = BigDecimal.ZERO;
+        this.cumAstDeltaFact2 = BigDecimal.ZERO;
+        this.astCom1 = BigDecimal.ZERO;
+        this.astCom2 = BigDecimal.ZERO;
+        this.astCom = BigDecimal.ZERO;
+        this.cumAstCom1 = BigDecimal.ZERO;
+        this.cumAstCom2 = BigDecimal.ZERO;
+        this.cumAstCom = BigDecimal.ZERO;
+        this.astBitmexMCom = BigDecimal.ZERO;
+        this.cumAstBitmexMCom = BigDecimal.ZERO;
+        this.slip = BigDecimal.ZERO;
+        this.slipBr = BigDecimal.ZERO;
+
+        this.diffFactBrFailsCount = 0;
+        this.counter1 = 0;
+        this.completedCounter1 = 0;
+        this.counter2 = 0;
+        this.completedCounter2 = 0;
+    }
+
+    public void update(CumParams update) {
+        this.cumDelta = update.cumDelta != null ? update.cumDelta : this.cumDelta;
+        this.cumDeltaFact = update.cumDeltaFact != null ? update.cumDeltaFact : this.cumDeltaFact;
+        this.cumDiffFact1 = update.cumDiffFact1 != null ? update.cumDiffFact1 : this.cumDiffFact1;
+        this.cumDiffFact2 = update.cumDiffFact2 != null ? update.cumDiffFact2 : this.cumDiffFact2;
+        this.cumDiffFact = update.cumDiffFact != null ? update.cumDiffFact : this.cumDiffFact;
+        this.cumDiffFactBr = update.cumDiffFactBr != null ? update.cumDiffFactBr : this.cumDiffFactBr;
+        this.cumDiff2Pre = update.cumDiff2Pre != null ? update.cumDiff2Pre : this.cumDiff2Pre;
+        this.cumDiff2Post = update.cumDiff2Post != null ? update.cumDiff2Post : this.cumDiff2Post;
+        this.cumAstDiffFact1 = update.cumAstDiffFact1 != null ? update.cumAstDiffFact1 : this.cumAstDiffFact1;
+        this.cumAstDiffFact2 = update.cumAstDiffFact2 != null ? update.cumAstDiffFact2 : this.cumAstDiffFact2;
+        this.cumAstDiffFact = update.cumAstDiffFact != null ? update.cumAstDiffFact : this.cumAstDiffFact;
+        this.diffFact = update.diffFact != null ? update.diffFact : this.diffFact;
+        this.com1 = update.com1 != null ? update.com1 : this.com1;
+        this.com2 = update.com2 != null ? update.com2 : this.com2;
+        this.bitmexMCom = update.bitmexMCom != null ? update.bitmexMCom : this.bitmexMCom;
+        this.cumBitmexMCom = update.cumBitmexMCom != null ? update.cumBitmexMCom : this.cumBitmexMCom;
+        this.cumCom1 = update.cumCom1 != null ? update.cumCom1 : this.cumCom1;
+        this.cumCom2 = update.cumCom2 != null ? update.cumCom2 : this.cumCom2;
+
+        this.astDelta1 = update.astDelta1 != null ? update.astDelta1 : this.astDelta1;
+        this.astDelta2 = update.astDelta2 != null ? update.astDelta2 : this.astDelta2;
+        this.cumAstDelta1 = update.cumAstDelta1 != null ? update.cumAstDelta1 : this.cumAstDelta1;
+        this.cumAstDelta2 = update.cumAstDelta2 != null ? update.cumAstDelta2 : this.cumAstDelta2;
+        this.astDeltaFact1 = update.astDeltaFact1 != null ? update.astDeltaFact1 : this.astDeltaFact1;
+        this.astDeltaFact2 = update.astDeltaFact2 != null ? update.astDeltaFact2 : this.astDeltaFact2;
+        this.cumAstDeltaFact1 = update.cumAstDeltaFact1 != null ? update.cumAstDeltaFact1 : this.cumAstDeltaFact1;
+        this.cumAstDeltaFact2 = update.cumAstDeltaFact2 != null ? update.cumAstDeltaFact2 : this.cumAstDeltaFact2;
+        this.astCom1 = update.astCom1 != null ? update.astCom1 : this.astCom1;
+        this.astCom2 = update.astCom2 != null ? update.astCom2 : this.astCom2;
+        this.astCom = update.astCom != null ? update.astCom : this.astCom;
+        this.cumAstCom1 = update.cumAstCom1 != null ? update.cumAstCom1 : this.cumAstCom1;
+        this.cumAstCom2 = update.cumAstCom2 != null ? update.cumAstCom2 : this.cumAstCom2;
+        this.cumAstCom = update.cumAstCom != null ? update.cumAstCom : this.cumAstCom;
+        this.astBitmexMCom = update.astBitmexMCom != null ? update.astBitmexMCom : this.astBitmexMCom;
+        this.cumAstBitmexMCom = update.cumAstBitmexMCom != null ? update.cumAstBitmexMCom : this.cumAstBitmexMCom;
+        this.slip = update.slip != null ? update.slip : this.slip;
+        this.slipBr = update.slipBr != null ? update.slipBr : this.slipBr;
+
+        this.diffFactBrFailsCount = update.diffFactBrFailsCount != null ? update.diffFactBrFailsCount : this.diffFactBrFailsCount;
+        this.counter1 = update.counter1 != null ? update.counter1 : this.counter1;
+        this.completedCounter1 = update.completedCounter1 != null ? update.completedCounter1 : this.completedCounter1;
+        this.counter2 = update.counter2 != null ? update.counter2 : this.counter2;
+        this.completedCounter2 = update.completedCounter2 != null ? update.completedCounter2 : this.completedCounter2;
+    }
 }

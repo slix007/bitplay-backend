@@ -26,9 +26,6 @@ public class GuiParams extends AbstractParams {
     private BigDecimal border1 = BigDecimal.valueOf(10000);
     private BigDecimal border2 = BigDecimal.valueOf(10000);
 
-    private int counter1 = 0;
-    private int counter2 = 0;
-
     private BigDecimal reserveBtc1 = BigDecimal.valueOf(0.00001);
     private BigDecimal reserveBtc2 = BigDecimal.valueOf(0.00001);
 

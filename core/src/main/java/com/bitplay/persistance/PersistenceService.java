@@ -2,7 +2,6 @@ package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.ExchangePair;
 import com.bitplay.persistance.domain.GuiLiqParams;
@@ -72,15 +71,6 @@ public class PersistenceService {
         GuiParams guiParams = mongoTemplate.findById(1L, GuiParams.class);
 
         return guiParams;
-    }
-
-    public void saveCumParams(CumParams cumParams) {
-        mongoTemplate.save(cumParams);
-    }
-
-    public CumParams fetchCumParams() {
-        CumParams cumParams = mongoTemplate.findById(2L, CumParams.class);
-        return cumParams;
     }
 
     public void saveGuiLiqParams(GuiLiqParams guiLiqParams) {

@@ -433,7 +433,8 @@ public abstract class MarketServiceOpenOrders {
         final LimitOrder limitOrder = (LimitOrder) orderInfo;
 
         if (fplayOrder.getOrder().getStatus() != Order.OrderStatus.FILLED && limitOrder.getStatus() == Order.OrderStatus.FILLED) {
-            getTradeLogger().info(String.format("#%s updateOOStatus got FILLED orderId=%s", counterForLogs, limitOrder.getId()));
+            getTradeLogger().info(String.format("#%s updateOOStatus got FILLED orderId=%s, avgPrice=%s, filledAm=%s", counterForLogs, limitOrder.getId(),
+                    limitOrder.getAveragePrice(), limitOrder.getCumulativeAmount()));
             logger.info("#{} updateOOStatus got FILLED order: {}", counterForLogs, limitOrder.toString());
         }
 

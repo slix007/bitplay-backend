@@ -12,25 +12,10 @@ import lombok.Setter;
 @Setter
 public class DeltalUpdateJson {
 
-    private String cumDelta;
-    private String cumDeltaFact;
-    private String cumDiffFactBr;
-    private String cumDiffFact1;
-    private String cumDiffFact2;
-    private String cumDiffFact;
-    private String cumDiff2Pre;
-    private String cumDiff2Post;
-    private String cumAstDiffFact;
-    private String cumCom1;
-    private String cumCom2;
-    private String count1;
-    private String count2;
-    private String cumBitmexMCom;
     private String reserveBtc1;
     private String reserveBtc2;
     private String hedgeAmount;
     private String fundingRateFee;
-    private String slip;
     private Boolean resetAllCumValues;
     private String diffFactBrFailsCount;
 
