@@ -1032,10 +1032,11 @@ public class ArbitrageService {
         startSignalTime = Instant.now();
 
         final DeltaName deltaName = DeltaName.B_DELTA;
-        final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName);
+        final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
+        final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName, tradingMode);
 
         setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, bid1_p, ask1_o, b_block_input, o_block_input, deltaName,
-                counterName);
+                counterName, tradingMode);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(b_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
@@ -1051,7 +1052,8 @@ public class ArbitrageService {
     }
 
     private void setTradeParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
-            BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input, DeltaName deltaName, String counterName) {
+            BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input, DeltaName deltaName, String counterName,
+            TradingMode tradingMode) {
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
         firstMarketService.setBusy();
@@ -1116,12 +1118,11 @@ public class ArbitrageService {
                 avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
                 dealPrices.setoPriceFact(avgPrice);
             }
-            final TradingMode tradingMode = settings.getTradingModeState().getTradingMode();
             setTradeParamTradingMode(tradeId, tradingMode);
 
         }
 
-        fplayTradeService.info(tradeId, counterName, String.format("#%s Trading mode = %s", counterName, dealPrices.getTradingMode().getFullName()));
+        fplayTradeService.info(tradeId, counterName, String.format("#%s Trading mode = %s", counterName, tradingMode.getFullName()));
         fplayTradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
     }
 
@@ -1195,10 +1196,11 @@ public class ArbitrageService {
         startSignalTime = Instant.now();
 
         final DeltaName deltaName = DeltaName.O_DELTA;
-        final String counterName = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName);
+        final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
+        final String counterName = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName, tradingMode);
 
         setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, ask1_p, bid1_o, b_block_input, o_block_input, deltaName,
-                counterName);
+                counterName, tradingMode);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(o_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
@@ -1214,12 +1216,12 @@ public class ArbitrageService {
     }
 
     private String createCounterOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final TradingSignal tradingSignal,
-            final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName) {
+            final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName, TradingMode tradingMode) {
 
         if (deltaName.getDeltaNumber().equals("1")) {
-            cumService.incCounter1(dealPrices.getTradingMode());
+            cumService.incCounter1(tradingMode);
         } else {
-            cumService.incCounter2(dealPrices.getTradingMode());
+            cumService.incCounter2(tradingMode);
         }
 
         final CumParams cumParams = cumService.getTotalCommon();
