@@ -313,7 +313,7 @@ public class ArbitrageService {
                     // use snapshot of Params
                     final DealPrices dealPricesSnap;
                     synchronized (dealPrices) {
-                        dealPrices.setTradeId(tradeId);
+//                        dealPrices.setTradeId(tradeId); // redundant. Keep logic: Re-set all dealPrices or none.
                         dealPricesSnap = SerializationUtils.clone(dealPrices);
                     }
                     final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
@@ -566,30 +566,6 @@ public class ArbitrageService {
 
     }
 
-    void setTradeParamTradingModeCurrentVolatile(Long tradeId) {
-        synchronized (dealPrices) {
-            dealPrices.setTradingMode(TradingMode.CURRENT_VOLATILE);
-            fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
-            dealPrices.setTradeId(tradeId);
-        }
-    }
-
-    private void setTradeParamTradingMode(Long tradeId, TradingMode tradingMode) {
-        synchronized (dealPrices) {
-            // do not change if this tradeId was set with TradingMode.CURRENT_VOLATILE
-            if (dealPrices.getTradeId() != null
-                    && dealPrices.getTradeId().equals(tradeId)
-                    && dealPrices.getTradingMode() != null
-                    && dealPrices.getTradingMode() == TradingMode.CURRENT_VOLATILE) {
-                // do nothing
-            } else {
-                fplayTradeService.setTradingMode(tradeId, tradingMode);
-                dealPrices.setTradingMode(tradingMode);
-                dealPrices.setTradeId(tradeId);
-            }
-        }
-    }
-
     void activateVolatileMode() {
         if (persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
             final Settings settings = persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
@@ -601,7 +577,6 @@ public class ArbitrageService {
             synchronized (dealPrices) {
                 dealPrices.setBtmPlacingType(btmPlacingType);
                 dealPrices.setOkexPlacingType(okexPlacingType);
-                dealPrices.setTradingMode(TradingMode.VOLATILE);
             }
 
             volatileModeAfterService.justSetVolatileMode(tradeId); // replace-limit-orders. it may set CURRENT_VOLATILE
@@ -1118,8 +1093,10 @@ public class ArbitrageService {
                 avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
                 dealPrices.setoPriceFact(avgPrice);
             }
-            setTradeParamTradingMode(tradeId, tradingMode);
+            dealPrices.setTradingMode(tradingMode);
+            dealPrices.setTradeId(tradeId);
 
+            fplayTradeService.setTradingMode(tradeId, tradingMode);
         }
 
         fplayTradeService.info(tradeId, counterName, String.format("#%s Trading mode = %s", counterName, tradingMode.getFullName()));

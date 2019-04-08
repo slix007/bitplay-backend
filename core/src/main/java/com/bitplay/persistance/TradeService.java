@@ -77,6 +77,7 @@ public class TradeService {
 
     public void setTradingMode(Long tradeId, TradingMode tradingMode) {
         mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                        //.and("tradingMode").ne(TradingMode.CURRENT_VOLATILE)), // redundant?
                 new Update()
                         .inc("version", 1)
                         .set("updated", new Date())

@@ -7,7 +7,9 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import java.math.BigDecimal;
@@ -41,6 +43,9 @@ public class VolatileModeAfterService {
 
     @Autowired
     private BitmexChangeOnSoService bitmexChangeOnSoService;
+
+    @Autowired
+    private TradeService fplayTradeService;
 
     void justSetVolatileMode(Long tradeId) {
         final List<FplayOrder> bitmexOO = bitmexService.getOnlyOpenFplayOrders();
@@ -110,28 +115,18 @@ public class VolatileModeAfterService {
             // 2. place
             if (amountDiff.signum() != 0) {
 
-                marketService.getArbitrageService().setTradeParamTradingModeCurrentVolatile(tradeId);
+                fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
+                final String counterName = marketService.getCounterName();
+                fplayTradeService.info(tradeId, counterName, String.format("#%s change Trading mode to current-volatile", counterName));
 
                 final OrderType orderType = amountDiff.signum() > 0 ? OrderType.BID : OrderType.ASK;
                 final BigDecimal amountLeft = amountDiff.abs();
                 BestQuotes bestQuotes = getBestQuotes(currOrders);
 
                 if (marketService.getName().equals(BitmexService.NAME)) {
-                    signalService.placeBitmexOrderOnSignal(orderType, amountLeft,
-                            bestQuotes,
-                            placingType,
-                            marketService.getCounterName(),
-                            marketService.getArbitrageService().getTradeId(),
-                            null
-                    );
+                    signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null);
                 } else {
-                    signalService.placeOkexOrderOnSignal(orderType, amountLeft,
-                            bestQuotes,
-                            placingType,
-                            okexService.getCounterName(),
-                            okexService.getArbitrageService().getTradeId(),
-                            null,
-                            false);
+                    signalService.placeOkexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false);
                 }
             } else {
                 log.warn("VolatileMode activated: no amountLeft.");
