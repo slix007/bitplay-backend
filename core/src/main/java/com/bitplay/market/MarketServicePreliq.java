@@ -4,8 +4,6 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.external.NotifyType;
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.events.BtsEvent;
-import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
@@ -40,21 +38,13 @@ public abstract class MarketServicePreliq extends MarketService {
         log.info(getName() + "_PRELIQ: save prev market state to " + prevPreliqMarketState);
     }
 
-    public void resetPreliqState(boolean forced) {
-        if (forced || !getArbitrageService().isArbStatePreliq()) {
-            final MarketState prevState = this.prevPreliqMarketState;
-            if (prevState != null) {
-                if (prevState == MarketState.PRELIQ) {
-                    log.warn(getName() + "_PRELIQ: prevPreliqMarketState is PRELIQ");
-                }
-                log.info(getName() + "_PRELIQ: revert market state to " + prevState);
-                setMarketState(prevState);
-                this.prevPreliqMarketState = null;
-            }
-            if (getMarketState() == MarketState.PRELIQ) {
-                log.warn(getName() + "_PRELIQ: resetPreliqState to READY.");
-                setMarketState(MarketState.READY);
-            }
+    public void resetPreliqState() {
+        if (getMarketState() == MarketState.PRELIQ) {
+            cancelAllOrders("After PRELIQ: CancelAllOpenOrders", false);
+
+            MarketState toSet = MarketState.READY; // hasOpenOrders() ? MarketState.ARBITRAGE : MarketState.READY;
+            log.warn(getName() + "_PRELIQ: resetPreliqState to " + toSet);
+            setMarketState(toSet);
         }
     }
 
@@ -120,19 +110,20 @@ public abstract class MarketServicePreliq extends MarketService {
                         getPersistenceService().saveCorrParams(corrParams);
                     }
                     if (corrParams.getPreliq().hasSpareAttempts()) {
-                        putPreliqInQueue(preliqParams);
+                        doPreliqOrder(preliqParams);
                     } else {
-                        resetPreliqState(false);
+                        resetPreliqState();
                     }
 
+                    log.info("dtPreliq stop after successful preliq");
                     dtPreliq.stop(); //after successful start
                 }
             } else {
-                resetPreliqState(false);
+                resetPreliqState();
                 dtPreliq.stop();
             }
         } else {
-            resetPreliqState(false);
+            resetPreliqState();
             dtPreliq.stop();
         }
         Instant end = Instant.now();
@@ -225,7 +216,7 @@ public abstract class MarketServicePreliq extends MarketService {
         return preliqParams;
     }
 
-    private void putPreliqInQueue(PreliqParams preliqParams) {
+    private void doPreliqOrder(PreliqParams preliqParams) {
         final CorrParams corrParams = getPersistenceService().fetchCorrParams();
         corrParams.getPreliq().incTotalCount(getName()); // counterName relates on it
         getPersistenceService().saveCorrParams(corrParams);
@@ -272,7 +263,9 @@ public abstract class MarketServicePreliq extends MarketService {
 
         try {
             getTradeLogger().info(String.format("%s %s do preliq", counterName, getName()));
-            doPreliqOrder(placeOrderArgs);
+
+            placePreliqOrder(placeOrderArgs);
+
         } catch (Exception e) {
             final String msg = String.format("%s %s preliq error %s", counterName, getName(), e.toString());
             log.error(msg, e);
@@ -281,18 +274,15 @@ public abstract class MarketServicePreliq extends MarketService {
         }
     }
 
-    private void doPreliqOrder(PlaceOrderArgs placeOrderArgs) throws InterruptedException {
+    private void placePreliqOrder(PlaceOrderArgs placeOrderArgs) throws InterruptedException {
 
         final BigDecimal block = placeOrderArgs.getAmount();
-        final Long tradeId = placeOrderArgs.getTradeId();
         if (block.signum() <= 0) {
             String msg = "WARNING: NO PRELIQ: block=" + block;
             Thread.sleep(1000);
             getTradeLogger().warn(msg);
             log.warn(msg);
             warningLogger.warn(getName() + " " + msg);
-
-            getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
             return;
         }
         getArbitrageService().getSlackNotifications().sendNotify(NotifyType.PRELIQ, String.format("%s %s a=%scont",
