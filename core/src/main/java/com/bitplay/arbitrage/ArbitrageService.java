@@ -2055,4 +2055,8 @@ public class ArbitrageService {
     public DeltaName getSignalStatusDelta() {
         return signalStatusDelta;
     }
+
+    public SlackNotifications getSlackNotifications() {
+        return slackNotifications;
+    }
 }

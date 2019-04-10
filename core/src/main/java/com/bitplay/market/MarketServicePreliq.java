@@ -2,7 +2,10 @@ package com.bitplay.market;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.external.NotifyType;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.events.BtsEvent;
+import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
@@ -12,8 +15,6 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.utils.Utils;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -26,12 +27,10 @@ public abstract class MarketServicePreliq extends MarketService {
 
     protected volatile MarketState prevPreliqMarketState;
 
-    public final BlockingQueue<PlaceOrderArgs> preliqQueue = new LinkedBlockingQueue<>();
-
     public abstract LimitsService getLimitsService();
 
     public boolean noPreliq() {
-        return preliqQueue.isEmpty() && !dtPreliq.isActive();
+        return !dtPreliq.isActive();
     }
 
     public void setPreliqState() {
@@ -90,7 +89,6 @@ public abstract class MarketServicePreliq extends MarketService {
                 && !outsideLimits
                 && pos.signum() != 0
                 && corrParams.getPreliq().hasSpareAttempts()
-                && preliqQueue.isEmpty()
         ) {
             final PreliqParams preliqParams = getPreliqParams(pos);
             if (preliqParams != null && preliqParams.getPreliqBlocks() != null
@@ -272,8 +270,38 @@ public abstract class MarketServicePreliq extends MarketService {
                     null, null, null, Instant.now(), getName());
         }
 
-        getTradeLogger().info(String.format("%s put preliq orders into the queue %s", counterName, getName()));
-        getPreliqQueue().add(placeOrderArgs);
+        try {
+            getTradeLogger().info(String.format("%s %s do preliq", counterName, getName()));
+            doPreliqOrder(placeOrderArgs);
+        } catch (Exception e) {
+            final String msg = String.format("%s %s preliq error %s", counterName, getName(), e.toString());
+            log.error(msg, e);
+            warningLogger.error(msg);
+            getTradeLogger().info(msg);
+        }
+    }
+
+    private void doPreliqOrder(PlaceOrderArgs placeOrderArgs) throws InterruptedException {
+
+        final BigDecimal block = placeOrderArgs.getAmount();
+        final Long tradeId = placeOrderArgs.getTradeId();
+        if (block.signum() <= 0) {
+            String msg = "WARNING: NO PRELIQ: block=" + block;
+            Thread.sleep(1000);
+            getTradeLogger().warn(msg);
+            log.warn(msg);
+            warningLogger.warn(getName() + " " + msg);
+
+            getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
+            return;
+        }
+        getArbitrageService().getSlackNotifications().sendNotify(NotifyType.PRELIQ, String.format("%s %s a=%scont",
+                placeOrderArgs.getSignalType().toString(),
+                getName(),
+                placeOrderArgs.getAmount()
+        ));
+
+        placeOrder(placeOrderArgs);
     }
 
     private BigDecimal getPos(Position position) {
