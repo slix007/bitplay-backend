@@ -33,6 +33,7 @@ public class PlaceOrderArgs {
     final private Instant preliqQueuedTime;
     final private String preliqMarketName;
     private boolean pricePlanOnStart = false;
+    private boolean preliqOrder = false;
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType, int attempt,
             Long tradeId, String counterName, Instant lastObTime, ContractType contractType, AmountType amountType, Instant preliqQueuedTime,
@@ -139,5 +140,9 @@ public class PlaceOrderArgs {
 
     public void setPricePlanOnStart(boolean pricePlanOnStart) {
         this.pricePlanOnStart = pricePlanOnStart;
+    }
+
+    public void setPreliqOrder(boolean preliqOrder) {
+        this.preliqOrder = preliqOrder;
     }
 }

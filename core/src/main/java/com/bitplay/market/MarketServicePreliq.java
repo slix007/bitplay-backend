@@ -23,8 +23,6 @@ import org.knowm.xchange.dto.account.Position;
 @Slf4j
 public abstract class MarketServicePreliq extends MarketService {
 
-    protected volatile MarketState prevPreliqMarketState;
-
     public abstract LimitsService getLimitsService();
 
     public boolean noPreliq() {
@@ -32,10 +30,12 @@ public abstract class MarketServicePreliq extends MarketService {
     }
 
     public void setPreliqState() {
-        prevPreliqMarketState = getMarketState();
-        setMarketState(MarketState.PRELIQ);
-        getArbitrageService().setBusyStackChecker();
-        log.info(getName() + "_PRELIQ: save prev market state to " + prevPreliqMarketState);
+        final MarketState prevMarketState = getMarketState();
+        if (prevMarketState != MarketState.PRELIQ) {
+            log.info(getName() + "_PRELIQ: prev market state is " + prevMarketState);
+            setMarketState(MarketState.PRELIQ);
+            getArbitrageService().setBusyStackChecker();
+        }
     }
 
     public void resetPreliqState() {
@@ -90,6 +90,8 @@ public abstract class MarketServicePreliq extends MarketService {
                 boolean gotActivated = dtPreliq.activate();
                 if (gotActivated) {
                     getArbitrageService().setArbStatePreliq(); // do setPreliqState for arbState and both markets
+                } else {
+                    setPreliqState(); // NOTE: race condition with setMarketState in "finishing placeOrder" and preliq gotActivated
                 }
 
                 final Integer delaySec = getPersistenceService().getSettingsRepositoryService().getSettings().getPosAdjustment().getPreliqDelaySec();
@@ -260,6 +262,7 @@ public abstract class MarketServicePreliq extends MarketService {
                     counterName,
                     null, null, null, Instant.now(), getName());
         }
+        placeOrderArgs.setPreliqOrder(true);
 
         try {
             getTradeLogger().info(String.format("%s %s do preliq", counterName, getName()));

@@ -882,7 +882,7 @@ public class ArbitrageService {
             if (arbState == ArbState.PRELIQ) {
                 if (firstMarketService.noPreliq() && secondMarketService.noPreliq()) {
                     // do reset
-                    arbState = arbStatePrevPreliq != null ? arbStatePrevPreliq : ArbState.READY;
+                    arbState = ArbState.READY; // arbStatePrevPreliq != null ? arbStatePrevPreliq : ArbState.READY;
                     arbStatePrevPreliq = null;
                     log.info("reset ArbState from PRELIQ to " + arbState);
                 }

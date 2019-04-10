@@ -1881,28 +1881,20 @@ public class BitmexService extends MarketServicePreliq {
             tradeResponse.setErrorCode(e.getMessage());
         }
 
-//        try {
-//            if (placeOrderArgs.getSignalType().isCorr() && placeOrderArgs.getPlacingType() == PlacingType.TAKER) { // It's only TAKER, so it should be DONE, if no errors
-//                if (tradeResponse.getOrderId() != null) {
-//                    posDiffService.finishCorr(true); // - Only when FILLED by subscription
-//                } else {
-//                    posDiffService.finishCorr(false);
-//                }
-//                nextMarketState = MarketState.READY;
-////                setMarketState(nextMarketState, counterName);
-//                eventBus.send(BtsEvent.MARKET_FREE);
-//            }
-//        } finally {
+        if (placeOrderArgs.isPreliqOrder()) {
+            logger.info("restore marketState to PRELIQ");
+            setMarketState(MarketState.PRELIQ, counterName);
+        } else {
+            if (nextMarketState == MarketState.PLACING_ORDER) {
+                nextMarketState = MarketState.ARBITRAGE;
+            }
 
-        if (nextMarketState == MarketState.PLACING_ORDER) {
-            nextMarketState = MarketState.ARBITRAGE;
+            logger.info("restore marketState to " + nextMarketState);
+            setMarketState(nextMarketState, counterName);
+            if (nextMarketState == MarketState.SYSTEM_OVERLOADED) {
+                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+            }
         }
-        logger.info("restore marketState to " + nextMarketState);
-        setMarketState(nextMarketState, counterName);
-        if (nextMarketState == MarketState.SYSTEM_OVERLOADED) {
-            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
-        }
-//        }
 
         // metrics
         if (lastObTime != null) {
@@ -2733,9 +2725,11 @@ public class BitmexService extends MarketServicePreliq {
                         .findFirst()
                         .orElse("");
 
-                getTradeLogger().info(String.format("#%s/%s %s cancelled. %s", counterForLogs, attemptCount, logInfoId,
-                        limitOrders.stream().map(LimitOrder::toString).reduce((acc, item) -> acc + "; " + item)),
-                        contractTypeStr);
+                final Optional<String> cancelledOrdersStr = limitOrders.stream().map(LimitOrder::toString).reduce((acc, item) -> acc + "; " + item);
+                if (cancelledOrdersStr.isPresent()) {
+                    getTradeLogger().info(String.format("#%s/%s %s cancelled. %s", counterForLogs, attemptCount, logInfoId, cancelledOrdersStr),
+                            contractTypeStr);
+                }
 
                 if (beforePlacing) {
                     setMarketState(MarketState.PLACING_ORDER);

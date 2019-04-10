@@ -1152,18 +1152,10 @@ public class OkCoinService extends MarketServicePreliq {
             }
         }
 
-        try {
-//            if (placeOrderArgs.getSignalType().isCorr()) { // It's only TAKER, so it should be DONE, if no errors
-//                if (tradeResponse.getErrorCode() == null && tradeResponse.getOrderId() != null) {
-//                    posDiffService.finishCorr(true); // - when market is READY
-//                } else {
-//                    posDiffService.finishCorr(false);
-//                }
-//                nextState = MarketState.READY;
-//                setMarketState(nextState, counterName);
-//                eventBus.send(BtsEvent.MARKET_FREE);
-//            }
-        } finally {
+        if (placeOrderArgs.isPreliqOrder()) {
+            logger.info("restore marketState to PRELIQ");
+            setMarketState(MarketState.PRELIQ, counterName);
+        } else {
             // RESET STATE
             if (placingType != PlacingType.TAKER) {
                 ooHangedCheckerService.startChecker();
@@ -1177,10 +1169,6 @@ public class OkCoinService extends MarketServicePreliq {
                         || nextState == MarketState.ARBITRAGE
                 ) {
                     nextState = MarketState.ARBITRAGE;
-                }
-                // fix WAITING_ARB -> PRELIQ -> WAITING_ARB
-                if (nextState == MarketState.PRELIQ && placeOrderArgsRef.get() != null) {
-                    nextState = MarketState.WAITING_ARB;
                 }
 
                 setMarketState(nextState, counterName); // should be READY
