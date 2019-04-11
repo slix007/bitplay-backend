@@ -18,9 +18,11 @@ public class DestinationResolver {
     private HostResolver hostResolver;
 
     private final static List<String> testServers = Arrays.asList("658", "660", "661");
-    private final static List<String> testServersTraderActiveEx = Arrays.asList("661");// all from testServers
+    private final static List<String> testServersTraderActiveEx = Arrays.asList("661", "667");// all from testServers
     private final static List<String> prodServers = Arrays.asList("659", "662", "667", "668", "669");
-    private final static List<String> prodServersCoordinator = Arrays.asList("662", "669", "659"); // all from prodServers
+    //3) Coordinator: сервера 662, 669, 659,
+    // добавить 668,667 и 661
+    private final static List<String> prodServersCoordinator = Arrays.asList("662", "669", "659", "668", "667", "661"); // all from prodServers
 
     // Trader active: сервера 662, 669, 659.
     //Список алармов:
@@ -103,7 +105,7 @@ public class DestinationResolver {
     private final static String LOCAL_CHANNEL = "app-local";
     //    private final static String TEST_CHANNEL_NIGHT = "app-test-night";
     private final static String TRADER_ACTIVE_CHANNEL = "trader-active";
-    private final static String TRADER_ACTIVE_661_CHANNEL = "trader-active-661";
+    private final static String TRADER_ACTIVE_661_CHANNEL = "trader-active-661-667";
     private final static String TRADER_PASSIVE_CHANNEL = "trader-passive";
     private final static String COORDINATOR_CHANNEL = "coordinator";
     private final static String ALL_PROD_CHANNEL = "all-prod";
@@ -134,7 +136,7 @@ public class DestinationResolver {
                 channels.add(TRADER_PASSIVE_CHANNEL);
             }
 
-            //3) Coordinator: сервера 662, 669, 659,
+            // coordinator
             if (prodServersCoordinator.contains(hostLabel) && coordinator.contains(notifyType)) {
                 channels.add(COORDINATOR_CHANNEL);
             }
