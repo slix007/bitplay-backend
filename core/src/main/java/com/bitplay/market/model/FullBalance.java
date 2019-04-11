@@ -25,31 +25,35 @@ public class FullBalance {
         return accountInfoContracts;
     }
 
-    public void setAccountInfoContracts(AccountInfoContracts accountInfoContracts) {
-        this.accountInfoContracts = accountInfoContracts;
-    }
-
     public Position getPosition() {
         return position;
-    }
-
-    public void setPosition(Position position) {
-        this.position = position;
     }
 
     public OrderBook getOrderBook() {
         return orderBook;
     }
 
-    public void setOrderBook(OrderBook orderBook) {
-        this.orderBook = orderBook;
-    }
-
     public String getTempValues() {
         return tempValues;
     }
 
-    public void setTempValues(String tempValues) {
-        this.tempValues = tempValues;
+    public boolean isValid() {
+        // Corr/adj при equity = 0
+        // 1. Изменить условие: если на любой бирже e_best = 0 && e_avg = 0 && e_mark != 0,
+        // то corr, adj, stop all actions при mdc, stop all actions при signal limit не выполняются.
+        if (accountInfoContracts == null
+                || accountInfoContracts.geteBest() == null
+                || accountInfoContracts.geteAvg() == null
+                || accountInfoContracts.geteMark() == null) {
+            return false;
+        }
+        // Типичная ликвидация: e_mark == e_best == e_avg == 0;
+        // Типичный проскок Okex: e_best == e_avg == 0 && e_mark != 0.
+        if (accountInfoContracts.geteBest().signum() == 0
+                && accountInfoContracts.geteAvg().signum() == 0
+                && accountInfoContracts.geteMark().signum() != 0) {
+            return false;
+        }
+        return true;
     }
 }

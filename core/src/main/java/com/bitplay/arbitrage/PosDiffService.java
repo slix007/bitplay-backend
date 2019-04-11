@@ -450,14 +450,14 @@ public class PosDiffService {
         return arbitrageService.getFirstMarketService().getMarketState().isStopped()
                 || arbitrageService.getSecondMarketService().getMarketState().isStopped()
                 || arbitrageService.isArbStatePreliq()
-                || !fullBalanceIsOk();
+                || !fullBalanceIsValid();
     }
 
     private boolean marketsReady() {
         return arbitrageService.getFirstMarketService().isReadyForArbitrage()
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                 && !arbitrageService.isArbStatePreliq()
-                && fullBalanceIsOk();
+                && fullBalanceIsValid();
     }
 
     @SuppressWarnings("Duplicates")
@@ -470,7 +470,7 @@ public class PosDiffService {
         return btmReadyForCorr
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                 && !arbitrageService.isArbStatePreliq()
-                && fullBalanceIsOk();
+                && fullBalanceIsValid();
     }
 
     @SuppressWarnings("Duplicates")
@@ -484,18 +484,13 @@ public class PosDiffService {
         return btmReadyForAdj
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                 && !arbitrageService.isArbStatePreliq()
-                && fullBalanceIsOk();
+                && fullBalanceIsValid();
     }
 
-    private boolean fullBalanceIsOk() {
+    private boolean fullBalanceIsValid() {
         final FullBalance firstFullBalance = arbitrageService.getFirstMarketService().calcFullBalance();
         final FullBalance secondFullBalance = arbitrageService.getSecondMarketService().calcFullBalance();
-        return firstFullBalance.getAccountInfoContracts() != null
-                && firstFullBalance.getAccountInfoContracts().geteBest() != null
-                && firstFullBalance.getAccountInfoContracts().geteBest().signum() > 0
-                && secondFullBalance.getAccountInfoContracts() != null
-                && secondFullBalance.getAccountInfoContracts().geteBest() != null
-                && secondFullBalance.getAccountInfoContracts().geteBest().signum() > 0;
+        return firstFullBalance.isValid() && secondFullBalance.isValid();
     }
 
     private boolean adjOnOkex() {
