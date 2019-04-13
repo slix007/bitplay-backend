@@ -1060,4 +1060,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     public DelayTimer getDtPreliq() {
         return dtPreliq;
     }
+
+    public TradeResponse closeAllPos() {
+        throw new IllegalArgumentException("Not implemented");
+    }
 }

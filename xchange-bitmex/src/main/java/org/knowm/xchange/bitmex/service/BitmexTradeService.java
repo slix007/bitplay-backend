@@ -15,6 +15,7 @@ import org.knowm.xchange.bitmex.dto.OrderWithHeaders;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
@@ -244,6 +245,31 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
         return orders.stream()
                 .map(order -> (LimitOrder) BitmexAdapters.adaptOrder(order, true, currencyToScale))
                 .collect(Collectors.toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    public Order closeAllPos(OrderType orderType, String symbol) throws IOException {
+        final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
+                .getExchangeSpecificParametersItem("currencyToScale");
+        final OrderWithHeaders resOrder;
+        try {
+            resOrder = bitmexAuthenitcatedApi.marketOrderToCloseAllPos(
+                    exchange.getExchangeSpecification().getApiKey(),
+                    signatureCreator,
+                    exchange.getNonceFactory(),
+                    symbol,
+                    "Market",
+                    "Close");
+
+        } catch (HttpStatusIOException e) {
+            final BitmexStateService bitmexStateService = ((BitmexExchange) exchange).getBitmexStateService();
+            bitmexStateService.setXrateLimit(e);
+            throw e;
+        }
+        final BitmexStateService bitmexStateService = ((BitmexExchange) exchange).getBitmexStateService();
+        bitmexStateService.setXrateLimit(resOrder);
+
+        return BitmexAdapters.adaptOrder(resOrder, currencyToScale);
     }
 
     @Override

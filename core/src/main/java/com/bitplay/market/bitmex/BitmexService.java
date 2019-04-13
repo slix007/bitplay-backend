@@ -68,6 +68,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -94,6 +95,7 @@ import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
@@ -2751,5 +2753,61 @@ public class BitmexService extends MarketServicePreliq {
             }
         }
         return new ArrayList<>();
+    }
+
+
+    @Override
+    public TradeResponse closeAllPos() {
+        return closeAllPos(bitmexContractType);
+    }
+
+    private TradeResponse closeAllPos(BitmexContractType btmContType) {
+        final TradeResponse tradeResponse = new TradeResponse();
+
+        BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
+        OrderType orderType = position.getPositionLong().signum() > 0
+                ? OrderType.ASK : OrderType.BID;
+
+        final String symbol = btmContType.getSymbol();
+
+        final Instant start = Instant.now();
+        try {
+            MarketOrder order = (MarketOrder) tradeService.closeAllPos(orderType, symbol);
+            final Instant end = Instant.now();
+            if (order.getTradableAmount() == null) {
+                order = new MarketOrder(orderType,
+                        BigDecimal.ZERO,
+                        order.getCurrencyPair(),
+                        order.getId(),
+                        order.getTimestamp(),
+                        order.getAveragePrice(),
+                        order.getCumulativeAmount(),
+                        order.getStatus());
+            }
+
+            final FplayOrder closeOrder = new FplayOrder(arbitrageService.getLastTradeId(),
+                    "closeAllPos", order, null, PlacingType.TAKER, null);
+            synchronized (openOrdersLock) {
+                openOrders.add(closeOrder);
+            }
+
+            tradeResponse.setOrderId(order.getId());
+            final String timeStr = String.format("(%d ms)", Duration.between(start, end).toMillis());
+            tradeResponse.setErrorCode(timeStr);
+        } catch (Exception e) {
+            // NOTE: there should not be overloaded(403 response)
+            // instead of that there may be 'long handing'.
+
+            final Instant end = Instant.now();
+            final String timeStr = String.format("; (%d ms)", Duration.between(start, end).toMillis());
+            final String message = e.getMessage() + timeStr;
+            tradeResponse.setErrorCode(message);
+
+            final String logString = String.format("closeAllPos: %s", message);
+            logger.error(logString, e);
+            tradeLogger.error(logString, btmContType.getCurrencyPair().toString());
+            warningLogger.error(logString);
+        }
+        return tradeResponse;
     }
 }

@@ -4,6 +4,7 @@ import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TickerJson;
+import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.domain.ob.FutureIndexJson;
 import com.bitplay.api.domain.ob.OrderBookJson;
@@ -13,6 +14,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.utils.Utils;
@@ -282,8 +284,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public List<OrderJson> getOpenOrders() {
         return getBusinessService().getAllOpenOrders().stream()
-                .filter(o -> o.getOrder().getTradableAmount() != null)
-                .filter(o -> o.getOrder().getTradableAmount().compareTo(BigDecimal.ZERO) != 0)
                 .map(openOrderToJson)
                 .collect(Collectors.toList());
 
@@ -312,5 +312,10 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     public LiquidationInfoJson resetLiquidationInfoJson() {
         getBusinessService().resetLiqInfo();
         return getLiquidationInfoJson();
+    }
+
+    public TradeResponseJson closeAllPos() {
+        final TradeResponse tradeResponse = getBusinessService().closeAllPos();
+        return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
     }
 }

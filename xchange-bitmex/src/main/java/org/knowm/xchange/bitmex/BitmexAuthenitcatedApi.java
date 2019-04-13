@@ -95,6 +95,18 @@ public interface BitmexAuthenitcatedApi {
             @FormParam("ordType") String ordType
     ) throws IOException;
 
+    @POST
+    @Path("/order")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    OrderWithHeaders marketOrderToCloseAllPos(@HeaderParam("api-key") String apiKey,
+            @HeaderParam("api-signature") ParamsDigest signer,
+            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @FormParam("symbol") String symbol,
+            @FormParam("ordType") String ordType,
+            @FormParam("execInst") String execInst
+    ) throws IOException;
+
+
     @PUT
     @Path("/order")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)

@@ -153,7 +153,6 @@ public abstract class MarketServiceOpenOrders {
             openOrders.removeIf(limitOrder -> limitOrder.getOrder().getTradableAmount() == null);
 
             openOrdersCount = openOrders.stream()
-                    .filter(limitOrder -> limitOrder.getOrder().getTradableAmount().compareTo(BigDecimal.ZERO) != 0) // filter as for gui
                     .count();
             if (openOrders.size() != openOrdersCount) {
                 final String message = "WARNING: OO with zero amount: " + openOrders.stream()

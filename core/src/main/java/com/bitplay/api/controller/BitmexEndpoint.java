@@ -142,5 +142,15 @@ public class BitmexEndpoint {
         boolean cancelFromUI = this.bitmex.getBusinessService().cancelOrderSync(id, "CancelFromUI");
         return new ResultJson(String.valueOf(cancelFromUI), "");
     }
+
+    @RequestMapping(value = "/close-all-pos",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public TradeResponseJson closeAllPos() {
+        return this.bitmex.closeAllPos();
+    }
+
 }
 
