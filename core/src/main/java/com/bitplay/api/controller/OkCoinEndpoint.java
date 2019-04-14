@@ -2,13 +2,12 @@ package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
-import com.bitplay.api.domain.ob.OrderBookJson;
-import com.bitplay.api.domain.ob.OrderJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.api.domain.ob.FutureIndexJson;
+import com.bitplay.api.domain.ob.OrderBookJson;
+import com.bitplay.api.domain.ob.OrderJson;
 import com.bitplay.api.service.BitplayUIServiceOkCoin;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import java.util.List;
@@ -100,6 +99,15 @@ public class OkCoinEndpoint {
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public LiquidationInfoJson resetLiquidationInfo() {
         return this.okCoin.resetLiquidationInfoJson();
+    }
+
+    @RequestMapping(value = "/close-all-pos",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public TradeResponseJson closeAllPos(@RequestBody TradeRequestJson tradeRequestJson) {
+        return this.okCoin.closeAllPos(tradeRequestJson);
     }
 
 }

@@ -1457,12 +1457,14 @@ public class ArbitrageService {
                 final BigDecimal oLv = secondMarketService.getPosition().getLeverage();
                 final BigDecimal oAL = secondMarketService.getAffordable().getForLong();
                 final BigDecimal oAS = secondMarketService.getAffordable().getForShort();
+                final BigDecimal longAvailToClose = secondMarketService.getPosition().getLongAvailToClose();
+                final BigDecimal shortAvailToClose = secondMarketService.getPosition().getShortAvailToClose();
                 final OrderBook oOrderBook = secondMarketService.getOrderBook();
                 final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
 
                 fplayTradeService.info(tradeId, counterName, String.format(
-                        "#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
+                        "#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, lgMkt%s, stMkt%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
                         oW.toPlainString(), oW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         oElast.toPlainString(), oElast.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1475,6 +1477,8 @@ public class ArbitrageService {
                         oLv.toPlainString(),
                         Utils.withSign(oAL),
                         Utils.withSign(oAS),
+                        Utils.withSign(longAvailToClose),
+                        Utils.withSign(shortAvailToClose),
                         oBestAsk,
                         oBestBid,
                         usdQuote.toPlainString()

@@ -46,6 +46,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import info.bitrich.xchangestream.okexv3.OkExAdapters;
 import info.bitrich.xchangestream.okexv3.OkExStreamingExchange;
 import info.bitrich.xchangestream.okexv3.OkExStreamingMarketDataService;
+import info.bitrich.xchangestream.okexv3.OkExStreamingPrivateDataService;
 import info.bitrich.xchangestream.okexv3.dto.InstrumentDto;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkCoinDepth;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
@@ -57,6 +58,7 @@ import io.reactivex.schedulers.Schedulers;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -602,6 +604,8 @@ public class OkCoinService extends MarketServicePreliq {
                 position = new Position(
                         okCoinPosition.getBuyAmount(),
                         okCoinPosition.getSellAmount(),
+                        okCoinPosition.getBuyAmountAvailable(),
+                        okCoinPosition.getSellAmountAvailable(),
                         okCoinPosition.getRate(),
                         forceLiquPrice,
                         BigDecimal.ZERO,
@@ -617,6 +621,8 @@ public class OkCoinService extends MarketServicePreliq {
             position = new Position(
                     websocketUpdate.getPositionLong(),
                     websocketUpdate.getPositionShort(),
+                    websocketUpdate.getLongAvailToClose(),
+                    websocketUpdate.getShortAvailToClose(),
                     websocketUpdate.getLeverage(),
                     websocketUpdate.getLiquidationPrice(),
                     websocketUpdate.getMarkValue(),
@@ -715,8 +721,9 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable startUserOrderSub() {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
 
-        return exchange.getStreamingPrivateDataService()
-                .getTradesObservable(instrumentDto)
+        return ((OkExStreamingPrivateDataService) exchange.getStreamingPrivateDataService())
+                .getTradesObservableRaw(instrumentDto)
+                .map(TmpAdapter::adaptTradeResult)
                 .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
@@ -2228,5 +2235,53 @@ public class OkCoinService extends MarketServicePreliq {
             orderInfos.forEach(
                     order -> avgPrice.addPriceItem(counterName, order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus()));
         }
+    }
+
+    @Override
+    public TradeResponse closeAllPos(OrderType orderTypeReq) {
+        final TradeResponse tradeResponse = new TradeResponse();
+
+        OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) getExchange().getTradeService();
+
+        final Instant start = Instant.now();
+        try {
+            OrderType orderType = orderTypeReq == OrderType.ASK
+                    ? OrderType.EXIT_BID
+                    : OrderType.EXIT_ASK;
+
+            BigDecimal amount = orderType == OrderType.EXIT_BID
+                    ? position.getLongAvailToClose()
+                    : position.getShortAvailToClose();
+            final CurrencyPair currencyPair = okexContractType.getCurrencyPair();
+
+            if (amount.signum() == 0) {
+                tradeResponse.setErrorCode("amount is 0");
+            } else {
+                // Option 2: FAKE LIMIT ORDER
+                BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
+                BigDecimal thePrice = Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
+                getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
+                final LimitOrder limitOrder = new LimitOrder(orderType, amount, currencyPair, "1234", new Date(), thePrice);
+
+                String orderId = tradeService.placeLimitOrder(limitOrder);
+
+                final Instant end = Instant.now();
+
+                tradeResponse.setOrderId(orderId);
+                final String timeStr = String.format("(%d ms)", Duration.between(start, end).toMillis());
+                tradeResponse.setErrorCode(timeStr);
+            }
+        } catch (Exception e) {
+            final Instant end = Instant.now();
+            final String timeStr = String.format("; (%d ms)", Duration.between(start, end).toMillis());
+            final String message = e.getMessage() + timeStr;
+            tradeResponse.setErrorCode(message);
+
+            final String logString = String.format("%s closeAllPos: %s", getName(), message);
+            logger.error(logString, e);
+            tradeLogger.error(logString, okexContractType.getCurrencyPair().toString());
+            warningLogger.error(logString);
+        }
+        return tradeResponse;
     }
 }

@@ -4,11 +4,13 @@ import com.bitplay.api.domain.AccountInfoJson;
 import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TickerJson;
+import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.domain.ob.FutureIndexJson;
 import com.bitplay.api.domain.ob.OrderBookJson;
 import com.bitplay.api.domain.ob.OrderJson;
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.model.FullBalance;
@@ -27,6 +29,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
@@ -150,8 +153,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     public AccountInfoJson getContractsAccountInfo() {
         final AccountInfoContracts accountInfoContracts = getBusinessService().getAccountInfoContracts();
         if (accountInfoContracts == null) {
-            return new AccountInfoJson("error","error", "error", "error", "error", "error", "error", "error",
-                    "error", "error", "error", "error", "error", "error", "error", "error", "error");
+            return AccountInfoJson.error();
         }
 
         final BigDecimal available = accountInfoContracts.getAvailable();
@@ -179,6 +181,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 position.getLeverage().toPlainString(),
                 getBusinessService().getAffordable().getForLong().toPlainString(),
                 getBusinessService().getAffordable().getForShort().toPlainString(),
+                position.getLongAvailToClose().toPlainString(),
+                position.getShortAvailToClose().toPlainString(),
                 quAvg.toPlainString(),
                 null,
                 liqPrice == null ? null : liqPrice.toPlainString(),
@@ -195,8 +199,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
         final FullBalance fullBalance = getBusinessService().calcFullBalance();
         if (fullBalance.getAccountInfoContracts() == null) {
-            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error",
-                    "error", "error", "error", "error", "error", "error", "error", "error", "error", "error");
+            return AccountInfoJson.error();
         }
 
         final AccountInfoContracts accountInfoContracts = fullBalance.getAccountInfoContracts();
@@ -220,13 +223,15 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         if (available == null || wallet == null || margin == null || upl == null
                 || position.getLeverage() == null || quAvg == null) {
 //            throw new IllegalStateException("Balance and/or Position are not yet defined. entryPrice=" + entryPrice);
-            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error", "error",
+            return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error", "error", "error", "error",
                     "error", "error", "error", "error", "error", "error", "error",
                     entryPrice, "error");
         }
 
         final String ethBtcBid1 = getBusinessService().getEthBtcTicker() != null ? getBusinessService().getEthBtcTicker().getBid().toPlainString() : null;
 
+        final BigDecimal longAvailToClose = position.getLongAvailToClose() != null ? position.getLongAvailToClose() : BigDecimal.ZERO;
+        final BigDecimal shortAvailToClose = position.getShortAvailToClose() != null ? position.getShortAvailToClose() : BigDecimal.ZERO;
         return new AccountInfoJson(
                 wallet.toPlainString(),
                 available.toPlainString(),
@@ -236,6 +241,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 position.getLeverage().toPlainString(),
                 getBusinessService().getAffordable().getForLong().toPlainString(),
                 getBusinessService().getAffordable().getForShort().toPlainString(),
+                longAvailToClose.toPlainString(),
+                shortAvailToClose.toPlainString(),
                 quAvg.toPlainString(),
                 ethBtcBid1,
                 liqPrice == null ? null : liqPrice.toPlainString(),
@@ -314,8 +321,40 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         return getLiquidationInfoJson();
     }
 
-    public TradeResponseJson closeAllPos() {
-        final TradeResponse tradeResponse = getBusinessService().closeAllPos();
+    protected OrderType convertOrderType(TradeRequestJson.Type type) {
+        Order.OrderType orderType;
+        switch (type) {
+            case BUY:
+                orderType = Order.OrderType.BID;
+                break;
+            case SELL:
+                orderType = Order.OrderType.ASK;
+                break;
+            default:
+//                return new TradeResponseJson("Wrong orderType", "Wrong orderType");
+                throw new IllegalArgumentException("No such order type " + type);
+        }
+        return orderType;
+    }
+
+    protected SignalType convertSignalType(TradeRequestJson.Type type) {
+        SignalType signalType;
+        switch (type) {
+            case BUY:
+                signalType = SignalType.MANUAL_BUY;
+                break;
+            case SELL:
+                signalType = SignalType.MANUAL_SELL;
+                break;
+            default:
+                throw new IllegalArgumentException("No such order type " + type);
+        }
+        return signalType;
+    }
+
+    public TradeResponseJson closeAllPos(TradeRequestJson tradeRequestJson) {
+        final OrderType orderType = convertOrderType(tradeRequestJson.getType());
+        final TradeResponse tradeResponse = getBusinessService().closeAllPos(orderType);
         return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
     }
 }

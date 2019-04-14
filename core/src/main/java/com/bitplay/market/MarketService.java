@@ -1061,7 +1061,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return dtPreliq;
     }
 
-    public TradeResponse closeAllPos() {
+    public TradeResponse closeAllPos(OrderType orderType) {
         throw new IllegalArgumentException("Not implemented");
     }
 }

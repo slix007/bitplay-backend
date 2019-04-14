@@ -2757,7 +2757,7 @@ public class BitmexService extends MarketServicePreliq {
 
 
     @Override
-    public TradeResponse closeAllPos() {
+    public TradeResponse closeAllPos(OrderType orderType) {
         return closeAllPos(bitmexContractType);
     }
 
@@ -2803,7 +2803,7 @@ public class BitmexService extends MarketServicePreliq {
             final String message = e.getMessage() + timeStr;
             tradeResponse.setErrorCode(message);
 
-            final String logString = String.format("closeAllPos: %s", message);
+            final String logString = String.format("%s closeAllPos: %s", getName(), message);
             logger.error(logString, e);
             tradeLogger.error(logString, btmContType.getCurrencyPair().toString());
             warningLogger.error(logString);

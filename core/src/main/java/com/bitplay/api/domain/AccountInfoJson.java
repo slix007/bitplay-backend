@@ -18,6 +18,8 @@ public class AccountInfoJson {
     private String leverage;
     private String availableForLong;
     private String availableForShort;
+    private String longAvailToClose;
+    private String shortAvailToClose;
     private String quAvg;
     private String ethBtcBid1;
     private String liqPrice;
@@ -39,7 +41,8 @@ public class AccountInfoJson {
     }
 
     public AccountInfoJson(String wallet, String available, String margin, String positionStr, String upl, String leverage,
-            String availableForLong, String availableForShort, String quAvg, String ethBtcBid1, String liqPrice, String eMark,
+            String availableForLong, String availableForShort, String longAvailToClose, String shortAvailToClose,
+            String quAvg, String ethBtcBid1, String liqPrice, String eMark,
             String eLast, String eBest, String eAvg, String entryPrice, String raw) {
         this.wallet = wallet;
         this.available = available;
@@ -49,6 +52,8 @@ public class AccountInfoJson {
         this.leverage = leverage;
         this.availableForLong = availableForLong;
         this.availableForShort = availableForShort;
+        this.longAvailToClose = longAvailToClose;
+        this.shortAvailToClose = shortAvailToClose;
         this.quAvg = quAvg;
         this.ethBtcBid1 = ethBtcBid1;
         this.liqPrice = liqPrice;
@@ -58,6 +63,11 @@ public class AccountInfoJson {
         this.eAvg = eAvg;
         this.entryPrice = entryPrice;
         this.raw = raw;
+    }
+
+    public static AccountInfoJson error() {
+        return new AccountInfoJson("error","error", "error","error", "error", "error", "error", "error", "error", "error",
+                "error", "error", "error", "error", "error", "error", "error", "error", "error");
     }
 
     public String geteMark() {
