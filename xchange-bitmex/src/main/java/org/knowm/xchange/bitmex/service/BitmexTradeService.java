@@ -248,7 +248,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
     }
 
     @SuppressWarnings("unchecked")
-    public Order closeAllPos(OrderType orderType, String symbol) throws IOException {
+    public Order closeAllPos(String symbol) throws IOException {
         final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
                 .getExchangeSpecificParametersItem("currencyToScale");
         final OrderWithHeaders resOrder;

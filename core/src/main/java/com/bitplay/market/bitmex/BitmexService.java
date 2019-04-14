@@ -2764,18 +2764,15 @@ public class BitmexService extends MarketServicePreliq {
     private TradeResponse closeAllPos(BitmexContractType btmContType) {
         final TradeResponse tradeResponse = new TradeResponse();
 
-        BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
-        OrderType orderType = position.getPositionLong().signum() > 0
-                ? OrderType.ASK : OrderType.BID;
-
         final String symbol = btmContType.getSymbol();
 
         final Instant start = Instant.now();
         try {
-            MarketOrder order = (MarketOrder) tradeService.closeAllPos(orderType, symbol);
+            Order order = ((BitmexTradeService) getExchange().getTradeService())
+                    .closeAllPos(symbol);
             final Instant end = Instant.now();
-            if (order.getTradableAmount() == null) {
-                order = new MarketOrder(orderType,
+            if (order.getTradableAmount() == null) { // if cancelled order
+                order = new MarketOrder(null,
                         BigDecimal.ZERO,
                         order.getCurrencyPair(),
                         order.getId(),
