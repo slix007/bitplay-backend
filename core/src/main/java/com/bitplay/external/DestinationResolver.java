@@ -18,11 +18,12 @@ public class DestinationResolver {
     private HostResolver hostResolver;
 
     private final static List<String> testServers = Arrays.asList("658", "660", "661");
-    private final static List<String> testServersTraderActiveEx = Arrays.asList("661", "667");// all from testServers
     private final static List<String> prodServers = Arrays.asList("659", "662", "667", "668", "669");
-    //3) Coordinator: сервера 662, 669, 659,
-    // добавить 668,667 и 661
-    private final static List<String> prodServersCoordinator = Arrays.asList("662", "669", "659", "668", "667", "661"); // all from prodServers
+
+    private final static List<String> prodServersCoordinator = Arrays.asList("659", "662", "667", "668", "669", "661"); // all prodServers + 661
+    private final static List<String> serversTraderActive = Arrays.asList("659", "662", "668", "669");
+    private final static List<String> serversTraderActiveEx = Arrays.asList("661", "667");
+
 
     // Trader active: сервера 662, 669, 659.
     //Список алармов:
@@ -105,7 +106,7 @@ public class DestinationResolver {
     private final static String LOCAL_CHANNEL = "app-local";
     //    private final static String TEST_CHANNEL_NIGHT = "app-test-night";
     private final static String TRADER_ACTIVE_CHANNEL = "trader-active";
-    private final static String TRADER_ACTIVE_661_CHANNEL = "trader-active-661-667";
+    private final static String TRADER_ACTIVE_EX_CHANNEL = "trader-active-661-667";
     private final static String TRADER_PASSIVE_CHANNEL = "trader-passive";
     private final static String COORDINATOR_CHANNEL = "coordinator";
     private final static String ALL_PROD_CHANNEL = "all-prod";
@@ -118,29 +119,26 @@ public class DestinationResolver {
             channels.add(LOCAL_CHANNEL);
         } else if (testServers.contains(hostLabel)) {
             channels.add(ALL_TEST_CHANNEL);
-
-            if (testServersTraderActiveEx.contains(hostLabel) && traderActive.contains(notifyType)) {
-                channels.add(TRADER_ACTIVE_661_CHANNEL);
-            }
-
         } else if (prodServers.contains(hostLabel)) {
             channels.add(ALL_PROD_CHANNEL);
-
-            // Trader active: сервера 662, 669, 659, 667, 668
-            if (traderActive.contains(notifyType)) {
-                channels.add(TRADER_ACTIVE_CHANNEL);
-            }
-
-            //2) Trader passive: сервера 662, 669, 659, 667, 668
-            if (traderPassive.contains(notifyType)) {
-                channels.add(TRADER_PASSIVE_CHANNEL);
-            }
-
-            // coordinator
-            if (prodServersCoordinator.contains(hostLabel) && coordinator.contains(notifyType)) {
-                channels.add(COORDINATOR_CHANNEL);
-            }
         }
+
+        if (serversTraderActive.contains(hostLabel) && traderActive.contains(notifyType)) {
+            channels.add(TRADER_ACTIVE_CHANNEL);
+        }
+        if (serversTraderActiveEx.contains(hostLabel) && traderActive.contains(notifyType)) {
+            channels.add(TRADER_ACTIVE_EX_CHANNEL);
+        }
+
+        if (prodServers.contains(hostLabel) && traderPassive.contains(notifyType)) {
+            channels.add(TRADER_PASSIVE_CHANNEL);
+        }
+
+        // coordinator
+        if (prodServersCoordinator.contains(hostLabel) && coordinator.contains(notifyType)) {
+            channels.add(COORDINATOR_CHANNEL);
+        }
+
         return new ToObj(channels, hostLabel);
     }
 
