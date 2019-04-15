@@ -106,8 +106,8 @@ public class OkCoinEndpoint {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
-    public TradeResponseJson closeAllPos(@RequestBody TradeRequestJson tradeRequestJson) {
-        return this.okCoin.closeAllPos(tradeRequestJson);
+    public TradeResponseJson closeAllPos() {
+        return this.okCoin.closeAllPos();
     }
 
 }

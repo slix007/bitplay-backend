@@ -95,7 +95,6 @@ import org.knowm.xchange.bitmex.service.BitmexTradeService;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
-import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
@@ -2757,7 +2756,7 @@ public class BitmexService extends MarketServicePreliq {
 
 
     @Override
-    public TradeResponse closeAllPos(OrderType orderType) {
+    public TradeResponse closeAllPos() {
         return closeAllPos(bitmexContractType);
     }
 

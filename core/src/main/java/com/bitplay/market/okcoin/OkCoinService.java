@@ -2238,20 +2238,20 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public TradeResponse closeAllPos(OrderType orderTypeReq) {
+    public TradeResponse closeAllPos() {
         final TradeResponse tradeResponse = new TradeResponse();
 
         OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) getExchange().getTradeService();
 
         final Instant start = Instant.now();
         try {
-            OrderType orderType = orderTypeReq == OrderType.ASK
+            OrderType orderType = position.getPositionLong().compareTo(position.getPositionShort()) > 0
                     ? OrderType.EXIT_BID
                     : OrderType.EXIT_ASK;
 
             BigDecimal amount = orderType == OrderType.EXIT_BID
-                    ? position.getLongAvailToClose()
-                    : position.getShortAvailToClose();
+                    ? position.getPositionLong()
+                    : position.getPositionShort();
             final CurrencyPair currencyPair = okexContractType.getCurrencyPair();
 
             if (amount.signum() == 0) {

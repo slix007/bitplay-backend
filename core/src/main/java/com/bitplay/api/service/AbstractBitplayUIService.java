@@ -352,9 +352,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         return signalType;
     }
 
-    public TradeResponseJson closeAllPos(TradeRequestJson tradeRequestJson) {
-        final OrderType orderType = convertOrderType(tradeRequestJson.getType());
-        final TradeResponse tradeResponse = getBusinessService().closeAllPos(orderType);
+    public TradeResponseJson closeAllPos() {
+        final TradeResponse tradeResponse = getBusinessService().closeAllPos();
         return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
     }
 }

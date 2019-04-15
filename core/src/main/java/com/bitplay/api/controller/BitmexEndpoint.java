@@ -149,9 +149,7 @@ public class BitmexEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public TradeResponseJson closeAllPos() {
-        final TradeRequestJson tradeRequestJson = new TradeRequestJson();
-        tradeRequestJson.setType(Type.BUY); // does not matter for bitmex
-        return this.bitmex.closeAllPos(tradeRequestJson);
+        return this.bitmex.closeAllPos();
     }
 
 }
