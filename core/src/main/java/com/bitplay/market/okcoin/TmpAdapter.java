@@ -23,7 +23,7 @@ public class TmpAdapter {
             CurrencyPair currencyPair = parseCurrencyPair(okExUserOrder.getInstrumentId());
             OrderStatus orderStatus = OkCoinAdapters.adaptOrderStatus(okExUserOrder.getStatus());
             LimitOrder limitOrder = new LimitOrder(orderType,
-                    okExUserOrder.getContractVal(),
+                    okExUserOrder.getSize(),
                     currencyPair,
                     okExUserOrder.getOrderId(),
                     okExUserOrder.getTimestamp(),
