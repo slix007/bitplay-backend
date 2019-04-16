@@ -21,6 +21,7 @@ public class DestinationResolver {
     private final static List<String> prodServers = Arrays.asList("659", "662", "667", "668", "669");
 
     private final static List<String> prodServersCoordinator = Arrays.asList("659", "662", "667", "668", "669", "661"); // all prodServers + 661
+    private final static List<String> serversTraderPassive = Arrays.asList("659", "662", "668", "669");
     private final static List<String> serversTraderActive = Arrays.asList("659", "662", "668", "669");
     private final static List<String> serversTraderActiveEx = Arrays.asList("661", "667");
 
@@ -130,7 +131,7 @@ public class DestinationResolver {
             channels.add(TRADER_ACTIVE_EX_CHANNEL);
         }
 
-        if (prodServers.contains(hostLabel) && traderPassive.contains(notifyType)) {
+        if (serversTraderPassive.contains(hostLabel) && traderPassive.contains(notifyType)) {
             channels.add(TRADER_PASSIVE_CHANNEL);
         }
 
