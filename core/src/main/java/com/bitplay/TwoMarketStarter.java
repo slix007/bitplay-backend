@@ -97,7 +97,7 @@ public class TwoMarketStarter {
                 // Workaround to make work the other market
                 firstMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
                 firstMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
-                firstMarketService.setMarketState(MarketState.STOPPED);
+                arbitrageService.setArbStateStopped();
                 slackNotifications.sendNotify(NotifyType.STOPPED, BitmexService.NAME + " STOPPED: Initialization error.");
                 return false;
             }
@@ -118,7 +118,7 @@ public class TwoMarketStarter {
                 // Workaround to make work the other market
                 secondMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
                 secondMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
-                secondMarketService.setMarketState(MarketState.STOPPED);
+                arbitrageService.setArbStateStopped();
                 slackNotifications.sendNotify(NotifyType.STOPPED, OkCoinService.NAME + " STOPPED: Initialization error.");
                 return false;
             }

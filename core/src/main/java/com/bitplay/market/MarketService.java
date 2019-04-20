@@ -292,7 +292,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             case WAITING_ARB: // openOrderSubscr can setFree, when it's not needed
             case PLACING_ORDER: // openOrderSubscr can setFree, when it's not needed
             case MOVING:
-            case STOPPED:
             case FORBIDDEN:
             case PRELIQ:
                 if (flags != null && flags.length > 0 && (flags[0].equals("UI") || flags[0].equals("FORCE_RESET"))) {
@@ -488,7 +487,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public boolean isReadyForMoving() {
-        return marketState != MarketState.SYSTEM_OVERLOADED && !marketState.isStopped();
+        return marketState != MarketState.SYSTEM_OVERLOADED && !getArbitrageService().isArbStateStopped() && getMarketState() != MarketState.FORBIDDEN;
     }
 
     public EventBus getEventBus() {
@@ -992,7 +991,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     private boolean isMovingStopped() {
-        return specialFlags == SpecialFlags.STOP_MOVING || getArbitrageService().isArbStatePreliq();
+        final boolean flagMovingStopped = getPersistenceService().getSettingsRepositoryService().getSettings().isMovingStopped();
+        return flagMovingStopped || getArbitrageService().isArbStatePreliq();
     }
 
     public boolean getMovingStop() {

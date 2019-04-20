@@ -242,7 +242,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public boolean isMarketStopped() {
-        return getMarketState().isStopped();
+        return getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN;
     }
 
     public OkexLimitsService getOkexLimitsService() {
@@ -256,7 +256,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public String getFuturesContractName() {
-        return okexContractType.toString();
+        return okexContractType != null ? okexContractType.toString() : "";
     }
 
     @Override
@@ -1075,7 +1075,7 @@ public class OkCoinService extends MarketServicePreliq {
                                 } else {
                                     logger.error("WAITING_ARB: no deferred order. Set READY.");
                                     warningLogger.error("WAITING_ARB: no deferred order. Set READY.");
-                                    arbitrageService.releaseArbInProgress("", "WAITING_ARB deferred-placing-order");
+                                    arbitrageService.resetArbState("", "WAITING_ARB deferred-placing-order");
                                 }
 
                             }
@@ -1099,7 +1099,7 @@ public class OkCoinService extends MarketServicePreliq {
         PlacingType placingType = placeOrderArgs.getPlacingType();
         if (placingType == null) {
             tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs);
-            final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+            final Settings settings = settingsRepositoryService.getSettings();
             placingType = settings.getOkexPlacingType();
         }
         final String counterName = placeOrderArgs.getCounterName();
@@ -1114,7 +1114,12 @@ public class OkCoinService extends MarketServicePreliq {
 
         BigDecimal amountLeft = amount;
         shouldStopPlacing = false;
-        for (int attemptCount = 1; attemptCount < maxAttempts && !getMarketState().isStopped() && !shouldStopPlacing; attemptCount++) {
+        for (int attemptCount = 1; attemptCount < maxAttempts
+                && !getArbitrageService().isArbStateStopped()
+                && getMarketState() != MarketState.FORBIDDEN
+                && (settingsRepositoryService.getSettings().getManageType().isAuto() || signalType.isManual())
+                && !shouldStopPlacing;
+                attemptCount++) {
             try {
                 if (attemptCount > 1) {
                     Thread.sleep(1000);
@@ -1171,7 +1176,6 @@ public class OkCoinService extends MarketServicePreliq {
                 if ((nextState == MarketState.WAITING_ARB && placeOrderArgsRef.get() == null)
                         || nextState == MarketState.PLACING_ORDER
                         || nextState == MarketState.MOVING
-                        || nextState == MarketState.STOPPED
                         || nextState == MarketState.FORBIDDEN
                         || nextState == MarketState.ARBITRAGE
                 ) {
@@ -1743,17 +1747,14 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @NotNull
-    public OkCoinTradeResult cancelOrderSync(String orderId, String logInfoId) {
+    public OkCoinTradeResult cancelOrderSyncFromUi(String orderId, String logInfoId) {
         final String counterForLogs = getCounterName();
         OkCoinTradeResult result = new OkCoinTradeResult(false, 0, 0);
 
         int attemptCount = 0;
-        while (attemptCount < MAX_ATTEMPTS_CANCEL) {
+        while (attemptCount < 1) { // only one attempt for UI
             attemptCount++;
             try {
-                if (attemptCount > 1) {
-                    Thread.sleep(1000);
-                }
                 final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
                 result = tradeService.cancelOrderWithResult(orderId,
                         okexContractType.getCurrencyPair(),

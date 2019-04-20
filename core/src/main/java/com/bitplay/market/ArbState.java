@@ -7,4 +7,5 @@ public enum ArbState {
     READY,
     IN_PROGRESS,
     PRELIQ,
+    STOPPED,
 }

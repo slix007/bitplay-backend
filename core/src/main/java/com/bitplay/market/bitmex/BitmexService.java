@@ -247,7 +247,9 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public boolean isMarketStopped() {
-        return getMarketState().isStopped() || bitmexLimitsService.outsideLimits();
+        return getArbitrageService().isArbStateStopped()
+                || getMarketState() == MarketState.FORBIDDEN
+                || bitmexLimitsService.outsideLimits();
     }
 
     @Override
@@ -272,7 +274,7 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public String getFuturesContractName() {
-        return bitmexContractType.getSymbol();
+        return bitmexContractType != null ? bitmexContractType.getSymbol() : "";
     }
 
     @Override
@@ -1672,7 +1674,11 @@ public class BitmexService extends MarketServicePreliq {
             int attemptCount = 0;
             int badGatewayCount = 0;
             shouldStopPlacing = false;
-            while (attemptCount < maxAttempts && !getMarketState().isStopped() && !shouldStopPlacing) {
+            while (attemptCount < maxAttempts
+                    && !getArbitrageService().isArbStateStopped()
+                    && getMarketState() != MarketState.FORBIDDEN
+                    && (settingsRepositoryService.getSettings().getManageType().isAuto() || signalType.isManual())
+                    && !shouldStopPlacing) {
                 attemptCount++;
                 try {
                     String orderId;
@@ -2456,8 +2462,8 @@ public class BitmexService extends MarketServicePreliq {
     public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
         final MarketState marketState = getMarketState();
         final String contractTypeStr = bitmexContractType.getCurrencyPair().toString();
-        if (marketState.isStopped()) {
-            tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState),
+        if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
+            tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. ArbState.STOPPED", counterName),
                     contractTypeStr);
             return;
         }
@@ -2479,9 +2485,8 @@ public class BitmexService extends MarketServicePreliq {
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 int sleepIfFails = SHORT_SLEEP;
                 try {
-                    if (marketState.isStopped()) {
-                        tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. MarketState=%s.", counterName, marketState),
-                                contractTypeStr);
+                    if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
+                        tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. ArbState.STOPPED", counterName), contractTypeStr);
                         return;
                     }
                     final Collection<Execution> orderParts = ((BitmexTradeService) getTradeService()).getOrderParts(orderId);

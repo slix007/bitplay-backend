@@ -7,6 +7,7 @@ import com.bitplay.persistance.domain.fluent.TradingModeState;
 import com.bitplay.persistance.domain.settings.SettingsVolatileMode.Field;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
+import java.util.EnumSet;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,6 +32,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Builder(toBuilder=true)
 public class Settings extends AbstractDocument {
 
+    private ManageType manageType;
+    private EnumSet<ExtraFlag> extraFlags;
     private ArbScheme arbScheme;
     private SysOverloadArgs bitmexSysOverloadArgs;
     private SysOverloadArgs okexSysOverloadArgs;
@@ -87,6 +90,7 @@ public class Settings extends AbstractDocument {
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
+        settings.manageType = ManageType.AUTO;
         settings.arbScheme = ArbScheme.SIM;
         settings.bitmexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexSysOverloadArgs = SysOverloadArgs.defaults();
@@ -203,5 +207,9 @@ public class Settings extends AbstractDocument {
                 && settingsVolatileMode.getActiveFields().contains(Field.arb_scheme)
                 ? settingsVolatileMode.getArbScheme()
                 : arbScheme;
+    }
+
+    public boolean isMovingStopped() {
+        return extraFlags.contains(ExtraFlag.STOP_MOVING);
     }
 }

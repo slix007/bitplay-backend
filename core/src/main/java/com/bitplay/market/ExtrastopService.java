@@ -1,6 +1,7 @@
 package com.bitplay.market;
 
 import com.bitplay.api.service.RestartService;
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
@@ -43,6 +44,9 @@ public class ExtrastopService {
 
     protected final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
             .setNameFormat("extrastop-service-%d").build());
+
+    @Autowired
+    private ArbitrageService arbitrageService;
 
     @Autowired
     private BitmexService bitmexService;
@@ -92,9 +96,7 @@ public class ExtrastopService {
             if (isHanged()) {
                 final String msg = "Set STOPPED. Stop markets and schedule restart in 30 sec.";
                 warningLogger.warn(msg);
-
-                bitmexService.setMarketState(MarketState.STOPPED);
-                okCoinService.setMarketState(MarketState.STOPPED);
+                arbitrageService.setArbStateStopped();
                 slackNotifications.sendNotify(NotifyType.STOPPED, msg);
 
                 startTimerToRestart(details);
@@ -103,9 +105,7 @@ public class ExtrastopService {
         } catch (IllegalArgumentException e) {
             final String msg = "Set STOPPED. Error on check times: " + e.getMessage();
             log.error(msg, e);
-//            warningLogger.error("ERROR on check times", e);
-            bitmexService.setMarketState(MarketState.STOPPED);
-            okCoinService.setMarketState(MarketState.STOPPED);
+            arbitrageService.setArbStateStopped();
             slackNotifications.sendNotify(NotifyType.STOPPED, msg);
 
             startTimerToRestart(e.getMessage());
@@ -252,8 +252,7 @@ public class ExtrastopService {
                 } else {
                     warningLogger.warn("No restart in 30 sec, back to READY. OrderBooks looks ok.");
 
-                    bitmexService.setMarketState(MarketState.READY);
-                    okCoinService.setMarketState(MarketState.READY);
+                    arbitrageService.resetArbState(bitmexService.getCounterName(), "orderBook-hangs");
                 }
             } catch (Exception e) {
                 log.error("Error on restart", e);

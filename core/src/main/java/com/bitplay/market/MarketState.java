@@ -12,12 +12,8 @@ public enum MarketState {
     SWAP,
     SWAP_AWAIT,
     SYSTEM_OVERLOADED,
-    STOPPED,
     FORBIDDEN,
     PRELIQ,
     ;
 
-    public boolean isStopped() {
-        return this == STOPPED || this == FORBIDDEN;
-    }
 }

@@ -141,7 +141,7 @@ public class PersistenceService {
 
         // transient fields
         BigDecimal cm = bitmexService.getCm();
-        boolean isEth = bitmexService.getContractType().isEth();
+        boolean isEth = bitmexService.getContractType() != null && bitmexService.getContractType().isEth();
         corrParams.getCorr().setIsEth(isEth);
         corrParams.getCorr().setCm(cm);
         corrParams.getPreliq().setIsEth(isEth);

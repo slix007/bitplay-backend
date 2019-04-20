@@ -33,14 +33,19 @@ public class OOHangedCheckerService {
     }
 
     void stopChecker() {
-        if (future != null) { // with TAKER we don't even start it, but do Stop
-            logger.info("stopChecker");
-            future.cancel(false);
-            runCounter = 0;
+        try {
+            if (future != null) { // with TAKER we don't even start it, but do Stop
+                logger.info("stopChecker");
+                future.cancel(false);
+                runCounter = 0;
+            }
+        } catch (Exception e) {
+            logger.error("stopChecker error ", e);
         }
     }
 
     void startChecker() {
+        stopChecker();
         logger.info("startChecker");
         future = scheduler.scheduleWithFixedDelay(() -> {
             try {

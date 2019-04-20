@@ -51,7 +51,7 @@ public abstract class MarketServicePreliq extends MarketService {
     public void checkForDecreasePosition() {
         Instant start = Instant.now();
 
-        if (getMarketState().isStopped()) {
+        if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
             dtPreliq.stop();
             return;
         }
@@ -106,19 +106,22 @@ public abstract class MarketServicePreliq extends MarketService {
                     getTradeLogger().info(msg);
                 } else {
 
-                    printPreliqStarting(counterForLogs, nameSymbol);
+                    if (getPersistenceService().getSettingsRepositoryService().getSettings().getManageType().isAuto()) {
 
-                    if (corrParams.getPreliq().tryIncFailed(getName())) { // previous preliq counter
-                        getPersistenceService().saveCorrParams(corrParams);
-                    }
-                    if (corrParams.getPreliq().hasSpareAttempts()) {
-                        doPreliqOrder(preliqParams);
-                    } else {
-                        resetPreliqState();
-                    }
+                        printPreliqStarting(counterForLogs, nameSymbol);
+                        if (corrParams.getPreliq().tryIncFailed(getName())) { // previous preliq counter
+                            getPersistenceService().saveCorrParams(corrParams);
+                        }
+                        if (corrParams.getPreliq().hasSpareAttempts()) {
+                            doPreliqOrder(preliqParams);
+                        } else {
+                            resetPreliqState();
+                        }
+                        log.info("dtPreliq stop after successful preliq");
+                        dtPreliq.stop(); //after successful start
 
-                    log.info("dtPreliq stop after successful preliq");
-                    dtPreliq.stop(); //after successful start
+                    } // else stay _ready_
+
                 }
             } else {
                 resetPreliqState();

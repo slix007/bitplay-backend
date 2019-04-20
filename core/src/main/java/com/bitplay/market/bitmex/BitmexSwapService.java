@@ -103,7 +103,6 @@ public class BitmexSwapService {
         final int SWAP_INTERVAL_SEC = 2;
         final MarketState marketState = bitmexService.getMarketState();
         switch (marketState) {
-            case STOPPED:
             case SYSTEM_OVERLOADED:
             case WAITING_ARB:
             case MOVING:

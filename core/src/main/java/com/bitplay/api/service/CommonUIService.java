@@ -465,9 +465,6 @@ public class CommonUIService {
         arbitrageService.getFirstMarketService().setMarketState(first);
         arbitrageService.getSecondMarketService().setMarketState(second);
 
-        if (first == MarketState.STOPPED || second == MarketState.STOPPED) {
-            slackNotifications.sendNotify(NotifyType.STOPPED, "STOPPED from UI");
-        }
         if (first == MarketState.FORBIDDEN || second == MarketState.FORBIDDEN) {
             slackNotifications.sendNotify(NotifyType.FORBIDDEN, "FORBIDDEN from UI");
         }
@@ -485,7 +482,7 @@ public class CommonUIService {
         btm.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, btm.tryFindLastTradeId()));
         MarketService okex = arbitrageService.getSecondMarketService();
         okex.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, okex.tryFindLastTradeId()));
-        arbitrageService.releaseArbInProgress("", "'UI'");
+        arbitrageService.resetArbState("", "'UI'");
         log.info("Free markets states from UI");
         arbitrageService.printToCurrentDeltaLog("Free markets states from UI");
         return new MarketFlagsJson(

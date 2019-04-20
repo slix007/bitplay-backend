@@ -76,4 +76,10 @@ public enum SignalType {
 
     public boolean isIncreasePos() {
         return getCounterName().contains("increase");
-    }}
+    }
+
+    public boolean isManual() {
+        return this == MANUAL_BUY || this == MANUAL_SELL;
+    }
+
+}

@@ -109,20 +109,6 @@ public class CommonEndpoint {
         return commonUIService.updateCumParams(cumParams);
     }
 
-    @RequestMapping(value = "/market/stop-moving", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public MarketFlagsJson getMovingStop() {
-        return commonUIService.getStopMoving();
-    }
-
-    @RequestMapping(value = "/market/toggle-stop-moving",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
-    public MarketFlagsJson updateMovingStop() {
-        return commonUIService.toggleStopMoving();
-    }
-
     @RequestMapping(value = "/market/states", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public MarketStatesJson getMarketsState() {
         return commonUIService.getMarketsStates();

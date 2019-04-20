@@ -453,7 +453,7 @@ public class ArbitrageService {
                         synchronized (arbStateLock) {
                             if (arbState == ArbState.IN_PROGRESS) {
                                 arbState = ArbState.READY;
-                                releaseArbInProgress(counterName, "'busy for 6 min'");
+                                resetArbState(counterName, "'busy for 6 min'");
                                 slackNotifications.sendNotify(NotifyType.BUSY_6_MIN,
                                         counterName + " busy for 6 min. Arbitrage state was reset to READY");
                             }
@@ -537,7 +537,8 @@ public class ArbitrageService {
 
     private void doComparison(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
 
-        if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()) {
+        if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()
+                || !persistenceService.getSettingsRepositoryService().getSettings().getManageType().isAuto()) {
             // do nothing
             stopSignalDelay();
 
@@ -867,11 +868,25 @@ public class ArbitrageService {
         }
     }
 
+    public boolean isArbStateStopped() {
+        synchronized (arbStateLock) {
+            return arbState == ArbState.STOPPED;
+        }
+    }
+
     public void setArbStatePreliq() {
+        setArbState(ArbState.PRELIQ);
+    }
+
+    public void setArbStateStopped() {
+        setArbState(ArbState.STOPPED);
+    }
+
+    private void setArbState(ArbState newState) {
         synchronized (arbStateLock) {
             arbStatePrevPreliq = arbState;
-            log.info("set ArbState.PRELIQ");
-            arbState = ArbState.PRELIQ;
+            log.info("set ArbState." + newState);
+            arbState = newState;
             firstMarketService.setPreliqState();
             secondMarketService.setPreliqState();
         }
@@ -1986,14 +2001,14 @@ public class ArbitrageService {
         return arbState;
     }
 
-    public void releaseArbInProgress(String counterName, String from) {
+    public void resetArbState(String counterName, String from) {
         String msg = "Arbitrage state was reset READY from " + from + ". ";
         warningLogger.warn(msg);
         log.warn(msg);
         fplayTradeService.warn(tradeId, counterName, msg);
 
         synchronized (arbStateLock) {
-            if (tradeId != null) {
+            if (tradeId != null && arbState == ArbState.IN_PROGRESS) {
                 try {
                     onArbDone(tradeId, BitmexService.NAME);
                     onArbDone(tradeId, OkCoinService.NAME);

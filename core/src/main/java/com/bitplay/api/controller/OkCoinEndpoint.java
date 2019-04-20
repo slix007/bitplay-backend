@@ -83,7 +83,7 @@ public class OkCoinEndpoint {
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrdersCancel(@RequestBody OrderJson orderJson) {
         final String id = orderJson.getId();
-        final OkCoinTradeResult cancelResult = this.okCoin.getBusinessService().cancelOrderSync(id, "CancelFromUI");
+        final OkCoinTradeResult cancelResult = this.okCoin.getBusinessService().cancelOrderSyncFromUi(id, "CancelFromUI");
         return new ResultJson(String.valueOf(cancelResult.isResult()), cancelResult.getDetails());
     }
 

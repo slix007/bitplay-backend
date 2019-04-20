@@ -324,7 +324,7 @@ public class PosDiffService {
                     if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
                         arbitrageService.getFirstMarketService().stopAllActions();
                         arbitrageService.getSecondMarketService().stopAllActions();
-                        arbitrageService.releaseArbInProgress("", "timer-state-reset");
+                        arbitrageService.resetArbState("", "timer-state-reset");
                         slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER: timer-state-reset");
                     }
                 })
@@ -403,7 +403,7 @@ public class PosDiffService {
                     warningLogger.info(msg);
                     arbitrageService.getFirstMarketService().stopAllActions();
                     arbitrageService.getSecondMarketService().stopAllActions();
-                    arbitrageService.releaseArbInProgress("", "MDC extraSet");
+                    arbitrageService.resetArbState("", "MDC extraSet");
                     dt.stop();
                     slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER:" + msg);
                 }
@@ -435,7 +435,7 @@ public class PosDiffService {
                     warningLogger.info(msg);
                     arbitrageService.getFirstMarketService().stopAllActions();
                     arbitrageService.getSecondMarketService().stopAllActions();
-                    arbitrageService.releaseArbInProgress("", "MDC mainSet");
+                    arbitrageService.resetArbState("", "MDC mainSet");
                     dt.stop();
                     slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER: " + msg);
                 }
@@ -447,8 +447,9 @@ public class PosDiffService {
     }
 
     private boolean marketsStopped() {
-        return arbitrageService.getFirstMarketService().getMarketState().isStopped()
-                || arbitrageService.getSecondMarketService().getMarketState().isStopped()
+        return arbitrageService.isArbStateStopped()
+                || arbitrageService.getFirstMarketService().getMarketState() == MarketState.FORBIDDEN
+                || arbitrageService.getSecondMarketService().getMarketState() == MarketState.FORBIDDEN
                 || arbitrageService.isArbStatePreliq()
                 || !fullBalanceIsValid();
     }
@@ -456,6 +457,7 @@ public class PosDiffService {
     private boolean marketsReady() {
         return arbitrageService.getFirstMarketService().isReadyForArbitrage()
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
+                && !arbitrageService.isArbStateStopped()
                 && !arbitrageService.isArbStatePreliq()
                 && fullBalanceIsValid();
     }
@@ -588,7 +590,8 @@ public class PosDiffService {
         final BigDecimal dcMainSet = getDcMainSet();
         if (marketsReadyForAdj() && isAdjViolated(dcMainSet) && corrParams.getAdj().hasSpareAttempts()) {
 
-            final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+            final Settings settings = settingsRepositoryService.getSettings();
+            final PosAdjustment pa = settings.getPosAdjustment();
             final long secToReady = dtAdj.secToReadyPrecise(pa.getPosAdjustmentDelaySec());
 
             final boolean activated = dtAdj.activate();
@@ -612,10 +615,12 @@ public class PosDiffService {
 
                 if (marketsReadyForAdj() && isAdjViolated(getDcMainSet())) {
 
-                    doCorrection(getHedgeAmountMainSet(), SignalType.ADJ);
-                    dtAdj.stop();
+                    if (settings.getManageType().isAuto()) {
+                        doCorrection(getHedgeAmountMainSet(), SignalType.ADJ);
+                        dtAdj.stop();
+                        return true; // started
+                    } // else stay _ready_
 
-                    return true; // started
                 } else {
                     dtAdj.stop();
                 }
@@ -654,7 +659,8 @@ public class PosDiffService {
         final BigDecimal dcExtraSet = getDcExtraSet();
         if (marketsReady() && isAdjViolated(dcExtraSet) && corrParams.getAdj().hasSpareAttempts()) {
 
-            final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+            final Settings settings = settingsRepositoryService.getSettings();
+            final PosAdjustment pa = settings.getPosAdjustment();
             final long secToReady = dtExtraAdj.secToReadyPrecise(pa.getPosAdjustmentDelaySec());
 
             final boolean activated = dtExtraAdj.activate();
@@ -679,10 +685,12 @@ public class PosDiffService {
                 // Second check
                 if (marketsReady() && isAdjViolated(getDcExtraSet())) {
 
-                    doCorrection(getHedgeAmountExtraSet(), SignalType.ADJ_BTC);
-                    dtExtraAdj.stop();
+                    if (settings.getManageType().isAuto()) {
+                        doCorrection(getHedgeAmountExtraSet(), SignalType.ADJ_BTC);
+                        dtExtraAdj.stop();
+                        return true; // started
+                    } // else stay _ready_
 
-                    return true; // started
                 } else {
                     dtExtraAdj.stop();
                 }
@@ -697,7 +705,8 @@ public class PosDiffService {
         final BigDecimal dcMainSet = getDcMainSet();
         if (marketsReadyForCorr() && !isPosEqualByMaxAdj(dcMainSet) && corrParams.getCorr().hasSpareAttempts()) {
 
-            final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+            final Settings settings = settingsRepositoryService.getSettings();
+            final PosAdjustment pa = settings.getPosAdjustment();
             final long secToReady = dtCorr.secToReadyPrecise(pa.getCorrDelaySec());
 
             final boolean activated = dtCorr.activate();
@@ -720,10 +729,13 @@ public class PosDiffService {
 
                 // Second check
                 if (marketsReadyForCorr() && !isPosEqualByMaxAdj(getDcMainSet())) {
-                    doCorrection(getHedgeAmountMainSet(), SignalType.CORR);
-                    dtCorr.stop();
 
-                    return true; // started
+                    if (settings.getManageType().isAuto()) {
+                        doCorrection(getHedgeAmountMainSet(), SignalType.CORR);
+                        dtCorr.stop();
+                        return true; // started
+                    } // else stay _ready_
+
                 } else {
                     dtCorr.stop();
                 }
@@ -739,7 +751,8 @@ public class PosDiffService {
         final BigDecimal dcExtraSet = getDcExtraSet();
         if (marketsReady() && !isPosEqualByMaxAdj(dcExtraSet) && corrParams.getCorr().hasSpareAttempts()) {
 
-            final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
+            final Settings settings = settingsRepositoryService.getSettings();
+            final PosAdjustment pa = settings.getPosAdjustment();
             final long secToReady = dtExtraCorr.secToReadyPrecise(pa.getCorrDelaySec());
 
             final boolean activated = dtExtraCorr.activate();
@@ -762,10 +775,13 @@ public class PosDiffService {
 
                 // Second check
                 if (marketsReady() && !isPosEqualByMaxAdj(getDcExtraSet())) {
-                    doCorrection(getHedgeAmountExtraSet(), SignalType.CORR_BTC);
-                    dtExtraCorr.stop();
 
-                    return true; // started
+                    if (settings.getManageType().isAuto()) {
+                        doCorrection(getHedgeAmountExtraSet(), SignalType.CORR_BTC);
+                        dtExtraCorr.stop();
+                        return true; // started
+                    } // else stay _ready_
+
                 } else {
                     dtExtraCorr.stop();
                 }

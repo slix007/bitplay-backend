@@ -11,7 +11,9 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
 import com.bitplay.persistance.domain.settings.ContractMode;
+import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.Limits;
+import com.bitplay.persistance.domain.settings.ManageType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.RestartSettings;
@@ -19,6 +21,7 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SettingsVolatileMode;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.settings.BitmexChangeOnSoService;
+import java.util.EnumSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -127,6 +130,16 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getOkexPlacingType() != null) {
             settings.setOkexPlacingType(settingsUpdate.getOkexPlacingType());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getManageType() != null) {
+            final ManageType manageType = settingsUpdate.getManageType();
+            settings.setManageType(manageType);
+            if (manageType == ManageType.AUTO) {
+                settings.getExtraFlags().remove(ExtraFlag.STOP_MOVING);
+            } else if (manageType == ManageType.MANUAL) {
+                settings.getExtraFlags().add(ExtraFlag.STOP_MOVING);
+            }
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getArbScheme() != null) {
@@ -459,6 +472,23 @@ public class SettingsEndpoint {
         //    private BigDecimal oAddBorder;
         //volatileDurationSec
         return mainSettings;
+    }
+
+    @RequestMapping(value = "/toggle-stop-moving",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public Settings toggleMovingStop() {
+        final Settings settings = settingsRepositoryService.getSettings();
+        final EnumSet<ExtraFlag> extraFlags = settings.getExtraFlags();
+        if (extraFlags.contains(ExtraFlag.STOP_MOVING)) {
+            extraFlags.remove(ExtraFlag.STOP_MOVING);
+        } else {
+            extraFlags.add(ExtraFlag.STOP_MOVING);
+        }
+        settingsRepositoryService.saveSettings(settings);
+        return settings;
     }
 
     @Secured("ROLE_ADMIN")
