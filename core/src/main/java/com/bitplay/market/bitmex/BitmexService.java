@@ -2766,14 +2766,16 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private TradeResponse closeAllPos(BitmexContractType btmContType) {
-        final TradeResponse tradeResponse = new TradeResponse();
-
         final String symbol = btmContType.getSymbol();
+        final TradeResponse tradeResponse = new TradeResponse();
+        tradeResponse.setErrorCode("");
 
         final Instant start = Instant.now();
         try {
-            Order order = ((BitmexTradeService) getExchange().getTradeService())
-                    .closeAllPos(symbol);
+            final BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
+
+            Order order = tradeService.closeAllPos(symbol);
+
             final Instant end = Instant.now();
             if (order.getTradableAmount() == null) { // if cancelled order
                 order = new MarketOrder(null,
@@ -2795,6 +2797,11 @@ public class BitmexService extends MarketServicePreliq {
             tradeResponse.setOrderId(order.getId());
             final String timeStr = String.format("(%d ms)", Duration.between(start, end).toMillis());
             tradeResponse.setErrorCode(timeStr);
+
+            // one attempt to close all limit orders
+            List<LimitOrder> limitOrders = tradeService.cancelAllOrders();
+            updateOpenOrders(limitOrders);
+
         } catch (Exception e) {
             // NOTE: there should not be overloaded(403 response)
             // instead of that there may be 'long handing'.
@@ -2802,7 +2809,7 @@ public class BitmexService extends MarketServicePreliq {
             final Instant end = Instant.now();
             final String timeStr = String.format("; (%d ms)", Duration.between(start, end).toMillis());
             final String message = e.getMessage() + timeStr;
-            tradeResponse.setErrorCode(message);
+            tradeResponse.setErrorCode(tradeResponse.getErrorCode() + message);
 
             final String logString = String.format("%s closeAllPos: %s", getName(), message);
             logger.error(logString, e);
