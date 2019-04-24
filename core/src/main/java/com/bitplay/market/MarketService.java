@@ -991,7 +991,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     private boolean isMovingStopped() {
-        final boolean flagMovingStopped = getPersistenceService().getSettingsRepositoryService().getSettings().isMovingStopped();
+        final boolean flagMovingStopped = getPersistenceService().getSettingsRepositoryService().getSettings().flagMovingStopped();
         return flagMovingStopped || getArbitrageService().isArbStatePreliq();
     }
 

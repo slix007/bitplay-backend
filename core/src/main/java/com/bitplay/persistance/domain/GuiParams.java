@@ -44,8 +44,8 @@ public class GuiParams extends AbstractParams {
             this.border1 = guiParams.border1;
             this.border2 = guiParams.border2;
         }
-        this.reserveBtc1 = guiParams.reserveBtc1;
-        this.reserveBtc2 = guiParams.reserveBtc2;
+//        this.reserveBtc1 = guiParams.reserveBtc1;
+//        this.reserveBtc2 = guiParams.reserveBtc2;
         this.maxDiffCorr = guiParams.maxDiffCorr;
         this.periodToCorrection = guiParams.periodToCorrection;
         this.fundingRateFee = guiParams.fundingRateFee;

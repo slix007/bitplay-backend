@@ -123,6 +123,8 @@ public class SettingsEndpoint {
     @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public Settings updateSettings(@RequestBody Settings settingsUpdate) {
+        boolean resetPreset = true;
+
         Settings settings = settingsRepositoryService.getSettings();
         if (settingsUpdate.getBitmexPlacingType() != null) {
             settings.setBitmexPlacingType(settingsUpdate.getBitmexPlacingType());
@@ -177,6 +179,7 @@ public class SettingsEndpoint {
         if (settingsUpdate.getBitmexPrice() != null) {
             settings.setBitmexPrice(settingsUpdate.getBitmexPrice());
             settingsRepositoryService.saveSettings(settings);
+            resetPreset = false;
         }
         if (settingsUpdate.getPlacingBlocks() != null) {
             final PlacingBlocks current = settings.getPlacingBlocks();
@@ -281,14 +284,17 @@ public class SettingsEndpoint {
         if (settingsUpdate.getHedgeBtc() != null) {
             settings.setHedgeBtc(settingsUpdate.getHedgeBtc());
             settingsRepositoryService.saveSettings(settings);
+            resetPreset = false;
         }
         if (settingsUpdate.getHedgeEth() != null) {
             settings.setHedgeEth(settingsUpdate.getHedgeEth());
             settingsRepositoryService.saveSettings(settings);
+            resetPreset = false;
         }
         if (settingsUpdate.getHedgeAuto() != null) {
             settings.setHedgeAuto(settingsUpdate.getHedgeAuto());
             settingsRepositoryService.saveSettings(settings);
+            resetPreset = false;
         }
         if (settingsUpdate.getOkexFakeTakerDev() != null) {
             settings.setOkexFakeTakerDev(settingsUpdate.getOkexFakeTakerDev());
@@ -325,13 +331,16 @@ public class SettingsEndpoint {
         if (settingsUpdate.getOkexEbestElast() != null) {
             settings.setOkexEbestElast(settingsUpdate.getOkexEbestElast());
             settingsRepositoryService.saveSettings(settings);
+            resetPreset = false;
         }
         if (settingsUpdate.getDql() != null && settingsUpdate.getDql().getDqlLevel() != null) {
             settings.getDql().setDqlLevel(settingsUpdate.getDql().getDqlLevel());
             settingsRepositoryService.saveSettings(settings);
         }
 
-        persistenceService.resetSettingsPreset();
+        if (resetPreset) {
+            persistenceService.resetSettingsPreset();
+        }
 
         final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
         settings.setCorrParams(corrParams);
@@ -507,8 +516,6 @@ public class SettingsEndpoint {
             settings.setEBestMin(settingsUpdate.getEBestMin());
             settingsRepositoryService.saveSettings(settings);
         }
-
-        persistenceService.resetSettingsPreset();
 
         return settings;
     }

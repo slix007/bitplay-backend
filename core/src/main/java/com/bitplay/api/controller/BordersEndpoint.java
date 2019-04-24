@@ -162,6 +162,8 @@ public class BordersEndpoint {
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson updateBordersSettings(@RequestBody BordersSettings update) {
+        boolean resetPreset = true;
+
         final BorderParams bP = persistenceService.fetchBorders();
 
         String respDetails = "";
@@ -185,6 +187,7 @@ public class BordersEndpoint {
             if (update.deltaMinFixPeriodSec != null) {
                 final Integer periodSec = Integer.valueOf(update.deltaMinFixPeriodSec);
                 bP.setDeltaMinFixPeriodSec(periodSec);
+                resetPreset = false;
 
                 deltaMinService.restartScheduler(periodSec);
                 respDetails = update.deltaMinFixPeriodSec;
@@ -264,7 +267,9 @@ public class BordersEndpoint {
 
         persistenceService.saveBorderParams(bP);
 
-        persistenceService.resetSettingsPreset();
+        if (resetPreset) {
+            persistenceService.resetSettingsPreset();
+        }
 
         return new ResultJson(respDetails, respDetails, bP);
     }

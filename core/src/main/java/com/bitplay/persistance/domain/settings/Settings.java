@@ -209,7 +209,37 @@ public class Settings extends AbstractDocument {
                 : arbScheme;
     }
 
-    public boolean isMovingStopped() {
+    public PlacingType getBitmexPlacingTypeRaw() {
+        return bitmexPlacingType;
+    }
+
+    public PlacingType getOkexPlacingTypeRaw() {
+        return okexPlacingType;
+    }
+
+    public Integer getSignalDelayMsRaw() {
+        return signalDelayMs;
+    }
+
+    public PlacingBlocks getPlacingBlocksRaw() {
+        return placingBlocks;
+    }
+
+    public PosAdjustment getPosAdjustmentRaw() {
+        return posAdjustment;
+    }
+
+    public Boolean getAdjustByNtUsdRaw() {
+        return adjustByNtUsd;
+    }
+
+    public ArbScheme getArbSchemeRaw() {
+        return arbScheme;
+    }
+
+//    @Transient
+//    private Boolean movingStopped;// for UI
+    public boolean flagMovingStopped() {
         return extraFlags.contains(ExtraFlag.STOP_MOVING);
     }
 }
