@@ -2793,6 +2793,7 @@ public class BitmexService extends MarketServicePreliq {
             synchronized (openOrdersLock) {
                 openOrders.add(closeOrder);
             }
+            tradeLogger.info(String.format("#closeAllPos id=%s. %s", order.getId(), order));
 
             tradeResponse.setOrderId(order.getId());
             final String timeStr = String.format("(%d ms)", Duration.between(start, end).toMillis());
@@ -2801,6 +2802,13 @@ public class BitmexService extends MarketServicePreliq {
             // one attempt to close all limit orders
             List<LimitOrder> limitOrders = tradeService.cancelAllOrders();
             updateOpenOrders(limitOrders);
+            if (limitOrders.size() > 0) {
+                final String cancelledOrdersStr = limitOrders.stream()
+                        .map(LimitOrder::toString)
+                        .reduce((acc, item) -> acc + "; " + item)
+                        .orElse("");
+                tradeLogger.info(String.format("#closeAllPos:cancelled %s order(s): %s", limitOrders.size(), cancelledOrdersStr));
+            }
 
         } catch (Exception e) {
             // NOTE: there should not be overloaded(403 response)
@@ -2811,7 +2819,7 @@ public class BitmexService extends MarketServicePreliq {
             final String message = e.getMessage() + timeStr;
             tradeResponse.setErrorCode(tradeResponse.getErrorCode() + message);
 
-            final String logString = String.format("%s closeAllPos: %s", getName(), message);
+            final String logString = String.format("#closeAllPos %s: %s", getName(), message);
             logger.error(logString, e);
             tradeLogger.error(logString, btmContType.getCurrencyPair().toString());
             warningLogger.error(logString);
