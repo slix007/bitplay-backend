@@ -83,7 +83,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
         final LimitOrder limO = (LimitOrder) o;
         return new OrderJson(
-                ord.getCounterName(),
+                ord.getCounterWithPortion(),
                 ord.getOrderId(),
                 o.getStatus() != null ? o.getStatus().toString() : null,
                 o.getCurrencyPair() != null ? o.getCurrencyPair().toString() : "",

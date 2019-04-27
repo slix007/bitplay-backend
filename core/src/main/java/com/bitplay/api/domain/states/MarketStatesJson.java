@@ -32,6 +32,7 @@ public class MarketStatesJson {
     DelayTimerJson preliqDelay;
     SignalPartsJson signalParts;
     PosDiffJson posDiffJson;
+    OrderPortionsJson orderPortionsJson;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;

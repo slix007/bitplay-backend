@@ -87,6 +87,18 @@ public class OkCoinEndpoint {
         return new ResultJson(String.valueOf(cancelResult.isResult()), cancelResult.getDetails());
     }
 
+    @RequestMapping(value = "/open-orders/cancel-all",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public ResultJson openOrdersCancelAll() {
+//        final String id = orderJson.getId();
+//        final OkCoinTradeResult cancelResult = this.okCoin.getBusinessService().cancelOrderSyncFromUi(id, "CancelFromUI");
+        final Integer qty = this.okCoin.getBusinessService().cancelAllPortions();
+        return new ResultJson(qty + "_cancelled", "");
+    }
+
     @RequestMapping(value = "/liq-info", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public LiquidationInfoJson getLiquidationInfo() {
         return this.okCoin.getLiquidationInfoJson();

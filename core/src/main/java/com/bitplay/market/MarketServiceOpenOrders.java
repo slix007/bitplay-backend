@@ -336,13 +336,7 @@ public abstract class MarketServiceOpenOrders {
      */
     private FplayOrder updateOpenOrder(LimitOrder update, FplayOrder stabOrderForNew) {
         if (stabOrderForNew != null) {
-            FplayOrder theUpdate = new FplayOrder(
-                    stabOrderForNew.getTradeId(),
-                    stabOrderForNew.getCounterName(),
-                    update,
-                    stabOrderForNew.getBestQuotes(),
-                    stabOrderForNew.getPlacingType(),
-                    stabOrderForNew.getSignalType());
+            FplayOrder theUpdate = stabOrderForNew.cloneWithUpdate(update);
 
             return this.openOrders.stream()
                     .filter(fplayOrder -> fplayOrder.getOrderId().equals(update.getId()))

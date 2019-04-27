@@ -143,6 +143,16 @@ public class BitmexEndpoint {
         return new ResultJson(String.valueOf(cancelFromUI), "");
     }
 
+    @RequestMapping(value = "/open-orders/cancel-all",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public ResultJson openOrdersCancelAll() {
+        final Integer qty = this.bitmex.getBusinessService().cancelAllPortions();
+        return new ResultJson(qty + "_cancelled", "");
+    }
+
     @RequestMapping(value = "/close-all-pos",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,

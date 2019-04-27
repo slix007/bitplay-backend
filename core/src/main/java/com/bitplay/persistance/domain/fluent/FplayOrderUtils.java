@@ -19,14 +19,8 @@ public class FplayOrderUtils {
                 ? updateLimitOrder(fplayOrder.getLimitOrder(), theUpdate)
                 : theUpdate;
 
-        updated = new FplayOrder(
-                fplayOrder.getTradeId(),
-                fplayOrder.getCounterName(),
-                updatedLimit,
-                fplayOrder.getBestQuotes(),
-                fplayOrder.getPlacingType(),
-                fplayOrder.getSignalType());
-
+        updated = fplayOrder.clone();
+        updated.setOrder(updatedLimit);
 
         return updated;
     }
@@ -46,7 +40,9 @@ public class FplayOrderUtils {
                     limitOrder,
                     exists.getBestQuotes() != null ? exists.getBestQuotes() : update.getBestQuotes(),
                     exists.getPlacingType() != null ? exists.getPlacingType() : update.getPlacingType(),
-                    exists.getSignalType() != null ? exists.getSignalType() : update.getSignalType());
+                    exists.getSignalType() != null ? exists.getSignalType() : update.getSignalType(),
+                    exists.getPortionsQty() != null ? exists.getPortionsQty() : update.getPortionsQty(),
+                    exists.getPortionsQtyMax() != null ? exists.getPortionsQtyMax() : update.getPortionsQtyMax());
 
         } else {
             updated = update;

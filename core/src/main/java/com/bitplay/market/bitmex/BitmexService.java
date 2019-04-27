@@ -937,17 +937,17 @@ public class BitmexService extends MarketServicePreliq {
             // 2. new order
             final LimitOrder placedOrder = tradeResponse.getLimitOrder();
             if (placedOrder != null) {
-                final FplayOrder fplayOrder = new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
-                        placedOrder, openOrder.getBestQuotes(),
-                        placingType, openOrder.getSignalType());
+                final FplayOrder fplayOrder = openOrder.clone();
+                fplayOrder.setOrder(placedOrder);
+                fplayOrder.setPlacingType(placingType);
                 res.add(fplayOrder);
             }
 
             // 3. failed on placing
             for (LimitOrder limitOrder : tradeResponse.getCancelledOrders()) {
-                final FplayOrder fplayOrder = new FplayOrder(openOrder.getTradeId(), openOrder.getCounterName(),
-                        limitOrder, openOrder.getBestQuotes(),
-                        placingType, openOrder.getSignalType());
+                final FplayOrder fplayOrder = openOrder.clone();
+                fplayOrder.setOrder(limitOrder);
+                fplayOrder.setPlacingType(placingType);
                 res.add(fplayOrder);
             }
 
@@ -1499,10 +1499,7 @@ public class BitmexService extends MarketServicePreliq {
                     });
 
             final Long tradeId = arbitrageService.getTradeId();
-            final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, getCounterName(),
-                    null,
-                    null,
-                    null);
+            final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, getCounterName());
             updateOpenOrders(updateOfOpenOrders.getOpenOrders(), fPlayOrderStub); // all there: add/update/remove -> free Market -> write logs
 
             // bitmex specific actions
@@ -1608,8 +1605,8 @@ public class BitmexService extends MarketServicePreliq {
         if (tradeResponse.getCancelledOrders() != null) updates.addAll(tradeResponse.getCancelledOrders());
         if (tradeResponse.getLimitOrder() != null) updates.add(tradeResponse.getLimitOrder());
         final Long tradeId = placeOrderArgs.getTradeId();
-        final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, placeOrderArgs.getCounterName(), placeOrderArgs.getBestQuotes(),
-                placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType());
+        final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, placeOrderArgs.getCounterName(), null, placeOrderArgs.getBestQuotes(),
+                placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType(), placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
         addOpenOrders(updates, fPlayOrderStub);
 
         return tradeResponse;
@@ -1731,7 +1728,8 @@ public class BitmexService extends MarketServicePreliq {
 //                        placeOrderMetrics.durationMs(waitingMarketMs);
 
                         orderId = resultOrder.getId();
-                        final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingType, signalType);
+                        final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
+                                placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
                         orderRepositoryService.save(fplayOrder);
                         if (orderId != null && !orderId.equals("0")) {
                             tradeResponse.setLimitOrder(resultOrder);
@@ -1785,7 +1783,8 @@ public class BitmexService extends MarketServicePreliq {
 
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
-                        final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingType, signalType);
+                        final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
+                                placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
                         orderRepositoryService.save(fplayOrder);
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
                         arbitrageService.getDealPrices().getbPriceFact()
@@ -1950,6 +1949,7 @@ public class BitmexService extends MarketServicePreliq {
         final String contractTypeStr = cntType.getCurrencyPair().toString();
 
         final String counterName = fplayOrder.getCounterName();
+        final String counterWithPortion = fplayOrder.getCounterWithPortion();
         try {
             BigDecimal bestMakerPrice = newPrice.setScale(cntType.getScale(), BigDecimal.ROUND_HALF_UP);
 
@@ -1978,7 +1978,7 @@ public class BitmexService extends MarketServicePreliq {
                 String diffWithSignal = setQuotesForArbLogs(updated.getCounterName(), limitOrder, bestMakerPrice, showDiff);
 
                 final String logString = String.format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s. %s.",
-                        counterName,
+                        counterWithPortion,
                         limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                         limitOrder.getLimitPrice(),
                         bestMakerPrice.toPlainString(),
@@ -2060,7 +2060,7 @@ public class BitmexService extends MarketServicePreliq {
             moveResponse = handler.getMoveResponse();
             // double check  "Invalid ordStatus"
             if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
-                final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), tradeId + ":" + counterName, 1, "Moving:CheckInvOrdStatus:");
+                final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), tradeId + ":" + counterWithPortion, 1, "Moving:CheckInvOrdStatus:");
                 if (orderInfo.isPresent()) {
                     final Order doubleChecked = orderInfo.get();
                     final FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, (LimitOrder) doubleChecked);
@@ -2078,7 +2078,7 @@ public class BitmexService extends MarketServicePreliq {
         } catch (Exception e) {
 
             final String message = e.getMessage();
-            final String logString = String.format("#%s/%s MovingError id=%s: %s", counterName, movingErrorsOverloaded.get(), limitOrder.getId(), message);
+            final String logString = String.format("#%s/%s MovingError id=%s: %s", counterWithPortion, movingErrorsOverloaded.get(), limitOrder.getId(), message);
             logger.error(logString, e);
             tradeLogger.error(logString, contractTypeStr);
             warningLogger.error(logString);

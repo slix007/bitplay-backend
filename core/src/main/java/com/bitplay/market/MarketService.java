@@ -660,9 +660,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                                     this.openOrders.stream()
                                             .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
                                             .findAny()
-                                            .map(fOrd -> new FplayOrder(fOrd.getTradeId(), fOrd.getCounterName(),
-                                                    limitOrder, fOrd.getBestQuotes(), fOrd.getPlacingType(),
-                                                    fOrd.getSignalType()))
+                                            .map(fOrd -> fOrd.cloneWithUpdate(limitOrder))
                                             //TODO fill placingType, signalType
                                             .orElseGet(() -> new FplayOrder(lastTradeId, currCounterName,
                                                     (limitOrder), null, null, null)))

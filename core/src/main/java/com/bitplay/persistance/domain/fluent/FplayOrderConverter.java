@@ -11,6 +11,9 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 public class FplayOrderConverter {
 
     public static OrderDetail convert(Order order) {
+        if (order == null) {
+            return null;
+        }
         final OrderDetail orderDetail = new OrderDetail();
         orderDetail.setId(order.getId());
         orderDetail.setOrderStatus(order.getStatus());

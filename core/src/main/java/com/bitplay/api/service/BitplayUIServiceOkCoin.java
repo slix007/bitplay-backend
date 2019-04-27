@@ -8,7 +8,6 @@ import com.bitplay.api.domain.ob.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
-import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import java.math.BigDecimal;
@@ -54,6 +53,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         return askTrades;
     }
 
+    @SuppressWarnings("Duplicates")
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {
         final BigDecimal amount = new BigDecimal(tradeRequestJson.getAmount());
         Order.OrderType orderType;
@@ -78,10 +78,11 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
 
             final PlacingType placingSubType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
             Long tradeId = service.getArbitrageService().getLastInProgressTradeId();
-            TradeResponse tradeResponse = service.placeOrder(new PlaceOrderArgs(orderType, amount, null, placingSubType,
-                    signalType, 0, tradeId, signalType.getCounterName()));
-            orderId = tradeResponse.getOrderId();
-            details = tradeResponse.getErrorCode();
+            final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, null, placingSubType,
+                    signalType, 0, tradeId, signalType.getCounterName());
+            final TradeResponseJson r = service.placeWithPortions(placeOrderArgs, tradeRequestJson.getPortionsQty());
+            orderId = r.getOrderId();
+            details = (String) r.getDetails();
 
         } catch (Exception e) {
             getBusinessService().getTradeLogger().error("Place taker order error " + e.toString());

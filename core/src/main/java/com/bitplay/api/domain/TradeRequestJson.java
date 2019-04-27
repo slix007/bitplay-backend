@@ -2,6 +2,7 @@ package com.bitplay.api.domain;
 
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -31,6 +32,7 @@ public class TradeRequestJson {
     private PlacementType placementType;
     private String amount;
     private String toolName;
-    private AmountType amountType;
+    private AmountType amountType; // always converted to CONT
+    private BigDecimal portionsQty;
 
 }

@@ -12,7 +12,7 @@ import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
-import com.bitplay.persistance.domain.settings.AmountType;
+import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -71,6 +71,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 : position.getPositionLong().toPlainString();
     }
 
+    @SuppressWarnings("Duplicates")
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {
         final BigDecimal amount = new BigDecimal(tradeRequestJson.getAmount());
         Order.OrderType orderType;
@@ -88,13 +89,21 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 return new TradeResponseJson("Wrong orderType", "Wrong orderType");
 //                throw new IllegalArgumentException("No such order type " + tradeRequestJson.getType());
         }
-        final String toolName = tradeRequestJson.getToolName();
-        final AmountType amountType = tradeRequestJson.getAmountType();
 
         final PlacingType placingType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
-        final TradeResponse tradeResponse = bitmexService.singleOrder(orderType, amount, null, signalType, placingType, toolName, amountType);
 
-        return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
+        final String toolName = tradeRequestJson.getToolName();
+        if (toolName != null && toolName.equals("XBTUSD")) {
+            final TradeResponse tradeResponse = bitmexService.singleOrder(orderType, amount, null, signalType,
+                    placingType, toolName,
+                    tradeRequestJson.getAmountType());
+            return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
+        }
+        // Portions for mainSet orders
+        Long tradeId = bitmexService.getArbitrageService().getLastInProgressTradeId();
+        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, null, placingType,
+                signalType, 0, tradeId, signalType.getCounterName());
+        return bitmexService.placeWithPortions(placeOrderArgs, tradeRequestJson.getPortionsQty());
     }
 
     public FutureIndexJson getFutureIndex() {

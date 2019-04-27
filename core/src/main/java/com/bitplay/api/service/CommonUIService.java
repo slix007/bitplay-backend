@@ -19,6 +19,7 @@ import com.bitplay.api.domain.pos.PosDiffJson;
 import com.bitplay.api.domain.states.DelayTimerBuilder;
 import com.bitplay.api.domain.states.DelayTimerJson;
 import com.bitplay.api.domain.states.MarketStatesJson;
+import com.bitplay.api.domain.states.OrderPortionsJson;
 import com.bitplay.api.domain.states.SignalPartsJson;
 import com.bitplay.api.domain.states.SignalPartsJson.Status;
 import com.bitplay.arbitrage.ArbitrageService;
@@ -357,6 +358,8 @@ public class CommonUIService {
         signalPartsJson.setBtmOrderBookXBTUSD(Utils.isObOk(bitmexService.getOrderBookXBTUSD()) ? Status.OK : Status.WRONG);
         signalPartsJson.setOkOrderBook(Utils.isObOk(okCoinService.getOrderBook()) ? Status.OK : Status.WRONG);
 
+        final OrderPortionsJson orderPortionsJson = new OrderPortionsJson(bitmexService.getPortionsProgress(), okCoinService.getPortionsProgress());
+
         return new MarketStatesJson(
                 btmState.toString(),
                 okState.toString(),
@@ -375,7 +378,8 @@ public class CommonUIService {
                 posAdjustmentDelay,
                 preliqDelay,
                 signalPartsJson,
-                posDiff
+                posDiff,
+                orderPortionsJson
         );
     }
 

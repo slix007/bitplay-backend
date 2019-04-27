@@ -21,7 +21,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @TypeAlias("orders")
 @Data
 @NoArgsConstructor
-public class FplayOrder {
+public class FplayOrder implements Cloneable {
 
     @NotNull
     private String counterName;
@@ -37,15 +37,14 @@ public class FplayOrder {
     private BestQuotes bestQuotes;
     private PlacingType placingType;
     private SignalType signalType;
+    private Integer portionsQty;
+    private Integer portionsQtyMax;
 
     private Long tradeId;
 
-    public FplayOrder(Long tradeId, String counterName, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
+    public FplayOrder(Long tradeId, String counterName) {
         this.tradeId = tradeId;
         this.counterName = counterName;
-        this.bestQuotes = bestQuotes;
-        this.placingType = placingType;
-        this.signalType = signalType;
     }
 
     public FplayOrder(Long tradeId, String counterName, @NotNull Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
@@ -57,6 +56,31 @@ public class FplayOrder {
         this.placingType = placingType;
         this.signalType = signalType;
     }
+
+    public FplayOrder(Long tradeId, String counterName, Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType,
+            Integer portionsQty, Integer portionsQtyMax) {
+        this.tradeId = tradeId;
+        this.counterName = counterName;
+        this.orderId = order != null ? order.getId() : null;
+        this.orderDetail = FplayOrderConverter.convert(order);
+        this.bestQuotes = bestQuotes;
+        this.placingType = placingType;
+        this.signalType = signalType;
+        this.portionsQty = portionsQty;
+        this.portionsQtyMax = portionsQtyMax;
+    }
+
+    @Override
+    public FplayOrder clone() {
+        return new FplayOrder(this.tradeId, this.counterName, this.getOrder(), this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
+                this.portionsQtyMax);
+    }
+
+    public FplayOrder cloneWithUpdate(LimitOrder limitOrder) {
+        return new FplayOrder(this.tradeId, this.counterName, limitOrder, this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
+                this.portionsQtyMax);
+    }
+
 
     public Order getOrder() {
         return FplayOrderConverter.convert(orderDetail);
@@ -89,4 +113,17 @@ public class FplayOrder {
         return orderDetail.getContractType().contains("ETH");
     }
 
+    public String getPortionsStr() {
+        if (portionsQty == null || portionsQtyMax == null) {
+            return "0/0";
+        }
+        return String.format("%s/%s", portionsQty, portionsQtyMax);
+    }
+
+    public String getCounterWithPortion() {
+        if (portionsQty == null || portionsQtyMax == null) {
+            return counterName;
+        }
+        return String.format("%s_portion_%s/%s", counterName, portionsQty, portionsQtyMax);
+    }
 }

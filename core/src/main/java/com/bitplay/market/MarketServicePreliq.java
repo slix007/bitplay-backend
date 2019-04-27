@@ -21,7 +21,7 @@ import org.knowm.xchange.dto.account.Position;
 
 @Getter
 @Slf4j
-public abstract class MarketServicePreliq extends MarketService {
+public abstract class MarketServicePreliq extends MarketServicePortions {
 
     public abstract LimitsService getLimitsService();
 
