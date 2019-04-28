@@ -94,7 +94,7 @@ public abstract class MarketServicePortions extends MarketService {
 
     private List<BigDecimal> defineParts(BigDecimal portionsQty, BigDecimal amount) {
         List<BigDecimal> placingParts = new ArrayList<>();
-        BigDecimal part = amount.divide(portionsQty, 0, RoundingMode.HALF_UP);
+        BigDecimal part = amount.divide(portionsQty, 0, RoundingMode.DOWN);
         if (part.signum() == 0) {
             part = BigDecimal.ONE;
         }
