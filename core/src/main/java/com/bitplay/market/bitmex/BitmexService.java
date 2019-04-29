@@ -1705,7 +1705,7 @@ public class BitmexService extends MarketServicePreliq {
                         if (bitmexPrice != null && bitmexPrice.signum() != 0) {
                             thePrice = bitmexPrice;
                         } else {
-                            thePrice = createNonTakerPrice(orderType, placingType, orderBook, btmContType);
+                            thePrice = createBestPrice(orderType, placingType, orderBook, btmContType);
                         }
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
 

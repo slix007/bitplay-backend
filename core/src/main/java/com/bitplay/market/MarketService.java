@@ -805,7 +805,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public abstract MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice, Object... reqMovingArgs);
 
-    protected BigDecimal createNonTakerPrice(Order.OrderType orderType, PlacingType placingType, OrderBook orderBook, ContractType contractType) {
+    protected BigDecimal createBestPrice(Order.OrderType orderType, PlacingType placingType, OrderBook orderBook, ContractType contractType) {
         BigDecimal tickSize = contractType.getTickSize();
         BigDecimal thePrice;
         if (placingType == PlacingType.MAKER) {
@@ -816,6 +816,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             thePrice = createBestHybridTickPrice(orderType, tickSize, orderBook);
         } else if (placingType == PlacingType.HYBRID) {
             thePrice = createBestHybridPrice(orderType, orderBook);
+        } else if (placingType == PlacingType.TAKER) {
+            thePrice = createBestTakerPrice(orderType, orderBook);
         } else { // placingType == null???
             String msg = String.format("%s PlacingType==%s, use MAKER", getName(), placingType);
 //            warningLogger.warn(msg);
@@ -823,6 +825,10 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             thePrice = createBestMakerPrice(orderType, orderBook);
         }
         return thePrice.setScale(contractType.getScale(), RoundingMode.HALF_UP);
+    }
+
+    protected BigDecimal createBestTakerPrice(Order.OrderType orderType, OrderBook orderBook) {
+        return createBestHybridPrice(orderType, orderBook);
     }
 
     protected BigDecimal createBestMakerPrice(Order.OrderType orderType, OrderBook orderBook) {
@@ -923,24 +929,25 @@ public abstract class MarketService extends MarketServiceOpenOrders {
                 }
             }
 
-            BigDecimal bestPrice = createNonTakerPrice(limitOrder.getType(), fplayOrder.getPlacingType(), orderBook, contractType);
+            BigDecimal bestPrice = createBestPrice(limitOrder.getType(), fplayOrder.getPlacingType(), orderBook, contractType);
 
             if (bestPrice.signum() == 0) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "bestPrice is 0");
 
                 // do not move from ASK1 to ASK2 ==> trigger on ASK and newPrice < oldPrice
                 // do not move from BID1 to BID2 ==> trigger on BID and newPrice > oldPrice
+            } else if (fplayOrder.getPlacingType() == PlacingType.TAKER
+                    && bestPrice.compareTo(limitOrder.getLimitPrice()) != 0) {
+                // move taker
+                response = moveMakerOrder(fplayOrder, bestPrice, reqMovingArgs);
             } else if (
                     ((limitOrder.getType() == Order.OrderType.ASK || limitOrder.getType() == Order.OrderType.EXIT_BID)
                             && bestPrice.compareTo(limitOrder.getLimitPrice()) < 0)
                             ||
                             ((limitOrder.getType() == Order.OrderType.BID || limitOrder.getType() == Order.OrderType.EXIT_ASK)
                                     && bestPrice.compareTo(limitOrder.getLimitPrice()) > 0)
-                    ) {
-//            } else if (limitOrder.getLimitPrice().compareTo(bestPrice) != 0) { // if we need moving
-//                debugLog.info("{} Try to move maker order {} {}, from {} to {}",
-//                        getName(), limitOrder.getId(), limitOrder.getType(),
-//                        limitOrder.getLimitPrice(), bestPrice);
+            ) {
+                // move non-taker
                 response = moveMakerOrder(fplayOrder, bestPrice, reqMovingArgs);
             } else {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
