@@ -26,9 +26,16 @@ public class Utils {
     }
 
     public static boolean isObOk(OrderBook orderBook) {
-        final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
-        final LimitOrder bestBid = Utils.getBestBid(orderBook);
-        return bestBid.compareTo(bestAsk) < 0;
+        try {
+            final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
+            final LimitOrder bestBid = Utils.getBestBid(orderBook);
+            return bestBid.compareTo(bestAsk) < 0;
+        } catch (NotYetInitializedException e) {
+            // do nothing
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     public static LimitOrder getBestBid(OrderBook orderBook) {

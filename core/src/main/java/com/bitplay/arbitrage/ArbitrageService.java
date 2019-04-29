@@ -167,7 +167,6 @@ public class ArbitrageService {
     private final PublishSubject<DeltaChange> deltaChangesPublisher = PublishSubject.create();
     private final Object arbStateLock = new Object();
     private volatile ArbState arbState = ArbState.READY;
-    private volatile ArbState arbStatePrevPreliq = ArbState.READY;
     private volatile Instant startSignalTime = null;
     private volatile Instant lastCalcSumBal = null;
 
@@ -884,11 +883,12 @@ public class ArbitrageService {
 
     private void setArbState(ArbState newState) {
         synchronized (arbStateLock) {
-            arbStatePrevPreliq = arbState;
             log.info("set ArbState." + newState);
             arbState = newState;
-            firstMarketService.setPreliqState();
-            secondMarketService.setPreliqState();
+            if (newState == ArbState.PRELIQ) {
+                firstMarketService.setPreliqState();
+                secondMarketService.setPreliqState();
+            }
         }
     }
 
@@ -898,7 +898,6 @@ public class ArbitrageService {
                 if (firstMarketService.noPreliq() && secondMarketService.noPreliq()) {
                     // do reset
                     arbState = ArbState.READY; // arbStatePrevPreliq != null ? arbStatePrevPreliq : ArbState.READY;
-                    arbStatePrevPreliq = null;
                     log.info("reset ArbState from PRELIQ to " + arbState);
                 }
             }
