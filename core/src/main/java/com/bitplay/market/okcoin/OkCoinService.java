@@ -1260,6 +1260,8 @@ public class OkCoinService extends MarketServicePreliq {
             if (message.contains("connect timed out") // SocketTimeoutException
                     || message.contains("Read timed out") // SocketTimeoutException
                     || message.contains("Signature does not match")
+                    || message.contains("Code: 20018, translation: Order price differ more than 5") // ExchangeException
+                    // Code: 20018, translation: Order price differ more than 5% from the price in the last minute
                     || message.contains("Remote host closed connection during handshake") // javax.net.ssl.SSLHandshakeException
             ) { // ExchangeException
                 return NextStep.CONTINUE;
