@@ -358,7 +358,7 @@ public class CommonUIService {
         signalPartsJson.setBtmOrderBookXBTUSD(Utils.isObOk(bitmexService.getOrderBookXBTUSD()) ? Status.OK : Status.WRONG);
         signalPartsJson.setOkOrderBook(Utils.isObOk(okCoinService.getOrderBook()) ? Status.OK : Status.WRONG);
 
-        final OrderPortionsJson orderPortionsJson = new OrderPortionsJson(bitmexService.getPortionsProgress(), okCoinService.getPortionsProgress());
+        final OrderPortionsJson orderPortionsJson = new OrderPortionsJson(bitmexService.getPortionsProgressForUi(), okCoinService.getPortionsProgressForUi());
 
         return new MarketStatesJson(
                 btmState.toString(),

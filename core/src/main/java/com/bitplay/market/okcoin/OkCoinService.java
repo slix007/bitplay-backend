@@ -92,6 +92,7 @@ import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
+import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.okcoin.OkCoinAdapters;
 import org.knowm.xchange.okcoin.OkCoinUtils;
 import org.knowm.xchange.okcoin.dto.marketdata.OkcoinForecastPrice;
@@ -124,7 +125,6 @@ import si.mazi.rescu.HttpStatusIOException;
 @Service("okcoin")
 public class OkCoinService extends MarketServicePreliq {
 
-    public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
     private static final Logger debugLog = LoggerFactory.getLogger(OkCoinService.class);
 
@@ -751,7 +751,7 @@ public class OkCoinService extends MarketServicePreliq {
                     final Long tradeId = arbitrageService.getTradeId();
                     final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, getCounterName());
                     updateOpenOrders(limitOrders, fPlayOrderStub);
-                }, throwable -> logger.error("TradesObservable.Exception: ", throwable));
+                }, throwable -> logger.error("TradesObservable.Exception: ", throwable)); // TODO placingType is null!!!
     }
 
     private Disposable startPingStatSub() {
@@ -862,8 +862,7 @@ public class OkCoinService extends MarketServicePreliq {
         }
     }
 
-//    boolean testOnce = true;
-    private TradeResponse takerOrder(Long tradeId, Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType,
+    private TradeResponse takerOrder(Long tradeId, Order.OrderType inputOrderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType,
             String counterName, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion)
             throws Exception {
 
@@ -871,7 +870,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         final TradeService tradeService = exchange.getTradeService();
 
-        orderType = adjustOrderType(orderType, amount);
+        final Order.OrderType orderType = adjustOrderType(inputOrderType, amount);
 
         synchronized (openOrdersLock) {
 
@@ -880,11 +879,6 @@ public class OkCoinService extends MarketServicePreliq {
 //            final String orderId = tradeService.placeMarketOrder(marketOrder);
 
             BigDecimal thePrice = createBestTakerPrice(orderType, orderBook);
-
-//            if (testOnce) {
-//                thePrice = createBestPrice(orderType, PlacingType.MAKER, getOrderBook(), getContractType());
-//                testOnce = false;
-//            }
 
             getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
             final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), "123", new Date(), thePrice);
@@ -905,55 +899,48 @@ public class OkCoinService extends MarketServicePreliq {
 //            CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrderTAKER");
 //            placeOrderMetrics.durationMs(waitingMarketMs);
 
-            Order orderInfo = getFinalOrderInfoSync(orderId, counterNameWithPortion, "Taker:FinalStatus:");
-            if (orderInfo == null) {
-                orderInfo = new LimitOrder(limitOrder.getType(), limitOrder.getTradableAmount(), limitOrder.getCurrencyPair(), orderId,
-                        limitOrder.getTimestamp(), limitOrder.getLimitPrice());
-                orderInfo.setOrderStatus(OrderStatus.NEW);
-            }
-
+            LimitOrder orderInfo = TmpAdapter.cloneWithId(limitOrder, orderId);
+            tradeResponse.setLimitOrder(orderInfo);
+            orderInfo.setOrderStatus(OrderStatus.NEW);
             final FplayOrder fPlayOrder = new FplayOrder(tradeId, counterName, orderInfo, bestQuotes, PlacingType.TAKER, signalType,
                     portionsQty, portionsQtyMax);
             addOpenOrder(fPlayOrder);
+
+            // double check. Do we need it?
+            orderInfo = getFinalOrderInfoSync(orderId, counterNameWithPortion, "Taker:FinalStatus:");
+            if (orderInfo == null) {
+                orderInfo = TmpAdapter.cloneWithId(limitOrder, orderId);
+                orderInfo.setOrderStatus(OrderStatus.NEW);
+            }
+
+            tradeResponse.setLimitOrder(orderInfo);
+            updateOpenOrder(orderInfo);
 
             arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
             arbitrageService.getDealPrices().getoPriceFact()
                     .addPriceItem(counterName, orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(), orderInfo.getStatus());
 
-            if (orderInfo.getStatus() != Order.OrderStatus.CANCELED && orderInfo.getStatus() != Order.OrderStatus.FILLED) {
-                throw new ResetToReadyException("Failed to finish the taker-maker id=" + orderId);
-            }
-
-//            if (orderInfo.getStatus() == OrderStatus.NEW) { // 1. Try cancel then
-//                Pair<Boolean, Order> orderPair = cancelOrderWithCheck(orderId, "Taker:Cancel_maker:", "Taker:Cancel_makerStatus:", counterNameWithPortion);
-//
-//                if (orderPair.getSecond().getId().equals("empty")) {
-//                    throw new Exception("Failed to check status of cancelled taker-maker id=" + orderId);
-//                }
-//                orderInfo = orderPair.getSecond();
-//
-//                updateOpenOrder((LimitOrder) orderInfo);
-//                arbitrageService.getDealPrices().getoPriceFact()
-//                        .addPriceItem(counterName, orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(), orderInfo.getStatus());
-//            }
-
             if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
-                tradeResponse.setErrorCode(TAKER_WAS_CANCELLED_MESSAGE);
-                tradeResponse.addCancelledOrder((LimitOrder) orderInfo);
+                tradeResponse.setErrorCode(TradeResponse.TAKER_WAS_CANCELLED_MESSAGE);
+                tradeResponse.addCancelledOrder(orderInfo);
+                tradeResponse.setLimitOrder(null);
                 warningLogger.warn("#{} Order was cancelled. orderId={}", counterNameWithPortion, orderId);
-            } else { //FILLED by any (orderInfo or cancelledOrder)
+            } else if (orderInfo.getStatus() == OrderStatus.FILLED) { //FILLED by any (orderInfo or cancelledOrder)
 
                 writeLogPlaceOrder(orderType, amount, "taker",
                         orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString(), counterNameWithPortion);
 
                 tradeResponse.setOrderId(orderId);
-                tradeResponse.setLimitOrder((LimitOrder) orderInfo);
+                tradeResponse.setLimitOrder(orderInfo);
+            } else { // NEW, PARTIALLY_FILLED
+                tradeResponse.addCancelledOrder(orderInfo);
+                tradeResponse.setErrorCode(TradeResponse.TAKER_BECAME_LIMIT);
+                tradeResponse.setLimitOrder(orderInfo);
             }
         } // openOrdersLock
 
         return tradeResponse;
     }
-
 
     private synchronized void recalcAffordableContracts() {
         final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc2();
@@ -1143,7 +1130,7 @@ public class OkCoinService extends MarketServicePreliq {
                 } else {
                     tradeResponse = takerOrder(tradeId, orderType, amountLeft, bestQuotes, signalType, counterName,
                             placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax(), counterNameWithPortion);
-                    if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
+                    if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TradeResponse.TAKER_WAS_CANCELLED_MESSAGE)) {
                         final BigDecimal filled = tradeResponse.getCancelledOrders().get(0).getCumulativeAmount();
                         amountLeft = amountLeft.subtract(filled);
                         continue;
@@ -1545,7 +1532,7 @@ public class OkCoinService extends MarketServicePreliq {
                 final String logString = String.format("#%s %s %s status=%s,amount=%s/%s,quote=%s/%s,id=%s,lastException=%s",
                         counterWithPortion,
                         "Moving3:Already closed:",
-                        limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                        limitOrder.getType(),
                         cancelledLimitOrder.getStatus(),
                         limitOrder.getTradableAmount(), cancelledLimitOrder.getCumulativeAmount(),
                         limitOrder.getLimitPrice().toPlainString(), cancelledLimitOrder.getAveragePrice(),
@@ -1565,9 +1552,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                 if (tradeResponse.getLimitOrder() != null) {
                     final LimitOrder newOrder = tradeResponse.getLimitOrder();
-                    final FplayOrder newFplayOrder = new FplayOrder(tradeId, counterName, newOrder, cancelledFplayOrd.getBestQuotes(),
-                            cancelledFplayOrd.getPlacingType(), cancelledFplayOrd.getSignalType(), cancelledFplayOrd.getPortionsQty(),
-                            cancelledFplayOrd.getPortionsQtyMax());
+                    final FplayOrder newFplayOrder = cancelledFplayOrd.cloneWithUpdate(newOrder);
                     response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(),
                             newOrder, newFplayOrder, cancelledFplayOrd);
                 } else {
@@ -1630,7 +1615,8 @@ public class OkCoinService extends MarketServicePreliq {
                     Thread.sleep(500 * attemptCount);
                 }
 
-                tradeLogger.info(String.format("#%s/%s Moving3:placingNew a=%s, placingType=%s", counterName, attemptCount, newAmount, placingType));
+                tradeLogger.info(String.format("#%s/%s Moving3:placingNew a=%s, placingType=%s, orderType=%s", counterName, attemptCount, newAmount,
+                        placingType, limitOrder.getType()));
 
                 PlacingType okexPlacingType = placingType;
                 if (okexPlacingType == null) {
@@ -1648,17 +1634,20 @@ public class OkCoinService extends MarketServicePreliq {
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info(String.format("#%s/%s Moving3:Failed %s amount=%s,quote=%s,id=%s,attempt=%s. Error: %s",
                             counterName, attemptCount,
-                            limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                            limitOrder.getType(), //== Order.OrderType.BID ? "BUY" : "SELL"
                             limitOrder.getTradableAmount(),
                             limitOrder.getLimitPrice().toPlainString(),
                             limitOrder.getId(),
                             attemptCount,
                             tradeResponse.getErrorCode()));
                 }
-                if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TAKER_WAS_CANCELLED_MESSAGE)) {
+                if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TradeResponse.TAKER_WAS_CANCELLED_MESSAGE)) {
                     final BigDecimal filled = tradeResponse.getCancelledOrders().get(0).getCumulativeAmount();
                     newAmount = newAmount.subtract(filled);
                     continue;
+                }
+                if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TradeResponse.TAKER_BECAME_LIMIT)) {
+                    break;
                 }
                 if (tradeResponse.getErrorCode() == null) {
                     break;
@@ -1682,9 +1671,9 @@ public class OkCoinService extends MarketServicePreliq {
     /**
      * Loop until status CANCELED or FILLED.
      */
-    private Order getFinalOrderInfoSync(String orderId, String counterName, String logInfoId) {
+    private LimitOrder getFinalOrderInfoSync(String orderId, String counterName, String logInfoId) {
         final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
-        Order result = null;
+        LimitOrder result = null;
         int attemptCount = 0;
         final Instant start = Instant.now();
         while (Duration.between(start, Instant.now()).getSeconds() < MAX_SEC_CHECK_AFTER_TAKER) {
@@ -1694,7 +1683,7 @@ public class OkCoinService extends MarketServicePreliq {
                 Thread.sleep(200);
 
                 final Collection<Order> order = tradeService.getOrder(orderId);
-                result = order.iterator().next();
+                result = (LimitOrder) order.iterator().next();
                 tradeLogger.info(String.format("#%s/%s %s id=%s, status=%s, filled=%s",
                         counterName,
                         attemptCount,

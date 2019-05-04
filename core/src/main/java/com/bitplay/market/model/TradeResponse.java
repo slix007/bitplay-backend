@@ -1,14 +1,16 @@
 package com.bitplay.market.model;
 
-import org.knowm.xchange.dto.trade.LimitOrder;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.knowm.xchange.dto.trade.LimitOrder;
 
 /**
  * Created by Sergey Shurmin on 4/21/17.
  */
 public class TradeResponse {
+
+    public static final String TAKER_BECAME_LIMIT = "Taker became limit";
+    public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
 
     String orderId;
     Object specificResponse;

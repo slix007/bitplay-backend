@@ -56,4 +56,14 @@ public class TmpAdapter {
         return new CurrencyPair(Currency.getInstance(base), Currency.getInstance(counter));
     }
 
+    public static LimitOrder cloneWithId(LimitOrder input, String newId) {
+        return new LimitOrder(
+                input.getType(),
+                input.getTradableAmount(),
+                input.getCurrencyPair(),
+                newId,
+                input.getTimestamp(),
+                input.getLimitPrice());
+    }
+
 }

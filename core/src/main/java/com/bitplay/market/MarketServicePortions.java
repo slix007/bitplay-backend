@@ -9,7 +9,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Collectors;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
 /**
@@ -23,8 +25,13 @@ public abstract class MarketServicePortions extends MarketService {
         return portionsQueue;
     }
 
-    public String getPortionsProgress() {
-        final List<FplayOrder> onlyOpenFplayOrders = getOnlyOpenFplayOrders();
+    public String getPortionsProgressForUi() {
+        final List<FplayOrder> onlyOpenFplayOrders = openOrders == null ? new ArrayList<>()
+                : openOrders.stream()
+                        .filter(Objects::nonNull)
+                        .filter(o -> o.getLimitOrder() != null)
+                        .filter(FplayOrder::isOpen)
+                        .collect(Collectors.toList());
         return onlyOpenFplayOrders.stream()
                 .map(FplayOrder::getPortionsStr)
                 .findFirst()
