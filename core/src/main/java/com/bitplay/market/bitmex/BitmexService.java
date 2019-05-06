@@ -2,7 +2,6 @@ package com.bitplay.market.bitmex;
 
 import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 
-import com.bitplay.api.controller.DebugEndpoints;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
@@ -137,10 +136,12 @@ public class BitmexService extends MarketServicePreliq {
     private volatile boolean isDestroyed = false;
 
     // Moving timeout
-    private volatile ScheduledFuture<?> scheduledMoveInProgressReset;
-    private volatile ScheduledFuture<?> scheduledMovingErrorsReset;
+    private volatile ScheduledFuture<?> movingDelayResetFuture;
+    private volatile boolean movingDelay = false;
+    private volatile ScheduledFuture<?> moveingInProgressResetFuture;
+    private volatile ScheduledFuture<?> movingErrorsResetFuture;
     private volatile boolean movingInProgress = false;
-    private static final int MAX_MOVING_TIMEOUT_SEC = 2;
+    private static final int MAX_MOVING_TIMEOUT_MS = 2000;
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
     private volatile AtomicInteger soAttempts = new AtomicInteger(0);
@@ -427,12 +428,6 @@ public class BitmexService extends MarketServicePreliq {
             currencyToScale.put(bitmexContractTypeXBTUSD.getCurrencyPair(), bitmexContractTypeXBTUSD.getScale());
         }
 
-        scheduledMoveInProgressReset = scheduler.scheduleAtFixedRate(
-                DebugEndpoints::detectDeadlock,
-                5,
-                60,
-                TimeUnit.SECONDS);
-
         this.usdInContract = 1; // not in use for Bitmex.
         this.key = key;
         this.secret = secret;
@@ -708,15 +703,16 @@ public class BitmexService extends MarketServicePreliq {
             return;
         }
 
-        if (movingInProgress) {
+        if (movingInProgress || movingDelay) {
             final String counterForLogs = getCounterName();
-            final String logString = String.format("#%s Too often moving requests.", counterForLogs);
+            final String logString = String.format("#%s Too often moving requests. movingInProgress=%s, movingDelay=%s",
+                    counterForLogs, movingInProgress, movingDelay);
             logger.error(logString);
         }
         movingInProgress = true;
 
         try {
-            scheduledMoveInProgressReset = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_SEC, TimeUnit.SECONDS);
+            scheduleMovingInProgressReset();
 
             Instant startMoving = (iterateArgs != null && iterateArgs.length > 0 && iterateArgs[0] != null)
                     ? (Instant) iterateArgs[0]
@@ -797,6 +793,34 @@ public class BitmexService extends MarketServicePreliq {
         }
     }
 
+    private void scheduleMovingInProgressReset() {
+        if (moveingInProgressResetFuture != null) {
+            moveingInProgressResetFuture.cancel(false);
+        }
+        moveingInProgressResetFuture = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+    }
+
+    private void startMovingDelay() {
+        final int betweenAttemptsMsSafe = settingsRepositoryService.getSettings().getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe();
+        if (movingDelayResetFuture != null) {
+            movingDelayResetFuture.cancel(false);
+        }
+        movingDelay = true;
+        movingDelayResetFuture = scheduler.schedule(() -> movingDelay = false, betweenAttemptsMsSafe, TimeUnit.MILLISECONDS);
+    }
+
+    private void scheduleMovingErrorsReset() {
+        if (movingErrorsResetFuture != null && !movingErrorsResetFuture.isDone()) {
+            return;
+        }
+        movingErrorsResetFuture = scheduler.schedule(() -> {
+                    movingErrorsOverloaded.set(0);
+                    soAttempts.set(0);
+                },
+                MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
+    }
+
+
     private List<FplayOrder> handleMovingResponse(final MoveResponse response, Integer maxAttempts, FplayOrder initialOpenOrder) {
         List<FplayOrder> resultOOList = new ArrayList<>(); // default - the same
         String contractType = initialOpenOrder.getOrderDetail().getContractType();
@@ -875,11 +899,8 @@ public class BitmexService extends MarketServicePreliq {
                     movingErrorsOverloaded.set(0);
                     soAttempts.set(0);
                 } else {
-                    scheduledMoveInProgressReset = scheduler.schedule(() -> {
-                                movingErrorsOverloaded.set(0);
-                                soAttempts.set(0);
-                            },
-                            MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
+                    startMovingDelay();
+                    scheduleMovingErrorsReset();
                 }
                 resultOOList.add(initialOpenOrder); // keep the same
 
@@ -951,11 +972,7 @@ public class BitmexService extends MarketServicePreliq {
                 res.add(fplayOrder);
             }
 
-            scheduledMoveInProgressReset = scheduler.schedule(() -> {
-                        movingErrorsOverloaded.set(0);
-                        soAttempts.set(0);
-                    },
-                    MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC, TimeUnit.SECONDS);
+            scheduleMovingErrorsReset();
         } // end PLACE ORDER instead of cancelled on moving.
 
         return res;
@@ -1829,7 +1846,7 @@ public class BitmexService extends MarketServicePreliq {
                     final MoveResponse.MoveOrderStatus placeOrderStatus = handler.getMoveResponse().getMoveOrderStatus();
                     if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == placeOrderStatus) {
                         if (attemptCount < maxAttempts) {
-//                            Thread.sleep(200);
+                            Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
                         } else {
                             setOverloaded(null, true);
                             nextMarketState = MarketState.SYSTEM_OVERLOADED;
@@ -2417,12 +2434,12 @@ public class BitmexService extends MarketServicePreliq {
         return isOk;
     }
 
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
+    private final ScheduledExecutorService preliqScheduler = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("bitmex-preliq-thread-%d").build());
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
-        scheduler.scheduleWithFixedDelay(() -> {
+        preliqScheduler.scheduleWithFixedDelay(() -> {
             try {
                 checkForDecreasePosition();
             } catch (Exception e) {

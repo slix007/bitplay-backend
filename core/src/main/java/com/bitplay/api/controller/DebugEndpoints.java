@@ -9,6 +9,7 @@ import com.bitplay.market.okcoin.OOHangedCheckerService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.domain.mon.Mon;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
@@ -18,6 +19,11 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.bitmex.dto.BitmexXRateLimit;
 import org.slf4j.Logger;
@@ -55,6 +61,16 @@ public class DebugEndpoints {
 
     @Autowired
     private MonitoringDataService monitoringDataService;
+
+    private ScheduledExecutorService scheduler;
+    private volatile ScheduledFuture<?> deadlockCheckerFuture;
+
+    @PostConstruct
+    public void init() {
+        scheduler = Executors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder().setNameFormat("detectdeadlock-scheduler-%d").build());
+        deadlockCheckerFuture = scheduler.scheduleAtFixedRate(DebugEndpoints::detectDeadlock, 5, 60, TimeUnit.SECONDS);
+    }
 
     @RequestMapping(value = "/full-restart", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResultJson fullRestart() throws IOException {
@@ -187,17 +203,23 @@ public class DebugEndpoints {
 
 
     public static ResultJson detectDeadlock() {
-        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
-        long[] threadIds = threadBean.findDeadlockedThreads();
-        int deadlockedThreads = (threadIds != null ? threadIds.length : 0);
-        final String deadlocksMsg = "Number of deadlocked threads: " + deadlockedThreads;
+        String deadlocksMsg = "";
+        int deadlockedThreads = 0;
+        try {
+            ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+            long[] threadIds = threadBean.findDeadlockedThreads();
+            deadlockedThreads = (threadIds != null ? threadIds.length : 0);
+            deadlocksMsg = "Number of deadlocked threads: " + deadlockedThreads;
 
-        if (deadlockedThreads > 0) {
-            log.info(deadlocksMsg);
-            warningLogger.info(deadlocksMsg);
+            if (deadlockedThreads > 0) {
+                log.info(deadlocksMsg);
+                warningLogger.info(deadlocksMsg);
 
-            ThreadInfo[] threadInfos = threadBean.getThreadInfo(threadIds);
-            handleDeadlock(threadInfos);
+                ThreadInfo[] threadInfos = threadBean.getThreadInfo(threadIds);
+                handleDeadlock(threadInfos);
+            }
+        } catch (Exception e) {
+            log.error("detectDeadlock error", e);
         }
         return new ResultJson(String.valueOf(deadlockedThreads), deadlocksMsg);
     }

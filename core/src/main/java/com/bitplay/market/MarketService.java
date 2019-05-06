@@ -93,7 +93,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected final DelayTimer dtPreliq = new DelayTimer();
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3,
-            new ThreadFactoryBuilder().setNameFormat(getName() + "-scheduler-%d").build());
+            new ThreadFactoryBuilder().setNameFormat(getName() + "-overload-scheduler-%d").build());
     protected final Scheduler obSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-ob-executor-%d").build()));
     protected final Scheduler ooSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(

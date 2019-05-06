@@ -159,6 +159,9 @@ public class SettingsEndpoint {
             if (settingsUpdate.getBitmexSysOverloadArgs().getOverloadTimeSec() != null) {
                 refToUpdate.setOverloadTimeSec(settingsUpdate.getBitmexSysOverloadArgs().getOverloadTimeSec());
             }
+            if (settingsUpdate.getBitmexSysOverloadArgs().getBetweenAttemptsMs() != null) {
+                refToUpdate.setBetweenAttemptsMs(settingsUpdate.getBitmexSysOverloadArgs().getBetweenAttemptsMs());
+            }
 
             settingsRepositoryService.saveSettings(settings);
         }
