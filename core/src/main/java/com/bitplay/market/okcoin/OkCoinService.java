@@ -92,7 +92,6 @@ import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
-import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.okcoin.OkCoinAdapters;
 import org.knowm.xchange.okcoin.OkCoinUtils;
 import org.knowm.xchange.okcoin.dto.marketdata.OkcoinForecastPrice;
@@ -414,12 +413,14 @@ public class OkCoinService extends MarketServicePreliq {
         // Retry on disconnect. (It's disconneced each 5 min)
         onDisconnectHook = exchange.onDisconnect()
                 .doOnComplete(() -> {
+                    ifDisconnetedString += " okex disconnected at " + LocalTime.now();
                     if (!shutdown) {
-                        ifDisconnetedString += " okex disconnected at " + LocalTime.now();
                         logger.warn("onClientDisconnect okCoinService");
                         initWebSocketAndAllSubscribers();
+                        logger.info("Exchange Reconnect finished");
+                    } else {
+                        logger.info("Exchange Disconnect finished");
                     }
-                    logger.info("Exchange Disconnect finished");
                 })
                 .subscribe();
     }
@@ -494,6 +495,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     @PreDestroy
     public void preDestroy() {
+        logger.info("OkCoinService preDestroy");
         shutdown = true;
 
         deferredPlacingOrdersListener.dispose();

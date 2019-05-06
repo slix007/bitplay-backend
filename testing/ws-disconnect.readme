@@ -1,0 +1,23 @@
+## Source: https://superuser.com/questions/127863/manually-closing-a-port-from-commandline
+
+# Find the pid of the process. for the "wss://real.okex.com:10442/ws/v3"
+sudo netstat -np | grep 10442
+
+export pid=
+
+# locate the the socket's file descriptor in the process
+lsof -np $pid | grep 10442
+
+# You get a list: process name, pid, user,fileDescriptor, ... a connection string.
+# !Locate the matching fileDescriptor number for the connection.
+
+# Now connect the process:
+sudo gdb -p $pid
+
+# Now close the socket:
+call close($fileDescritor)
+# quit to  Resume the program
+quit
+
+
+

@@ -6,6 +6,8 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
 
+import javax.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
@@ -19,6 +21,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 /**
  * Created by Sergey Shurmin on 6/17/17.
  */
+@Slf4j
 @Configuration
 @EnableMongoRepositories(basePackageClasses = RepositoryPackage.class)
 @EnableMongoAuditing
@@ -33,6 +36,12 @@ public class SpringMongoConfig extends AbstractMongoConfiguration {
 //    public AuditorAware<String> mongoAuditProvider() {
 //        return new DefaultAuditor();
 //    }
+
+    @PreDestroy
+    public void shutdown() {
+        log.info("Closing mongo.");
+        mongo().close();
+    }
 
     @Override
     protected String getDatabaseName() {
