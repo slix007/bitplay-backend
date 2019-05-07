@@ -2123,8 +2123,6 @@ public class BitmexService extends MarketServicePreliq {
             final HttpStatusIOException exception = new HttpStatusIOException("system overloaded", invocationResult);
             exception.setResponseHeaders(new HashMap<>());
 
-            Thread.sleep(1000);
-
             throw exception;
         }
     }
