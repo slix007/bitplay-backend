@@ -1760,10 +1760,14 @@ public class BitmexService extends MarketServicePreliq {
                             if (cancelledCount == 5) {
                                 tradeLogger.info("CANCELED more 4 in a row", contractTypeStr);
                             }
-                            if (cancelledCount % 20 == 0) {
-                                tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
-                                requestReconnect(true);
-                            }
+//                            if (cancelledCount % 20 == 0) {
+//                                tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
+//                                requestReconnect(true);
+//                            }
+                            final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
+                            String msg = String.format("xRateLimit=%s(updated=%s).", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
+                            logger.info(msg);
+                            tradeLogger.info(msg);
 
                             tradeResponse.addCancelledOrder(resultOrder);
                             tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
@@ -2020,10 +2024,15 @@ public class BitmexService extends MarketServicePreliq {
                     if (cancelledCount == 5) {
                         tradeLogger.info("CANCELED more 4 in a row", contractTypeStr);
                     }
-                    if (cancelledCount % 20 == 0) {
-                        tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
-                        requestReconnect(true);
-                    }
+//                    if (cancelledCount % 20 == 0) {
+//                        tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
+//                        requestReconnect(true);
+//                    }
+                    final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
+                    String msg = String.format("xRateLimit=%s(updated=%s).", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
+                    logger.info(msg);
+                    tradeLogger.info(msg);
+
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
                 } else {
                     cancelledInRow.set(0);
