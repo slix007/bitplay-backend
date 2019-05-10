@@ -165,6 +165,7 @@ public class SettingsPresetRepositoryService {
         s.setArbScheme(p.getArbSchemeRaw());
         s.setBitmexSysOverloadArgs(p.getBitmexSysOverloadArgs());
         s.setOkexSysOverloadArgs(p.getOkexSysOverloadArgs());
+        s.setOkexPostOnlyArgs(p.getOkexPostOnlyArgs());
         s.setBitmexPlacingType(p.getBitmexPlacingTypeRaw());
         s.setOkexPlacingType(p.getOkexPlacingTypeRaw());
 //        s.setBitmexPrice(); - excluded

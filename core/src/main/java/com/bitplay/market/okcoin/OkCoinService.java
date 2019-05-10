@@ -45,6 +45,7 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
+import com.bitplay.persistance.domain.settings.OkexPostOnlyArgs;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.utils.Utils;
@@ -1318,7 +1319,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     private TradeResponse placeNonTakerOrder(Long tradeId, Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
             boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName,
-            boolean pricePlanOnStart, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion) throws IOException {
+            boolean pricePlanOnStart, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion) throws Exception {
         final TradeResponse tradeResponse = new TradeResponse();
 
         BigDecimal thePrice;
@@ -1342,28 +1343,32 @@ public class OkCoinService extends MarketServicePreliq {
             }
 
             int attempt = 0;
-            int maxAttempts = 5;
+            int maxAttempts = settingsRepositoryService.getSettings().getOkexPostOnlyArgs().getPostOnlyAttempts();
             while (attempt++ < maxAttempts) {
-//                if (attempt > 1) {
-                tradeLogger.info("getOrderBook timestamp=" + getOrderBook().getTimeStamp().toInstant());
-//                }
-                thePrice = createBestPrice(orderType, placingSubType, getOrderBook(), getContractType());
+                final OkexPostOnlyArgs poArgs = settingsRepositoryService.getSettings().getOkexPostOnlyArgs();
+                maxAttempts = poArgs.getPostOnlyAttempts();
+                if (attempt > 1 && poArgs.getPostOnlyBetweenAttemptsMs() > 0) {
+                    Thread.sleep(poArgs.getPostOnlyBetweenAttemptsMs());
+                }
+
+                final OrderBook orderBook = getOrderBook();
+                tradeLogger.info(String.format("#%s/%s getOrderBook timestamp=%s",
+                        counterNameWithPortion, attempt, orderBook.getTimeStamp().toInstant()));
+                thePrice = createBestPrice(orderType, placingSubType, orderBook, getContractType());
 
                 if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
                     tradeResponse.setErrorCode("The new price is 0 ");
                 } else {
 
                     final Instant startReq = Instant.now();
-//                final LimitOrder toPlace = new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), "0", new Date(), thePrice);
-//                final String orderId = exchange.getTradeService().placeLimitOrder(
-//                        toPlace);
                     final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
-                    FuturesOrderTypeEnum futuresOrderType = placingSubType == PlacingType.MAKER || placingSubType == PlacingType.MAKER_TICK
-                            ? FuturesOrderTypeEnum.POST_ONLY
-                            : FuturesOrderTypeEnum.NORMAL_LIMIT;
-//                    if (attempt == maxAttempts) {
-//                        futuresOrderType = FuturesOrderTypeEnum.NORMAL_LIMIT;
-//                    }
+                    FuturesOrderTypeEnum futuresOrderType = FuturesOrderTypeEnum.NORMAL_LIMIT;
+                    if (placingSubType == PlacingType.MAKER || placingSubType == PlacingType.MAKER_TICK) {
+                        final boolean theLastAndExcepted = (attempt == maxAttempts && poArgs.getPostOnlyWithoutLast());
+                        if (poArgs.getPostOnlyEnabled() && !theLastAndExcepted) {
+                            futuresOrderType = FuturesOrderTypeEnum.POST_ONLY;
+                        }
+                    }
                     final OrderResult orderResult = bitplayOkexEchange.getTradeApiService().order(
                             new LimitOrderToOrderConverter().createOrder(
                                     instrumentDto.getInstrumentId(),
@@ -1429,7 +1434,7 @@ public class OkCoinService extends MarketServicePreliq {
                             placingTypeString,
                             thePrice, orderId,
                             (resultOrder.getStatus() != null) ? resultOrder.getStatus().toString() : null,
-                            counterNameWithPortion);
+                            counterNameWithPortion + "/" + attempt);
 
                     if (!postOnlyCnl) {
                         break;

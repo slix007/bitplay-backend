@@ -37,6 +37,7 @@ public class Settings extends AbstractDocument {
     private ArbScheme arbScheme;
     private SysOverloadArgs bitmexSysOverloadArgs;
     private SysOverloadArgs okexSysOverloadArgs;
+    private OkexPostOnlyArgs okexPostOnlyArgs;
     private PlacingType bitmexPlacingType;
     private PlacingType okexPlacingType;
     private BigDecimal bitmexPrice;
@@ -94,6 +95,7 @@ public class Settings extends AbstractDocument {
         settings.arbScheme = ArbScheme.SIM;
         settings.bitmexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexSysOverloadArgs = SysOverloadArgs.defaults();
+        settings.okexPostOnlyArgs = OkexPostOnlyArgs.defaults();
         settings.okexPlacingType = PlacingType.TAKER;
         settings.placingBlocks = PlacingBlocks.createDefault();
         settings.posAdjustment = PosAdjustment.createDefault();
