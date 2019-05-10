@@ -212,7 +212,7 @@
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %msg %xEx%n</pattern>
         </encoder>
     </appender>
 
@@ -264,6 +264,10 @@
 
     <!-- Logging all REST api requests -->
     <logger name="si.mazi.rescu" level="trace" additivity="false">
+        <appender-ref ref="HTTP_APPENDER"/>
+    </logger>
+    <!-- Logging all REST api requests -->
+    <logger name="com.bitplay.okex.v3" level="trace" additivity="false">
         <appender-ref ref="HTTP_APPENDER"/>
     </logger>
 

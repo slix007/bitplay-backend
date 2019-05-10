@@ -24,6 +24,8 @@
         <module>core</module>
         <module>xchange-bitmex</module>
         <module>xchange-bitmex-stream</module>
+        <module>bitplay-model</module>
+        <module>bitplay-okex-v3</module>
     </modules>
     <packaging>pom</packaging>
 

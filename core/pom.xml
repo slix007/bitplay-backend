@@ -20,6 +20,7 @@
         <xchange-stream.version>4.3.16-bts-SNAPSHOT</xchange-stream.version>
         <xchange.version>4.2.2-bts-SNAPSHOT</xchange.version>
         <micrometer.version>1.1.4</micrometer.version>
+        <bitplay.version>0.0.1-SNAPSHOT</bitplay.version>
     </properties>
 
     <dependencies>
@@ -110,13 +111,23 @@
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-bitmex</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>${bitplay.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.knowm.xchange</groupId>
                     <artifactId>xchange-core</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.bitplay</groupId>
+            <artifactId>bitplay-okex-v3</artifactId>
+            <version>${bitplay.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bitplay</groupId>
+            <artifactId>bitplay-model</artifactId>
+            <version>${bitplay.version}</version>
         </dependency>
 
         <!-- Streaming xchange-stream -->
@@ -165,7 +176,7 @@
         <dependency>
             <groupId>com.bitplay</groupId>
             <artifactId>xchange-bitmex-stream</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>${bitplay.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.knowm.xchange</groupId>

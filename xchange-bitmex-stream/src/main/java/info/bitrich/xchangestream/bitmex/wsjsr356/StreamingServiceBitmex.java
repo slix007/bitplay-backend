@@ -139,7 +139,7 @@ public class StreamingServiceBitmex {
                     .subscribe(aLong -> {
 
                         synchronized (pingLock) {
-                            log.info(currentIter + " ping-pong start");
+//                            log.info(currentIter + " ping-pong start");
                             msgHandler.setWaitingForPong();
                             Instant start = Instant.now();
 
