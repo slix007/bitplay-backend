@@ -10,14 +10,14 @@ public class SysOverloadArgs {
 
     private Integer placeAttempts;
     private Integer movingErrorsForOverload;
-    private Integer overloadTimeSec;
+    private Integer overloadTimeMs;
     private Integer betweenAttemptsMs;
 
     public static SysOverloadArgs defaults() {
         final SysOverloadArgs newObj = new SysOverloadArgs();
         newObj.placeAttempts = 3;
         newObj.movingErrorsForOverload = 3;
-        newObj.overloadTimeSec = 60;
+        newObj.overloadTimeMs = 60000;
         newObj.betweenAttemptsMs = 500;
         return newObj;
     }

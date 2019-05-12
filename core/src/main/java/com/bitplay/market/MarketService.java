@@ -364,7 +364,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         final SysOverloadArgs sysOverloadArgs = getPersistenceService().getSettingsRepositoryService()
                 .getSettings().getBitmexSysOverloadArgs();
 
-        scheduledOverloadReset = scheduler.schedule(this::resetOverloadCycled, sysOverloadArgs.getOverloadTimeSec(), TimeUnit.SECONDS);
+        scheduledOverloadReset = scheduler.schedule(this::resetOverloadCycled, sysOverloadArgs.getOverloadTimeMs(), TimeUnit.MILLISECONDS);
     }
 
     protected abstract void postOverload();
