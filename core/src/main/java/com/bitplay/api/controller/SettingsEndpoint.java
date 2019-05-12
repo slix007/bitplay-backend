@@ -156,8 +156,8 @@ public class SettingsEndpoint {
             if (settingsUpdate.getBitmexSysOverloadArgs().getMovingErrorsForOverload() != null) {
                 refToUpdate.setMovingErrorsForOverload(settingsUpdate.getBitmexSysOverloadArgs().getMovingErrorsForOverload());
             }
-            if (settingsUpdate.getBitmexSysOverloadArgs().getOverloadTimeSec() != null) {
-                refToUpdate.setOverloadTimeSec(settingsUpdate.getBitmexSysOverloadArgs().getOverloadTimeSec());
+            if (settingsUpdate.getBitmexSysOverloadArgs().getOverloadTimeMs() != null) {
+                refToUpdate.setOverloadTimeMs(settingsUpdate.getBitmexSysOverloadArgs().getOverloadTimeMs());
             }
             if (settingsUpdate.getBitmexSysOverloadArgs().getBetweenAttemptsMs() != null) {
                 refToUpdate.setBetweenAttemptsMs(settingsUpdate.getBitmexSysOverloadArgs().getBetweenAttemptsMs());
@@ -173,8 +173,8 @@ public class SettingsEndpoint {
             if (settingsUpdate.getOkexSysOverloadArgs().getMovingErrorsForOverload() != null) {
                 refToUpdate.setMovingErrorsForOverload(settingsUpdate.getOkexSysOverloadArgs().getMovingErrorsForOverload());
             }
-            if (settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeSec() != null) {
-                refToUpdate.setOverloadTimeSec(settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeSec());
+            if (settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeMs() != null) {
+                refToUpdate.setOverloadTimeMs(settingsUpdate.getOkexSysOverloadArgs().getOverloadTimeMs());
             }
 
             settingsRepositoryService.saveSettings(settings);
