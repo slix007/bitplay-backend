@@ -27,7 +27,6 @@ import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import io.reactivex.Observable;
 import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -50,7 +49,6 @@ import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
@@ -58,7 +56,6 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
-import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +76,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     protected volatile OrderBook orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected final Object orderBookLock = new Object();
     protected final Object orderBookForPriceLock = new Object();
-    protected volatile AccountInfo accountInfo = null;
     protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
     protected volatile Position position = new Position(null, null, null, BigDecimal.ZERO, "");
     protected volatile Position positionXBTUSD = new Position(null, null, null, BigDecimal.ZERO, "");
@@ -117,7 +113,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     private volatile SpecialFlags specialFlags = SpecialFlags.NONE;
     protected EventBus eventBus = new EventBus();
-    protected volatile LiqInfo liqInfo = new LiqInfo();
+    protected final LiqInfo liqInfo = new LiqInfo();
 
     Disposable openOrdersMovingSubscription;
 
@@ -534,29 +530,33 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public abstract PosDiffService getPosDiffService();
 
-    public AccountInfo getAccountInfo() {
-        return accountInfo;
+    public synchronized boolean accountInfoIsReady() {
+        return accountInfoContracts != null;
     }
 
-    public void setAccountInfo(AccountInfo accountInfo) {
-        this.accountInfo = accountInfo;
-    }
-
+    /**
+     * use only inside 'synchronized'.
+     */
     public AccountInfoContracts getAccountInfoContracts() {
         return accountInfoContracts;
     }
 
-    public FullBalance calcFullBalance() {
+    public synchronized FullBalance calcFullBalance() {
+//        final Position position = getPosition();
+//        final OrderBook orderBook = getOrderBook();
+//        final OrderBook orderBookXBTUSD = getOrderBookXBTUSD();
+//        final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
+//        final Position positionXBTUSD = getPositionXBTUSD();
         return getBalanceService().recalcAndGetAccountInfo(accountInfoContracts, position, orderBook, getContractType(),
                 positionXBTUSD, orderBookXBTUSD);
     }
 
-    public Position getPosition() {
-        return position;
+    public synchronized Position getPosition() {
+        return Utils.clonePosition(position);
     }
 
-    public Position getPositionXBTUSD() {
-        return positionXBTUSD;
+    public synchronized Position getPositionXBTUSD() {
+        return Utils.clonePosition(positionXBTUSD);
     }
 
     public ContractIndex getContractIndex() {
@@ -575,11 +575,11 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return btcContractIndex;
     }
 
-    public LiqInfo getLiqInfo() {
-        return liqInfo;
+    public synchronized LiqInfo getLiqInfo() {
+        return liqInfo.clone();
     }
 
-    protected void loadLiqParams() {
+    protected synchronized void loadLiqParams() {
         LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
         if (liqParams == null) {
             liqParams = new LiqParams();
@@ -591,7 +591,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         getPersistenceService().saveLiqParams(liqInfo.getLiqParams(), getName());
     }
 
-    public void resetLiqInfo() {
+    public synchronized void resetLiqInfo() {
         liqInfo.getLiqParams().setDqlMin(BigDecimal.valueOf(10000));
         liqInfo.getLiqParams().setDqlMax(BigDecimal.valueOf(-10000));
         liqInfo.getLiqParams().setDmrlMin(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(10000));
@@ -969,31 +969,6 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     protected abstract Exchange getExchange();
-
-    protected Observable<AccountInfo> createAccountInfoObservable() {
-        return Observable.<AccountInfo>create(observableOnSubscribe -> {
-            while (!observableOnSubscribe.isDisposed()) {
-                boolean noSleep = false;
-                try {
-                    accountInfo = getExchange().getAccountService().getAccountInfo();
-                    observableOnSubscribe.onNext(accountInfo);
-                } catch (ExchangeException e) {
-                    if (e.getMessage().startsWith("Nonce must be greater than")) {
-                        noSleep = true;
-                        logger.warn(e.getMessage());
-                    } else {
-                        observableOnSubscribe.onError(e);
-                    }
-                }
-
-                if (noSleep) {
-                    sleep(10);
-                } else {
-                    sleep(2000);
-                }
-            }
-        }).share();
-    }
 
     private boolean isMovingStopped() {
         final boolean flagMovingStopped = getPersistenceService().getSettingsRepositoryService().getSettings().flagMovingStopped();

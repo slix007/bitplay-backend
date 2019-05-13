@@ -23,6 +23,7 @@ import com.bitplay.market.MarketState;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.PlacingType;
@@ -589,7 +590,7 @@ public class OkCoinService extends MarketServicePreliq {
                 .getFuturesPosition(
                         OkCoinAdapters.adaptSymbol(okexContractType.getCurrencyPair()),
                         okexContractType.getFuturesContract());
-        mergePosition(positionResult, null);
+        final Position position = mergePosition(positionResult, null);
 
         recalcAffordableContracts();
         recalcLiqInfo();
@@ -617,7 +618,7 @@ public class OkCoinService extends MarketServicePreliq {
         mergeAccountInfoContracts(accountInfoContracts);
     }
 
-    private synchronized void mergePosition(OkCoinPositionResult restUpdate, Position websocketUpdate) {
+    private synchronized Position mergePosition(OkCoinPositionResult restUpdate, Position websocketUpdate) {
         if (restUpdate != null) {
             if (restUpdate.getPositions().length > 1) {
                 final String counterForLogs = getCounterName();
@@ -669,6 +670,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         }
 
+        return position;
     }
 
     private BigDecimal convertLiqPrice(String forceLiquPrice) {
@@ -683,7 +685,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @SuppressWarnings("Duplicates")
-    private void mergeAccountInfoContracts(AccountInfoContracts newInfo) {
+    private synchronized void mergeAccountInfoContracts(AccountInfoContracts newInfo) {
         AccountInfoContracts current = this.accountInfoContracts;
         logger.debug("AccountInfo.Websocket: " + current.toString());
 
@@ -732,24 +734,29 @@ public class OkCoinService extends MarketServicePreliq {
 //                    AccountInfoContracts newInfo = new AccountInfoContracts();
 //                    BeanUtils.copyProperties(userAccountInfo, newInfo);
 //                    mergeAccountInfoContracts(newInfo);
-                    AccountInfoContracts current = this.accountInfoContracts;
-                    logger.debug("AccountInfo.Websocket: " + current.toString());
 
-                    BigDecimal eLast = newInfo.geteLast() != null ? newInfo.geteLast() : current.geteLast();
-                    this.accountInfoContracts = new AccountInfoContracts(
-                            newInfo.getWallet() != null ? newInfo.getWallet() : current.getWallet(),
-                            newInfo.getAvailable() != null ? newInfo.getAvailable() : current.getAvailable(),
-                            eLast,
-                            eLast,
-                            BigDecimal.ZERO,
-                            BigDecimal.ZERO,
-                            newInfo.getMargin() != null ? newInfo.getMargin() : current.getMargin(),
-                            newInfo.getUpl() != null ? newInfo.getUpl() : current.getUpl(),
-                            newInfo.getRpl() != null ? newInfo.getRpl() : current.getRpl(),
-                            newInfo.getRiskRate() != null ? newInfo.getRiskRate() : current.getRiskRate()
-                    );
+                    mergeAccountInfoContracts(newInfo);
 
                 }, throwable -> logger.error("AccountInfoObservable.Exception: ", throwable));
+    }
+
+    private synchronized void mergeAccountInfoContracts(info.bitrich.xchangestream.core.dto.AccountInfoContracts newInfo) {
+        AccountInfoContracts current = this.accountInfoContracts;
+        logger.debug("AccountInfo.Websocket: " + current.toString());
+
+        BigDecimal eLast = newInfo.geteLast() != null ? newInfo.geteLast() : current.geteLast();
+        this.accountInfoContracts = new AccountInfoContracts(
+                newInfo.getWallet() != null ? newInfo.getWallet() : current.getWallet(),
+                newInfo.getAvailable() != null ? newInfo.getAvailable() : current.getAvailable(),
+                eLast,
+                eLast,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                newInfo.getMargin() != null ? newInfo.getMargin() : current.getMargin(),
+                newInfo.getUpl() != null ? newInfo.getUpl() : current.getUpl(),
+                newInfo.getRpl() != null ? newInfo.getRpl() : current.getRpl(),
+                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : current.getRiskRate()
+        );
     }
 
     private Disposable startUserOrderSub() {
@@ -1503,11 +1510,12 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private Order.OrderType adjustOrderType(Order.OrderType orderType, BigDecimal tradeableAmount) {
-        BigDecimal pLongBalance = (this.position != null && this.position.getPositionLong() != null)
-                ? this.position.getPositionLong()
+        final Position position = getPosition();
+        BigDecimal pLongBalance = (position != null && position.getPositionLong() != null)
+                ? position.getPositionLong()
                 : BigDecimal.ZERO;
-        BigDecimal pShortBalance = (this.position != null && this.position.getPositionShort() != null)
-                ? this.position.getPositionShort()
+        BigDecimal pShortBalance = (position != null && position.getPositionShort() != null)
+                ? position.getPositionShort()
                 : BigDecimal.ZERO;
         Order.OrderType newOrderType = orderType;
         if (orderType == Order.OrderType.BID) { // buy - long
@@ -2072,6 +2080,8 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
         final BigDecimal oDQLOpenMin = persistenceService.fetchGuiLiqParams().getODQLOpenMin();
+        final Position position = getPosition();
+        final LiqInfo liqInfo = getLiqInfo();
 
         boolean isOk;
 
@@ -2346,6 +2356,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
         final CurrencyPair currencyPair = okexContractType.getCurrencyPair();
+        final Position position = getPosition();
 
         final String counterForLogs = "closeAllPos";
         final String logInfoId = "closeAllPos:cancel";

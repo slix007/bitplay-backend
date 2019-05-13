@@ -26,6 +26,7 @@ import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -606,7 +607,7 @@ public class BitmexService extends MarketServicePreliq {
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
             logger.warn("WARNING: no position fetch: SYSTEM_OVERLOADED");
             warningLogger.warn("WARNING: no position fetch: SYSTEM_OVERLOADED");
-            return BitmexUtils.positionToString(position);
+            return BitmexUtils.positionToString(getPosition());
         }
         final Position pUpdate;
         try {
@@ -2316,6 +2317,7 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public String getPositionAsString() {
+        final Position position = getPosition();
         return position != null ? position.getPositionLong().toPlainString() : "0";
     }
 
@@ -2414,6 +2416,8 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
         final BigDecimal bDQLOpenMin = persistenceService.fetchGuiLiqParams().getBDQLOpenMin();
+        final Position position = getPosition();
+        final LiqInfo liqInfo = getLiqInfo();
 
         boolean isOk;
         if (liqInfo.getDqlCurr() == null) {

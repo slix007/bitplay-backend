@@ -2,7 +2,9 @@ package com.bitplay.market.model;
 
 import com.bitplay.persistance.domain.LiqParams;
 import java.math.BigDecimal;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -10,6 +12,8 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class LiqInfo {
 
     public static final BigDecimal DQL_WRONG = BigDecimal.valueOf(-100);
@@ -28,4 +32,8 @@ public class LiqInfo {
         return dqlCurr;
     }
 
+    @Override
+    public LiqInfo clone() {
+        return new LiqInfo(liqParams.clone(), dqlCurr, dmrlCurr, dqlString, dmrlString);
+    }
 }

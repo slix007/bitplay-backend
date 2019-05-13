@@ -96,11 +96,6 @@ public class PoloniexEndpoint {
         return this.poloniex.getTicker();
     }
 
-    @RequestMapping(value = "/account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public AccountInfoJson getAccountInfo() {
-        return this.poloniex.getAccountInfo();
-    }
-
     @RequestMapping(value = "/place-market-order",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,

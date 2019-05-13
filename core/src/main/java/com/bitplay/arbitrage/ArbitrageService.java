@@ -555,8 +555,8 @@ public class ArbitrageService {
                         && okCoinOrderBook != null
                         && Utils.isObOk(bitmexOrderBook)
                         && Utils.isObOk(okCoinOrderBook)
-                        && firstMarketService.getAccountInfoContracts() != null
-                        && secondMarketService.getAccountInfoContracts() != null) {
+                        && firstMarketService.accountInfoIsReady()
+                        && secondMarketService.accountInfoIsReady()) {
                     calcAndDoArbitrage(bestQuotes, bitmexOrderBook, okCoinOrderBook);
                 } else {
                     stopSignalDelay();

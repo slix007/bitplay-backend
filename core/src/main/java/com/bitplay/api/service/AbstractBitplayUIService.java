@@ -119,11 +119,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         );
     }
 
-    public AccountInfoJson getAccountInfo() {
-        return convertAccountInfo(getBusinessService().getAccountInfo(),
-                getBusinessService().getPosition());
-    }
-
     protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook, Ticker ticker) {
         final OrderBookJson orderJson = new OrderBookJson();
         final List<LimitOrder> bestBids = Utils.getBestBids(orderBook, 5);
@@ -144,56 +139,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
         return orderJson;
     }
-
-    public Observable<AccountInfoJson> getContractsAccountInfoAsync() {
-        Observable<AccountInfoJson> o = Observable.fromCallable(this::getContractsAccountInfo);
-        return o;
-    }
-
-    public AccountInfoJson getContractsAccountInfo() {
-        final AccountInfoContracts accountInfoContracts = getBusinessService().getAccountInfoContracts();
-        if (accountInfoContracts == null) {
-            return AccountInfoJson.error();
-        }
-
-        final BigDecimal available = accountInfoContracts.getAvailable();
-        final BigDecimal wallet = accountInfoContracts.getWallet();
-        final BigDecimal margin = accountInfoContracts.getMargin();
-        final BigDecimal upl = accountInfoContracts.getUpl();
-        final BigDecimal quAvg = getBusinessService().getArbitrageService().getUsdQuote();
-        final BigDecimal liqPrice = getBusinessService().getPosition().getLiquidationPrice();
-        final BigDecimal eMark = accountInfoContracts.geteMark();
-        final BigDecimal eLast = accountInfoContracts.geteLast();
-        final BigDecimal eBest = accountInfoContracts.geteBest();
-        final BigDecimal eAvg = accountInfoContracts.geteAvg();
-
-        final Position position = getBusinessService().getPosition();
-        final String entryPrice = String.format("short/long: %s/%s",
-                position.getPriceAvgShort() != null ? position.getPriceAvgShort().toPlainString() : null,
-                position.getPriceAvgLong() != null ? position.getPriceAvgLong().toPlainString() : null);
-
-        return new AccountInfoJson(
-                wallet.toPlainString(),
-                available.toPlainString(),
-                margin.toPlainString(),
-                getPositionString(position),
-                upl.toPlainString(),
-                position.getLeverage().toPlainString(),
-                getBusinessService().getAffordable().getForLong().toPlainString(),
-                getBusinessService().getAffordable().getForShort().toPlainString(),
-                position.getLongAvailToClose().toPlainString(),
-                position.getShortAvailToClose().toPlainString(),
-                quAvg.toPlainString(),
-                null,
-                liqPrice == null ? null : liqPrice.toPlainString(),
-                eMark != null ? eMark.toPlainString() : "0",
-                eLast != null ? eLast.toPlainString() : "0",
-                eBest != null ? eBest.toPlainString() : "0",
-                eAvg != null ? eAvg.toPlainString() : "0",
-                entryPrice,
-                accountInfoContracts.toString());
-    }
-
 
     public AccountInfoJson getFullAccountInfo() {
 

@@ -21,7 +21,6 @@ import info.bitrich.xchangestream.poloniex.PoloniexStreamingExchange;
 import info.bitrich.xchangestream.poloniex.PoloniexStreamingMarketDataService;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trades;
@@ -173,7 +171,7 @@ public class PoloniexService extends MarketService {
         createOrderBookObservable();
 //        initOrderBookSubscribers(logger);
 //        initLocalSubscribers();
-        startAccountInfoListener();
+//        startAccountInfoListener();
         logger.info("POLONIEX INIT FINISHED");
     }
 
@@ -238,23 +236,6 @@ public class PoloniexService extends MarketService {
         // Disconnect from exchange (non-blocking)
         exchange.disconnect()
                 .subscribe(() -> logger.info("Disconnected from the Exchange"));
-    }
-
-    private void startAccountInfoListener() {
-        accountInfoSubscription = createAccountInfoObservable()
-                .subscribeOn(Schedulers.io())
-                .doOnError(throwable -> logger.error("Account fetch error", throwable))
-                .subscribe(accountInfo1 -> {
-            setAccountInfo(accountInfo1);
-            logger.info("Balance BTC={}, USD={}",
-                    accountInfo.getWallet().getBalance(Currency.BTC).getAvailable().toPlainString(),
-                    accountInfo.getWallet().getBalance(CURRENCY_USDT).getAvailable().toPlainString());
-        }, throwable -> {
-                    logger.error("Can not fetchAccountInfo", throwable);
-                    // schedule it again
-                    sleep(5000);
-                    startAccountInfoListener();
-                });
     }
 
     @Override
@@ -369,34 +350,7 @@ public class PoloniexService extends MarketService {
     }
 
     public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
-        boolean isAffordable = false;
-
-        if (accountInfo != null && accountInfo.getWallet() != null) {
-            final Wallet wallet = getAccountInfo().getWallet();
-            final BigDecimal btcBalance = wallet.getBalance(Currency.BTC).getAvailable();
-            final BigDecimal usdBalance = wallet.getBalance(getSecondCurrency()).getAvailable();
-            if (orderType.equals(Order.OrderType.BID)) {
-
-                // Only poloniex need to check the first item.
-                final BigDecimal bestAskAmount = Utils.getBestAsk(getOrderBook()).getTradableAmount();
-
-                if (usdBalance.compareTo(getTotalPriceOfAmountToBuy(tradableAmount)) != -1
-                        && bestAskAmount.compareTo(tradableAmount) != -1) {
-                    isAffordable = true;
-                }
-            }
-            if (orderType.equals(Order.OrderType.ASK)) {
-
-                // Only poloniex need to check the first item.
-                final BigDecimal bestBidAmount = Utils.getBestBid(getOrderBook()).getTradableAmount();
-
-                if (btcBalance.compareTo(tradableAmount) != -1
-                        && bestBidAmount.compareTo(tradableAmount) != -1) {
-                    isAffordable = true;
-                }
-            }
-        }
-        return isAffordable;
+        return false;
     }
 
     @Override

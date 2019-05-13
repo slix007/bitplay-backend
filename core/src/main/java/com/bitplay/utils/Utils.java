@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
+import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
@@ -273,4 +274,9 @@ public class Utils {
         return tradeId1 > tradeId2 ? tradeId1 : tradeId2;
     }
 
+    public static Position clonePosition(Position p) {
+        return new Position(p.getPositionLong(), p.getPositionShort(), p.getLongAvailToClose(), p.getShortAvailToClose(),
+                p.getLeverage(), p.getLiquidationPrice(), p.getMarkValue(), p.getPriceAvgLong(),
+                p.getPriceAvgShort(), p.getRaw());
+    }
 }

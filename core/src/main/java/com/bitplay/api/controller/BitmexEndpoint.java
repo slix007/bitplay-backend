@@ -50,18 +50,6 @@ public class BitmexEndpoint {
         return this.bitmex.getFullAccountInfo();
     }
 
-    @RequestMapping(value = "/account-async", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public DeferredResult<AccountInfoJson> getAccountInfoAsync() {
-        DeferredResult<AccountInfoJson> deffered = new DeferredResult<>(90 * 1000L); //1.5 min
-
-        this.bitmex.getContractsAccountInfoAsync()
-                .subscribe(deffered::setResult, deffered::setErrorResult);
-
-        return deffered;
-    }
-
-
-
     @RequestMapping(value = "/place-market-order",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
