@@ -708,6 +708,7 @@ public class BitmexService extends MarketServicePreliq {
             final String logString = String.format("#%s Too often moving requests. movingInProgress=%s, movingDelay=%s",
                     counterForLogs, movingInProgress, movingDelay);
             logger.error(logString);
+            return;
         }
         movingInProgress = true;
 
