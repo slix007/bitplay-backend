@@ -1352,7 +1352,7 @@ public class OkCoinService extends MarketServicePreliq {
                 }
 
                 final OrderBook orderBook = getOrderBook();
-                tradeLogger.info(String.format("#%s/%s getOrderBook timestamp=%s",
+                tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s",
                         counterNameWithPortion, attempt, orderBook.getTimeStamp().toInstant()));
                 thePrice = createBestPrice(orderType, placingSubType, orderBook, getContractType());
 
@@ -1369,6 +1369,14 @@ public class OkCoinService extends MarketServicePreliq {
                             futuresOrderType = FuturesOrderTypeEnum.POST_ONLY;
                         }
                     }
+                    tradeLogger.info(String.format("#%s/%s placing order inst=%s, t=%s, p=%s, a=%s, %s",
+                            counterNameWithPortion, attempt,
+                            instrumentDto.getInstrumentId(),
+                            orderType,
+                            thePrice,
+                            tradeableAmount,
+                            futuresOrderType
+                            ));
                     final OrderResult orderResult = bitplayOkexEchange.getTradeApiService().order(
                             new LimitOrderToOrderConverter().createOrder(
                                     instrumentDto.getInstrumentId(),
