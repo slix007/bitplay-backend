@@ -230,7 +230,7 @@ public class AfterArbTask implements Runnable {
 
             try {
 
-                bitmexService.updateAvgPrice(counterName, dealPrices.getbPriceFact());
+                bitmexService.updateAvgPrice(counterName, dealPrices.getbPriceFact(), false);
                 StringBuilder logBuilder = new StringBuilder();
                 b_price_fact = dealPrices.getbPriceFact().getAvg(true, counterName, logBuilder);
                 deltaLogWriter.info(logBuilder.toString());

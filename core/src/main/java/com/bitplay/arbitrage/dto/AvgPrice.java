@@ -150,6 +150,14 @@ public class AvgPrice implements Serializable {
         return new HashMap<>(pItems);
     }
 
+    public synchronized boolean isNotFinished() {
+        final BigDecimal filled = pItems.values().stream()
+                .map(AvgPriceItem::getAmount)
+                .reduce(BigDecimal::add)
+                .orElse(BigDecimal.ZERO);
+        return filled.compareTo(fullAmount) < 0;
+    }
+
     public synchronized boolean isItemsEmpty() {
         return pItems.size() == 0;
     }

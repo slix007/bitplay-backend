@@ -20,6 +20,7 @@ import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketState;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
@@ -1091,29 +1092,54 @@ public class OkCoinService extends MarketServicePreliq {
 
                         if (signalEvent == SignalEvent.MT2_BITMEX_ORDER_FILLED) {
                             if (getMarketState() == MarketState.WAITING_ARB) {
+                                // check1
                                 final PlaceOrderArgs currArgs = placeOrderArgsRef.getAndSet(null);
-                                if (currArgs != null) {
-                                    setMarketState(MarketState.ARBITRAGE);
-                                    tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
-
-                                    if (currArgs.getPlacingType() == PlacingType.TAKER) {// set oPricePlanOnStart for Taker
-                                        final BigDecimal oPricePlanOnStart;
-                                        if (currArgs.getOrderType() == OrderType.BID || currArgs.getOrderType() == OrderType.EXIT_ASK) {
-                                            oPricePlanOnStart = Utils.getBestAsk(orderBook).getLimitPrice(); // buy -> use the opposite price.
-                                        } else {
-                                            oPricePlanOnStart = Utils.getBestBid(orderBook).getLimitPrice(); // do sell -> use the opposite price.
-                                        }
-                                        arbitrageService.getDealPrices().setoPricePlanOnStart(oPricePlanOnStart);
-                                    }
-
-                                    fplayTradeService.setOkexStatus(currArgs.getTradeId(), TradeMStatus.IN_PROGRESS);
-                                    currArgs.setPricePlanOnStart(true);
-                                    placeOrder(currArgs);
-                                } else {
+                                if (currArgs == null) {
                                     logger.error("WAITING_ARB: no deferred order. Set READY.");
                                     warningLogger.error("WAITING_ARB: no deferred order. Set READY.");
                                     arbitrageService.resetArbState("", "WAITING_ARB deferred-placing-order");
+                                    return;
                                 }
+
+                                // check2
+                                final DealPrices dealPrices = arbitrageService.getDealPrices();
+                                if (dealPrices.getbPriceFact().isNotFinished()) {
+                                    final String msg = "WAITING_ARB: bitmex is not fully filled";
+                                    logger.info(msg);
+                                    arbitrageService.getFirstMarketService().getTradeLogger().info(msg);
+                                    getTradeLogger().info(msg);
+                                    warningLogger.info(msg);
+                                    final BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
+                                    bitmexService.updateAvgPrice(getCounterName(), dealPrices.getbPriceFact(), true);
+
+                                    if (dealPrices.getbPriceFact().isNotFinished()) {
+                                        final String msg1 = "WAITING_ARB: bitmex is not fully filled. Set READY.";
+                                        logger.error(msg1);
+                                        arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
+                                        getTradeLogger().info(msg1);
+                                        warningLogger.error(msg1);
+                                        arbitrageService.resetArbState("", "WAITING_ARB deferred-placing-order");
+                                        return;
+                                    }
+                                }
+
+                                // do deferred placing
+                                setMarketState(MarketState.ARBITRAGE);
+                                tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
+
+                                if (currArgs.getPlacingType() == PlacingType.TAKER) {// set oPricePlanOnStart for Taker
+                                    final BigDecimal oPricePlanOnStart;
+                                    if (currArgs.getOrderType() == OrderType.BID || currArgs.getOrderType() == OrderType.EXIT_ASK) {
+                                        oPricePlanOnStart = Utils.getBestAsk(orderBook).getLimitPrice(); // buy -> use the opposite price.
+                                    } else {
+                                        oPricePlanOnStart = Utils.getBestBid(orderBook).getLimitPrice(); // do sell -> use the opposite price.
+                                    }
+                                    dealPrices.setoPricePlanOnStart(oPricePlanOnStart);
+                                }
+
+                                fplayTradeService.setOkexStatus(currArgs.getTradeId(), TradeMStatus.IN_PROGRESS);
+                                currArgs.setPricePlanOnStart(true);
+                                placeOrder(currArgs);
 
                             }
                         }

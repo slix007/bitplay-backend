@@ -2492,7 +2492,7 @@ public class BitmexService extends MarketServicePreliq {
      *
      * @param avgPrice the object to be updated.
      */
-    public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
+    public void updateAvgPrice(String counterName, AvgPrice avgPrice, boolean onlyOneAttempt) {
         final MarketState marketState = getMarketState();
         final String contractTypeStr = bitmexContractType.getCurrencyPair().toString();
         if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
@@ -2601,6 +2601,10 @@ public class BitmexService extends MarketServicePreliq {
                     tradeLogger.info(String.format("%s updateAvgPriceError %s", logMsg, e.getMessage()),
                             contractTypeStr);
                     warningLogger.info(String.format("%s updateAvgPriceError %s", logMsg, e.getMessage()));
+                }
+
+                if (onlyOneAttempt) {
+                    break;
                 }
 
                 try {
