@@ -89,7 +89,7 @@ public class SignalService {
     }
 
     public void placeBitmexOrderOnSignal(OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime) {
+            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo) {
 
         executorService.submit(() -> {
             try {
@@ -104,8 +104,9 @@ public class SignalService {
                     return;
                 }
 
-                final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, SignalType.AUTOMATIC, 1,
-                        tradeId, counterName, lastObTime);
+                final int attempt = isConBo ? PlaceOrderArgs.NO_REPEATS_ATTEMPT : 1;
+                final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, SignalType.AUTOMATIC,
+                        attempt, tradeId, counterName, lastObTime);
 
                 tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
                 bitmexService.placeOrderToOpenOrders(placeOrderArgs);

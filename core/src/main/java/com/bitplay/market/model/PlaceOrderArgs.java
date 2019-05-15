@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
+import org.springframework.data.annotation.Transient;
 
 /**
  * Created by Sergey Shurmin on 11/19/17.
@@ -23,6 +24,9 @@ import org.knowm.xchange.dto.Order.OrderType;
 @Getter
 @ToString
 public class PlaceOrderArgs {
+
+    @Transient
+    public static final int NO_REPEATS_ATTEMPT = -1;
 
     private Order.OrderType orderType;
     private BigDecimal amount;
@@ -105,23 +109,6 @@ public class PlaceOrderArgs {
         this.counterName = counterName;
         this.tradeId = tradeId;
         this.lastObTime = lastObTime;
-        this.contractType = null;
-        this.amountType = null;
-        this.preliqQueuedTime = null;
-        this.preliqMarketName = null;
-    }
-
-    public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType,
-            SignalType signalType, int attempt, Long tradeId, String counterName) {
-        this.orderType = orderType;
-        this.amount = amount;
-        this.bestQuotes = bestQuotes;
-        this.placingType = placingType;
-        this.signalType = signalType;
-        this.attempt = attempt;
-        this.tradeId = tradeId;
-        this.counterName = counterName;
-        this.lastObTime = null;
         this.contractType = null;
         this.amountType = null;
         this.preliqQueuedTime = null;

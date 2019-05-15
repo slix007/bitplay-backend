@@ -95,7 +95,7 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
             }
             Long tradeId = poloniexService.getArbitrageService().getLastInProgressTradeId();
             tradeResponse = poloniexService.placeOrder(new PlaceOrderArgs(orderType, amount, null,
-                    null, signalType, 1, tradeId, signalType.getCounterName()));
+                    null, signalType, 1, tradeId, signalType.getCounterName(), null));
         }
 
         final PoloniexTradeResponse poloniexTradeResponse = tradeResponse.getSpecificResponse() != null

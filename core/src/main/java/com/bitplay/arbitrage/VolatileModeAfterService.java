@@ -124,7 +124,7 @@ public class VolatileModeAfterService {
                 BestQuotes bestQuotes = getBestQuotes(currOrders);
 
                 if (marketService.getName().equals(BitmexService.NAME)) {
-                    signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null);
+                    signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false);
                 } else {
                     signalService.placeOkexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false);
                 }

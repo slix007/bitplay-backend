@@ -1694,6 +1694,13 @@ public class BitmexService extends MarketServicePreliq {
                     && (settingsRepositoryService.getSettings().getManageType().isAuto() || signalType.isManual())
                     && !shouldStopPlacing) {
                 attemptCount++;
+                if (placeOrderArgs.getAttempt() == PlaceOrderArgs.NO_REPEATS_ATTEMPT && attemptCount > 1) {
+                    // means: CON_B_O on signal. No repeats. Cancel okex deferred.
+                    ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                    Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
+                    break;
+                }
+
                 try {
                     String orderId;
                     BigDecimal thePrice;

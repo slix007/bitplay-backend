@@ -1030,10 +1030,11 @@ public class ArbitrageService {
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(b_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
         // in scheme MT2 Okex should be the first
+        final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, lastObTime, getIsConBo());
+                counterName, tradeId, lastObTime, isConBo);
         signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
-                counterName, tradeId, lastObTime);
+                counterName, tradeId, lastObTime, isConBo);
 
         setTimeoutAfterStartTrading();
 
@@ -1196,10 +1197,11 @@ public class ArbitrageService {
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(o_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
         // in scheme MT2 Okex should be the first
+        final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, lastObTime, getIsConBo());
+                counterName, tradeId, lastObTime, isConBo);
         signalService.placeBitmexOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
-                counterName, tradeId, lastObTime);
+                counterName, tradeId, lastObTime, isConBo);
 
         setTimeoutAfterStartTrading();
 

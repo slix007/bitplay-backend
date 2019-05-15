@@ -484,7 +484,8 @@ public class CommonUIService {
     public MarketFlagsJson freeMarketsStates() {
         MarketService btm = arbitrageService.getFirstMarketService();
         btm.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, btm.tryFindLastTradeId()));
-        MarketService okex = arbitrageService.getSecondMarketService();
+        OkCoinService okex = (OkCoinService) arbitrageService.getSecondMarketService();
+        okex.resetWaitingArb();
         okex.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, okex.tryFindLastTradeId()));
         arbitrageService.resetArbState("", "'UI'");
         log.info("Free markets states from UI");
