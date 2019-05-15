@@ -19,8 +19,7 @@ public class FplayOrderUtils {
                 ? updateLimitOrder(fplayOrder.getLimitOrder(), theUpdate)
                 : theUpdate;
 
-        updated = fplayOrder.clone();
-        updated.setOrder(updatedLimit);
+        updated = fplayOrder.cloneWithUpdate(updatedLimit);
 
         return updated;
     }

@@ -1104,7 +1104,7 @@ public class OkCoinService extends MarketServicePreliq {
                                 // check2
                                 final DealPrices dealPrices = arbitrageService.getDealPrices();
                                 if (dealPrices.getbPriceFact().isNotFinished()) {
-                                    final String msg = "WAITING_ARB: bitmex is not fully filled";
+                                    final String msg = "WAITING_ARB: bitmex is not fully filled. Try to update the filled amount for all orders.";
                                     logger.info(msg);
                                     arbitrageService.getFirstMarketService().getTradeLogger().info(msg);
                                     getTradeLogger().info(msg);

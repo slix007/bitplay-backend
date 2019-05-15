@@ -21,7 +21,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @TypeAlias("orders")
 @Data
 @NoArgsConstructor
-public class FplayOrder implements Cloneable {
+public class FplayOrder {
 
     @NotNull
     private String counterName;
@@ -70,17 +70,10 @@ public class FplayOrder implements Cloneable {
         this.portionsQtyMax = portionsQtyMax;
     }
 
-    @Override
-    public FplayOrder clone() {
-        return new FplayOrder(this.tradeId, this.counterName, this.getOrder(), this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
-                this.portionsQtyMax);
-    }
-
     public FplayOrder cloneWithUpdate(LimitOrder limitOrder) {
         return new FplayOrder(this.tradeId, this.counterName, limitOrder, this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
                 this.portionsQtyMax);
     }
-
 
     public Order getOrder() {
         return FplayOrderConverter.convert(orderDetail);
@@ -88,10 +81,6 @@ public class FplayOrder implements Cloneable {
 
     public LimitOrder getLimitOrder() {
         return FplayOrderConverter.convert(orderDetail);
-    }
-
-    public void setOrder(Order order) {
-        this.orderDetail = FplayOrderConverter.convert(order);
     }
 
     public boolean isOpen() {

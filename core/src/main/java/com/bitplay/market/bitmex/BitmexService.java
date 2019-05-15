@@ -960,16 +960,14 @@ public class BitmexService extends MarketServicePreliq {
             // 2. new order
             final LimitOrder placedOrder = tradeResponse.getLimitOrder();
             if (placedOrder != null) {
-                final FplayOrder fplayOrder = openOrder.clone();
-                fplayOrder.setOrder(placedOrder);
+                final FplayOrder fplayOrder = openOrder.cloneWithUpdate(placedOrder);
                 fplayOrder.setPlacingType(placingType);
                 res.add(fplayOrder);
             }
 
             // 3. failed on placing
             for (LimitOrder limitOrder : tradeResponse.getCancelledOrders()) {
-                final FplayOrder fplayOrder = openOrder.clone();
-                fplayOrder.setOrder(limitOrder);
+                final FplayOrder fplayOrder = openOrder.cloneWithUpdate(limitOrder);
                 fplayOrder.setPlacingType(placingType);
                 res.add(fplayOrder);
             }
