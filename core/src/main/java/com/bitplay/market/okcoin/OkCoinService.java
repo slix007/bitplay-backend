@@ -1097,7 +1097,8 @@ public class OkCoinService extends MarketServicePreliq {
                                 if (currArgs == null) {
                                     logger.error("WAITING_ARB: no deferred order. Set READY.");
                                     warningLogger.error("WAITING_ARB: no deferred order. Set READY.");
-                                    arbitrageService.resetArbState("", "WAITING_ARB deferred-placing-order");
+                                    resetWaitingArb();
+                                    arbitrageService.resetArbState(getCounterName(), "WAITING_ARB deferred-placing-order");
                                     return;
                                 }
 
@@ -1118,7 +1119,8 @@ public class OkCoinService extends MarketServicePreliq {
                                         arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
                                         getTradeLogger().info(msg1);
                                         warningLogger.error(msg1);
-                                        arbitrageService.resetArbState("", "WAITING_ARB deferred-placing-order");
+                                        resetWaitingArb();
+                                        arbitrageService.resetArbState(getCounterName(), "WAITING_ARB deferred-placing-order");
                                         return;
                                     }
                                 }
