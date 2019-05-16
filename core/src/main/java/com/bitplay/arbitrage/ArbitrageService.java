@@ -2052,7 +2052,7 @@ public class ArbitrageService {
     }
 
     public Long getLastTradeId() {
-        return tradeId != null ? tradeId.longValue() : fplayTradeRepository.getLastId();
+        return tradeId != null ? tradeId : fplayTradeRepository.getLastId();
     }
 
     public Long getLastInProgressTradeId() {

@@ -406,8 +406,10 @@ public class BitmexService extends MarketServicePreliq {
                                 logger.info("market-ready after reconnect: ");
                                 final Long tradeId = openOrders.stream()
                                         .map(FplayOrder::getTradeId)
-                                        .reduce(null, Utils::lastTradeId);
+                                        .reduce(Utils::lastTradeId)
+                                        .orElseGet(() -> arbitrageService.getLastTradeId());
                                 setFree(tradeId);
+                                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                             } else {
                                 String msg = String.format("Warning: Bitmex reconnect is finished, but there are %s openOrders.", getOnlyOpenOrders().size());
                                 tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
