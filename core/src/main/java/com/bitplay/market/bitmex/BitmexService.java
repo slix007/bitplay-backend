@@ -1696,6 +1696,7 @@ public class BitmexService extends MarketServicePreliq {
                 attemptCount++;
                 if (placeOrderArgs.getAttempt() == PlaceOrderArgs.NO_REPEATS_ATTEMPT && attemptCount > 1) {
                     // means: CON_B_O on signal. No repeats. Cancel okex deferred.
+                    nextMarketState = MarketState.READY;
                     ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                     Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
                     break;
@@ -1929,6 +1930,8 @@ public class BitmexService extends MarketServicePreliq {
             setMarketState(nextMarketState, counterName);
             if (nextMarketState == MarketState.SYSTEM_OVERLOADED) {
                 ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+            } else if (nextMarketState == MarketState.READY) {
+                setFree(tradeId);
             }
         }
 
