@@ -299,12 +299,12 @@ public class OkCoinService extends MarketServicePreliq {
             instrIdToContractType.put(extraInstr.getInstrumentId(), okexContractTypeBTCUSD);
         }
 
+        initBitplayExchange(exArgs);
         exchange = initExchange(key, secret, exArgs);
         loadLiqParams();
 
         initWebSocketAndAllSubscribers();
         deferredPlacingOrdersListener = initDeferredPlacingOrder();
-        initBitplayExchange(exArgs);
 
 //        final Instrument instrument = bitplayOkexEchange.getMarketAPIService().getInstruments().get(0);
 //        logger.info("BITPLAY_OKEX_EXCHANGE: first instrument: " + instrument);
