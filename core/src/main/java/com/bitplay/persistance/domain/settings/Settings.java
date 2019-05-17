@@ -57,6 +57,7 @@ public class Settings extends AbstractDocument {
     private BigDecimal ntUsdMultiplicityOkex;
     private AmountType amountTypeBitmex;
     private AmountType amountTypeOkex;
+    private BigDecimal bitmexFokMaxDiff; // bitmex fillOrKill max diff price
 
     private ContractMode contractMode;
     @Transient

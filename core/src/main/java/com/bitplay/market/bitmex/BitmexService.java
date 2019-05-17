@@ -1725,15 +1725,14 @@ public class BitmexService extends MarketServicePreliq {
                     bitmexChangeOnSoService.tryActivate(attemptCount);
 
                     placingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : placingTypeInitial;
+                    String extraLog = "";
 
-                    if (placingType != PlacingType.TAKER) {
+                    if (placingType.isNonTaker()) {
 
-                        final BigDecimal bitmexPrice = settings.getBitmexPrice();
-                        if (bitmexPrice != null && bitmexPrice.signum() != 0) {
-                            thePrice = bitmexPrice;
-                        } else {
-                            thePrice = createBestPrice(orderType, placingType, orderBook, btmContType);
-                        }
+                        thePrice = (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0)
+                                ? settings.getBitmexPrice()
+                                : createBestPrice(orderType, placingType, orderBook, btmContType);
+
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
 
                         boolean participateDoNotInitiate = placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK;
@@ -1803,7 +1802,27 @@ public class BitmexService extends MarketServicePreliq {
                         // metrics
                         final Instant startReq = Instant.now();
                         throwTestingException();
-                        final MarketOrder resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol);
+                        final Order resultOrder;
+                        if (placingType == PlacingType.TAKER_FOK) {
+                            thePrice = (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0)
+                                    ? settings.getBitmexPrice()
+                                    : createFillOrKillPrice(orderType, orderBook, settings.getBitmexFokMaxDiff());
+                            final String message = String.format("#%s placing TAKER_FOK %s, q=%s, a=%s. pos=%s",
+                                    counterName,
+                                    orderType,
+                                    thePrice,
+                                    amount.toPlainString(),
+                                    getPositionAsString());
+                            tradeLogger.info(message, contractTypeStr);
+                            ordersLogger.info(message);
+
+                            resultOrder = bitmexTradeService.placeMarketOrderFillOrKill(marketOrder, symbol, thePrice, scale);
+                            if (resultOrder.getStatus() == OrderStatus.CANCELED) {
+                                extraLog = "order had timeInForce of FillOrKill";
+                            }
+                        } else {
+                            resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol);
+                        }
                         final Instant endReq = Instant.now();
                         final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
                         monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
@@ -1835,14 +1854,15 @@ public class BitmexService extends MarketServicePreliq {
                         orderIdToSignalInfo.put(orderId, bestQuotes);
                     }
 
-                    final String message = String.format("#%s %s %s amount=%s with quote=%s was placed.orderId=%s. pos=%s",
+                    final String message = String.format("#%s %s %s amount=%s with quote=%s was placed.orderId=%s. pos=%s. %s",
                             counterName,
                             placingType,
                             orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
                             amount.toPlainString(),
                             thePrice,
                             orderId,
-                            getPositionAsString());
+                            getPositionAsString(),
+                            extraLog);
                     tradeLogger.info(message, contractTypeStr);
                     ordersLogger.info(message);
 
@@ -1959,6 +1979,19 @@ public class BitmexService extends MarketServicePreliq {
         monitoringDataService.saveMon(monPlacing);
 
         return tradeResponse;
+    }
+
+    private BigDecimal createFillOrKillPrice(Order.OrderType orderType, OrderBook orderBook, BigDecimal bitmexForMaxDiff) {
+        BigDecimal thePrice = BigDecimal.ZERO;
+        BigDecimal diff = bitmexForMaxDiff != null ? bitmexForMaxDiff : BigDecimal.ZERO;
+        if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
+            thePrice = Utils.getBestAsk(orderBook).getLimitPrice().subtract(diff);
+        } else if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
+            thePrice = Utils.getBestBid(orderBook).getLimitPrice().add(diff);
+        }
+        tryPrintZeroPriceWarning(thePrice);
+
+        return thePrice;
     }
 
     @Override

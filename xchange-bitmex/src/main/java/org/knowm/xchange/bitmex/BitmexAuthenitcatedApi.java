@@ -72,7 +72,7 @@ public interface BitmexAuthenitcatedApi {
     @POST
     @Path("/order")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    OrderWithHeaders limitOrder(@HeaderParam("api-key") String apiKey,
+    OrderWithHeaders postOrder(@HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
             @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
             @FormParam("symbol") String symbol,
@@ -80,7 +80,8 @@ public interface BitmexAuthenitcatedApi {
             @FormParam("orderQty") Double orderQty,
             @FormParam("ordType") String ordType,
             @FormParam("price") Double price,
-            @FormParam("execInst") String execInst
+            @FormParam("execInst") String execInst,
+            @FormParam("timeInForce") String timeInForce
     ) throws IOException;
 
     @POST

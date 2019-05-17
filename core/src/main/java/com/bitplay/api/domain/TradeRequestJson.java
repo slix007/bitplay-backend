@@ -22,6 +22,7 @@ public class TradeRequestJson {
     }
     public enum PlacementType {
         TAKER,
+        TAKER_FOK,
         MAKER,
         HYBRID,
         MAKER_TICK,

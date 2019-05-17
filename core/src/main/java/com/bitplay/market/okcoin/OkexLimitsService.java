@@ -87,7 +87,8 @@ public class OkexLimitsService implements LimitsService {
 //        final boolean insideLimits = (limitAsk.compareTo(maxPrice) < 0 && limitBid.compareTo(minPrice) > 0);
         final Settings settings = settingsRepositoryService.getSettings();
         final PlacingType placingType = settings.getOkexPlacingType();
-        final PlacingType adjPlacingType = settings.getPosAdjustment().getPosAdjustmentPlacingType();
+        final PlacingType adjPlacingType = settings.getPosAdjustment().getPosAdjustmentPlacingType() == PlacingType.TAKER_FOK ? PlacingType.TAKER
+                : settings.getPosAdjustment().getPosAdjustmentPlacingType();
 
         final InsideLimitsEx insideLimitsEx = new InsideLimitsEx();
         final boolean adjBuy = !outsideLimits(OrderType.BID, adjPlacingType, SignalType.ADJ, p);
@@ -141,7 +142,7 @@ public class OkexLimitsService implements LimitsService {
             //1) OPOT == TAKER or HYBRID, Max price < ask[1];
             //2) OPOT == MAKER, Max price < bid[1];
             //3) OPOT == HYBRID_TICK, Max price < ask[1] - Tick size Okex;
-            if (placingType == PlacingType.TAKER || placingType == PlacingType.HYBRID) {
+            if (placingType == PlacingType.TAKER_FOK || placingType == PlacingType.TAKER || placingType == PlacingType.HYBRID) {
                 if (p.maxPrice.compareTo(p.limitAsk) < 0) {
                     isOutside = true;
                 }
@@ -159,7 +160,7 @@ public class OkexLimitsService implements LimitsService {
             //1) OPOT == TAKER or HYBRID, Min price > bid[1];
             //2) OPOT == MAKER, Min price > ask[1];
             //3) OPOT == HYBRID_TICK, Min price > bid[1] + Tick size Okex;
-            if (placingType == PlacingType.TAKER || placingType == PlacingType.HYBRID) {
+            if (placingType == PlacingType.TAKER_FOK || placingType == PlacingType.TAKER || placingType == PlacingType.HYBRID) {
                 if (p.minPrice.compareTo(p.limitBid) > 0) {
                     isOutside = true;
                 }

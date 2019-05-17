@@ -329,6 +329,10 @@ public class SettingsEndpoint {
             settings.setNtUsdMultiplicityOkex(settingsUpdate.getNtUsdMultiplicityOkex());
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getBitmexFokMaxDiff() != null) {
+            settings.setBitmexFokMaxDiff(settingsUpdate.getBitmexFokMaxDiff());
+            settingsRepositoryService.saveSettings(settings);
+        }
 
         // TradingMode.VOLATILE
         if (settingsUpdate.getTradingModeAuto() != null) {

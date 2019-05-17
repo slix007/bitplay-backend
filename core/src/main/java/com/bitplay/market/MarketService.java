@@ -812,7 +812,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             thePrice = createBestHybridTickPrice(orderType, tickSize, orderBook);
         } else if (placingType == PlacingType.HYBRID) {
             thePrice = createBestHybridPrice(orderType, orderBook);
-        } else if (placingType == PlacingType.TAKER) {
+        } else if (placingType == PlacingType.TAKER || placingType == PlacingType.TAKER_FOK) {
             thePrice = createBestTakerPrice(orderType, orderBook);
         } else { // placingType == null???
             String msg = String.format("%s PlacingType==%s, use MAKER", getName(), placingType);
@@ -882,7 +882,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return thePrice;
     }
 
-    private void tryPrintZeroPriceWarning(BigDecimal thePrice) {
+    protected void tryPrintZeroPriceWarning(BigDecimal thePrice) {
         if (thePrice.signum() == 0) {
             getTradeLogger().info("WARNING: PRICE IS 0");
             warningLogger.warn(getName() + " WARNING: PRICE IS 0");

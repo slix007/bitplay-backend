@@ -15,7 +15,6 @@ import org.knowm.xchange.bitmex.dto.OrderWithHeaders;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
-import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
@@ -74,40 +73,38 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
     }
 
     public MarketOrder placeMarketOrderBitmex(MarketOrder marketOrder, String symbol) throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        final Order mappedOrder = placeOrder(marketOrder, symbol, "Market", false, null);
+        final Order mappedOrder = placeOrder(marketOrder, symbol, "Market", false, null, false);
         return (MarketOrder) mappedOrder;
     }
 
+    public LimitOrder placeMarketOrderFillOrKill(MarketOrder marketOrder, String symbol, BigDecimal thePrice, Integer scale)
+            throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+        final Double limitPrice = thePrice.setScale(scale, BigDecimal.ROUND_HALF_UP).doubleValue();
+        final Order mappedOrder = placeOrder(marketOrder, symbol, "Limit", false, limitPrice, true);
+        return (LimitOrder) mappedOrder;
+    }
+
     @SuppressWarnings("unchecked")
-    private Order placeOrder(Order orderToPlace, String symbol, String ordType, boolean participateDoNotInitiate, Double limitPrice) throws IOException {
+    private Order placeOrder(Order orderToPlace, String symbol, String ordType, boolean participateDoNotInitiate, Double limitPrice,
+            boolean fillOrKill) throws IOException {
         final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
                 .getExchangeSpecificParametersItem("currencyToScale");
         final String side = orderToPlace.getType() == Order.OrderType.BID ? "Buy" : "Sell";
         final Double tradableAmount = orderToPlace.getTradableAmount().setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
         final OrderWithHeaders resOrder;
         try {
-            if (ordType.equals("Market")) {
-                resOrder = bitmexAuthenitcatedApi.marketOrder(
-                        exchange.getExchangeSpecification().getApiKey(),
-                        signatureCreator,
-                        exchange.getNonceFactory(),
-                        symbol,
-                        side,
-                        tradableAmount,
-                        "Market");
+            resOrder = bitmexAuthenitcatedApi.postOrder(
+                    exchange.getExchangeSpecification().getApiKey(),
+                    signatureCreator,
+                    exchange.getNonceFactory(),
+                    symbol,
+                    side,
+                    tradableAmount,
+                    ordType,
+                    limitPrice,
+                    participateDoNotInitiate ? "ParticipateDoNotInitiate" : "",
+                    fillOrKill ? "FillOrKill" : "");
 
-            } else {
-                resOrder = bitmexAuthenitcatedApi.limitOrder(
-                        exchange.getExchangeSpecification().getApiKey(),
-                        signatureCreator,
-                        exchange.getNonceFactory(),
-                        symbol,
-                        side,
-                        tradableAmount,
-                        "Limit",
-                        limitPrice,
-                        participateDoNotInitiate ? "ParticipateDoNotInitiate" : "");
-            }
         } catch (HttpStatusIOException e) {
             final BitmexStateService bitmexStateService = ((BitmexExchange) exchange).getBitmexStateService();
             bitmexStateService.setXrateLimit(e);
@@ -149,7 +146,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
 
         final Double limitPrice = limitOrder.getLimitPrice().setScale(scale, BigDecimal.ROUND_HALF_UP).doubleValue();
 
-        final Order mappedOrder = placeOrder(limitOrder, symbol, "Limit", participateDoNotInitiate, limitPrice);
+        final Order mappedOrder = placeOrder(limitOrder, symbol, "Limit", participateDoNotInitiate, limitPrice, false);
         return (LimitOrder) mappedOrder;
     }
 

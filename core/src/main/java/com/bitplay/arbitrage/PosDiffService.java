@@ -919,7 +919,9 @@ public class PosDiffService {
                 placingType = PlacingType.TAKER; // correction is only taker
             } else {
                 final PosAdjustment posAdjustment = settingsRepositoryService.getSettings().getPosAdjustment();
-                placingType = posAdjustment.getPosAdjustmentPlacingType();
+                placingType = (posAdjustment.getPosAdjustmentPlacingType() == PlacingType.TAKER_FOK && marketService.getName().equals(OkCoinService.NAME))
+                        ? PlacingType.TAKER
+                        : posAdjustment.getPosAdjustmentPlacingType();
             }
 
             if (outsideLimits(marketService, orderType, placingType, signalType)) {
