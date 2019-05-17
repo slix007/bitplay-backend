@@ -279,4 +279,11 @@ public class Utils {
                 p.getLeverage(), p.getLiquidationPrice(), p.getMarkValue(), p.getPriceAvgLong(),
                 p.getPriceAvgShort(), p.getRaw());
     }
+
+    public static LimitOrder cloneLimitOrder(LimitOrder l) {
+        final LimitOrder limitOrder = new LimitOrder(l.getType(), l.getTradableAmount(), l.getCurrencyPair(), l.getId(),
+                l.getTimestamp(), l.getLimitPrice(), l.getAveragePrice(), l.getCumulativeAmount(), l.getStatus());
+        limitOrder.setOrderFlags(l.getOrderFlags());
+        return limitOrder;
+    }
 }

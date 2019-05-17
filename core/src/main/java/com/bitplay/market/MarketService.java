@@ -98,6 +98,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             new ThreadFactoryBuilder().setNameFormat(getName() + "-pos-executor-%d").build()));
     protected final Scheduler indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-index-executor-%d").build()));
+    protected final Scheduler movingExecutor = Schedulers.from(Executors.newFixedThreadPool(5,
+            new ThreadFactoryBuilder().setNameFormat(getName() + "-moving-executor-%d").build()));
 
     // Moving timeout
     private volatile ScheduledFuture<?> scheduledOverloadReset;
@@ -140,24 +142,17 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     protected OrderBook getShortOrderBook(OrderBook orderBook) {
-        List<LimitOrder> asks = orderBook.getAsks().size() > ORDERBOOK_MAX_SIZE
-                ? orderBook.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).collect(Collectors.toList())
-                : orderBook.getAsks();
-        List<LimitOrder> bids = orderBook.getBids().size() > ORDERBOOK_MAX_SIZE
-                ? orderBook.getBids().stream().limit(ORDERBOOK_MAX_SIZE).collect(Collectors.toList())
-                : orderBook.getBids();
-
-        return new OrderBook(orderBook.getTimeStamp(),
-                new ArrayList<>(asks),
-                new ArrayList<>(bids));
+        List<LimitOrder> asks = orderBook.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList());
+        List<LimitOrder> bids = orderBook.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList());
+        return new OrderBook(orderBook.getTimeStamp(), asks, bids);
     }
 
     protected OrderBook getFullOrderBook() {
         OrderBook orderBook;
         synchronized (orderBookLock) {
             orderBook = new OrderBook(this.orderBook.getTimeStamp(),
-                    new ArrayList<>(this.orderBook.getAsks()),
-                    new ArrayList<>(this.orderBook.getBids()));
+                    this.orderBook.getAsks().stream().map(Utils::cloneLimitOrder).collect(Collectors.toList()),
+                    this.orderBook.getBids().stream().map(Utils::cloneLimitOrder).collect(Collectors.toList()));
         }
         return orderBook;
     }
@@ -166,8 +161,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         OrderBook orderBook;
         synchronized (orderBookForPriceLock) {
             orderBook = new OrderBook(this.orderBookXBTUSD.getTimeStamp(),
-                    new ArrayList<>(this.orderBookXBTUSD.getAsks()),
-                    new ArrayList<>(this.orderBookXBTUSD.getBids()));
+                    this.orderBookXBTUSD.getAsks().stream().map(Utils::cloneLimitOrder).collect(Collectors.toList()),
+                    this.orderBookXBTUSD.getBids().stream().map(Utils::cloneLimitOrder).collect(Collectors.toList()));
         }
         return orderBook;
     }
@@ -747,6 +742,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     private void initOpenOrdersMovingSubscription() {
         openOrdersMovingSubscription = getArbitrageService().getSignalEventBus().toObserverable()
+                .observeOn(movingExecutor)
                 .subscribe(eventQuant -> {
                     try {
                         SignalEvent signalEvent = eventQuant instanceof SignalEventEx
