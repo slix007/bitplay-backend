@@ -5,12 +5,15 @@ After=syslog.target
 [Service]
 WorkingDirectory=/opt/bitplay/bitmex-okcoin
 #ExecStart=/usr/bin/java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=3783,suspend=n -javaagent:/opt/plumbr/plumbr.jar -jar /opt/bitplay/bitmex-okcoin/bitplay.jar
+
 ExecStart=/usr/bin/java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=3783,suspend=n \
  -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/bitplay-heapdump.bin \
 \
- -Dcom.sun.management.jmxremote \
+ -server -Xms4096m -Xmx4096m \
+ -Djava.rmi.server.hostname=658-vupa.fplay.io \
  -Dcom.sun.management.jmxremote.port=3583 \
  -Dcom.sun.management.jmxremote.rmi.port=3583 \
+ -Dcom.sun.management.jmxremote.local.only=false \
  -Dcom.sun.management.jmxremote.authenticate=false \
  -Dcom.sun.management.jmxremote.ssl=false \
 \
