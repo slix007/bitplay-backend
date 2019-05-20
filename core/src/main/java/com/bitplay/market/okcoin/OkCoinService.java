@@ -1183,10 +1183,15 @@ public class OkCoinService extends MarketServicePreliq {
         for (int attemptCount = 1; attemptCount < maxAttempts
                 && !getArbitrageService().isArbStateStopped()
                 && getMarketState() != MarketState.FORBIDDEN
-                && (settingsRepositoryService.getSettings().getManageType().isAuto() || signalType.isManual())
                 && !shouldStopPlacing;
                 attemptCount++) {
             try {
+                if (settingsRepositoryService.getSettings().getManageType().isManual()) {
+                    if (!signalType.isManual() || attemptCount > 1) {
+                        warningLogger.info("MangeType is MANUAL. Stop placing.");
+                        break; // when MangeType is MANUAL, only the first manualSignal is accepted
+                    }
+                }
                 if (attemptCount > 1) {
                     Thread.sleep(1000);
                 }

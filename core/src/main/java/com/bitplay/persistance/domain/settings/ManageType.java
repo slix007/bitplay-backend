@@ -9,7 +9,7 @@ public enum ManageType {
         return this == AUTO;
     }
 
-//    public boolean isManual() {
-//        return this == MANUAL;
-//    }
+    public boolean isManual() {
+        return this == MANUAL;
+    }
 }

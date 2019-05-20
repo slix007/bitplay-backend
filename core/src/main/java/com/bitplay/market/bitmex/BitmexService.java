@@ -1693,7 +1693,6 @@ public class BitmexService extends MarketServicePreliq {
             while (attemptCount < maxAttempts
                     && !getArbitrageService().isArbStateStopped()
                     && getMarketState() != MarketState.FORBIDDEN
-                    && (settingsRepositoryService.getSettings().getManageType().isAuto() || signalType.isManual())
                     && !shouldStopPlacing) {
                 attemptCount++;
                 if (placeOrderArgs.getAttempt() == PlaceOrderArgs.NO_REPEATS_ATTEMPT && attemptCount > 1) {
@@ -1702,6 +1701,12 @@ public class BitmexService extends MarketServicePreliq {
                     ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                     Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
                     break;
+                }
+                if (settingsRepositoryService.getSettings().getManageType().isManual()) {
+                    if (!signalType.isManual() || attemptCount > 1) {
+                        warningLogger.info("MangeType is MANUAL. Stop placing.");
+                        break; // when MangeType is MANUAL, only the first manualSignal is accepted
+                    }
                 }
 
                 try {

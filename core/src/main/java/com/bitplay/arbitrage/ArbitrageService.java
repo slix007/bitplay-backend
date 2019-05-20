@@ -537,7 +537,7 @@ public class ArbitrageService {
     private void doComparison(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
 
         if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()
-                || !persistenceService.getSettingsRepositoryService().getSettings().getManageType().isAuto()) {
+                || persistenceService.getSettingsRepositoryService().getSettings().getManageType().isManual()) {
             // do nothing
             stopSignalDelay();
 
