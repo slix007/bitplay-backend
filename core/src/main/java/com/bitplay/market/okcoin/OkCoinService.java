@@ -1382,6 +1382,7 @@ public class OkCoinService extends MarketServicePreliq {
                 warningLogger.warn("placing maker, but subType is " + placingSubType);
             }
 
+            String obTimestamp = "";
             int attempt = 0;
             int maxAttempts = settingsRepositoryService.getSettings().getOkexPostOnlyArgs().getPostOnlyAttempts();
             while (attempt++ < maxAttempts) {
@@ -1391,9 +1392,17 @@ public class OkCoinService extends MarketServicePreliq {
                     Thread.sleep(poArgs.getPostOnlyBetweenAttemptsMs());
                 }
 
-                final OrderBook orderBook = getOrderBook();
-                tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s",
-                        counterNameWithPortion, attempt, orderBook.getTimeStamp().toInstant()));
+                OrderBook orderBook = getOrderBook();
+                // workaround. if OrderBook was not updated between attempts.
+                if (obTimestamp.equals(orderBook.getTimeStamp().toInstant().toString())) {
+                    tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s is the same. holds orderBookLock %s. Updating orderBook...",
+                            counterNameWithPortion, attempt, obTimestamp, Thread.holdsLock(orderBookLock)));
+                    OrderBook ob = exchange.getMarketDataService().getOrderBook(okexContractType.getCurrencyPair());
+                    orderBook = new OrderBook(new Date(), ob.getAsks(), ob.getBids()); // because timestamp is null
+                }
+                obTimestamp = orderBook.getTimeStamp().toInstant().toString();
+                tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s. holds orderBookLock %s",
+                        counterNameWithPortion, attempt, obTimestamp, Thread.holdsLock(orderBookLock)));
                 thePrice = createBestPrice(orderType, placingSubType, orderBook, getContractType());
 
                 if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
