@@ -59,7 +59,7 @@ public class ApiHttpClient {
         clientBuilder.addInterceptor((Interceptor.Chain chain) -> {
             final Request.Builder requestBuilder = chain.request().newBuilder();
             final String timestamp = DateUtils.getUnixTime();
-            System.out.println("timestamp={" + timestamp + "}");
+//            System.out.println("timestamp={" + timestamp + "}");
             requestBuilder.headers(this.headers(chain.request(), timestamp));
             final Request request = requestBuilder.build();
             if (this.config.isPrint()) {

@@ -275,6 +275,8 @@ public class ArbitrageService {
 
         long signalTimeSec = startSignalTime == null ? -1 : Duration.between(startSignalTime, Instant.now()).getSeconds();
 
+        boolean conBoTryDeferredOrder = false;
+
         synchronized (arbStateLock) { // do not set arbInProgress=false until the whole block is done!
                 // The other option is "doing stateSnapshot before doing set arbInProgress=false"
 
@@ -286,6 +288,7 @@ public class ArbitrageService {
             if (marketName.equals(BitmexService.NAME)) {
                 fplayTrade.setBitmexStatus(TradeMStatus.FINISHED);
                 fplayTradeService.setBitmexStatus(doneTradeId, TradeMStatus.FINISHED);
+                conBoTryDeferredOrder = true;
             } else {
                 fplayTrade.setOkexStatus(TradeMStatus.FINISHED);
                 fplayTradeService.setOkexStatus(doneTradeId, TradeMStatus.FINISHED);
@@ -347,6 +350,9 @@ public class ArbitrageService {
             }
         }
         log.info(String.format("onArbDone(%s, %s) finished", doneTradeId, marketName));
+        if (conBoTryDeferredOrder) {
+            ((OkCoinService) secondMarketService).tryPlaceDeferredOrder();// when CON_B_O
+        }
     }
 
 

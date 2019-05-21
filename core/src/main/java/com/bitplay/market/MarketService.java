@@ -27,6 +27,7 @@ import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.micrometer.core.instrument.util.NamedThreadFactory;
 import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -40,6 +41,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -92,8 +94,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
             new ThreadFactoryBuilder().setNameFormat(getName() + "-overload-scheduler-%d").build());
     protected final Scheduler obSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-ob-executor-%d").build()));
-    protected final Scheduler ooSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
-            new ThreadFactoryBuilder().setNameFormat(getName() + "-oo-executor-%d").build()));
+    protected final ExecutorService ooSingleExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory(getName() + "-oo-executor"));
+    protected final Scheduler ooSingleScheduler = Schedulers.from(ooSingleExecutor);
     protected final Scheduler posSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-pos-executor-%d").build()));
     protected final Scheduler indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(

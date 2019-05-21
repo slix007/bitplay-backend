@@ -80,6 +80,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -218,7 +219,6 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable priceRangeSub;
     private Disposable tickerEthSubscription;
     private Disposable indexPriceSub;
-    private Disposable deferredPlacingOrdersListener;
     private Observable<OkCoinDepth> orderBookObservable;
     private OkexContractType okexContractType;
     private OkexContractType okexContractTypeBTCUSD = OkexContractType.BTC_ThisWeek;
@@ -304,7 +304,6 @@ public class OkCoinService extends MarketServicePreliq {
         loadLiqParams();
 
         initWebSocketAndAllSubscribers();
-        deferredPlacingOrdersListener = initDeferredPlacingOrder();
 
 //        final Instrument instrument = bitplayOkexEchange.getMarketAPIService().getInstruments().get(0);
 //        logger.info("BITPLAY_OKEX_EXCHANGE: first instrument: " + instrument);
@@ -531,7 +530,6 @@ public class OkCoinService extends MarketServicePreliq {
         logger.info("OkCoinService preDestroy");
         shutdown = true;
 
-        deferredPlacingOrdersListener.dispose();
         // Disconnect from exchange (non-blocking)
         //noinspection ResultOfMethodCallIgnored
         closeAllSubscibers().subscribe(() -> logger.info("Disconnected from the Exchange"));
@@ -1082,73 +1080,84 @@ public class OkCoinService extends MarketServicePreliq {
         });
     }
 
-    private Disposable initDeferredPlacingOrder() {
-        return getArbitrageService().getSignalEventBus().toObserverable()
-                .subscribe(eventQuant -> {
-                    try {
-                        SignalEvent signalEvent = eventQuant instanceof SignalEventEx
-                                ? ((SignalEventEx) eventQuant).getSignalEvent()
-                                : (SignalEvent) eventQuant;
-
-                        if (signalEvent == SignalEvent.MT2_BITMEX_ORDER_FILLED) {
-                            if (getMarketState() == MarketState.WAITING_ARB) {
-                                // check1
-                                final PlaceOrderArgs currArgs = placeOrderArgsRef.getAndSet(null);
-                                if (currArgs == null) {
-                                    logger.error("WAITING_ARB: no deferred order. Set READY.");
-                                    warningLogger.error("WAITING_ARB: no deferred order. Set READY.");
-                                    resetWaitingArb();
-                                    arbitrageService.resetArbState(getCounterName(), "WAITING_ARB deferred-placing-order");
-                                    return;
-                                }
-
-                                // check2
-                                final DealPrices dealPrices = arbitrageService.getDealPrices();
-                                if (dealPrices.getbPriceFact().isNotFinished()) {
-                                    final String msg = "WAITING_ARB: bitmex is not fully filled. Try to update the filled amount for all orders.";
-                                    logger.info(msg);
-                                    arbitrageService.getFirstMarketService().getTradeLogger().info(msg);
-                                    getTradeLogger().info(msg);
-                                    warningLogger.info(msg);
-                                    final BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
-                                    bitmexService.updateAvgPrice(getCounterName(), dealPrices.getbPriceFact(), true);
-
-                                    if (dealPrices.getbPriceFact().isNotFinished()) {
-                                        final String msg1 = "WAITING_ARB: bitmex is not fully filled. Set READY.";
-                                        logger.error(msg1);
-                                        arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
-                                        getTradeLogger().info(msg1);
-                                        warningLogger.error(msg1);
-                                        resetWaitingArb();
-                                        arbitrageService.resetArbState(getCounterName(), "WAITING_ARB deferred-placing-order");
-                                        return;
-                                    }
-                                }
-
-                                // do deferred placing
-                                setMarketState(MarketState.ARBITRAGE);
-                                tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
-
-                                if (currArgs.getPlacingType() == PlacingType.TAKER) {// set oPricePlanOnStart for Taker
-                                    final BigDecimal oPricePlanOnStart;
-                                    if (currArgs.getOrderType() == OrderType.BID || currArgs.getOrderType() == OrderType.EXIT_ASK) {
-                                        oPricePlanOnStart = Utils.getBestAsk(orderBook).getLimitPrice(); // buy -> use the opposite price.
-                                    } else {
-                                        oPricePlanOnStart = Utils.getBestBid(orderBook).getLimitPrice(); // do sell -> use the opposite price.
-                                    }
-                                    dealPrices.setoPricePlanOnStart(oPricePlanOnStart);
-                                }
-
-                                fplayTradeService.setOkexStatus(currArgs.getTradeId(), TradeMStatus.IN_PROGRESS);
-                                currArgs.setPricePlanOnStart(true);
-                                placeOrder(currArgs);
-
-                            }
-                        }
-                    } catch (Exception e) {
-                        logger.error("{} deferedPlacingOrder error", getName(), e);
+    /**
+     * It is not thread safe. It uses <b>openOrdersLock</b>. Don't call it inside <b>arbStateLock</b>. That's why it is async.
+     *
+     * @return false when need reset of arbState, true otherwise.
+     */
+    public Future<Boolean> tryPlaceDeferredOrder() {
+//        ooSingleExecutor - may read with arbStateLock
+        return ooSingleExecutor.submit(() -> {
+            try {
+                if (getMarketState() == MarketState.WAITING_ARB) {
+                    // check1
+                    final PlaceOrderArgs currArgs = placeOrderArgsRef.getAndSet(null);
+                    if (currArgs == null) {
+                        logger.error("WAITING_ARB: no deferred order. Set READY.");
+                        warningLogger.error("WAITING_ARB: no deferred order. Set READY.");
+                        resetWaitingArb();
+                        arbitrageService.resetArbState(getCounterName(), "deferredPlacingOrder");
+                        return false;
                     }
-                }, throwable -> logger.error("{} deferedPlacingOrder error", getName(), throwable));
+
+                    // check2
+                    final DealPrices dealPrices = arbitrageService.getDealPrices();
+                    if (dealPrices.getbPriceFact().isNotFinished()) {
+                        final String msg = String.format("#%s tradeId=%s "
+                                        + "WAITING_ARB: bitmex is not fully filled. Try to update the filled amount for all orders.",
+                                currArgs.getCounterName(),
+                                currArgs.getTradeId()
+                        );
+                        logger.info(msg);
+                        arbitrageService.getFirstMarketService().getTradeLogger().info(msg);
+                        getTradeLogger().info(msg);
+                        warningLogger.info(msg);
+                        final BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
+                        bitmexService.updateAvgPrice(getCounterName(), dealPrices.getbPriceFact(), true);
+
+                        if (dealPrices.getbPriceFact().isNotFinished()) {
+                            final String msg1 = String.format("#%s tradeId=%s "
+                                            + "WAITING_ARB: bitmex is not fully filled. Set READY.",
+                                    currArgs.getCounterName(),
+                                    currArgs.getTradeId()
+                            );
+                            logger.error(msg1);
+                            arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
+                            getTradeLogger().info(msg1);
+                            warningLogger.error(msg1);
+                            resetWaitingArb();
+                            arbitrageService.resetArbState(getCounterName(), "deferredPlacingOrder");
+                            return false;
+                        }
+                    }
+
+                    // do deferred placing
+                    setMarketState(MarketState.ARBITRAGE);
+                    tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
+
+                    if (currArgs.getPlacingType() == PlacingType.TAKER) {// set oPricePlanOnStart for Taker
+                        final BigDecimal oPricePlanOnStart;
+                        if (currArgs.getOrderType() == OrderType.BID || currArgs.getOrderType() == OrderType.EXIT_ASK) {
+                            oPricePlanOnStart = Utils.getBestAsk(orderBook).getLimitPrice(); // buy -> use the opposite price.
+                        } else {
+                            oPricePlanOnStart = Utils.getBestBid(orderBook).getLimitPrice(); // do sell -> use the opposite price.
+                        }
+                        dealPrices.setoPricePlanOnStart(oPricePlanOnStart);
+                    }
+
+                    fplayTradeService.setOkexStatus(currArgs.getTradeId(), TradeMStatus.IN_PROGRESS);
+                    currArgs.setPricePlanOnStart(true);
+                    placeOrder(currArgs);
+
+                }
+            } catch (Exception e) {
+                logger.error("{} deferredPlacingOrder error", getName(), e);
+                resetWaitingArb();
+                arbitrageService.resetArbState(getCounterName(), "deferredPlacingOrder");
+                return false;
+            }
+            return true;
+        });
     }
 
     @Override
@@ -2189,6 +2198,10 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
+        ooSingleExecutor.execute(() -> iterateOpenOrdersMoveSync(iterateArgs));
+    }
+
+    private void iterateOpenOrdersMoveSync(Object... iterateArgs) { // if synchronized then the queue for moving could be long
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED
                 || getMarketState() == MarketState.PLACING_ORDER
                 || isMarketStopped()

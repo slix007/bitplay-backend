@@ -686,11 +686,7 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
-        //noinspection ResultOfMethodCallIgnored
-        Observable.just(iterateArgs)
-                .observeOn(ooSingleExecutor)
-                .subscribe(this::iterateOpenOrdersMoveSync,
-                        throwable -> logger.error("Error in iterateOpenOrdersMove", throwable));
+        ooSingleExecutor.execute(() -> iterateOpenOrdersMoveSync(iterateArgs));
     }
 
     private void iterateOpenOrdersMoveSync(Object[] iterateArgs) {
@@ -1476,7 +1472,7 @@ public class BitmexService extends MarketServicePreliq {
     private Disposable startOpenOrderListener() {
         return exchange.getStreamingTradingService()
                 .getOpenOrderObservable(currencyToScale)
-                .observeOn(ooSingleExecutor) // blocking queue is here
+                .observeOn(ooSingleScheduler) // blocking queue is here
                 .doOnError(throwable -> handleSubscriptionError(throwable, "onOpenOrdersListening"))
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
