@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import java.math.BigDecimal;
 import java.time.Instant;
 import lombok.AllArgsConstructor;

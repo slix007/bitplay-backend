@@ -13,7 +13,7 @@ import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.market.model.PlacingType;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;

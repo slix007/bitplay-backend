@@ -7,7 +7,7 @@ import com.bitplay.api.domain.ob.FutureIndexJson;
 import com.bitplay.api.domain.ob.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.market.model.PlacingType;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import java.math.BigDecimal;

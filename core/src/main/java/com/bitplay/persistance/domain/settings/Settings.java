@@ -1,6 +1,5 @@
 package com.bitplay.persistance.domain.settings;
 
-import com.bitplay.market.model.PlacingType;
 import com.bitplay.persistance.domain.AbstractDocument;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.TradingModeState;

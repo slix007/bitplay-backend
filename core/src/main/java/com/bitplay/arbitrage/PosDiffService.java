@@ -16,7 +16,7 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexUtils;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.market.model.PlacingType;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.PersistenceService;

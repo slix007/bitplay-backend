@@ -1,6 +1,5 @@
 package com.bitplay.persistance.domain.settings;
 
-import com.bitplay.market.model.PlacingType;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;

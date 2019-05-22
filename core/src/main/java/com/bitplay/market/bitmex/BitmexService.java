@@ -30,7 +30,7 @@ import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.market.model.PlacingType;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.metrics.MetricsDictionary;
@@ -58,7 +58,6 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
-import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -180,7 +179,7 @@ public class BitmexService extends MarketServicePreliq {
     @Autowired
     private RestartService restartService;
     private volatile Date orderBookLastTimestamp = new Date();
-    private volatile Date orderBookLastTimestampXBTUSD = new Date();
+//    private volatile Date orderBookLastTimestampXBTUSD = new Date();
     protected BigDecimal bestBidXBTUSD = BigDecimal.ZERO;
     protected BigDecimal bestAskXBTUSD = BigDecimal.ZERO;
 
@@ -1428,9 +1427,9 @@ public class BitmexService extends MarketServicePreliq {
             final LimitOrder bestAsk = Utils.getBestAsk(orderBook);
             final LimitOrder bestBid = Utils.getBestBid(orderBook);
 
-            if (bestAsk != null && bestBid != null) {
-                orderBookLastTimestampXBTUSD = new Date();
-            }
+//            if (bestAsk != null && bestBid != null) {
+//                orderBookLastTimestampXBTUSD = new Date();
+//            }
 
             this.bestAskXBTUSD = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
             this.bestBidXBTUSD = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;

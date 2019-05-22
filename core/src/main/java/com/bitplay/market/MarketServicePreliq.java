@@ -6,7 +6,7 @@ import com.bitplay.external.NotifyType;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.market.model.PlacingType;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;

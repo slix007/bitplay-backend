@@ -1,6 +1,5 @@
 package com.bitplay.persistance.domain.settings;
 
-import com.bitplay.market.model.PlacingType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import lombok.Getter;

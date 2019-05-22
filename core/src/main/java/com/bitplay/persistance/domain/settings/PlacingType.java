@@ -1,4 +1,4 @@
-package com.bitplay.market.model;
+package com.bitplay.persistance.domain.settings;
 
 /**
  * Created by Sergey Shurmin on 11/19/17.
