@@ -7,9 +7,14 @@ import info.bitrich.xchangestream.bitmex.dto.AuthenticateRequest;
 import info.bitrich.xchangestream.bitmex.dto.WebSocketMessage;
 import info.bitrich.xchangestream.service.exception.NotAuthorizedException;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
+import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
 import io.reactivex.Completable;
+import io.reactivex.CompletableEmitter;
 import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import java.io.IOException;
 import java.net.URI;
 import java.security.InvalidKeyException;
@@ -18,8 +23,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import jersey.repackaged.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.knowm.xchange.bitmex.service.BitmexDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +35,9 @@ import org.slf4j.LoggerFactory;
 public class StreamingServiceBitmex {
 
     private static final Logger log = LoggerFactory.getLogger(StreamingServiceBitmex.class);
+    private final Scheduler singleScheduler = Schedulers.from(Executors.newSingleThreadExecutor(
+            new ThreadFactoryBuilder().setNameFormat("bitmex-ping-thread").build()
+    ));
 
     private String apiUrl;
     private WSClientEndpoint clientEndPoint;
@@ -35,6 +46,7 @@ public class StreamingServiceBitmex {
     private int checkReconnect = 2;
     private final Object pingLock = new Object();
     private volatile int disconnectCount = 0;
+    private final List<ObservableEmitter<PingStatEvent>> pingStatEmitters = new LinkedList<>();
 
     public StreamingServiceBitmex(String apiUrl) {
         this.apiUrl = apiUrl;
@@ -138,38 +150,55 @@ public class StreamingServiceBitmex {
                     .takeWhile(observer -> currentIter == disconnectCount)
                     .subscribe(aLong -> {
 
-                        synchronized (pingLock) {
-//                            log.info(currentIter + " ping-pong start");
-                            msgHandler.setWaitingForPong();
-                            Instant start = Instant.now();
+                                synchronized (pingLock) {
+                                    msgHandler.setWaitingForPong();
+                                    Instant start = Instant.now();
 
-                            for (int i = 0; i < 10; i++) { // 2*10 = 20sec
-                                // Sending 'ping'
-                                if (!clientEndPoint.isOpen()) {
-                                    log.error(currentIter + " Ping failed: clientEndPoint is not open");
-                                    onDisconnectEmitter.onComplete();
-                                    break;
-                                }
+                                    final int repeats = 5;
+                                    final int repeatTimeoutSec = 2;
+                                    final int fullTimeoutSec = repeats * repeatTimeoutSec;
+                                    final Disposable pongListener = msgHandler.completablePong()
+                                            .subscribeOn(singleScheduler)
+                                            .observeOn(singleScheduler)
+                                            .timeout(fullTimeoutSec, TimeUnit.SECONDS, singleScheduler)
+                                            .subscribe(() -> {
+//                                                log.info(currentIter + " ping-pong completed.");
+                                                Instant end = Instant.now();
+                                                final long ms = Duration.between(start, end).toMillis();
+                                                pingStatEmitters.forEach(emitter -> emitter.onNext(new PingStatEvent(ms)));
+                                                if (!msgHandler.isWaitingForPong()) { // means also (success == true)
+                                                    log.info(currentIter + " ping-pong(ms): " + ms);
+                                                } else {
+                                                    onPingFailedAction(currentIter, onDisconnectEmitter, new Exception("Timeout on waiting 'pong'"));
+                                                }
+                                            }, throwable -> onPingFailedAction(currentIter, onDisconnectEmitter, throwable));
 
-                                if (i > 2) {
-                                    log.info(currentIter + " Send: ping " + i);
-                                }
-                                clientEndPoint.sendMessage("ping");
+                                    // Sending 'ping'
+                                    for (int i = 0; i < repeats + 10; i++) { // 2*5 = 10sec
+                                        if (!clientEndPoint.isOpen()) {
+                                            onPingFailedAction(currentIter, onDisconnectEmitter, new Exception("clientEndPoint is not open"));
+                                            break;
+                                        }
+                                        if (!msgHandler.isWaitingForPong()) {
+                                            break;
+                                        }
+                                        if (i > 0) {
+                                            log.info(currentIter + " re-sending ping " + i);
+                                        }
 
-                                boolean success = msgHandler.completablePong().blockingAwait(2, TimeUnit.SECONDS);
+                                        clientEndPoint.sendMessage("ping");
 
-                                if (!msgHandler.isWaitingForPong()) {
-                                    break;
-                                }
-                            }
-
-                            Instant end = Instant.now();
-                            log.info(currentIter + " ping-pong(sec): " + Duration.between(start, end).getSeconds());
-
-                            if (msgHandler.isWaitingForPong()) {
-                                log.error(currentIter + " Ping failed. Timeout on waiting 'pong'.");
-                                onDisconnectEmitter.onComplete();
-                            }
+                                        try {
+                                            Thread.sleep(repeatTimeoutSec * 1000);
+                                        } catch (InterruptedException e) {
+                                            log.warn(currentIter + " ping-pong interrupted.");
+                                        }
+                                    }
+                                    if (!pongListener.isDisposed() && msgHandler.isWaitingForPong()) {
+                                        pongListener.dispose();
+                                        onPingFailedAction(currentIter, onDisconnectEmitter, new Exception("ping-pong timeout"));
+                                    }
+                                    pongListener.dispose();
 
 //                            if (checkReconnect % 2 == 0) {
 //                                log.error(currentIter + " CHECK RECONNECT ACTION: DO CLOSE");
@@ -177,12 +206,16 @@ public class StreamingServiceBitmex {
 //                            }
 //                            checkReconnect++;
 
-                        }
-                    }, throwable -> {
-                        log.error(currentIter + " Ping failed exception", throwable);
-                        onDisconnectEmitter.onComplete();
-                    }, () -> log.info(currentIter + " pingDisposable onComplete()"));
+                                }
+                            },
+                            throwable -> onPingFailedAction(currentIter, onDisconnectEmitter, throwable),
+                            () -> log.info(currentIter + " pingDisposable onComplete()"));
         });
+    }
+
+    private void onPingFailedAction(int currentIter, CompletableEmitter onDisconnectEmitter, Throwable throwable) {
+        log.error(currentIter + " Ping failed exception", throwable);
+        onDisconnectEmitter.onComplete();
     }
 
     public Completable disconnect() {
@@ -223,4 +256,7 @@ public class StreamingServiceBitmex {
         return objectMapper.writeValueAsString(authenticateRequest);
     }
 
+    public Observable<PingStatEvent> subscribePingStats() {
+        return Observable.create(pingStatEmitters::add);
+    }
 }

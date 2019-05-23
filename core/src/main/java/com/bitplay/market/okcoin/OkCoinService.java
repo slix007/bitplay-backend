@@ -796,7 +796,7 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable startPingStatSub() {
         return exchange.subscribePingStats()
                 .map(PingStatEvent::getPingPongMs)
-                .subscribe(ms -> metricsDictionary.setOkexPing(ms),
+                .subscribe(ms -> metricsDictionary.putOkexPing(ms),
                         e -> logger.error("ping stats error", e));
     }
 

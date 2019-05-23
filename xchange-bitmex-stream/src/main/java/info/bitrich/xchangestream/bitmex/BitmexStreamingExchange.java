@@ -7,7 +7,9 @@ import info.bitrich.xchangestream.core.StreamingExchangeEx;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
 import info.bitrich.xchangestream.core.StreamingTradingService;
+import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import java.net.URISyntaxException;
 import org.knowm.xchange.bitmex.BitmexExchange;
 
@@ -95,4 +97,9 @@ public class BitmexStreamingExchange extends BitmexExchange implements Streaming
     public void useCompressedMessages(boolean b) {
 
     }
+
+    public Observable<PingStatEvent> subscribePingStats() {
+        return streamingService.subscribePingStats();
+    }
+
 }

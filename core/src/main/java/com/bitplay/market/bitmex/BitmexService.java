@@ -30,7 +30,6 @@ import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.metrics.MetricsDictionary;
@@ -45,6 +44,7 @@ import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.settings.BitmexChangeOnSoService;
@@ -58,6 +58,7 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
+import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -157,6 +158,7 @@ public class BitmexService extends MarketServicePreliq {
     private volatile Disposable positionSubscription;
     private volatile Disposable futureIndexSubscription;
     private volatile Disposable onDisconnectSubscription;
+    private Disposable pingStatSub;
     @SuppressWarnings({"UnusedDeclaration"})
     private BitmexSwapService bitmexSwapService;
 
@@ -452,8 +454,20 @@ public class BitmexService extends MarketServicePreliq {
         openOrdersSubscription = startOpenOrderListener();
         positionSubscription = startPositionListener();
         futureIndexSubscription = startFutureIndexListener();
+        startPingStatSub();
 
     }
+
+    private void startPingStatSub() {
+        if (pingStatSub != null) {
+            pingStatSub.dispose();
+        }
+        pingStatSub = exchange.subscribePingStats()
+                .map(PingStatEvent::getPingPongMs)
+                .subscribe(ms -> metricsDictionary.putBitmexPing(ms),
+                        e -> logger.error("ping stats error", e));
+    }
+
 
     public void reSubscribeOrderBooks(boolean force) throws ReconnectFailedException, TimeoutException {
 
@@ -1240,6 +1254,9 @@ public class BitmexService extends MarketServicePreliq {
             exchange.disconnect().blockingAwait();
             if (onDisconnectSubscription != null && !onDisconnectSubscription.isDisposed()) {
                 onDisconnectSubscription.dispose();
+            }
+            if (pingStatSub != null) {
+                pingStatSub.dispose();
             }
 
 //            Completable.timer(5000, TimeUnit.MILLISECONDS)

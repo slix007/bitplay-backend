@@ -22,6 +22,7 @@ public class MetricsDictionary {
     private DistributionSummary okexDelta;
     private Counter bitmexReconnectsCounter;
     private Timer okexPing;
+    private Timer bitmexPing;
 
     @Autowired
     private HostResolver hostResolver;
@@ -72,18 +73,8 @@ public class MetricsDictionary {
 //                    .publishPercentiles(0.5, 0.95) // median and 95th percentile
 //                    .publishPercentileHistogram()
                     .register(registry);
-
-//            bitmexDeltaTimer = Timer.builder("fplay.timer_delta1")
-//                    .publishPercentiles(0.5, 0.95) // median and 95th percentile
-//                    .publishPercentileHistogram()
-//                    .register(registry);
-//            okexDeltaTimer = Timer.builder("fplay.timer_delta2")
-////                    .publishPercentiles(0.5, 0.95) // median and 95th percentile
-////                    .publishPercentileHistogram()
-//                    .register(registry);
-//                    .sla(Duration.ofMillis(100))
-//                    .minimumExpectedValue(Duration.ofMillis(1))
-//                    .maximumExpectedValue(Duration.ofSeconds(10));
+            bitmexPing = Timer.builder("fplay.timer.bitmexPing")
+                    .register(registry);
 
             bitmexReconnectsCounter = registry.counter("bitmexReconnectsCounter");
 
@@ -109,8 +100,11 @@ public class MetricsDictionary {
         bitmexReconnectsCounter.increment();
     }
 
-    public void setOkexPing(long ms) {
+    public void putOkexPing(long ms) {
         okexPing.record(ms, TimeUnit.MILLISECONDS);
     }
 
+    public void putBitmexPing(long ms) {
+        bitmexPing.record(ms, TimeUnit.MILLISECONDS);
+    }
 }
