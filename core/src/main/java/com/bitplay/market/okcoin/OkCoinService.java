@@ -936,6 +936,7 @@ public class OkCoinService extends MarketServicePreliq {
             }
             monitoringDataService.saveMon(monPlacing);
             metricsDictionary.putOkexPlacing(waitingMarketMs);
+            fplayTradeService.addOkexPlacingMs(tradeId, waitingMarketMs);
 
             LimitOrder orderInfo = TmpAdapter.cloneWithId(limitOrder, orderId);
             tradeResponse.setLimitOrder(orderInfo);
@@ -1455,6 +1456,7 @@ public class OkCoinService extends MarketServicePreliq {
                     }
                     monitoringDataService.saveMon(monPlacing);
                     metricsDictionary.putOkexPlacing(waitingMarketMs);
+                    fplayTradeService.addOkexPlacingMs(tradeId, waitingMarketMs);
 
                     tradeResponse.setOrderId(orderId);
 

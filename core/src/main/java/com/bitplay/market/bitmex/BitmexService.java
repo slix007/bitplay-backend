@@ -179,6 +179,9 @@ public class BitmexService extends MarketServicePreliq {
     private DefaultLogService defaultLogger;
 
     @Autowired
+    private com.bitplay.persistance.TradeService fplayTradeService;
+
+    @Autowired
     private RestartService restartService;
     private volatile Date orderBookLastTimestamp = new Date();
 //    private volatile Date orderBookLastTimestampXBTUSD = new Date();
@@ -1768,6 +1771,7 @@ public class BitmexService extends MarketServicePreliq {
                         }
                         monitoringDataService.saveMon(monPlacing);
                         metricsDictionary.putBitmexPlacing(waitingMarketMs);
+                        fplayTradeService.addBitmexPlacingMs(tradeId, waitingMarketMs);
 
                         orderId = resultOrder.getId();
                         final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
@@ -1847,6 +1851,8 @@ public class BitmexService extends MarketServicePreliq {
                         }
                         monitoringDataService.saveMon(monPlacing);
                         metricsDictionary.putBitmexPlacing(waitingMarketMs);
+                        fplayTradeService.addBitmexPlacingMs(tradeId, waitingMarketMs);
+
 
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();

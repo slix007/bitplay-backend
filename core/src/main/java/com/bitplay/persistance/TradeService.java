@@ -167,4 +167,23 @@ public class TradeService {
 
     }
 
+    public void addBitmexPlacingMs(Long tradeId, long ms) {
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                new Update()
+                        .inc("version", 1)
+                        .set("updated", new Date())
+                        .addToSet("fplayTradeMon.bitmexPlacingMs", ms),
+                FplayTrade.class);
+    }
+
+    public void addOkexPlacingMs(Long tradeId, long ms) {
+        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                new Update()
+                        .inc("version", 1)
+                        .set("updated", new Date())
+                        .addToSet("fplayTradeMon.okexPlacingMs", ms),
+                FplayTrade.class);
+    }
+
+
 }

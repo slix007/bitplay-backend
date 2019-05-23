@@ -57,6 +57,8 @@ public class FplayTrade {
     private List<String> okexOrders;
     private List<LogRow> deltaLog;
 
+    private FplayTradeMon fplayTradeMon;
+
     public List<String> getBitmexOrders() {
         return bitmexOrders != null ? bitmexOrders : new ArrayList<>();
     }
