@@ -25,6 +25,10 @@ public class Mon extends MarketDocument {
      */
     private Range before;
 
+    /**
+     * The func iterateOpenOrdersMove() has synchronized block. So that sometimes we wait for the previous moving. It shows the time before the lock, but "Too
+     * often moving requests." (movingInProgress || movingDelay) hides the real frequency.
+     */
     private Range waitingPrev;
     private Range wholePlacing;
 
@@ -32,6 +36,10 @@ public class Mon extends MarketDocument {
      * Time from sending request 'move order' to getting an answer.
      */
     private Range waitingMarket;
+
+    /**
+     * Bitmex may have reconnects after the moving.
+     */
     private Range after;
 
     private Integer count;

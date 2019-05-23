@@ -10,6 +10,7 @@ import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.spring.autoconfigure.MeterRegistryCustomizer;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -23,6 +24,14 @@ public class MetricsDictionary {
     private Counter bitmexReconnectsCounter;
     private Timer okexPing;
     private Timer bitmexPing;
+    private Timer bitmexPlacing;
+    private Timer bitmexPlacingWhole;
+    private Timer bitmexPlacingBefore;
+    private Timer bitmexUpdateOrder;
+    private Timer okexPlacing;
+    private Timer okexPlacingWhole;
+    private Timer okexPlacingBefore;
+    private Timer okexMovingWhole;
 
     @Autowired
     private HostResolver hostResolver;
@@ -69,12 +78,16 @@ public class MetricsDictionary {
                     .baseUnit("quote")
                     .register(registry);
 
-            okexPing = Timer.builder("fplay.timer.okexPing")
-//                    .publishPercentiles(0.5, 0.95) // median and 95th percentile
-//                    .publishPercentileHistogram()
-                    .register(registry);
-            bitmexPing = Timer.builder("fplay.timer.bitmexPing")
-                    .register(registry);
+            okexPing = Timer.builder("fplay.timer.okexPing").register(registry);
+            bitmexPing = Timer.builder("fplay.timer.bitmexPing").register(registry);
+            bitmexPlacing = Timer.builder("fplay.timer.bitmexPlacing").register(registry);
+            okexPlacing = Timer.builder("fplay.timer.okexPlacing").register(registry);
+            bitmexPlacingWhole = Timer.builder("fplay.timer.bitmexPlacingWhole").register(registry);
+            okexPlacingWhole = Timer.builder("fplay.timer.okexPlacingWhole").register(registry);
+            bitmexPlacingBefore = Timer.builder("fplay.timer.bitmexPlacingBefore").register(registry);
+            okexPlacingBefore = Timer.builder("fplay.timer.okexPlacingBefore").register(registry);
+            bitmexUpdateOrder = Timer.builder("fplay.timer.bitmexUpdateOrder").register(registry);
+            okexMovingWhole = Timer.builder("fplay.timer.okexMovingWhole").register(registry);
 
             bitmexReconnectsCounter = registry.counter("bitmexReconnectsCounter");
 
@@ -107,4 +120,37 @@ public class MetricsDictionary {
     public void putBitmexPing(long ms) {
         bitmexPing.record(ms, TimeUnit.MILLISECONDS);
     }
+
+    public void putBitmexPlacing(long ms) {
+        bitmexPlacing.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putOkexPlacing(long ms) {
+        okexPlacing.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putBitmexPlacingWhole(long ms) {
+        bitmexPlacingWhole.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putOkexPlacingWhole(long ms) {
+        okexPlacingWhole.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putBitmexPlacingBefore(long ms) {
+        bitmexPlacingBefore.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putOkexPlacingBefore(long ms) {
+        okexPlacingBefore.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putBitmexUpdateOrder(Duration duration) {
+        bitmexUpdateOrder.record(duration);
+    }
+
+    public void putOkexMovingWhole(long ms) {
+        okexMovingWhole.record(ms, TimeUnit.MILLISECONDS);
+    }
+
 }

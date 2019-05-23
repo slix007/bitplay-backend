@@ -139,7 +139,7 @@ public class BitmexService extends MarketServicePreliq {
     // Moving timeout
     private volatile ScheduledFuture<?> movingDelayResetFuture;
     private volatile boolean movingDelay = false;
-    private volatile ScheduledFuture<?> moveingInProgressResetFuture;
+    private volatile ScheduledFuture<?> movingInProgressResetFuture;
     private volatile ScheduledFuture<?> movingErrorsResetFuture;
     private volatile boolean movingInProgress = false;
     private static final int MAX_MOVING_TIMEOUT_MS = 2000;
@@ -807,10 +807,10 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private void scheduleMovingInProgressReset() {
-        if (moveingInProgressResetFuture != null) {
-            moveingInProgressResetFuture.cancel(false);
+        if (movingInProgressResetFuture != null) {
+            movingInProgressResetFuture.cancel(false);
         }
-        moveingInProgressResetFuture = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        movingInProgressResetFuture = scheduler.schedule(() -> movingInProgress = false, MAX_MOVING_TIMEOUT_MS, TimeUnit.MILLISECONDS);
     }
 
     private void startMovingDelay() {
@@ -1767,8 +1767,7 @@ public class BitmexService extends MarketServicePreliq {
                             logger.warn(placingType + " bitmexPlaceOrder waitingMarketMs=" + waitingMarketMs);
                         }
                         monitoringDataService.saveMon(monPlacing);
-//                        CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrder" + placingType);
-//                        placeOrderMetrics.durationMs(waitingMarketMs);
+                        metricsDictionary.putBitmexPlacing(waitingMarketMs);
 
                         orderId = resultOrder.getId();
                         final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
@@ -1847,8 +1846,7 @@ public class BitmexService extends MarketServicePreliq {
                             logger.warn(placingType + " bitmexPlaceOrder waitingMarketMs=" + waitingMarketMs);
                         }
                         monitoringDataService.saveMon(monPlacing);
-//                        CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrder" + placingType);
-//                        placeOrderMetrics.durationMs(waitingMarketMs);
+                        metricsDictionary.putBitmexPlacing(waitingMarketMs);
 
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
@@ -1978,8 +1976,7 @@ public class BitmexService extends MarketServicePreliq {
         if (lastObTime != null) {
             long beforeMs = startPlacing.toEpochMilli() - lastObTime.toEpochMilli();
             monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
-//            CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforePlaceOrder");
-//            metrics.durationMs(beforeMs);
+            metricsDictionary.putBitmexPlacingBefore(beforeMs);
             if (beforeMs > 5000) {
                 logger.warn(placingType + "bitmex beforePlaceOrderMs=" + beforeMs);
             }
@@ -1987,13 +1984,12 @@ public class BitmexService extends MarketServicePreliq {
         final Instant endPlacing = Instant.now();
         long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();
         monPlacing.getWholePlacing().add(BigDecimal.valueOf(wholeMs));
-//        CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "wholePlacing" + placingType);
-//        metrics.durationMs(wholeMs);
         if (wholeMs > 5000) {
             logger.warn(placingType + "bitmex wholePlacingMs=" + wholeMs);
         }
         monPlacing.incCount();
         monitoringDataService.saveMon(monPlacing);
+        metricsDictionary.putBitmexPlacingWhole(wholeMs);
 
         return tradeResponse;
     }
@@ -2045,6 +2041,7 @@ public class BitmexService extends MarketServicePreliq {
             throwTestingException();
             final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService()).moveLimitOrder(limitOrder, bestMakerPrice);
             Instant endReq = Instant.now();
+            metricsDictionary.putBitmexUpdateOrder(Duration.between(startReq, endReq));
 
             if (movedLimitOrder != null) {
 

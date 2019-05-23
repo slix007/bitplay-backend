@@ -935,8 +935,7 @@ public class OkCoinService extends MarketServicePreliq {
                 logger.warn("TAKER okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
             }
             monitoringDataService.saveMon(monPlacing);
-//            CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrderTAKER");
-//            placeOrderMetrics.durationMs(waitingMarketMs);
+            metricsDictionary.putOkexPlacing(waitingMarketMs);
 
             LimitOrder orderInfo = TmpAdapter.cloneWithId(limitOrder, orderId);
             tradeResponse.setLimitOrder(orderInfo);
@@ -1285,13 +1284,12 @@ public class OkCoinService extends MarketServicePreliq {
         final Instant endPlacing = Instant.now();
         long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();
         monPlacing.getWholePlacing().add(BigDecimal.valueOf(wholeMs));
-//        CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "wholePlacing" + placingType);
-//        metrics.durationMs(wholeMs);
         if (wholeMs > 5000) {
             logger.warn(placingType + "okex wholePlacingMs=" + wholeMs);
         }
         monPlacing.incCount();
         monitoringDataService.saveMon(monPlacing);
+        metricsDictionary.putOkexPlacingWhole(wholeMs);
 
         return tradeResponse;
     }
@@ -1456,8 +1454,7 @@ public class OkCoinService extends MarketServicePreliq {
                         logger.warn(placingSubType + " okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
                     }
                     monitoringDataService.saveMon(monPlacing);
-//                CounterAndTimer placeOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "placeOrder" + placingSubType);
-//                placeOrderMetrics.durationMs(waitingMarketMs);
+                    metricsDictionary.putOkexPlacing(waitingMarketMs);
 
                     tradeResponse.setOrderId(orderId);
 
@@ -1722,8 +1719,6 @@ public class OkCoinService extends MarketServicePreliq {
                 Instant lastObTime = (Instant) reqMovingArgs[0];
                 long beforeMs = startMoving.toEpochMilli() - lastObTime.toEpochMilli();
                 mon.getBefore().add(BigDecimal.valueOf(beforeMs));
-//                CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforeMoveOrder");
-//                metrics.durationMs(beforeMs);
                 if (beforeMs > 5000) {
                     logger.warn("okex beforeMoveOrderMs=" + beforeMs);
                 }
@@ -1736,6 +1731,7 @@ public class OkCoinService extends MarketServicePreliq {
             }
             mon.incCount();
             monitoringDataService.saveMon(mon);
+            metricsDictionary.putOkexMovingWhole(wholeMovingMs);
         }
 
         return response;
