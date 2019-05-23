@@ -1364,6 +1364,7 @@ public class BitmexService extends MarketServicePreliq {
                 .subscribe(orderBook -> {
                     try {
                         if (isDefaultOB(orderBook)) {
+                            metricsDictionary.incBitmexObCounter();
                             this.orderBook = orderBook;
                             afterOrderBookChanged(orderBook);
                         } else {

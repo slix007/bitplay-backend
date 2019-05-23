@@ -27,7 +27,6 @@ import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.convert.LimitOrderToOrderConverter;
 import com.bitplay.metrics.MetricsDictionary;
@@ -48,6 +47,7 @@ import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.OkexPostOnlyArgs;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.utils.Utils;
@@ -478,6 +478,7 @@ public class OkCoinService extends MarketServicePreliq {
                     if (isExtra) {
                         this.orderBookXBTUSD = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());
                     } else {
+                        metricsDictionary.incOkexObCounter();
                         this.orderBook = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());
 
                         final LimitOrder bestAsk = Utils.getBestAsk(this.orderBook);

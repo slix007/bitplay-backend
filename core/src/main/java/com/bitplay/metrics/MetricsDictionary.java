@@ -32,6 +32,8 @@ public class MetricsDictionary {
     private Timer okexPlacingWhole;
     private Timer okexPlacingBefore;
     private Timer okexMovingWhole;
+    private Counter bitmexObCounter;
+    private Counter okexObCounter;
 
     @Autowired
     private HostResolver hostResolver;
@@ -89,7 +91,9 @@ public class MetricsDictionary {
             bitmexUpdateOrder = Timer.builder("fplay.timer.bitmexUpdateOrder").register(registry);
             okexMovingWhole = Timer.builder("fplay.timer.okexMovingWhole").register(registry);
 
-            bitmexReconnectsCounter = registry.counter("bitmexReconnectsCounter");
+            bitmexReconnectsCounter = registry.counter("fplay.counter.bitmexReconnectsCounter");
+            bitmexObCounter = registry.counter("fplay.counter.bitmexObCounter");
+            okexObCounter = registry.counter("fplay.counter.okexObCounter");
 
 //            FunctionCounter counter = FunctionCounter
 //                    .builder("counter", state, state -> state.count())
@@ -111,6 +115,14 @@ public class MetricsDictionary {
 
     public void incBitmexReconnects() {
         bitmexReconnectsCounter.increment();
+    }
+
+    public void incBitmexObCounter() {
+        bitmexObCounter.increment();
+    }
+
+    public void incOkexObCounter() {
+        okexObCounter.increment();
     }
 
     public void putOkexPing(long ms) {
