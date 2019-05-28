@@ -6,7 +6,6 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
@@ -15,7 +14,6 @@ import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.math.BigDecimal;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -95,8 +93,7 @@ public class TwoMarketStarter {
             } catch (Exception e) {
                 logger.error("MARKET1 Initialization error. Set STOPPED.", e);
                 // Workaround to make work the other market
-                firstMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
-                firstMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
+                firstMarketService.setEmptyPos();
                 arbitrageService.setArbStateStopped();
                 slackNotifications.sendNotify(NotifyType.STOPPED, BitmexService.NAME + " STOPPED: Initialization error.");
                 return false;
@@ -116,8 +113,7 @@ public class TwoMarketStarter {
             } catch (Exception e) {
                 logger.error("MARKET2 Initialization error. Set STOPPED.", e);
                 // Workaround to make work the other market
-                secondMarketService.getPosition().setPositionLong(BigDecimal.ZERO);
-                secondMarketService.getPosition().setPositionShort(BigDecimal.ZERO);
+                secondMarketService.setEmptyPos();
                 arbitrageService.setArbStateStopped();
                 slackNotifications.sendNotify(NotifyType.STOPPED, OkCoinService.NAME + " STOPPED: Initialization error.");
                 return false;

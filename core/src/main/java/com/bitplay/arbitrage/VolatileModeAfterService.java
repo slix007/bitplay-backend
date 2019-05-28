@@ -2,7 +2,7 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.MarketState;
+import com.bitplay.market.model.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;

@@ -167,7 +167,7 @@ public class StreamingServiceBitmex {
                                                 final long ms = Duration.between(start, end).toMillis();
                                                 pingStatEmitters.forEach(emitter -> emitter.onNext(new PingStatEvent(ms)));
                                                 if (!msgHandler.isWaitingForPong()) { // means also (success == true)
-                                                    log.info(currentIter + " ping-pong(ms): " + ms);
+                                                    log.debug(currentIter + " ping-pong(ms): " + ms);
                                                 } else {
                                                     onPingFailedAction(currentIter, onDisconnectEmitter, new Exception("Timeout on waiting 'pong'"));
                                                 }

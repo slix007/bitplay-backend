@@ -1,9 +1,9 @@
 package com.bitplay.market;
 
 import com.bitplay.market.model.FullBalance;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.settings.ContractType;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 
 /**
@@ -11,6 +11,6 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
  */
 public interface BalanceService {
 
-    FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType,
-            Position positionXBTUSD, OrderBook orderBookXBTUSD);
+    FullBalance recalcAndGetAccountInfo(AccountBalance account, Pos pObj, OrderBook orderBook, ContractType contractType,
+            Pos positionXBTUSD, OrderBook orderBookXBTUSD);
 }

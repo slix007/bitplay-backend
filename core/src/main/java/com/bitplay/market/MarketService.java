@@ -15,19 +15,27 @@ import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
+import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.persistance.domain.settings.PlacingType;
+import com.bitplay.market.model.SpecialFlags;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.state.TmpStateKeeper;
+import com.bitplay.metrics.MetricsDictionary;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.micrometer.core.instrument.Timer.Sample;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
+import io.reactivex.Completable;
 import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -46,13 +54,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
@@ -65,22 +73,23 @@ import org.slf4j.LoggerFactory;
 /**
  * Created by Sergey Shurmin on 4/16/17.
  */
-public abstract class MarketService extends MarketServiceOpenOrders {
+public abstract class MarketService extends MarketServiceWithState {
 
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
 
     protected static final int MAX_ATTEMPTS_CANCEL = 90;
 
-    private static final int ORDERBOOK_MAX_SIZE = 5;
-    protected BigDecimal bestBid = BigDecimal.ZERO;
-    protected BigDecimal bestAsk = BigDecimal.ZERO;
+    protected static final int ORDERBOOK_MAX_SIZE = 5;
+    protected volatile BigDecimal bestBid = BigDecimal.ZERO;
+    protected volatile BigDecimal bestAsk = BigDecimal.ZERO;
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+    protected volatile OrderBook orderBookShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected volatile OrderBook orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-    protected final Object orderBookLock = new Object();
-    protected final Object orderBookForPriceLock = new Object();
-    protected volatile AccountInfoContracts accountInfoContracts = new AccountInfoContracts();
-    protected volatile Position position = new Position(null, null, null, BigDecimal.ZERO, "");
-    protected volatile Position positionXBTUSD = new Position(null, null, null, BigDecimal.ZERO, "");
+    protected volatile OrderBook orderBookXBTUSDShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+    protected final AtomicReference<AccountBalance> account = new AtomicReference<>(AccountBalance.empty());
+    protected final AtomicReference<Pos> pos = new AtomicReference<>(new Pos(null, null, null, BigDecimal.ZERO, ""));
+    protected final AtomicReference<Pos> posXBTUSD = new AtomicReference<>(new Pos(null, null, null, BigDecimal.ZERO, ""));
+    protected final AtomicReference<FullBalance> fullBalanceRef = new AtomicReference<>(new FullBalance(account.get(), pos.get(), null));
     protected volatile Affordable affordable = new Affordable();
     protected final Object contractIndexLock = new Object();
     protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
@@ -92,22 +101,21 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3,
             new ThreadFactoryBuilder().setNameFormat(getName() + "-overload-scheduler-%d").build());
-    protected final Scheduler obSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
-            new ThreadFactoryBuilder().setNameFormat(getName() + "-ob-executor-%d").build()));
     protected final ExecutorService ooSingleExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory(getName() + "-oo-executor"));
     protected final Scheduler ooSingleScheduler = Schedulers.from(ooSingleExecutor);
-    protected final Scheduler posSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
-            new ThreadFactoryBuilder().setNameFormat(getName() + "-pos-executor-%d").build()));
     protected final Scheduler indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-index-executor-%d").build()));
     protected final Scheduler movingExecutor = Schedulers.from(Executors.newFixedThreadPool(5,
             new ThreadFactoryBuilder().setNameFormat(getName() + "-moving-executor-%d").build()));
+    protected final Scheduler stateUpdater = Schedulers.from(Executors.newSingleThreadExecutor(
+            new ThreadFactoryBuilder().setNameFormat(getName() + "-state-updater-%d").build()));
 
     // Moving timeout
     private volatile ScheduledFuture<?> scheduledOverloadReset;
     private volatile PlaceOrderArgs placeOrderArgs;
     private volatile MarketState marketState = MarketState.READY;
     private volatile Instant readyTime = Instant.now();
+    private final TmpStateKeeper tmpStateKeeper = new TmpStateKeeper(getName());
 
     // moving mon
 //    protected volatile Instant lastMovingStart = null;
@@ -136,37 +144,7 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public OrderBook getOrderBook() {
-        OrderBook orderBook;
-        synchronized (orderBookLock) {
-            orderBook = getShortOrderBook(this.orderBook);
-        }
-        return orderBook;
-    }
-
-    protected OrderBook getShortOrderBook(OrderBook orderBook) {
-        List<LimitOrder> asks = orderBook.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList());
-        List<LimitOrder> bids = orderBook.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList());
-        return new OrderBook(orderBook.getTimeStamp(), asks, bids);
-    }
-
-    protected OrderBook getFullOrderBook() {
-        OrderBook orderBook;
-        synchronized (orderBookLock) {
-            orderBook = new OrderBook(this.orderBook.getTimeStamp(),
-                    this.orderBook.getAsks().stream().map(Utils::cloneLimitOrder).collect(Collectors.toList()),
-                    this.orderBook.getBids().stream().map(Utils::cloneLimitOrder).collect(Collectors.toList()));
-        }
-        return orderBook;
-    }
-
-    protected OrderBook getFullOrderBookForPrice() {
-        OrderBook orderBook;
-        synchronized (orderBookForPriceLock) {
-            orderBook = new OrderBook(this.orderBookXBTUSD.getTimeStamp(),
-                    this.orderBookXBTUSD.getAsks().stream().map(Utils::cloneLimitOrder).collect(Collectors.toList()),
-                    this.orderBookXBTUSD.getBids().stream().map(Utils::cloneLimitOrder).collect(Collectors.toList()));
-        }
-        return orderBook;
+        return this.orderBookShort;
     }
 
     public abstract String fetchPosition() throws Exception;
@@ -177,30 +155,42 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public abstract BalanceService getBalanceService();
 
-    /*
-    public boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount) {
-        boolean isAffordable = false;
-        if (accountInfo != null && accountInfo.getWallet() != null) {
-            final Wallet wallet = getAccountInfo().getWallet();
-            final BigDecimal btcBalance = wallet.getBalance(Currency.BTC).getAvailable();
-            final BigDecimal usdBalance = wallet.getBalance(getSecondCurrency()).getAvailable();
-            if (orderType.equals(Order.OrderType.BID)) {
-                if (usdBalance.compareTo(getTotalPriceOfAmountToBuy(tradableAmount)) != -1) {
-                    isAffordable = true;
-                }
-            }
-            if (orderType.equals(Order.OrderType.ASK)) {
-                if (btcBalance.compareTo(tradableAmount) != -1) {
-                    isAffordable = true;
-                }
-            }
-        }
-        return isAffordable;
-    }*/
-
     public abstract boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount);
 
     public abstract Affordable recalcAffordable();
+
+    protected Completable recalcAffordableContracts() {
+        throw new IllegalArgumentException("not implemented");
+    }
+
+    protected Completable recalcLiqInfo() {
+        throw new IllegalArgumentException("not implemented");
+    }
+
+    protected MetricsDictionary getMetricsDictionary() {
+        throw new IllegalArgumentException("not implemented");
+    }
+
+    public Sample getRecalcAfterUpdate() {
+        throw new IllegalArgumentException("not implemented");
+    }
+
+    protected void stateRecalcInStateUpdaterThread() {
+        final Completable startSample = Completable.fromAction(() -> {
+            getMetricsDictionary().startRecalcAfterUpdate(getName());
+        });
+        final Completable endSample = Completable.fromAction(() -> {
+            getMetricsDictionary().stopRecalcAfterUpdate(getName());
+        });
+
+        startSample.subscribeOn(stateUpdater)
+                .observeOn(stateUpdater)
+                .andThen(recalcAffordableContracts())
+                .andThen(recalcLiqInfo())
+                .andThen(recalcFullBalance())
+                .andThen(endSample)
+                .subscribe();
+    }
 
     public Affordable getAffordable() {
         return affordable;
@@ -527,33 +517,78 @@ public abstract class MarketService extends MarketServiceOpenOrders {
 
     public abstract PosDiffService getPosDiffService();
 
-    public synchronized boolean accountInfoIsReady() {
-        return accountInfoContracts != null;
+    public TmpStateKeeper getTmpStateKeeper() {
+        return tmpStateKeeper;
     }
 
-    /**
-     * use only inside 'synchronized'.
-     */
-    public AccountInfoContracts getAccountInfoContracts() {
-        return accountInfoContracts;
+    public boolean accountInfoIsReady() {
+        return account.get().getWallet().signum() != 0;
     }
 
-    public synchronized FullBalance calcFullBalance() {
-//        final Position position = getPosition();
-//        final OrderBook orderBook = getOrderBook();
-//        final OrderBook orderBookXBTUSD = getOrderBookXBTUSD();
-//        final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
-//        final Position positionXBTUSD = getPositionXBTUSD();
-        return getBalanceService().recalcAndGetAccountInfo(accountInfoContracts, position, orderBook, getContractType(),
-                positionXBTUSD, orderBookXBTUSD);
+    public AccountBalance getAccount() {
+        return account.get();
     }
 
-    public synchronized Position getPosition() {
-        return Utils.clonePosition(position);
+    protected void mergeAccountSafe(AccountInfoContracts newInfo) {
+        int iter = 0;
+        boolean success = false;
+        while (!success) {
+            AccountBalance current = this.account.get();
+            logger.debug("AccountInfo.Websocket: " + current.toString());
+            final AccountBalance updated = mergeAccount(newInfo, current);
+            success = this.account.compareAndSet(current, updated);
+            if (++iter > 1) {
+                logger.warn("merge account iter=" + iter);
+            }
+        }
     }
 
-    public synchronized Position getPositionXBTUSD() {
-        return Utils.clonePosition(positionXBTUSD);
+    // okex merge account
+    protected AccountBalance mergeAccount(AccountInfoContracts newInfo, AccountBalance current) {
+        BigDecimal eLast = newInfo.geteLast() != null ? newInfo.geteLast() : current.getELast();
+        return new AccountBalance(
+                newInfo.getWallet() != null ? newInfo.getWallet() : current.getWallet(),
+                newInfo.getAvailable() != null ? newInfo.getAvailable() : current.getAvailable(),
+                eLast,
+                eLast,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                newInfo.getMargin() != null ? newInfo.getMargin() : current.getMargin(),
+                newInfo.getUpl() != null ? newInfo.getUpl() : current.getUpl(),
+                newInfo.getRpl() != null ? newInfo.getRpl() : current.getRpl(),
+                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : current.getRiskRate()
+        );
+    }
+
+
+    public FullBalance getFullBalance() {
+        return fullBalanceRef.get();
+    }
+
+    protected Completable recalcFullBalance() {
+        return Completable.fromAction(() -> {
+            final FullBalance newValue = getBalanceService().recalcAndGetAccountInfo(getAccount(), getPos(),
+                    this.orderBook, getContractType(), posXBTUSD.get(),
+                    this.orderBookXBTUSD);
+            this.fullBalanceRef.set(newValue);
+        });
+    }
+
+    public Pos getPos() {
+        return pos.get();
+    }
+
+    public void setEmptyPos() {
+        pos.set(new Pos(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, ""));
+    }
+
+    public BigDecimal getPosVal() {
+        final Pos pos = getPos();
+        return pos.getPositionLong().subtract(pos.getPositionShort());
+    }
+
+    public Pos getPositionXBTUSD() {
+        return this.posXBTUSD.get();
     }
 
     public ContractIndex getContractIndex() {
@@ -572,29 +607,25 @@ public abstract class MarketService extends MarketServiceOpenOrders {
         return btcContractIndex;
     }
 
-    public synchronized LiqInfo getLiqInfo() {
-        return liqInfo.clone();
+    /**
+     * use without liqParamsRef.
+     */
+    public LiqInfo getLiqInfo() {
+        return liqInfo;
     }
 
-    protected synchronized void loadLiqParams() {
-        LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
-        if (liqParams == null) {
-            liqParams = new LiqParams();
-        }
-        liqInfo.setLiqParams(liqParams);
+    protected void storeLiqParams(LiqParams liqParams) {
+        getPersistenceService().saveLiqParams(liqParams, getName());
     }
 
-    protected void storeLiqParams() {
-        getPersistenceService().saveLiqParams(liqInfo.getLiqParams(), getName());
-    }
+    public void resetLiqInfo() {
+        final LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
+        liqParams.setDqlMin(BigDecimal.valueOf(10000));
+        liqParams.setDqlMax(BigDecimal.valueOf(-10000));
+        liqParams.setDmrlMin(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(10000));
+        liqParams.setDmrlMax(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(-10000));
 
-    public synchronized void resetLiqInfo() {
-        liqInfo.getLiqParams().setDqlMin(BigDecimal.valueOf(10000));
-        liqInfo.getLiqParams().setDqlMax(BigDecimal.valueOf(-10000));
-        liqInfo.getLiqParams().setDmrlMin(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(10000));
-        liqInfo.getLiqParams().setDmrlMax(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(-10000));
-
-        storeLiqParams();
+        storeLiqParams(liqParams); // race condition with recalcLiqInfo() => user just have to reset one more time.
     }
 
     public abstract TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);
@@ -1030,7 +1061,8 @@ public abstract class MarketService extends MarketServiceOpenOrders {
     }
 
     public BigDecimal getHbPosUsd() {
-        return positionXBTUSD != null && positionXBTUSD.getPositionLong() != null
+        final Pos positionXBTUSD = this.posXBTUSD.get();
+        return positionXBTUSD.getPositionLong() != null
                 ? positionXBTUSD.getPositionLong()
                 : BigDecimal.ZERO;
     }

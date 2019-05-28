@@ -14,30 +14,34 @@ import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.ArbState;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.ExtrastopService;
 import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.MarketState;
+import com.bitplay.market.MarketUtils;
 import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.LiqInfo;
+import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.metrics.MetricsDictionary;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.mon.Mon;
@@ -59,6 +63,9 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
+import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -210,7 +217,7 @@ public class BitmexService extends MarketServicePreliq {
     private String key;
     private String secret;
     private Disposable restartTimer;
-    private BitmexContractType bitmexContractType;
+    private volatile BitmexContractType bitmexContractType;
     public static final BitmexContractType bitmexContractTypeXBTUSD = BitmexContractType.XBTUSD;
     private Map<CurrencyPair, Integer> currencyToScale = new HashMap<>();
 
@@ -319,24 +326,7 @@ public class BitmexService extends MarketServicePreliq {
             try {
                 final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
                 Position pUpdate = accountService.fetchPositionInfo(bitmexContractTypeXBTUSD.getSymbol());
-
-                BigDecimal leverage = pUpdate.getLeverage() == null || pUpdate.getLeverage().signum() == 0 ? BigDecimal.valueOf(100) : pUpdate.getLeverage();
-                BigDecimal liqPrice = pUpdate.getLiquidationPrice() == null ? this.positionXBTUSD.getLiquidationPrice() : pUpdate.getLiquidationPrice();
-                BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.positionXBTUSD.getMarkValue();
-                BigDecimal avgPriceL = pUpdate.getPriceAvgLong() == null || pUpdate.getPriceAvgLong().signum() == 0 ? this.positionXBTUSD.getPriceAvgLong()
-                        : pUpdate.getPriceAvgLong();
-                BigDecimal avgPriceS = pUpdate.getPriceAvgShort() == null || pUpdate.getPriceAvgShort().signum() == 0 ? this.positionXBTUSD.getPriceAvgShort()
-                        : pUpdate.getPriceAvgShort();
-                this.positionXBTUSD = new Position(
-                        pUpdate.getPositionLong(),
-                        pUpdate.getPositionShort(),
-                        leverage,
-                        liqPrice,
-                        markValue,
-                        avgPriceL,
-                        avgPriceS,
-                        pUpdate.getRaw()
-                );
+                mergeXBTUSDPos(MarketUtils.mapPos(pUpdate));
 
             } catch (HttpStatusIOException e) {
 
@@ -384,7 +374,7 @@ public class BitmexService extends MarketServicePreliq {
     @Scheduled(fixedDelay = 30000)
     public void dobleCheckAvailableBalance() {
         Instant start = Instant.now();
-        if (accountInfoContracts == null) {
+        if (account.get().getWallet().signum() == 0) {
             tradeLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener.", bitmexContractType.getCurrencyPair().toString());
             warningLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener.");
             accountInfoSubscription.dispose();
@@ -440,8 +430,6 @@ public class BitmexService extends MarketServicePreliq {
         this.secret = secret;
         bitmexSwapService = new BitmexSwapService(this, arbitrageService);
 
-        loadLiqParams();
-
         initWebSocketConnection();
 
         startAllListeners();
@@ -477,25 +465,29 @@ public class BitmexService extends MarketServicePreliq {
         if (force || !orderBookIsFilled() || !orderBookForPriceIsFilled()) {
             slackNotifications.sendNotify(NotifyType.BITMEX_RECONNECT, "bitmex resubscribe");
 
+            final OrderBook ob = this.orderBook;
             String msgOb = String.format("re-subscribe OrderBook: asks=%s, bids=%s, timestamp=%s. ",
-                    orderBook.getAsks().size(),
-                    orderBook.getBids().size(),
-                    orderBook.getTimeStamp());
+                    ob.getAsks().size(), // should be lock on collections
+                    ob.getBids().size(), // should be lock on collections
+                    ob.getTimeStamp());
             tradeLogger.info(msgOb, bitmexContractType.getCurrencyPair().toString());
             warningLogger.info(msgOb);
             logger.info(msgOb);
             if (!sameOrderBookXBTUSD()) {
+                final OrderBook obXBTUSD = this.orderBookXBTUSD;
                 String msgObXBTUSD = String.format("re-subscribe OrderBookXBTUSD: asks=%s, bids=%s, timestamp=%s. ",
-                        orderBookXBTUSD.getAsks().size(),
-                        orderBookXBTUSD.getBids().size(),
-                        orderBookXBTUSD.getTimeStamp());
+                        obXBTUSD.getAsks().size(),
+                        obXBTUSD.getBids().size(),
+                        obXBTUSD.getTimeStamp());
                 tradeLogger.info(msgObXBTUSD, bitmexContractTypeXBTUSD.getCurrencyPair().toString());
                 warningLogger.info(msgObXBTUSD);
                 logger.info(msgObXBTUSD);
             }
 
-            orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-            orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            this.orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            this.orderBookShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            this.orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            this.orderBookXBTUSDShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
 
             orderBookSubscription.dispose();
             List<String> symbols = new ArrayList<>();
@@ -625,16 +617,16 @@ public class BitmexService extends MarketServicePreliq {
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
             logger.warn("WARNING: no position fetch: SYSTEM_OVERLOADED");
             warningLogger.warn("WARNING: no position fetch: SYSTEM_OVERLOADED");
-            return BitmexUtils.positionToString(getPosition());
+            return BitmexUtils.positionToString(getPos());
         }
-        final Position pUpdate;
+        final Pos pUpdate;
         try {
             final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
-            pUpdate = accountService.fetchPositionInfo(bitmexContractType.getSymbol());
-
+            Position p = accountService.fetchPositionInfo(bitmexContractType.getSymbol());
+            pUpdate = MarketUtils.mapPos(p);
             mergePosition(pUpdate);
-            recalcAffordableContracts();
-            recalcLiqInfo();
+
+            stateRecalcInStateUpdaterThread();
 
         } catch (HttpStatusIOException e) {
             overloadByXRateLimit();
@@ -651,38 +643,66 @@ public class BitmexService extends MarketServicePreliq {
             }
             throw e;
         }
-        return BitmexUtils.positionToString(pUpdate);
+        return BitmexUtils.positionToString(getPos());
     }
 
-    private synchronized void mergePosition(Position pUpdate) {
-        if (pUpdate.getPositionLong() == null) {
-            if (this.position.getPositionLong() != null) {
-                return; // no update when null
+    private void mergePosition(Pos pUpdate) {
+        int iter = 0;
+        boolean success = false;
+        while (!success) {
+            final Pos current = this.pos.get();
+
+            if (pUpdate.getPositionLong() == null) { // TODO check the cases of pUpdate null.
+                if (current.getPositionLong() != null) {
+                    logger.warn("mergePos no update when null");
+                    return; // no update when null
+                }
+                // use 0 when no pos yet
+                pUpdate = new Pos(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                        "position is empty"
+                );
             }
 
-            // use 0 when no pos yet
-            pUpdate = new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                    "position is empty"
+            BigDecimal defaultLeverage = bitmexContractType.isEth() ? BigDecimal.valueOf(50) : BigDecimal.valueOf(100);
+            final Pos updated = new Pos(
+                    pUpdate.getPositionLong(),
+                    pUpdate.getPositionShort(),
+                    pUpdate.getLeverage() == null || pUpdate.getLeverage().signum() == 0 ? defaultLeverage : pUpdate.getLeverage(),
+                    pUpdate.getLiquidationPrice() == null ? current.getLiquidationPrice() : pUpdate.getLiquidationPrice(),
+                    pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : current.getMarkValue(),
+                    pUpdate.getPriceAvgLong() == null || pUpdate.getPriceAvgLong().signum() == 0 ? current.getPriceAvgLong() : pUpdate.getPriceAvgLong(),
+                    pUpdate.getPriceAvgShort() == null || pUpdate.getPriceAvgShort().signum() == 0 ? current.getPriceAvgShort() : pUpdate.getPriceAvgShort(),
+                    pUpdate.getRaw()
             );
+            success = this.pos.compareAndSet(current, updated);
 
+            if (++iter > 1) {
+                logger.warn("merge pos iter=" + iter);
+            }
         }
-        BigDecimal defaultLeverage = bitmexContractType.isEth() ? BigDecimal.valueOf(50) : BigDecimal.valueOf(100);
-        BigDecimal leverage = pUpdate.getLeverage().signum() == 0 ? defaultLeverage : pUpdate.getLeverage();
-        BigDecimal liqPrice = pUpdate.getLiquidationPrice() == null ? this.position.getLiquidationPrice() : pUpdate.getLiquidationPrice();
-        BigDecimal markValue = pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : this.position.getMarkValue();
-        BigDecimal avgPriceL = pUpdate.getPriceAvgLong().signum() == 0 ? this.position.getPriceAvgLong() : pUpdate.getPriceAvgLong();
-        BigDecimal avgPriceS = pUpdate.getPriceAvgShort().signum() == 0 ? this.position.getPriceAvgShort() : pUpdate.getPriceAvgShort();
-        this.position = new Position(
-                pUpdate.getPositionLong(),
-                pUpdate.getPositionShort(),
-                leverage,
-                liqPrice,
-                markValue,
-                avgPriceL,
-                avgPriceS,
-                pUpdate.getRaw()
-        );
+    }
 
+    private void mergeXBTUSDPos(Pos pUpdate) {
+        int iter = 0;
+        boolean success = false;
+        while (!success) {
+            final Pos pos = this.posXBTUSD.get();
+            BigDecimal defaultLeverage = BigDecimal.valueOf(100);
+            final Pos updated = new Pos(
+                    pUpdate.getPositionLong(),
+                    pUpdate.getPositionShort(),
+                    pUpdate.getLeverage() == null || pUpdate.getLeverage().signum() == 0 ? defaultLeverage : pUpdate.getLeverage(),
+                    pUpdate.getLiquidationPrice() == null ? pos.getLiquidationPrice() : pUpdate.getLiquidationPrice(),
+                    pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : pos.getMarkValue(),
+                    pUpdate.getPriceAvgLong() == null || pUpdate.getPriceAvgLong().signum() == 0 ? pos.getPriceAvgLong() : pUpdate.getPriceAvgLong(),
+                    pUpdate.getPriceAvgShort() == null || pUpdate.getPriceAvgShort().signum() == 0 ? pos.getPriceAvgShort() : pUpdate.getPriceAvgShort(),
+                    pUpdate.getRaw()
+            );
+            success = this.posXBTUSD.compareAndSet(pos, updated);
+            if (++iter > 1) {
+                logger.warn("merge posXBTUSD iter=" + iter);
+            }
+        }
     }
 
     @Override
@@ -1135,8 +1155,10 @@ public class BitmexService extends MarketServicePreliq {
         try {
             destroyAction(1);
 
-            orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-            orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            this.orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            this.orderBookShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            this.orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            this.orderBookXBTUSDShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
             orderBookErrors.set(0);
 
             exchangeConnect();
@@ -1161,15 +1183,17 @@ public class BitmexService extends MarketServicePreliq {
                 reSubscribeOrderBooks(false);
             }
 
+            final OrderBook ob = this.orderBook;
             String msgOb = String.format("OrderBook: asks=%s, bids=%s, timestamp=%s. ",
-                    orderBook.getAsks().size(),
-                    orderBook.getBids().size(),
-                    orderBook.getTimeStamp());
+                    ob.getAsks().size(), // should be lock on collections
+                    ob.getBids().size(), // should be lock on collections
+                    ob.getTimeStamp());
+            final OrderBook obXBTUSD = this.orderBookXBTUSD;
             String msgObForPrice = sameOrderBookXBTUSD() ? ""
                     : String.format("OrderBookForPrice: asks=%s, bids=%s, timestamp=%s. ",
-                            orderBookXBTUSD.getAsks().size(),
-                            orderBookXBTUSD.getBids().size(),
-                            orderBookXBTUSD.getTimeStamp());
+                            obXBTUSD.getAsks().size(),
+                            obXBTUSD.getBids().size(),
+                            obXBTUSD.getTimeStamp());
             if (!orderBookIsFilled() || !orderBookForPriceIsFilled()) {
                 String msg = String.format("OrderBook(ForPrice) is not full. %s; %s. %s",
                         msgOb,
@@ -1205,12 +1229,14 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private boolean orderBookIsFilled() {
-        return orderBook.getAsks().size() > 10 && orderBook.getBids().size() > 10;
+        final OrderBook ob = this.orderBookShort; // should be lock on collections
+        return ob.getAsks().size() == ORDERBOOK_MAX_SIZE && ob.getBids().size() == ORDERBOOK_MAX_SIZE;
     }
 
     private boolean orderBookForPriceIsFilled() {
+        final OrderBook ob = this.orderBookXBTUSDShort;
         return sameOrderBookXBTUSD()
-                || (orderBookXBTUSD.getAsks().size() > 10 && orderBookXBTUSD.getBids().size() > 10);
+                || (ob.getAsks().size() == ORDERBOOK_MAX_SIZE && ob.getBids().size() == ORDERBOOK_MAX_SIZE);
     }
 
     private void doRestart(String errMsg) {
@@ -1284,6 +1310,9 @@ public class BitmexService extends MarketServicePreliq {
         }
     }
 
+    /**
+     * Do in the stateUpdater Thread.
+     */
     private OrderBook mergeOrderBook(BitmexOrderBook obUpdate) {
         if (obUpdate.getBitmexOrderList().size() == 0 || obUpdate.getBitmexOrderList().get(0).getSymbol() == null) {
             // skip the update
@@ -1292,12 +1321,14 @@ public class BitmexService extends MarketServicePreliq {
         CurrencyPair currencyPair;
         OrderBook fullOB;
         String symbol = obUpdate.getBitmexOrderList().get(0).getSymbol();
+        boolean isDefault = false;
         if (symbol.equals(bitmexContractType.getSymbol())) {
             currencyPair = bitmexContractType.getCurrencyPair();
-            fullOB = getFullOrderBook();
+            fullOB = this.orderBook;
+            isDefault = true;
         } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
             currencyPair = bitmexContractTypeXBTUSD.getCurrencyPair();
-            fullOB = getFullOrderBookForPrice();
+            fullOB = this.orderBookXBTUSD;
         } else {
             // skip the update
             throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
@@ -1308,26 +1339,46 @@ public class BitmexService extends MarketServicePreliq {
             logger.info("update OB. partial: " + obUpdate);
             finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, currencyPair);
         } else if (obUpdate.getAction().equals("delete")) {
+            fullOB = BitmexStreamAdapters.cloneOrderBook(fullOB);
             finalOB = BitmexStreamAdapters.delete(fullOB, obUpdate);
         } else if (obUpdate.getAction().equals("update")) {
+            fullOB = BitmexStreamAdapters.cloneOrderBook(fullOB);
             finalOB = BitmexStreamAdapters.update(fullOB, obUpdate, new Date(), currencyPair);
         } else if (obUpdate.getAction().equals("insert")) {
+            fullOB = BitmexStreamAdapters.cloneOrderBook(fullOB);
             finalOB = BitmexStreamAdapters.insert(fullOB, obUpdate, new Date(), currencyPair);
         } else {
             // skip the update
             throw new IllegalArgumentException("Unknown OrderBook action=" + obUpdate.getAction() + ". " + obUpdate);
         }
         if (finalOB.getBids().size() == 0 || finalOB.getAsks().size() == 0) {
-            logger.warn("update OB. OB is empty: " + obUpdate);
-            logger.warn("full OB. OB is empty: " + finalOB);
+            logger.warn("finalOB is empty. obUpdate: " + obUpdate);
+            logger.warn("finalOB is empty. finalOB: " + finalOB);
         } else if (!startFlag) {
             startFlag = true;
             logger.warn("update OB : " + obUpdate);
-            logger.warn("full OB : " + finalOB);
-            logger.info("full OB bids=" + finalOB.getBids().size());
+            logger.warn("finalOB : " + finalOB);
+            logger.info("finalOB bids=" + finalOB.getBids().size());
         }
 
-        return finalOB;
+        OrderBook shortOb;
+        if (isDefault) {
+            this.orderBook = finalOB;
+            this.orderBookShort = this.orderBook;
+//            new OrderBook(finalOB.getTimeStamp(),
+//                    finalOB.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()),
+//                    finalOB.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()));
+            shortOb = this.orderBookShort;
+        } else {
+            this.orderBookXBTUSD = finalOB;
+            this.orderBookXBTUSDShort = this.orderBookXBTUSD;
+//                    new OrderBook(finalOB.getTimeStamp(),
+//                    finalOB.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()),
+//                    finalOB.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()));
+            shortOb = this.orderBookXBTUSDShort;
+        }
+
+        return shortOb;
     }
 
     boolean startFlag = false;
@@ -1343,9 +1394,7 @@ public class BitmexService extends MarketServicePreliq {
         return ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getOrderBookL2(symbols)
                 .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBook"))
-//                .subscribeOn(obSingleExecutor) // WARNING: don't use subscribeOn if there something should be initialized for the next steps.
-//                .subscribeOn(obSingleExecutor) // emitting is always a thread like [WebSocketClient-SecureIO-1]
-                .observeOn(obSingleExecutor) // the sync queue is here.
+                .observeOn(stateUpdater) // the sync queue is here.
                 .map(this::mergeOrderBook)
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
@@ -1365,10 +1414,8 @@ public class BitmexService extends MarketServicePreliq {
                     try {
                         if (isDefaultOB(orderBook)) {
                             metricsDictionary.incBitmexObCounter();
-                            this.orderBook = orderBook;
                             afterOrderBookChanged(orderBook);
                         } else {
-                            this.orderBookXBTUSD = orderBook;
                             afterOrderBookXBTUSDChanged(orderBook);
                         }
                     } catch (Exception e) {
@@ -1413,12 +1460,8 @@ public class BitmexService extends MarketServicePreliq {
                 orderBookLastTimestamp = new Date();
             }
 
-            if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
-                    && this.bestAsk.compareTo(bestAsk.getLimitPrice()) != 0
-                    && this.bestBid.compareTo(bestBid.getLimitPrice()) != 0) {
-                recalcAffordableContracts();
-                recalcLiqInfo();
-            }
+            stateRecalcInStateUpdaterThread();
+
             this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
             this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
             logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
@@ -1477,13 +1520,9 @@ public class BitmexService extends MarketServicePreliq {
     public OrderBook getOrderBookXBTUSD() {
         OrderBook orderBook;
         if (sameOrderBookXBTUSD()) {
-            synchronized (orderBookLock) {
-                orderBook = getShortOrderBook(this.orderBook);
-            }
+            orderBook = this.orderBookShort; // getShortOrderBook(this.orderBook);
         } else {
-            synchronized (orderBookForPriceLock) {
-                orderBook = getShortOrderBook(this.orderBookXBTUSD);
-            }
+            orderBook = this.orderBookXBTUSDShort;// getShortOrderBook(this.orderBookXBTUSD);
         }
 
         return orderBook;
@@ -1555,46 +1594,58 @@ public class BitmexService extends MarketServicePreliq {
         return null;
     }
 
-    private synchronized void recalcAffordableContracts() {
-        final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
+    @Override
+    protected Completable recalcAffordableContracts() {
+        return Completable.fromAction(() -> {
+            final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();
 
-        if (accountInfoContracts != null && Utils.orderBookIsFull(orderBook)) {
-            final BigDecimal availableBtc = accountInfoContracts.getAvailable();
-            final BigDecimal equityBtc = accountInfoContracts.geteMark();
+            final Pos position = this.pos.get();
+            final AccountBalance account = this.account.get();
             final OrderBook orderBook = getOrderBook();
-            final BigDecimal bestAsk = Utils.getBestAsk(orderBook).getLimitPrice();
-            final BigDecimal bestBid = Utils.getBestBid(orderBook).getLimitPrice();
-            final BigDecimal positionContracts = position.getPositionLong();
-            final BigDecimal leverage = position.getLeverage();
 
-            if (availableBtc != null && equityBtc != null && positionContracts != null && leverage != null) {
+            if (account != null && position != null && Utils.orderBookIsFull(orderBook)) {
+                final BigDecimal availableBtc = account.getAvailable();
+                final BigDecimal equityBtc = account.getEMark();
+                final BigDecimal bestAsk = Utils.getBestAsk(orderBook).getLimitPrice();
+                final BigDecimal bestBid = Utils.getBestBid(orderBook).getLimitPrice();
+                final BigDecimal positionContracts = position.getPositionLong();
+                final BigDecimal leverage = position.getLeverage();
 
-                if (positionContracts.signum() == 0) {
-                    affordable.setForLong(((availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN));
-                    affordable.setForShort(((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN));
-                } else if (positionContracts.signum() > 0) {
-                    affordable.setForLong(((availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN));
-                    BigDecimal forShort = (positionContracts.add((equityBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
-                    if (forShort.compareTo(positionContracts) < 0) {
-                        forShort = positionContracts;
+                if (availableBtc != null && equityBtc != null && positionContracts != null && leverage != null) {
+
+                    final BigDecimal forLong1 = ((availableBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage))
+                            .setScale(0, BigDecimal.ROUND_DOWN);
+                    final BigDecimal forShort1 = ((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage))
+                            .setScale(0, BigDecimal.ROUND_DOWN);
+                    if (positionContracts.signum() == 0) {
+                        affordable.setForLong(forLong1);
+                        affordable.setForShort(forShort1);
+                    } else if (positionContracts.signum() > 0) {
+                        affordable.setForLong(forLong1);
+                        BigDecimal forShort = (positionContracts.add((equityBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)))
+                                .setScale(0, BigDecimal.ROUND_DOWN);
+                        if (forShort.compareTo(positionContracts) < 0) {
+                            forShort = positionContracts;
+                        }
+                        affordable.setForShort(forShort);
+                    } else if (positionContracts.signum() < 0) {
+                        BigDecimal forLong = (positionContracts.negate().add((equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)))
+                                .setScale(0, BigDecimal.ROUND_DOWN);
+                        if (forLong.compareTo(positionContracts) < 0) {
+                            forLong = positionContracts;
+                        }
+                        affordable.setForLong(forLong);
+                        affordable.setForShort(forShort1);
                     }
-                    affordable.setForShort(forShort);
-                } else if (positionContracts.signum() < 0) {
-                    BigDecimal forLong = (positionContracts.negate().add((equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage))).setScale(0, BigDecimal.ROUND_DOWN);
-                    if (forLong.compareTo(positionContracts) < 0) {
-                        forLong = positionContracts;
-                    }
-                    affordable.setForLong(forLong);
-                    affordable.setForShort(((availableBtc.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)).setScale(0, BigDecimal.ROUND_DOWN));
+
                 }
-
             }
-        }
+        });
     }
 
     @Override
     public Affordable recalcAffordable() {
-        recalcAffordableContracts();
+        recalcAffordableContracts().subscribe();
         return affordable;
     }
 
@@ -2237,7 +2288,7 @@ public class BitmexService extends MarketServicePreliq {
                 .subscribe(newInfo -> {
                     try {
 
-                        mergeAccountInfo(newInfo);
+                        mergeAccountSafe(newInfo);
 
                     } catch (Exception e) {
                         logger.error("Can not merge AccountInfo", e);
@@ -2259,18 +2310,20 @@ public class BitmexService extends MarketServicePreliq {
         }
     }
 
-    private synchronized void mergeAccountInfo(AccountInfoContracts newInfo) {
-        accountInfoContracts = new AccountInfoContracts(
-                newInfo.getWallet() != null ? newInfo.getWallet() : accountInfoContracts.getWallet(),
-                newInfo.getAvailable() != null ? newInfo.getAvailable() : accountInfoContracts.getAvailable(),
-                newInfo.geteMark() != null ? newInfo.geteMark() : accountInfoContracts.geteMark(),
+
+    @Override
+    protected AccountBalance mergeAccount(AccountInfoContracts newInfo, AccountBalance current) {
+        return new AccountBalance(
+                newInfo.getWallet() != null ? newInfo.getWallet() : current.getWallet(),
+                newInfo.getAvailable() != null ? newInfo.getAvailable() : current.getAvailable(),
+                newInfo.geteMark() != null ? newInfo.geteMark() : current.getEMark(),
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
-                newInfo.getMargin() != null ? newInfo.getMargin() : accountInfoContracts.getMargin(),
-                newInfo.getUpl() != null ? newInfo.getUpl() : accountInfoContracts.getUpl(),
-                newInfo.getRpl() != null ? newInfo.getRpl() : accountInfoContracts.getRpl(),
-                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : accountInfoContracts.getRiskRate()
+                newInfo.getMargin() != null ? newInfo.getMargin() : current.getMargin(),
+                newInfo.getUpl() != null ? newInfo.getUpl() : current.getUpl(),
+                newInfo.getRpl() != null ? newInfo.getRpl() : current.getRpl(),
+                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : current.getRiskRate()
         );
     }
 
@@ -2278,15 +2331,16 @@ public class BitmexService extends MarketServicePreliq {
 
         return ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
                 .getPositionObservable(bitmexContractType.getSymbol())
-                .observeOn(posSingleExecutor)
+                .observeOn(stateUpdater)
                 .doOnError(throwable1 -> handleSubscriptionError(throwable1, "Position fetch error"))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
+                .map(MarketUtils::mapPos)
                 .subscribe(pUpdate -> {
                     try {
 
                         mergePosition(pUpdate);
-                        recalcAffordableContracts();
-                        recalcLiqInfo();
+
+                        stateRecalcInStateUpdaterThread();
 
                     } catch (Exception e) {
                         logger.error("Can not merge Position", e);
@@ -2381,106 +2435,110 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public String getPositionAsString() {
-        final Position position = getPosition();
+        final Pos position = getPos();
         return position != null ? position.getPositionLong().toPlainString() : "0";
     }
 
+    @Override
+    protected Completable recalcLiqInfo() {
+        return Completable.fromAction(() -> {
+            final Pos position = getPos();
+            final AccountBalance account = getAccount();
 
-    private synchronized void recalcLiqInfo() {
-        final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
+            final BigDecimal equity = account.getEMark();
+            final BigDecimal margin = account.getMargin();
 
-        final BigDecimal equity = accountInfoContracts.geteMark();
-        final BigDecimal margin = accountInfoContracts.getMargin();
+            final BigDecimal bMrliq = persistenceService.fetchGuiLiqParams().getBMrLiq();
 
-        final BigDecimal bMrliq = persistenceService.fetchGuiLiqParams().getBMrLiq();
+            if (!(contractIndex instanceof BitmexContractIndex)) {
+                // bitmex contract index is not updated yet. Skip the re-calc.
+                return;
+            }
 
-        if (!(contractIndex instanceof BitmexContractIndex)) {
-            // bitmex contract index is not updated yet. Skip the re-calc.
-            return;
-        }
+            final BigDecimal m = ((BitmexContractIndex) contractIndex).getMarkPrice();
+            final BigDecimal L = position.getLiquidationPrice();
 
-        final BigDecimal m = ((BitmexContractIndex) contractIndex).getMarkPrice();
-        final BigDecimal L = position.getLiquidationPrice();
+            if (equity != null && margin != null
+                    && m != null
+                    && L != null
+                    && position.getPositionLong() != null
+                    && position.getPositionShort() != null) {
 
-        if (equity != null && margin != null
-                && m != null
-                && L != null
-                && position.getPositionLong() != null
-                && position.getPositionShort() != null) {
+                BigDecimal dql = null;
 
-            BigDecimal dql = null;
-
-            String dqlString;
-            if (position.getPositionLong().signum() > 0) {
-                if (m.signum() > 0 && L.signum() > 0) {
-                    dql = m.subtract(L);
-                    dqlString = String.format("b_DQL = m%s - L%s = %s", m, L, dql);
-                } else {
-                    dqlString = "b_DQL = na";
-                    dql = null;
-                    warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
-                            m.toPlainString(), L.toPlainString()));
-                }
-            } else if (position.getPositionLong().signum() < 0) {
-                if (m.signum() > 0 && L.signum() > 0) {
-                    if (L.subtract(BigDecimal.valueOf(100000)).signum() < 0) {
-                        dql = L.subtract(m);
-                        dqlString = String.format("b_DQL = L%s - m%s = %s", L, m, dql);
+                String dqlString;
+                if (position.getPositionLong().signum() > 0) {
+                    if (m.signum() > 0 && L.signum() > 0) {
+                        dql = m.subtract(L);
+                        dqlString = String.format("b_DQL = m%s - L%s = %s", m, L, dql);
                     } else {
                         dqlString = "b_DQL = na";
+                        dql = null;
+                        warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
+                                m.toPlainString(), L.toPlainString()));
+                    }
+                } else if (position.getPositionLong().signum() < 0) {
+                    if (m.signum() > 0 && L.signum() > 0) {
+                        if (L.subtract(BigDecimal.valueOf(100000)).signum() < 0) {
+                            dql = L.subtract(m);
+                            dqlString = String.format("b_DQL = L%s - m%s = %s", L, m, dql);
+                        } else {
+                            dqlString = "b_DQL = na";
+                        }
+                    } else {
+                        dqlString = "b_DQL = na";
+                        dql = null;
+                        warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
+                                m.toPlainString(), L.toPlainString()));
                     }
                 } else {
                     dqlString = "b_DQL = na";
-                    dql = null;
-                    warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
-                            m.toPlainString(), L.toPlainString()));
                 }
-            } else {
-                dqlString = "b_DQL = na";
+
+                BigDecimal dmrl = null;
+                String dmrlString;
+                if (margin.signum() > 0) {
+                    final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
+                            .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    dmrl = bMr.subtract(bMrliq);
+                    dmrlString = String.format("b_DMRL = %s - %s = %s%%", bMr, bMrliq, dmrl);
+                } else {
+                    dmrlString = "b_DMRL = na";
+                }
+
+                final LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
+                if (dql != null && dql.compareTo(DQL_WRONG) != 0) {
+                    if (liqParams.getDqlMax().compareTo(dql) < 0) {
+                        liqParams.setDqlMax(dql);
+                    }
+                    if (liqParams.getDqlMin().compareTo(dql) > 0) {
+                        liqParams.setDqlMin(dql);
+                    }
+                }
+                liqInfo.setDqlCurr(dql);
+
+                if (dmrl != null) {
+                    if (liqParams.getDmrlMax().compareTo(dmrl) < 0) {
+                        liqParams.setDmrlMax(dmrl);
+                    }
+                    if (liqParams.getDmrlMin().compareTo(dmrl) > 0) {
+                        liqParams.setDmrlMin(dmrl);
+                    }
+                }
+                liqInfo.setDmrlCurr(dmrl);
+
+                liqInfo.setDqlString(dqlString);
+                liqInfo.setDmrlString(dmrlString);
+
+                storeLiqParams(liqParams); // race condition with resetLiqInfo() => user just have to reset one more time.
             }
-
-            BigDecimal dmrl = null;
-            String dmrlString;
-            if (margin.signum() > 0) {
-                final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
-                        .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
-                dmrl = bMr.subtract(bMrliq);
-                dmrlString = String.format("b_DMRL = %s - %s = %s%%", bMr, bMrliq, dmrl);
-            } else {
-                dmrlString = "b_DMRL = na";
-            }
-
-            if (dql != null && dql.compareTo(DQL_WRONG) != 0) {
-                if (liqInfo.getLiqParams().getDqlMax().compareTo(dql) < 0) {
-                    liqInfo.getLiqParams().setDqlMax(dql);
-                }
-                if (liqInfo.getLiqParams().getDqlMin().compareTo(dql) > 0) {
-                    liqInfo.getLiqParams().setDqlMin(dql);
-                }
-            }
-            liqInfo.setDqlCurr(dql);
-
-            if (dmrl != null) {
-                if (liqInfo.getLiqParams().getDmrlMax().compareTo(dmrl) < 0) {
-                    liqInfo.getLiqParams().setDmrlMax(dmrl);
-                }
-                if (liqInfo.getLiqParams().getDmrlMin().compareTo(dmrl) > 0) {
-                    liqInfo.getLiqParams().setDmrlMin(dmrl);
-                }
-            }
-            liqInfo.setDmrlCurr(dmrl);
-
-            liqInfo.setDqlString(dqlString);
-            liqInfo.setDmrlString(dmrlString);
-
-            storeLiqParams();
-        }
+        });
     }
 
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
         final BigDecimal bDQLOpenMin = persistenceService.fetchGuiLiqParams().getBDQLOpenMin();
-        final Position position = getPosition();
+        final Pos position = getPos();
         final LiqInfo liqInfo = getLiqInfo();
 
         boolean isOk;
@@ -2535,7 +2593,7 @@ public class BitmexService extends MarketServicePreliq {
     public BigDecimal getFundingCost() {
         BigDecimal fundingCost = BigDecimal.ZERO;
         if (this.getContractIndex() instanceof BitmexContractIndex) {
-            fundingCost = bitmexSwapService.calcFundingCost(this.getPosition(),
+            fundingCost = bitmexSwapService.calcFundingCost(this.getPos(),
                     ((BitmexContractIndex) this.getContractIndex()).getFundingRate());
         }
         return fundingCost;
@@ -2926,5 +2984,10 @@ public class BitmexService extends MarketServicePreliq {
             warningLogger.error(logString);
         }
         return tradeResponse;
+    }
+
+    @Override
+    protected MetricsDictionary getMetricsDictionary() {
+        return metricsDictionary;
     }
 }

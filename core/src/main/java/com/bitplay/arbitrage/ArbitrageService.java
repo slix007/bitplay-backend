@@ -18,20 +18,21 @@ import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.ArbState;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.LiqInfo;
-import com.bitplay.persistance.domain.settings.PlacingType;
+import com.bitplay.market.model.MarketState;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.metrics.MetricsDictionary;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SignalTimeService;
 import com.bitplay.persistance.TradeService;
@@ -50,6 +51,7 @@ import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.domain.settings.UsdQuoteType;
@@ -80,8 +82,6 @@ import org.apache.commons.lang3.SerializationUtils;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -323,7 +323,7 @@ public class ArbitrageService {
                     final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
                     final Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
                             .toBuilder().build();
-                    final Position okexPosition = secondMarketService.getPosition();
+                    final Pos okexPosition = secondMarketService.getPos();
 
                     AfterArbTask afterArbTask = new AfterArbTask(dealPricesSnap,
                             signalTypeSnap,
@@ -616,8 +616,8 @@ public class ArbitrageService {
         final Boolean onlyOpen = borderParams.getOnlyOpen();
         final boolean applyForOnlyOpen = onlyOpen != null ? onlyOpen : false;
         final BigDecimal defaultMaxVal = BigDecimal.valueOf(9999);
-        final BigDecimal posBtm = getFirstMarketService().getPosition().getPositionLong();
-        final BigDecimal posOk = getSecondMarketService().getPosition().getPositionLong().subtract(getSecondMarketService().getPosition().getPositionShort());
+        final BigDecimal posBtm = getFirstMarketService().getPos().getPositionLong();
+        final BigDecimal posOk = getSecondMarketService().getPos().getPositionLong().subtract(getSecondMarketService().getPos().getPositionShort());
         final boolean isCloseBtm;
         final boolean isCloseOk;
         final BigDecimal maxDelta;
@@ -663,9 +663,9 @@ public class ArbitrageService {
 
     private BestQuotes calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
 
-        final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
-        final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
-        final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
+        final BigDecimal bP = firstMarketService.getPos().getPositionLong();
+        final BigDecimal oPL = secondMarketService.getPos().getPositionLong();
+        final BigDecimal oPS = secondMarketService.getPos().getPositionShort();
 
         BorderParams borderParams = bordersService.getBorderParams();
         BigDecimal defaultMax = BigDecimal.valueOf(9999);
@@ -1279,21 +1279,21 @@ public class ArbitrageService {
         }
 
         lastCalcSumBal = Instant.now();
-        final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
-        final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();
+        final AccountBalance firstAccount = firstMarketService.getFullBalance().getAccountBalance();
+        final AccountBalance secondAccount = secondMarketService.getFullBalance().getAccountBalance();
         if (firstAccount != null && secondAccount != null) {
             final BigDecimal bW = firstAccount.getWallet();
-            final BigDecimal bEMark = firstAccount.geteMark() != null ? firstAccount.geteMark() : BigDecimal.ZERO;
-            bEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
-            final BigDecimal bEAvg = firstAccount.geteAvg() != null ? firstAccount.geteAvg() : BigDecimal.ZERO;
+            final BigDecimal bEMark = firstAccount.getEMark() != null ? firstAccount.getEMark() : BigDecimal.ZERO;
+            bEbest = firstAccount.getEBest() != null ? firstAccount.getEBest() : BigDecimal.ZERO;
+            final BigDecimal bEAvg = firstAccount.getEAvg() != null ? firstAccount.getEAvg() : BigDecimal.ZERO;
             final BigDecimal bU = firstAccount.getUpl();
             final BigDecimal bM = firstAccount.getMargin();
             final BigDecimal bA = firstAccount.getAvailable();
 
             BigDecimal oW = secondAccount.getWallet();
-            BigDecimal oELast = secondAccount.geteLast() != null ? secondAccount.geteLast() : BigDecimal.ZERO;
-            oEbest = secondAccount.geteBest() != null ? secondAccount.geteBest() : BigDecimal.ZERO;
-            BigDecimal oEAvg = secondAccount.geteAvg() != null ? secondAccount.geteAvg() : BigDecimal.ZERO;
+            BigDecimal oELast = secondAccount.getELast() != null ? secondAccount.getELast() : BigDecimal.ZERO;
+            oEbest = secondAccount.getEBest() != null ? secondAccount.getEBest() : BigDecimal.ZERO;
+            BigDecimal oEAvg = secondAccount.getEAvg() != null ? secondAccount.getEAvg() : BigDecimal.ZERO;
             BigDecimal oM = secondAccount.getMargin();
             BigDecimal oU = secondAccount.getUpl();
             BigDecimal oA = secondAccount.getAvailable();
@@ -1409,18 +1409,18 @@ public class ArbitrageService {
             }
         }
         try {
-            final AccountInfoContracts firstAccount = firstMarketService.calcFullBalance().getAccountInfoContracts();
-            final AccountInfoContracts secondAccount = secondMarketService.calcFullBalance().getAccountInfoContracts();
+            final AccountBalance firstAccount = firstMarketService.getFullBalance().getAccountBalance();
+            final AccountBalance secondAccount = secondMarketService.getFullBalance().getAccountBalance();
             if (firstAccount != null && secondAccount != null) {
                 final BigDecimal bW = firstAccount.getWallet();
-                final BigDecimal bEmark = firstAccount.geteMark() != null ? firstAccount.geteMark() : BigDecimal.ZERO;
-                bEbest = firstAccount.geteBest() != null ? firstAccount.geteBest() : BigDecimal.ZERO;
-                final BigDecimal bEavg = firstAccount.geteAvg() != null ? firstAccount.geteAvg() : BigDecimal.ZERO;
+                final BigDecimal bEmark = firstAccount.getEMark() != null ? firstAccount.getEMark() : BigDecimal.ZERO;
+                bEbest = firstAccount.getEBest() != null ? firstAccount.getEBest() : BigDecimal.ZERO;
+                final BigDecimal bEavg = firstAccount.getEAvg() != null ? firstAccount.getEAvg() : BigDecimal.ZERO;
                 final BigDecimal bU = firstAccount.getUpl();
                 final BigDecimal bM = firstAccount.getMargin();
                 final BigDecimal bA = firstAccount.getAvailable();
-                final BigDecimal bP = firstMarketService.getPosition().getPositionLong();
-                final BigDecimal bLv = firstMarketService.getPosition().getLeverage();
+                final BigDecimal bP = firstMarketService.getPos().getPositionLong();
+                final BigDecimal bLv = firstMarketService.getPos().getLeverage();
                 final BigDecimal bAL = firstMarketService.getAffordable().getForLong();
                 final BigDecimal bAS = firstMarketService.getAffordable().getForShort();
                 final BigDecimal usdQuote = getUsdQuote();
@@ -1447,9 +1447,9 @@ public class ArbitrageService {
                 ));
 
                 BigDecimal oW = secondAccount.getWallet();
-                BigDecimal oElast = secondAccount.geteLast() != null ? secondAccount.geteLast() : BigDecimal.ZERO;
-                oEbest = secondAccount.geteBest() != null ? secondAccount.geteBest() : BigDecimal.ZERO;
-                BigDecimal oEavg = secondAccount.geteAvg() != null ? secondAccount.geteAvg() : BigDecimal.ZERO;
+                BigDecimal oElast = secondAccount.getELast() != null ? secondAccount.getELast() : BigDecimal.ZERO;
+                oEbest = secondAccount.getEBest() != null ? secondAccount.getEBest() : BigDecimal.ZERO;
+                BigDecimal oEavg = secondAccount.getEAvg() != null ? secondAccount.getEAvg() : BigDecimal.ZERO;
                 BigDecimal oM = secondAccount.getMargin();
                 BigDecimal oU = secondAccount.getUpl();
                 BigDecimal oA = secondAccount.getAvailable();
@@ -1474,13 +1474,13 @@ public class ArbitrageService {
                     oU = oU.multiply(ethBtcBid1);
                     oA = oA.multiply(ethBtcBid1);
                 }
-                final BigDecimal oPL = secondMarketService.getPosition().getPositionLong();
-                final BigDecimal oPS = secondMarketService.getPosition().getPositionShort();
-                final BigDecimal oLv = secondMarketService.getPosition().getLeverage();
+                final BigDecimal oPL = secondMarketService.getPos().getPositionLong();
+                final BigDecimal oPS = secondMarketService.getPos().getPositionShort();
+                final BigDecimal oLv = secondMarketService.getPos().getLeverage();
                 final BigDecimal oAL = secondMarketService.getAffordable().getForLong();
                 final BigDecimal oAS = secondMarketService.getAffordable().getForShort();
-                final BigDecimal longAvailToClose = secondMarketService.getPosition().getLongAvailToClose();
-                final BigDecimal shortAvailToClose = secondMarketService.getPosition().getShortAvailToClose();
+                final BigDecimal longAvailToClose = secondMarketService.getPos().getLongAvailToClose();
+                final BigDecimal shortAvailToClose = secondMarketService.getPos().getShortAvailToClose();
                 final OrderBook oOrderBook = secondMarketService.getOrderBook();
                 final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
@@ -1629,9 +1629,9 @@ public class ArbitrageService {
 
         boolean isEth = bitmexService.getContractType().isEth();
 
-        final BigDecimal bP = bitmexService.getPosition().getPositionLong();
-        final BigDecimal oPL = okcoinService.getPosition().getPositionLong();
-        final BigDecimal oPS = okcoinService.getPosition().getPositionShort();
+        final BigDecimal bP = bitmexService.getPos().getPositionLong();
+        final BigDecimal oPL = okcoinService.getPos().getPositionLong();
+        final BigDecimal oPS = okcoinService.getPos().getPositionShort();
         final BigDecimal ha = isEth ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
         final BigDecimal bitmexUsd = isEth
                 ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
@@ -1692,9 +1692,9 @@ public class ArbitrageService {
         // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
         // M10, set_bu11, cont: b_pos(-1200); o_pos(+900, -0).
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        final BigDecimal bP = getFirstMarketService().getPosition().getPositionLong();
-        final BigDecimal oPL = getSecondMarketService().getPosition().getPositionLong();
-        final BigDecimal oPS = getSecondMarketService().getPosition().getPositionShort();
+        final BigDecimal bP = getFirstMarketService().getPos().getPositionLong();
+        final BigDecimal oPL = getSecondMarketService().getPos().getPositionLong();
+        final BigDecimal oPS = getSecondMarketService().getPos().getPositionShort();
         return String.format("%s, %s, cont: b(%s) o(+%s, -%s). ",
                 settings.getContractMode().getModeName(),
                 settings.getContractMode().getMainSetName(),
@@ -1872,9 +1872,9 @@ public class ArbitrageService {
 
         boolean isEth = bitmexService.getContractType().isEth();
 
-        final BigDecimal bP = bitmexService.getPosition().getPositionLong();
-        final BigDecimal oPL = okcoinService.getPosition().getPositionLong();
-        final BigDecimal oPS = okcoinService.getPosition().getPositionShort();
+        final BigDecimal bP = bitmexService.getPos().getPositionLong();
+        final BigDecimal oPL = okcoinService.getPos().getPositionLong();
+        final BigDecimal oPS = okcoinService.getPos().getPositionShort();
         final BigDecimal ha = isEth ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
         final BigDecimal bitmexUsd = isEth
                 ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)

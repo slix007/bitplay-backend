@@ -13,23 +13,26 @@ import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.ArbState;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.MarketState;
+import com.bitplay.market.MarketUtils;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.LiqInfo;
+import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.convert.LimitOrderToOrderConverter;
 import com.bitplay.metrics.MetricsDictionary;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BitplayOkexEchange;
 import com.bitplay.okex.v3.client.ApiCredentials;
@@ -40,6 +43,7 @@ import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
@@ -60,6 +64,8 @@ import info.bitrich.xchangestream.okexv3.dto.InstrumentDto;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkCoinDepth;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -301,7 +307,6 @@ public class OkCoinService extends MarketServicePreliq {
 
         initBitplayExchange(exArgs);
         exchange = initExchange(key, secret, exArgs);
-        loadLiqParams();
 
         initWebSocketAndAllSubscribers();
 
@@ -471,24 +476,23 @@ public class OkCoinService extends MarketServicePreliq {
                 .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS));
 
         orderBookSubscription = orderBookObservable
-                .subscribeOn(Schedulers.io())
+                .observeOn(stateUpdater)
                 .subscribe(okcoinDepth -> {
                     boolean isExtra = isObExtra(okcoinDepth);
                     final OkexContractType ct = instrIdToContractType.get(okcoinDepth.getInstrumentId());
+                    OrderBook newOrderBook = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());
                     if (isExtra) {
-                        this.orderBookXBTUSD = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());
+                        this.orderBookXBTUSD = newOrderBook;
+                        this.orderBookXBTUSDShort = this.orderBookXBTUSD;
                     } else {
                         metricsDictionary.incOkexObCounter();
-                        this.orderBook = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());
+                        this.orderBook = newOrderBook;
+                        this.orderBookShort = newOrderBook;
 
-                        final LimitOrder bestAsk = Utils.getBestAsk(this.orderBook);
-                        final LimitOrder bestBid = Utils.getBestBid(this.orderBook);
+                        final LimitOrder bestAsk = Utils.getBestAsk(newOrderBook);
+                        final LimitOrder bestBid = Utils.getBestBid(newOrderBook);
 
-                        if (this.bestAsk != null && bestAsk != null && this.bestBid != null && bestBid != null
-                                && this.bestAsk.compareTo(bestAsk.getLimitPrice()) != 0
-                                && this.bestBid.compareTo(bestBid.getLimitPrice()) != 0) {
-                            recalcAffordableContracts();
-                        }
+                        stateRecalcInStateUpdaterThread(); // includes FullBalance and not only bestAsk/Bid
                         this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
                         this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                         logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
@@ -511,9 +515,9 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public OrderBook getOrderBookXBTUSD() {
         if (okexContractType == okexContractTypeBTCUSD) {
-            return getShortOrderBook(this.orderBook);
+            return this.orderBookShort;
         }
-        return getShortOrderBook(this.orderBookXBTUSD);
+        return this.orderBookXBTUSDShort;
     }
 
     @Override
@@ -590,11 +594,53 @@ public class OkCoinService extends MarketServicePreliq {
                 .getFuturesPosition(
                         OkCoinAdapters.adaptSymbol(okexContractType.getCurrencyPair()),
                         okexContractType.getFuturesContract());
-        final Position position = mergePosition(positionResult, null);
 
-        recalcAffordableContracts();
-        recalcLiqInfo();
-        return position != null ? position.toString() : "";
+        final Position position = mapPosition(positionResult);
+        final Pos pos = MarketUtils.mapPos(position);
+        this.pos.set(pos);
+
+        stateRecalcInStateUpdaterThread();
+
+        return pos.toString();
+    }
+
+    private Position mapPosition(OkCoinPositionResult restUpdate) {
+        if (restUpdate.getPositions().length > 1) {
+            final String counterForLogs = getCounterName();
+            final String allPosStr = Arrays.toString(restUpdate.getPositions());
+            final String msg = String.format("#%s More than one positions found %s", counterForLogs, allPosStr);
+            logger.warn(msg);
+            tradeLogger.warn(msg);
+        }
+        final Position position;
+        if (restUpdate.getPositions().length == 0) {
+            position = new Position(
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    BigDecimal.valueOf(20),
+                    BigDecimal.ZERO,
+                    ""
+            );
+        } else {
+            final BigDecimal forceLiquPrice = convertLiqPrice(restUpdate.getForceLiquPrice());
+            final OkCoinPosition okCoinPosition = restUpdate.getPositions()[0];
+            position = new Position(
+                    okCoinPosition.getBuyAmount(),
+                    okCoinPosition.getSellAmount(),
+                    okCoinPosition.getBuyAmountAvailable(),
+                    okCoinPosition.getSellAmountAvailable(),
+                    okCoinPosition.getRate(),
+                    forceLiquPrice,
+                    BigDecimal.ZERO,
+                    okCoinPosition.getBuyPriceAvg(),
+                    okCoinPosition.getSellPriceAvg(),
+                    okCoinPosition.toString()
+            );
+//                if (okCoinPosition.getBuyAmount().subtract(okCoinPosition.getSellAmount()).signum() == 0) {
+//                    logger.info("restUpdate: pos==0. " + getName());
+//                }
+        }
+        return position;
     }
 
     @Scheduled(fixedDelay = 500) // URL https://www.okex.com/api/v1/future_userinfo.do Request frequency 5 times/2s
@@ -615,62 +661,7 @@ public class OkCoinService extends MarketServicePreliq {
         final AccountInfoContracts accountInfoContracts = ((OkCoinFuturesAccountService) exchange.getAccountService())
                 .getAccountInfoContracts(okexContractType.getCurrencyPair().base);
 
-        mergeAccountInfoContracts(accountInfoContracts);
-    }
-
-    private synchronized Position mergePosition(OkCoinPositionResult restUpdate, Position websocketUpdate) {
-        if (restUpdate != null) {
-            if (restUpdate.getPositions().length > 1) {
-                final String counterForLogs = getCounterName();
-                logger.warn("#{} More than one positions found", counterForLogs);
-                tradeLogger.warn(String.format("#%s More than one positions found", counterForLogs));
-            }
-            if (restUpdate.getPositions().length == 0) {
-                position = new Position(
-                        BigDecimal.ZERO,
-                        BigDecimal.ZERO,
-                        BigDecimal.valueOf(20),
-                        BigDecimal.ZERO,
-                        ""
-                );
-            } else {
-                final BigDecimal forceLiquPrice = convertLiqPrice(restUpdate.getForceLiquPrice());
-                final OkCoinPosition okCoinPosition = restUpdate.getPositions()[0];
-                position = new Position(
-                        okCoinPosition.getBuyAmount(),
-                        okCoinPosition.getSellAmount(),
-                        okCoinPosition.getBuyAmountAvailable(),
-                        okCoinPosition.getSellAmountAvailable(),
-                        okCoinPosition.getRate(),
-                        forceLiquPrice,
-                        BigDecimal.ZERO,
-                        okCoinPosition.getBuyPriceAvg(),
-                        okCoinPosition.getSellPriceAvg(),
-                        okCoinPosition.toString()
-                );
-//                if (okCoinPosition.getBuyAmount().subtract(okCoinPosition.getSellAmount()).signum() == 0) {
-//                    logger.info("restUpdate: pos==0. " + getName());
-//                }
-            }
-        } else if (websocketUpdate != null) { // TODO does it worth it
-            position = new Position(
-                    websocketUpdate.getPositionLong(),
-                    websocketUpdate.getPositionShort(),
-                    websocketUpdate.getLongAvailToClose(),
-                    websocketUpdate.getShortAvailToClose(),
-                    websocketUpdate.getLeverage(),
-                    websocketUpdate.getLiquidationPrice(),
-                    websocketUpdate.getMarkValue(),
-                    websocketUpdate.getPriceAvgLong(),
-                    websocketUpdate.getPriceAvgShort(),
-                    websocketUpdate.getRaw());
-//            if (websocketUpdate.getPositionLong().subtract(websocketUpdate.getPositionShort()).signum() == 0) {
-//                logger.info("websocketUpdate: pos==0. " + getName());
-//            }
-
-        }
-
-        return position;
+        mergeAccountSafe(accountInfoContracts);
     }
 
     private BigDecimal convertLiqPrice(String forceLiquPrice) {
@@ -682,26 +673,6 @@ public class OkCoinService extends MarketServicePreliq {
             logger.error("Can not convert forceLiquPrice=" + forceLiquPrice);
         }
         return res;
-    }
-
-    @SuppressWarnings("Duplicates")
-    private synchronized void mergeAccountInfoContracts(AccountInfoContracts newInfo) {
-        AccountInfoContracts current = this.accountInfoContracts;
-        logger.debug("AccountInfo.Websocket: " + current.toString());
-
-        BigDecimal eLast = newInfo.geteLast() != null ? newInfo.geteLast() : current.geteLast();
-        this.accountInfoContracts = new AccountInfoContracts(
-                newInfo.getWallet() != null ? newInfo.getWallet() : current.getWallet(),
-                newInfo.getAvailable() != null ? newInfo.getAvailable() : current.getAvailable(),
-                eLast,
-                eLast,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                newInfo.getMargin() != null ? newInfo.getMargin() : current.getMargin(),
-                newInfo.getUpl() != null ? newInfo.getUpl() : current.getUpl(),
-                newInfo.getRpl() != null ? newInfo.getRpl() : current.getRpl(),
-                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : current.getRiskRate()
-        );
     }
 
     private Disposable startUserPositionSub() {
@@ -716,9 +687,10 @@ public class OkCoinService extends MarketServicePreliq {
                     logger.debug(positionInfo.toString());
                     final Position pos = new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "");
                     BeanUtils.copyProperties(positionInfo, pos);
-                    mergePosition(null, pos);
-                    recalcAffordableContracts();
-                    recalcLiqInfo();
+                    this.pos.set(MarketUtils.mapPos(pos));
+
+                    stateRecalcInStateUpdaterThread();
+
                 }, throwable -> logger.error("PositionObservable.Exception: ", throwable));
     }
 
@@ -731,31 +703,14 @@ public class OkCoinService extends MarketServicePreliq {
                 .subscribeOn(Schedulers.io())
                 .subscribe(newInfo -> {
                     logger.debug(newInfo.toString());
-//                    AccountInfoContracts newInfo = new AccountInfoContracts();
-//                    BeanUtils.copyProperties(userAccountInfo, newInfo);
-//                    mergeAccountInfoContracts(newInfo);
-
-                    mergeAccountInfoContracts(newInfo);
+                    mergeAccountSafe(mapAccountInfoContracts(newInfo));
 
                 }, throwable -> logger.error("AccountInfoObservable.Exception: ", throwable));
     }
 
-    private synchronized void mergeAccountInfoContracts(info.bitrich.xchangestream.core.dto.AccountInfoContracts newInfo) {
-        AccountInfoContracts current = this.accountInfoContracts;
-        logger.debug("AccountInfo.Websocket: " + current.toString());
-
-        BigDecimal eLast = newInfo.geteLast() != null ? newInfo.geteLast() : current.geteLast();
-        this.accountInfoContracts = new AccountInfoContracts(
-                newInfo.getWallet() != null ? newInfo.getWallet() : current.getWallet(),
-                newInfo.getAvailable() != null ? newInfo.getAvailable() : current.getAvailable(),
-                eLast,
-                eLast,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                newInfo.getMargin() != null ? newInfo.getMargin() : current.getMargin(),
-                newInfo.getUpl() != null ? newInfo.getUpl() : current.getUpl(),
-                newInfo.getRpl() != null ? newInfo.getRpl() : current.getRpl(),
-                newInfo.getRiskRate() != null ? newInfo.getRiskRate() : current.getRiskRate()
+    private AccountInfoContracts mapAccountInfoContracts(info.bitrich.xchangestream.core.dto.AccountInfoContracts a) {
+        return new AccountInfoContracts(a.getWallet(), a.getAvailable(), a.geteMark(), a.geteLast(), a.geteBest(), a.geteAvg(), a.getMargin(), a.getUpl(),
+                a.getRpl(), a.getRiskRate()
         );
     }
 
@@ -797,7 +752,10 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable startPingStatSub() {
         return exchange.subscribePingStats()
                 .map(PingStatEvent::getPingPongMs)
-                .subscribe(ms -> metricsDictionary.putOkexPing(ms),
+                .subscribe(ms -> {
+                            metricsDictionary.putOkexPing(ms);
+                            logger.debug("okex ping-pong(ms): " + ms);
+                        },
                         e -> logger.error("ping stats error", e));
     }
 
@@ -918,7 +876,7 @@ public class OkCoinService extends MarketServicePreliq {
 //            final MarketOrder marketOrder = new MarketOrder(orderType, amount, currencyPair, new Date());
 //            final String orderId = tradeService.placeMarketOrder(marketOrder);
 
-            BigDecimal thePrice = createBestTakerPrice(orderType, orderBook);
+            BigDecimal thePrice = createBestTakerPrice(orderType, null);
 
             getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
             final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), "123", new Date(), thePrice);
@@ -982,26 +940,32 @@ public class OkCoinService extends MarketServicePreliq {
         return tradeResponse;
     }
 
-    private synchronized void recalcAffordableContracts() {
-        final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc2();
-        final BigDecimal volPlan = settingsRepositoryService.getSettings().getPlacingBlocks().getFixedBlockOkex();
+    @Override
+    protected Completable recalcAffordableContracts() {
+        return Completable.fromAction(() -> {
+            final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc2();
+            final BigDecimal volPlan = settingsRepositoryService.getSettings().getPlacingBlocks().getFixedBlockOkex();
 //        final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 
-        if (accountInfoContracts != null && position != null && Utils.orderBookIsFull(orderBook)) {
-            final BigDecimal available = accountInfoContracts.getAvailable();
-            final BigDecimal equity = accountInfoContracts.geteLast();
+            final Pos position = this.pos.get();
+            final AccountBalance account = this.account.get();
 
-            final BigDecimal bestAsk = Utils.getBestAsks(orderBook, 1).get(0).getLimitPrice();
-            final BigDecimal bestBid = Utils.getBestBids(orderBook, 1).get(0).getLimitPrice();
-            final BigDecimal leverage = position.getLeverage();
+            final OrderBook ob = this.orderBookShort;
+            if (account != null && position != null && Utils.orderBookIsFull(ob)) {
+                final BigDecimal available = account.getAvailable();
+                final BigDecimal equity = account.getELast();
 
-            if (available != null && equity != null && leverage != null && position.getPositionLong() != null && position.getPositionShort() != null) {
+                final BigDecimal bestAsk = Utils.getBestAsks(ob, 1).get(0).getLimitPrice();
+                final BigDecimal bestBid = Utils.getBestBids(ob, 1).get(0).getLimitPrice();
+                final BigDecimal leverage = position.getLeverage();
+
+                if (available != null && equity != null && leverage != null && position.getPositionLong() != null && position.getPositionShort() != null) {
 
 //                if (available.signum() > 0) {
 //                if (orderType.equals(Order.OrderType.BID) || orderType.equals(Order.OrderType.EXIT_ASK)) {
                     BigDecimal affordableContractsForLong;
-                final BigDecimal usdInContract = BigDecimal.valueOf(this.usdInContract);
-                if (position.getPositionShort().signum() != 0) { // there are sells
+                    final BigDecimal usdInContract = BigDecimal.valueOf(this.usdInContract);
+                    if (position.getPositionShort().signum() != 0) { // there are sells
                         if (volPlan.compareTo(position.getPositionShort()) != 1) {
                             affordableContractsForLong = (position.getPositionShort().subtract(position.getPositionLong()).add(
                                     (equity.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(usdInContract, 0, BigDecimal.ROUND_DOWN)
@@ -1014,8 +978,8 @@ public class OkCoinService extends MarketServicePreliq {
                             affordableContractsForLong = position.getPositionShort();
                         }
                     } else { // no sells
-                    affordableContractsForLong = (available.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)
-                            .divide(usdInContract, 0, BigDecimal.ROUND_DOWN);
+                        affordableContractsForLong = (available.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)
+                                .divide(usdInContract, 0, BigDecimal.ROUND_DOWN);
                     }
                     affordable.setForLong(affordableContractsForLong);
 //                }
@@ -1043,13 +1007,14 @@ public class OkCoinService extends MarketServicePreliq {
                     affordable.setForShort(affordableContractsForShort);
 //                }
 //                }
+                }
             }
-        }
+        });
     }
 
     @Override
     public Affordable recalcAffordable() {
-        recalcAffordableContracts();
+        recalcAffordableContracts().subscribe();
         return affordable;
     }
 
@@ -1139,9 +1104,9 @@ public class OkCoinService extends MarketServicePreliq {
                     if (currArgs.getPlacingType() == PlacingType.TAKER) {// set oPricePlanOnStart for Taker
                         final BigDecimal oPricePlanOnStart;
                         if (currArgs.getOrderType() == OrderType.BID || currArgs.getOrderType() == OrderType.EXIT_ASK) {
-                            oPricePlanOnStart = Utils.getBestAsk(orderBook).getLimitPrice(); // buy -> use the opposite price.
+                            oPricePlanOnStart = Utils.getBestAsk(this.orderBookShort).getLimitPrice(); // buy -> use the opposite price.
                         } else {
-                            oPricePlanOnStart = Utils.getBestBid(orderBook).getLimitPrice(); // do sell -> use the opposite price.
+                            oPricePlanOnStart = Utils.getBestBid(this.orderBookShort).getLimitPrice(); // do sell -> use the opposite price.
                         }
                         dealPrices.setoPricePlanOnStart(oPricePlanOnStart);
                     }
@@ -1404,14 +1369,14 @@ public class OkCoinService extends MarketServicePreliq {
                 OrderBook orderBook = getOrderBook();
                 // workaround. if OrderBook was not updated between attempts.
                 if (obTimestamp.equals(orderBook.getTimeStamp().toInstant().toString())) {
-                    tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s is the same. holds orderBookLock %s. Updating orderBook...",
-                            counterNameWithPortion, attempt, obTimestamp, Thread.holdsLock(orderBookLock)));
+                    tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s is the same. Updating orderBook...",
+                            counterNameWithPortion, attempt, obTimestamp));
                     OrderBook ob = exchange.getMarketDataService().getOrderBook(okexContractType.getCurrencyPair());
                     orderBook = new OrderBook(new Date(), ob.getAsks(), ob.getBids()); // because timestamp is null
                 }
                 obTimestamp = orderBook.getTimeStamp().toInstant().toString();
-                tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s. holds orderBookLock %s",
-                        counterNameWithPortion, attempt, obTimestamp, Thread.holdsLock(orderBookLock)));
+                tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s.",
+                        counterNameWithPortion, attempt, obTimestamp));
                 thePrice = createBestPrice(orderType, placingSubType, orderBook, getContractType());
 
                 if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
@@ -1561,7 +1526,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private Order.OrderType adjustOrderType(Order.OrderType orderType, BigDecimal tradeableAmount) {
-        final Position position = getPosition();
+        final Pos position = getPos();
         BigDecimal pLongBalance = (position != null && position.getPositionLong() != null)
                 ? position.getPositionLong()
                 : BigDecimal.ZERO;
@@ -2033,95 +1998,100 @@ public class OkCoinService extends MarketServicePreliq {
         return null;
     }
 
-    private synchronized void recalcLiqInfo() {
-        final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
-        final BigDecimal oMrLiq = persistenceService.fetchGuiLiqParams().getOMrLiq();
+    @Override
+    protected Completable recalcLiqInfo() {
+        return Completable.fromAction(() -> {
+            final Pos position = this.pos.get();
+            final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
+            final BigDecimal oMrLiq = persistenceService.fetchGuiLiqParams().getOMrLiq();
 
-        final AccountInfoContracts accountInfoContracts = getAccountInfoContracts();
-        final BigDecimal equity = accountInfoContracts.geteLast();
-        final BigDecimal margin = accountInfoContracts.getMargin();
-        final BigDecimal m = markPrice;//ticker != null ? ticker.getLast() : null;
+            final AccountBalance accountInfoContracts = getAccount();
+            final BigDecimal equity = accountInfoContracts.getELast();
+            final BigDecimal margin = accountInfoContracts.getMargin();
+            final BigDecimal m = markPrice;//ticker != null ? ticker.getLast() : null;
 
-        if (equity != null && margin != null && oMrLiq != null
-                && position.getPriceAvgShort() != null
-                && position.getPriceAvgLong() != null
-                && m != null) {
-            BigDecimal dql = null;
-            String dqlString;
-            if (pos.signum() > 0) {
-                if (margin.signum() > 0 && equity.signum() > 0) {
-                    if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
-                        return;
-                    }
+            if (equity != null && margin != null && oMrLiq != null
+                    && position.getPriceAvgShort() != null
+                    && position.getPriceAvgLong() != null
+                    && m != null) {
+                BigDecimal dql = null;
+                String dqlString;
+                if (pos.signum() > 0) {
+                    if (margin.signum() > 0 && equity.signum() > 0) {
+                        if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
+                            return;
+                        }
 
-                    final BigDecimal L = position.getLiquidationPrice();
-                    dql = m.subtract(L);
+                        final BigDecimal L = position.getLiquidationPrice();
+                        dql = m.subtract(L);
                         dqlString = String.format("o_DQL = m%s - L%s = %s", m, L, dql);
-                } else {
-                    dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s)", pos, margin, equity);
-                    dql = null;
-                    warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s",
-                            pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
-                            position.getPriceAvgLong(), position.getPriceAvgShort()));
-                }
-
-            } else if (pos.signum() < 0) {
-                if (margin.signum() > 0 && equity.signum() > 0) {
-                    if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
-                        return;
+                    } else {
+                        dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s)", pos, margin, equity);
+                        dql = null;
+                        warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s",
+                                pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
+                                position.getPriceAvgLong(), position.getPriceAvgShort()));
                     }
 
-                    final BigDecimal L = position.getLiquidationPrice();
-                    dql = L.subtract(m);
-                    dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
+                } else if (pos.signum() < 0) {
+                    if (margin.signum() > 0 && equity.signum() > 0) {
+                        if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
+                            return;
+                        }
+
+                        final BigDecimal L = position.getLiquidationPrice();
+                        dql = L.subtract(m);
+                        dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
+                    } else {
+                        dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s)", pos, margin, equity);
+                        dql = null;
+                        warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s",
+                                pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
+                                position.getPriceAvgLong(), position.getPriceAvgShort()));
+                    }
+
                 } else {
-                    dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s)", pos, margin, equity);
-                    dql = null;
-                    warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s",
-                            pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
-                            position.getPriceAvgLong(), position.getPriceAvgShort()));
+                    dqlString = "o_DQL = na(pos=0)";
                 }
 
-            } else {
-                dqlString = "o_DQL = na(pos=0)";
+                BigDecimal dmrl = null;
+                String dmrlString;
+                if (pos.signum() != 0 && margin.signum() > 0) {
+                    final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
+                            .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    dmrl = oMr.subtract(oMrLiq);
+                    dmrlString = String.format("o_DMRL = %s - %s = %s%%", oMr, oMrLiq, dmrl);
+                } else {
+                    dmrlString = "o_DMRL = na";
+                }
+
+                final LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
+                if (dql != null && dql.compareTo(DQL_WRONG) != 0) {
+                    if (liqParams.getDqlMax().compareTo(dql) < 0) {
+                        liqParams.setDqlMax(dql);
+                    }
+                    if (liqParams.getDqlMin().compareTo(dql) > 0) {
+                        liqParams.setDqlMin(dql);
+                    }
+                }
+                liqInfo.setDqlCurr(dql);
+
+                if (dmrl != null) {
+                    if (liqParams.getDmrlMax().compareTo(dmrl) < 0) {
+                        liqParams.setDmrlMax(dmrl);
+                    }
+                    if (liqParams.getDmrlMin().compareTo(dmrl) > 0) {
+                        liqParams.setDmrlMin(dmrl);
+                    }
+                }
+                liqInfo.setDmrlCurr(dmrl);
+
+                liqInfo.setDqlString(dqlString);
+                liqInfo.setDmrlString(dmrlString);
+
+                storeLiqParams(liqParams);
             }
-
-            BigDecimal dmrl = null;
-            String dmrlString;
-            if (pos.signum() != 0 && margin.signum() > 0) {
-                final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
-                        .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
-                dmrl = oMr.subtract(oMrLiq);
-                dmrlString = String.format("o_DMRL = %s - %s = %s%%", oMr, oMrLiq, dmrl);
-            } else {
-                dmrlString = "o_DMRL = na";
-            }
-
-            if (dql != null && dql.compareTo(DQL_WRONG) != 0) {
-                if (liqInfo.getLiqParams().getDqlMax().compareTo(dql) < 0) {
-                    liqInfo.getLiqParams().setDqlMax(dql);
-                }
-                if (liqInfo.getLiqParams().getDqlMin().compareTo(dql) > 0) {
-                    liqInfo.getLiqParams().setDqlMin(dql);
-                }
-            }
-            liqInfo.setDqlCurr(dql);
-
-            if (dmrl != null) {
-                if (liqInfo.getLiqParams().getDmrlMax().compareTo(dmrl) < 0) {
-                    liqInfo.getLiqParams().setDmrlMax(dmrl);
-                }
-                if (liqInfo.getLiqParams().getDmrlMin().compareTo(dmrl) > 0) {
-                    liqInfo.getLiqParams().setDmrlMin(dmrl);
-                }
-            }
-            liqInfo.setDmrlCurr(dmrl);
-
-            liqInfo.setDqlString(dqlString);
-            liqInfo.setDmrlString(dmrlString);
-
-            storeLiqParams();
-        }
+        });
     }
 
     /**
@@ -2130,7 +2100,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
         final BigDecimal oDQLOpenMin = persistenceService.fetchGuiLiqParams().getODQLOpenMin();
-        final Position position = getPosition();
+        final Pos position = getPos();
         final LiqInfo liqInfo = getLiqInfo();
 
         boolean isOk;
@@ -2411,7 +2381,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
         final CurrencyPair currencyPair = okexContractType.getCurrencyPair();
-        final Position position = getPosition();
+        final Pos position = getPos();
 
         final String counterForLogs = "closeAllPos";
         final String logInfoId = "closeAllPos:cancel";
@@ -2564,5 +2534,10 @@ public class OkCoinService extends MarketServicePreliq {
         } else {
             res.append(":").append(result.getDetails());
         }
+    }
+
+    @Override
+    protected MetricsDictionary getMetricsDictionary() {
+        return metricsDictionary;
     }
 }

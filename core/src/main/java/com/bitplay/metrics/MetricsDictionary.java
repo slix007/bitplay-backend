@@ -2,6 +2,7 @@ package com.bitplay.metrics;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.external.HostResolver;
+import com.bitplay.market.bitmex.BitmexService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
@@ -34,6 +35,12 @@ public class MetricsDictionary {
     private Timer okexMovingWhole;
     private Counter bitmexObCounter;
     private Counter okexObCounter;
+    private Timer bitmexRecalcAfterUpdate;
+    private Timer.Sample bitmexRecalcAfterUpdateSample;
+    private Timer okexRecalcAfterUpdate;
+    private Timer.Sample okexRecalcAfterUpdateSample;
+
+    private MeterRegistry meterRegistry;
 
     @Autowired
     private HostResolver hostResolver;
@@ -90,6 +97,8 @@ public class MetricsDictionary {
             okexPlacingBefore = Timer.builder("fplay.timer.okexPlacingBefore").register(registry);
             bitmexUpdateOrder = Timer.builder("fplay.timer.bitmexUpdateOrder").register(registry);
             okexMovingWhole = Timer.builder("fplay.timer.okexMovingWhole").register(registry);
+            bitmexRecalcAfterUpdate = Timer.builder("fplay.timer.recalcAfterUpdate").tag("market", "bitmex").register(registry);
+            okexRecalcAfterUpdate = Timer.builder("fplay.timer.recalcAfterUpdate").tag("market", "okex").register(registry);
 
             bitmexReconnectsCounter = registry.counter("fplay.counter.bitmexReconnectsCounter");
             bitmexObCounter = registry.counter("fplay.counter.bitmexObCounter");
@@ -101,6 +110,7 @@ public class MetricsDictionary {
 //                    .description("a description of what this counter does") // optional
 //                    .tags("region", "test") // optional
 //                    .register(registry);
+            meterRegistry = registry;
         };
     }
 
@@ -165,4 +175,28 @@ public class MetricsDictionary {
         okexMovingWhole.record(ms, TimeUnit.MILLISECONDS);
     }
 
+    public void startRecalcAfterUpdate(String name) {
+        if (meterRegistry != null) {
+            Timer.Sample sample = Timer.start(meterRegistry);
+            if (name.equals(BitmexService.NAME)) {
+                bitmexRecalcAfterUpdateSample = sample;
+            } else {
+                okexRecalcAfterUpdateSample = sample;
+            }
+        }
+    }
+
+    public void stopRecalcAfterUpdate(String name) {
+        if (meterRegistry != null) {
+            if (name.equals(BitmexService.NAME)) {
+                if (bitmexRecalcAfterUpdateSample != null) {
+                    bitmexRecalcAfterUpdateSample.stop(bitmexRecalcAfterUpdate);
+                }
+            } else {
+                if (okexRecalcAfterUpdateSample != null) {
+                    final long stop = okexRecalcAfterUpdateSample.stop(okexRecalcAfterUpdate);
+                }
+            }
+        }
+    }
 }

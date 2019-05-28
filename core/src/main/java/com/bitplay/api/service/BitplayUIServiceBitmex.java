@@ -13,9 +13,10 @@ import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.model.Pos;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -25,7 +26,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.trade.UserTrades;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -65,7 +65,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     }
 
     @Override
-    protected String getPositionString(Position position) {
+    protected String getPositionString(Pos position) {
         return position.getPositionLong().signum() > 0
                 ? "+" + position.getPositionLong().toPlainString()
                 : position.getPositionLong().toPlainString();
@@ -145,10 +145,10 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
             signalType = bitmexFunding.getSignalType().name();
         }
 
-        if (bitmexService.getPosition() == null || bitmexService.getPosition().getPositionLong() == null) {
+        if (bitmexService.getPos() == null || bitmexService.getPos().getPositionLong() == null) {
             return FutureIndexJson.empty();
         }
-        final String position = bitmexService.getPosition().getPositionLong().toPlainString();
+        final String position = bitmexService.getPos().getPositionLong().toPlainString();
 
         final String timeCompareString = bitmexTimeService.getTimeCompareString();
         final Integer timeCompareUpdating = bitmexTimeService.fetchTimeCompareUpdating();

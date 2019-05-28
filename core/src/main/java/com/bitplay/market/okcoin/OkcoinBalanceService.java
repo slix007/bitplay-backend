@@ -2,13 +2,13 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.model.FullBalance;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.utils.Utils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,21 +29,21 @@ public class OkcoinBalanceService implements BalanceService {
 //    private volatile Instant prevTime = Instant.now();
 //    private volatile FullBalance fullBalance;
 
-    private FullBalance recalcEquity(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType) {
+    private FullBalance recalcEquity(AccountBalance account, Pos pObj, OrderBook orderBook, ContractType contractType) {
 
         String tempValues = "";
 
-        final BigDecimal eLast = accountInfoContracts.geteLast();
-        final BigDecimal available = accountInfoContracts.getAvailable();
+        final BigDecimal eLast = account.getELast();
+        final BigDecimal available = account.getAvailable();
         final BigDecimal margin = eLast != null ? eLast.subtract(available) : BigDecimal.ZERO; //equity and available may be updated with separate responses
 
-        //set eBest & eAvg for accountInfoContracts
+        //set eBest & eAvg for account
         BigDecimal eBest = null;
         BigDecimal eAvg = null;
-        if (accountInfoContracts.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
+        if (account.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
             final BigDecimal pos_cm = contractType.isEth() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
             final BigDecimal pos = (pObj.getPositionLong().subtract(pObj.getPositionShort())).multiply(pos_cm);
-            final BigDecimal wallet = accountInfoContracts.getWallet();
+            final BigDecimal wallet = account.getWallet();
 
             if (pos.signum() > 0) {
                 //TODO how to find entryPrice.
@@ -103,37 +103,30 @@ public class OkcoinBalanceService implements BalanceService {
                 : false;
         eBest = okexEbestElast ? eLast : eBest;
 
-        return new FullBalance(new AccountInfoContracts(
-                accountInfoContracts.getWallet(),
+        return new FullBalance(new AccountBalance(
+                account.getWallet(),
                 available,
                 BigDecimal.ZERO,
                 eLast,
                 eBest,
                 eAvg,
                 margin,
-                accountInfoContracts.getUpl(),
-                accountInfoContracts.getRpl(),
-                accountInfoContracts.getRiskRate()
+                account.getUpl(),
+                account.getRpl(),
+                account.getRiskRate()
         ),
                 pObj,
-                orderBook,
                 tempValues);
 
     }
 
-    public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType,
-            Position positionXBTUSD, OrderBook orderBookXBTUSD) {
-        if (accountInfoContracts == null || pObj == null || orderBook == null) {
-            logger.error(String.format("Can not calc full balance: accountInfoContracts=%s, pObj=%s",
-                    accountInfoContracts, pObj));
-            return new FullBalance(null, null, null, null);
+    @Override
+    public FullBalance recalcAndGetAccountInfo(AccountBalance account, Pos pObj, OrderBook orderBook, ContractType contractType,
+            Pos positionXBTUSD, OrderBook orderBookXBTUSD) {
+        if (account == null || pObj == null || orderBook == null) {
+            logger.error(String.format("Can not calc full balance: account=%s, pObj=%s", account, pObj));
+            return new FullBalance(null, null, null);
         }
-
-//        final Instant nowTime = Instant.now();
-//        if (Math.abs(nowTime.toEpochMilli() - prevTime.toEpochMilli()) > 500) { //not often than 0.5 sec
-//            fullBalance = recalcEquity(accountInfoContracts, pObj, orderBook);
-//            prevTime = nowTime;
-//        }
-        return recalcEquity(accountInfoContracts, pObj, orderBook, contractType);
+        return recalcEquity(account, pObj, orderBook, contractType);
     }
 }

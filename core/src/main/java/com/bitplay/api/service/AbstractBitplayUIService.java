@@ -17,10 +17,11 @@ import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.utils.Utils;
-import io.reactivex.Observable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -31,7 +32,6 @@ import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfo;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -142,24 +142,24 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public AccountInfoJson getFullAccountInfo() {
 
-        final FullBalance fullBalance = getBusinessService().calcFullBalance();
-        if (fullBalance.getAccountInfoContracts() == null) {
+        final FullBalance fullBalance = getBusinessService().getFullBalance();
+        if (fullBalance.getAccountBalance() == null) {
             return AccountInfoJson.error();
         }
 
-        final AccountInfoContracts accountInfoContracts = fullBalance.getAccountInfoContracts();
-        final Position position = fullBalance.getPosition();
+        final AccountBalance account = fullBalance.getAccountBalance();
+        final Pos position = fullBalance.getPos();
 
-        final BigDecimal available = accountInfoContracts.getAvailable();
-        final BigDecimal wallet = accountInfoContracts.getWallet();
-        final BigDecimal margin = accountInfoContracts.getMargin();
-        final BigDecimal upl = accountInfoContracts.getUpl();
+        final BigDecimal available = account.getAvailable();
+        final BigDecimal wallet = account.getWallet();
+        final BigDecimal margin = account.getMargin();
+        final BigDecimal upl = account.getUpl();
         final BigDecimal quAvg = getBusinessService().getArbitrageService().getUsdQuote();
         final BigDecimal liqPrice = position.getLiquidationPrice();
-        final BigDecimal eMark = accountInfoContracts.geteMark();
-        final BigDecimal eLast = accountInfoContracts.geteLast();
-        final BigDecimal eBest = accountInfoContracts.geteBest();
-        final BigDecimal eAvg = accountInfoContracts.geteAvg();
+        final BigDecimal eMark = account.getEMark();
+        final BigDecimal eLast = account.getELast();
+        final BigDecimal eBest = account.getEBest();
+        final BigDecimal eAvg = account.getEAvg();
 
         final String entryPrice = String.format("long/short:%s/%s; %s",
                 position.getPriceAvgLong() != null ? position.getPriceAvgLong().toPlainString() : null,
@@ -196,10 +196,10 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 eBest != null ? eBest.toPlainString() : "0",
                 eAvg != null ? eAvg.toPlainString() : "0",
                 entryPrice,
-                accountInfoContracts.toString());
+                account.toString());
     }
 
-    protected String getPositionString(final Position position) {
+    protected String getPositionString(final Pos position) {
         return String.format("%s%s",
                 "+" + position.getPositionLong().toPlainString(),
                 "-" + position.getPositionShort().toPlainString());
@@ -249,7 +249,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public LiquidationInfoJson getLiquidationInfoJson() {
         final LiqInfo liqInfo = getBusinessService().getLiqInfo();
-        final LiqParams liqParams = liqInfo.getLiqParams();
+        final LiqParams liqParams = getBusinessService().getPersistenceService().fetchLiqParams(getBusinessService().getName());
         String dqlString = liqInfo.getDqlString();
         if (dqlString != null && dqlString.startsWith("o_DQL = na")) {
             dqlString = "o_DQL = na";

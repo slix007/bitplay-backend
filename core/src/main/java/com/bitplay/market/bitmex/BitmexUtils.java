@@ -1,17 +1,17 @@
 package com.bitplay.market.bitmex;
 
 import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import java.math.BigDecimal;
-import org.knowm.xchange.dto.account.Position;
 
 /**
  * Created by Sergey Shurmin on 11/26/17.
  */
 public class BitmexUtils {
 
-    public static String positionToString(Position position) {
+    public static String positionToString(Pos position) {
         return "Position{" +
                 "position=" + position.getPositionLong() +
                 ", leverage=" + position.getLeverage() +

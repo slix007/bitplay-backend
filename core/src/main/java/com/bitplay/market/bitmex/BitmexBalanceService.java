@@ -3,13 +3,14 @@ package com.bitplay.market.bitmex;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.model.FullBalance;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.utils.Utils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import lombok.AllArgsConstructor;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.springframework.stereotype.Component;
 
@@ -31,20 +32,20 @@ public class BitmexBalanceService implements BalanceService {
         final String tempValues;
     }
 
-    private FullBalance recalcEquity(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType,
-            Position positionXBTUSD, OrderBook orderBookXBTUSD) {
+    private FullBalance recalcEquity(AccountBalance account, Pos pObj, OrderBook orderBook, ContractType contractType,
+            Pos positionXBTUSD, OrderBook orderBookXBTUSD) {
 
         String tempValues = "";
 
-        final BigDecimal eMark = accountInfoContracts.geteMark();
-        final BigDecimal available = accountInfoContracts.getAvailable();
+        final BigDecimal eMark = account.getEMark();
+        final BigDecimal available = account.getAvailable();
         final BigDecimal margin = eMark != null ? eMark.subtract(available) : BigDecimal.ZERO; //equity and available may be updated with separate responses
 
-        //set eBest & eAvg for accountInfoContracts
+        //set eBest & eAvg for account
         BigDecimal eBest = null;
         BigDecimal eAvg = null;
-        if (accountInfoContracts.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
-            final BigDecimal wallet = accountInfoContracts.getWallet();
+        if (account.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
+            final BigDecimal wallet = account.getWallet();
 
             Upl upl = calcUpl(contractType.isEth(), pObj, orderBook);
             BigDecimal uplBest = upl.uplBest;
@@ -69,25 +70,24 @@ public class BitmexBalanceService implements BalanceService {
             eAvg = wallet.add(uplAvg).add(uplAvgXBTUSD);
         }
 
-        return new FullBalance(new AccountInfoContracts(
-                accountInfoContracts.getWallet(),
+        return new FullBalance(new AccountBalance(
+                account.getWallet(),
                 available,
                 eMark,
                 BigDecimal.ZERO,
                 eBest,
                 eAvg,
                 margin,
-                accountInfoContracts.getUpl(),
-                accountInfoContracts.getRpl(),
-                accountInfoContracts.getRiskRate()
+                account.getUpl(),
+                account.getRpl(),
+                account.getRiskRate()
         ),
                 pObj,
-                orderBook,
                 tempValues);
 
     }
 
-    private Upl calcUpl(boolean eth, Position pObj, OrderBook orderBook) {
+    private Upl calcUpl(boolean eth, Pos pObj, OrderBook orderBook) {
         final BigDecimal pos = pObj.getPositionLong();
         String tempValues = "";
         BigDecimal uplBest = BigDecimal.ZERO;
@@ -158,21 +158,17 @@ public class BitmexBalanceService implements BalanceService {
         return new Upl(uplBest, uplAvg, tempValues);
     }
 
-    public FullBalance recalcAndGetAccountInfo(AccountInfoContracts accountInfoContracts, Position pObj, OrderBook orderBook, ContractType contractType,
-            Position positionXBTUSD, OrderBook orderBookXBTUSD) {
-        if (accountInfoContracts == null || pObj == null || orderBook == null) {
-            return new FullBalance(null, null, null, null);
+    @Override
+    public FullBalance recalcAndGetAccountInfo(AccountBalance account, Pos pObj, OrderBook orderBook, ContractType contractType,
+            Pos positionXBTUSD, OrderBook orderBookXBTUSD) {
+        if (account == null || pObj == null || orderBook == null) {
+            return new FullBalance(null, null, null);
         }
 
-//        final Instant nowTime = Instant.now();
-//        if (Math.abs(nowTime.toEpochMilli() - prevTime.toEpochMilli()) > 500) { //not often than 0.5 sec
-//            fullBalance = recalcEquity(accountInfoContracts, pObj, orderBook);
-//            prevTime = nowTime;
-//        }
         try {
-            return recalcEquity(accountInfoContracts, pObj, orderBook, contractType, positionXBTUSD, orderBookXBTUSD);
+            return recalcEquity(account, pObj, orderBook, contractType, positionXBTUSD, orderBookXBTUSD);
         } catch (NotYetInitializedException e) {
-            return new FullBalance(null, null, null, null);
+            return new FullBalance(null, null, null);
         }
     }
 }

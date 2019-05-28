@@ -10,15 +10,15 @@ import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.MarketState;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexUtils;
 import com.bitplay.market.model.FullBalance;
+import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
@@ -27,6 +27,7 @@ import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.CountedWithExtra;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.repository.FplayTradeRepository;
@@ -48,7 +49,6 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -339,7 +339,7 @@ public class PosDiffService {
     private void checkBitmexPosXBTUSD(String infoMsg) {
         final BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
         bitmexService.posXBTUSDUpdater();
-        final Position pos2 = bitmexService.getPositionXBTUSD();
+        final Pos pos2 = bitmexService.getPositionXBTUSD();
         String msg = infoMsg + "bitmexXBTUSD=" + BitmexUtils.positionToString(pos2);
         warningLogger.info(msg);
         log.info(msg);
@@ -490,15 +490,16 @@ public class PosDiffService {
     }
 
     private boolean fullBalanceIsValid() {
-        final FullBalance firstFullBalance = arbitrageService.getFirstMarketService().calcFullBalance();
-        final FullBalance secondFullBalance = arbitrageService.getSecondMarketService().calcFullBalance();
+        final FullBalance firstFullBalance = arbitrageService.getFirstMarketService().getFullBalance();
+        final FullBalance secondFullBalance = arbitrageService.getSecondMarketService().getFullBalance();
         return firstFullBalance.isValid() && secondFullBalance.isValid();
     }
 
     private boolean adjOnOkex() {
-        BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
-        BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
-        BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+        BigDecimal bP = arbitrageService.getFirstMarketService().getPos().getPositionLong();
+        final Pos secondPos = arbitrageService.getSecondMarketService().getPos();
+        BigDecimal oPL = secondPos.getPositionLong();
+        BigDecimal oPS = secondPos.getPositionShort();
 
         final BigDecimal cm = bitmexService.getCm();
         boolean isEth = bitmexService.getContractType().isEth();
@@ -844,9 +845,10 @@ public class PosDiffService {
             return;
         }
 
-        BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
-        BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
-        BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+        BigDecimal bP = arbitrageService.getFirstMarketService().getPos().getPositionLong();
+        final Pos secondPos = arbitrageService.getSecondMarketService().getPos();
+        BigDecimal oPL = secondPos.getPositionLong();
+        BigDecimal oPS = secondPos.getPositionShort();
 
         if (!arbitrageService.getFirstMarketService().isStarted() || marketsStopped()) {
             return;
@@ -963,8 +965,8 @@ public class PosDiffService {
                         corrName,
                         correctAmount, isAffordable,
                         maxBtm, maxOkex, dc,
-                        arbitrageService.getFirstMarketService().getPosition().toString(),
-                        arbitrageService.getSecondMarketService().getPosition().toString(),
+                        arbitrageService.getFirstMarketService().getPos().toString(),
+                        arbitrageService.getSecondMarketService().getPos().toString(),
                         hedgeAmount.toPlainString(),
                         signalType
                 );
@@ -1532,8 +1534,9 @@ public class PosDiffService {
     }
 
     private BigDecimal getOkexUsd(boolean isEth) {
-        final BigDecimal oPL = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
-        final BigDecimal oPS = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+        final Pos secondServicePosition = arbitrageService.getSecondMarketService().getPos();
+        final BigDecimal oPL = secondServicePosition.getPositionLong();
+        final BigDecimal oPS = secondServicePosition.getPositionShort();
         if (oPL == null || oPS == null) {
             throw new NotYetInitializedException("Position is not yet defined");
         }
@@ -1545,7 +1548,7 @@ public class PosDiffService {
     private BigDecimal getBitmexUsd(boolean isEth) {
         BigDecimal cm = bitmexService.getCm();
 
-        final BigDecimal bP = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
+        final BigDecimal bP = arbitrageService.getFirstMarketService().getPos().getPositionLong();
         if (bP == null) {
             throw new NotYetInitializedException("Position is not yet defined");
         }

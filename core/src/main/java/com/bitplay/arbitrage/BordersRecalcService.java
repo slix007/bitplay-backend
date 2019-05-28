@@ -2,6 +2,7 @@ package com.bitplay.arbitrage;
 
 import static com.bitplay.arbitrage.DeltasCalcService.NONE_VALUE;
 
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -279,9 +280,10 @@ public class BordersRecalcService {
 
     @SuppressWarnings("Duplicates")
     private void recalcBaseLvlType(BorderParams borderParams) {
-        final BigDecimal b_pos = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
-        final BigDecimal ok_pos_long = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
-        final BigDecimal ok_pos_short = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+        final BigDecimal b_pos = arbitrageService.getFirstMarketService().getPos().getPositionLong();
+        final Pos secondPos = arbitrageService.getSecondMarketService().getPos();
+        final BigDecimal ok_pos_long = secondPos.getPositionLong();
+        final BigDecimal ok_pos_short = secondPos.getPositionShort();
         final BigDecimal ok_pos = ok_pos_long.subtract(ok_pos_short);
 
         final BordersV2 bordersV2 = borderParams.getBordersV2();
@@ -303,9 +305,10 @@ public class BordersRecalcService {
 
     @SuppressWarnings("Duplicates")
     private void recalcBaseLvlCnt(BorderParams borderParams) {
-        final BigDecimal b_pos = arbitrageService.getFirstMarketService().getPosition().getPositionLong();
-        final BigDecimal ok_pos_long = arbitrageService.getSecondMarketService().getPosition().getPositionLong();
-        final BigDecimal ok_pos_short = arbitrageService.getSecondMarketService().getPosition().getPositionShort();
+        final BigDecimal b_pos = arbitrageService.getFirstMarketService().getPos().getPositionLong();
+        final Pos secondPos = arbitrageService.getSecondMarketService().getPos();
+        final BigDecimal ok_pos_long = secondPos.getPositionLong();
+        final BigDecimal ok_pos_short = secondPos.getPositionShort();
         final BigDecimal ok_pos = ok_pos_long.subtract(ok_pos_short);
 
         final BordersV2 bordersV2 = borderParams.getBordersV2();

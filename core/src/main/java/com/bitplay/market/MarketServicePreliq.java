@@ -5,11 +5,13 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.external.NotifyType;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.LiqInfo;
+import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.utils.Utils;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,7 +19,6 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.account.Position;
 
 @Getter
 @Slf4j
@@ -55,11 +56,10 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
             dtPreliq.stop();
             return;
         }
-        Position position = getPosition();
-        LiqInfo liqInfo = getLiqInfo();
 
+        final LiqInfo liqInfo = getLiqInfo();
         final BigDecimal dqlCloseMin = getDqlCloseMin();
-        final BigDecimal pos = getPos(position);
+        final BigDecimal pos = getPosVal();
         final CorrParams corrParams = getPersistenceService().fetchCorrParams();
 
         final boolean dqlViolated = isDqlViolated(liqInfo, dqlCloseMin);
@@ -165,7 +165,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
     }
 
     private String getPreliqStartingStr() {
-        final Position position = getPosition();
+        final Pos position = getPos();
         final LiqInfo liqInfo = getLiqInfo();
         final BigDecimal dqlCloseMin = getDqlCloseMin();
         final String dqlCurrStr = liqInfo != null && liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr().toPlainString() : "null";
@@ -300,13 +300,6 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
         placeOrder(placeOrderArgs);
     }
 
-    private BigDecimal getPos(Position position) {
-//        if (getName().equals(BitmexService.NAME)) {
-//            return position.getPositionLong();
-//        }
-        return position.getPositionLong().subtract(position.getPositionShort());
-    }
-
     private BigDecimal getDqlCloseMin() {
         if (getName().equals(BitmexService.NAME)) {
             return getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
@@ -318,7 +311,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
 //        final BigDecimal cm = getPersistenceService().getSettingsRepositoryService().getSettings().getPlacingBlocks().getCm();
         final CorrParams corrParams = getPersistenceService().fetchCorrParams();
 //        final Position bitmexPosition = getArbitrageService().getFirstMarketService().getPosition();
-        final Position okexPosition = getArbitrageService().getSecondMarketService().getPosition();
+        final Pos okexPosition = getArbitrageService().getSecondMarketService().getPos();
 
         BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
         BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());

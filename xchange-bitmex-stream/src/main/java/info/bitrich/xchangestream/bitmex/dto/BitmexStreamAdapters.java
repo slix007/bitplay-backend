@@ -1,11 +1,5 @@
 package info.bitrich.xchangestream.bitmex.dto;
 
-import org.knowm.xchange.bitmex.BitmexAdapters;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.trade.LimitOrder;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,6 +8,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.trade.LimitOrder;
 
 /**
  * Created by Sergey Shurmin on 5/7/17.
@@ -91,6 +89,20 @@ public class BitmexStreamAdapters {
         }
 
         return orderBook;
+    }
+
+    public static OrderBook cloneOrderBook(OrderBook ob) {
+        return new OrderBook(new Date(),
+                Collections.synchronizedList(ob.getAsks().stream().map(BitmexStreamAdapters::cloneLimitOrder).collect(Collectors.toList())),
+                Collections.synchronizedList(ob.getBids().stream().map(BitmexStreamAdapters::cloneLimitOrder).collect(Collectors.toList()))
+        );
+    }
+
+    private static LimitOrder cloneLimitOrder(LimitOrder l) {
+        final LimitOrder limitOrder = new LimitOrder(l.getType(), l.getTradableAmount(), l.getCurrencyPair(), l.getId(),
+                l.getTimestamp(), l.getLimitPrice(), l.getAveragePrice(), l.getCumulativeAmount(), l.getStatus());
+        limitOrder.setOrderFlags(l.getOrderFlags());
+        return limitOrder;
     }
 
     /**

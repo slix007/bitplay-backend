@@ -2,20 +2,17 @@ package com.bitplay.market.bitmex;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.market.MarketState;
+import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.persistance.domain.SwapV2;
 import com.bitplay.utils.Utils;
-
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
-
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.Position;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.reactivex.Completable;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -29,11 +26,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import io.reactivex.Completable;
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Sergey Shurmin on 8/19/17.
@@ -305,7 +301,7 @@ public class BitmexSwapService {
             warningLogger.warn("startFunding at wrong time");
             resetSwapState();
         } else {
-            final Position position = bitmexService.getPosition();
+            final Pos position = bitmexService.getPos();
             final BigDecimal pos = position.getPositionLong();
             final SignalType signalType = bitmexFunding.getSignalType();
             if (signalType == SignalType.SWAP_NONE) {
@@ -361,7 +357,7 @@ public class BitmexSwapService {
         }
     }
 
-    private void setStateSwapStarted(Position position) {
+    private void setStateSwapStarted(Pos position) {
         final BigDecimal pos = position.getPositionLong();
         bitmexService.setMarketStateNextCounter(MarketState.SWAP);
         bitmexFunding.setFixedSwapTime(bitmexFunding.getSwapTime());
@@ -435,7 +431,7 @@ public class BitmexSwapService {
 
         // 2. recalc all temporary fileds
         final BigDecimal fRate = bitmexFunding.getFundingRate();
-        final BigDecimal pos = bitmexService.getPosition().getPositionLong();
+        final BigDecimal pos = bitmexService.getPos().getPositionLong();
         final BigDecimal maxFRate = bitmexService.getArbitrageService().getParams().getFundingRateFee(); //BitmexFunding.MAX_F_RATE;
         bitmexFunding.setUpdatingTime(OffsetDateTime.now());
 
@@ -460,7 +456,7 @@ public class BitmexSwapService {
         }
     }
 
-    BigDecimal calcFundingCost(final Position position, final BigDecimal fRate) {
+    BigDecimal calcFundingCost(final Pos position, final BigDecimal fRate) {
         if (position.getMarkValue() == null || position.getPositionLong() == null || fRate == null) {
             return BigDecimal.ZERO;
         }

@@ -5,8 +5,8 @@ import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MOD
 
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
-import org.knowm.xchange.dto.account.Position;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,10 +21,10 @@ public class DiffFactBrService {
     int getCurrPos(PosMode pos_mode) {
         int currPos = 0;
         if (pos_mode == BTM_MODE) {
-            Position position = bitmexService.getPosition();
+            Pos position = bitmexService.getPos();
             currPos = position.getPositionLong().intValue();
         } else if (pos_mode == OK_MODE) {
-            Position position = okCoinService.getPosition();
+            Pos position = okCoinService.getPos();
             int ok_pos_long = position.getPositionLong().intValue();
             int ok_pos_short = position.getPositionShort().intValue();
             currPos = ok_pos_long - ok_pos_short;
