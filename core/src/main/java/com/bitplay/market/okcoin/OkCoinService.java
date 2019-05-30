@@ -827,9 +827,9 @@ public class OkCoinService extends MarketServicePreliq {
                             final CurrencyPair currencyPair = indexTick.getCurrencyPair();
                             final BigDecimal indexPrice = indexTick.getLast();
                             if (currencyPair.equals(okexContractType.getCurrencyPair())) {
-                                this.contractIndex = new ContractIndex(indexPrice.setScale(2, RoundingMode.HALF_UP), new Date());
+                                this.contractIndex.set(new ContractIndex(indexPrice.setScale(2, RoundingMode.HALF_UP), new Date()));
                             } else {
-                                this.btcContractIndex = new ContractIndex(indexPrice.setScale(2, RoundingMode.HALF_UP), new Date());
+                                this.btcContractIndex.set(new ContractIndex(indexPrice.setScale(2, RoundingMode.HALF_UP), new Date()));
                             }
                         },
                         throwable -> logger.error("OkexIndexPriceSub.Exception: ", throwable)

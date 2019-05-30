@@ -63,8 +63,6 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
-import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.Timer.Sample;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
@@ -2365,26 +2363,30 @@ public class BitmexService extends MarketServicePreliq {
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribe(contIndUpdate -> {
                     try {
+                        if (bitmexContractType.isEth() && contIndUpdate.getSymbol().equals(BitmexContractType.XBTUSD.getSymbol())) {
 
-                        synchronized (contractIndexLock) {
-                            if (bitmexContractType.isEth() && contIndUpdate.getSymbol().equals(BitmexContractType.XBTUSD.getSymbol())) {
+                            boolean success = false;
+                            while (!success) {
+                                final ContractIndex current = this.btcContractIndex.get();
+                                final BitmexContractIndex updated = mergeContractIndex(current, contIndUpdate);
+                                success = this.btcContractIndex.compareAndSet(current, updated);
+                            }
+                            calcCM();
 
-                                this.btcContractIndex = mergeContractIndex(this.btcContractIndex, contIndUpdate);
+                        } else {
 
-                                if (this.contractIndex instanceof BitmexContractIndex) {
-                                    calcCM();
-                                }
+                            boolean success = false;
+                            while (!success) {
+                                final ContractIndex current = this.contractIndex.get();
+                                final BitmexContractIndex updated = mergeContractIndex(current, contIndUpdate);
+                                success = this.contractIndex.compareAndSet(current, updated);
+                            }
+                            this.ticker = new Ticker.Builder().last(
+                                    ((BitmexContractIndex) this.contractIndex.get()).getLastPrice()).timestamp(new Date()).build();
+                            lastPriceDeviationService.updateAndCheckDeviationAsync();
 
-                            } else {
-
-                                BitmexContractIndex bitmexContractIndex = mergeContractIndex(this.contractIndex, contIndUpdate);
-                                this.contractIndex = bitmexContractIndex;
-                                this.ticker = new Ticker.Builder().last(bitmexContractIndex.getLastPrice()).timestamp(new Date()).build();
-                                lastPriceDeviationService.updateAndCheckDeviationAsync();
-
-                                if (cm != null) {
-                                    calcCM();
-                                }
+                            if (cm != null) {
+                                calcCM();
                             }
                         }
 
@@ -2399,9 +2401,9 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private void calcCM() {
-        if (this.contractIndex instanceof BitmexContractIndex && this.btcContractIndex instanceof BitmexContractIndex) {
-            final BigDecimal bxbtIndex = btcContractIndex.getIndexPrice();
-            final BigDecimal ethUsdMark = ((BitmexContractIndex) this.contractIndex).getMarkPrice();
+        if (this.contractIndex.get() instanceof BitmexContractIndex && this.btcContractIndex.get() instanceof BitmexContractIndex) {
+            final BigDecimal bxbtIndex = btcContractIndex.get().getIndexPrice();
+            final BigDecimal ethUsdMark = ((BitmexContractIndex) this.contractIndex.get()).getMarkPrice();
             // CM = round(10000000 / (ETHUSD_mark BXBT);2);
             this.cm = BigDecimal.valueOf(10 * 1000 * 1000).divide(bxbtIndex.multiply(ethUsdMark), 2, RoundingMode.HALF_UP);
         }
@@ -2450,12 +2452,12 @@ public class BitmexService extends MarketServicePreliq {
 
             final BigDecimal bMrliq = persistenceService.fetchGuiLiqParams().getBMrLiq();
 
-            if (!(contractIndex instanceof BitmexContractIndex)) {
+            if (!(contractIndex.get() instanceof BitmexContractIndex)) {
                 // bitmex contract index is not updated yet. Skip the re-calc.
                 return;
             }
 
-            final BigDecimal m = ((BitmexContractIndex) contractIndex).getMarkPrice();
+            final BigDecimal m = ((BitmexContractIndex) contractIndex.get()).getMarkPrice();
             final BigDecimal L = position.getLiquidationPrice();
 
             if (equity != null && margin != null

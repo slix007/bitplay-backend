@@ -91,9 +91,8 @@ public abstract class MarketService extends MarketServiceWithState {
     protected final AtomicReference<Pos> posXBTUSD = new AtomicReference<>(new Pos(null, null, null, BigDecimal.ZERO, ""));
     protected final AtomicReference<FullBalance> fullBalanceRef = new AtomicReference<>(new FullBalance(account.get(), pos.get(), null));
     protected volatile Affordable affordable = new Affordable();
-    protected final Object contractIndexLock = new Object();
-    protected volatile ContractIndex contractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
-    protected volatile ContractIndex btcContractIndex = new ContractIndex(BigDecimal.ZERO, new Date());
+    protected final AtomicReference<ContractIndex> contractIndex = new AtomicReference<>(new ContractIndex(BigDecimal.ZERO, new Date()));
+    protected final AtomicReference<ContractIndex> btcContractIndex = new AtomicReference<>(new ContractIndex(BigDecimal.ZERO, new Date()));
     protected volatile Ticker ticker;
     protected volatile Ticker ethBtcTicker;
     protected volatile int usdInContract = 0;
@@ -197,6 +196,7 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public BigDecimal calcBtcInContract() {
+        final ContractIndex contractIndex = this.contractIndex.get();
         if (contractIndex.getIndexPrice() != null && contractIndex.getIndexPrice().signum() != 0) {
             return BigDecimal.valueOf(usdInContract).divide(contractIndex.getIndexPrice(), 4, BigDecimal.ROUND_HALF_UP);
         }
@@ -592,7 +592,7 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public ContractIndex getContractIndex() {
-        return contractIndex;
+        return contractIndex.get();
     }
 
     public Ticker getTicker() {
@@ -604,7 +604,7 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public ContractIndex getBtcContractIndex() {
-        return btcContractIndex;
+        return btcContractIndex.get();
     }
 
     /**
