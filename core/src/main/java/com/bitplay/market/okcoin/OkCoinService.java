@@ -2164,7 +2164,9 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
-        ooSingleExecutor.execute(() -> iterateOpenOrdersMoveSync(iterateArgs));
+        ooSingleExecutor.execute(() ->
+                getMetricsDictionary().getOkexMovingIter().record(() ->
+                        iterateOpenOrdersMoveSync(iterateArgs)));
     }
 
     private void iterateOpenOrdersMoveSync(Object... iterateArgs) { // if synchronized then the queue for moving could be long

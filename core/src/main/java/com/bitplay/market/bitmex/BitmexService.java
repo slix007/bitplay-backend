@@ -720,7 +720,9 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
-        ooSingleExecutor.execute(() -> iterateOpenOrdersMoveSync(iterateArgs));
+        ooSingleExecutor.execute(() ->
+                getMetricsDictionary().getBitmexMovingIter().record(() ->
+                        iterateOpenOrdersMoveSync(iterateArgs)));
     }
 
     private void iterateOpenOrdersMoveSync(Object[] iterateArgs) {

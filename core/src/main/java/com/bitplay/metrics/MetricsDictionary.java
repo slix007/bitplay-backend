@@ -39,6 +39,8 @@ public class MetricsDictionary {
     private Timer.Sample bitmexRecalcAfterUpdateSample;
     private Timer okexRecalcAfterUpdate;
     private Timer.Sample okexRecalcAfterUpdateSample;
+    private Timer bitmexMovingIter;
+    private Timer okexMovingIter;
 
     private MeterRegistry meterRegistry;
 
@@ -99,6 +101,8 @@ public class MetricsDictionary {
             okexMovingWhole = Timer.builder("fplay.timer.okexMovingWhole").register(registry);
             bitmexRecalcAfterUpdate = Timer.builder("fplay.timer.recalcAfterUpdate").tag("market", "bitmex").register(registry);
             okexRecalcAfterUpdate = Timer.builder("fplay.timer.recalcAfterUpdate").tag("market", "okex").register(registry);
+            bitmexMovingIter = Timer.builder("fplay.timer.bitmexMovingIter").tag("market", "okex").register(registry);
+            okexMovingIter = Timer.builder("fplay.timer.okexMovingIter").tag("market", "okex").register(registry);
 
             bitmexReconnectsCounter = registry.counter("fplay.counter.bitmexReconnectsCounter");
             bitmexObCounter = registry.counter("fplay.counter.bitmexObCounter");
@@ -198,5 +202,17 @@ public class MetricsDictionary {
                 }
             }
         }
+    }
+
+    public MeterRegistry getMeterRegistry() {
+        return meterRegistry;
+    }
+
+    public Timer getBitmexMovingIter() {
+        return bitmexMovingIter;
+    }
+
+    public Timer getOkexMovingIter() {
+        return okexMovingIter;
     }
 }
