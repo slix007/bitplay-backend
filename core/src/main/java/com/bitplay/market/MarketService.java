@@ -683,16 +683,17 @@ public abstract class MarketService extends MarketServiceWithState {
 //                        getArbitrageService().getFplayTrade().get
 
                 synchronized (openOrdersLock) {
-                    this.openOrders = fetchedList.stream()
-                            .map(limitOrder ->
-                                    this.openOrders.stream()
-                                            .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
-                                            .findAny()
-                                            .map(fOrd -> fOrd.cloneWithUpdate(limitOrder))
-                                            //TODO fill placingType, signalType
-                                            .orElseGet(() -> new FplayOrder(lastTradeId, currCounterName,
-                                                    (limitOrder), null, null, null)))
+                    final List<FplayOrder> collect = fetchedList.stream()
+                            .map(limitOrder -> this.openOrders.stream()
+                                    .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
+                                    .findAny()
+                                    .map(fOrd -> fOrd.cloneWithUpdate(limitOrder))
+                                    //TODO fill placingType, signalType
+                                    .orElseGet(() -> new FplayOrder(lastTradeId, currCounterName,
+                                            (limitOrder), null, null, null)))
                             .collect(Collectors.toList());
+                    this.openOrders.clear();
+                    this.openOrders.addAll(collect);
                 }
 
                 // updateOpenOrders(fetchedList); - Don't use incremental update
@@ -702,7 +703,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 throw new IllegalStateException("GetOpenOrdersError", e);
             }
         }
-        return openOrders;
+        return this.openOrders;
     }
 
     public Optional<Order> getOrderInfoAttempts(String orderId, String counterName, String logInfoId) throws InterruptedException {

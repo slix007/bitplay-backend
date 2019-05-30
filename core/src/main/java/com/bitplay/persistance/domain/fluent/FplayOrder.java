@@ -75,6 +75,11 @@ public class FplayOrder {
                 this.portionsQtyMax);
     }
 
+    public FplayOrder cloneDeep() {
+        return new FplayOrder(this.tradeId, this.counterName, this.getLimitOrder(), this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
+                this.portionsQtyMax);
+    }
+
     public Order getOrder() {
         return FplayOrderConverter.convert(orderDetail);
     }

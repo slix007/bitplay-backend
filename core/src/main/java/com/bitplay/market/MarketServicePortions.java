@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
@@ -26,7 +27,7 @@ public abstract class MarketServicePortions extends MarketService {
     }
 
     public String getPortionsProgressForUi() {
-        final List<FplayOrder> onlyOpenFplayOrders = openOrders == null ? new ArrayList<>()
+        final List<FplayOrder> onlyOpenFplayOrders = openOrders == null ? new CopyOnWriteArrayList<>()
                 : openOrders.stream()
                         .filter(Objects::nonNull)
                         .filter(o -> o.getLimitOrder() != null)

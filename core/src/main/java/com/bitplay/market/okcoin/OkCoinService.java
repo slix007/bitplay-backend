@@ -83,6 +83,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -2193,7 +2194,7 @@ public class OkCoinService extends MarketServicePreliq {
             synchronized (openOrdersLock) {
                 if (hasOpenOrders()) {
 
-                    List<FplayOrder> resultOOList = new ArrayList<>();
+                    List<FplayOrder> resultOOList = new CopyOnWriteArrayList<>();
 
                     for (FplayOrder openOrder : openOrders) {
 

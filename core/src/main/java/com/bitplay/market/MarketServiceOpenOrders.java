@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
@@ -35,7 +36,7 @@ public abstract class MarketServiceOpenOrders {
     protected static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     protected final Object openOrdersLock = new Object();
-    protected volatile List<FplayOrder> openOrders = new ArrayList<>();
+    protected volatile List<FplayOrder> openOrders = new CopyOnWriteArrayList<>();
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
     public abstract LogService getTradeLogger();
@@ -128,7 +129,7 @@ public abstract class MarketServiceOpenOrders {
                 map.put(key, fplayOrder);
             }
         });
-        openOrders = new ArrayList<>(map.values());
+        openOrders = new CopyOnWriteArrayList<>(map.values());
     }
 
     private boolean validateOpenOrders() {
@@ -212,7 +213,7 @@ public abstract class MarketServiceOpenOrders {
         synchronized (openOrdersLock) {
 
             // no new meta-info in fplayOrders, only new limitOrders
-            Long tradeId = this.openOrders.stream()
+            Long lastTradeId = this.openOrders.stream()
                     .map(FplayOrder::getTradeId)
                     .reduce(null, Utils::lastTradeId);
 
@@ -224,7 +225,7 @@ public abstract class MarketServiceOpenOrders {
                     .collect(Collectors.toList());
 
             // new and updates (remove tooOldByTime only)
-            this.openOrders = limitOrderUpdates.stream()
+            final List<FplayOrder> updatedList = limitOrderUpdates.stream()
                     .flatMap(update -> {
 
                         final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
@@ -235,7 +236,7 @@ public abstract class MarketServiceOpenOrders {
                                 update.getCumulativeAmount(),
                                 df.format(update.getTimestamp()));
 
-                        if (update.getStatus() == Order.OrderStatus.FILLED) {
+                        if (update.getStatus() == OrderStatus.FILLED) {
                             getTradeLogger().info(String.format("#%s Order %s FILLED", counterForLogs, update.getId()));
                         }
 
@@ -261,6 +262,8 @@ public abstract class MarketServiceOpenOrders {
                         return removeOpenOrderByTime(fplayOrder);
                     }).collect(Collectors.toList());
 
+            this.openOrders.clear();
+            this.openOrders.addAll(updatedList);
             if (withoutUpdate.size() > 0) {
 //                logger.info(updateAction.toString());
                 this.openOrders.addAll(withoutUpdate);
@@ -278,32 +281,32 @@ public abstract class MarketServiceOpenOrders {
                 orderIdToSignalInfo = newMap;
             }
 
-            // WORKAROUND1: use DB FplayOrder to find tradeId
-            if (tradeId == null) {
-                logger.warn("warning tradeId==null. OO:" + this.openOrders.stream()
+            // WORKAROUND1: use DB FplayOrder to find lastTradeId
+            if (lastTradeId == null) {
+                logger.warn("warning lastTradeId==null. OO:" + this.openOrders.stream()
                         .map(FplayOrder::toString)
                         .reduce((s, s2) -> s + ";;;" + s2));
-                tradeId = getPersistenceService().getOrderRepositoryService().findTradeId(limitOrderUpdates);
+                lastTradeId = getPersistenceService().getOrderRepositoryService().findTradeId(limitOrderUpdates);
             }
 
             // WORKAROUND2: use FplayTrades
-//            if (tradeId == null) {
-//                logger.warn("warning tradeId==null. OO:" + this.openOrders.stream()
+//            if (lastTradeId == null) {
+//                logger.warn("warning lastTradeId==null. OO:" + this.openOrders.stream()
 //                        .map(FplayOrder::toString)
 //                        .reduce((s, s2) -> s + ";;;" + s2));
-//                tradeId = getPersistenceService().getOrderRepositoryService().findTradeId(limitOrderUpdates);
-//                logger.warn("found tradeId==" + tradeId);
+//                lastTradeId = getPersistenceService().getOrderRepositoryService().findTradeId(limitOrderUpdates);
+//                logger.warn("found lastTradeId==" + lastTradeId);
 //            }
 
 
             // TODO
             if (!hasOpenOrders()) {
                 logger.info("market-ready: " +
-                        " tradeId=" + tradeId +
+                        " lastTradeId=" + lastTradeId +
                         " limitOrders=" + limitOrderUpdates.stream()
                         .map(LimitOrder::toString)
                         .collect(Collectors.joining("; ")));
-                setFree(tradeId);
+                setFree(lastTradeId);
             }
         } // synchronized (openOrdersLock)
     }
@@ -385,26 +388,53 @@ public abstract class MarketServiceOpenOrders {
 
     protected void cleanOldOO() {
         synchronized (openOrdersLock) {
-            this.openOrders = this.openOrders.stream()
-                    .flatMap(this::removeOpenOrderByTime)
-                    .collect(Collectors.toList());
+            this.openOrders.clear();
+            this.openOrders.removeIf(fplayOrder -> {
+                final Order theOrder = fplayOrder.getOrder();
+                if (isClosed(theOrder.getStatus())) {
+                    final long maxMs = 1000 * 30; // 30 sec
+                    final long nowMs = Instant.now().toEpochMilli();
+                    final Date orderTimestamp = theOrder.getTimestamp();
+                    if (orderTimestamp == null) {
+                        logger.warn("orderTimestamp is null." + fplayOrder);
+                    }
+                    if (orderTimestamp == null || nowMs - orderTimestamp.toInstant().toEpochMilli() > maxMs) {
+                        return true; // remove the old
+                    }
+                }
+                return false;
+            });
+//            this.openOrders. = this.openOrders.removeIf()
+//                    .flatMap(this::removeOpenOrderByTime)
+//                    .collect(Collectors.toList());
         }
     }
 
     protected void updateOOStatuses() {
         synchronized (openOrdersLock) {
-            this.openOrders = this.openOrders.stream()
-                    .flatMap(fplayOrder -> {
-                        Stream<FplayOrder> optOrd;
-                        try {
-                            optOrd = Stream.of(updateOOStatus(fplayOrder));
-                        } catch (Exception e) {
-                            logger.error("Error on updateOOStatuses", e);
-                            optOrd = Stream.of(fplayOrder);
-                        }
-                        return optOrd;
-                    })
-                    .collect(Collectors.toList());
+//            final List<FplayOrder> error_on_updateOOStatuses = this.openOrders.stream()
+//                    .flatMap(fplayOrder -> {
+//                        Stream<FplayOrder> optOrd;
+//                        try {
+//                            optOrd = Stream.of(updateOOStatus(fplayOrder));
+//                        } catch (Exception e) {
+//                            logger.error("Error on updateOOStatuses", e);
+//                            optOrd = Stream.of(fplayOrder);
+//                        }
+//                        return optOrd;
+//                    })
+//                    .collect(Collectors.toList());
+//            this.openOrders.clear();
+//            this.openOrders.addAll(error_on_updateOOStatuses);
+
+            this.openOrders.replaceAll(fplayOrder -> {
+                try {
+                    return updateOOStatus(fplayOrder);
+                } catch (Exception e) {
+                    logger.error("updateOOStatus error", e);
+                }
+                return fplayOrder.cloneDeep();
+            });
         }
     }
 
