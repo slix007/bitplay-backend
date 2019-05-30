@@ -64,8 +64,6 @@ import info.bitrich.xchangestream.okexv3.dto.InstrumentDto;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkCoinDepth;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
-import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.Timer.Sample;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -1242,8 +1240,7 @@ public class OkCoinService extends MarketServicePreliq {
         if (lastObTime != null) {
             long beforeMs = startPlacing.toEpochMilli() - lastObTime.toEpochMilli();
             monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
-//            CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforePlaceOrder");
-//            metrics.durationMs(beforeMs);
+            metricsDictionary.putOkexPlacingBefore(beforeMs);
             if (beforeMs > 5000) {
                 logger.warn(placingType + "okex beforePlaceOrderMs=" + beforeMs);
             }
