@@ -609,13 +609,13 @@ public class BitmexService extends MarketServicePreliq {
                         "openOrdersSub=%s," +
                         "posSub=%s," +
                         "futureIndexSub=%s." +
-                        " isLocked: openOrdersLock=%s",
+                        " isLocked: openOrdersLock=false",
                 orderBookSubscription == null ? null : orderBookSubscription.isDisposed(),
                 accountInfoSubscription == null ? null : accountInfoSubscription.isDisposed(),
                 openOrdersSubscription == null ? null : openOrdersSubscription.isDisposed(),
                 positionSubscription == null ? null : positionSubscription.isDisposed(),
-                futureIndexSubscription == null ? null : futureIndexSubscription.isDisposed(),
-                Thread.holdsLock(openOrdersLock));
+                futureIndexSubscription == null ? null : futureIndexSubscription.isDisposed());
+//                Thread.holdsLock(openOrdersLock));
     }
 
     @Override
@@ -763,7 +763,7 @@ public class BitmexService extends MarketServicePreliq {
                     : null;
             Instant beforeLock = Instant.now();
 
-            synchronized (openOrdersLock) {
+//            synchronized (openOrdersLock) {
                 if (hasOpenOrders()) {
 
                     Long tradeId = null;
@@ -831,7 +831,7 @@ public class BitmexService extends MarketServicePreliq {
 
                 }
 
-            } // synchronized (openOrdersLock)
+//            } // synchronized (openOrdersLock)
         } finally {
             movingInProgress = false;
         }
@@ -1562,7 +1562,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private void mergeOpenOrders(OpenOrders updateOfOpenOrders) {
-        synchronized (openOrdersLock) {
+//        synchronized (openOrdersLock) {
             logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
 
             // update DealPrice object firstly
@@ -1596,7 +1596,7 @@ public class BitmexService extends MarketServicePreliq {
                         }
                     });
 
-        } // synchronized (openOrdersLock)
+//        } // synchronized (openOrdersLock)
     }
 
     @Override
@@ -2976,9 +2976,9 @@ public class BitmexService extends MarketServicePreliq {
 
             final FplayOrder closeOrder = new FplayOrder(arbitrageService.getLastTradeId(),
                     "closeAllPos", order, null, PlacingType.TAKER, null);
-            synchronized (openOrdersLock) {
+//            synchronized (openOrdersLock) {
                 openOrders.add(closeOrder);
-            }
+//            }
             tradeLogger.info(String.format("#closeAllPos id=%s. %s", order.getId(), order));
 
             tradeResponse.setOrderId(order.getId());

@@ -380,11 +380,11 @@ public abstract class MarketService extends MarketServiceWithState {
         if (currMarketState == MarketState.SYSTEM_OVERLOADED) {
 
             MarketState marketStateToSet;
-            synchronized (openOrdersLock) {
+//            synchronized (openOrdersLock) {
                 marketStateToSet = (hasOpenOrders() || placeOrderArgs != null) // moving or placing attempt
                         ? MarketState.ARBITRAGE
                         : MarketState.READY;
-            }
+//            }
 
             final String counterForLogs = getCounterName();
             final String backWarn = String.format("#%s change status from %s to %s",
@@ -682,19 +682,38 @@ public abstract class MarketService extends MarketServiceWithState {
 //                final PlacingType defaultPlacingType = getArbitrageService().getFplayTrade() != null ?
 //                        getArbitrageService().getFplayTrade().get
 
-                synchronized (openOrdersLock) {
-                    final List<FplayOrder> collect = fetchedList.stream()
-                            .map(limitOrder -> this.openOrders.stream()
-                                    .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
-                                    .findAny()
-                                    .map(fOrd -> fOrd.cloneWithUpdate(limitOrder))
-                                    //TODO fill placingType, signalType
-                                    .orElseGet(() -> new FplayOrder(lastTradeId, currCounterName,
-                                            (limitOrder), null, null, null)))
-                            .collect(Collectors.toList());
-                    this.openOrders.clear();
-                    this.openOrders.addAll(collect);
-                }
+//                synchronized (openOrdersLock) {
+//                    final List<FplayOrder> collect = fetchedList.stream()
+//                            .map(limitOrder -> this.openOrders.stream()
+//                                    .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
+//                                    .findAny()
+//                                    .map(fOrd -> fOrd.cloneWithUpdate(limitOrder))
+//                                    //TODO fill placingType, signalType
+//                                    .orElseGet(() -> new FplayOrder(lastTradeId, currCounterName,
+//                                            (limitOrder), null, null, null)))
+//                            .collect(Collectors.toList());
+//                    this.openOrders.clear();
+//                    this.openOrders.addAll(collect);
+//                final List<FplayOrder> collect =
+                final List<FplayOrder> updated = fetchedList.stream()
+                        .flatMap(limitOrder -> this.openOrders.stream()
+                                .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
+                                .map(fOrd -> fOrd.cloneWithUpdate(limitOrder))
+                        ).collect(Collectors.toList());
+                this.openOrders.replaceAll(fplayOrder -> {
+                    return fetchedList.stream()
+                            .filter(limitOrder -> fplayOrder.getOrderId().equals(limitOrder.getId()))
+                            .findAny()
+                            .map(fplayOrder::cloneWithUpdate)
+                            .orElse(fplayOrder);
+                });
+                final List<FplayOrder> newOrders = fetchedList.stream()
+                        .filter(limitOrder -> this.openOrders.stream().noneMatch(fOrd -> fOrd.getOrderId().equals(limitOrder.getId())))
+                        .map(limitOrder -> new FplayOrder(lastTradeId, currCounterName, (limitOrder), null, null, null))
+                        .collect(Collectors.toList());
+                this.openOrders.addAll(newOrders);
+
+//                }
 
                 // updateOpenOrders(fetchedList); - Don't use incremental update
 
@@ -820,7 +839,8 @@ public abstract class MarketService extends MarketServiceWithState {
         if (orderList == null) {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not fetch openOrders list");
         } else {
-            synchronized (openOrdersLock) {
+//            synchronized (openOrdersLock)
+            {
                 this.openOrders = orderList;
 
                 response = this.openOrders.stream()
@@ -1049,7 +1069,8 @@ public abstract class MarketService extends MarketServiceWithState {
                 getTradeLogger().info(msg);
             } else {
                 StringBuilder orderIds = new StringBuilder();
-                synchronized (openOrdersLock) {
+//                synchronized (openOrdersLock)
+                {
                     openOrders.stream()
                             .filter(Objects::nonNull)
                             .filter(FplayOrder::isOpen)

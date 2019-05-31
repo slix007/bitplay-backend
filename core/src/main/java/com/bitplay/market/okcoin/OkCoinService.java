@@ -724,7 +724,8 @@ public class OkCoinService extends MarketServicePreliq {
                 .subscribeOn(Schedulers.io())
                 .subscribe(limitOrders -> {
                     logger.debug("got open orders: " + limitOrders.size());
-                    synchronized (openOrdersLock) {
+//                    synchronized (openOrdersLock)
+                    {
                         // do not repeat for already 'FILLED' orders.
                         limitOrders
                                 .forEach(update -> openOrders.stream()
@@ -869,7 +870,8 @@ public class OkCoinService extends MarketServicePreliq {
 
         final Order.OrderType orderType = adjustOrderType(inputOrderType, amount);
 
-        synchronized (openOrdersLock) {
+//        synchronized (openOrdersLock)
+        {
 
             // Option 1: REAL TAKER - okex does it different. It is similar to our HYBRID(BBO - ask1 or bid1)
 //            final MarketOrder marketOrder = new MarketOrder(orderType, amount, currencyPair, new Date());
@@ -1816,7 +1818,8 @@ public class OkCoinService extends MarketServicePreliq {
     public List<LimitOrder> cancelAllOrders(String logInfoId, boolean beforePlacing) {
         List<LimitOrder> res = new ArrayList<>();
         final String counterForLogs = getCounterName();
-        synchronized (openOrdersLock) {
+//        synchronized (openOrdersLock)
+        {
             openOrders.stream()
                     .filter(Objects::nonNull)
                     .filter(FplayOrder::isOpen)
@@ -2191,7 +2194,8 @@ public class OkCoinService extends MarketServicePreliq {
         }
 
         try {
-            synchronized (openOrdersLock) {
+//            synchronized (openOrdersLock)
+            {
                 if (hasOpenOrders()) {
 
                     List<FplayOrder> resultOOList = new CopyOnWriteArrayList<>();
@@ -2388,7 +2392,8 @@ public class OkCoinService extends MarketServicePreliq {
 
         final Instant start = Instant.now();
         try {
-            synchronized (openOrdersLock) {
+            //synchronized (openOrdersLock)
+            {
 
                 final List<LimitOrder> onlyOpenOrders = getOnlyOpenOrders();
                 boolean specialHandling = false;
