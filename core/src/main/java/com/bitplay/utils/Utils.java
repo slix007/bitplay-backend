@@ -23,6 +23,9 @@ import org.springframework.data.util.Pair;
 public class Utils {
 
     public static String withSign(BigDecimal value) {
+        if (value == null) {
+            return "null";
+        }
         return value.signum() < 0 ? value.toPlainString() : ("+" + value.toPlainString());
     }
 

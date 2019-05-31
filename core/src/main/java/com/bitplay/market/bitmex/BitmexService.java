@@ -401,6 +401,7 @@ public class BitmexService extends MarketServicePreliq {
                                         .reduce(Utils::lastTradeId)
                                         .orElseGet(() -> arbitrageService.getLastTradeId());
                                 setFree(tradeId);
+                                tradeLogger.info("reset WAITING_ARB after reconnect");
                                 ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                             } else {
                                 String msg = String.format("Warning: Bitmex reconnect is finished, but there are %s openOrders.", getOnlyOpenOrders().size());
@@ -517,7 +518,8 @@ public class BitmexService extends MarketServicePreliq {
                         throwable -> logger.error("Error requestReconnectAsync", throwable));
     }
 
-    public void requestReconnect(boolean isForceReconnect) {
+    public void requestReconnect(boolean isForceReconnect, boolean... skipResetInTheEnd) {
+        final boolean skipAfterReconnectReset = skipResetInTheEnd != null && skipResetInTheEnd[0];
         if (isDestroyed) {
             return;
         }
@@ -552,7 +554,7 @@ public class BitmexService extends MarketServicePreliq {
                 slackNotifications.sendNotify(NotifyType.BITMEX_RECONNECT, "bitmex reconnect");
 
                 try {
-                    reconnectOrRestart();
+                    reconnectOrRestart(skipAfterReconnectReset);
                 } catch (Exception e) {
                     final String msg = String.format("Reconnect exception: %s", e.getMessage());
                     warningLogger.error(msg);
@@ -567,7 +569,7 @@ public class BitmexService extends MarketServicePreliq {
         }
     }
 
-    private void reconnectOrRestart() {
+    private void reconnectOrRestart(boolean skipAfterReconnectReset) {
         final Integer maxBitmexReconnects = settingsRepositoryService.getSettings().getRestartSettings().getMaxBitmexReconnects();
         int currReconnectCount = reconnectCount.incrementAndGet();
         metricsDictionary.incBitmexReconnects();
@@ -584,7 +586,7 @@ public class BitmexService extends MarketServicePreliq {
                 tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
                 logger.info(msg);
 
-                reconnect();
+                reconnect(skipAfterReconnectReset);
                 break;
 
             } catch (ReconnectFailedException e) {
@@ -1139,7 +1141,7 @@ public class BitmexService extends MarketServicePreliq {
                 });
     }
 
-    public void reconnect() throws ReconnectFailedException {
+    public void reconnect(boolean skipAfterReconnectReset) throws ReconnectFailedException {
         if (Thread.currentThread().getName().startsWith("bitmex-ob-executor")) {
             String startMsg = "WARNING: Bitmex reconnect in the thread " + Thread.currentThread().getName();
             tradeLogger.info(startMsg, bitmexContractType.getCurrencyPair().toString());
@@ -1211,7 +1213,9 @@ public class BitmexService extends MarketServicePreliq {
                 warningLogger.info(finishMsg);
                 logger.info(finishMsg);
 
-                afterReconnect();
+                if (!skipAfterReconnectReset) {
+                    afterReconnect();
+                }
             }
 
         } catch (Exception e) {
@@ -1230,13 +1234,13 @@ public class BitmexService extends MarketServicePreliq {
 
     private boolean orderBookIsFilled() {
         final OrderBook ob = this.orderBookShort; // should be lock on collections
-        return ob.getAsks().size() == ORDERBOOK_MAX_SIZE && ob.getBids().size() == ORDERBOOK_MAX_SIZE;
+        return ob.getAsks().size() >= ORDERBOOK_MAX_SIZE && ob.getBids().size() >= ORDERBOOK_MAX_SIZE;
     }
 
     private boolean orderBookForPriceIsFilled() {
         final OrderBook ob = this.orderBookXBTUSDShort;
         return sameOrderBookXBTUSD()
-                || (ob.getAsks().size() == ORDERBOOK_MAX_SIZE && ob.getBids().size() == ORDERBOOK_MAX_SIZE);
+                || (ob.getAsks().size() >= ORDERBOOK_MAX_SIZE && ob.getBids().size() >= ORDERBOOK_MAX_SIZE);
     }
 
     private void doRestart(String errMsg) {
@@ -1765,6 +1769,7 @@ public class BitmexService extends MarketServicePreliq {
                 if (placeOrderArgs.getAttempt() == PlaceOrderArgs.NO_REPEATS_ATTEMPT && attemptCount > 1) {
                     // means: CON_B_O on signal. No repeats. Cancel okex deferred.
                     nextMarketState = MarketState.READY;
+                    tradeLogger.info("NO_REPEATS_ATTEMPT on placing. restore marketState to READY and reset WAITING_ARB");
                     ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                     Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
                     break;
@@ -1843,7 +1848,7 @@ public class BitmexService extends MarketServicePreliq {
                             }
                             if (cancelledCount % 20 == 0) {
                                 tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
-                                requestReconnect(true);
+                                requestReconnect(true, true);
                             }
                             if (cancelledCount > 20) {
                                 final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
@@ -2024,6 +2029,7 @@ public class BitmexService extends MarketServicePreliq {
             logger.info("restore marketState to " + nextMarketState);
             setMarketState(nextMarketState, counterName);
             if (nextMarketState == MarketState.SYSTEM_OVERLOADED) {
+                tradeLogger.info("restore marketState to SYSTEM_OVERLOADED and reset WAITING_ARB");
                 ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
             } else if (nextMarketState == MarketState.READY) {
                 setFree(tradeId);
@@ -2145,7 +2151,7 @@ public class BitmexService extends MarketServicePreliq {
                     }
                     if (cancelledCount % 20 == 0) {
                         tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
-                        requestReconnect(true);
+                        requestReconnect(true, true);
                     }
                     if (cancelledCount > 20) {
                         final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
