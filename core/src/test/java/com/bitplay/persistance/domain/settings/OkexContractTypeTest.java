@@ -3,6 +3,10 @@ package com.bitplay.persistance.domain.settings;
 import static org.junit.Assert.assertEquals;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.Test;
 
 public class OkexContractTypeTest {
@@ -72,6 +76,37 @@ public class OkexContractTypeTest {
         assertEquals("0921", OkexContractType.BTC_ThisWeek.getExpString(first, false));
         assertEquals("0928", OkexContractType.BTC_NextWeek.getExpString(first, false));
         assertEquals("1228", OkexContractType.BTC_Quarter.getExpString(first, false));
+
+    }
+
+    @Test
+    public void testLambdaStreamList() {
+        final List<String> list = new ArrayList<>();
+        list.add("3");
+        list.add("5");
+        list.add("4");
+        list.add("2");
+        list.add("5");
+        final Stream<String> stream1 = list.stream();
+        final Stream<String> stream2 = list.stream();
+        final List<String> list2 = stream1
+//                .map(String::new)
+                .collect(Collectors.toList());
+//        final List<Integer> list2 = new ArrayList<>(list);
+
+        System.out.println(Integer.toHexString(list.hashCode()));
+        System.out.println(Integer.toHexString(list2.hashCode()));
+
+        System.out.println("list=" + System.identityHashCode(list));
+        System.out.println("list2=" + System.identityHashCode(list2));
+        System.out.println("list[0]=" + System.identityHashCode(list.get(0)));
+        System.out.println("list2[0]=" + System.identityHashCode(list2.get(0)));
+        System.out.println(list.get(0) == list2.get(0));
+        System.out.println(list == list2);
+        System.out.println("stream1=" + System.identityHashCode(stream1));
+        System.out.println("stream2=" + System.identityHashCode(stream2));
+
+
 
     }
 }

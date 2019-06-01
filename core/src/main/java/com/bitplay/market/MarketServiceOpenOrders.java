@@ -60,6 +60,16 @@ public abstract class MarketServiceOpenOrders {
         return orders;
     }
 
+    public List<FplayOrder> getOpenOrdersClone() {
+        return getOpenOrdersClonesStream()
+                .collect(Collectors.toList());
+    }
+
+    private Stream<FplayOrder> getOpenOrdersClonesStream() {
+        return this.openOrders.stream()
+                .map(FplayOrder::cloneDeep);
+    }
+
     public List<LimitOrder> getOnlyOpenOrders() {
         List<LimitOrder> limitOrders;
 //        synchronized (openOrdersLock)
@@ -442,14 +452,21 @@ public abstract class MarketServiceOpenOrders {
 //            this.openOrders.clear();
 //            this.openOrders.addAll(error_on_updateOOStatuses);
 
-            this.openOrders.replaceAll(fplayOrder -> {
-                try {
-                    return updateOOStatus(fplayOrder);
-                } catch (Exception e) {
-                    logger.error("updateOOStatus error", e);
-                }
-                return fplayOrder.cloneDeep();
-            });
+//            final List<FplayOrder> allOpenOrders = getOpenOrdersClone();
+            final List<FplayOrder> updatedOO = getOpenOrdersClonesStream()
+                    .map(fplayOrder -> {
+                        try {
+                            return updateOOStatus(fplayOrder);
+                        } catch (Exception e) {
+                            logger.error("updateOOStatus error", e);
+                        }
+                        return fplayOrder.cloneDeep();
+                    }).collect(Collectors.toList());
+            this.openOrders.replaceAll(fplayOrder -> updatedOO.stream()
+                    .filter(o -> o.getOrderId().equals(fplayOrder.getOrderId()))
+                    .findFirst()
+                    .orElse(fplayOrder)
+            );
         }
     }
 
