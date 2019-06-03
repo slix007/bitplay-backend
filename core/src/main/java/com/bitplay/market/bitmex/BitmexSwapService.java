@@ -421,7 +421,7 @@ public class BitmexSwapService {
 
         OffsetDateTime swapTime = contractIndex.getSwapTime();
         // For swap testing
-        if (swapParams.getCustomSwapTime() != null && swapParams.getCustomSwapTime().length() > 0) {
+        if (swapParams.getCustomSwapTime() != null && swapParams.getCustomSwapTime().length() > 18) { // "2017-08-10T13:45:00Z"
             swapTime = OffsetDateTime.parse(
                     swapParams.getCustomSwapTime(),
                     //"2017-08-10T13:45:00Z",
