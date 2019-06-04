@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
@@ -27,8 +26,7 @@ public abstract class MarketServicePortions extends MarketService {
     }
 
     public String getPortionsProgressForUi() {
-        final List<FplayOrder> onlyOpenFplayOrders = openOrders == null ? new CopyOnWriteArrayList<>()
-                : openOrders.stream()
+        final List<FplayOrder> onlyOpenFplayOrders = getOpenOrders().stream()
                         .filter(Objects::nonNull)
                         .filter(o -> o.getLimitOrder() != null)
                         .filter(FplayOrder::isOpen)
@@ -48,7 +46,9 @@ public abstract class MarketServicePortions extends MarketService {
     public TradeResponseJson placeWithPortions(PlaceOrderArgs p, BigDecimal portionsQty) {
 
         if (portionsQty == null || portionsQty.compareTo(BigDecimal.ONE) <= 0) {
-            final TradeResponse r = this.placeOrder(p);
+            final TradeResponse r = this.getName().equals(BitmexService.NAME)
+                    ? ((BitmexService) this).placeOrderToOpenOrders(p)
+                    : this.placeOrder(p);
             return new TradeResponseJson(r.getOrderId(), r.getErrorCode());
         }
 
@@ -128,7 +128,7 @@ public abstract class MarketServicePortions extends MarketService {
     public Integer cancelAllPortions() {
         final int inQueue = portionsQueue.size();
         portionsQueue.clear();
-        final List<LimitOrder> cancelPortionsFromUI = cancelAllOrders("CancelPortionsFromUI", false);
+        final List<LimitOrder> cancelPortionsFromUI = cancelAllOrders(null, "CancelPortionsFromUI", false);
         return inQueue + cancelPortionsFromUI.size();
     }
 

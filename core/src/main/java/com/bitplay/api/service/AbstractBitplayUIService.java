@@ -235,7 +235,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public List<OrderJson> getOpenOrders() {
-        return getBusinessService().getAllOpenOrders().stream()
+        return getBusinessService().getOpenOrders().stream()
                 .map(openOrderToJson)
                 .collect(Collectors.toList());
 

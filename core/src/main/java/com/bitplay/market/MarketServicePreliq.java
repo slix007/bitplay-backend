@@ -41,7 +41,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
 
     private void resetPreliqState() {
         if (getMarketState() == MarketState.PRELIQ) {
-            cancelAllOrders("After PRELIQ: CancelAllOpenOrders", false);
+            cancelAllOrders(null, "After PRELIQ: CancelAllOpenOrders", false);
 
             MarketState toSet = MarketState.READY; // hasOpenOrders() ? MarketState.ARBITRAGE : MarketState.READY;
             log.warn(getName() + "_PRELIQ: resetPreliqState to " + toSet);

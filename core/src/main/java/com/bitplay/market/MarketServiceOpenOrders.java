@@ -4,10 +4,8 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
-import com.bitplay.utils.Utils;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,8 +16,6 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.validation.constraints.NotNull;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -34,8 +30,8 @@ public abstract class MarketServiceOpenOrders {
     private final static Logger logger = LoggerFactory.getLogger(MarketServiceOpenOrders.class);
     protected static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-//    protected final Object openOrdersLock = new Object();
-    protected volatile List<FplayOrder> openOrders = new CopyOnWriteArrayList<>();
+    private final Object ooLock = new Object();
+    private volatile CopyOnWriteArrayList<FplayOrder> openOrders = new CopyOnWriteArrayList<>();
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
     public abstract LogService getTradeLogger();
@@ -43,92 +39,59 @@ public abstract class MarketServiceOpenOrders {
 
     protected abstract void setFree(Long tradeId, String... flags);
 
+    protected abstract void setFreeIfNoOrders(Long lastTradeId, List<LimitOrder> orders);
+
+    protected abstract FplayOrder getCurrStub();
+
     protected abstract String getCounterName();
 
     public abstract PersistenceService getPersistenceService();
 
-    public List<FplayOrder> getAllOpenOrders() {
-        List<FplayOrder> orders;
-//        synchronized (openOrdersLock)
-        {
-            orders = openOrders == null
-                    ? new CopyOnWriteArrayList<>()
-                    : openOrders.stream()
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-        }
-        return orders;
+    public List<FplayOrder> getOpenOrders() {
+        return openOrders;
     }
 
     public List<FplayOrder> getOpenOrdersClone() {
-        return getOpenOrdersClonesStream()
+        return this.openOrders.stream()
+                .map(FplayOrder::cloneDeep)
                 .collect(Collectors.toList());
     }
 
-    private Stream<FplayOrder> getOpenOrdersClonesStream() {
-        return this.openOrders.stream()
-                .map(FplayOrder::cloneDeep);
-    }
-
     public List<LimitOrder> getOnlyOpenOrders() {
-        List<LimitOrder> limitOrders;
-//        synchronized (openOrdersLock)
-        {
-            limitOrders = openOrders == null
-                    ? new CopyOnWriteArrayList<>()
-                    : openOrders.stream()
-                            .filter(Objects::nonNull)
-                            .filter(FplayOrder::isOpen)
-                            .map(FplayOrder::getLimitOrder)
-                            .collect(Collectors.toList());
-        }
-        return limitOrders;
+        return openOrders.stream()
+                .filter(FplayOrder::isOpen)
+                .map(FplayOrder::getLimitOrder)
+                .collect(Collectors.toList());
     }
 
     public List<FplayOrder> getOnlyOpenFplayOrders() {
-        List<FplayOrder> orderList;
-//        synchronized (openOrdersLock)
-        {
-            orderList = openOrders == null
-                    ? new CopyOnWriteArrayList<>()
-                    : openOrders.stream()
-                            .filter(Objects::nonNull)
-                            .filter(o -> o.getLimitOrder() != null)
-                            .filter(FplayOrder::isOpen)
-                            .collect(Collectors.toList());
-        }
-        return orderList;
+        return openOrders.stream()
+                .filter(FplayOrder::isOpen)
+                .collect(Collectors.toList());
     }
 
     public boolean hasOpenOrders() {
         boolean hasOO;
-//        synchronized (openOrdersLock)
-        {
+        validateForDuplicatesOO(); // just to logs
 
-            validateOpenOrders(); // removes wrong
-
-            hasOO = openOrders.stream()
-                    .anyMatch(FplayOrder::isOpen);
-        }
+        hasOO = openOrders.stream()
+                .anyMatch(FplayOrder::isOpen);
         return hasOO;
     }
 
     public Long tryFindLastTradeId() {
         Long lastTradeId = null;
-//        synchronized (openOrdersLock)
-        {
-            OptionalLong aLong = openOrders.stream()
-                    .map(FplayOrder::getTradeId)
-                    .filter(Objects::nonNull)
-                    .mapToLong(Long::longValue).max();
-            if (aLong.isPresent()) {
-                lastTradeId = aLong.getAsLong();
-            }
+        OptionalLong aLong = openOrders.stream()
+                .map(FplayOrder::getTradeId)
+                .filter(Objects::nonNull)
+                .mapToLong(Long::longValue).max();
+        if (aLong.isPresent()) {
+            lastTradeId = aLong.getAsLong();
         }
         return lastTradeId;
     }
 
-    protected void distinctOpenOrders() {
+    private void validateForDuplicatesOO() {
         Map<String, FplayOrder> map = new HashMap<>();
         openOrders.forEach(fplayOrder -> {
             String key = fplayOrder.getOrderId();
@@ -143,52 +106,7 @@ public abstract class MarketServiceOpenOrders {
                 map.put(key, fplayOrder);
             }
         });
-        openOrders = new CopyOnWriteArrayList<>(map.values());
     }
-
-    private boolean validateOpenOrders() {
-        long openOrdersCount;
-//        synchronized (openOrdersLock)
-        {
-
-            if (openOrders.stream().anyMatch(Objects::isNull)) {
-                final String warnMsg = "WARNING: OO has null element";
-                getTradeLogger().error(warnMsg);
-                logger.error(warnMsg);
-            }
-            openOrders.stream()
-                    .filter(Objects::nonNull)
-                    .filter(limitOrder -> limitOrder.getOrder().getTradableAmount() == null)
-                    .forEach(limitOrder -> {
-                        final String warnMsg = "WARNING: OO amount is null. " + limitOrder.toString();
-                        getTradeLogger().error(warnMsg);
-                        logger.error(warnMsg);
-                    });
-            openOrders.removeIf(Objects::isNull);
-            openOrders.removeIf(limitOrder -> limitOrder.getOrder().getTradableAmount() == null);
-
-            openOrdersCount = openOrders.stream()
-                    .count();
-            if (openOrders.size() != openOrdersCount) {
-                final String message = "WARNING: OO with zero amount: " + openOrders.stream()
-                        .map(FplayOrder::getOrder)
-                        .map(Order::toString)
-                        .reduce((s, s2) -> s + "; " + s2);
-                getTradeLogger().warn(message);
-                logger.warn(message);
-            }
-        } //synchronized (openOrdersLock)
-        return openOrdersCount == 0;
-    }
-
-    /**
-     * WARNING: the reason of orders with id==0, if used with OpenOrders subscriptions.<br>
-     * <b> Use only when trades has id</b>
-     */
-//    protected void updateOrAddOpenOrder(LimitOrder fullInfoOrder, String counterName) {
-//        FplayOrder stabOrderForNew = new FplayOrder(counterName); //
-//        updateOpenOrders(Collections.singletonList(fullInfoOrder), stabOrderForNew); // getCounterName???
-//    }
 
     /**
      * Adds or ...<br>
@@ -196,208 +114,44 @@ public abstract class MarketServiceOpenOrders {
      * If exists, updates all fplayOrder metadata and updates with general rules LimitOrder. // if the OO-subscription was first.
      */
     protected void addOpenOrder(FplayOrder fplayOrder) {
-//        synchronized (openOrdersLock)
-        {
-            updateOpenOrders(Collections.singletonList(fplayOrder.getLimitOrder()), fplayOrder);
-        }
+        updateFplayOrders(Collections.singletonList(fplayOrder));
     }
 
     protected void addOpenOrders(List<LimitOrder> trades, FplayOrder stubOrderForNew) {
-        updateOpenOrders(trades, stubOrderForNew);
+        updateFplayOrdersToCurrStab(trades, stubOrderForNew);
     }
 
-    protected void updateOpenOrder(LimitOrder trade) {
-        updateOpenOrders(Collections.singletonList(trade), null);
-    }
-
-    protected void updateOpenOrders(List<LimitOrder> trades) {
-        updateOpenOrders(trades, null);
-    }
-
-    /**
-     * WARNING:<br> stubOrderForNew should be with correctly filled 'counterName' or null.
-     *
-     * @param limitOrderUpdates any orderInfo updates from server.
-     * @param stubOrderForNew with correctly filled 'counterName' or null.
-     */
-    protected void updateOpenOrders(List<LimitOrder> limitOrderUpdates, FplayOrder stubOrderForNew) { // TODO
-
-        if (limitOrderUpdates.size() == 0) {
-            return;
-        }
-
-//        synchronized (openOrdersLock)
-        {
-
-            // no new meta-info in fplayOrders, only new limitOrders
-            Long lastTradeId = this.openOrders.stream()
-                    .map(FplayOrder::getTradeId)
-                    .reduce(null, Utils::lastTradeId);
-
-            // keep not-updated
-            final List<FplayOrder> withoutUpdate = this.openOrders.stream()
-                    .filter(existing -> limitOrderUpdates.stream().noneMatch(update -> update.getId().equals(existing.getOrder().getId())))
-                    .map(FplayOrder::cloneDeep)
-                    .collect(Collectors.toList());
-
-            // new and updates (remove tooOldByTime only)
-            final List<FplayOrder> updatedList = limitOrderUpdates.stream()
-                    .flatMap(update -> {
-
-                        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-                        final String counterForLogs = getCounterName();
-                        logger.info("#{} Order update:id={},status={},amount={},filled={},time={}",
-                                counterForLogs,
-                                update.getId(), update.getStatus(), update.getTradableAmount(),
-                                update.getCumulativeAmount(),
-                                df.format(update.getTimestamp()));
-
-                        if (update.getStatus() == OrderStatus.FILLED) {
-                            getTradeLogger().info(String.format("#%s Order %s FILLED", counterForLogs, update.getId()));
-                        }
-
-                        final FplayOrder fplayOrder = updateOpenOrder(update, stubOrderForNew); // exist or null
-                        if (fplayOrder == null) {
-                            return Stream.empty();
-                        }
-
-                        getPersistenceService().getOrderRepositoryService().save(fplayOrder);
-
-                        final LimitOrder updated = fplayOrder.getLimitOrder();
-                        logger.info("#{} Order updated:id={},status={},amount={},filled={},time={}, placingType={}",
-                                counterForLogs,
-                                updated.getId(), updated.getStatus(), updated.getTradableAmount(),
-                                updated.getCumulativeAmount(),
-                                df.format(updated.getTimestamp()),
-                                fplayOrder.getPlacingType());
-
-                        if (fplayOrder.getOrderId().equals("0")) {
-                            getTradeLogger().warn(String.format("#%s WARNING: update of fplayOrder with id=0: %s", counterForLogs, fplayOrder));
-                        }
-                        final boolean openOrderToRemove = isOpenOrderToRemove(fplayOrder);
-                        if (!openOrderToRemove) {
-                            return Stream.of(fplayOrder);
-                        }
-                        return Stream.empty();
-//                        return removeOpenOrderByTime(fplayOrder);
-                    })
-                    .collect(Collectors.toList());
-
-//            this.openOrders.removeIf(this::isOpenOrderToRemove);
-//            this.openOrders.clear();
-            this.openOrders.addAll(updatedList);
-//            if (withoutUpdate.size() > 0) {
-//                logger.info(updateAction.toString());
-                this.openOrders.addAll(withoutUpdate);
-//            }
-
-            // decrease orderIdToSignalInfo TODO improve this
-            if (orderIdToSignalInfo.size() > 100) {
-                logger.warn("orderIdToSignalInfo over 100");
-                final Map<String, BestQuotes> newMap = new HashMap<>();
-                openOrders.stream()
-                        .map(FplayOrder::getOrder)
-                        .map(Order::getId)
-                        .filter(id -> orderIdToSignalInfo.containsKey(id))
-                        .forEach(id -> newMap.put(id, orderIdToSignalInfo.get(id)));
-                orderIdToSignalInfo = newMap;
-            }
-
-            // WORKAROUND1: use DB FplayOrder to find lastTradeId
-            if (lastTradeId == null) {
-                logger.warn("warning lastTradeId==null. OO:" + this.openOrders.stream()
-                        .map(FplayOrder::toString)
-                        .reduce((s, s2) -> s + ";;;" + s2));
-                lastTradeId = getPersistenceService().getOrderRepositoryService().findTradeId(limitOrderUpdates);
-            }
-
-            // WORKAROUND2: use FplayTrades
-//            if (lastTradeId == null) {
-//                logger.warn("warning lastTradeId==null. OO:" + this.openOrders.stream()
-//                        .map(FplayOrder::toString)
-//                        .reduce((s, s2) -> s + ";;;" + s2));
-//                lastTradeId = getPersistenceService().getOrderRepositoryService().findTradeId(limitOrderUpdates);
-//                logger.warn("found lastTradeId==" + lastTradeId);
-//            }
-
-
-            // TODO
-            if (!hasOpenOrders()) {
-                logger.info("market-ready: " +
-                        " lastTradeId=" + lastTradeId +
-                        " limitOrders=" + limitOrderUpdates.stream()
-                        .map(LimitOrder::toString)
-                        .collect(Collectors.joining("; ")));
-                setFree(lastTradeId);
-            }
-        } // synchronized (openOrdersLock)
-    }
-
-
-    /**
-     * Use openOrdersLock.
-     * <br>
-     * <br
-     * >
-     *
-     * @param mainFplayInfo not null
-     * @param update not null
-     * @return not null
-     */
-    private FplayOrder updateOpenOrder(@NotNull FplayOrder mainFplayInfo, @NotNull LimitOrder update) {
-        final FplayOrder updated = this.openOrders.stream()
-                .filter(fplayOrder -> fplayOrder.getOrderId().equals(update.getId()))
-                .map(fplayOrder -> FplayOrderUtils.updateFplayOrder(fplayOrder, update))
-                .findAny()
-                .orElseGet(() -> FplayOrderUtils.updateFplayOrder(mainFplayInfo, update));
-        return updated;
-    }
-
-    /**
-     * Use openOrdersLock.
-     * <br>
-     * <br>
-     * Can return null, if (FplayOrder not found && stab == null).
-     */
-    private FplayOrder updateOpenOrder(LimitOrder update, FplayOrder stabOrderForNew) {
-        if (stabOrderForNew != null) {
-            FplayOrder theUpdate = stabOrderForNew.cloneWithUpdate(update);
-
-            return this.openOrders.stream()
-                    .filter(fplayOrder -> fplayOrder.getOrderId().equals(update.getId()))
-                    .map(fplayOrder -> FplayOrderUtils.updateFplayOrder(fplayOrder, theUpdate))
-                    .findAny()
-                    .orElse(theUpdate);
-        } else {
-            return this.openOrders.stream()
-                    .filter(fplayOrder -> fplayOrder.getOrderId().equals(update.getId()))
-                    .map(fplayOrder -> FplayOrderUtils.updateFplayOrder(fplayOrder, update))
-                    .findAny()
-                    .orElse(null);
+    protected void updateFplayOrders(List<FplayOrder> updates) {
+        synchronized (ooLock) {
+            // 1. update existing
+            final List<String> updatedIds = new ArrayList<>();
+            this.openOrders.replaceAll(curr ->
+                    updates.stream()
+                            .filter(u -> u.getOrderId().equals(curr.getOrderId()))
+                            .findFirst()
+                            .map(u -> {
+                                updatedIds.add(u.getOrderId());
+                                return FplayOrderUtils.updateFplayOrder(curr, u);
+                            })
+                            .orElse(curr));
+            // 2. add new
+            this.openOrders.addAll(updates.stream()
+                    .filter(o -> !updatedIds.contains(o.getOrderId()))
+                    .collect(Collectors.toList())
+            );
         }
     }
 
-//    private Stream<FplayOrder> removeOpenOrderByTime(FplayOrder fplayOrder) {
-//        Stream<FplayOrder> optionalOpenOrder = Stream.of(fplayOrder);
-//        final Order theOrder = fplayOrder.getOrder();
-//        if (isClosed(theOrder.getStatus())) {
-//            final long maxMs = 1000 * 30; // 30 sec
-//            final long nowMs = Instant.now().toEpochMilli();
-//            final Date orderTimestamp = theOrder.getTimestamp();
-//            if (orderTimestamp == null) {
-//                logger.warn("orderTimestamp is null." + fplayOrder);
-//            }
-//            if (orderTimestamp == null ||
-//                    nowMs - orderTimestamp.toInstant().toEpochMilli() > maxMs) {
-//                optionalOpenOrder = Stream.empty();
-//
-////                getTradeLogger().info("Remove order:id={},status={},amount={},filled={}",
-////                        theOrder.getId(), theOrder.getStatus(), theOrder.getTradableAmount(),
-////                        theOrder.getCumulativeAmount());
-//            }
-//        }
-//        return optionalOpenOrder;
-//    }
+    protected void updateFplayOrdersToCurrStab(List<LimitOrder> updates, final FplayOrder currStub) {
+        final List<FplayOrder> fplayOrderList = updates.stream()
+                .map(currStub::cloneWithUpdate)
+                .collect(Collectors.toList());
+        updateFplayOrders(fplayOrderList);
+    }
+
+    protected Integer getOpenOrdersSize() {
+        return this.openOrders.size();
+    }
 
     private boolean isClosed(final Order.OrderStatus status) {
         return status == Order.OrderStatus.FILLED
@@ -409,12 +163,10 @@ public abstract class MarketServiceOpenOrders {
     }
 
     protected void cleanOldOO() {
-//        synchronized (openOrdersLock)
-        {
-            this.openOrders.removeIf(this::isOpenOrderToRemove);
-//            this.openOrders. = this.openOrders.removeIf()
-//                    .flatMap(this::removeOpenOrderByTime)
-//                    .collect(Collectors.toList());
+        synchronized (ooLock) {
+            if (openOrders.size() > 0) {
+                this.openOrders.removeIf(this::isOpenOrderToRemove);
+            }
         }
     }
 
@@ -435,43 +187,24 @@ public abstract class MarketServiceOpenOrders {
     }
 
     protected void updateOOStatuses() {
-//        synchronized (openOrdersLock)
-        {
-//            final List<FplayOrder> error_on_updateOOStatuses = this.openOrders.stream()
-//                    .flatMap(fplayOrder -> {
-//                        Stream<FplayOrder> optOrd;
-//                        try {
-//                            optOrd = Stream.of(updateOOStatus(fplayOrder));
-//                        } catch (Exception e) {
-//                            logger.error("Error on updateOOStatuses", e);
-//                            optOrd = Stream.of(fplayOrder);
-//                        }
-//                        return optOrd;
-//                    })
-//                    .collect(Collectors.toList());
-//            this.openOrders.clear();
-//            this.openOrders.addAll(error_on_updateOOStatuses);
+        final List<FplayOrder> updatedOO = getOpenOrdersClone().stream()
+                .map(fplayOrder -> {
+                    try {
+                        return updateOOStatus(fplayOrder);
+                    } catch (Exception e) {
+                        logger.error("updateOOStatus error", e);
+                    }
+                    return fplayOrder.cloneDeep();
+                }).collect(Collectors.toList());
 
-//            final List<FplayOrder> allOpenOrders = getOpenOrdersClone();
-            final List<FplayOrder> updatedOO = getOpenOrdersClonesStream()
-                    .map(fplayOrder -> {
-                        try {
-                            return updateOOStatus(fplayOrder);
-                        } catch (Exception e) {
-                            logger.error("updateOOStatus error", e);
-                        }
-                        return fplayOrder.cloneDeep();
-                    }).collect(Collectors.toList());
-            this.openOrders.replaceAll(fplayOrder -> updatedOO.stream()
-                    .filter(o -> o.getOrderId().equals(fplayOrder.getOrderId()))
-                    .findFirst()
-                    .orElse(fplayOrder)
-            );
-        }
+        updateFplayOrders(updatedOO);
     }
 
     abstract protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, LogService logger);
 
+    /**
+     * requests to market.
+     */
     private FplayOrder updateOOStatus(FplayOrder fplayOrder) throws Exception {
         if (fplayOrder.getOrder().getStatus() == OrderStatus.CANCELED) {
             return fplayOrder;

@@ -188,6 +188,10 @@ public abstract class MarketService extends MarketServiceWithState {
                 .andThen(recalcLiqInfo())
                 .andThen(recalcFullBalance())
                 .andThen(endSample)
+                .onErrorComplete(throwable -> {
+                    logger.error("stateUpdater recalc error", throwable);
+                    return true;
+                })
                 .subscribe();
     }
 
@@ -676,53 +680,26 @@ public abstract class MarketService extends MarketServiceWithState {
                     getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
                 }
 
-                final String currCounterName = getCounterName();
-                final Long lastTradeId = getArbitrageService().getTradeId();
-                //TODO fill placingType, signalType. Use saved fplayTrade-starting-args
-//                final PlacingType defaultPlacingType = getArbitrageService().getFplayTrade() != null ?
-//                        getArbitrageService().getFplayTrade().get
-
-//                synchronized (openOrdersLock) {
-//                    final List<FplayOrder> collect = fetchedList.stream()
-//                            .map(limitOrder -> this.openOrders.stream()
-//                                    .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
-//                                    .findAny()
-//                                    .map(fOrd -> fOrd.cloneWithUpdate(limitOrder))
-//                                    //TODO fill placingType, signalType
-//                                    .orElseGet(() -> new FplayOrder(lastTradeId, currCounterName,
-//                                            (limitOrder), null, null, null)))
-//                            .collect(Collectors.toList());
-//                    this.openOrders.clear();
-//                    this.openOrders.addAll(collect);
-//                final List<FplayOrder> collect =
-                final List<FplayOrder> updated = fetchedList.stream()
-                        .flatMap(limitOrder -> this.openOrders.stream()
-                                .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
-                                .map(fOrd -> fOrd.cloneWithUpdate(limitOrder))
-                        ).collect(Collectors.toList());
-                this.openOrders.replaceAll(fplayOrder -> {
-                    return fetchedList.stream()
-                            .filter(limitOrder -> fplayOrder.getOrderId().equals(limitOrder.getId()))
-                            .findAny()
-                            .map(fplayOrder::cloneWithUpdate)
-                            .orElse(fplayOrder);
-                });
-                final List<FplayOrder> newOrders = fetchedList.stream()
-                        .filter(limitOrder -> this.openOrders.stream().noneMatch(fOrd -> fOrd.getOrderId().equals(limitOrder.getId())))
-                        .map(limitOrder -> new FplayOrder(lastTradeId, currCounterName, (limitOrder), null, null, null))
-                        .collect(Collectors.toList());
-                this.openOrders.addAll(newOrders);
-
-//                }
-
-                // updateOpenOrders(fetchedList); - Don't use incremental update
-
+                updateFplayOrdersToCurrStab(fetchedList, getCurrStub());
             } catch (Exception e) {
                 logger.error("GetOpenOrdersError", e);
                 throw new IllegalStateException("GetOpenOrdersError", e);
             }
         }
-        return this.openOrders;
+        return getOpenOrders();
+    }
+
+    @Override
+    protected void setFreeIfNoOrders(Long lastTradeId, List<LimitOrder> orders) {
+        if (!hasOpenOrders()) {
+            final String ordersStr = orders == null ? "no info" : orders.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.joining("; "));
+            logger.info("market-ready: " +
+                    " lastTradeId=" + lastTradeId +
+                    " limitOrders=" + ordersStr);
+            setFree(lastTradeId);
+        }
     }
 
     public Optional<Order> getOrderInfoAttempts(String orderId, String counterName, String logInfoId) throws InterruptedException {
@@ -839,16 +816,11 @@ public abstract class MarketService extends MarketServiceWithState {
         if (orderList == null) {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not fetch openOrders list");
         } else {
-//            synchronized (openOrdersLock)
-            {
-                this.openOrders = orderList;
-
-                response = this.openOrders.stream()
-                        .filter(order -> order.getOrder().getId().equals(orderId))
-                        .findFirst()
-                        .map(this::moveMakerOrderIfNotFirst)
-                        .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
-            }
+            response = orderList.stream()
+                    .filter(order -> order.getOrder().getId().equals(orderId))
+                    .findFirst()
+                    .map(this::moveMakerOrderIfNotFirst)
+                    .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
         }
         return response;
     }
@@ -1059,6 +1031,63 @@ public abstract class MarketService extends MarketServiceWithState {
         }
     }
 
+    public FplayOrder getCurrStub() {
+        Long lastTradeId = tryFindLastTradeId();
+        if (lastTradeId == null) {
+            lastTradeId = getArbitrageService().getTradeId();
+        }
+        final List<FplayOrder> currOrders = getOpenOrders();
+        final Optional<FplayOrder> lastOO = getLastOO(currOrders);
+        BestQuotes bestQuotes = null;
+        PlacingType placingType = null;
+        SignalType signalType = null;
+        String counterName;
+        if (lastOO.isPresent()) {
+            final FplayOrder o = lastOO.get();
+            bestQuotes = o.getBestQuotes();
+            placingType = o.getPlacingType();
+            signalType = o.getSignalType();
+            counterName = o.getCounterName();
+        } else {
+            counterName = gerCurrCounterName(currOrders);
+        }
+
+        return new FplayOrder(lastTradeId, counterName, null, bestQuotes, placingType, signalType);
+    }
+
+    private Optional<FplayOrder> getLastOO(List<FplayOrder> currOrders) {
+        return currOrders.stream()
+                .reduce((f1, f2) -> {
+                    if (f1.getLimitOrder() != null && f2.getLimitOrder() != null) {
+                        if (f1.getLimitOrder().getTimestamp().after(f2.getLimitOrder().getTimestamp())) {
+                            return f1;
+                        } else {
+                            return f2;
+                        }
+                    }
+                    if (f1.isOpen()) {
+                        return f1;
+                    }
+                    if (f2.isOpen()) {
+                        return f2;
+                    }
+                    if (f1.getPlacingType() != null) {
+                        return f1;
+                    }
+                    if (f2.getPlacingType() != null) {
+                        return f2;
+                    }
+                    return f1;
+                });
+    }
+
+    public String gerCurrCounterName(List<FplayOrder> currOrders) {
+        return currOrders.stream()
+                .map(FplayOrder::getCounterName)
+                .findFirst()
+                .orElse(getCounterName());
+    }
+
     public void stopAllActions() {
         shouldStopPlacing = true;
 
@@ -1069,20 +1098,17 @@ public abstract class MarketService extends MarketServiceWithState {
                 getTradeLogger().info(msg);
             } else {
                 StringBuilder orderIds = new StringBuilder();
-//                synchronized (openOrdersLock)
-                {
-                    openOrders.stream()
-                            .filter(Objects::nonNull)
-                            .filter(FplayOrder::isOpen)
-                            .map(FplayOrder::getOrder)
-                            .forEach(order -> orderIds.append(order.getId()).append(","));
-                }
+                getOpenOrders().stream()
+                        .filter(Objects::nonNull)
+                        .filter(FplayOrder::isOpen)
+                        .map(FplayOrder::getOrder)
+                        .forEach(order -> orderIds.append(order.getId()).append(","));
 
                 String msg = String.format("%s: StopAllActions: CancelAllOpenOrders=%s", getName(), orderIds.toString());
                 warningLogger.info(msg);
                 getTradeLogger().info(msg);
 
-                cancelAllOrders("StopAllActions: CancelAllOpenOrders", false);
+                cancelAllOrders(null, "StopAllActions: CancelAllOpenOrders", false);
             }
         } catch (Exception e) {
             logger.error("stopAllActions error", e);
@@ -1096,7 +1122,7 @@ public abstract class MarketService extends MarketServiceWithState {
     /**
      * @return cancelled order id list
      */
-    public List<LimitOrder> cancelAllOrders(String logInfoId, boolean beforePlacing) {
+    public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing) {
         return new ArrayList<>();
     }
 

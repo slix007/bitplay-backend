@@ -77,11 +77,11 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
@@ -724,28 +724,23 @@ public class OkCoinService extends MarketServicePreliq {
                 .subscribeOn(Schedulers.io())
                 .subscribe(limitOrders -> {
                     logger.debug("got open orders: " + limitOrders.size());
-//                    synchronized (openOrdersLock)
-                    {
-                        // do not repeat for already 'FILLED' orders.
-                        limitOrders
-                                .forEach(update -> openOrders.stream()
-                                        .filter(o -> o.getOrderId().equals(update.getId()))
-                                        .filter(o -> o.getOrder().getStatus() != Order.OrderStatus.FILLED)
-                                        .forEach(o -> {
-                                            arbitrageService.getDealPrices().getoPriceFact()
-                                                    .addPriceItem(o.getCounterName(),
-                                                            update.getId(),
-                                                            update.getCumulativeAmount(),
-                                                            update.getAveragePrice(),
-                                                            update.getStatus());
-                                            writeAvgPriceLog();
-                                        })
-                                );
-                    }
 
-                    final Long tradeId = arbitrageService.getTradeId();
-                    final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, getCounterName());
-                    updateOpenOrders(limitOrders, fPlayOrderStub);
+                    final FplayOrder currStub = getCurrStub();
+                    final Long tradeId = currStub.getTradeId();
+                    updateFplayOrdersToCurrStab(limitOrders, currStub);
+
+                    getOpenOrders().forEach(o -> {
+                        arbitrageService.getDealPrices().getoPriceFact()
+                                .addPriceItem(o.getCounterName(),
+                                        o.getLimitOrder().getId(),
+                                        o.getLimitOrder().getCumulativeAmount(),
+                                        o.getLimitOrder().getAveragePrice(),
+                                        o.getLimitOrder().getStatus());
+                        writeAvgPriceLog();
+                    });
+
+                    setFreeIfNoOrders(tradeId, limitOrders);
+
                 }, throwable -> logger.error("TradesObservable.Exception: ", throwable)); // TODO placingType is null!!!
     }
 
@@ -841,9 +836,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Scheduled(fixedDelay = 2000)
     public void openOrdersCleaner() {
         Instant start = Instant.now();
-        if (openOrders.size() > 0) {
-            cleanOldOO();
-        }
+        cleanOldOO();
         Instant end = Instant.now();
         Utils.logIfLong(start, end, logger, "openOrdersCleaner");
     }
@@ -913,7 +906,8 @@ public class OkCoinService extends MarketServicePreliq {
             }
 
             tradeResponse.setLimitOrder(orderInfo);
-            updateOpenOrder(orderInfo);
+            final FplayOrder theUpdate = FplayOrderUtils.updateFplayOrder(fPlayOrder, orderInfo);
+            addOpenOrder(theUpdate);
 
             arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
             arbitrageService.getDealPrices().getoPriceFact()
@@ -1815,54 +1809,48 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public List<LimitOrder> cancelAllOrders(String logInfoId, boolean beforePlacing) {
+    public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing) {
         List<LimitOrder> res = new ArrayList<>();
         final String counterForLogs = getCounterName();
-//        synchronized (openOrdersLock)
-        {
-            openOrders.stream()
-                    .filter(Objects::nonNull)
-                    .filter(FplayOrder::isOpen)
-                    .map(FplayOrder::getLimitOrder)
-                    .forEach(order -> {
 
-                        final String orderId = order.getId();
-                        int attemptCount = 0;
-                        while (attemptCount < MAX_ATTEMPTS_CANCEL) {
-                            attemptCount++;
-                            try {
-                                if (attemptCount > 1) {
-                                    Thread.sleep(1000);
-                                }
-                                final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
-                                OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId,
-                                        okexContractType.getCurrencyPair(),
-                                        okexContractType.getFuturesContract());
+        getOnlyOpenOrders().forEach(order -> {
 
-                                tradeLogger.info(String.format("#%s/%s %s id=%s,res=%s,code=%s,details=%s(%s)",
-                                        counterForLogs, attemptCount,
-                                        logInfoId,
-                                        orderId,
-                                        result.isResult(),
-                                        result.getErrorCode(),
-                                        result.getDetails(),
-                                        getErrorCodeTranslation(result)));
+            final String orderId = order.getId();
+            int attemptCount = 0;
+            while (attemptCount < MAX_ATTEMPTS_CANCEL) {
+                attemptCount++;
+                try {
+                    if (attemptCount > 1) {
+                        Thread.sleep(1000);
+                    }
+                    final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
+                    OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId,
+                            okexContractType.getCurrencyPair(),
+                            okexContractType.getFuturesContract());
 
-                                if (result.isResult() || result.getDetails().contains("20015") /* "Order does not exist"*/) {
-                                    order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
-                                    res.add(order);
-                                    break;
-                                }
-                            } catch (Exception e) {
-                                logger.error("#{}/{} error cancel maker order", counterForLogs, attemptCount, e);
-                                tradeLogger.error(String.format("#%s/%s error cancel maker order: %s", counterForLogs, attemptCount, e.toString()));
-                            }
-                        }
-                    });
-            final boolean cnlSuccess = res.size() > 0;
-            if (beforePlacing && cnlSuccess) {
-                setMarketState(MarketState.PLACING_ORDER);
+                    tradeLogger.info(String.format("#%s/%s %s id=%s,res=%s,code=%s,details=%s(%s)",
+                            counterForLogs, attemptCount,
+                            logInfoId,
+                            orderId,
+                            result.isResult(),
+                            result.getErrorCode(),
+                            result.getDetails(),
+                            getErrorCodeTranslation(result)));
+
+                    if (result.isResult() || result.getDetails().contains("20015") /* "Order does not exist"*/) {
+                        order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
+                        res.add(order);
+                        break;
+                    }
+                } catch (Exception e) {
+                    logger.error("#{}/{} error cancel maker order", counterForLogs, attemptCount, e);
+                    tradeLogger.error(String.format("#%s/%s error cancel maker order: %s", counterForLogs, attemptCount, e.toString()));
+                }
             }
+        });
+        final boolean cnlSuccess = res.size() > 0;
+        if (beforePlacing && cnlSuccess) {
+            setMarketState(MarketState.PLACING_ORDER);
         }
 
         return res;
@@ -2200,7 +2188,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                     List<FplayOrder> resultOOList = new CopyOnWriteArrayList<>();
 
-                    for (FplayOrder openOrder : openOrders) {
+                    for (FplayOrder openOrder : getOnlyOpenFplayOrders()) {
 
 //                        openOrders = openOrders.stream()
 //                            .flatMap(openOrder -> {
@@ -2292,7 +2280,7 @@ public class OkCoinService extends MarketServicePreliq {
                         tradeId = Utils.lastTradeId(tradeId, resultOO.getTradeId());
                     }
 
-                    this.openOrders = resultOOList;
+                    updateFplayOrders(resultOOList);
 
                     if (!hasOpenOrders()) {
                         tradeLogger.warn("Free by iterateOpenOrdersMove");
@@ -2534,7 +2522,7 @@ public class OkCoinService extends MarketServicePreliq {
             order.setOrderStatus(OrderStatus.CANCELED); // may be FILLED, but it's ok here.
             res.append(":CANCELED");
 
-            updateOpenOrder(order);
+            updateFplayOrdersToCurrStab(Collections.singletonList(order), getCurrStub());
 
         } else {
             res.append(":").append(result.getDetails());

@@ -2,13 +2,13 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.model.MarketState;
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.persistance.domain.settings.PlacingType;
+import com.bitplay.market.model.MarketState;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
@@ -104,7 +104,10 @@ public class VolatileModeAfterService {
 
             final MarketState prevState = marketService.getMarketState();
             // 1. cancel and set marketState=PLACING_ORDER
-            final List<LimitOrder> orders = marketService.cancelAllOrders("VolatileMode activated: CancelAllOpenOrders", true);
+            final String counterName = marketService.gerCurrCounterName(currOrders);
+            final FplayOrder stub = new FplayOrder(tradeId, counterName);
+
+            final List<LimitOrder> orders = marketService.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders", true);
             final BigDecimal amountDiff = orders.stream()
                     .map(o -> {
                         final BigDecimal am = o.getTradableAmount().subtract(o.getCumulativeAmount());
@@ -116,7 +119,6 @@ public class VolatileModeAfterService {
             if (amountDiff.signum() != 0) {
 
                 fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
-                final String counterName = marketService.getCounterName();
                 fplayTradeService.info(tradeId, counterName, String.format("#%s change Trading mode to current-volatile", counterName));
 
                 final OrderType orderType = amountDiff.signum() > 0 ? OrderType.BID : OrderType.ASK;
