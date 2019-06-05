@@ -490,11 +490,11 @@ public abstract class MarketService extends MarketServiceWithState {
         final String msg = String.format("#%s %s marketState: %s %s", counterName, getName(), newState, getArbitrageService().getFullPosDiff());
         getTradeLogger().info(msg);
         logger.info(msg);
-        this.marketState = newState;
         if (newState == MarketState.READY) {
             this.readyTime = Instant.now();
-            onReadyState();
+            onReadyState(); // may reset WAITING_ARB
         }
+        this.marketState = newState;
     }
 
     public MarketState getMarketState() {
