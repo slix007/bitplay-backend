@@ -847,7 +847,7 @@ public class OkCoinService extends MarketServicePreliq {
     void openOrdersHangedChecker() {
         updateOOStatuses();
 
-        if (!hasOpenOrders()) {
+        if (getMarketState() != MarketState.MOVING && !hasOpenOrders()) {
             final Long tradeId = tryFindLastTradeId();
             eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_CHECKER, tradeId));
         }
