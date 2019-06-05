@@ -514,12 +514,17 @@ public class BitmexService extends MarketServicePreliq {
     public void requestReconnectAsync() {
         Single.just(new Object())
                 .observeOn(Schedulers.io())
-                .subscribe(o -> requestReconnect(true),
-                        throwable -> logger.error("Error requestReconnectAsync", throwable));
+                .subscribe(o -> {
+                    try {
+                        requestReconnect(true);
+                    } catch (Exception e) {
+                        logger.error("Error requestReconnectAsync", e);
+                    }
+                });
     }
 
     public void requestReconnect(boolean isForceReconnect, boolean... skipResetInTheEnd) {
-        final boolean skipAfterReconnectReset = skipResetInTheEnd != null && skipResetInTheEnd[0];
+        final boolean skipAfterReconnectReset = skipResetInTheEnd != null && skipResetInTheEnd.length > 0 && skipResetInTheEnd[0];
         if (isDestroyed) {
             return;
         }
