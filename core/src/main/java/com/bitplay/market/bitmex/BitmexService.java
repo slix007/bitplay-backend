@@ -2087,16 +2087,18 @@ public class BitmexService extends MarketServicePreliq {
 
         final String counterName = fplayOrder.getCounterName();
         final String counterWithPortion = fplayOrder.getCounterWithPortion();
+        Instant startReq = null;
+        Instant endReq = null;
         try {
             BigDecimal bestMakerPrice = newPrice.setScale(cntType.getScale(), BigDecimal.ROUND_HALF_UP);
 
             assert bestMakerPrice.signum() != 0;
             assert bestMakerPrice.compareTo(limitOrder.getLimitPrice()) != 0;
 
-            Instant startReq = Instant.now();
+            startReq = Instant.now();
             throwTestingException();
             final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService()).moveLimitOrder(limitOrder, bestMakerPrice);
-            Instant endReq = Instant.now();
+            endReq = Instant.now();
             metricsDictionary.putBitmexUpdateOrder(Duration.between(startReq, endReq));
 
             if (movedLimitOrder != null) {
@@ -2147,38 +2149,6 @@ public class BitmexService extends MarketServicePreliq {
             } else {
                 logger.info("Moving response is null");
                 tradeLogger.info("Moving response is null", contractTypeStr);
-            }
-
-            if (reqMovingArgs != null && reqMovingArgs.length == 2 && reqMovingArgs[0] != null) {
-                Instant lastEnd = Instant.now();
-                Mon mon = monitoringDataService.fetchMon(getName(), "moveMakerOrder");
-                if (reqMovingArgs[0] != null) {
-                    Instant startMoving = (Instant) reqMovingArgs[0];
-                    long beforeMs = startReq.toEpochMilli() - startMoving.toEpochMilli();
-                    mon.getBefore().add(BigDecimal.valueOf(beforeMs));
-//                    CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforeMoveOrder");
-//                    metrics.durationMs(beforeMs);
-                    if (beforeMs > 5000) {
-                        logger.warn("beforeMs=" + beforeMs);
-                    }
-                }
-                if (reqMovingArgs[1] != null) {
-                    Long waitingPrevMs = (Long) reqMovingArgs[1];
-                    mon.getWaitingPrev().add(BigDecimal.valueOf(waitingPrevMs));
-                }
-
-                long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
-                mon.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
-                if (waitingMarketMs > 5000) {
-                    logger.warn("waitingMarketMs=" + waitingMarketMs);
-                }
-
-                mon.getAfter().add(new BigDecimal(lastEnd.toEpochMilli() - endReq.toEpochMilli()));
-                mon.incCount();
-                monitoringDataService.saveMon(mon);
-
-//                CounterAndTimer moveOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "moveOrder");
-//                moveOrderMetrics.durationMs(waitingMarketMs);
             }
 
         } catch (HttpStatusIOException e) {
@@ -2234,6 +2204,43 @@ public class BitmexService extends MarketServicePreliq {
 //                tradeLogger.error("{} MoveOrderError: {}", getCounterName(), message);
 //                moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, message);
 //            }
+
+        } finally {
+            if (reqMovingArgs != null && reqMovingArgs.length == 2 && reqMovingArgs[0] != null) {
+                Instant lastEnd = Instant.now();
+                Mon mon = monitoringDataService.fetchMon(getName(), "moveMakerOrder");
+                if (reqMovingArgs[0] != null && startReq != null) {
+                    Instant startMoving = (Instant) reqMovingArgs[0];
+                    long beforeMs = startReq.toEpochMilli() - startMoving.toEpochMilli();
+                    mon.getBefore().add(BigDecimal.valueOf(beforeMs));
+//                    CounterAndTimer metrics = MetricFactory.getCounterAndTimer(getName(), "beforeMoveOrder");
+//                    metrics.durationMs(beforeMs);
+                    if (beforeMs > 5000) {
+                        logger.warn("beforeMs=" + beforeMs);
+                    }
+                }
+                if (reqMovingArgs[1] != null) {
+                    Long waitingPrevMs = (Long) reqMovingArgs[1];
+                    mon.getWaitingPrev().add(BigDecimal.valueOf(waitingPrevMs));
+                }
+
+                if (startReq != null && endReq != null) {
+                    long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
+                    mon.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
+                    if (waitingMarketMs > 5000) {
+                        logger.warn("waitingMarketMs=" + waitingMarketMs);
+                    }
+                }
+
+                if (endReq != null) {
+                    mon.getAfter().add(new BigDecimal(lastEnd.toEpochMilli() - endReq.toEpochMilli()));
+                }
+                mon.incCount();
+                monitoringDataService.saveMon(mon);
+
+//                CounterAndTimer moveOrderMetrics = MetricFactory.getCounterAndTimer(getName(), "moveOrder");
+//                moveOrderMetrics.durationMs(waitingMarketMs);
+            }
 
         }
 
