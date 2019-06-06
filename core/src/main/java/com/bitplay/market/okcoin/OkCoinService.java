@@ -38,6 +38,7 @@ import com.bitplay.okex.v3.BitplayOkexEchange;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
+import com.bitplay.okex.v3.exception.ApiException;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
@@ -1288,10 +1289,15 @@ public class OkCoinService extends MarketServicePreliq {
             return NextStep.BREAK; // no retry by default
         } else {
             String message = exception.getMessage();
+            // api v3 throws ApiException
+            if (exception instanceof ApiException && exception.getCause() != null) {
+                message = exception.getCause().getMessage();
+            }
+
             if (message.contains("connect timed out") // SocketTimeoutException
                     || message.contains("Read timed out") // SocketTimeoutException
                     || message.contains("Signature does not match")
-                    || message.contains("Code: 20018, translation: Order price differ more than 5") // ExchangeException
+                    || message.contains("Order price differ more than 5") // ExchangeException
                     // Code: 20018, translation: Order price differ more than 5% from the price in the last minute
                     || message.contains("Remote host closed connection during handshake") // javax.net.ssl.SSLHandshakeException
             ) { // ExchangeException
