@@ -1847,20 +1847,7 @@ public class BitmexService extends MarketServicePreliq {
                         }
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
-                            int cancelledCount = cancelledInRow.incrementAndGet();
-                            if (cancelledCount == 5) {
-                                tradeLogger.info("CANCELED more 4 in a row", contractTypeStr);
-                            }
-                            if (cancelledCount % 20 == 0) {
-                                tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
-                                requestReconnect(true, true);
-                            }
-                            if (cancelledCount > 20) {
-                                final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
-                                String msg = String.format("xRateLimit=%s(updated=%s).", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
-                                logger.info(msg);
-                                tradeLogger.info(msg);
-                            }
+                            incCancelledInRow(contractTypeStr);
 
                             tradeResponse.addCancelledOrder(resultOrder);
                             tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
@@ -2150,21 +2137,7 @@ public class BitmexService extends MarketServicePreliq {
                                 updatedOrder.getStatus());
 
                 if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
-                    int cancelledCount = cancelledInRow.incrementAndGet();
-                    if (cancelledCount == 5) {
-                        tradeLogger.info("CANCELED more 4 in a row", contractTypeStr);
-                    }
-                    if (cancelledCount % 20 == 0) {
-                        tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
-                        requestReconnect(true, true);
-                    }
-                    if (cancelledCount > 20) {
-                        final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
-                        String msg = String.format("xRateLimit=%s(updated=%s).", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
-                        logger.info(msg);
-                        tradeLogger.info(msg);
-                    }
-
+                    incCancelledInRow(contractTypeStr);
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
                 } else {
                     cancelledInRow.set(0);
@@ -2222,7 +2195,20 @@ public class BitmexService extends MarketServicePreliq {
                 if (orderInfo.isPresent()) {
                     final Order doubleChecked = orderInfo.get();
                     final FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, (LimitOrder) doubleChecked);
-                    if (doubleChecked.getStatus() == Order.OrderStatus.FILLED || doubleChecked.getStatus() == Order.OrderStatus.CANCELED) { // just update the status
+                    if (doubleChecked.getStatus() == Order.OrderStatus.CANCELED) {
+                        incCancelledInRow(contractTypeStr);
+                        final String logString = String.format(
+                                "#%s Moved %s from %s to ... status=CANCELLED, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s.",
+                                counterWithPortion,
+                                limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                                limitOrder.getLimitPrice(),
+                                limitOrder.getTradableAmount(),
+                                limitOrder.getCumulativeAmount(),
+                                limitOrder.getAveragePrice(),
+                                limitOrder.getId(),
+                                getPositionAsString());
+                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
+                    } else if (doubleChecked.getStatus() == Order.OrderStatus.FILLED) { // just update the status
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, moveResponse.getDescription(), null, null, updated);
                     } else {
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, moveResponse.getDescription());
@@ -2252,6 +2238,23 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         return moveResponse;
+    }
+
+    private void incCancelledInRow(String contractTypeStr) {
+        int cancelledCount = cancelledInRow.incrementAndGet();
+        if (cancelledCount == 5) {
+            tradeLogger.info("CANCELED more 4 in a row", contractTypeStr);
+        }
+        if (cancelledCount % 20 == 0) {
+            tradeLogger.info("CANCELED more 20 in a row. Do reconnect.", contractTypeStr);
+            requestReconnect(true, true);
+        }
+        if (cancelledCount > 20) {
+            final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
+            String msg = String.format("xRateLimit=%s(updated=%s).", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
+            logger.info(msg);
+            tradeLogger.info(msg);
+        }
     }
 
     private void throwTestingException() throws HttpStatusIOException, InterruptedException {
