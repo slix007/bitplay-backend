@@ -39,7 +39,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
         }
     }
 
-    public void resetPreliqState() {
+    private void resetPreliqState() {
         if (getMarketState() == MarketState.PRELIQ) {
             cancelAllOrders("After PRELIQ: CancelAllOpenOrders", false);
 
@@ -49,7 +49,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
         }
     }
 
-    public void checkForDecreasePosition() {
+    protected void checkForDecreasePosition() {
         Instant start = Instant.now();
 
         if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
@@ -59,7 +59,8 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
 
         final LiqInfo liqInfo = getLiqInfo();
         final BigDecimal dqlCloseMin = getDqlCloseMin();
-        final BigDecimal pos = getPosVal();
+        final Pos pos = getPos();
+        final BigDecimal posVal = pos.getPositionLong().subtract(pos.getPositionShort());
         final CorrParams corrParams = getPersistenceService().fetchCorrParams();
 
         final boolean dqlViolated = isDqlViolated(liqInfo, dqlCloseMin);
@@ -73,14 +74,14 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
             }
         }
 
-        final boolean outsideLimits = getLimitsService().outsideLimitsForPreliq(pos);
+        final boolean outsideLimits = getLimitsService().outsideLimitsForPreliq(posVal);
 
         if (dqlViolated
                 && !outsideLimits
-                && pos.signum() != 0
+                && !posZeroViolation(pos)
                 && corrParams.getPreliq().hasSpareAttempts()
         ) {
-            final PreliqParams preliqParams = getPreliqParams(pos);
+            final PreliqParams preliqParams = getPreliqParams(pos, posVal);
             if (preliqParams != null && preliqParams.getPreliqBlocks() != null
                     &&
                     ((getName().equals(BitmexService.NAME) && preliqParams.getPreliqBlocks().getB_block().signum() > 0) ||
@@ -133,6 +134,16 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
         }
         Instant end = Instant.now();
         Utils.logIfLong(start, end, log, "checkForDecreasePosition");
+    }
+
+    private boolean posZeroViolation(Pos pos) {
+        if (getName().equals(BitmexService.NAME)) {
+            return pos.getPositionLong().signum() == 0; // no preliq
+        }
+        if (getName().equals(OkCoinService.NAME)) {
+            return pos.getPositionLong().signum() == 0 && pos.getPositionShort().signum() == 0; // no preliq
+        }
+        return false;
     }
 
     private void printPreliqStarting(String counterForLogs, String nameSymbol) {
@@ -190,7 +201,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
                 && liqInfo.getDqlCurr().compareTo(dqlCloseMin) <= 0;
     }
 
-    private PreliqParams getPreliqParams(BigDecimal pos) {
+    private PreliqParams getPreliqParams(Pos posObj, BigDecimal pos) {
         if (pos.signum() == 0) {
             return null;
         }
@@ -215,7 +226,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
             }
         }
         if (deltaName != null) {
-            final PreliqBlocks preliqBlocks = getPreliqBlocks(deltaName);
+            final PreliqBlocks preliqBlocks = getPreliqBlocks(deltaName, posObj);
             preliqParams = new PreliqParams(signalType, deltaName, preliqBlocks);
         }
         return preliqParams;
@@ -229,8 +240,6 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
         final SignalType signalType = preliqParams.getSignalType();
         final DeltaName deltaName = preliqParams.getDeltaName();
         final PreliqBlocks preliqBlocks = preliqParams.getPreliqBlocks();
-        final BigDecimal b_block = preliqBlocks.b_block;
-        final BigDecimal o_block = preliqBlocks.o_block;
 
         // put message in a queue
         final BestQuotes bestQuotes = Utils.createBestQuotes(
@@ -243,6 +252,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
 
         final PlaceOrderArgs placeOrderArgs;
         if (getName().equals(BitmexService.NAME)) {
+            final BigDecimal b_block = preliqBlocks.b_block;
             placeOrderArgs = new PlaceOrderArgs(
                     deltaName == DeltaName.B_DELTA ? OrderType.ASK : OrderType.BID,
                     b_block,
@@ -254,6 +264,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
                     counterName,
                     null, null, null, Instant.now(), getName());
         } else { // okex
+            final BigDecimal o_block = preliqBlocks.o_block;
             placeOrderArgs = new PlaceOrderArgs(
                     deltaName == DeltaName.B_DELTA ? OrderType.BID : OrderType.ASK,
                     o_block,
@@ -297,7 +308,11 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
                 placeOrderArgs.getAmount()
         ));
 
-        placeOrder(placeOrderArgs);
+        if (getName().equals(BitmexService.NAME)) {
+            ((BitmexService) this).placeOrderToOpenOrders(placeOrderArgs);
+        } else {
+            placeOrder(placeOrderArgs);
+        }
     }
 
     private BigDecimal getDqlCloseMin() {
@@ -307,96 +322,38 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
         return getPersistenceService().fetchGuiLiqParams().getODQLCloseMin();
     }
 
-    private PreliqBlocks getPreliqBlocks(DeltaName deltaName) {
-//        final BigDecimal cm = getPersistenceService().getSettingsRepositoryService().getSettings().getPlacingBlocks().getCm();
+    private PreliqBlocks getPreliqBlocks(DeltaName deltaName, Pos posObj) {
         final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-//        final Position bitmexPosition = getArbitrageService().getFirstMarketService().getPosition();
-        final Pos okexPosition = getArbitrageService().getSecondMarketService().getPos();
-
-        BigDecimal b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
-        BigDecimal o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
-
-//        final BigDecimal btmPos = bitmexPosition.getPositionLong();
-//            if (btmPos.signum() == 0) {
-//                String posDetails = String.format("Bitmex %s; Okex %s", firstMarketService.getPosition(), secondMarketService.getPosition());
-//                logger.error("WARNING: Preliq was not started, because Bitmex pos=0. Details:" + posDetails);
-//                warningLogger.error("WARNING: Preliq was not started, because Bitmex pos=0. Details:" + posDetails);
-//                forbidden = true;
-//                return this;
-//            }
-
-        // decrease by bitmex 0
-//        if ((deltaName == DeltaName.B_DELTA && btmPos.signum() > 0 && btmPos.compareTo(b_block) < 0)
-//                || (deltaName == DeltaName.O_DELTA && btmPos.signum() < 0 && btmPos.abs().compareTo(b_block) < 0)) {
-//              // TODO use multiplicity (cont=>usd=>okexCont=>btmCont)
-//            b_block = btmPos.abs(); // we should use PlacingBlocks.toBitmexCont(BigDecimal.valueOf(preliqBlockUsd), isEth, cm).intValue();
-//            o_block = b_block.divide(cm, 0, RoundingMode.HALF_UP);
-//        }
-        final BigDecimal okLong = okexPosition.getPositionLong();
-        final BigDecimal okShort = okexPosition.getPositionShort();
-//            if (okLong.signum() == 0 && okShort.signum() == 0) {
-//                String posDetails = String.format("Bitmex %s; Okex %s", firstMarketService.getPosition(), secondMarketService.getPosition());
-//                logger.error("WARNING: Preliq was not started, because Okex pos=0. Details:" + posDetails);
-//                warningLogger.error("WARNING: Preliq was not started, because Okex pos=0. Details:" + posDetails);
-//                forbidden = true;
-//                return this;
-//            }
-        BigDecimal okMeaningPos = deltaName == DeltaName.B_DELTA ? okShort : okLong;
-        if (okMeaningPos.signum() != 0 && okMeaningPos.compareTo(o_block) < 0) {
-            o_block = okMeaningPos;
-//            b_block = o_block.multiply(cm).setScale(0, RoundingMode.HALF_UP); // don't change b_block, because markets are not linked in preliq now
+        BigDecimal b_block = BigDecimal.ZERO;
+        BigDecimal o_block = BigDecimal.ZERO;
+        if (getName().equals(BitmexService.NAME)) {
+            b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
+            final BigDecimal pos = posObj.getPositionLong();
+            if (pos != null && pos.signum() != 0) {
+                if (deltaName == DeltaName.B_DELTA && pos.signum() > 0 && pos.compareTo(b_block) < 0) { // btm sell
+                    b_block = pos;
+                }
+                if (deltaName == DeltaName.O_DELTA && pos.signum() < 0 && (pos.abs()).compareTo(b_block) < 0) { // btm buy
+                    b_block = pos.abs();
+                }
+            }
+            if (b_block.signum() == 0) {
+                log.warn("b_block = 0");
+            }
+        } else if (getName().equals(OkCoinService.NAME)) {
+            o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
+            final BigDecimal okLong = posObj.getPositionLong();
+            final BigDecimal okShort = posObj.getPositionShort();
+            BigDecimal okMeaningPos = deltaName == DeltaName.B_DELTA ? okShort : okLong;
+            if (okMeaningPos != null && okMeaningPos.signum() != 0 && okMeaningPos.compareTo(o_block) < 0) {
+                o_block = okMeaningPos;
+            }
+            if (o_block.signum() == 0) {
+                log.warn("o_block = 0");
+            }
         }
-
-        // Check the other market. - don't need it, because markets are not linked in preliq now
-        // increasing position only when DQL is ok
-//        if (deltaName == DeltaName.B_DELTA) {
-//            // bitmex sell, okex buy
-//            if (getName().equals(OkCoinService.NAME) && btmPos.signum() < 0 && bitmexDqlViolated(bitmexPosition, okexPosition)) {
-//                return null;
-//            }
-//            if (getName().equals(BitmexService.NAME) && okLong.subtract(okShort).signum() > 0 && okexDqlViolated(bitmexPosition, okexPosition)) {
-//                return null;
-//            }
-//        } else {
-//            // bitmex buy, okex sell
-//            if (getName().equals(OkCoinService.NAME) && btmPos.signum() > 0 && bitmexDqlViolated(bitmexPosition, okexPosition)) {
-//                return null;
-//            }
-//            if (getName().equals(BitmexService.NAME) && okLong.subtract(okShort).signum() < 0 && okexDqlViolated(bitmexPosition, okexPosition)) {
-//                return null;
-//            }
-//        }
-
         return new PreliqBlocks(b_block, o_block);
     }
-
-//    private boolean okexDqlViolated(Position bitmexPosition, Position okexPosition) {
-//        final BigDecimal dqlCloseMin = getPersistenceService().fetchGuiLiqParams().getODQLCloseMin();
-//        final LiqInfo okexLiqInfo = getArbitrageService().getSecondMarketService().getLiqInfo();
-//        if (isDqlViolated(okexLiqInfo, dqlCloseMin)) {
-//            String posDetails = String.format("Bitmex %s; Okex %s(dql=%s, dql_close_min=%s)",
-//                    bitmexPosition, okexPosition, okexLiqInfo.getDqlCurr(), dqlCloseMin);
-//            final String msg = getName() + " WARNING: Preliq was not started. Can not increase position. Details:" + posDetails;
-//            log.error(msg);
-//            warningLogger.error(msg);
-//            return true;
-//        }
-//        return false;
-//    }
-//
-//    private boolean bitmexDqlViolated(Position bitmexPosition, Position okexPosition) {
-//        final BigDecimal dqlCloseMin = getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
-//        final LiqInfo btmLiqInfo = getArbitrageService().getFirstMarketService().getLiqInfo();
-//        if (isDqlViolated(btmLiqInfo, dqlCloseMin)) {
-//            String posDetails = String
-//                    .format("Bitmex %s(dql=%s, dql_close_min=%s); Okex %s", bitmexPosition, btmLiqInfo.getDqlCurr(), dqlCloseMin, okexPosition);
-//            final String msg = getName() + " WARNING: Preliq was not started. Can not increase position. Details:" + posDetails;
-//            log.error(msg);
-//            warningLogger.error(msg);
-//            return true;
-//        }
-//        return false;
-//    }
 
     @Data
     private static class PreliqBlocks {
