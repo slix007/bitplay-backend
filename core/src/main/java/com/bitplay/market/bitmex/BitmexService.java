@@ -657,9 +657,9 @@ public class BitmexService extends MarketServicePreliq {
         while (!success) {
             final Pos current = this.pos.get();
 
-            if (pUpdate.getPositionLong() == null) { // TODO check the cases of pUpdate null.
+            if (pUpdate.getPositionLong() == null) { // TODO when ETH then XBTUSD as null(only fetch XBTUSD once in 5 sec)
                 if (current.getPositionLong() != null) {
-                    logger.warn("mergePos no update when null");
+                    // logger.warn("mergePos no update when null"); // the case XBTUSD when main is ETH
                     return; // no update when null
                 }
                 // use 0 when no pos yet
@@ -1875,7 +1875,7 @@ public class BitmexService extends MarketServicePreliq {
                         if (placingType == PlacingType.TAKER_FOK) {
                             thePrice = (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0)
                                     ? settings.getBitmexPrice()
-                                    : createFillOrKillPrice(orderType, orderBook, settings.getBitmexFokMaxDiff());
+                                    : createFillOrKillPrice(orderType, orderBook, settings.getBitmexFokMaxDiff(), btmContType);
                             final String message = String.format("#%s placing TAKER_FOK %s, q=%s, a=%s. pos=%s",
                                     counterName,
                                     orderType,
@@ -2050,9 +2050,10 @@ public class BitmexService extends MarketServicePreliq {
         return tradeResponse;
     }
 
-    private BigDecimal createFillOrKillPrice(Order.OrderType orderType, OrderBook orderBook, BigDecimal bitmexForMaxDiff) {
+    private BigDecimal createFillOrKillPrice(Order.OrderType orderType, OrderBook orderBook, BigDecimal bitmexForMaxDiff, ContractType contractType) {
         BigDecimal thePrice = BigDecimal.ZERO;
         BigDecimal diff = bitmexForMaxDiff != null ? bitmexForMaxDiff : BigDecimal.ZERO;
+        diff = setScaleUp(diff, contractType);
         if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
             thePrice = Utils.getBestAsk(orderBook).getLimitPrice().subtract(diff);
         } else if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
