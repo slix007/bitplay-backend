@@ -1579,7 +1579,7 @@ public class BitmexService extends MarketServicePreliq {
             }
         });
 
-        setFreeIfNoOrders(tradeId, limitOrderList);
+        addCheckOoToFree();
     }
 
     @Override
@@ -2912,7 +2912,7 @@ public class BitmexService extends MarketServicePreliq {
                 } else {
                     updateFplayOrdersToCurrStab(limitOrders, currStub);
                     ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
-                    setFreeIfNoOrders(currStub.getTradeId(), limitOrders);
+                    addCheckOoToFree();
                 }
 
                 return limitOrders;
@@ -2980,7 +2980,7 @@ public class BitmexService extends MarketServicePreliq {
                 tradeLogger.info(String.format("#closeAllPos:cancelled %s order(s): %s", limitOrders.size(), cancelledOrdersStr));
             }
 
-            setFreeIfNoOrders(currStub.getTradeId(), limitOrders);
+            addCheckOoToFree();
 
         } catch (Exception e) {
             // NOTE: there should not be overloaded(403 response)

@@ -36,8 +36,10 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.micrometer.core.instrument.Timer.Sample;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import io.reactivex.Completable;
+import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.processors.PublishProcessor;
 import io.reactivex.schedulers.Schedulers;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -55,7 +57,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
@@ -689,17 +690,38 @@ public abstract class MarketService extends MarketServiceWithState {
         return getOpenOrders();
     }
 
-    @Override
-    protected void setFreeIfNoOrders(Long lastTradeId, List<LimitOrder> orders) {
-        if (!hasOpenOrders()) {
-            final String ordersStr = orders == null ? "no info" : orders.stream()
-                    .map(Object::toString)
-                    .collect(Collectors.joining("; "));
-            logger.info("market-ready: " +
-                    " lastTradeId=" + lastTradeId +
-                    " limitOrders=" + ordersStr);
-            setFree(lastTradeId);
+    // Only one active task 'freeOoChecker' in ooSingleScheduler.
+    private PublishProcessor<Integer> freeOoChecker = PublishProcessor.create();
+    private Disposable disposable = Flowable.fromPublisher(freeOoChecker)
+            .observeOn(ooSingleScheduler)
+            .onBackpressureBuffer(1)
+            .onBackpressureDrop()
+            .subscribe((i) -> {
+                setFreeIfNoOpenOrders("freeOoChecker");
+            }, e -> {
+                logger.error("freeOoChecker error", e);
+                getTradeLogger().warn("freeOoChecker error " + e.getMessage());
+            });
+
+    protected void setFreeIfNoOpenOrders(String checkerName) {
+        try {
+            if (!hasOpenOrders()) {
+                getTradeLogger().warn(checkerName);
+                logger.warn(checkerName);
+                Long lastTradeId = tryFindLastTradeId();
+                if (lastTradeId == null) {
+                    lastTradeId = getArbitrageService().getTradeId();
+                }
+                eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, lastTradeId));
+            }
+        } catch (Exception e) {
+            logger.error(checkerName + " error", e);
+            getTradeLogger().warn(checkerName + " error " + e.getMessage());
         }
+    }
+
+    protected void addCheckOoToFree() {
+        freeOoChecker.offer(1);
     }
 
     public Optional<Order> getOrderInfoAttempts(String orderId, String counterName, String logInfoId) throws InterruptedException {

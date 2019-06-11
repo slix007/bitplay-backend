@@ -39,8 +39,6 @@ public abstract class MarketServiceOpenOrders {
 
     protected abstract void setFree(Long tradeId, String... flags);
 
-    protected abstract void setFreeIfNoOrders(Long lastTradeId, List<LimitOrder> orders);
-
     protected abstract FplayOrder getCurrStub();
 
     protected abstract String getCounterName();
