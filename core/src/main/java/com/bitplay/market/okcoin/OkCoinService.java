@@ -156,7 +156,6 @@ public class OkCoinService extends MarketServicePreliq {
     private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     // Moving timeout
     private volatile ScheduledFuture<?> scheduledMovingErrorsReset;
-    private volatile boolean movingInProgress = false;
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
 
     private volatile String ifDisconnetedString = "";
@@ -860,10 +859,7 @@ public class OkCoinService extends MarketServicePreliq {
     void openOrdersHangedChecker() {
         updateOOStatuses();
 
-        if (!hasOpenOrders()) {
-            final Long tradeId = tryFindLastTradeId();
-            eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_CHECKER, tradeId));
-        }
+        addCheckOoToFree();
     }
 
     private TradeResponse takerOrder(Long tradeId, Order.OrderType inputOrderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType,
@@ -2178,93 +2174,81 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
-        ooSingleExecutor.execute(() ->
-                getMetricsDictionary().getOkexMovingIter().record(() ->
-                        iterateOpenOrdersMoveSync(iterateArgs)));
+        ooSingleExecutor.execute(() -> {
+            final Boolean hadOoToMove = getMetricsDictionary().getOkexMovingIter().record(() ->
+                    iterateOpenOrdersMoveSync(iterateArgs));
+        });
     }
 
-    private void iterateOpenOrdersMoveSync(Object... iterateArgs) { // if synchronized then the queue for moving could be long
+    private boolean iterateOpenOrdersMoveSync(Object... iterateArgs) { // if synchronized then the queue for moving could be long
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED
                 || getMarketState() == MarketState.PLACING_ORDER
                 || isMarketStopped()
                 || getArbitrageService().getArbState() == ArbState.PRELIQ) {
-            return;
+            return false;
         }
 
-        if (movingInProgress) {
+        synchronized (openOrdersLock) {
+            if (hasOpenOrders()) {
 
-            // Should not happen ever, because 'synch' on method
-            final String counterForLogs = getCounterName();
-            final String logString = String.format("#%s No moving. Too often requests.", counterForLogs);
-            logger.error(logString);
-            return;
+                List<FplayOrder> resultOOList = new ArrayList<>();
 
-        } else {
-            movingInProgress = true;
-        }
-
-        try {
-            synchronized (openOrdersLock) {
-                if (hasOpenOrders()) {
-
-                    List<FplayOrder> resultOOList = new ArrayList<>();
-
-                    for (FplayOrder openOrder : openOrders) {
+                for (FplayOrder openOrder : openOrders) {
 
 //                        openOrders = openOrders.stream()
 //                            .flatMap(openOrder -> {
 //                        Stream<FplayOrder> optionalOrder = Stream.of(openOrder); // default -> keep the order
 //                        resultOOList = Collections.singletonList(openOrder); // default -> keep the order
 
-                        if (openOrder == null) {
-                            warningLogger.warn("OO is null. ");
-                            // empty, do not add
-                            continue;
+                    if (openOrder == null) {
+                        warningLogger.warn("OO is null. ");
+                        // empty, do not add
+                        continue;
 
-                        } else if (openOrder.getOrder().getType() == null) {
-                            warningLogger.warn("OO type is null. " + openOrder.toString());
-                            // keep the order
-                            resultOOList.add(openOrder);
+                    } else if (openOrder.getOrder().getType() == null) {
+                        warningLogger.warn("OO type is null. " + openOrder.toString());
+                        // keep the order
+                        resultOOList.add(openOrder);
 
-                        } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
-                                && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
-                                && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
-                            // keep the order
-                            resultOOList.add(openOrder);
+                    } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
+                            && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
+                            && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
+                        // keep the order
+                        resultOOList.add(openOrder);
 
+                    } else {
+                        final boolean okexOutsideLimits = okexLimitsService.outsideLimits(openOrder.getLimitOrder().getType(), openOrder.getPlacingType(),
+                                openOrder.getSignalType());
+                        if (okexOutsideLimits) {
+                            resultOOList.add(openOrder); // keep the same
                         } else {
-                            final boolean okexOutsideLimits = okexLimitsService.outsideLimits(openOrder.getLimitOrder().getType(), openOrder.getPlacingType(),
-                                    openOrder.getSignalType());
-                            if (okexOutsideLimits) {
-                                resultOOList.add(openOrder); // keep the same
-                            } else {
-                                try {
-                                    Instant lastObTime = (iterateArgs != null && iterateArgs.length > 0)
-                                            ? (Instant) iterateArgs[0]
-                                            : null;
+                            try {
+                                Instant lastObTime = (iterateArgs != null && iterateArgs.length > 0)
+                                        ? (Instant) iterateArgs[0]
+                                        : null;
 
-                                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, lastObTime);
-                                    //TODO keep an eye on 'hang open orders'
-                                    if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                                            || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL // do nothing on such exception
-                                            || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION // do nothing on such exception
-                                    ) {
-                                        // update the status
-                                        final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
-                                        if (cancelledFplayOrder != null) {
-                                            // update the order
-                                            resultOOList.add(cancelledFplayOrder);
-                                        }
-                                    } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
-                                        final FplayOrder newOrder = response.getNewFplayOrder();
-                                        final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
-
-                                        resultOOList.add(cancelledOrder);
-                                        resultOOList.add(newOrder);
-//                                            movingErrorsOverloaded.set(0);
-                                    } else {
-                                        resultOOList.add(openOrder); // keep the same
+                                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, lastObTime);
+                                //TODO keep an eye on 'hang open orders'
+                                if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                                        || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL // do nothing on such exception
+                                        || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION // do nothing on such exception
+                                ) {
+                                    // update the status
+                                    final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
+                                    if (cancelledFplayOrder != null) {
+                                        // update the order
+                                        resultOOList.add(cancelledFplayOrder);
                                     }
+                                } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
+                                    final FplayOrder newOrder = response.getNewFplayOrder();
+                                    final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+
+                                    resultOOList.add(cancelledOrder);
+                                    resultOOList.add(newOrder);
+//                                            movingErrorsOverloaded.set(0);
+                                } else {
+                                    resultOOList.add(openOrder); // keep the same
+                                }
 //                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 //
 //                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
@@ -2273,49 +2257,44 @@ public class OkCoinService extends MarketServicePreliq {
 //                                            }
 //                                        }
 
-                                    final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
-                                    if (cancelledOrder != null && cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
-                                        writeAvgPriceLog();
-                                    }
-
-                                } catch (Exception e) {
-                                    // use default OO
-                                    warningLogger.warn("Error on moving: " + e.getMessage());
-                                    logger.warn("Error on moving", e);
-
-                                    resultOOList.add(openOrder); // keep the same
+                                final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+                                if (cancelledOrder != null && cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
+                                    writeAvgPriceLog();
                                 }
+
+                            } catch (Exception e) {
+                                // use default OO
+                                warningLogger.warn("Error on moving: " + e.getMessage());
+                                logger.warn("Error on moving", e);
+
+                                resultOOList.add(openOrder); // keep the same
                             }
                         }
-
-                    }
-
-                    Long tradeId = null;
-                    // update all fplayOrders
-                    for (FplayOrder resultOO : resultOOList) {
-                        final LimitOrder order = resultOO.getLimitOrder();
-                        arbitrageService.getDealPrices().getoPriceFact()
-                                .addPriceItem(resultOO.getCounterName(), order.getId(),
-                                        order.getCumulativeAmount(),
-                                        order.getAveragePrice(), order.getStatus());
-                        tradeId = Utils.lastTradeId(tradeId, resultOO.getTradeId());
-                    }
-
-                    this.openOrders = resultOOList;
-
-                    if (!hasOpenOrders()) {
-                        tradeLogger.warn("Free by iterateOpenOrdersMove");
-                        logger.warn("Free by iterateOpenOrdersMove");
-                        eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
                     }
 
                 }
 
-            } // synchronized (openOrdersLock)
+                Long tradeId = null;
+                // update all fplayOrders
+                for (FplayOrder resultOO : resultOOList) {
+                    final LimitOrder order = resultOO.getLimitOrder();
+                    arbitrageService.getDealPrices().getoPriceFact()
+                            .addPriceItem(resultOO.getCounterName(), order.getId(),
+                                    order.getCumulativeAmount(),
+                                    order.getAveragePrice(), order.getStatus());
+                    tradeId = Utils.lastTradeId(tradeId, resultOO.getTradeId());
+                }
 
-        } finally {
-            movingInProgress = false;
-        }
+                this.openOrders = resultOOList;
+
+                setFreeIfNoOpenOrders("FreeAfterIterateOpenOrdersMove"); // shows in logs the source of 'free after openOrders check'
+
+                return true;
+            }
+
+        } // synchronized (openOrdersLock)
+
+        return false;
     }
 
     public void writeAvgPriceLog() {
