@@ -302,7 +302,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 setMarketState(MarketState.READY);
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId)); // end arbitrage trigger
 
-                iterateOpenOrdersMove();
+                iterateOpenOrdersMoveAsync();
                 break;
 
             case READY:
@@ -313,7 +313,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 }
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE_FOR_ARB, tradeId)); // end arbitrage trigger
 
-                iterateOpenOrdersMove(); // TODO we should not have such cases
+                iterateOpenOrdersMoveAsync(); // TODO we should not have such cases
                 break;
 
             default:
@@ -497,7 +497,7 @@ public abstract class MarketService extends MarketServiceWithState {
         logger.info(msg);
         if (newState == MarketState.READY) {
             this.readyTime = Instant.now();
-            onReadyState(); // may reset WAITING_ARB
+            onReadyState(); // may reset WAITING_ARB, iterateOpenOrdersMoveAsync
         }
         this.marketState = newState;
     }
@@ -816,11 +816,11 @@ public abstract class MarketService extends MarketServiceWithState {
     protected void checkOpenOrdersForMoving(Instant startTime) {
 //        debugLog.info(getName() + ":checkOpenOrdersForMoving");
         if (!isMovingStopped()) {
-            iterateOpenOrdersMove(startTime);
+            iterateOpenOrdersMoveAsync(startTime);
         }
     }
 
-    abstract protected void iterateOpenOrdersMove(Object... iterateArgs);
+    abstract protected void iterateOpenOrdersMoveAsync(Object... iterateArgs);
 
     abstract protected void onReadyState();
 

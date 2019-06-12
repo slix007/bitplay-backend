@@ -2145,7 +2145,7 @@ public class OkCoinService extends MarketServicePreliq {
             tradeLogger.warn("WAITING_ARB was reset by onReadyState");
         }
         ooHangedCheckerService.stopChecker();
-        iterateOpenOrdersMove();
+        iterateOpenOrdersMoveAsync();
     }
 
     @Override
@@ -2154,7 +2154,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
+    protected void iterateOpenOrdersMoveAsync(Object... iterateArgs) { // if synchronized then the queue for moving could be long
         ooSingleExecutor.execute(() -> {
                     final Boolean hadOoToMove = getMetricsDictionary().getOkexMovingIter().record(() ->
                             iterateOpenOrdersMoveSync(iterateArgs));

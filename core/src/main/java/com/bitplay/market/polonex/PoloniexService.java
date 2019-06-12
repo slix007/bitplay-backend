@@ -141,7 +141,7 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    protected void iterateOpenOrdersMove(Object... iterateArgs) {
+    protected void iterateOpenOrdersMoveAsync(Object... iterateArgs) {
 
     }
 

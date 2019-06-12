@@ -8,7 +8,6 @@ import java.time.Instant;
 public enum SignalEvent implements EventQuant {
     O_ORDERBOOK_CHANGED,
     B_ORDERBOOK_CHANGED,
-    MT2_BITMEX_ORDER_FILLED,
     ;
 
     @Override
