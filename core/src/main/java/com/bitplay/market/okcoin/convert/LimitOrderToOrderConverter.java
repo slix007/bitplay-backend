@@ -43,10 +43,10 @@ public class LimitOrderToOrderConverter implements SuperConverter<LimitOrder, Or
      }
 
     public Order createOrder(String instrumentId, OrderType orderType, BigDecimal thePrice, BigDecimal tradeableAmount,
-            FuturesOrderTypeEnum orderTypeEnum) {
+            FuturesOrderTypeEnum orderTypeEnum, BigDecimal leverage) {
         return Order.builder()
                 .instrument_id(instrumentId)
-                .leverage(BigDecimal.valueOf(20))
+                .leverage(leverage)
                 .type(convertType(orderType))
                 .price(thePrice)
                 .size(tradeableAmount.intValue())

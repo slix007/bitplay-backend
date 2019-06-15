@@ -229,6 +229,7 @@ public class OkCoinService extends MarketServicePreliq {
     private OkexContractType okexContractTypeBTCUSD = OkexContractType.BTC_ThisWeek;
     private volatile Map<String, OkexContractType> instrIdToContractType = new HashMap<>();
     private volatile List<InstrumentDto> instrDtos = new ArrayList<>();
+    private volatile BigDecimal leverage;
 
     @Override
     public PosDiffService getPosDiffService() {
@@ -427,7 +428,13 @@ public class OkCoinService extends MarketServicePreliq {
         spec.setExchangeSpecificParametersItem("Use_Intl", true);
         spec.setExchangeSpecificParametersItem("Use_Futures", true);
         spec.setExchangeSpecificParametersItem("Futures_Contract", okexContractType.getFuturesContract());
-        spec.setExchangeSpecificParametersItem("Futures_Leverage", "20");
+        if (okexContractType.isEth()) {
+            spec.setExchangeSpecificParametersItem("Futures_Leverage", "50");
+            leverage = BigDecimal.valueOf(50);
+        } else {
+            spec.setExchangeSpecificParametersItem("Futures_Leverage", "100");
+            leverage = BigDecimal.valueOf(100);
+        }
 
         if (exArgs != null && exArgs.length == 3) {
             String exKey = (String) exArgs[0];
@@ -1409,7 +1416,8 @@ public class OkCoinService extends MarketServicePreliq {
                                     orderType,
                                     thePrice,
                                     tradeableAmount,
-                                    futuresOrderType
+                                    futuresOrderType,
+                                    leverage
                             )
                     );
                     final String orderId = orderResult.getOrder_id();
