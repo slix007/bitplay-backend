@@ -47,6 +47,7 @@ import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
+import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -59,11 +60,13 @@ import info.bitrich.xchangestream.bitmex.BitmexStreamingAccountService;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingExchange;
 import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
+import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -91,6 +94,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
@@ -168,6 +172,8 @@ public class BitmexService extends MarketServicePreliq {
     private BitmexSwapService bitmexSwapService;
 
     private ArbitrageService arbitrageService;
+
+    private BitmexObType bitmexObTypeCurrent;
 
     @Autowired
     private SlackNotifications slackNotifications;
@@ -723,6 +729,10 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public ContractType getContractType() {
         return bitmexContractType;
+    }
+
+    public BitmexObType getBitmexObTypeCurrent() {
+        return bitmexObTypeCurrent;
     }
 
     @Override
@@ -1322,7 +1332,60 @@ public class BitmexService extends MarketServicePreliq {
     /**
      * Do in the stateUpdater Thread.
      */
-    private OrderBook mergeOrderBook(BitmexOrderBook obUpdate) {
+    private OrderBook mergeOrderBook(BitmexOrderBook obUpdate, BitmexObType obType) {
+        if (obType == null || obType == BitmexObType.INCREMENTAL_25 || obType == BitmexObType.INCREMENTAL_FULL) {
+            return mergeOrderBookIncremental(obUpdate, obType);
+        }
+        // else obType == BitmexObType.TRADITIONAL_10
+        throw new IllegalArgumentException("use another orderBook merger for TRADITIONAL_10 ");
+//        return mergeOrderBook10(obUpdate);
+    }
+
+    private OrderBook mergeOrderBook10(BitmexDepth obUpdate) {
+        if (obUpdate.getSymbol() == null) {
+            // skip the update
+            throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
+        }
+        OrderBook finalOB;
+        String symbol = obUpdate.getSymbol();
+        if (symbol.equals(bitmexContractType.getSymbol())) {
+            finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, bitmexContractType.getCurrencyPair());
+            this.orderBook = finalOB;
+            this.orderBookShort = this.orderBook;
+        } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
+            finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, bitmexContractTypeXBTUSD.getCurrencyPair());
+            this.orderBookXBTUSD = finalOB;
+            this.orderBookXBTUSDShort = this.orderBookXBTUSD;
+        } else {
+            // skip the update
+            throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
+        }
+        return finalOB;
+    }
+
+//    private OrderBook mergeOrderBook10(BitmexOrderBook obUpdate) {
+//        if (obUpdate.getBitmexOrderList().size() == 0 || obUpdate.getBitmexOrderList().get(0).getSymbol() == null) {
+//            // skip the update
+//            throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
+//        }
+//        OrderBook finalOB;
+//        String symbol = obUpdate.getBitmexOrderList().get(0).getSymbol();
+//        if (symbol.equals(bitmexContractType.getSymbol())) {
+//            finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, bitmexContractType.getCurrencyPair());
+//            this.orderBook = finalOB;
+//            this.orderBookShort = this.orderBook;
+//        } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
+//            finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, bitmexContractTypeXBTUSD.getCurrencyPair());
+//            this.orderBookXBTUSD = finalOB;
+//            this.orderBookXBTUSDShort = this.orderBookXBTUSD;
+//        } else {
+//            // skip the update
+//            throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
+//        }
+//        return finalOB;
+//    }
+
+    private OrderBook mergeOrderBookIncremental(BitmexOrderBook obUpdate, BitmexObType obType) {
         if (obUpdate.getBitmexOrderList().size() == 0 || obUpdate.getBitmexOrderList().get(0).getSymbol() == null) {
             // skip the update
             throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
@@ -1373,17 +1436,19 @@ public class BitmexService extends MarketServicePreliq {
         OrderBook shortOb;
         if (isDefault) {
             this.orderBook = finalOB;
-            this.orderBookShort = this.orderBook;
-//            new OrderBook(finalOB.getTimeStamp(),
-//                    finalOB.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()),
-//                    finalOB.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()));
+            this.orderBookShort = obType == BitmexObType.INCREMENTAL_FULL
+                    ? new OrderBook(finalOB.getTimeStamp(),
+                    finalOB.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()),
+                    finalOB.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()))
+                    : this.orderBook;
             shortOb = this.orderBookShort;
         } else {
             this.orderBookXBTUSD = finalOB;
-            this.orderBookXBTUSDShort = this.orderBookXBTUSD;
-//                    new OrderBook(finalOB.getTimeStamp(),
-//                    finalOB.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()),
-//                    finalOB.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()));
+            this.orderBookXBTUSDShort = obType == BitmexObType.INCREMENTAL_FULL
+                    ? new OrderBook(finalOB.getTimeStamp(),
+                    finalOB.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()),
+                    finalOB.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()))
+                    : this.orderBookXBTUSD;
             shortOb = this.orderBookXBTUSDShort;
         }
 
@@ -1393,18 +1458,28 @@ public class BitmexService extends MarketServicePreliq {
     boolean startFlag = false;
 
     private Disposable startOrderBookListener() {
+        final BitmexObType obType = settingsRepositoryService.getSettings().getBitmexObType();
         startFlag = false;
-        List<String> symbols = new ArrayList<>();
-        symbols.add(bitmexContractType.getSymbol());
-        if (!sameOrderBookXBTUSD()) {
-            symbols.add(bitmexContractTypeXBTUSD.getSymbol());
+        final Observable<OrderBook> orderBookObservable;
+        if (obType != BitmexObType.TRADITIONAL_10) {
+            orderBookObservable = getBitmexOrderBookObservable(obType)
+                    .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBook"))
+                    .observeOn(stateUpdater) // the sync queue is here.
+                    .map(bitmexOrderBook -> mergeOrderBook(bitmexOrderBook, obType));
+        } else {
+            List<String> symbols = new ArrayList<>();
+            symbols.add(bitmexContractType.getSymbol());
+            if (!sameOrderBookXBTUSD()) {
+                symbols.add(bitmexContractTypeXBTUSD.getSymbol());
+            }
+            final BitmexStreamingMarketDataService streamingMarketDataService = (BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService();
+            orderBookObservable = streamingMarketDataService.getOrderBookTop10(symbols)
+                    .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBook"))
+                    .observeOn(stateUpdater) // the sync queue is here.
+                    .map(this::mergeOrderBook10);
         }
-
-        return ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
-                .getOrderBookL2(symbols)
-                .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBook"))
-                .observeOn(stateUpdater) // the sync queue is here.
-                .map(this::mergeOrderBook)
+        bitmexObTypeCurrent = obType;
+        return orderBookObservable
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                 .filter(ob -> ob.getBids().size() != 0 && ob.getAsks().size() != 0)
@@ -1437,6 +1512,22 @@ public class BitmexService extends MarketServicePreliq {
                     orderBookErrors.incrementAndGet();
                     requestReconnect(true);
                 });
+    }
+
+    private Observable<BitmexOrderBook> getBitmexOrderBookObservable(BitmexObType obType) {
+        List<String> symbols = new ArrayList<>();
+        symbols.add(bitmexContractType.getSymbol());
+        if (!sameOrderBookXBTUSD()) {
+            symbols.add(bitmexContractTypeXBTUSD.getSymbol());
+        }
+        final BitmexStreamingMarketDataService streamingMarketDataService = (BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService();
+        if (obType == null || obType == BitmexObType.INCREMENTAL_25) {
+            return streamingMarketDataService.getOrderBookL2_25(symbols);
+        } else if (obType == BitmexObType.INCREMENTAL_FULL) {
+            return streamingMarketDataService.getOrderBookL2(symbols);
+        }
+        // else obType == BitmexObType.TRADITIONAL_10
+        throw new IllegalArgumentException("use another orderBook subscriber for TRADITIONAL_10 ");
     }
 
     private boolean isDefaultOB(OrderBook orderBook) {

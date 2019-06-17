@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
+import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
@@ -37,7 +38,7 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
         throw new IllegalArgumentException("Deprecated. Use {@link #getOrderBookL2(List)} instead.");
     }
 
-    public Observable<BitmexOrderBook> getOrderBookL2(List<String> symbols) {
+    public Observable<BitmexOrderBook> getOrderBookL2_25(List<String> symbols) {
         List<String> orderBookSubjects = symbols.stream()
                 .map(s -> "orderBookL2_25:" + s).collect(Collectors.toList());//orderBookL2_25:XBTUSD
 
@@ -47,6 +48,41 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
                     return mapper.treeToValue(s, BitmexOrderBook.class);
+                });
+    }
+
+    public Observable<BitmexOrderBook> getOrderBookL2(List<String> symbols) {
+        List<String> orderBookSubjects = symbols.stream()
+                .map(s -> "orderBookL2:" + s).collect(Collectors.toList());//orderBookL2_25:XBTUSD
+
+        return service.subscribeChannel("orderBookL2", orderBookSubjects)
+                .map(s -> {
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+                    return mapper.treeToValue(s, BitmexOrderBook.class);
+                });
+    }
+
+    public Observable<BitmexDepth> getOrderBookTop10(List<String> symbols) {
+        List<String> orderBookSubjects = symbols.stream()
+                .map(s -> "orderBook10:" + s).collect(Collectors.toList());//orderBook:XBTUSD
+
+        return service.subscribeChannel("orderBook10", orderBookSubjects)
+                .map(s -> {
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                    // table = "orderBook10"
+                    // action = partial / update
+                    // data
+//                    s.get("data").get(0);
+                    // symbol
+                    // bids
+                    // asks
+                    // timestamp
+                    //noinspection UnnecessaryLocalVariable
+                    final BitmexDepth data = mapper.treeToValue(s.get("data").get(0), BitmexDepth.class);
+                    return data;
                 });
     }
 
