@@ -80,7 +80,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     protected static final int MAX_ATTEMPTS_CANCEL = 90;
 
-    protected static final int ORDERBOOK_MAX_SIZE = 5;
+    public static final int ORDERBOOK_MAX_SIZE = 5;
     protected volatile BigDecimal bestBid = BigDecimal.ZERO;
     protected volatile BigDecimal bestAsk = BigDecimal.ZERO;
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());

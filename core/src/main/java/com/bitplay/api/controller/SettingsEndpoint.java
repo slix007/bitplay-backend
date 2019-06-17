@@ -119,6 +119,9 @@ public class SettingsEndpoint {
         // BitmexChangeOnSo
         final BitmexChangeOnSo bitmexChangeOnSo = settings.getBitmexChangeOnSo();
         bitmexChangeOnSo.setSecToReset(bitmexChangeOnSoService.getSecToReset());
+
+        // BitmexObType
+        settings.setBitmexObTypeCurrent(bitmexService.getBitmexObTypeCurrent());
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -331,6 +334,10 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getBitmexFokMaxDiff() != null) {
             settings.setBitmexFokMaxDiff(settingsUpdate.getBitmexFokMaxDiff());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getBitmexObType() != null) {
+            settings.setBitmexObType(settingsUpdate.getBitmexObType());
             settingsRepositoryService.saveSettings(settings);
         }
 

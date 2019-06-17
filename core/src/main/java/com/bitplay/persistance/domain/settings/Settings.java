@@ -57,6 +57,9 @@ public class Settings extends AbstractDocument {
     private AmountType amountTypeBitmex;
     private AmountType amountTypeOkex;
     private BigDecimal bitmexFokMaxDiff; // bitmex fillOrKill max diff price
+    private BitmexObType bitmexObType;
+    @Transient
+    private BitmexObType bitmexObTypeCurrent; // only for UI
 
     private ContractMode contractMode;
     @Transient
@@ -117,6 +120,7 @@ public class Settings extends AbstractDocument {
         settings.okexEbestElast = false;
         settings.dql = new Dql();
         settings.dql.setDqlLevel(BigDecimal.ZERO);
+        settings.bitmexObType = BitmexObType.INCREMENTAL_25;
         settings.setId(1L);
         return settings;
     }
