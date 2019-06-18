@@ -41,6 +41,7 @@ import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.processors.PublishProcessor;
 import io.reactivex.schedulers.Schedulers;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -145,6 +146,17 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public OrderBook getOrderBook() {
         return this.orderBookShort;
+    }
+
+    public void fetchOrderBookMain() {
+        try {
+            final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getContractType().getCurrencyPair());
+            final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
+            this.orderBook = ob;
+            this.orderBookShort = ob;
+        } catch (IOException e) {
+            logger.error("can not fetch orderBook");
+        }
     }
 
     public abstract String fetchPosition() throws Exception;

@@ -55,6 +55,7 @@ public class BitmexAdapters {
                         .Builder(orderType, currencyPair)
                         .tradableAmount(orderBookL2.getSize())
                         .limitPrice(new BigDecimal(orderBookL2.getPrice()).setScale(scale, RoundingMode.HALF_UP))
+                        .timestamp(new Date())
                         .build();
                 limitOrderList.add(limitOrder);
             }

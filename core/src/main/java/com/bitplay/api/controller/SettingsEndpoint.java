@@ -370,6 +370,11 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
         }
 
+        if (settingsUpdate.getPreSignalObReFetch() != null) {
+            settings.setPreSignalObReFetch(settingsUpdate.getPreSignalObReFetch());
+            settingsRepositoryService.saveSettings(settings);
+        }
+
         if (resetPreset) {
             persistenceService.resetSettingsPreset();
         }
