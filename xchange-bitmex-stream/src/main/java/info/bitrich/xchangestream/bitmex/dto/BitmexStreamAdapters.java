@@ -21,7 +21,6 @@ public class BitmexStreamAdapters {
     public static OrderBook adaptBitmexOrderBook(BitmexDepth bitmexDepth, CurrencyPair currencyPair) {
         final Date timestamp = bitmexDepth.getTimestamp();
         List<LimitOrder> asks = adaptLimitOrders(bitmexDepth.getAsks(), Order.OrderType.ASK, currencyPair, timestamp);
-        Collections.reverse(asks); //TODO do we need it?
         List<LimitOrder> bids = adaptLimitOrders(bitmexDepth.getBids(), Order.OrderType.BID, currencyPair, timestamp);
 
         return new OrderBook(timestamp, asks, bids);
