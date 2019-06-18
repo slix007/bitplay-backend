@@ -207,13 +207,19 @@ public class ArbitrageService {
                                 ? ((SignalEventEx) eventQuant).getSignalEvent()
                                 : (SignalEvent) eventQuant;
 
-                        if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED
-                                || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
+                        if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
 
                             final OrderBook firstOrderBook = firstMarketService.getOrderBook();
                             final OrderBook secondOrderBook = secondMarketService.getOrderBook();
 
                             final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
+                            boolean orderBookReFetched = true; // by default no reFetch
+                            final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
+                            if (preSignalObReFetch != null && preSignalObReFetch) {
+                                orderBookReFetched = eventQuant instanceof SignalEventEx && ((SignalEventEx) eventQuant).isOrderBookReFetched();
+                            }
+                            bestQuotes.setOrderBookReFetched(orderBookReFetched);
+
                             params.setLastOBChange(new Date());
 
                             resetArbStatePreliq();
@@ -943,10 +949,14 @@ public class ArbitrageService {
                         if (signalDelayActivateTime == null) {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
-                            arbState = ArbState.IN_PROGRESS;
-                            startTradingOnDelta1(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
-                                    ask1_o,
-                                    bid1_p, lastObTime, b_block_input, o_block_input);
+                            if (bestQuotes.needOrderBookReFetch()) {
+                                preSignalReCheck();
+                            } else {
+                                arbState = ArbState.IN_PROGRESS;
+                                startTradingOnDelta1(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
+                                        ask1_o,
+                                        bid1_p, lastObTime, b_block_input, o_block_input);
+                            }
                         }
                     }
                 }
@@ -954,7 +964,6 @@ public class ArbitrageService {
 
         } else {
 //            stopSignalDelay(); - do not use. It reset the signalDelay during a signal.
-            bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
         }
     }
 
@@ -1055,7 +1064,6 @@ public class ArbitrageService {
         firstMarketService.setBusy();
         secondMarketService.setBusy();
 
-        bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.TRADE_STARTED);
         setSignalType(SignalType.AUTOMATIC);
 
         if (dynamicDeltaLogs != null) {
@@ -1159,10 +1167,14 @@ public class ArbitrageService {
                         if (signalDelayActivateTime == null) {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
-                            arbState = ArbState.IN_PROGRESS;
-                            startTradingOnDelta2(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
-                                    ask1_p,
-                                    bid1_o, lastObTime, b_block_input, o_block_input);
+                            if (bestQuotes.needOrderBookReFetch()) {
+                                preSignalReCheck();
+                            } else {
+                                arbState = ArbState.IN_PROGRESS;
+                                startTradingOnDelta2(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
+                                        ask1_p,
+                                        bid1_o, lastObTime, b_block_input, o_block_input);
+                            }
                         }
                     }
                 }
@@ -1170,8 +1182,17 @@ public class ArbitrageService {
 
         } else {
 //            stopSignalDelay(); - do not use. It reset the signalDelay during a signal.
-            bestQuotes.setArbitrageEvent(BestQuotes.ArbitrageEvent.ONLY_SIGNAL);
         }
+    }
+
+    private void preSignalReCheck() {
+        final Instant start = Instant.now();
+        firstMarketService.fetchOrderBookMain();
+        secondMarketService.fetchOrderBookMain();
+        final Instant end = Instant.now();
+        final long ms = Duration.between(start, end).toMillis();
+        warningLogger.info(String.format("Pre-signal recheck orderBook %s ms, b_delta=%s, o_delta=%s.", ms, delta1, delta2));
+        signalEventBus.send(new SignalEventEx(SignalEvent.B_ORDERBOOK_CHANGED, Instant.now(), true));
     }
 
     private void printAdjWarning(BigDecimal b_block_input, BigDecimal o_block_input, BigDecimal b_block, BigDecimal o_block) {

@@ -91,6 +91,7 @@ public class Settings extends AbstractDocument {
     private String currentPreset;
 
     private Dql dql;
+    private Boolean preSignalObReFetch;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();

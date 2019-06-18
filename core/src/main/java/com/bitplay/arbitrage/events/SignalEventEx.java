@@ -1,7 +1,6 @@
 package com.bitplay.arbitrage.events;
 
 import java.time.Instant;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,11 +9,22 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@AllArgsConstructor
 public class SignalEventEx implements EventQuant {
 
     private SignalEvent signalEvent;
     private Instant startTime;
+    private boolean orderBookReFetched = false;
+
+    public SignalEventEx(SignalEvent signalEvent, Instant startTime) {
+        this.signalEvent = signalEvent;
+        this.startTime = startTime;
+    }
+
+    public SignalEventEx(SignalEvent signalEvent, Instant startTime, boolean orderBookReFetched) {
+        this.signalEvent = signalEvent;
+        this.startTime = startTime;
+        this.orderBookReFetched = orderBookReFetched;
+    }
 
     @Override
     public Instant startTime() {
