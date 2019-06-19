@@ -628,6 +628,7 @@ public class PosDiffService {
             }
         } else {
             dtAdj.stop();
+            maxCountNotify(corrParams.getAdj());
         }
 
         return false;
@@ -698,6 +699,7 @@ public class PosDiffService {
             }
         } else {
             dtExtraAdj.stop();
+            maxCountNotify(corrParams.getAdj());
         }
         return false;
     }
@@ -744,8 +746,20 @@ public class PosDiffService {
 
         } else {
             dtCorr.stop();
+            maxCountNotify(corrParams.getCorr());
         }
         return false;
+    }
+
+    private void maxCountNotify(CountedWithExtra countedWithExtra) {
+        if (countedWithExtra.totalCountViolated()) {
+            slackNotifications.sendNotify(NotifyType.ADJ_CORR_PRELIQ_MAX_TOTAL,
+                    String.format("adj/corr max total %s reached ", countedWithExtra.getMaxTotalCount()));
+        }
+        if (countedWithExtra.maxErrorCountViolated()) {
+            slackNotifications.sendNotify(NotifyType.ADJ_CORR_PRELIQ_MAX_ATTEMPT,
+                    String.format("adj/corr max attempts %s reached", countedWithExtra.getMaxErrorCount()));
+        }
     }
 
     private boolean corrExtraStartedOrFailed(CorrParams corrParams) throws Exception {
@@ -790,6 +804,7 @@ public class PosDiffService {
 
         } else {
             dtExtraCorr.stop();
+            maxCountNotify(corrParams.getCorr());
         }
         return false;
     }

@@ -283,6 +283,11 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
+    public SlackNotifications getSlackNotifications() {
+        return slackNotifications;
+    }
+
+    @Override
     public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
         okexContractType = (OkexContractType) contractType;
         logger.info("Starting okex with " + okexContractType);
@@ -1059,6 +1064,7 @@ public class OkCoinService extends MarketServicePreliq {
                         warningLogger.error("WAITING_ARB: no deferred order. Set READY.");
                         resetWaitingArb();
                         arbitrageService.resetArbState(getCounterName(), "deferredPlacingOrder");
+                        slackNotifications.sendNotify(NotifyType.RESET_TO_FREE, "WAITING_ARB: no deferred order. Set READY.");
                         return false;
                     }
 
@@ -1089,6 +1095,7 @@ public class OkCoinService extends MarketServicePreliq {
                             warningLogger.error(msg1);
                             resetWaitingArb();
                             arbitrageService.resetArbState(getCounterName(), "deferredPlacingOrder");
+                            slackNotifications.sendNotify(NotifyType.RESET_TO_FREE, msg1);
                             return false;
                         }
                     }
@@ -1116,6 +1123,7 @@ public class OkCoinService extends MarketServicePreliq {
                 logger.error("{} deferredPlacingOrder error", getName(), e);
                 resetWaitingArb();
                 arbitrageService.resetArbState(getCounterName(), "deferredPlacingOrder");
+                slackNotifications.sendNotify(NotifyType.RESET_TO_FREE, "WAITING_ARB: deferredPlacingOrder error. Set READY. " + e.getMessage());
                 return false;
             }
             return true;

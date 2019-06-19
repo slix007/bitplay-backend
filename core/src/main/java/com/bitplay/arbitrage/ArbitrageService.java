@@ -305,6 +305,7 @@ public class ArbitrageService {
 
                 if (arbState == ArbState.IN_PROGRESS) {
                     arbState = ArbState.READY;
+
                     final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
                     final long tradeIdSnap = tradeId;
 
@@ -910,7 +911,8 @@ public class ArbitrageService {
                 if (firstMarketService.noPreliq() && secondMarketService.noPreliq()) {
                     // do reset
                     arbState = ArbState.READY; // arbStatePrevPreliq != null ? arbStatePrevPreliq : ArbState.READY;
-                    log.info("reset ArbState from PRELIQ to " + arbState);
+                    log.info("reset ArbState from PRELIQ to READY");
+//                    slackNotifications.sendNotify(NotifyType.SET_FREE, "reset ArbState from PRELIQ to READY");
                 }
             }
         }
@@ -1407,6 +1409,11 @@ public class ArbitrageService {
                 }
             }
 
+        }
+
+        // max delta violation
+        if (isMaxDeltaViolated(DeltaName.B_DELTA) || isMaxDeltaViolated(DeltaName.O_DELTA)) {
+            slackNotifications.sendNotify(NotifyType.MAX_DELTA_VIOLATED, "max delta violated");
         }
 
         Instant end = Instant.now();

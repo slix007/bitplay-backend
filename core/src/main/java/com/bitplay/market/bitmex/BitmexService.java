@@ -297,6 +297,11 @@ public class BitmexService extends MarketServicePreliq {
         return bitmexLimitsService;
     }
 
+    @Override
+    public SlackNotifications getSlackNotifications() {
+        return slackNotifications;
+    }
+
     public BigDecimal getCm() {
         if (cm == null) {
             return DEFAULT_CM;
