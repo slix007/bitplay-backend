@@ -176,7 +176,7 @@
         <maven-plugin-version>1.0.0</maven-plugin-version>
         <junit-version>4.12</junit-version>
         <java.version>1.8</java.version>
-        <xchange-core.version>4.2.1-bts</xchange-core.version>
+        <xchange-core.version>4.2.2-bts-SNAPSHOT</xchange-core.version>
     </properties>
 </project>
 
