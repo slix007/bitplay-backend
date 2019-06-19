@@ -40,6 +40,16 @@ public class Adj extends CountedWithExtra {
         boolean hasSparePermanent = getTotalCount() < maxTotalCount;
         return hasSpareCurrent && hasSparePermanent;
     }
+    @Override
+    public boolean totalCountViolated() {
+        boolean hasSparePermanent = getTotalCount() < maxTotalCount;
+        return !hasSparePermanent;
+    }
+    @Override
+    public boolean maxErrorCountViolated() {
+        boolean hasSpareCurrent = currErrorCount < maxErrorCount;
+        return !hasSpareCurrent;
+    }
 
     @Override
     public void incTotalCount() {

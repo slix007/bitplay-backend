@@ -3,6 +3,7 @@ package com.bitplay.market;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.external.NotifyType;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
@@ -10,6 +11,7 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.correction.Preliq;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.utils.Utils;
@@ -25,6 +27,8 @@ import org.knowm.xchange.dto.Order.OrderType;
 public abstract class MarketServicePreliq extends MarketServicePortions {
 
     public abstract LimitsService getLimitsService();
+
+    public abstract SlackNotifications getSlackNotifications();
 
     public boolean noPreliq() {
         return !dtPreliq.isActive();
@@ -117,6 +121,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
                             doPreliqOrder(preliqParams);
                         } else {
                             resetPreliqState();
+                            maxCountNotify(corrParams.getPreliq());
                         }
                         log.info("dtPreliq stop after successful preliq");
                         dtPreliq.stop(); //after successful start
@@ -131,10 +136,23 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
         } else {
             resetPreliqState();
             dtPreliq.stop();
+            maxCountNotify(corrParams.getPreliq());
         }
         Instant end = Instant.now();
         Utils.logIfLong(start, end, log, "checkForDecreasePosition");
     }
+
+    private void maxCountNotify(Preliq preliq) {
+        if (preliq.totalCountViolated()) {
+            getSlackNotifications().sendNotify(NotifyType.ADJ_CORR_PRELIQ_MAX_TOTAL,
+                    String.format("preliq max total %s reached ", preliq.getMaxTotalCount()));
+        }
+        if (preliq.maxErrorCountViolated()) {
+            getSlackNotifications().sendNotify(NotifyType.ADJ_CORR_PRELIQ_MAX_ATTEMPT,
+                    String.format("preliq max attempts %s reached", preliq.getMaxErrorCount()));
+        }
+    }
+
 
     private boolean posZeroViolation(Pos pos) {
         if (getName().equals(BitmexService.NAME)) {

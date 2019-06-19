@@ -57,7 +57,11 @@ public class DestinationResolver {
             NotifyType.LAST_PRICE_DEVIATION,
             NotifyType.BITMEX_RECONNECT,
             NotifyType.TRADE_SIGNAL,
-            NotifyType.ROUND_IS_NOT_DONE
+            NotifyType.ROUND_IS_NOT_DONE,
+            NotifyType.ADJ_CORR_PRELIQ_MAX_TOTAL,
+            NotifyType.ADJ_CORR_PRELIQ_MAX_ATTEMPT,
+            NotifyType.RESET_TO_FREE,
+            NotifyType.MAX_DELTA_VIOLATED
     );
     //2) Trader passive: сервера 662, 669, 659, 667, 668
     //1. Stop all actions (MDC и signal limit)
@@ -74,7 +78,12 @@ public class DestinationResolver {
             NotifyType.CORR_NOTIFY,
             NotifyType.BITMEX_BAN_403, NotifyType.OKEX_BAN_403,
             NotifyType.LAST_PRICE_DEVIATION,
-            NotifyType.STOPPED
+            NotifyType.STOPPED,
+            NotifyType.BUSY_6_MIN,
+            NotifyType.ADJ_CORR_PRELIQ_MAX_TOTAL,
+            NotifyType.ADJ_CORR_PRELIQ_MAX_ATTEMPT,
+            NotifyType.RESET_TO_FREE,
+            NotifyType.MAX_DELTA_VIOLATED
     );
 
     //3) Coordinator: сервера 662, 669, 659,

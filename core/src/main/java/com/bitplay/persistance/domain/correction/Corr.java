@@ -64,6 +64,14 @@ public class Corr extends CountedWithExtra {
         boolean hasSparePermanent = getTotalCount() < maxTotalCount;
         return hasSpareCurrent && hasSparePermanent;
     }
+    public boolean totalCountViolated() {
+        boolean hasSparePermanent = getTotalCount() < maxTotalCount;
+        return !hasSparePermanent;
+    }
+    public boolean maxErrorCountViolated() {
+        boolean hasSpareCurrent = currErrorCount < maxErrorCount;
+        return !hasSpareCurrent;
+    }
 
     @Override
     public void incTotalCount() {

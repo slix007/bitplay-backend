@@ -66,6 +66,16 @@ public class Preliq extends CountedPreliq {
         return hasSpareCurrent && hasSparePermanent;
     }
 
+    public boolean totalCountViolated() {
+        boolean hasSparePermanent = totalCount < maxTotalCount;
+        return !hasSparePermanent;
+    }
+
+    public boolean maxErrorCountViolated() {
+        boolean hasSpareCurrent = currErrorCount < maxErrorCount;
+        return !hasSpareCurrent;
+    }
+
     public void incTotalCount(String marketName) {
         super.incTotalCount(marketName);
         this.totalCount++;

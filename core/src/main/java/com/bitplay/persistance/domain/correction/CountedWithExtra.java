@@ -60,4 +60,8 @@ public abstract class CountedWithExtra {
     }
 
 
+    public abstract boolean totalCountViolated();
+    public abstract boolean maxErrorCountViolated();
+    public abstract Integer getMaxTotalCount();
+    public abstract Integer getMaxErrorCount();
 }
