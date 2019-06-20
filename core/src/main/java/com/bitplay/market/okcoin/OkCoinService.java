@@ -1995,6 +1995,9 @@ public class OkCoinService extends MarketServicePreliq {
                             cancelledOrder.getStatus(),
                             cancelledOrder.getCumulativeAmount()));
 
+                    if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED) {
+                        cancelSucceed = true;
+                    }
                     if (cancelledOrder.getStatus() == Order.OrderStatus.CANCELED
                             || cancelledOrder.getStatus() == Order.OrderStatus.FILLED) {
                         resOrder = cancelledOrder;
