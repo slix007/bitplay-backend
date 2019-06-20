@@ -1907,6 +1907,9 @@ public class OkCoinService extends MarketServicePreliq {
                             result.getErrorCode(),
                             result.getDetails(),
                             getErrorCodeTranslation(result)));
+                    if (!result.isResult()) {
+                        updateOOStatuses();
+                    }
                 }
 
             } catch (Exception e) {

@@ -70,7 +70,7 @@ public abstract class MarketServiceOpenOrders {
 
     public boolean hasOpenOrders() {
         boolean hasOO;
-        validateForDuplicatesOO(); // just to logs
+//        validateForDuplicatesOO(); // just to logs
 
         hasOO = openOrders.stream()
                 .anyMatch(FplayOrder::isOpen);

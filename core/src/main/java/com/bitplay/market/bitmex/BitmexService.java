@@ -65,8 +65,10 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
+import io.micrometer.core.instrument.util.NamedThreadFactory;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
+import io.reactivex.Scheduler;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -88,6 +90,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -774,44 +777,46 @@ public class BitmexService extends MarketServicePreliq {
 
             List<FplayOrder> resultOOList = new ArrayList<>();
 
-            for (FplayOrder openOrder : getOnlyOpenFplayOrders()) {
+            for (FplayOrder openOrder : getOpenOrders()) {
+                if (openOrder.isOpen()) {
 
-                if (bitmexChangeOnSoService.toTakerActive()) {
-                    cancelAndPlaceOnSo(openOrder); // set status 'CANCELLED' if it is successful
-                }
-
-                if (openOrder == null || openOrder.getOrderId() == null
-                        || openOrder.getOrderId().equals("0")
-                        || openOrder.getOrder().getId().equals("0")) {
-                    warningLogger.warn("OO is null. " + openOrder);
-                    // empty, do not add
-
-                } else if (openOrder.getOrder().getType() == null) {
-                    warningLogger.warn("OO type is null. " + openOrder.toString());
-                    // keep the order
-                    resultOOList.add(openOrder);
-
-                } else if (openOrder.getOrderDetail().getOrderStatus() != OrderStatus.NEW
-                        && openOrder.getOrderDetail().getOrderStatus() != OrderStatus.PENDING_NEW
-                        && openOrder.getOrderDetail().getOrderStatus() != OrderStatus.PARTIALLY_FILLED) {
-                    // keep the order
-                    resultOOList.add(openOrder);
-
-                } else {
-                    final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, startMoving, waitingPrevMs);
-
-                    List<FplayOrder> orderList = handleMovingResponse(response, maxAttempts, openOrder);
-
-                    // update all fplayOrders
-                    for (FplayOrder resultOO : orderList) {
-                        final LimitOrder order = resultOO.getLimitOrder();
-                        arbitrageService.getDealPrices().getbPriceFact()
-                                .addPriceItem(resultOO.getCounterName(), order.getId(),
-                                        order.getCumulativeAmount(),
-                                        order.getAveragePrice(), order.getStatus());
-                        resultOOList.add(resultOO);
+                    if (bitmexChangeOnSoService.toTakerActive()) {
+                        cancelAndPlaceOnSo(openOrder); // set status 'CANCELLED' if it is successful
                     }
 
+                    if (openOrder.getOrderId() == null
+                            || openOrder.getOrderId().equals("0")
+                            || openOrder.getOrder().getId().equals("0")) {
+                        warningLogger.warn("OO is null. " + openOrder);
+                        // empty, do not add
+
+                    } else if (openOrder.getOrder().getType() == null) {
+                        warningLogger.warn("OO type is null. " + openOrder.toString());
+                        // keep the order
+                        resultOOList.add(openOrder);
+
+                    } else if (openOrder.getOrderDetail().getOrderStatus() != OrderStatus.NEW
+                            && openOrder.getOrderDetail().getOrderStatus() != OrderStatus.PENDING_NEW
+                            && openOrder.getOrderDetail().getOrderStatus() != OrderStatus.PARTIALLY_FILLED) {
+                        // keep the order
+                        resultOOList.add(openOrder);
+
+                    } else {
+                        final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, startMoving, waitingPrevMs);
+
+                        List<FplayOrder> orderList = handleMovingResponse(response, maxAttempts, openOrder);
+
+                        // update all fplayOrders
+                        for (FplayOrder resultOO : orderList) {
+                            final LimitOrder order = resultOO.getLimitOrder();
+                            arbitrageService.getDealPrices().getbPriceFact()
+                                    .addPriceItem(resultOO.getCounterName(), order.getId(),
+                                            order.getCumulativeAmount(),
+                                            order.getAveragePrice(), order.getStatus());
+                            resultOOList.add(resultOO);
+                        }
+
+                    }
                 }
             }
 
@@ -1570,10 +1575,13 @@ public class BitmexService extends MarketServicePreliq {
         return orderBook;
     }
 
+    private final ExecutorService ooMergerExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory(getName() + "-oo-merger"));
+    private final Scheduler ooMergerScheduler = Schedulers.from(ooMergerExecutor);
+
     private Disposable startOpenOrderListener() {
         return exchange.getStreamingTradingService()
                 .getOpenOrderObservable(currencyToScale)
-                .observeOn(ooSingleScheduler) // blocking queue is here
+                .observeOn(ooMergerScheduler) // blocking queue is here
                 .doOnError(throwable -> handleSubscriptionError(throwable, "onOpenOrdersListening"))
                 .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
