@@ -427,13 +427,15 @@ public class OkCoinService extends MarketServicePreliq {
         spec.setExchangeSpecificParametersItem("Use_Intl", true);
         spec.setExchangeSpecificParametersItem("Use_Futures", true);
         spec.setExchangeSpecificParametersItem("Futures_Contract", okexContractType.getFuturesContract());
-        if (okexContractType.isEth()) {
-            spec.setExchangeSpecificParametersItem("Futures_Leverage", "50");
-            leverage = BigDecimal.valueOf(50);
-        } else {
-            spec.setExchangeSpecificParametersItem("Futures_Leverage", "100");
-            leverage = BigDecimal.valueOf(100);
-        }
+        spec.setExchangeSpecificParametersItem("Futures_Leverage", "20");
+        leverage = BigDecimal.valueOf(20);
+//        if (okexContractType.isEth()) {
+//            spec.setExchangeSpecificParametersItem("Futures_Leverage", "20");
+//            leverage = BigDecimal.valueOf(50);
+//        } else {
+//            spec.setExchangeSpecificParametersItem("Futures_Leverage", "100");
+//            leverage = BigDecimal.valueOf(100);
+//        }
 
         if (exArgs != null && exArgs.length == 3) {
             String exKey = (String) exArgs[0];
