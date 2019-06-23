@@ -187,6 +187,8 @@ public class SettingsPresetRepositoryService {
         s.setAmountTypeBitmex(p.getAmountTypeBitmex());
         s.setAmountTypeOkex(p.getAmountTypeOkex());
         s.setBitmexFokMaxDiff(p.getBitmexFokMaxDiff());
+        s.setBitmexFokMaxDiffAuto(p.getBitmexFokMaxDiffAuto());
+        s.setBitmexFokTotalDiff(p.getBitmexFokTotalDiff());
         s.setBitmexObType(p.getBitmexObType());
         s.setContractMode(p.getContractMode());
 //        s.setHedgeBtc(); - excluded

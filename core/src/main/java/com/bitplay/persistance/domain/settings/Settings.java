@@ -57,6 +57,8 @@ public class Settings extends AbstractDocument {
     private AmountType amountTypeBitmex;
     private AmountType amountTypeOkex;
     private BigDecimal bitmexFokMaxDiff; // bitmex fillOrKill max diff price
+    private Boolean bitmexFokMaxDiffAuto;
+    private BigDecimal bitmexFokTotalDiff;
     private BitmexObType bitmexObType;
     @Transient
     private BitmexObType bitmexObTypeCurrent; // only for UI

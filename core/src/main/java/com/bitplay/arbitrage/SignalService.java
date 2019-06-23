@@ -5,20 +5,20 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
+import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,9 +26,9 @@ import org.springframework.stereotype.Service;
  * Created by Sergey Shurmin on 1/21/18.
  */
 @Service
+@Slf4j
 public class SignalService {
 
-    private static final Logger logger = LoggerFactory.getLogger(SignalService.class);
     final ExecutorService executorService = Executors.newFixedThreadPool(2,
             new NamedThreadFactory("signal-service"));
 
@@ -51,12 +51,12 @@ public class SignalService {
                     Thread.sleep(1000); // let the other market finish it's placing, before set to READY.
                     String warn = "WARNING: o_block=" + o_block + ". No order on signal";
                     okexService.getTradeLogger().warn(warn);
-                    logger.warn(warn);
+                    log.warn(warn);
 
                     okexService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
 
                 } catch (InterruptedException e) {
-                    logger.error("Error on placeOrderOnSignal", e);
+                    log.error("Error on placeOrderOnSignal", e);
                 }
 
             });
@@ -77,11 +77,11 @@ public class SignalService {
 
                         if (tradeResponse.getErrorCode() != null) {
                             okexService.getTradeLogger().warn("WARNING: " + tradeResponse.getErrorCode());
-                            logger.warn("WARNING: " + tradeResponse.getErrorCode());
+                            log.warn("WARNING: " + tradeResponse.getErrorCode());
                         }
 
                     } catch (Exception e) {
-                        logger.error("Error on placeOrderOnSignal", e);
+                        log.error("Error on placeOrderOnSignal", e);
                     }
                 });
             }
@@ -89,7 +89,7 @@ public class SignalService {
     }
 
     public void placeBitmexOrderOnSignal(OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo) {
+            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo, BtmFokAutoArgs btmFokAutoArgs) {
 
         executorService.submit(() -> {
             try {
@@ -98,7 +98,7 @@ public class SignalService {
                     Thread.sleep(1000);
                     String warn = "WARNING: b_block=" + b_block + ". No order on signal";
                     bitmexService.getTradeLogger().warn(warn);
-                    logger.warn(warn);
+                    log.warn(warn);
 
                     bitmexService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
                     return;
@@ -107,12 +107,13 @@ public class SignalService {
                 final int attempt = isConBo ? PlaceOrderArgs.NO_REPEATS_ATTEMPT : 1;
                 final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, SignalType.AUTOMATIC,
                         attempt, tradeId, counterName, lastObTime);
+                placeOrderArgs.setBtmFokArgs(btmFokAutoArgs);
 
                 tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
                 bitmexService.placeOrderToOpenOrders(placeOrderArgs);
 
             } catch (Exception e) {
-                logger.error("Error on placeOrderOnSignal", e);
+                log.error("Error on placeOrderOnSignal", e);
             }
         });
     }

@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
@@ -32,26 +33,25 @@ public class VolatileModeSwitcherService {
 
     boolean trySwitchToVolatileModeBorderV2(final BordersService.TradingSignal tradingSignal) {
         if (tradingSignal.borderValueList != null) {
-            BigDecimal minBorder = null;
-            for (BigDecimal x : tradingSignal.borderValueList) {
-                minBorder = (minBorder == null || minBorder.subtract(x).signum() > 0) ? x : minBorder;
-            }
-            if (minBorder != null && tradingSignal.deltaVal != null && !tradingSignal.deltaVal.isEmpty()) {
+            BigDecimal minBorder = tradingSignal.getMinBorder();
+            BigDecimal maxBorder = tradingSignal.getMaxBorder();
+            if (minBorder != null && maxBorder != null && tradingSignal.deltaVal != null && !tradingSignal.deltaVal.isEmpty()) {
                 BigDecimal delta = new BigDecimal(tradingSignal.deltaVal);
-                return trySwitchToVolatileMode(delta, minBorder);
+                return trySwitchToVolatileMode(delta, minBorder, new BtmFokAutoArgs(delta, maxBorder, tradingSignal.borderValue));
             }
         }
         return false;
     }
 
-    boolean trySwitchToVolatileMode(BigDecimal delta, BigDecimal border) {
+    boolean trySwitchToVolatileMode(BigDecimal delta, BigDecimal minBorder, BtmFokAutoArgs btmFokAutoArgs) {
         // если delta1 plan - border1 >= Border cross depth или delta2 plan - border2 >= Border cross depth,
         // то это триггер для переключения из Current mode в Volatile Mode.
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final BigDecimal borderCrossDepth = settings.getSettingsVolatileMode().getBorderCrossDepth();
         if (settings.getTradingModeAuto()
                 && borderCrossDepth.signum() > 0
-                && delta.subtract(border).compareTo(borderCrossDepth) >= 0) {
+                && delta.subtract(minBorder).compareTo(borderCrossDepth) >= 0) {
+            arbitrageService.setLastBtmFokAutoArgs(btmFokAutoArgs);
             if (settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
                 final Integer vModeDelayMs = settings.getSettingsVolatileMode().getVolatileDelayMs();
                 if (vModeDelayMs != null && vModeDelayMs > 0) {
