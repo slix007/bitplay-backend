@@ -26,6 +26,7 @@ import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.ArbState;
+import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -579,6 +580,13 @@ public class ArbitrageService {
 
     }
 
+    // it's used for Volatile mode. When the activation is delayed, the param should be kept up-do-date.
+    private volatile BtmFokAutoArgs lastBtmFokAutoArgs;
+
+    public void setLastBtmFokAutoArgs(BtmFokAutoArgs btmFokAutoArgs) {
+        this.lastBtmFokAutoArgs = btmFokAutoArgs;
+    }
+
     void activateVolatileMode() {
         if (persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
             final Settings settings = persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
@@ -592,7 +600,7 @@ public class ArbitrageService {
                 dealPrices.setOkexPlacingType(okexPlacingType);
             }
 
-            volatileModeAfterService.justSetVolatileMode(tradeId); // replace-limit-orders. it may set CURRENT_VOLATILE
+            volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs); // replace-limit-orders. it may set CURRENT_VOLATILE
         }
     }
 
@@ -684,7 +692,7 @@ public class ArbitrageService {
             BigDecimal border2 = getBorder2();
 
             if (delta1.compareTo(border1) >= 0 && delta1.compareTo(btmMaxDelta) < 0) {
-                volatileModeSwitcherService.trySwitchToVolatileMode(delta1, border1);
+                volatileModeSwitcherService.trySwitchToVolatileMode(delta1, border1, new BtmFokAutoArgs(delta1, border1, border1.toPlainString()));
                 signalStatusDelta = DeltaName.B_DELTA;
 
                 if (signalDelayActivateTime == null) {
@@ -707,8 +715,8 @@ public class ArbitrageService {
 
                 if (plBlocks.getBlockOkex().signum() > 0) {
                     Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
-                    final TradingSignal tradingSignal = new TradingSignal(BorderVer.borderV1, plBlocks.getVer(),
-                            plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA1_B_SELL_O_BUY);
+                    final TradingSignal tradingSignal = TradingSignal.createOnBorderV1(plBlocks.getVer(),
+                            plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA1_B_SELL_O_BUY, delta1, border1);
                     checkAndStartTradingOnDelta1(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
                             tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
                     return bestQuotes;
@@ -717,7 +725,7 @@ public class ArbitrageService {
                     isAffordableOkex = false;
                 }
             } else if (delta2.compareTo(border2) >= 0 && delta2.compareTo(okMaxDelta) < 0) {
-                volatileModeSwitcherService.trySwitchToVolatileMode(delta2, border2);
+                volatileModeSwitcherService.trySwitchToVolatileMode(delta2, border2, new BtmFokAutoArgs(delta2, border2, border2.toPlainString()));
                 signalStatusDelta = DeltaName.O_DELTA;
 
                 if (signalDelayActivateTime == null) {
@@ -739,8 +747,8 @@ public class ArbitrageService {
                 }
                 if (plBlocks.getBlockOkex().signum() > 0) {
                     Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
-                    final TradingSignal tradingSignal = new TradingSignal(BorderVer.borderV1, plBlocks.getVer(),
-                            plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA2_B_BUY_O_SELL);
+                    final TradingSignal tradingSignal = TradingSignal.createOnBorderV1(plBlocks.getVer(),
+                            plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA2_B_BUY_O_SELL, delta2, border2);
                     checkAndStartTradingOnDelta2(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
                             tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
                     return bestQuotes;
@@ -1051,7 +1059,7 @@ public class ArbitrageService {
         signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
                 counterName, tradeId, lastObTime, isConBo);
         signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
-                counterName, tradeId, lastObTime, isConBo);
+                counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
 
         setTimeoutAfterStartTrading();
 
@@ -1230,7 +1238,7 @@ public class ArbitrageService {
         signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
                 counterName, tradeId, lastObTime, isConBo);
         signalService.placeBitmexOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
-                counterName, tradeId, lastObTime, isConBo);
+                counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
 
         setTimeoutAfterStartTrading();
 

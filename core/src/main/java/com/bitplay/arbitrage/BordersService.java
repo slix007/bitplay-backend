@@ -2,6 +2,7 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
@@ -17,6 +18,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -854,17 +856,25 @@ public class BordersService {
         final public BorderVer borderVer;
         final public String blockOnceWarn;
 
-        public TradingSignal(BorderVer borderVer, PlacingBlocks.Ver ver, BigDecimal b_block, BigDecimal o_block, TradeType tradeType) {
-            this.borderVer = borderVer;
+        public static TradingSignal createOnBorderV1(PlacingBlocks.Ver ver, BigDecimal b_block, BigDecimal o_block, TradeType tradeType, BigDecimal deltaVal,
+                BigDecimal borderValueV1) {
+            return new TradingSignal(ver, b_block, o_block, tradeType,
+                    deltaVal.toPlainString(), borderValueV1);
+        }
+
+        // borderV1
+        private TradingSignal(PlacingBlocks.Ver ver, BigDecimal b_block, BigDecimal o_block, TradeType tradeType, String deltaVal,
+                BigDecimal borderValueV1) {
+            this.borderVer = BorderVer.borderV1;
             this.bitmexBlock = b_block.intValue();
             this.okexBlock = o_block.intValue();
             this.ver = ver;
             this.tradeType = tradeType;
             this.posMode = null;
             this.borderName = null;
-            this.borderValue = null;
-            this.borderValueList = null;
-            this.deltaVal = null;
+            this.borderValue = borderValueV1.toPlainString();
+            this.borderValueList = Collections.singletonList(borderValueV1);
+            this.deltaVal = deltaVal;
             this.cm = null;
             this.blockOnceWarn = null;
         }
@@ -942,6 +952,15 @@ public class BordersService {
                     this.borderVer, this.blockOnceWarn);
         }
 
+        public BigDecimal getMinBorder() {
+            BigDecimal minBorder = null;
+            if (borderValueList != null) {
+                minBorder = borderValueList.stream().filter(Objects::nonNull)
+                        .min(BigDecimal::compareTo).orElse(null);
+            }
+            return minBorder;
+        }
+
         @Override
         public String toString() {
             final String blockOnceLine = blockOnceWarn == null || blockOnceWarn.length() == 0 ? "" : ", blockOnceWarn='" + blockOnceWarn + '\'';
@@ -970,6 +989,26 @@ public class BordersService {
                         '}';
             }
         }
+
+        public BigDecimal getMaxBorder() {
+            BigDecimal maxBorder = null;
+            if (borderValueList != null) {
+                maxBorder = borderValueList.stream().filter(Objects::nonNull)
+                        .max(BigDecimal::compareTo).orElse(null);
+            }
+            return maxBorder;
+        }
+
+        public BigDecimal getDelta() {
+            return deltaVal != null && deltaVal.length() > 0 ? new BigDecimal(deltaVal) : null;
+        }
+
+        public BtmFokAutoArgs toBtmFokAutoArgs() {
+            final BigDecimal maxBorder = this.getMaxBorder();
+            final BigDecimal delta = this.getDelta();
+            return new BtmFokAutoArgs(delta, maxBorder, this.borderValue);
+        }
+
     }
 
 }

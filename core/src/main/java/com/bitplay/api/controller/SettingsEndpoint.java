@@ -336,6 +336,14 @@ public class SettingsEndpoint {
             settings.setBitmexFokMaxDiff(settingsUpdate.getBitmexFokMaxDiff());
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getBitmexFokMaxDiffAuto() != null) {
+            settings.setBitmexFokMaxDiffAuto(settingsUpdate.getBitmexFokMaxDiffAuto());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getBitmexFokTotalDiff() != null) {
+            settings.setBitmexFokTotalDiff(settingsUpdate.getBitmexFokTotalDiff());
+            settingsRepositoryService.saveSettings(settings);
+        }
         if (settingsUpdate.getBitmexObType() != null) {
             settings.setBitmexObType(settingsUpdate.getBitmexObType());
             settingsRepositoryService.saveSettings(settings);

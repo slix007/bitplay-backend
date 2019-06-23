@@ -3,6 +3,7 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
@@ -47,7 +48,7 @@ public class VolatileModeAfterService {
     @Autowired
     private TradeService fplayTradeService;
 
-    void justSetVolatileMode(Long tradeId) {
+    void justSetVolatileMode(Long tradeId, BtmFokAutoArgs btmFokAutoArgs) {
         final List<FplayOrder> bitmexOO = bitmexService.getOnlyOpenFplayOrders();
         final List<FplayOrder> okexOO = okexService.getOnlyOpenFplayOrders();
 
@@ -68,14 +69,14 @@ public class VolatileModeAfterService {
         okexService.changeDeferredPlacingType(okexPlacingType);
 
         if (bitmexOO.size() > 0) {
-            executorService.execute(() -> replaceLimitOrdersBitmex(bitmexOO, tradeId));
+            executorService.execute(() -> replaceLimitOrdersBitmex(bitmexOO, tradeId, btmFokAutoArgs));
         }
         if (okexOO.size() > 0) {
             executorService.execute(() -> replaceLimitOrdersOkex(okexOO, tradeId));
         }
     }
 
-    private void replaceLimitOrdersBitmex(List<FplayOrder> bitmexOO, Long tradeId) {
+    private void replaceLimitOrdersBitmex(List<FplayOrder> bitmexOO, Long tradeId, BtmFokAutoArgs btmFokAutoArgs) {
         while (bitmexService.getMarketState() == MarketState.SYSTEM_OVERLOADED) {
             try {
                 Thread.sleep(500);
@@ -91,15 +92,15 @@ public class VolatileModeAfterService {
         final PlacingType btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER
                 : settingsRepositoryService.getSettings().getBitmexPlacingType();
 
-        replaceLimitOrders(bitmexService, btmPlacingType, bitmexOO, tradeId);
+        replaceLimitOrders(bitmexService, btmPlacingType, bitmexOO, tradeId, btmFokAutoArgs);
     }
 
     private void replaceLimitOrdersOkex(List<FplayOrder> okexOO, Long tradeId) {
         final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getOkexPlacingType();
-        replaceLimitOrders(okexService, okexPlacingType, okexOO, tradeId);
+        replaceLimitOrders(okexService, okexPlacingType, okexOO, tradeId, null);
     }
 
-    private void replaceLimitOrders(MarketService marketService, PlacingType placingType, List<FplayOrder> currOrders, Long tradeId) {
+    private void replaceLimitOrders(MarketService marketService, PlacingType placingType, List<FplayOrder> currOrders, Long tradeId, BtmFokAutoArgs btmFokAutoArgs) {
         if (placingType != PlacingType.MAKER && placingType != PlacingType.MAKER_TICK) {
 
             final MarketState prevState = marketService.getMarketState();
@@ -126,7 +127,8 @@ public class VolatileModeAfterService {
                 BestQuotes bestQuotes = getBestQuotes(currOrders);
 
                 if (marketService.getName().equals(BitmexService.NAME)) {
-                    signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false);
+                    signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false,
+                            btmFokAutoArgs);
                 } else {
                     signalService.placeOkexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false);
                 }

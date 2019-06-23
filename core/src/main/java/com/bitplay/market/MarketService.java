@@ -883,6 +883,7 @@ public abstract class MarketService extends MarketServiceWithState {
         return thePrice.setScale(contractType.getScale(), RoundingMode.HALF_UP);
     }
 
+    @SuppressWarnings("DuplicatedCode")
     protected BigDecimal setScaleUp(BigDecimal in, ContractType contractType) {
         final Integer scale = contractType.getScale();
         final BigDecimal tickSize = contractType.getTickSize();
@@ -901,6 +902,24 @@ public abstract class MarketService extends MarketServiceWithState {
             scaled = in.signum() > 0
                     ? scaled.add(tickSize)
                     : scaled.subtract(tickSize);
+        }
+        return scaled;
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    protected BigDecimal setScaleDown(BigDecimal in, ContractType contractType) {
+        final Integer scale = contractType.getScale();
+        final BigDecimal tickSize = contractType.getTickSize();
+        if (in.signum() == 0 || in.remainder(tickSize).signum() == 0) {
+            return in;
+        }
+        BigDecimal scaled;
+        scaled = in.setScale(scale, RoundingMode.DOWN);
+        if (scaled.remainder(tickSize).signum() != 0) {
+            final BigDecimal remainder = scaled.abs().remainder(tickSize);
+            scaled = scaled.signum() > 0
+                    ? scaled.subtract(remainder)
+                    : scaled.add(remainder);
         }
         return scaled;
     }
