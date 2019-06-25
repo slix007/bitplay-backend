@@ -231,11 +231,12 @@ public class ArbitrageService {
                     } catch (NotYetInitializedException e) {
                         // do nothing
                     } catch (Exception e) {
-                        log.error("ERROR: signalEventBus errorOnEvent", e);
-//                        warningLogger.error("ERROR: signalEventBus errorOnEvent. Signals may not work at all." + e.toString());
+                        log.error("ERROR: signalEventBus", e);
+                        warningLogger.error("ERROR: signalEventBus." + e.toString());
                     }
                 }, throwable -> {
                     log.error("signalEventBus errorOnEvent", throwable);
+                    warningLogger.error("ERROR: signalEventBus errorOnEvent." + throwable.toString());
                     initSignalEventBus();
                 });
     }
@@ -1255,10 +1256,10 @@ public class ArbitrageService {
         }
 
         final CumParams cumParams = cumService.getTotalCommon();
-        final Integer counter1 = cumParams.getCounter1();
-        final Integer counter2 = cumParams.getCounter2();
-        final Integer cc1 = cumParams.getCompletedCounter1();
-        final Integer cc2 = cumParams.getCompletedCounter2();
+        final Integer counter1 = cumParams.getVert1();
+        final Integer counter2 = cumParams.getVert2();
+        final Integer cc1 = cumParams.getCompletedVert1();
+        final Integer cc2 = cumParams.getCompletedVert2();
 
         String iterationMarker = "";
         if (counter1.equals(counter2)) {
@@ -2004,7 +2005,7 @@ public class ArbitrageService {
 
     public int getCounter() {
         final CumParams totalCommon = cumService.getTotalCommon();
-        return totalCommon.getCounter1() + totalCommon.getCounter2();
+        return totalCommon.getVert1() + totalCommon.getVert2();
     }
 
     public String getSumBalString() {

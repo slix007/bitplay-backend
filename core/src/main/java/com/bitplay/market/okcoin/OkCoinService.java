@@ -2,8 +2,8 @@ package com.bitplay.market.okcoin;
 
 import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 
-import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.CumService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
@@ -43,6 +43,7 @@ import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.LiqParams;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
@@ -52,7 +53,7 @@ import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.OkexPostOnlyArgs;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.settings.BitmexChangeOnSoService;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import info.bitrich.xchangestream.okexv3.OkExAdapters;
@@ -193,8 +194,6 @@ public class OkCoinService extends MarketServicePreliq {
     @Autowired
     private OrderRepositoryService orderRepositoryService;
     @Autowired
-    private RestartService restartService;
-    @Autowired
     private OkexLimitsService okexLimitsService;
     @Autowired
     private OOHangedCheckerService ooHangedCheckerService;
@@ -205,9 +204,9 @@ public class OkCoinService extends MarketServicePreliq {
     @Autowired
     private MonitoringDataService monitoringDataService;
     @Autowired
-    private BitmexChangeOnSoService bitmexChangeOnSoService;
-    @Autowired
     private MetricsDictionary metricsDictionary;
+    @Autowired
+    private CumService cumService;
 
     private OkExStreamingExchange exchange;
     private BitplayOkexEchange bitplayOkexEchange;
@@ -2150,9 +2149,20 @@ public class OkCoinService extends MarketServicePreliq {
         return isOk;
     }
 
-    public void resetWaitingArb() {
+    public void resetWaitingArb(Boolean... btmWasStarted) {
         if (getMarketState() == MarketState.WAITING_ARB) {
             final PlaceOrderArgs placeOrderArgs = placeOrderArgsRef.getAndSet(null);
+            if (btmWasStarted != null && btmWasStarted.length > 0 && btmWasStarted[0]) {
+                // no changes for Vert
+            } else {
+                final DealPrices dealPrices = arbitrageService.getDealPrices();
+                final TradingMode tradingMode = dealPrices.getTradingMode();
+                if (dealPrices.getDeltaName() == DeltaName.B_DELTA) {
+                    cumService.incUnstartedVert1(tradingMode);
+                } else {
+                    cumService.incUnstartedVert2(tradingMode);
+                }
+            }
             setMarketState(MarketState.READY);
             final Long tradeId = placeOrderArgs != null ? placeOrderArgs.getTradeId() : arbitrageService.getLastTradeId();
             setFree(tradeId); // we should reset ArbitrageState to READY

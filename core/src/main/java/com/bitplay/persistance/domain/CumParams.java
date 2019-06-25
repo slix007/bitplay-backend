@@ -60,10 +60,12 @@ public class CumParams extends AbstractParams {
     private BigDecimal slipBr;
 
     private Integer diffFactBrFailsCount;
-    private Integer counter1 = 0;
-    private Integer completedCounter1;
-    private Integer counter2 = 0;
-    private Integer completedCounter2;
+    private Integer vert1 = 0;
+    private Integer completedVert1;
+    private Integer vert2 = 0;
+    private Integer completedVert2;
+    private Integer unstartedVert1;
+    private Integer unstartedVert2;
 
     public void setDefaults() {
         this.cumDelta = BigDecimal.ZERO;
@@ -105,10 +107,12 @@ public class CumParams extends AbstractParams {
         this.slipBr = BigDecimal.ZERO;
 
         this.diffFactBrFailsCount = 0;
-        this.counter1 = 0;
-        this.completedCounter1 = 0;
-        this.counter2 = 0;
-        this.completedCounter2 = 0;
+        this.vert1 = 0;
+        this.completedVert1 = 0;
+        this.vert2 = 0;
+        this.completedVert2 = 0;
+        this.unstartedVert1 = 0;
+        this.unstartedVert2 = 0;
     }
 
     public void update(CumParams update) {
@@ -151,9 +155,11 @@ public class CumParams extends AbstractParams {
         this.slipBr = update.slipBr != null ? update.slipBr : this.slipBr;
 
         this.diffFactBrFailsCount = update.diffFactBrFailsCount != null ? update.diffFactBrFailsCount : this.diffFactBrFailsCount;
-        this.counter1 = update.counter1 != null ? update.counter1 : this.counter1;
-        this.completedCounter1 = update.completedCounter1 != null ? update.completedCounter1 : this.completedCounter1;
-        this.counter2 = update.counter2 != null ? update.counter2 : this.counter2;
-        this.completedCounter2 = update.completedCounter2 != null ? update.completedCounter2 : this.completedCounter2;
+        this.vert1 = update.vert1 != null ? update.vert1 : this.vert1;
+        this.completedVert1 = update.completedVert1 != null ? update.completedVert1 : this.completedVert1;
+        this.vert2 = update.vert2 != null ? update.vert2 : this.vert2;
+        this.completedVert2 = update.completedVert2 != null ? update.completedVert2 : this.completedVert2;
+        this.unstartedVert1 = update.unstartedVert1 != null ? update.unstartedVert1 : this.unstartedVert1;
+        this.unstartedVert2 = update.unstartedVert2 != null ? update.unstartedVert2 : this.unstartedVert2;
     }
 }
