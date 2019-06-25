@@ -43,8 +43,10 @@ public enum NotifyType {
     TRADE_SIGNAL(false),
     ROUND_IS_NOT_DONE(false),
 
-    ADJ_CORR_PRELIQ_MAX_TOTAL(true, 30),
-    ADJ_CORR_PRELIQ_MAX_ATTEMPT(true, 30),
+    ADJ_CORR_MAX_TOTAL(true, 30),
+    ADJ_CORR_MAX_ATTEMPT(true, 30),
+    PRELIQ_MAX_TOTAL(true, 30),
+    PRELIQ_MAX_ATTEMPT(true, 30),
     RESET_TO_FREE(false),
     MAX_DELTA_VIOLATED(true, 30), // b_delta >= b_max_delta и/или o_delta >= o_max_delta. (раз в 30 сек).
     ;

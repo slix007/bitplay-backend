@@ -68,12 +68,12 @@ public class Preliq extends CountedPreliq {
 
     public boolean totalCountViolated() {
         boolean hasSparePermanent = totalCount < maxTotalCount;
-        return !hasSparePermanent;
+        return !hasSparePermanent && maxTotalCount > 0;
     }
 
     public boolean maxErrorCountViolated() {
         boolean hasSpareCurrent = currErrorCount < maxErrorCount;
-        return !hasSpareCurrent;
+        return !hasSpareCurrent && maxErrorCount > 0;
     }
 
     public void incTotalCount(String marketName) {

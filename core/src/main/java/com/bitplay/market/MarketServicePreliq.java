@@ -144,11 +144,11 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
 
     private void maxCountNotify(Preliq preliq) {
         if (preliq.totalCountViolated()) {
-            getSlackNotifications().sendNotify(NotifyType.ADJ_CORR_PRELIQ_MAX_TOTAL,
+            getSlackNotifications().sendNotify(NotifyType.PRELIQ_MAX_TOTAL,
                     String.format("preliq max total %s reached ", preliq.getMaxTotalCount()));
         }
         if (preliq.maxErrorCountViolated()) {
-            getSlackNotifications().sendNotify(NotifyType.ADJ_CORR_PRELIQ_MAX_ATTEMPT,
+            getSlackNotifications().sendNotify(NotifyType.PRELIQ_MAX_ATTEMPT,
                     String.format("preliq max attempts %s reached", preliq.getMaxErrorCount()));
         }
     }
