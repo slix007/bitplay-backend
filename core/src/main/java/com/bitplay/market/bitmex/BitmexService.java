@@ -2134,12 +2134,12 @@ public class BitmexService extends MarketServicePreliq {
             if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) { // bitmex buy
                 final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
                 //Для Buy:
-                //if ((delta - max_border) - FOK_Max_diff) > FOK_total_diff
-                //Price buy FOK == ask[1] + FOK_total_diff;
-                if (deltaMinusMaxBorder.subtract(FOK_Max_diff).compareTo(FOK_total_diff) > 0) {
-                    price = ask1.add(FOK_total_diff);
+                //if (FOK_Max_diff - (delta - max_border)) < FOK_total_diff
+                //Price buy FOK == ask[1] - FOK_total_diff;
+                if (FOK_Max_diff.subtract(deltaMinusMaxBorder).compareTo(FOK_total_diff) < 0) {
+                    price = ask1.subtract(FOK_total_diff);
                     fokExtraLogs.append("use FOK_total_diff: ");
-                    fokExtraLogs.append(String.format("Price_buy_FOK(%s) = ask[1](%s) + FOK_total_diff(%s);"
+                    fokExtraLogs.append(String.format("Price_buy_FOK(%s) = ask[1](%s) - FOK_total_diff(%s);"
                                     + " delta=%s, maxBorder=%s, FOK_Max_diff=%s, allBorders=%s;",
                             price, ask1, FOK_total_diff, delta, maxBorder, FOK_Max_diff, btmFokArgs.getAllBorders()));
                 } else {
@@ -2152,10 +2152,10 @@ public class BitmexService extends MarketServicePreliq {
             } else { // B_DELTA - bitmex sell
                 final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
                 // Для Sell:
-                //if (FOK_Max_diff - (delta - max_border)) < - FOK_total_diff)
-                //Price sell FOK == bid[1] - FOK_total_diff.
-                if (FOK_Max_diff.subtract(deltaMinusMaxBorder).compareTo(FOK_total_diff.negate()) < 0) {
-                    price = bid1.subtract(FOK_total_diff);
+                //if ((delta - max_border) - FOK_Max_diff) > - FOK_total_diff)
+                //Price sell FOK == bid[1] + FOK_total_diff.
+                if (deltaMinusMaxBorder.subtract(FOK_Max_diff).compareTo(FOK_total_diff.negate()) > 0) {
+                    price = bid1.add(FOK_total_diff);
                     fokExtraLogs.append("use FOK_total_diff: ");
                     fokExtraLogs.append(String.format("Price_sell_FOK(%s) = bid[1](%s) + FOK_total_diff(%s);"
                                     + " delta=%s, maxBorder=%s, FOK_Max_diff=%s, allBorders=%s;",
