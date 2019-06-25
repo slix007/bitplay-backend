@@ -24,7 +24,7 @@ public class CumService {
     public void incCounter1(TradingMode tradingMode) {
         List<CumParams> list = getCumParamsList(tradingMode);
         for (CumParams cumParams : list) {
-            cumParams.setCounter1(cumParams.getCounter1() + 1);
+            cumParams.setVert1(cumParams.getVert1() + 1);
             cumPersistenceService.saveCumParams(cumParams);
         }
     }
@@ -32,7 +32,7 @@ public class CumService {
     public void incCounter2(TradingMode tradingMode) {
         List<CumParams> list = getCumParamsList(tradingMode);
         for (CumParams cumParams : list) {
-            cumParams.setCounter2(cumParams.getCounter2() + 1);
+            cumParams.setVert2(cumParams.getVert2() + 1);
             cumPersistenceService.saveCumParams(cumParams);
         }
     }
@@ -40,7 +40,7 @@ public class CumService {
     public void incCompletedCounter1(TradingMode tradingMode) {
         List<CumParams> list = getCumParamsList(tradingMode);
         for (CumParams cumParams : list) {
-            cumParams.setCompletedCounter1(cumParams.getCompletedCounter1() + 1);
+            cumParams.setCompletedVert1(cumParams.getCompletedVert1() + 1);
             cumPersistenceService.saveCumParams(cumParams);
         }
     }
@@ -48,7 +48,25 @@ public class CumService {
     public void incCompletedCounter2(TradingMode tradingMode) {
         List<CumParams> list = getCumParamsList(tradingMode);
         for (CumParams cumParams : list) {
-            cumParams.setCompletedCounter2(cumParams.getCompletedCounter2() + 1);
+            cumParams.setCompletedVert2(cumParams.getCompletedVert2() + 1);
+            cumPersistenceService.saveCumParams(cumParams);
+        }
+    }
+
+    public void incUnstartedVert1(TradingMode tradingMode) {
+        List<CumParams> list = getCumParamsList(tradingMode);
+        for (CumParams cumParams : list) {
+            cumParams.setVert1(cumParams.getVert1() - 1);
+            cumParams.setUnstartedVert1(cumParams.getUnstartedVert1() + 1);
+            cumPersistenceService.saveCumParams(cumParams);
+        }
+    }
+
+    public void incUnstartedVert2(TradingMode tradingMode) {
+        List<CumParams> list = getCumParamsList(tradingMode);
+        for (CumParams cumParams : list) {
+            cumParams.setVert2(cumParams.getVert2() - 1);
+            cumParams.setUnstartedVert2(cumParams.getUnstartedVert2() + 1);
             cumPersistenceService.saveCumParams(cumParams);
         }
     }
@@ -203,11 +221,11 @@ public class CumService {
             // slip    = (cum_diff_fact - cum_com1 - cum_com2) / (completed counts1 + completed counts2) *2
             final BigDecimal cumCom = cumParams.getCumCom1().add(cumParams.getCumCom2());
             final BigDecimal slipBr = (cumParams.getCumDiffFactBr().subtract(cumCom))
-                    .divide(BigDecimal.valueOf(cumParams.getCompletedCounter1() + cumParams.getCompletedCounter2()), 8, RoundingMode.HALF_UP)
+                    .divide(BigDecimal.valueOf(cumParams.getCompletedVert1() + cumParams.getCompletedVert2()), 8, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(2));
             cumParams.setSlipBr(slipBr);
             final BigDecimal slip = (cumParams.getCumDiffFact().subtract(cumCom))
-                    .divide(BigDecimal.valueOf(cumParams.getCompletedCounter1() + cumParams.getCompletedCounter2()), 8, RoundingMode.HALF_UP)
+                    .divide(BigDecimal.valueOf(cumParams.getCompletedVert1() + cumParams.getCompletedVert2()), 8, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(2));
             cumParams.setSlip(slip);
 

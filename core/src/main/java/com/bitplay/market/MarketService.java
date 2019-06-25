@@ -411,8 +411,12 @@ public abstract class MarketService extends MarketServiceWithState {
 
             if (marketStateToSet == MarketState.READY && getName().equals(BitmexService.NAME)
                     && getArbitrageService().getSecondMarketService().getMarketState() == MarketState.WAITING_ARB) {
-                final Long tradeId = getArbitrageService().getTradeId();
-                getArbitrageService().getSecondMarketService().setFree(tradeId); // skip OKEX consistently, before bitemx-Ready
+                // skip OKEX consistently, before bitemx-Ready
+                if (getArbitrageService().getDealPrices().getbPriceFact().getAvg().signum() == 0) {
+                    ((OkCoinService)getArbitrageService().getSecondMarketService()).resetWaitingArb();
+                } else {
+                    ((OkCoinService)getArbitrageService().getSecondMarketService()).resetWaitingArb(Boolean.TRUE);
+                }
             }
 
             setMarketState(marketStateToSet);
