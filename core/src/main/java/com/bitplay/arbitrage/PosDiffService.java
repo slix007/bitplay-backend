@@ -628,7 +628,7 @@ public class PosDiffService {
             }
         } else {
             dtAdj.stop();
-            maxCountNotify(corrParams.getAdj());
+            maxCountNotify(corrParams.getAdj(), "adj");
         }
 
         return false;
@@ -699,7 +699,7 @@ public class PosDiffService {
             }
         } else {
             dtExtraAdj.stop();
-            maxCountNotify(corrParams.getAdj());
+            maxCountNotify(corrParams.getAdj(), "adj");
         }
         return false;
     }
@@ -746,19 +746,19 @@ public class PosDiffService {
 
         } else {
             dtCorr.stop();
-            maxCountNotify(corrParams.getCorr());
+            maxCountNotify(corrParams.getCorr(), "corr");
         }
         return false;
     }
 
-    private void maxCountNotify(CountedWithExtra countedWithExtra) {
+    private void maxCountNotify(CountedWithExtra countedWithExtra, String name) {
         if (countedWithExtra.totalCountViolated()) {
-            slackNotifications.sendNotify(NotifyType.ADJ_CORR_PRELIQ_MAX_TOTAL,
-                    String.format("adj/corr max total %s reached ", countedWithExtra.getMaxTotalCount()));
+            slackNotifications.sendNotify(NotifyType.ADJ_CORR_MAX_TOTAL,
+                    String.format("%s max total %s reached ", name, countedWithExtra.getMaxTotalCount()));
         }
         if (countedWithExtra.maxErrorCountViolated()) {
-            slackNotifications.sendNotify(NotifyType.ADJ_CORR_PRELIQ_MAX_ATTEMPT,
-                    String.format("adj/corr max attempts %s reached", countedWithExtra.getMaxErrorCount()));
+            slackNotifications.sendNotify(NotifyType.ADJ_CORR_MAX_ATTEMPT,
+                    String.format("%s max attempts %s reached", name, countedWithExtra.getMaxErrorCount()));
         }
     }
 
@@ -804,7 +804,7 @@ public class PosDiffService {
 
         } else {
             dtExtraCorr.stop();
-            maxCountNotify(corrParams.getCorr());
+            maxCountNotify(corrParams.getCorr(), "corr");
         }
         return false;
     }

@@ -58,8 +58,10 @@ public class DestinationResolver {
             NotifyType.BITMEX_RECONNECT,
             NotifyType.TRADE_SIGNAL,
             NotifyType.ROUND_IS_NOT_DONE,
-            NotifyType.ADJ_CORR_PRELIQ_MAX_TOTAL,
-            NotifyType.ADJ_CORR_PRELIQ_MAX_ATTEMPT,
+            NotifyType.ADJ_CORR_MAX_TOTAL,
+            NotifyType.ADJ_CORR_MAX_ATTEMPT,
+            NotifyType.PRELIQ_MAX_TOTAL,
+            NotifyType.PRELIQ_MAX_ATTEMPT,
             NotifyType.RESET_TO_FREE,
             NotifyType.MAX_DELTA_VIOLATED
     );
@@ -80,8 +82,10 @@ public class DestinationResolver {
             NotifyType.LAST_PRICE_DEVIATION,
             NotifyType.STOPPED,
             NotifyType.BUSY_6_MIN,
-            NotifyType.ADJ_CORR_PRELIQ_MAX_TOTAL,
-            NotifyType.ADJ_CORR_PRELIQ_MAX_ATTEMPT,
+            NotifyType.ADJ_CORR_MAX_TOTAL,
+            NotifyType.ADJ_CORR_MAX_ATTEMPT,
+            NotifyType.PRELIQ_MAX_TOTAL,
+            NotifyType.PRELIQ_MAX_ATTEMPT,
             NotifyType.RESET_TO_FREE,
             NotifyType.MAX_DELTA_VIOLATED
     );
