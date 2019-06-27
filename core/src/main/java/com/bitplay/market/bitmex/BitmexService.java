@@ -1797,6 +1797,7 @@ public class BitmexService extends MarketServicePreliq {
                 if (placeOrderArgs.getAttempt() == PlaceOrderArgs.NO_REPEATS_ATTEMPT && attemptCount > 1) {
                     // means: CON_B_O on signal. No repeats. Cancel okex deferred.
                     nextMarketState = MarketState.READY;
+                    logger.info("NO_REPEATS_ATTEMPT on placing. restore marketState to READY and reset WAITING_ARB");
                     tradeLogger.info("NO_REPEATS_ATTEMPT on placing. restore marketState to READY and reset WAITING_ARB");
                     ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                     Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
@@ -1804,6 +1805,8 @@ public class BitmexService extends MarketServicePreliq {
                 }
                 if (settingsRepositoryService.getSettings().getManageType().isManual()) {
                     if (!signalType.isManual() || attemptCount > 1) {
+                        logger.info("MangeType is MANUAL. Stop placing.");
+                        tradeLogger.info("MangeType is MANUAL. Stop placing.");
                         warningLogger.info("MangeType is MANUAL. Stop placing.");
                         ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                         break; // when MangeType is MANUAL, only the first manualSignal is accepted
@@ -1876,7 +1879,8 @@ public class BitmexService extends MarketServicePreliq {
                             tradeResponse.addCancelledOrder(resultOrder);
                             tradeResponse.setErrorCode("WAS CANCELED"); // for the last iteration
                             tradeResponse.setLimitOrder(null);
-                            tradeLogger.info(String.format("#%s %s %s CANCELED amount=%s, filled=%s, quote=%s, orderId=%s",
+                            tradeLogger.info(String.format("#%s %s %s CANCELED order had execInst ParticipateDoNotInitiate "
+                                            + "amount=%s, filled=%s, quote=%s, orderId=%s",
                                     counterName,
                                     placingType,
                                     orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
@@ -2211,7 +2215,7 @@ public class BitmexService extends MarketServicePreliq {
 
                 String diffWithSignal = setQuotesForArbLogs(updated.getCounterName(), limitOrder, bestMakerPrice, showDiff);
 
-                final String logString = String.format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s. %s.",
+                final String logString = String.format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s.%s.%s.",
                         counterWithPortion,
                         limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                         limitOrder.getLimitPrice(),
@@ -2223,7 +2227,8 @@ public class BitmexService extends MarketServicePreliq {
                         limitOrder.getAveragePrice(),
                         limitOrder.getId(),
                         getPositionAsString(),
-                        diffWithSignal);
+                        diffWithSignal,
+                        updatedOrder.getStatus() == OrderStatus.CANCELED ? "CANCELED order had execInst ParticipateDoNotInitiate" : "");
                 logger.info(logString);
                 tradeLogger.info(logString, contractTypeStr);
                 ordersLogger.info(logString);
