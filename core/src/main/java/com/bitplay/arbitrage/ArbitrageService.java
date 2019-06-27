@@ -1048,10 +1048,12 @@ public class ArbitrageService {
 
         final DeltaName deltaName = DeltaName.B_DELTA;
         final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
+        final BigDecimal delta1 = this.delta1;
+        final BigDecimal delta2 = this.delta2;
         final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName, tradingMode);
 
         setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, bid1_p, ask1_o, b_block_input, o_block_input, deltaName,
-                counterName, tradingMode);
+                counterName, tradingMode, delta1, delta2);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(b_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
@@ -1069,7 +1071,7 @@ public class ArbitrageService {
 
     private void setTradeParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
             BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input, DeltaName deltaName, String counterName,
-            TradingMode tradingMode) {
+            TradingMode tradingMode, BigDecimal delta1, BigDecimal delta2) {
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
         firstMarketService.setBusy();
@@ -1227,10 +1229,12 @@ public class ArbitrageService {
 
         final DeltaName deltaName = DeltaName.O_DELTA;
         final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
+        final BigDecimal delta1 = this.delta1;
+        final BigDecimal delta2 = this.delta2;
         final String counterName = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName, tradingMode);
 
         setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, ask1_p, bid1_o, b_block_input, o_block_input, deltaName,
-                counterName, tradingMode);
+                counterName, tradingMode, delta1, delta2);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(o_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
