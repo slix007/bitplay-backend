@@ -2065,7 +2065,8 @@ public class BitmexService extends MarketServicePreliq {
 //                            break;
 //                        }
 //                    } else {
-                        break; // any unknown exception - no retry
+                    ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                    break; // any unknown exception - no retry
 //                    }
 
                 }
