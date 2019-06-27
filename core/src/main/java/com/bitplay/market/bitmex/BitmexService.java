@@ -1805,6 +1805,7 @@ public class BitmexService extends MarketServicePreliq {
                 if (settingsRepositoryService.getSettings().getManageType().isManual()) {
                     if (!signalType.isManual() || attemptCount > 1) {
                         warningLogger.info("MangeType is MANUAL. Stop placing.");
+                        ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                         break; // when MangeType is MANUAL, only the first manualSignal is accepted
                     }
                 }
@@ -1940,6 +1941,10 @@ public class BitmexService extends MarketServicePreliq {
                         // workaround for OO list: set as limit order
                         tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, currencyPair, orderId, new Date(),
                                 thePrice, thePrice, resultOrder.getCumulativeAmount(), resultOrder.getStatus()));
+
+                        if (resultOrder.getStatus() == OrderStatus.CANCELED) {
+                            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                        }
                     }
 
                     tradeResponse.setOrderId(orderId);
@@ -1992,9 +1997,11 @@ public class BitmexService extends MarketServicePreliq {
                         } else {
                             tradeResponse.setErrorCode(e.getMessage());
                             nextMarketState = MarketState.READY;
+                            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                             break;
                         }
                     } else {
+                        ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                         break; // any unknown exception - no retry
                     }
                 } catch (Exception e) {
@@ -2033,6 +2040,7 @@ public class BitmexService extends MarketServicePreliq {
             logger.error("Place market order error", e);
             tradeLogger.info(String.format("maker error %s", e.toString()), contractTypeStr);
             tradeResponse.setErrorCode(e.getMessage());
+            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
         }
 
         if (placeOrderArgs.isPreliqOrder()) {
