@@ -313,9 +313,6 @@ public class CommonUIService {
         boolean reconnectInProgress = ((BitmexService) arbitrageService.getFirstMarketService()).isReconnectInProgress();
         String btmReconnectState = reconnectInProgress ? "IN_PROGRESS" : "NONE";
 
-        String btmPreliqQueue = "0";
-        String okexPreliqQueue = "0";
-
         DelayTimerJson corrDelay = getCorrDelay();
         DelayTimerJson posAdjustmentDelay = getPosAdjustmentDelay();
         DelayTimerJson preliqDelay = getPreliqDelay();
@@ -372,8 +369,6 @@ public class CommonUIService {
                 bitmexChangeOnSoService.getSecToReset(),
                 arbState.toString(),
                 btmReconnectState,
-                btmPreliqQueue,
-                okexPreliqQueue,
                 corrDelay,
                 posAdjustmentDelay,
                 preliqDelay,
