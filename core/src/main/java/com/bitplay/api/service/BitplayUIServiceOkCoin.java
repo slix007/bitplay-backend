@@ -1,5 +1,7 @@
 package com.bitplay.api.service;
 
+import com.bitplay.api.domain.LeverageRequest;
+import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
 import com.bitplay.api.domain.VisualTrade;
@@ -119,4 +121,8 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         return new FutureIndexJson(indexString, indexVal, sdf.format(timestamp), limitsJson, ethBtcBal, okexEstimatedDeliveryPrice);
     }
 
+    public ResultJson changeLeverage(LeverageRequest leverageRequest) {
+        final String resDescr = service.changeOkexLeverage(leverageRequest.getLeverage());
+        return new ResultJson("", resDescr);
+    }
 }

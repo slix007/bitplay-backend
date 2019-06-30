@@ -94,6 +94,8 @@ public class Settings extends AbstractDocument {
 
     private Dql dql;
     private Boolean preSignalObReFetch;
+    @Transient
+    private final SettingsTransient settingsTransient = new SettingsTransient();
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
