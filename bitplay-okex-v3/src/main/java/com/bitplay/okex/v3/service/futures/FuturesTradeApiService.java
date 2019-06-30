@@ -2,6 +2,7 @@ package com.bitplay.okex.v3.service.futures;
 
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
+import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 
 /**
@@ -110,12 +111,12 @@ public interface FuturesTradeApiService {
 //     */
 //    JSONArray getFills(String instrumentId, long orderId, int from, int to, int limit);
 //
-//    /**
-//     * Get the futures LeverRate
-//     *
-//     * @param currency eg: btc
-//     */
-//    JSONObject getInstrumentLeverRate(String currency);
+    /**
+     * Get the futures LeverRate
+     *
+     * @param currency eg: btc
+     */
+    LeverageResult getInstrumentLeverRate(String currency);
 //
 //
 //    /**
@@ -129,14 +130,14 @@ public interface FuturesTradeApiService {
 //     */
 //    JSONObject changeLeverageOnFixed(String currency, String instrumentId, String direction, String leverage);
 //
-//    /**
-//     * Change the futures Cross LeverRate
-//     *
-//     * @param currency      eg: btc
-//     * @param leverage      eg: 10
-//     * @return
-//     */
-//    JSONObject changeLeverageOnCross(String currency, String leverage);
+    /**
+     * Change the futures Cross LeverRate
+     *
+     * @param currency      eg: btc
+     * @param leverage      eg: 10
+     * @return
+     */
+    LeverageResult changeLeverageOnCross(String currency, String leverage);
 
 
 }

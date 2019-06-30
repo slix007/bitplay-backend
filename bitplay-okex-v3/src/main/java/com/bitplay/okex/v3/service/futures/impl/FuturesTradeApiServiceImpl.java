@@ -2,8 +2,10 @@ package com.bitplay.okex.v3.service.futures.impl;
 
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
+import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
+import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.service.futures.FuturesTradeApiService;
 
@@ -36,5 +38,13 @@ public class FuturesTradeApiServiceImpl implements FuturesTradeApiService {
         return this.client.executeSync(this.api.order(order));
     }
 
+    @Override
+    public LeverageResult getInstrumentLeverRate(String currency) {
+        return this.client.executeSync(this.api.getLeverRate(currency));
+    }
 
+    @Override
+    public LeverageResult changeLeverageOnCross(String currency, String leverage) {
+        return this.client.executeSync(this.api.changeLeverageOnCross(currency, new LeverageCross(leverage)));
+    }
 }

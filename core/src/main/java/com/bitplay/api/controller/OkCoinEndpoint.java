@@ -1,6 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.domain.AccountInfoJson;
+import com.bitplay.api.domain.LeverageRequest;
 import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
@@ -120,6 +121,15 @@ public class OkCoinEndpoint {
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public TradeResponseJson closeAllPos() {
         return this.okCoin.closeAllPos();
+    }
+
+    @RequestMapping(value = "/change-leverage",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public ResultJson changeLeverage(@RequestBody LeverageRequest leverageRequest) {
+        return this.okCoin.changeLeverage(leverageRequest);
     }
 
 }

@@ -36,6 +36,7 @@ import com.bitplay.model.Pos;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BitplayOkexEchange;
 import com.bitplay.okex.v3.client.ApiCredentials;
+import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.exception.ApiException;
@@ -431,13 +432,7 @@ public class OkCoinService extends MarketServicePreliq {
         spec.setExchangeSpecificParametersItem("Use_Intl", true);
         spec.setExchangeSpecificParametersItem("Use_Futures", true);
         spec.setExchangeSpecificParametersItem("Futures_Contract", okexContractType.getFuturesContract());
-        if (okexContractType.isEth()) {
-//            spec.setExchangeSpecificParametersItem("Futures_Leverage", "50");
-            leverage = BigDecimal.valueOf(50);
-        } else {
-//            spec.setExchangeSpecificParametersItem("Futures_Leverage", "100");
-            leverage = BigDecimal.valueOf(100);
-        }
+        leverage = BigDecimal.valueOf(20); // default
 
         if (exArgs != null && exArgs.length == 3) {
             String exKey = (String) exArgs[0];
@@ -1277,6 +1272,48 @@ public class OkCoinService extends MarketServicePreliq {
         metricsDictionary.putOkexPlacingWhole(wholeMs);
 
         return tradeResponse;
+    }
+
+    @Scheduled(fixedDelay = 10000)
+    public void fetchLeverRate() {
+        Instant start = Instant.now();
+        try {
+            final LeverageResult r = bitplayOkexEchange.getTradeApiService().getInstrumentLeverRate(okexContractType.getBaseTool());
+            if (!r.getMargin_mode().equals("crossed")) {
+                logger.warn("LeverageResult WARNING: margin_mode is " + r.getMargin_mode());
+            } else {
+                if (!r.getCurrency().toUpperCase().equals(okexContractType.getBaseTool())) {
+                    logger.warn("LeverageResult WARNING: currency is different " + r.getCurrency());
+                } else {
+                    leverage = new BigDecimal(r.getLeverage());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("fetchLeverRate error", e);
+        }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "fetchLeverRate");
+    }
+
+    public BigDecimal getLeverage() {
+        return leverage;
+    }
+
+    public String changeOkexLeverage(BigDecimal okexLeverage) {
+        String resultDescription = "";
+        try {
+            final LeverageResult r = bitplayOkexEchange.getTradeApiService().changeLeverageOnCross(
+                    okexContractType.getBaseTool().toLowerCase(),
+                    okexLeverage.setScale(0, RoundingMode.DOWN).toPlainString()
+            );
+            leverage = new BigDecimal(r.getLeverage());
+            logger.info("Update okex leverage. " + r);
+            resultDescription = r.getResult();
+        } catch (Exception e) {
+            logger.error("Error updating okex leverage", e);
+            resultDescription = e.getMessage();
+        }
+        return "result: " + resultDescription;
     }
 
     enum NextStep {CONTINUE, BREAK,}

@@ -1,12 +1,15 @@
 package com.bitplay.okex.v3.service.futures.impl;
 
+import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
+import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.Path;
 
 /**
  * Futures trade api
@@ -58,15 +61,15 @@ interface FuturesTradeApi {
 //    Call<JSONArray> getFills(@Query("instrument_id") String instrumentId, @Query("order_id") String orderId,
 //            @Query("from") int before, @Query("to") int after, @Query("limit") int limit);
 //
-//    @GET("/api/futures/v3/accounts/{currency}/leverage")
-//    Call<JSONObject> getLeverRate(@Path("currency") String currency);
-//
+    @GET("/api/futures/v3/accounts/{currency}/leverage")
+    Call<LeverageResult> getLeverRate(@Path("currency") String currency);
+
 //    @POST("/api/futures/v3/accounts/{currency}/leverage")
 //    Call<JSONObject> changeLeverageOnFixed(@Path("currency") String currency,
 //            @Body JSONObject changeLeverage);
 //
-//    @POST("/api/futures/v3/accounts/{currency}/leverage")
-//    Call<JSONObject> changeLeverageOnCross(@Path("currency") String currency,
-//            @Body JSONObject changeLeverage);
+    @POST("/api/futures/v3/accounts/{currency}/leverage")
+    Call<LeverageResult> changeLeverageOnCross(@Path("currency") String currency,
+            @Body LeverageCross changeLeverage);
 
 }

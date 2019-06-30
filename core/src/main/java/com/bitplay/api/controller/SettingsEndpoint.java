@@ -122,6 +122,8 @@ public class SettingsEndpoint {
 
         // BitmexObType
         settings.setBitmexObTypeCurrent(bitmexService.getBitmexObTypeCurrent());
+
+        settings.getSettingsTransient().setOkexLeverage(okCoinService.getLeverage());
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
