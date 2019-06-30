@@ -25,8 +25,6 @@ public class MarketStatesJson {
     Long timeToResetBitmexChangeOnSo;
     String arbState;
     String bitmexReconnectState;
-    String btmPreliqQueue;
-    String okexPreliqQueue;
     DelayTimerJson corrDelay;
     DelayTimerJson posAdjustmentDelay;
     DelayTimerJson preliqDelay;
