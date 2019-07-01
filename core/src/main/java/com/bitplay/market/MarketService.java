@@ -534,8 +534,6 @@ public abstract class MarketService extends MarketServiceWithState {
         return "";
     }
 
-    public abstract ArbitrageService getArbitrageService();
-
     public abstract PosDiffService getPosDiffService();
 
     public TmpStateKeeper getTmpStateKeeper() {
@@ -725,9 +723,6 @@ public abstract class MarketService extends MarketServiceWithState {
                 getTradeLogger().warn(checkerName);
                 logger.warn(checkerName);
                 Long lastTradeId = tryFindLastTradeId();
-                if (lastTradeId == null) {
-                    lastTradeId = getArbitrageService().getTradeId();
-                }
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, lastTradeId));
             }
         } catch (Exception e) {
@@ -1090,9 +1085,6 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public FplayOrder getCurrStub() {
         Long lastTradeId = tryFindLastTradeId();
-        if (lastTradeId == null) {
-            lastTradeId = getArbitrageService().getTradeId();
-        }
         final List<FplayOrder> currOrders = getOpenOrders();
         final Optional<FplayOrder> lastOO = getLastOO(currOrders);
         BestQuotes bestQuotes = null;

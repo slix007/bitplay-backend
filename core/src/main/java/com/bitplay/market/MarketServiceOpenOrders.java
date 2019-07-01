@@ -1,9 +1,11 @@
 package com.bitplay.market;
 
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
+import com.bitplay.utils.Utils;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,6 +47,8 @@ public abstract class MarketServiceOpenOrders {
 
     public abstract PersistenceService getPersistenceService();
 
+    public abstract ArbitrageService getArbitrageService();
+
     public List<FplayOrder> getOpenOrders() {
         return openOrders;
     }
@@ -78,15 +82,16 @@ public abstract class MarketServiceOpenOrders {
     }
 
     public Long tryFindLastTradeId() {
-        Long lastTradeId = null;
-        OptionalLong aLong = openOrders.stream()
-                .map(FplayOrder::getTradeId)
-                .filter(Objects::nonNull)
-                .mapToLong(Long::longValue).max();
-        if (aLong.isPresent()) {
-            lastTradeId = aLong.getAsLong();
-        }
-        return lastTradeId;
+//        Long lastTradeId = null;
+//        OptionalLong aLong = openOrders.stream()
+//                .map(FplayOrder::getTradeId)
+//                .filter(Objects::nonNull)
+//                .mapToLong(Long::longValue).max();
+//        if (aLong.isPresent()) {
+//            lastTradeId = aLong.getAsLong();
+//        }
+//        lastTradeId = Utils.lastTradeId(lastTradeId, getArbitrageService().getTradeId());
+        return getArbitrageService().getLastTradeId();
     }
 
     private void validateForDuplicatesOO() {

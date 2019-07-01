@@ -1111,6 +1111,7 @@ public class OkCoinService extends MarketServicePreliq {
                     // do deferred placing
                     setMarketState(MarketState.ARBITRAGE);
                     tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
+                    logger.info(String.format("#%s MT2 start placing ", currArgs));
 
                     if (currArgs.getPlacingType() == PlacingType.TAKER) {// set oPricePlanOnStart for Taker
                         final BigDecimal oPricePlanOnStart;
