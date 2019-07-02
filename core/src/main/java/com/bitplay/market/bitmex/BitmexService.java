@@ -1959,6 +1959,7 @@ public class BitmexService extends MarketServicePreliq {
                             resultOrder = bitmexTradeService.placeMarketOrderFillOrKill(marketOrder, symbol, thePrice, scale);
                             if (resultOrder.getStatus() == OrderStatus.CANCELED) {
                                 extraLog = "order had timeInForce of FillOrKill";
+                                nextMarketState = MarketState.READY;
                             }
                         } else {
                             resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol);
