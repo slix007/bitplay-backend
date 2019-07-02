@@ -56,7 +56,6 @@ public class CumService {
     public void incUnstartedVert1(TradingMode tradingMode) {
         List<CumParams> list = getCumParamsList(tradingMode);
         for (CumParams cumParams : list) {
-            cumParams.setVert1(cumParams.getVert1() - 1);
             cumParams.setUnstartedVert1(cumParams.getUnstartedVert1() + 1);
             cumPersistenceService.saveCumParams(cumParams);
         }
@@ -65,7 +64,6 @@ public class CumService {
     public void incUnstartedVert2(TradingMode tradingMode) {
         List<CumParams> list = getCumParamsList(tradingMode);
         for (CumParams cumParams : list) {
-            cumParams.setVert2(cumParams.getVert2() - 1);
             cumParams.setUnstartedVert2(cumParams.getUnstartedVert2() + 1);
             cumPersistenceService.saveCumParams(cumParams);
         }
