@@ -20,8 +20,6 @@ import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketUtils;
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.events.BtsEvent;
-import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.LiqInfo;
@@ -875,6 +873,11 @@ public class OkCoinService extends MarketServicePreliq {
         TradeResponse tradeResponse = new TradeResponse();
 
         final Order.OrderType orderType = adjustOrderType(inputOrderType, amount);
+
+        final String message = Utils.getTenAskBid(getOrderBook(), counterNameWithPortion,
+                String.format("Before %s placing, orderType=%s,", orderType, Utils.convertOrderTypeName(orderType)));
+        logger.info(message);
+        tradeLogger.info(message);
 
         synchronized (openOrdersLock) {
 
