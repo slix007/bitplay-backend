@@ -170,10 +170,11 @@ public class CumService {
         }
     }
 
-    public void addDiffFactBr(TradingMode tradingMode, BigDecimal diffFactBr) {
+    public void addDiffFactBr(TradingMode tradingMode, BigDecimal diffFactBr, boolean isEth) {
         List<CumParams> list = getCumParamsList(tradingMode);
+        int scale = isEth ? 3 : 2;
         for (CumParams cumParams : list) {
-            cumParams.setCumDiffFactBr((cumParams.getCumDiffFactBr().add(diffFactBr)).setScale(2, BigDecimal.ROUND_HALF_UP));
+            cumParams.setCumDiffFactBr((cumParams.getCumDiffFactBr().add(diffFactBr)).setScale(scale, BigDecimal.ROUND_HALF_UP));
             cumPersistenceService.saveCumParams(cumParams);
         }
     }

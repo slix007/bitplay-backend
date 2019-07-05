@@ -26,6 +26,7 @@ public class DiffFactBrComputer {
     private BordersV2 bordersV2;
     private boolean isEth;
     private BigDecimal cm;
+    private int scale = 2;
 
     public DiffFactBrComputer(PosMode pos_mode, int pos_bo, int pos_ao, BigDecimal b_delta_plan, BigDecimal o_delta_plan, BigDecimal delta_fact,
             BordersV2 bordersV2, boolean isEth, BigDecimal cm) {
@@ -38,6 +39,9 @@ public class DiffFactBrComputer {
         this.bordersV2 = bordersV2;
         this.isEth = isEth;
         this.cm = cm;
+        if (isEth) {
+            scale = 3;
+        }
     }
 
     DiffFactBrComputer(PosMode pos_mode, int pos_bo, int pos_ao, BigDecimal b_delta_plan, BigDecimal o_delta_plan, BigDecimal delta_fact,
@@ -49,7 +53,7 @@ public class DiffFactBrComputer {
         this.o_delta_plan = o_delta_plan;
         this.delta_fact = delta_fact;
         this.bordersV2 = bordersV2;
-        this.isEth = false;
+        this.isEth = false; // scale is default=2
         this.cm = BigDecimal.valueOf(100);
     }
 
@@ -146,7 +150,7 @@ public class DiffFactBrComputer {
 
                 BigDecimal amountPortion = BigDecimal.valueOf(amountStep)
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                        .setScale(2, BigDecimal.ROUND_HALF_UP);
+                        .setScale(scale, BigDecimal.ROUND_HALF_UP);
 
 //                checkByDeltaPlan(delta_plan, br_open.get(i));
                 wamBr.add(amountPortion, valueI);
@@ -202,7 +206,7 @@ public class DiffFactBrComputer {
 
                 BigDecimal amountPortion = BigDecimal.valueOf(amountStep)
                         .divide(BigDecimal.valueOf(vol_fact), 16, BigDecimal.ROUND_HALF_UP)
-                        .setScale(2, BigDecimal.ROUND_HALF_UP);
+                        .setScale(scale, BigDecimal.ROUND_HALF_UP);
 
 //                checkByDeltaPlan(delta_plan, br_close.get(i));
                 wamBr.add(amountPortion, valueI);
@@ -276,7 +280,7 @@ public class DiffFactBrComputer {
             for (Pair<BigDecimal, BigDecimal> wamBrPart : wamBrParts) {
                 final BigDecimal amount = wamBrPart.getFirst();
                 final BigDecimal value = wamBrPart.getSecond();
-                wamBr = wamBr.add(amount.multiply(value)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                wamBr = wamBr.add(amount.multiply(value)).setScale(scale, BigDecimal.ROUND_HALF_UP);
             }
             return wamBr;
         }
