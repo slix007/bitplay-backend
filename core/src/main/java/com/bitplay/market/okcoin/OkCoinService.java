@@ -600,9 +600,9 @@ public class OkCoinService extends MarketServicePreliq {
         final Position position = mapPosition(positionResult);
         final Pos pos = MarketUtils.mapPos(position);
         this.pos.set(pos);
-        if (pos.getLeverage() != null) {
-            leverage = pos.getLeverage();
-        }
+//        if (pos.getLeverage() != null) {
+//            leverage = pos.getLeverage();
+//        }
 
         stateRecalcInStateUpdaterThread();
 

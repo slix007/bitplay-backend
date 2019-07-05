@@ -280,13 +280,19 @@ public class PosDiffService {
             final String currAttemptsStr = obj != null ? obj.toString() : "";
             final String mainSetStr = arbitrageService.getMainSetStr();
             final String extraSetStr = arbitrageService.getExtraSetStr();
-            tradeService.info(tradeId, counterName, String.format("#%s success. %s", counterName, currAttemptsStr));
-            tradeService.info(tradeId, counterName, String.format("#%s success. %s", counterName, mainSetStr));
-            tradeService.info(tradeId, counterName, String.format("#%s success. %s", counterName, extraSetStr));
+            final String attemptStr = String.format("#%s success. %s", counterName, currAttemptsStr);
+            final String mainStr = String.format("#%s success. %s", counterName, mainSetStr);
+            final String extraStr = String.format("#%s success. %s", counterName, extraSetStr);
+            log.info(attemptStr);
+            log.info(mainStr);
+            log.info(extraStr);
+            tradeService.info(tradeId, counterName, attemptStr);
+            tradeService.info(tradeId, counterName, mainStr);
+            tradeService.info(tradeId, counterName, extraStr);
             if (prevCorrObj != null && prevCorrObj.marketService != null) {
-                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s success. %s", counterName, currAttemptsStr));
-                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s success. %s", counterName, mainSetStr));
-                prevCorrObj.marketService.getTradeLogger().info(String.format("#%s success. %s", counterName, extraSetStr));
+                prevCorrObj.marketService.getTradeLogger().info(attemptStr);
+                prevCorrObj.marketService.getTradeLogger().info(mainStr);
+                prevCorrObj.marketService.getTradeLogger().info(extraStr);
             }
         }
 
@@ -972,6 +978,7 @@ public class PosDiffService {
                         1, tradeId, counterName, null, contractType);
                 marketService.getTradeLogger().info(message + placeOrderArgs.toString());
                 marketService.placeOrder(placeOrderArgs);
+                marketService.getArbitrageService().setBusyStackChecker();
 
             }
         } else {
