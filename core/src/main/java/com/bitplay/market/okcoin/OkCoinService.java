@@ -1825,6 +1825,10 @@ public class OkCoinService extends MarketServicePreliq {
                 }
                 if (tradeResponse.getErrorCode() == null) {
                     break;
+                } else {
+                    final String errMsg = String.format("#%s/%s Warning: Moving3:placingError %s", counterName, attemptCount, tradeResponse.getErrorCode());
+                    logger.error(errMsg);
+                    tradeLogger.error(errMsg);
                 }
             } catch (Exception e) {
                 logger.error("#{}/{} Moving3:placingError", counterName, attemptCount, e);

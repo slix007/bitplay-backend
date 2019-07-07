@@ -962,11 +962,9 @@ public class PosDiffService {
                 final String soMark = getSoMark(corrObj);
                 final SignalTypeEx signalTypeEx = new SignalTypeEx(signalType, soMark);
 
-                final String message = String.format("#%s %s %s amount=%s c=%s. ", counterName, placingType, orderType, correctAmount, contractType);
-                slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
-
                 countOnStartCorr(corrParams, signalType);
 
+                final String message = String.format("#%s %s %s amount=%s c=%s. ", counterName, placingType, orderType, correctAmount, contractType);
                 final String setStr = signalType.getCounterName().contains("btc") ? arbitrageService.getExtraSetStr() : arbitrageService.getMainSetStr();
                 tradeService.info(tradeId, counterName, String.format("#%s %s", signalTypeEx.getCounterName(), setStr));
                 tradeService.info(tradeId, counterName, message);
@@ -979,6 +977,9 @@ public class PosDiffService {
                 marketService.getTradeLogger().info(message + placeOrderArgs.toString());
                 marketService.placeOrder(placeOrderArgs);
                 marketService.getArbitrageService().setBusyStackChecker();
+
+                slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
+                log.info(message);
 
             }
         } else {
