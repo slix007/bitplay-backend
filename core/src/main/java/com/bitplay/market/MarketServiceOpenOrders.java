@@ -356,7 +356,7 @@ public abstract class MarketServiceOpenOrders {
         Stream<FplayOrder> optionalOpenOrder = Stream.of(fplayOrder);
         final Order theOrder = fplayOrder.getOrder();
         if (isClosed(theOrder.getStatus())) {
-            final long maxMs = 1000 * 90; // 90 sec
+            final long maxMs = 1000 * 60; // 60 sec
             final long nowMs = Instant.now().toEpochMilli();
             final Date orderTimestamp = theOrder.getTimestamp();
             if (orderTimestamp == null) {
