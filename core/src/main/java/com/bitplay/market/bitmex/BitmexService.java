@@ -1990,6 +1990,8 @@ public class BitmexService extends MarketServicePreliq {
 
                         if (resultOrder.getStatus() == OrderStatus.CANCELED) {
                             ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                        } else {
+                            nextMarketState = MarketState.READY; // immediate ready after all Taker
                         }
                     }
 
