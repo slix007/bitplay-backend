@@ -59,6 +59,7 @@ import com.bitplay.persistance.domain.settings.UsdQuoteType;
 import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
+import com.bitplay.utils.SchedulerUtils;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
@@ -177,14 +178,14 @@ public class ArbitrageService {
     // Signal delay
     private volatile Long signalDelayActivateTime;
     private volatile ScheduledFuture<?> futureSignal;
-    private final ScheduledExecutorService signalDelayScheduler = Executors.newScheduledThreadPool(1,
-            new ThreadFactoryBuilder().setNameFormat("signal-delay-thread-%d").build());
+    private final ScheduledExecutorService signalDelayScheduler = SchedulerUtils.singleThreadExecutor("signal-delay-thread-%d");
     // Signal delay end
     // Affordable for UI
     private volatile DeltaName signalStatusDelta = null;
     private volatile boolean isAffordableBitmex = true;
     private volatile boolean isAffordableOkex = true;
     // Affordable for UI end
+    private final Scheduler signalScheduler = SchedulerUtils.singleThread("signal-%d");
 
     public DealPrices getDealPrices() {
         return dealPrices;
@@ -202,6 +203,7 @@ public class ArbitrageService {
 
     private Disposable initSignalEventBus() {
         return signalEventBus.toObserverable()
+                .observeOn(signalScheduler)
                 .subscribe(eventQuant -> {
                     try {
                         SignalEvent signalEvent = eventQuant instanceof SignalEventEx
