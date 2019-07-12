@@ -3,6 +3,7 @@ package com.bitplay.persistance.domain.borders;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Created by Sergey Shurmin on 10/9/17.
@@ -40,7 +41,7 @@ public class BorderTable implements Serializable {
     public String toString() {
         return "BorderTable{" +
                 "borderName='" + borderName + '\'' +
-                ", borderItemList=" + borderItemList.stream().map(BorderItem::toString).reduce((acc, item) -> acc + ", " + item) +
+                ", borderItemList=" + borderItemList.stream().map(BorderItem::toString).collect(Collectors.joining(", ")) +
                 '}';
     }
 

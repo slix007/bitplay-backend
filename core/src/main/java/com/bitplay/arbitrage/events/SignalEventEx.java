@@ -1,5 +1,7 @@
 package com.bitplay.arbitrage.events;
 
+import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,17 +15,21 @@ public class SignalEventEx implements EventQuant {
 
     private SignalEvent signalEvent;
     private Instant startTime;
-    private boolean orderBookReFetched = false;
+    private boolean preSignalReChecked = false;
+    private DeltaName deltaName;
+    private TradingMode tradingMode;
 
     public SignalEventEx(SignalEvent signalEvent, Instant startTime) {
         this.signalEvent = signalEvent;
         this.startTime = startTime;
     }
 
-    public SignalEventEx(SignalEvent signalEvent, Instant startTime, boolean orderBookReFetched) {
+    public SignalEventEx(SignalEvent signalEvent, Instant startTime, boolean preSignalReChecked, DeltaName deltaName, TradingMode tradingMode) {
         this.signalEvent = signalEvent;
         this.startTime = startTime;
-        this.orderBookReFetched = orderBookReFetched;
+        this.preSignalReChecked = preSignalReChecked;
+        this.deltaName = deltaName;
+        this.tradingMode = tradingMode;
     }
 
     @Override

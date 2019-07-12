@@ -100,7 +100,6 @@ public class ArbitrageService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    private static final Object calcLock = new Object();
     private final DealPrices dealPrices = new DealPrices();
     private boolean firstDeltasCalculated = false;
     @Autowired
@@ -216,12 +215,16 @@ public class ArbitrageService {
                             final OrderBook secondOrderBook = secondMarketService.getOrderBook();
 
                             final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
-                            boolean orderBookReFetched = true; // by default no reFetch
                             final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
                             if (preSignalObReFetch != null && preSignalObReFetch) {
-                                orderBookReFetched = eventQuant instanceof SignalEventEx && ((SignalEventEx) eventQuant).isOrderBookReFetched();
+                                if (eventQuant instanceof SignalEventEx && ((SignalEventEx) eventQuant).isPreSignalReChecked()) {
+                                    final DeltaName deltaName = ((SignalEventEx) eventQuant).getDeltaName();
+                                    final TradingMode tradingMode = ((SignalEventEx) eventQuant).getTradingMode();
+                                    bestQuotes.setPreSignalReChecked(deltaName, tradingMode);
+                                } else {
+                                    bestQuotes.setNeedPreSignalReCheck();
+                                }
                             }
-                            bestQuotes.setOrderBookReFetched(orderBookReFetched);
 
                             params.setLastOBChange(new Date());
 
@@ -556,28 +559,18 @@ public class ArbitrageService {
         if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()
                 || persistenceService.getSettingsRepositoryService().getSettings().getManageType().isManual()) {
             // do nothing
-            stopSignalDelay();
-
-//        } else if (!isReadyForTheArbitrage) {
-            // debugLog.info("isReadyForTheArbitrage=false");
-            // do not stopSignalDelay
+            stopSignalDelay(bestQuotes);
         } else {
-            if (Thread.holdsLock(calcLock)) {
-                log.warn("calcLock is in progress");
-            }
-            synchronized (calcLock) {
-
-                if (firstMarketService.isStarted()
-                        && bitmexOrderBook != null
-                        && okCoinOrderBook != null
-                        && Utils.isObOk(bitmexOrderBook)
-                        && Utils.isObOk(okCoinOrderBook)
-                        && firstMarketService.accountInfoIsReady()
-                        && secondMarketService.accountInfoIsReady()) {
-                    calcAndDoArbitrage(bestQuotes, bitmexOrderBook, okCoinOrderBook);
-                } else {
-                    stopSignalDelay();
-                }
+            if (firstMarketService.isStarted()
+                    && bitmexOrderBook != null
+                    && okCoinOrderBook != null
+                    && Utils.isObOk(bitmexOrderBook)
+                    && Utils.isObOk(okCoinOrderBook)
+                    && firstMarketService.accountInfoIsReady()
+                    && secondMarketService.accountInfoIsReady()) {
+                calcAndDoArbitrage(bestQuotes, bitmexOrderBook, okCoinOrderBook);
+            } else {
+                stopSignalDelay(bestQuotes);
             }
         }
 
@@ -760,7 +753,7 @@ public class ArbitrageService {
                     isAffordableOkex = false;
                 }
             } else {
-                stopSignalDelay();
+                stopSignalDelay(bestQuotes);
             }
 
         } else if (borderParams.getActiveVersion() == Ver.V2) {
@@ -783,7 +776,7 @@ public class ArbitrageService {
             }
 
             if (tradingSignal.okexBlock == 0) {
-                stopSignalDelay();
+                stopSignalDelay(bestQuotes);
                 return bestQuotes;
             }
 
@@ -861,10 +854,10 @@ public class ArbitrageService {
                     }
                 }
             } else {
-                stopSignalDelay();
+                stopSignalDelay(bestQuotes);
             }
         } else {
-            stopSignalDelay();
+            stopSignalDelay(bestQuotes);
         }
 
         return bestQuotes;
@@ -962,8 +955,8 @@ public class ArbitrageService {
                         if (signalDelayActivateTime == null) {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
-                            if (bestQuotes.needOrderBookReFetch()) {
-                                preSignalReCheck();
+                            if (bestQuotes.isNeedPreSignalReCheck()) {
+                                preSignalReCheck(DeltaName.B_DELTA);
                             } else {
                                 arbState = ArbState.IN_PROGRESS;
                                 startTradingOnDelta1(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
@@ -983,7 +976,7 @@ public class ArbitrageService {
     public void restartSignalDelay() {
         if (signalDelayActivateTime != null) {
             long passedDelay = Instant.now().toEpochMilli() - signalDelayActivateTime;
-            stopSignalDelay();
+            stopSignalDelay(null);
             startSignalDelay(passedDelay);
         }
     }
@@ -1014,7 +1007,32 @@ public class ArbitrageService {
         return "_none_";
     }
 
-    private void stopSignalDelay() {
+    private void stopSignalDelay(BestQuotes bestQuotes) {
+        if (bestQuotes != null && bestQuotes.isPreSignalReChecked()) {
+            if (bestQuotes.getDeltaName() == null || bestQuotes.getTradingMode() == null) {
+                // Illegal arguments
+                log.warn("IllegalArguments on stopSignalDelay. " + bestQuotes);
+            } else {
+                // Stop when was pre signal re-check
+                if (bestQuotes.getDeltaName() == DeltaName.B_DELTA) {
+                    cumService.incObRecheckUnstartedVert1(bestQuotes.getTradingMode());
+                } else {
+                    cumService.incObRecheckUnstartedVert2(bestQuotes.getTradingMode());
+                }
+
+                // Vertical was not started, b_delta (xx) <> b_border (xx), o_delta (xx) <> o_border (xx)
+                // (писать знаки > или < в соответствии с реальными значениями).
+                String msg = String.format("After Pre-signal recheck Vertical was not started %s. ", bestQuotes.toStringEx());
+                BorderParams borderParams = bordersService.getBorderParams();
+                if (borderParams.getActiveVersion() == Ver.V1) {
+                    msg += String.format("b1=%s, b2=%s", getBorder1(), getBorder2());
+                } else {
+                    msg += borderParams.getBordersV2().toStringTables();
+                }
+                log.info(msg);
+                warningLogger.info(msg);
+            }
+        }
         signalDelayActivateTime = null;
         if (futureSignal != null && !futureSignal.isDone()) {
             futureSignal.cancel(false);
@@ -1182,8 +1200,8 @@ public class ArbitrageService {
                         if (signalDelayActivateTime == null) {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
-                            if (bestQuotes.needOrderBookReFetch()) {
-                                preSignalReCheck();
+                            if (bestQuotes.isNeedPreSignalReCheck()) {
+                                preSignalReCheck(DeltaName.O_DELTA);
                             } else {
                                 arbState = ArbState.IN_PROGRESS;
                                 startTradingOnDelta2(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
@@ -1200,14 +1218,18 @@ public class ArbitrageService {
         }
     }
 
-    private void preSignalReCheck() {
+    private void preSignalReCheck(DeltaName deltaName) {
         final Instant start = Instant.now();
-        firstMarketService.fetchOrderBookMain();
-        secondMarketService.fetchOrderBookMain();
+        final OrderBook btmOb = firstMarketService.fetchOrderBookMain();
+        final OrderBook okOb = secondMarketService.fetchOrderBookMain();
+        final BestQuotes bestQuotes = calcBestQuotesAndDeltas(btmOb, okOb);
         final Instant end = Instant.now();
         final long ms = Duration.between(start, end).toMillis();
-        warningLogger.info(String.format("Pre-signal recheck orderBook %s ms, b_delta=%s, o_delta=%s.", ms, delta1, delta2));
-        signalEventBus.send(new SignalEventEx(SignalEvent.B_ORDERBOOK_CHANGED, Instant.now(), true));
+        log.info(String.format("Pre-signal recheck orderBook %s ms, b_delta=%s, o_delta=%s. %s", ms, delta1, delta2, bestQuotes.toStringEx()));
+        warningLogger.info(String.format("Pre-signal recheck orderBook %s ms, b_delta=%s, o_delta=%s. %s", ms, delta1, delta2, bestQuotes.toStringEx()));
+
+        final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
+        signalEventBus.send(new SignalEventEx(SignalEvent.B_ORDERBOOK_CHANGED, Instant.now(), true, deltaName, tradingMode));
     }
 
     private void printAdjWarning(BigDecimal b_block_input, BigDecimal o_block_input, BigDecimal b_block, BigDecimal o_block) {

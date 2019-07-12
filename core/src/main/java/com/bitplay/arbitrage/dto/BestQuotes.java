@@ -1,20 +1,29 @@
 package com.bitplay.arbitrage.dto;
 
+import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import lombok.Getter;
 import lombok.ToString;
 
 /**
  * Created by Sergey Shurmin on 4/27/17.
  */
+@Getter
 @ToString
 public class BestQuotes implements Serializable {
 
-    private BigDecimal ask1_o = BigDecimal.ZERO;
-    private BigDecimal ask1_p = BigDecimal.ZERO;
-    private BigDecimal bid1_o = BigDecimal.ZERO;
-    private BigDecimal bid1_p = BigDecimal.ZERO;
-    private boolean orderBookReFetched = false;
+    private final BigDecimal ask1_o;
+    private final BigDecimal ask1_p;
+    private final BigDecimal bid1_o;
+    private final BigDecimal bid1_p;
+
+    // pre-signal params
+    private boolean preSignalReChecked = false;
+    private boolean needPreSignalReCheck = false;
+    private DeltaName deltaName;
+    private TradingMode tradingMode;
 
     public BestQuotes(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal bid1_p) {
         this.ask1_o = ask1_o;
@@ -27,22 +36,6 @@ public class BestQuotes implements Serializable {
         return new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
     }
 
-    public BigDecimal getAsk1_o() {
-        return ask1_o;
-    }
-
-    public BigDecimal getAsk1_p() {
-        return ask1_p;
-    }
-
-    public BigDecimal getBid1_o() {
-        return bid1_o;
-    }
-
-    public BigDecimal getBid1_p() {
-        return bid1_p;
-    }
-
     public boolean hasEmpty() {
         return ask1_o == null || ask1_o.signum() == 0
                 && ask1_p == null || ask1_p.signum() == 0
@@ -50,11 +43,25 @@ public class BestQuotes implements Serializable {
                 && bid1_p == null || bid1_p.signum() == 0;
     }
 
-    public boolean needOrderBookReFetch() {
-        return !orderBookReFetched;
+    public void setPreSignalReChecked(DeltaName deltaName, TradingMode tradingMode) {
+        this.preSignalReChecked = true;
+        this.needPreSignalReCheck = false;
+        this.deltaName = deltaName;
+        this.tradingMode = tradingMode;
     }
 
-    public void setOrderBookReFetched(boolean orderBookReFetched) {
-        this.orderBookReFetched = orderBookReFetched;
+    public void setNeedPreSignalReCheck() {
+        this.needPreSignalReCheck = true;
+        this.preSignalReChecked = false;
+    }
+
+    public String toStringEx() {
+        // b_delta (xx) = bid[1] (xx) - ask[1] (xx), o_delta (xx) = bid[1] (xx) - ask[1] (xx);
+        return String.format("b_delta (%s) = bid[1] (%s) - ask[1] (%s), o_delta (%s) = bid[1] (%s) - ask[1] (%s);",
+                bid1_p.subtract(ask1_o),
+                bid1_p, ask1_o,
+                bid1_o.subtract(ask1_p),
+                bid1_o, ask1_p
+        );
     }
 }

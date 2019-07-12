@@ -149,7 +149,7 @@ public abstract class MarketService extends MarketServiceWithState {
         return this.orderBookShort;
     }
 
-    public void fetchOrderBookMain() {
+    public OrderBook fetchOrderBookMain() {
         try {
             final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getContractType().getCurrencyPair());
             final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
@@ -158,6 +158,7 @@ public abstract class MarketService extends MarketServiceWithState {
         } catch (IOException e) {
             logger.error("can not fetch orderBook");
         }
+        return this.orderBookShort;
     }
 
     public abstract String fetchPosition() throws Exception;

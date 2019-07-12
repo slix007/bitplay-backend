@@ -69,6 +69,22 @@ public class CumService {
         }
     }
 
+    public void incObRecheckUnstartedVert1(TradingMode tradingMode) {
+        List<CumParams> list = getCumParamsList(tradingMode);
+        for (CumParams cumParams : list) {
+            cumParams.setObRecheckUnstartedVert1(cumParams.getObRecheckUnstartedVert1() + 1);
+            cumPersistenceService.saveCumParams(cumParams);
+        }
+    }
+
+    public void incObRecheckUnstartedVert2(TradingMode tradingMode) {
+        List<CumParams> list = getCumParamsList(tradingMode);
+        for (CumParams cumParams : list) {
+            cumParams.setObRecheckUnstartedVert2(cumParams.getObRecheckUnstartedVert2() + 1);
+            cumPersistenceService.saveCumParams(cumParams);
+        }
+    }
+
     private List<CumParams> getCumParamsList(TradingMode tradingMode) {
         final List<CumParams> list = new ArrayList<>();
         list.add(cumPersistenceService.fetchCum(CumType.TOTAL, CumTimeType.COMMON));

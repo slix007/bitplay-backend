@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -59,4 +60,10 @@ public class BordersV2 implements Serializable {
     }
 
     public enum BaseLvlType {B_OPEN, OK_OPEN}
+
+    public String toStringTables() {
+        return borderTableList.stream()
+                .map(BorderTable::toString)
+                .collect(Collectors.joining(";;"));
+    }
 }
