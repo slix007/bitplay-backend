@@ -227,13 +227,12 @@ public abstract class MarketServiceOpenOrders {
             this.openOrders = limitOrderUpdates.stream()
                     .flatMap(update -> {
 
-                        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
                         final String counterForLogs = getCounterName();
                         logger.info("#{} Order update:id={},status={},amount={},filled={},time={}",
                                 counterForLogs,
                                 update.getId(), update.getStatus(), update.getTradableAmount(),
                                 update.getCumulativeAmount(),
-                                df.format(update.getTimestamp()));
+                                Utils.dateToString(update.getTimestamp()));
 
                         if (update.getStatus() == Order.OrderStatus.FILLED) {
                             getTradeLogger().info(String.format("#%s Order %s FILLED", counterForLogs, update.getId()));
@@ -251,7 +250,7 @@ public abstract class MarketServiceOpenOrders {
                                 counterForLogs,
                                 updated.getId(), updated.getStatus(), updated.getTradableAmount(),
                                 updated.getCumulativeAmount(),
-                                df.format(updated.getTimestamp()),
+                                Utils.dateToString(updated.getTimestamp()),
                                 fplayOrder.getPlacingType());
 
                         if (fplayOrder.getOrderId().equals("0")) {

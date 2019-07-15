@@ -1869,7 +1869,16 @@ public class BitmexService extends MarketServicePreliq {
                     if (getContractType().isEth() && !btmContType.isEth()) {
                         orderBook = getOrderBookXBTUSD();
                     } else {
-                        orderBook = getOrderBook();
+                        if (bestQuotes != null && bestQuotes.getBtmOrderBook() != null) {
+                            orderBook = bestQuotes.getBtmOrderBook();
+                            bestQuotes.setBtmOrderBook(null);
+                            final String message = String.format("#%s placing %s using btmObTimestamp=%s",
+                                    counterName, orderType, Utils.dateToString(orderBook.getTimeStamp()));
+                            tradeLogger.info(message, contractTypeStr);
+
+                        } else {
+                            orderBook = getOrderBook();
+                        }
                     }
 
                     bitmexChangeOnSoService.tryActivate(attemptCount);
@@ -1946,13 +1955,13 @@ public class BitmexService extends MarketServicePreliq {
                             thePrice = (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0)
                                     ? settings.getBitmexPrice()
                                     : createFillOrKillPrice(fokExtraLogs, orderType, orderBook, btmContType, btmFokArgs);
-                            final String message = String.format("#%s placing TAKER_FOK %s, q=%s, a=%s. pos=%s, obTimestamp=%s. %s",
+                            final String message = String.format("#%s placing TAKER_FOK %s, q=%s, a=%s. pos=%s, btmObTimestamp=%s. %s",
                                     counterName,
                                     orderType,
                                     thePrice,
                                     amount.toPlainString(),
                                     getPositionAsString(),
-                                    orderBook.getTimeStamp(),
+                                    Utils.dateToString(orderBook.getTimeStamp()),
                                     fokExtraLogs.toString());
                             tradeLogger.info(message, contractTypeStr);
                             ordersLogger.info(message);
@@ -1998,10 +2007,6 @@ public class BitmexService extends MarketServicePreliq {
 
                     tradeResponse.setOrderId(orderId);
                     tradeResponse.setErrorCode(null);
-
-                    if (bestQuotes != null) {
-                        orderIdToSignalInfo.put(orderId, bestQuotes);
-                    }
 
                     final String message = String.format("#%s %s %s amount=%s with quote=%s was placed.orderId=%s. pos=%s. %s",
                             counterName,

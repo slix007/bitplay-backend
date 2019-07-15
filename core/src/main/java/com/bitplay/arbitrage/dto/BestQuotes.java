@@ -6,6 +6,8 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.ToString;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.springframework.data.annotation.Transient;
 
 /**
  * Created by Sergey Shurmin on 4/27/17.
@@ -20,10 +22,19 @@ public class BestQuotes implements Serializable {
     private final BigDecimal bid1_p;
 
     // pre-signal params
+    @Transient
     private boolean preSignalReChecked = false;
+    @Transient
     private boolean needPreSignalReCheck = false;
+    @Transient
     private DeltaName deltaName;
+    @Transient
     private TradingMode tradingMode;
+
+    // Bitmex OB for first attempt after signal.
+    // no copy. Set null after using.
+    @Transient
+    private volatile OrderBook btmOrderBook;
 
     public BestQuotes(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal bid1_p) {
         this.ask1_o = ask1_o;
@@ -55,6 +66,10 @@ public class BestQuotes implements Serializable {
         this.preSignalReChecked = false;
     }
 
+    public void setBtmOrderBook(OrderBook btmOrderBook) {
+        this.btmOrderBook = btmOrderBook;
+    }
+
     public String toStringEx() {
         // b_delta (xx) = bid[1] (xx) - ask[1] (xx), o_delta (xx) = bid[1] (xx) - ask[1] (xx);
         return String.format("b_delta (%s) = bid[1] (%s) - ask[1] (%s), o_delta (%s) = bid[1] (%s) - ask[1] (%s);",
@@ -63,5 +78,13 @@ public class BestQuotes implements Serializable {
                 bid1_o.subtract(ask1_p),
                 bid1_o, ask1_p
         );
+    }
+
+    public BigDecimal getBDelta() {
+        return bid1_p.subtract(ask1_o);
+    }
+
+    public BigDecimal getODelta() {
+        return bid1_o.subtract(ask1_p);
     }
 }

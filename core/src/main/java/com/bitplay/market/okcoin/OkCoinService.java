@@ -1681,6 +1681,8 @@ public class OkCoinService extends MarketServicePreliq {
             // IT doesn't support moving
             // Do cancel and place
             BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
+            // TODO remove orderIdToSignalInfo
+//            final BestQuotes bestQuotes = fOrderToCancel.getBestQuotes();
 
             // 1. cancel old order
             // 2. We got result on cancel(true/false), but double-check status of an old order

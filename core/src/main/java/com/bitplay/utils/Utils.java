@@ -5,9 +5,12 @@ import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -265,6 +268,14 @@ public class Utils {
         Instant first = bitmexOb.getTimeStamp().toInstant();
         Instant second = okexOb.getTimeStamp().toInstant();
         return first.isAfter(second) ? first : second;
+    }
+
+    public static String dateToString(Date date) {
+        if (date == null) {
+            return "";
+        }
+        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        return df.format(date);
     }
 
     public static Long lastTradeId(Long tradeId1, Long tradeId2) {

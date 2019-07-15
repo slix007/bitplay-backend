@@ -185,6 +185,7 @@ public class ArbitrageService {
     private volatile boolean isAffordableOkex = true;
     // Affordable for UI end
     private final Scheduler signalScheduler = SchedulerUtils.singleThread("signal-%d");
+    private volatile boolean preSignalRecheckInProgress = false;
 
     public DealPrices getDealPrices() {
         return dealPrices;
@@ -205,22 +206,43 @@ public class ArbitrageService {
                 .observeOn(signalScheduler)
                 .subscribe(eventQuant -> {
                     try {
+                        if (preSignalRecheckInProgress) {
+                            final boolean rechecked = eventQuant instanceof SignalEventEx && ((SignalEventEx) eventQuant).isPreSignalReChecked();
+                            if (!rechecked) {
+                                return;
+                            } else {
+                                preSignalRecheckInProgress = false;
+                            }
+                        }
                         SignalEvent signalEvent = eventQuant instanceof SignalEventEx
                                 ? ((SignalEventEx) eventQuant).getSignalEvent()
                                 : (SignalEvent) eventQuant;
 
                         if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
 
-                            final OrderBook firstOrderBook = firstMarketService.getOrderBook();
-                            final OrderBook secondOrderBook = secondMarketService.getOrderBook();
+                            OrderBook firstOrderBook = firstMarketService.getOrderBook();
+                            OrderBook secondOrderBook = secondMarketService.getOrderBook();
+                            boolean predefinedBtmOb = false;
+                            if (eventQuant instanceof SignalEventEx) {
+                                final SignalEventEx q = (SignalEventEx) eventQuant;
+                                firstOrderBook = q.getBtmOrderBook() != null ? q.getBtmOrderBook() : firstOrderBook;
+                                secondOrderBook = q.getOkOrderBook() != null ? q.getOkOrderBook() : secondOrderBook;
+                                predefinedBtmOb = true;
+                            }
 
                             final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
+                            if (predefinedBtmOb) {
+                                bestQuotes.setBtmOrderBook(firstOrderBook);
+                            }
+
                             final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
+                            TradingSignal prevTradingSignal = null;
                             if (preSignalObReFetch != null && preSignalObReFetch) {
                                 if (eventQuant instanceof SignalEventEx && ((SignalEventEx) eventQuant).isPreSignalReChecked()) {
                                     final DeltaName deltaName = ((SignalEventEx) eventQuant).getDeltaName();
                                     final TradingMode tradingMode = ((SignalEventEx) eventQuant).getTradingMode();
                                     bestQuotes.setPreSignalReChecked(deltaName, tradingMode);
+                                    prevTradingSignal = ((SignalEventEx) eventQuant).getPrevTradingSignal();
                                 } else {
                                     bestQuotes.setNeedPreSignalReCheck();
                                 }
@@ -230,7 +252,7 @@ public class ArbitrageService {
 
                             resetArbStatePreliq();
 
-                            doComparison(bestQuotes, firstOrderBook, secondOrderBook);
+                            doComparison(bestQuotes, firstOrderBook, secondOrderBook, prevTradingSignal);
 
                         }
                     } catch (NotYetInitializedException e) {
@@ -511,8 +533,8 @@ public class ArbitrageService {
                     deltasCalcService.initDeltasCache(borderParams.getBorderDelta());
                 }
 
-                BigDecimal delta1Update = bestQuotes.getBid1_p().subtract(bestQuotes.getAsk1_o());
-                BigDecimal delta2Update = bestQuotes.getBid1_o().subtract(bestQuotes.getAsk1_p());
+                BigDecimal delta1Update = bestQuotes.getBDelta();
+                BigDecimal delta2Update = bestQuotes.getODelta();
 
                 if (delta1Update.compareTo(delta1) != 0 || delta2Update.compareTo(delta2) != 0) {
                     deltaChangesPublisher.onNext(new DeltaChange(
@@ -554,12 +576,12 @@ public class ArbitrageService {
         return bestQuotes;
     }
 
-    private void doComparison(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
+    private void doComparison(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal) {
 
         if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()
                 || persistenceService.getSettingsRepositoryService().getSettings().getManageType().isManual()) {
             // do nothing
-            stopSignalDelay(bestQuotes);
+            stopSignalDelay(bestQuotes, prevTradingSignal);
         } else {
             if (firstMarketService.isStarted()
                     && bitmexOrderBook != null
@@ -568,9 +590,9 @@ public class ArbitrageService {
                     && Utils.isObOk(okCoinOrderBook)
                     && firstMarketService.accountInfoIsReady()
                     && secondMarketService.accountInfoIsReady()) {
-                calcAndDoArbitrage(bestQuotes, bitmexOrderBook, okCoinOrderBook);
+                calcAndDoArbitrage(bestQuotes, bitmexOrderBook, okCoinOrderBook, prevTradingSignal);
             } else {
-                stopSignalDelay(bestQuotes);
+                stopSignalDelay(bestQuotes, prevTradingSignal);
             }
         }
 
@@ -672,7 +694,7 @@ public class ArbitrageService {
         return borderAdj(settings, settings.getSettingsVolatileMode().getOAddBorder(), params.getBorder2());
     }
 
-    private BestQuotes calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
+    private void calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal) {
 
         final BigDecimal bP = firstMarketService.getPos().getPositionLong();
         final BigDecimal oPL = secondMarketService.getPos().getPositionLong();
@@ -700,7 +722,7 @@ public class ArbitrageService {
                     //noinspection Duplicates
                     isAffordableBitmex = false;
                     isAffordableOkex = false;
-                    return bestQuotes;
+                    return;
                 }
                 String dynDeltaLogs = null;
                 if (plBlocks.isDynamic()) {
@@ -715,7 +737,7 @@ public class ArbitrageService {
                             plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA1_B_SELL_O_BUY, delta1, border1);
                     checkAndStartTradingOnDelta1(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
                             tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
-                    return bestQuotes;
+                    return;
                 } else {
                     isAffordableBitmex = false;
                     isAffordableOkex = false;
@@ -733,7 +755,7 @@ public class ArbitrageService {
                     //noinspection Duplicates
                     isAffordableBitmex = false;
                     isAffordableOkex = false;
-                    return bestQuotes;
+                    return;
                 }
                 String dynDeltaLogs = null;
                 if (plBlocks.isDynamic()) {
@@ -747,13 +769,13 @@ public class ArbitrageService {
                             plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA2_B_BUY_O_SELL, delta2, border2);
                     checkAndStartTradingOnDelta2(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
                             tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
-                    return bestQuotes;
+                    return;
                 } else {
                     isAffordableBitmex = false;
                     isAffordableOkex = false;
                 }
             } else {
-                stopSignalDelay(bestQuotes);
+                stopSignalDelay(bestQuotes, prevTradingSignal);
             }
 
         } else if (borderParams.getActiveVersion() == Ver.V2) {
@@ -776,8 +798,8 @@ public class ArbitrageService {
             }
 
             if (tradingSignal.okexBlock == 0) {
-                stopSignalDelay(bestQuotes);
-                return bestQuotes;
+                stopSignalDelay(bestQuotes, prevTradingSignal);
+                return;
             }
 
             if (tradingSignal.tradeType != TradeType.NONE) {
@@ -800,7 +822,7 @@ public class ArbitrageService {
                                 Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
                                 checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
                                         tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
-                                return bestQuotes;
+                                return;
                             } else {
                                 isAffordableBitmex = false;
                                 isAffordableOkex = false;
@@ -816,7 +838,7 @@ public class ArbitrageService {
                         Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
                         checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
                                 tradingSignal, null, lastObTime, oPL, oPS);
-                        return bestQuotes;
+                        return;
                     }
 
                 } else if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
@@ -834,7 +856,7 @@ public class ArbitrageService {
                                 Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
                                 checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
                                         tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
-                                return bestQuotes;
+                                return;
                             } else {
                                 isAffordableBitmex = false;
                                 isAffordableOkex = false;
@@ -850,17 +872,17 @@ public class ArbitrageService {
                         Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
                         checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
                                 tradingSignal, null, lastObTime, oPL, oPS);
-                        return bestQuotes;
+                        return;
                     }
                 }
             } else {
-                stopSignalDelay(bestQuotes);
+                stopSignalDelay(bestQuotes, prevTradingSignal);
             }
         } else {
-            stopSignalDelay(bestQuotes);
+            stopSignalDelay(bestQuotes, prevTradingSignal);
         }
 
-        return bestQuotes;
+        return;
     }
 
     private String composeDynBlockLogs(String deltaName, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, BigDecimal b_block, BigDecimal o_block) {
@@ -956,7 +978,7 @@ public class ArbitrageService {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
                             if (bestQuotes.isNeedPreSignalReCheck()) {
-                                preSignalReCheck(DeltaName.B_DELTA);
+                                preSignalReCheck(DeltaName.B_DELTA, tradingSignal);
                             } else {
                                 arbState = ArbState.IN_PROGRESS;
                                 startTradingOnDelta1(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
@@ -976,7 +998,7 @@ public class ArbitrageService {
     public void restartSignalDelay() {
         if (signalDelayActivateTime != null) {
             long passedDelay = Instant.now().toEpochMilli() - signalDelayActivateTime;
-            stopSignalDelay(null);
+            stopSignalDelay(null, null);
             startSignalDelay(passedDelay);
         }
     }
@@ -1007,7 +1029,20 @@ public class ArbitrageService {
         return "_none_";
     }
 
-    private void stopSignalDelay(BestQuotes bestQuotes) {
+    private void stopSignalDelay(BestQuotes bestQuotes, TradingSignal prevTradingSignal) {
+        printLogsAfterPreSignalRecheckStop(bestQuotes, prevTradingSignal);
+        signalDelayActivateTime = null;
+        if (futureSignal != null && !futureSignal.isDone()) {
+            futureSignal.cancel(false);
+        }
+        signalStatusDelta = null;
+        isAffordableBitmex = true;
+        isAffordableOkex = true;
+
+        volatileModeSwitcherService.stopVmTimer();
+    }
+
+    private void printLogsAfterPreSignalRecheckStop(BestQuotes bestQuotes, TradingSignal prevTradingSignal) {
         if (bestQuotes != null && bestQuotes.isPreSignalReChecked()) {
             if (bestQuotes.getDeltaName() == null || bestQuotes.getTradingMode() == null) {
                 // Illegal arguments
@@ -1022,26 +1057,33 @@ public class ArbitrageService {
 
                 // Vertical was not started, b_delta (xx) <> b_border (xx), o_delta (xx) <> o_border (xx)
                 // (писать знаки > или < в соответствии с реальными значениями).
-                String msg = String.format("After Pre-signal recheck Vertical was not started %s. ", bestQuotes.toStringEx());
-                BorderParams borderParams = bordersService.getBorderParams();
-                if (borderParams.getActiveVersion() == Ver.V1) {
-                    msg += String.format("b1=%s, b2=%s", getBorder1(), getBorder2());
+                String msg = String.format("After 'Recheck OB after SD' Vertical was not started %s. ", bestQuotes.toStringEx());
+//                BorderParams borderParams = bordersService.getBorderParams();
+//                msg += borderParams.getBordersV2().toStringTables();
+                if (prevTradingSignal != null) {
+                    final BigDecimal minBorder = prevTradingSignal.getMinBorder();
+                    if (minBorder != null) {
+                        if (prevTradingSignal.tradeType == TradeType.DELTA1_B_SELL_O_BUY) {
+                            final BigDecimal bDelta = bestQuotes.getBDelta();
+                            msg += String.format("b_delta (%s) %s b_border (%s)", bDelta,
+                                    bDelta.compareTo(minBorder) > 0 ? ">" : "<",
+                                    getBorder1());
+                        } else {
+                            final BigDecimal oDelta = bestQuotes.getODelta();
+                            msg += String.format("o_delta (%s) %s o_border (%s)", oDelta,
+                                    oDelta.compareTo(minBorder) > 0 ? ">" : "<",
+                                    getBorder2());
+                        }
+                    } else {
+                        msg += "previous tradingSignal: " + prevTradingSignal.toString();
+                    }
                 } else {
-                    msg += borderParams.getBordersV2().toStringTables();
+                    msg += "no previous tradingSignal";
                 }
                 log.info(msg);
                 warningLogger.info(msg);
             }
         }
-        signalDelayActivateTime = null;
-        if (futureSignal != null && !futureSignal.isDone()) {
-            futureSignal.cancel(false);
-        }
-        signalStatusDelta = null;
-        isAffordableBitmex = true;
-        isAffordableOkex = true;
-
-        volatileModeSwitcherService.stopVmTimer();
     }
 
     private boolean isSignalDelayExceeded() {
@@ -1201,7 +1243,7 @@ public class ArbitrageService {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
                             if (bestQuotes.isNeedPreSignalReCheck()) {
-                                preSignalReCheck(DeltaName.O_DELTA);
+                                preSignalReCheck(DeltaName.O_DELTA, tradingSignal);
                             } else {
                                 arbState = ArbState.IN_PROGRESS;
                                 startTradingOnDelta2(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
@@ -1218,18 +1260,31 @@ public class ArbitrageService {
         }
     }
 
-    private void preSignalReCheck(DeltaName deltaName) {
-        final Instant start = Instant.now();
-        final OrderBook btmOb = firstMarketService.fetchOrderBookMain();
-        final OrderBook okOb = secondMarketService.fetchOrderBookMain();
-        final BestQuotes bestQuotes = calcBestQuotesAndDeltas(btmOb, okOb);
-        final Instant end = Instant.now();
-        final long ms = Duration.between(start, end).toMillis();
-        log.info(String.format("Pre-signal recheck orderBook %s ms, b_delta=%s, o_delta=%s. %s", ms, delta1, delta2, bestQuotes.toStringEx()));
-        warningLogger.info(String.format("Pre-signal recheck orderBook %s ms, b_delta=%s, o_delta=%s. %s", ms, delta1, delta2, bestQuotes.toStringEx()));
+    private void preSignalReCheck(DeltaName deltaName, TradingSignal prevTradingSignal) {
+        OrderBook btmOb = firstMarketService.getOrderBook();
+        OrderBook okOb = secondMarketService.getOrderBook();
+        try {
+            preSignalRecheckInProgress = true;
+            final Instant start = Instant.now();
+            btmOb = firstMarketService.fetchOrderBookMain();
+            okOb = secondMarketService.fetchOrderBookMain();
+            final BestQuotes bestQuotes = calcBestQuotesAndDeltas(btmOb, okOb);
+            bestQuotes.setBtmOrderBook(btmOb);
+            final Instant end = Instant.now();
+            final long ms = Duration.between(start, end).toMillis();
+            final String msg = String.format("Recheck OB after SD %s ms. %s, btmObTimestamp=%s, okexObTimestamp=%s",
+                    ms, bestQuotes.toStringEx(), Utils.dateToString(btmOb.getTimeStamp()), Utils.dateToString(okOb.getTimeStamp()));
+            log.info(msg);
+            warningLogger.info(msg);
+        } finally {
+            final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
+            signalEventBus.send(new SignalEventEx(SignalEvent.B_ORDERBOOK_CHANGED, Instant.now(), true, deltaName, tradingMode,
+                    prevTradingSignal, btmOb, okOb));
+        }
 
-        final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
-        signalEventBus.send(new SignalEventEx(SignalEvent.B_ORDERBOOK_CHANGED, Instant.now(), true, deltaName, tradingMode));
+//        params.setLastOBChange(new Date());
+//        resetArbStatePreliq();
+//        doComparison(bestQuotes, btmOb, okOb, prevTradingSignal);
     }
 
     private void printAdjWarning(BigDecimal b_block_input, BigDecimal o_block_input, BigDecimal b_block, BigDecimal o_block) {
