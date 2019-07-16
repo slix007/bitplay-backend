@@ -28,6 +28,7 @@ import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
@@ -151,6 +152,14 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public OrderBook fetchOrderBookMain() {
         try {
+            if (getName().equals(BitmexService.NAME)) {
+                final BitmexObType obType = getPersistenceService().getSettingsRepositoryService().getSettings().getBitmexObType();
+                if (obType != BitmexObType.TRADITIONAL_10) {
+                    final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getContractType().getCurrencyPair());
+                    final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids()); // timestamp may be null
+                    return ob; // for bitmex incremental
+                }
+            }
             final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getContractType().getCurrencyPair());
             final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
             this.orderBook = ob;

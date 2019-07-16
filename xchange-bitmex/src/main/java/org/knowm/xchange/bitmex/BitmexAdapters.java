@@ -13,6 +13,7 @@ import io.swagger.client.model.Wallet;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +37,11 @@ public class BitmexAdapters {
 
     public static OrderBook adaptBitmexOrderBook(List<OrderBookL2> bitmexMarketDepth, CurrencyPair currencyPair, Integer scale) {
         List<LimitOrder> asks = adaptBitmexPublicOrders(bitmexMarketDepth, Order.OrderType.ASK, currencyPair, scale);
+        Collections.reverse(asks);
         List<LimitOrder> bids = adaptBitmexPublicOrders(bitmexMarketDepth, Order.OrderType.BID, currencyPair, scale);
 
 
-        return new OrderBook(null, asks, bids);
+        return new OrderBook(new Date(), asks, bids);
     }
 
     private static List<LimitOrder> adaptBitmexPublicOrders(List<OrderBookL2> bitmexMarketDepth,

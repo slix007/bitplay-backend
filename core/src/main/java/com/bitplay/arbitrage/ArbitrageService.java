@@ -509,7 +509,7 @@ public class ArbitrageService {
     }
 
     private BestQuotes calcBestQuotesAndDeltas(OrderBook bitmexOrderBook, OrderBook okCoinOrderBook) {
-        BestQuotes bestQuotes = new BestQuotes(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        BestQuotes bestQuotes = BestQuotes.empty();
 
         if (bitmexOrderBook != null && okCoinOrderBook != null) {
 
