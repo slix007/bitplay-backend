@@ -581,7 +581,7 @@ public class ArbitrageService {
         if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()
                 || persistenceService.getSettingsRepositoryService().getSettings().getManageType().isManual()) {
             // do nothing
-            stopSignalDelay(bestQuotes, prevTradingSignal);
+            stopSignalDelay(bestQuotes, prevTradingSignal, "market is stopped or manualType is active");
         } else {
             if (firstMarketService.isStarted()
                     && bitmexOrderBook != null
@@ -592,7 +592,7 @@ public class ArbitrageService {
                     && secondMarketService.accountInfoIsReady()) {
                 calcAndDoArbitrage(bestQuotes, bitmexOrderBook, okCoinOrderBook, prevTradingSignal);
             } else {
-                stopSignalDelay(bestQuotes, prevTradingSignal);
+                stopSignalDelay(bestQuotes, prevTradingSignal, "markets are not started");
             }
         }
 
@@ -775,7 +775,7 @@ public class ArbitrageService {
                     isAffordableOkex = false;
                 }
             } else {
-                stopSignalDelay(bestQuotes, prevTradingSignal);
+                stopSignalDelay(bestQuotes, prevTradingSignal, "deltas v1 do not cross borders");
             }
 
         } else if (borderParams.getActiveVersion() == Ver.V2) {
@@ -798,7 +798,7 @@ public class ArbitrageService {
             }
 
             if (tradingSignal.okexBlock == 0) {
-                stopSignalDelay(bestQuotes, prevTradingSignal);
+                stopSignalDelay(bestQuotes, prevTradingSignal, "deltas v2: okexBlock==0");
                 return;
             }
 
@@ -876,10 +876,10 @@ public class ArbitrageService {
                     }
                 }
             } else {
-                stopSignalDelay(bestQuotes, prevTradingSignal);
+                stopSignalDelay(bestQuotes, prevTradingSignal, "deltas v2: tradingSignal.tradeType == NONE");
             }
         } else {
-            stopSignalDelay(bestQuotes, prevTradingSignal);
+            stopSignalDelay(bestQuotes, prevTradingSignal, "borders version is OFF");
         }
 
         return;
@@ -998,7 +998,7 @@ public class ArbitrageService {
     public void restartSignalDelay() {
         if (signalDelayActivateTime != null) {
             long passedDelay = Instant.now().toEpochMilli() - signalDelayActivateTime;
-            stopSignalDelay(null, null);
+            stopSignalDelay(null, null, "restart signal delay from UI");
             startSignalDelay(passedDelay);
         }
     }
@@ -1029,8 +1029,8 @@ public class ArbitrageService {
         return "_none_";
     }
 
-    private void stopSignalDelay(BestQuotes bestQuotes, TradingSignal prevTradingSignal) {
-        printLogsAfterPreSignalRecheckStop(bestQuotes, prevTradingSignal);
+    private void stopSignalDelay(BestQuotes bestQuotes, TradingSignal prevTradingSignal, String stopReason) {
+        printLogsAfterPreSignalRecheckStop(bestQuotes, prevTradingSignal, stopReason);
         signalDelayActivateTime = null;
         if (futureSignal != null && !futureSignal.isDone()) {
             futureSignal.cancel(false);
@@ -1042,7 +1042,7 @@ public class ArbitrageService {
         volatileModeSwitcherService.stopVmTimer();
     }
 
-    private void printLogsAfterPreSignalRecheckStop(BestQuotes bestQuotes, TradingSignal prevTradingSignal) {
+    private void printLogsAfterPreSignalRecheckStop(BestQuotes bestQuotes, TradingSignal prevTradingSignal, String stopReason) {
         if (bestQuotes != null && bestQuotes.isPreSignalReChecked()) {
             if (bestQuotes.getDeltaName() == null || bestQuotes.getTradingMode() == null) {
                 // Illegal arguments
@@ -1057,7 +1057,8 @@ public class ArbitrageService {
 
                 // Vertical was not started, b_delta (xx) <> b_border (xx), o_delta (xx) <> o_border (xx)
                 // (писать знаки > или < в соответствии с реальными значениями).
-                String msg = String.format("After 'Recheck OB after SD' Vertical was not started %s. ", bestQuotes.toStringEx());
+                String msg = String.format("After 'Recheck OB after SD' Vertical was not started %s. Stop reason: %s ",
+                        bestQuotes.toStringEx(), stopReason);
 //                BorderParams borderParams = bordersService.getBorderParams();
 //                msg += borderParams.getBordersV2().toStringTables();
                 if (prevTradingSignal != null) {
