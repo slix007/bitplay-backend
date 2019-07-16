@@ -1067,12 +1067,12 @@ public class ArbitrageService {
                             final BigDecimal bDelta = bestQuotes.getBDelta();
                             msg += String.format("b_delta (%s) %s b_border (%s)", bDelta,
                                     bDelta.compareTo(minBorder) > 0 ? ">" : "<",
-                                    getBorder1());
+                                    minBorder);
                         } else {
                             final BigDecimal oDelta = bestQuotes.getODelta();
                             msg += String.format("o_delta (%s) %s o_border (%s)", oDelta,
                                     oDelta.compareTo(minBorder) > 0 ? ">" : "<",
-                                    getBorder2());
+                                    minBorder);
                         }
                     } else {
                         msg += "previous tradingSignal: " + prevTradingSignal.toString();
