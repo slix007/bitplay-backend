@@ -231,9 +231,16 @@ public class ArbitrageService {
                             }
 
                             final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
-                            if (predefinedBtmOb) {
-                                bestQuotes.setBtmOrderBook(firstOrderBook);
-                            }
+//                            boolean orderBookReFetched = true; // by default no reFetch
+//                            final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
+//                            if (preSignalObReFetch != null && preSignalObReFetch) {
+//                                orderBookReFetched = eventQuant instanceof SignalEventEx && ((SignalEventEx) eventQuant).isOrderBookReFetched();
+//                            }
+//                            bestQuotes.setOrderBookReFetched(orderBookReFetched);
+
+//                            if (predefinedBtmOb) {
+//                                bestQuotes.setBtmOrderBook(firstOrderBook);
+//                            }
 
                             final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
                             TradingSignal prevTradingSignal = null;

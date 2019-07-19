@@ -47,10 +47,10 @@ public class FplayOrder {
         this.counterName = counterName;
     }
 
-    public FplayOrder(Long tradeId, String counterName, @NotNull Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
+    public FplayOrder(Long tradeId, String counterName, Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
         this.tradeId = tradeId;
         this.counterName = counterName;
-        this.orderId = order.getId();
+        this.orderId = order != null ? order.getId() : null;
         this.orderDetail = FplayOrderConverter.convert(order);
         this.bestQuotes = bestQuotes;
         this.placingType = placingType;
@@ -72,6 +72,11 @@ public class FplayOrder {
 
     public FplayOrder cloneWithUpdate(LimitOrder limitOrder) {
         return new FplayOrder(this.tradeId, this.counterName, limitOrder, this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
+                this.portionsQtyMax);
+    }
+
+    public FplayOrder cloneDeep() {
+        return new FplayOrder(this.tradeId, this.counterName, this.getLimitOrder(), this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
                 this.portionsQtyMax);
     }
 

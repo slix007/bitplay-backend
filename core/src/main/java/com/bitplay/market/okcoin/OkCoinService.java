@@ -78,11 +78,11 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -734,27 +734,23 @@ public class OkCoinService extends MarketServicePreliq {
                 .subscribeOn(Schedulers.io())
                 .subscribe(limitOrders -> {
                     logger.debug("got open orders: " + limitOrders.size());
-                    synchronized (openOrdersLock) {
-                        // do not repeat for already 'FILLED' orders.
-                        limitOrders
-                                .forEach(update -> openOrders.stream()
-                                        .filter(o -> o.getOrderId().equals(update.getId()))
-                                        .filter(o -> o.getOrder().getStatus() != Order.OrderStatus.FILLED)
-                                        .forEach(o -> {
-                                            arbitrageService.getDealPrices().getoPriceFact()
-                                                    .addPriceItem(o.getCounterName(),
-                                                            update.getId(),
-                                                            update.getCumulativeAmount(),
-                                                            update.getAveragePrice(),
-                                                            update.getStatus());
-                                            writeAvgPriceLog();
-                                        })
-                                );
-                    }
 
-                    final Long tradeId = arbitrageService.getTradeId();
-                    final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, getCounterName());
-                    updateOpenOrders(limitOrders, fPlayOrderStub);
+                    final FplayOrder currStub = getCurrStub();
+                    final Long tradeId = currStub.getTradeId();
+                    updateFplayOrdersToCurrStab(limitOrders, currStub);
+
+                    getOpenOrders().forEach(o -> {
+                        arbitrageService.getDealPrices().getoPriceFact()
+                                .addPriceItem(o.getCounterName(),
+                                        o.getLimitOrder().getId(),
+                                        o.getLimitOrder().getCumulativeAmount(),
+                                        o.getLimitOrder().getAveragePrice(),
+                                        o.getLimitOrder().getStatus());
+                        writeAvgPriceLog();
+                    });
+
+                    addCheckOoToFree();
+
                 }, throwable -> logger.error("TradesObservable.Exception: ", throwable)); // TODO placingType is null!!!
     }
 
@@ -850,9 +846,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Scheduled(fixedDelay = 2000)
     public void openOrdersCleaner() {
         Instant start = Instant.now();
-        if (openOrders.size() > 0) {
-            cleanOldOO();
-        }
+        cleanOldOO();
         Instant end = Instant.now();
         Utils.logIfLong(start, end, logger, "openOrdersCleaner");
     }
@@ -878,8 +872,8 @@ public class OkCoinService extends MarketServicePreliq {
                 String.format("Before %s placing, orderType=%s,", orderType, Utils.convertOrderTypeName(orderType)));
         logger.info(message);
         tradeLogger.info(message);
-
-        synchronized (openOrdersLock) {
+//        synchronized (openOrdersLock)
+        {
 
             // Option 1: REAL TAKER - okex does it different. It is similar to our HYBRID(BBO - ask1 or bid1)
 //            final MarketOrder marketOrder = new MarketOrder(orderType, amount, currencyPair, new Date());
@@ -932,7 +926,8 @@ public class OkCoinService extends MarketServicePreliq {
             }
 
             tradeResponse.setLimitOrder(orderInfo);
-            updateOpenOrder(orderInfo);
+            final FplayOrder theUpdate = FplayOrderUtils.updateFplayOrder(fPlayOrder, orderInfo);
+            addOpenOrder(theUpdate);
 
             arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
             arbitrageService.getDealPrices().getoPriceFact()
@@ -1120,6 +1115,7 @@ public class OkCoinService extends MarketServicePreliq {
                     // do deferred placing
                     setMarketState(MarketState.ARBITRAGE);
                     tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
+                    logger.info(String.format("#%s MT2 start placing ", currArgs));
 
                     if (currArgs.getPlacingType() == PlacingType.TAKER) {// set oPricePlanOnStart for Taker
                         final BigDecimal oPricePlanOnStart;
@@ -1887,53 +1883,48 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public List<LimitOrder> cancelAllOrders(String logInfoId, boolean beforePlacing) {
+    public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing) {
         List<LimitOrder> res = new ArrayList<>();
         final String counterForLogs = getCounterName();
-        synchronized (openOrdersLock) {
-            openOrders.stream()
-                    .filter(Objects::nonNull)
-                    .filter(FplayOrder::isOpen)
-                    .map(FplayOrder::getLimitOrder)
-                    .forEach(order -> {
 
-                        final String orderId = order.getId();
-                        int attemptCount = 0;
-                        while (attemptCount < MAX_ATTEMPTS_CANCEL) {
-                            attemptCount++;
-                            try {
-                                if (attemptCount > 1) {
-                                    Thread.sleep(1000);
-                                }
-                                final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
-                                OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId,
-                                        okexContractType.getCurrencyPair(),
-                                        okexContractType.getFuturesContract());
+        getOnlyOpenOrders().forEach(order -> {
 
-                                tradeLogger.info(String.format("#%s/%s %s id=%s,res=%s,code=%s,details=%s(%s)",
-                                        counterForLogs, attemptCount,
-                                        logInfoId,
-                                        orderId,
-                                        result.isResult(),
-                                        result.getErrorCode(),
-                                        result.getDetails(),
-                                        getErrorCodeTranslation(result)));
+            final String orderId = order.getId();
+            int attemptCount = 0;
+            while (attemptCount < MAX_ATTEMPTS_CANCEL) {
+                attemptCount++;
+                try {
+                    if (attemptCount > 1) {
+                        Thread.sleep(1000);
+                    }
+                    final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
+                    OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId,
+                            okexContractType.getCurrencyPair(),
+                            okexContractType.getFuturesContract());
 
-                                if (result.isResult() || result.getDetails().contains("20015") /* "Order does not exist"*/) {
-                                    order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
-                                    res.add(order);
-                                    break;
-                                }
-                            } catch (Exception e) {
-                                logger.error("#{}/{} error cancel maker order", counterForLogs, attemptCount, e);
-                                tradeLogger.error(String.format("#%s/%s error cancel maker order: %s", counterForLogs, attemptCount, e.toString()));
-                            }
-                        }
-                    });
-            final boolean cnlSuccess = res.size() > 0;
-            if (beforePlacing && cnlSuccess) {
-                setMarketState(MarketState.PLACING_ORDER);
+                    tradeLogger.info(String.format("#%s/%s %s id=%s,res=%s,code=%s,details=%s(%s)",
+                            counterForLogs, attemptCount,
+                            logInfoId,
+                            orderId,
+                            result.isResult(),
+                            result.getErrorCode(),
+                            result.getDetails(),
+                            getErrorCodeTranslation(result)));
+
+                    if (result.isResult() || result.getDetails().contains("20015") /* "Order does not exist"*/) {
+                        order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
+                        res.add(order);
+                        break;
+                    }
+                } catch (Exception e) {
+                    logger.error("#{}/{} error cancel maker order", counterForLogs, attemptCount, e);
+                    tradeLogger.error(String.format("#%s/%s error cancel maker order: %s", counterForLogs, attemptCount, e.toString()));
+                }
             }
+        });
+        final boolean cnlSuccess = res.size() > 0;
+        if (beforePlacing && cnlSuccess) {
+            setMarketState(MarketState.PLACING_ORDER);
         }
 
         return res;
@@ -1975,6 +1966,9 @@ public class OkCoinService extends MarketServicePreliq {
                             result.getErrorCode(),
                             result.getDetails(),
                             getErrorCodeTranslation(result)));
+                    if (!result.isResult()) {
+                        updateOOStatuses();
+                    }
                 }
 
             } catch (Exception e) {
@@ -2259,7 +2253,7 @@ public class OkCoinService extends MarketServicePreliq {
             tradeLogger.warn("WAITING_ARB was reset by onReadyState");
         }
         ooHangedCheckerService.stopChecker();
-        iterateOpenOrdersMove();
+        iterateOpenOrdersMoveAsync();
     }
 
     @Override
@@ -2268,13 +2262,21 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    protected void iterateOpenOrdersMove(Object... iterateArgs) { // if synchronized then the queue for moving could be long
+    protected void iterateOpenOrdersMoveAsync(Object... iterateArgs) { // if synchronized then the queue for moving could be long
         ooSingleExecutor.execute(() -> {
-            final Boolean hadOoToMove = getMetricsDictionary().getOkexMovingIter().record(() ->
-                    iterateOpenOrdersMoveSync(iterateArgs));
-        });
+                    final Boolean hadOoToMove = getMetricsDictionary().getOkexMovingIter().record(() ->
+                            iterateOpenOrdersMoveSync(iterateArgs));
+                    if (hadOoToMove) {
+                        setFreeIfNoOpenOrders("FreeAfterIterateOpenOrdersMove"); // shows in logs the source of 'free after openOrders check'
+//                        addCheckOoToFree();
+                    }
+                }
+        );
     }
 
+    /**
+     * @return false when no orders to move, true otherwise.
+     */
     private boolean iterateOpenOrdersMoveSync(Object... iterateArgs) { // if synchronized then the queue for moving could be long
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED
                 || getMarketState() == MarketState.PLACING_ORDER
@@ -2283,111 +2285,81 @@ public class OkCoinService extends MarketServicePreliq {
             return false;
         }
 
-        synchronized (openOrdersLock) {
-            if (hasOpenOrders()) {
+        final List<FplayOrder> onlyOpenFplayOrders = getOnlyOpenFplayOrders();
 
-                List<FplayOrder> resultOOList = new ArrayList<>();
+        if (onlyOpenFplayOrders.size() > 0) {
 
-                for (FplayOrder openOrder : openOrders) {
+            List<FplayOrder> resultOOList = new ArrayList<>();
 
-//                        openOrders = openOrders.stream()
-//                            .flatMap(openOrder -> {
-//                        Stream<FplayOrder> optionalOrder = Stream.of(openOrder); // default -> keep the order
-//                        resultOOList = Collections.singletonList(openOrder); // default -> keep the order
-
-                    if (openOrder == null) {
-                        warningLogger.warn("OO is null. ");
-                        // empty, do not add
-                        continue;
-
-                    } else if (openOrder.getOrder().getType() == null) {
-                        warningLogger.warn("OO type is null. " + openOrder.toString());
-                        // keep the order
-                        resultOOList.add(openOrder);
-
-                    } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
-                            && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
-                            && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
-                        // keep the order
-                        resultOOList.add(openOrder);
-
+            for (FplayOrder openOrder : onlyOpenFplayOrders) {
+                if (openOrder == null) {
+                    warningLogger.warn("OO is null. ");
+                } else if (openOrder.getOrder().getType() == null) {
+                    warningLogger.warn("OO type is null. " + openOrder.toString());
+                    // keep the order
+                    resultOOList.add(openOrder);
+                } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
+                        && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
+                        && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
+                    // keep the order
+                    resultOOList.add(openOrder);
+                } else {
+                    final boolean okexOutsideLimits = okexLimitsService.outsideLimits(openOrder.getLimitOrder().getType(), openOrder.getPlacingType(),
+                            openOrder.getSignalType());
+                    if (okexOutsideLimits) {
+                        resultOOList.add(openOrder); // keep the same
                     } else {
-                        final boolean okexOutsideLimits = okexLimitsService.outsideLimits(openOrder.getLimitOrder().getType(), openOrder.getPlacingType(),
-                                openOrder.getSignalType());
-                        if (okexOutsideLimits) {
-                            resultOOList.add(openOrder); // keep the same
-                        } else {
-                            try {
-                                Instant lastObTime = (iterateArgs != null && iterateArgs.length > 0)
-                                        ? (Instant) iterateArgs[0]
-                                        : null;
+                        try {
+                            Instant lastObTime = (iterateArgs != null && iterateArgs.length > 0)
+                                    ? (Instant) iterateArgs[0]
+                                    : null;
 
-                                final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, lastObTime);
-                                //TODO keep an eye on 'hang open orders'
-                                if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
-                                        || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL // do nothing on such exception
-                                        || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION // do nothing on such exception
-                                ) {
-                                    // update the status
-                                    final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
-                                    if (cancelledFplayOrder != null) {
-                                        // update the order
-                                        resultOOList.add(cancelledFplayOrder);
-                                    }
-                                } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
-                                    final FplayOrder newOrder = response.getNewFplayOrder();
-                                    final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
-
-                                    resultOOList.add(cancelledOrder);
-                                    resultOOList.add(newOrder);
-//                                            movingErrorsOverloaded.set(0);
-                                } else {
-                                    resultOOList.add(openOrder); // keep the same
+                            final MoveResponse response = moveMakerOrderIfNotFirst(openOrder, lastObTime);
+                            if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                                    || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ONLY_CANCEL // do nothing on such exception
+                                    || response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION // do nothing on such exception
+                            ) {
+                                // update the status
+                                final FplayOrder cancelledFplayOrder = response.getCancelledFplayOrder();
+                                if (cancelledFplayOrder != null) {
+                                    // update the order
+                                    resultOOList.add(cancelledFplayOrder);
                                 }
-//                                        } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
-//
-//                                            if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
-//                                                setOverloaded(null);
-//                                                movingErrorsOverloaded.set(0);
-//                                            }
-//                                        }
-
+                            } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
+                                final FplayOrder newOrder = response.getNewFplayOrder();
                                 final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
-                                if (cancelledOrder != null && cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
-                                    writeAvgPriceLog();
-                                }
 
-                            } catch (Exception e) {
-                                // use default OO
-                                warningLogger.warn("Error on moving: " + e.getMessage());
-                                logger.warn("Error on moving", e);
-
+                                resultOOList.add(cancelledOrder);
+                                resultOOList.add(newOrder);
+                            } else {
                                 resultOOList.add(openOrder); // keep the same
                             }
+                            final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
+                            if (cancelledOrder != null && cancelledOrder.getOrder().getCumulativeAmount().signum() > 0) {
+                                writeAvgPriceLog();
+                            }
+
+                        } catch (Exception e) {
+                            // use default OO
+                            warningLogger.warn("Error on moving: " + e.getMessage());
+                            logger.warn("Error on moving", e);
+
+                            resultOOList.add(openOrder); // keep the same
                         }
                     }
-
                 }
-
-                Long tradeId = null;
-                // update all fplayOrders
-                for (FplayOrder resultOO : resultOOList) {
-                    final LimitOrder order = resultOO.getLimitOrder();
-                    arbitrageService.getDealPrices().getoPriceFact()
-                            .addPriceItem(resultOO.getCounterName(), order.getId(),
-                                    order.getCumulativeAmount(),
-                                    order.getAveragePrice(), order.getStatus());
-                    tradeId = Utils.lastTradeId(tradeId, resultOO.getTradeId());
-                }
-
-                this.openOrders = resultOOList;
-
-                setFreeIfNoOpenOrders("FreeAfterIterateOpenOrdersMove"); // shows in logs the source of 'free after openOrders check'
-
-                return true;
             }
 
-        } // synchronized (openOrdersLock)
+            // update all fplayOrders
+            for (FplayOrder resultOO : resultOOList) {
+                final LimitOrder order = resultOO.getLimitOrder();
+                arbitrageService.getDealPrices().getoPriceFact()
+                        .addPriceItem(resultOO.getCounterName(), order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus());
+            }
+            updateFplayOrders(resultOOList);
+
+            return true;
+        } // OO-size > 0
 
         return false;
     }
@@ -2474,7 +2446,8 @@ public class OkCoinService extends MarketServicePreliq {
 
         final Instant start = Instant.now();
         try {
-            synchronized (openOrdersLock) {
+            //synchronized (openOrdersLock)
+            {
 
                 final List<LimitOrder> onlyOpenOrders = getOnlyOpenOrders();
                 boolean specialHandling = false;
@@ -2625,7 +2598,7 @@ public class OkCoinService extends MarketServicePreliq {
             order.setOrderStatus(OrderStatus.CANCELED); // may be FILLED, but it's ok here.
             res.append(":CANCELED");
 
-            updateOpenOrder(order);
+            updateFplayOrdersToCurrStab(Collections.singletonList(order), getCurrStub());
 
         } else {
             res.append(":").append(result.getDetails());

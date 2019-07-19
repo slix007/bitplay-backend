@@ -4,8 +4,8 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import lombok.Getter;
 import lombok.ToString;
+import lombok.Getter;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.springframework.data.annotation.Transient;
 

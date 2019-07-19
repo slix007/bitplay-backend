@@ -1,6 +1,5 @@
 package com.bitplay.market;
 
-import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DelayTimer;
@@ -59,7 +58,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
@@ -212,6 +210,10 @@ public abstract class MarketService extends MarketServiceWithState {
                 .andThen(recalcLiqInfo())
                 .andThen(recalcFullBalance())
                 .andThen(endSample)
+                .onErrorComplete(throwable -> {
+                    logger.error("stateUpdater recalc error", throwable);
+                    return true;
+                })
                 .subscribe();
     }
 
@@ -321,7 +323,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 setMarketState(MarketState.READY);
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId)); // end arbitrage trigger
 
-                iterateOpenOrdersMove();
+                iterateOpenOrdersMoveAsync();
                 break;
 
             case READY:
@@ -332,7 +334,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 }
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE_FOR_ARB, tradeId)); // end arbitrage trigger
 
-                iterateOpenOrdersMove(); // TODO we should not have such cases
+                iterateOpenOrdersMoveAsync(); // TODO we should not have such cases
                 break;
 
             default:
@@ -404,11 +406,11 @@ public abstract class MarketService extends MarketServiceWithState {
         if (currMarketState == MarketState.SYSTEM_OVERLOADED) {
 
             MarketState marketStateToSet;
-            synchronized (openOrdersLock) {
+//            synchronized (openOrdersLock) {
                 marketStateToSet = (hasOpenOrders() || placeOrderArgs != null) // moving or placing attempt
                         ? MarketState.ARBITRAGE
                         : MarketState.READY;
-            }
+//            }
 
             final String counterForLogs = getCounterName();
             final String backWarn = String.format("#%s change status from %s to %s",
@@ -520,7 +522,7 @@ public abstract class MarketService extends MarketServiceWithState {
         logger.info(msg);
         if (newState == MarketState.READY) {
             this.readyTime = Instant.now();
-            onReadyState(); // may reset WAITING_ARB
+            onReadyState(); // may reset WAITING_ARB, iterateOpenOrdersMoveAsync
         }
         this.marketState = newState;
     }
@@ -540,8 +542,6 @@ public abstract class MarketService extends MarketServiceWithState {
     public String getFuturesContractName() {
         return "";
     }
-
-    public abstract ArbitrageService getArbitrageService();
 
     public abstract PosDiffService getPosDiffService();
 
@@ -704,33 +704,13 @@ public abstract class MarketService extends MarketServiceWithState {
                     getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
                 }
 
-                final String currCounterName = getCounterName();
-                final Long lastTradeId = getArbitrageService().getTradeId();
-                //TODO fill placingType, signalType. Use saved fplayTrade-starting-args
-//                final PlacingType defaultPlacingType = getArbitrageService().getFplayTrade() != null ?
-//                        getArbitrageService().getFplayTrade().get
-
-                synchronized (openOrdersLock) {
-                    this.openOrders = fetchedList.stream()
-                            .map(limitOrder ->
-                                    this.openOrders.stream()
-                                            .filter(ord -> ord.getOrderId().equals(limitOrder.getId()))
-                                            .findAny()
-                                            .map(fOrd -> fOrd.cloneWithUpdate(limitOrder))
-                                            //TODO fill placingType, signalType
-                                            .orElseGet(() -> new FplayOrder(lastTradeId, currCounterName,
-                                                    (limitOrder), null, null, null)))
-                            .collect(Collectors.toList());
-                }
-
-                // updateOpenOrders(fetchedList); - Don't use incremental update
-
+                updateFplayOrdersToCurrStab(fetchedList, getCurrStub());
             } catch (Exception e) {
                 logger.error("GetOpenOrdersError", e);
                 throw new IllegalStateException("GetOpenOrdersError", e);
             }
         }
-        return openOrders;
+        return getOpenOrders();
     }
 
     // Only one active task 'freeOoChecker' in ooSingleScheduler.
@@ -859,11 +839,11 @@ public abstract class MarketService extends MarketServiceWithState {
     protected void checkOpenOrdersForMoving(Instant startTime) {
 //        debugLog.info(getName() + ":checkOpenOrdersForMoving");
         if (!isMovingStopped()) {
-            iterateOpenOrdersMove(startTime);
+            iterateOpenOrdersMoveAsync(startTime);
         }
     }
 
-    abstract protected void iterateOpenOrdersMove(Object... iterateArgs);
+    abstract protected void iterateOpenOrdersMoveAsync(Object... iterateArgs);
 
     abstract protected void onReadyState();
 
@@ -881,15 +861,11 @@ public abstract class MarketService extends MarketServiceWithState {
         if (orderList == null) {
             response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not fetch openOrders list");
         } else {
-            synchronized (openOrdersLock) {
-                this.openOrders = orderList;
-
-                response = this.openOrders.stream()
-                        .filter(order -> order.getOrder().getId().equals(orderId))
-                        .findFirst()
-                        .map(this::moveMakerOrderIfNotFirst)
-                        .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
-            }
+            response = orderList.stream()
+                    .filter(order -> order.getOrder().getId().equals(orderId))
+                    .findFirst()
+                    .map(this::moveMakerOrderIfNotFirst)
+                    .orElseGet(() -> new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "can not find in openOrders list"));
         }
         return response;
     }
@@ -1119,6 +1095,60 @@ public abstract class MarketService extends MarketServiceWithState {
         }
     }
 
+    public FplayOrder getCurrStub() {
+        Long lastTradeId = tryFindLastTradeId();
+        final List<FplayOrder> currOrders = getOpenOrders();
+        final Optional<FplayOrder> lastOO = getLastOO(currOrders);
+        BestQuotes bestQuotes = null;
+        PlacingType placingType = null;
+        SignalType signalType = null;
+        String counterName;
+        if (lastOO.isPresent()) {
+            final FplayOrder o = lastOO.get();
+            bestQuotes = o.getBestQuotes();
+            placingType = o.getPlacingType();
+            signalType = o.getSignalType();
+            counterName = o.getCounterName();
+        } else {
+            counterName = gerCurrCounterName(currOrders);
+        }
+
+        return new FplayOrder(lastTradeId, counterName, null, bestQuotes, placingType, signalType);
+    }
+
+    private Optional<FplayOrder> getLastOO(List<FplayOrder> currOrders) {
+        return currOrders.stream()
+                .reduce((f1, f2) -> {
+                    if (f1.getLimitOrder() != null && f2.getLimitOrder() != null) {
+                        if (f1.getLimitOrder().getTimestamp().after(f2.getLimitOrder().getTimestamp())) {
+                            return f1;
+                        } else {
+                            return f2;
+                        }
+                    }
+                    if (f1.isOpen()) {
+                        return f1;
+                    }
+                    if (f2.isOpen()) {
+                        return f2;
+                    }
+                    if (f1.getPlacingType() != null) {
+                        return f1;
+                    }
+                    if (f2.getPlacingType() != null) {
+                        return f2;
+                    }
+                    return f1;
+                });
+    }
+
+    public String gerCurrCounterName(List<FplayOrder> currOrders) {
+        return currOrders.stream()
+                .map(FplayOrder::getCounterName)
+                .findFirst()
+                .orElse(getCounterName());
+    }
+
     public void stopAllActions() {
         shouldStopPlacing = true;
 
@@ -1129,19 +1159,17 @@ public abstract class MarketService extends MarketServiceWithState {
                 getTradeLogger().info(msg);
             } else {
                 StringBuilder orderIds = new StringBuilder();
-                synchronized (openOrdersLock) {
-                    openOrders.stream()
-                            .filter(Objects::nonNull)
-                            .filter(FplayOrder::isOpen)
-                            .map(FplayOrder::getOrder)
-                            .forEach(order -> orderIds.append(order.getId()).append(","));
-                }
+                getOpenOrders().stream()
+                        .filter(Objects::nonNull)
+                        .filter(FplayOrder::isOpen)
+                        .map(FplayOrder::getOrder)
+                        .forEach(order -> orderIds.append(order.getId()).append(","));
 
                 String msg = String.format("%s: StopAllActions: CancelAllOpenOrders=%s", getName(), orderIds.toString());
                 warningLogger.info(msg);
                 getTradeLogger().info(msg);
 
-                cancelAllOrders("StopAllActions: CancelAllOpenOrders", false);
+                cancelAllOrders(null, "StopAllActions: CancelAllOpenOrders", false);
             }
         } catch (Exception e) {
             logger.error("stopAllActions error", e);
@@ -1155,7 +1183,7 @@ public abstract class MarketService extends MarketServiceWithState {
     /**
      * @return cancelled order id list
      */
-    public List<LimitOrder> cancelAllOrders(String logInfoId, boolean beforePlacing) {
+    public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing) {
         return new ArrayList<>();
     }
 
