@@ -82,15 +82,6 @@ public abstract class MarketServiceOpenOrders {
     }
 
     public Long tryFindLastTradeId() {
-//        Long lastTradeId = null;
-//        OptionalLong aLong = openOrders.stream()
-//                .map(FplayOrder::getTradeId)
-//                .filter(Objects::nonNull)
-//                .mapToLong(Long::longValue).max();
-//        if (aLong.isPresent()) {
-//            lastTradeId = aLong.getAsLong();
-//        }
-//        lastTradeId = Utils.lastTradeId(lastTradeId, getArbitrageService().getTradeId());
         return getArbitrageService().getLastTradeId();
     }
 
@@ -142,6 +133,8 @@ public abstract class MarketServiceOpenOrders {
                     .filter(o -> !updatedIds.contains(o.getOrderId()))
                     .collect(Collectors.toList())
             );
+
+            getPersistenceService().getOrderRepositoryService().save(this.openOrders);
         }
     }
 
@@ -204,35 +197,6 @@ public abstract class MarketServiceOpenOrders {
     }
 
     abstract protected Optional<Order> getOrderInfo(String orderId, String counterName, int attemptCount, String logInfoId, LogService logger);
-
-    /**
-     * requests to market.
-     */
-    private FplayOrder updateOOStatus(FplayOrder fplayOrder) throws Exception {
-        if (fplayOrder.getOrder().getStatus() == OrderStatus.CANCELED) {
-            return fplayOrder;
-        }
-
-        final String orderId = fplayOrder.getOrderId();
-        final String counterForLogs = fplayOrder.getTradeId() + ":" + getCounterName();
-        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterForLogs, 1, "updateOOStatus:", getLogger());
-
-        if (!orderInfoAttempts.isPresent()) {
-            throw new Exception("Failed to updateOOStatus id=" + orderId);
-        }
-        Order orderInfo = orderInfoAttempts.get();
-        final LimitOrder limitOrder = (LimitOrder) orderInfo;
-
-//        if (fplayOrder.getOrder().getStatus() != Order.OrderStatus.FILLED && limitOrder.getStatus() == Order.OrderStatus.FILLED) {
-//            getTradeLogger().info(String.format("#%s updateOOStatus got FILLED orderId=%s, avgPrice=%s, filledAm=%s", counterForLogs, limitOrder.getId(),
-//                    limitOrder.getAveragePrice(), limitOrder.getCumulativeAmount()));
-//            logger.info("#{} updateOOStatus got FILLED order: {}", counterForLogs, limitOrder.toString());
-//        }
-
-        final FplayOrder updatedOrder = FplayOrderUtils.updateFplayOrder(fplayOrder, limitOrder);
-        getPersistenceService().getOrderRepositoryService().update(limitOrder, updatedOrder);
-
-        return updatedOrder;
-    }
+    abstract protected FplayOrder updateOOStatus(FplayOrder fplayOrder) throws Exception;
 
 }

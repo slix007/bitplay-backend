@@ -5,7 +5,9 @@ import com.github.mongobee.Mongobee;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
-
+import java.util.Collection;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -25,17 +27,9 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @Configuration
 @EnableMongoRepositories(basePackageClasses = RepositoryPackage.class)
 @EnableMongoAuditing
-//@ComponentScan(basePackageClasses=TemplatePackage.class)
 public class SpringMongoConfig extends AbstractMongoConfiguration {
     private static final String DBNAME = "bitplay";
     private static final String HOST_WITH_PORT = "localhost:26459";
-
-    // ---------------------------------------------------- mongodb config
-
-//    @Bean(name="mongoAudit")
-//    public AuditorAware<String> mongoAuditProvider() {
-//        return new DefaultAuditor();
-//    }
 
     @PreDestroy
     public void shutdown() {
@@ -59,45 +53,16 @@ public class SpringMongoConfig extends AbstractMongoConfiguration {
         return new MongoClient(HOST_WITH_PORT, clientOptions.build());
     }
 
-//    @Override
-//    protected String getMappingBasePackage() {
-//        return "com.lishman.springdata.domain";
-//    }
-
-    // ---------------------------------------------------- MongoTemplate
-/*
-    class DateToZonedDateTimeConverter implements Converter {
-        @Override
-        public Object convert(Object o, Class aClass, Object o1) {
-            final Date source = (Date) o;
-            return source == null ? null : ZonedDateTime.ofInstant(source.toInstant(), ZoneId.systemDefault());
-        }
+    @Override
+    protected Collection<String> getMappingBasePackages() {
+        return Stream.of("com.bitplay.persistance.domain").collect(Collectors.toList());
     }
 
-    class ZonedDateTimeToDateConverter implements Converter {
-        @Override
-        public Object convert(Object o, Class aClass, Object o1) {
-            final ZonedDateTime source = (ZonedDateTime) o;
-            return source == null ? null : Date.from(source.toInstant());
-        }
-    }
-
-    @Bean
-    public CustomConversions customConversions() {
-        List<Converter> converters = new ArrayList<>();
-        converters.add(new DateToZonedDateTimeConverter());
-        converters.add(new ZonedDateTimeToDateConverter());
-        return new CustomConversions(converters);
-    }*/
     @Bean
     public MongoTemplate mongoTemplate() throws Exception {
-        MappingMongoConverter converter = new MappingMongoConverter(
-                new DefaultDbRefResolver(mongoDbFactory()), new MongoMappingContext());
-//        converter.setCustomConversions(customConversions());
+        MappingMongoConverter converter = new MappingMongoConverter(new DefaultDbRefResolver(mongoDbFactory()), new MongoMappingContext());
         converter.afterPropertiesSet();
         return new MongoTemplate(mongoDbFactory(), converter);
-
-//        return new MongoTemplate(mongo(), getDatabaseName());
     }
 
     @Bean

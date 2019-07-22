@@ -3,13 +3,16 @@ package com.bitplay.persistance.domain.fluent;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.persistance.domain.settings.PlacingType;
+import java.time.LocalDateTime;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -23,17 +26,18 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 public class FplayOrder {
 
-    @NotNull
-    private String counterName;
     @Id
     private String orderId;
     private OrderDetail orderDetail; //NotNull
+    @NotNull
+    private String counterName;
     @Version
     private Long version;
-//    @CreatedDate
-//    private LocalDateTime creationDate;
-//    @LastModifiedDate
-//    private LocalDateTime lastChange;
+    @CreatedDate
+    private LocalDateTime creationDate;
+    @LastModifiedDate
+    private LocalDateTime lastChange;
+    private Integer marketId;// see MarketSettings#marketId
     private BestQuotes bestQuotes;
     private PlacingType placingType;
     private SignalType signalType;

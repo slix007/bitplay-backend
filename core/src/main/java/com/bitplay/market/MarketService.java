@@ -27,6 +27,7 @@ import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
@@ -61,6 +62,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
@@ -768,6 +770,7 @@ public abstract class MarketService extends MarketServiceWithState {
         return getOrderInfo(orderId, counterForLogs, attemptCount, logInfoId, getTradeLogger());
     }
 
+    @Override
     protected Optional<Order> getOrderInfo(String orderId, String counterForLogs, int attemptCount, String logInfoId, LogService customLogger) {
         final String[] orderIds = {orderId};
         final Collection<Order> orderInfos = getOrderInfos(orderIds, counterForLogs, attemptCount, logInfoId, customLogger);
@@ -813,6 +816,28 @@ public abstract class MarketService extends MarketServiceWithState {
             logger.error(message, e);
         }
         return orders;
+    }
+
+    /**
+     * requests to market.
+     */
+    @Override
+    protected FplayOrder updateOOStatus(FplayOrder fplayOrder) throws Exception {
+        if (fplayOrder.getOrder().getStatus() == OrderStatus.CANCELED) {
+            return fplayOrder;
+        }
+
+        final String orderId = fplayOrder.getOrderId();
+        final String counterForLogs = fplayOrder.getTradeId() + ":" + getCounterName();
+        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterForLogs, 1, "updateOOStatus:", getLogger());
+
+        if (!orderInfoAttempts.isPresent()) {
+            throw new Exception("Failed to updateOOStatus id=" + orderId);
+        }
+        Order orderInfo = orderInfoAttempts.get();
+        final LimitOrder limitOrder = (LimitOrder) orderInfo;
+
+        return FplayOrderUtils.updateFplayOrder(fplayOrder, limitOrder);
     }
 
     private void initOpenOrdersMovingSubscription() {
