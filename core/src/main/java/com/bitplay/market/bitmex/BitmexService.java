@@ -70,7 +70,6 @@ import io.micrometer.core.instrument.util.NamedThreadFactory;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.Scheduler;
-import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -2211,8 +2210,8 @@ public class BitmexService extends MarketServicePreliq {
 
             if (movedLimitOrder != null) {
 
-                orderRepositoryService.updateOrder(fplayOrder, movedLimitOrder);
                 FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, movedLimitOrder);
+                orderRepositoryService.updateAsync(updated);
 
                 boolean showDiff = false;
                 if (prevCumulativeAmount != null && movedLimitOrder.getCumulativeAmount() != null

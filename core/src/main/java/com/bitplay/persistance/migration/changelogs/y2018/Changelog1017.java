@@ -15,8 +15,11 @@ public class Changelog1017 {
 
     @ChangeSet(order = "002", id = "2018-10-17:Add hedge amount to settings..", author = "SergeiShurmin")
     public void change02(MongoTemplate mongoTemplate) {
-        final Settings settings = mongoTemplate.findById(1L, Settings.class);
-        final GuiParams guiParams = mongoTemplate.findById(1L, GuiParams.class);
+        Settings settings = mongoTemplate.findById(1L, Settings.class);
+        if (settings == null) {
+            settings = Settings.createDefault();
+            settings.setId(1L);
+        }
         settings.setHedgeBtc(BigDecimal.ZERO);
         settings.setHedgeEth(BigDecimal.ZERO);
         settings.setHedgeAuto(false);

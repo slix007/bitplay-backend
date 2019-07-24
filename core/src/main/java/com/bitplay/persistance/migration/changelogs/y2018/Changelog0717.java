@@ -18,7 +18,11 @@ public class Changelog0717 {
     public void change01(MongoTemplate mongoTemplate) {
         final GuiParams guiParams = mongoTemplate.findById(1L, GuiParams.class);
         CumParams cumParams = new CumParams();
-        BeanUtils.copyProperties(guiParams, cumParams);
+        if (guiParams != null) {
+            BeanUtils.copyProperties(guiParams, cumParams);
+        } else {
+            cumParams.setDefaults();
+        }
         cumParams.setId(2L);
         mongoTemplate.save(cumParams);
     }

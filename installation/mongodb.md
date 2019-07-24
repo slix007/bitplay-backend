@@ -30,7 +30,7 @@ replication:
 
 
 
-
+# starting
 mongo 127.0.0.1:26459 --eval "rs.initiate()"
 
 

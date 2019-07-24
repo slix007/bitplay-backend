@@ -3,10 +3,13 @@ package com.bitplay.persistance;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.repository.OrderRepository;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
@@ -22,8 +25,8 @@ public class OrderRepositoryService {
 
     private MongoOperations mongoOperation;
 
-    //    private ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("order-repo-%d").build());
-    private Object lock = new Object();
+    private ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("order-repo-%d").build());
+//    private Object lock = new Object();
 
     @Autowired
     private OrderRepository orderRepository;
@@ -37,55 +40,31 @@ public class OrderRepositoryService {
         return orderRepository.findOne(id);
     }
 
-    public void updateOrder(FplayOrder fplayOrder, LimitOrder movedLimitOrder) {
-        if (fplayOrder.getOrder().getStatus() == Order.OrderStatus.CANCELED
-                && movedLimitOrder.getStatus() != Order.OrderStatus.CANCELED) {
-            // do nothing
-            return;
-        }
-
-        final FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, movedLimitOrder);
-        orderRepository.save(updated);
-    }
-
-    public synchronized void update(LimitOrder update, FplayOrder stabOrderForNew) {
-        final String orderId = update.getId();
+    private FplayOrder updateTask(FplayOrder updated) {
+        final String orderId = updated.getOrderId();
         FplayOrder one = orderRepository.findOne(orderId);
         if (one == null) {
-            one = stabOrderForNew;
+            one = updated;
         }
-        if (one == null) {
-            return; // can not update.
-        }
-        one = FplayOrderUtils.updateFplayOrder(one, update);
+        one = FplayOrderUtils.updateFplayOrder(one, updated);
+        return orderRepository.save(one);
+    }
 
-        orderRepository.save(one);
+    public Future<FplayOrder> updateAsync(FplayOrder updated) {
+        return executor.submit(() -> updateTask(updated));
     }
 
     public void save(FplayOrder fplayOrder) {
         orderRepository.save(fplayOrder);
     }
 
-    public void update(Iterable<? extends FplayOrder> fplayOrders) {
-//        orderRepository.save(fplayOrders);
-//        BasicDBObject dbObject = new BasicDBObject();
+    public void updateAsync(Iterable<? extends FplayOrder> fplayOrders) {
         for (FplayOrder fplayOrder : fplayOrders) {
-            orderRepository.save(fplayOrder);
-//            mongoOperation.getConverter().write(fplayOrder, dbObject);
-//            System.out.println(dbObject);
-////            final Update update = Update.fromDBObject(dbObject, "_id");
-//            final Update update = Update.fromDBObject(dbObject);
-//            System.out.println(update);
-//            mongoOperation.upsert(
-//                    new Query(Criteria.where("_id").is((fplayOrder.getOrderId()))),
-//                    update,
-////                    new FindAndModifyOptions().returnNew(false).upsert(true),
-//                    FplayOrder.class);
+            executor.submit(() -> updateTask(fplayOrder));
         }
-
     }
 
-    public synchronized Long findTradeId(List<LimitOrder> trades) {
+    public Long findTradeId(List<LimitOrder> trades) {
         List<String> orderIds = trades.stream()
                 .map(LimitOrder::getId)
                 .collect(Collectors.toList());

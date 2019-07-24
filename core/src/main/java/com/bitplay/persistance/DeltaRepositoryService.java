@@ -1,10 +1,10 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.arbitrage.events.DeltaChange;
 import com.bitplay.persistance.domain.borders.BorderDelta;
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.Dlt;
 import com.bitplay.persistance.repository.DltRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -194,7 +194,8 @@ public class DeltaRepositoryService {
         } else {
             savingListener = allDltObservable
                     .filter(delta -> isDeviationOvercome(delta, deltaSaveDev))
-                    .subscribe(this::saveOne);
+                    .subscribe(this::saveOne,
+                            throwable -> logger.error("allDltSaver error", throwable));
         }
     }
 

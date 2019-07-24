@@ -12,6 +12,7 @@ import javax.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -44,6 +45,7 @@ public class SpringMongoConfig extends AbstractMongoConfiguration {
 
     @Override
     @Bean
+    @DependsOn("mongobee")
     public MongoClient mongo() {
         MongoClientOptions.Builder clientOptions = new MongoClientOptions.Builder();
         clientOptions.minConnectionsPerHost(100);//min

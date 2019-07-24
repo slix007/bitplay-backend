@@ -186,4 +186,11 @@ public class TradeService {
     }
 
 
+    public Long getLastId() {
+        final Long lastId = fplayTradeRepository.getLastId();
+        if (lastId == null) {
+            return 0L;
+        }
+        return lastId;
+    }
 }

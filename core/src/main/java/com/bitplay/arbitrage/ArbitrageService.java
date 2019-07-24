@@ -2186,13 +2186,13 @@ public class ArbitrageService {
     }
 
     public Long getLastTradeId() {
-        return tradeId != null ? tradeId : fplayTradeRepository.getLastId();
+        return tradeId != null ? tradeId : fplayTradeService.getLastId();
     }
 
     public Long getLastInProgressTradeId() {
         final Long tradeIdSnap = getLastTradeId();
         FplayTrade one = fplayTradeRepository.findOne(tradeIdSnap);
-        if (one.getTradeStatus() == TradeStatus.IN_PROGRESS) {
+        if (one != null && one.getTradeStatus() == TradeStatus.IN_PROGRESS) {
             return tradeIdSnap;
         }
         return null;

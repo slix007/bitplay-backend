@@ -15,6 +15,7 @@ public interface FplayTradeRepository extends MongoRepository<FplayTrade, Long> 
     FplayTrade findTopByOrderByIdDesc();
 
     default Long getLastId() {
-        return findTopByOrderByIdDesc().getId();
+        final FplayTrade topByOrderByIdDesc = findTopByOrderByIdDesc();
+        return topByOrderByIdDesc != null ? topByOrderByIdDesc.getId() : null;
     }
 }

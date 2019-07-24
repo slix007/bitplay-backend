@@ -118,6 +118,7 @@ public class Settings extends AbstractDocument {
         settings.hedgeBtc = BigDecimal.ZERO;
         settings.hedgeEth = BigDecimal.ZERO;
         settings.hedgeAuto = false;
+        settings.usdQuoteType = UsdQuoteType.INDEX_BITMEX;
         settings.okexFakeTakerDev = BigDecimal.ONE;
         settings.tradingModeAuto = false;
         settings.tradingModeState = new TradingModeState(TradingMode.CURRENT);

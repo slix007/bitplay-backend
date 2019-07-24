@@ -698,10 +698,6 @@ public abstract class MarketService extends MarketServiceWithState {
             try {
                 final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
                         .getOpenOrders();
-                if (fetchedList == null) {
-                    logger.error("GetOpenOrdersError");
-                    throw new IllegalStateException("GetOpenOrdersError");
-                }
                 if (fetchedList.size() > 1) {
                     getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
                 }

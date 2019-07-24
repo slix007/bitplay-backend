@@ -1690,7 +1690,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             final FplayOrder cancelledFplayOrd = FplayOrderUtils.updateFplayOrder(fOrderToCancel, cancelledOrder);
             final LimitOrder cancelledLimitOrder = (LimitOrder) cancelledFplayOrd.getOrder();
-            orderRepositoryService.update(cancelledLimitOrder, cancelledFplayOrd);
+            orderRepositoryService.updateAsync(cancelledFplayOrd);
 
             arbitrageService.getDealPrices().getoPriceFact().addPriceItem(counterName, cancelledLimitOrder.getId(), cancelledLimitOrder.getCumulativeAmount(),
                     cancelledLimitOrder.getAveragePrice(), cancelledLimitOrder.getStatus());
