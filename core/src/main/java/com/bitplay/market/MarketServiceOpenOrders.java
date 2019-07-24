@@ -134,7 +134,7 @@ public abstract class MarketServiceOpenOrders {
                     .collect(Collectors.toList())
             );
 
-            getPersistenceService().getOrderRepositoryService().save(this.openOrders);
+            getPersistenceService().getOrderRepositoryService().update(this.openOrders);
         }
     }
 

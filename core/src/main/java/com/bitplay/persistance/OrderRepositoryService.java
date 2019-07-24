@@ -66,8 +66,23 @@ public class OrderRepositoryService {
         orderRepository.save(fplayOrder);
     }
 
-    public void save(Iterable<? extends FplayOrder> fplayOrders) {
-        orderRepository.save(fplayOrders);
+    public void update(Iterable<? extends FplayOrder> fplayOrders) {
+//        orderRepository.save(fplayOrders);
+//        BasicDBObject dbObject = new BasicDBObject();
+        for (FplayOrder fplayOrder : fplayOrders) {
+            orderRepository.save(fplayOrder);
+//            mongoOperation.getConverter().write(fplayOrder, dbObject);
+//            System.out.println(dbObject);
+////            final Update update = Update.fromDBObject(dbObject, "_id");
+//            final Update update = Update.fromDBObject(dbObject);
+//            System.out.println(update);
+//            mongoOperation.upsert(
+//                    new Query(Criteria.where("_id").is((fplayOrder.getOrderId()))),
+//                    update,
+////                    new FindAndModifyOptions().returnNew(false).upsert(true),
+//                    FplayOrder.class);
+        }
+
     }
 
     public synchronized Long findTradeId(List<LimitOrder> trades) {
