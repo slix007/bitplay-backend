@@ -7,11 +7,11 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
-import com.bitplay.market.state.TmpStateKeeper;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.ContractType;
@@ -66,7 +66,8 @@ public class PoloniexService extends MarketService {
     public final static Currency CURRENCY_USDT = new Currency("USDT");
     private static final Logger logger = LoggerFactory.getLogger(PoloniexService.class);
     private static final Logger tradeLogger = LoggerFactory.getLogger("POLONIEX_TRADE_LOG");
-    private final static String NAME = "poloniex";
+    private static final MarketStaticData MARKET_STATIC_DATA = MarketStaticData.POLONIEX;
+    public static final String NAME = MARKET_STATIC_DATA.getName();
 //    private List<PoloniexWebSocketDepth> updates = new ArrayList<>();
     Disposable orderBookSubscription;
     Disposable accountInfoSubscription;
@@ -111,8 +112,8 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    public String getName() {
-        return NAME;
+    public MarketStaticData getMarketStaticData() {
+        return MARKET_STATIC_DATA;
     }
 
     @Override

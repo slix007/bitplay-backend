@@ -129,7 +129,7 @@ public class PersistenceService {
 
     public synchronized SwapParams fetchSwapParams(String marketName) {
         final SwapParams first = swapParamsRepository.findFirstByMarketName(marketName);
-        return first == null ? new SwapParams() : first;
+        return first == null ? SwapParams.createDefault() : first;
     }
 
     public void saveCorrParams(CorrParams corrParams) {

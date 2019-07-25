@@ -106,7 +106,7 @@ public class VolatileModeAfterService {
             final MarketState prevState = marketService.getMarketState();
             // 1. cancel and set marketState=PLACING_ORDER
             final String counterName = marketService.gerCurrCounterName(currOrders);
-            final FplayOrder stub = new FplayOrder(tradeId, counterName);
+            final FplayOrder stub = new FplayOrder(marketService.getMarketId(), tradeId, counterName);
 
             final List<LimitOrder> orders = marketService.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders", true);
             final BigDecimal amountDiff = orders.stream()

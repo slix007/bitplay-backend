@@ -25,6 +25,13 @@ public class SwapParams extends MarketDocument {
     private BigDecimal cumSpl = BigDecimal.ZERO;
     private BigDecimal cumSwapDiff = BigDecimal.ZERO;
 
+    public static SwapParams createDefault() {
+        final SwapParams swapParams = new SwapParams();
+        swapParams.setSwapV2(SwapV2.createDefault());
+        swapParams.setActiveVersion(Ver.OFF);
+        return swapParams;
+    }
+
     public void setSettingsParts(SwapParams swapParams) {
         this.activeVersion = swapParams.activeVersion;
         this.swapV2 = swapParams.swapV2;

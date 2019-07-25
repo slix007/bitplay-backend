@@ -20,6 +20,7 @@ import com.bitplay.market.ExtrastopService;
 import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.MarketUtils;
 import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
@@ -139,7 +140,8 @@ public class BitmexService extends MarketServicePreliq {
     private static final Logger ordersLogger = LoggerFactory.getLogger("BITMEX_ORDERS_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    public static final String NAME = "bitmex";
+    private static final MarketStaticData MARKET_STATIC_DATA = MarketStaticData.BITMEX;
+    public static final String NAME = MARKET_STATIC_DATA.getName();
 
     private BitmexStreamingExchange exchange;
 
@@ -272,8 +274,8 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
-    public String getName() {
-        return NAME;
+    public MarketStaticData getMarketStaticData() {
+        return MARKET_STATIC_DATA;
     }
 
     @Override
@@ -1722,8 +1724,9 @@ public class BitmexService extends MarketServicePreliq {
         if (tradeResponse.getCancelledOrders() != null) updates.addAll(tradeResponse.getCancelledOrders());
         if (tradeResponse.getLimitOrder() != null) updates.add(tradeResponse.getLimitOrder());
         final Long tradeId = placeOrderArgs.getTradeId();
-        final FplayOrder fPlayOrderStub = new FplayOrder(tradeId, placeOrderArgs.getCounterName(), null, placeOrderArgs.getBestQuotes(),
-                placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType(), placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
+        final FplayOrder fPlayOrderStub = new FplayOrder(this.getMarketId(), tradeId, placeOrderArgs.getCounterName(), null, placeOrderArgs.getBestQuotes(),
+                placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType(), placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax()
+        );
         addOpenOrders(updates, fPlayOrderStub);
 
         return tradeResponse;
@@ -1872,9 +1875,9 @@ public class BitmexService extends MarketServicePreliq {
                         fplayTradeService.addBitmexPlacingMs(tradeId, waitingMarketMs);
 
                         orderId = resultOrder.getId();
-                        final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
+                        final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
                                 placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
-                        orderRepositoryService.save(fplayOrder);
+                        orderRepositoryService.save(fplayOrder); // updateAsync?
                         if (orderId != null && !orderId.equals("0")) {
                             tradeResponse.setLimitOrder(resultOrder);
                             arbitrageService.getDealPrices().getbPriceFact()
@@ -1946,9 +1949,9 @@ public class BitmexService extends MarketServicePreliq {
 
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
-                        final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
+                        final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
                                 placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
-                        orderRepositoryService.save(fplayOrder);
+                        orderRepositoryService.save(fplayOrder);// updateAsync?
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
                         arbitrageService.getDealPrices().getbPriceFact()
                                 .addPriceItem(counterName, orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(), resultOrder.getStatus());
@@ -3083,7 +3086,7 @@ public class BitmexService extends MarketServicePreliq {
             }
 
             final FplayOrder currStub = getCurrStub();
-            final FplayOrder closeOrder = new FplayOrder(currStub.getTradeId(),
+            final FplayOrder closeOrder = new FplayOrder(this.getMarketId(), currStub.getTradeId(),
                     "closeAllPos", order, null, PlacingType.TAKER, null);
             addOpenOrder(closeOrder);
             tradeLogger.info(String.format("#closeAllPos id=%s. %s", order.getId(), order));

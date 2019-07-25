@@ -7,6 +7,7 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -28,7 +29,8 @@ import org.springframework.stereotype.Service;
 @Service("quoine")
 public class QuoineService extends MarketService {
 
-    private final static String NAME = "quoine";
+    private static final MarketStaticData MARKET_STATIC_DATA = MarketStaticData.OKEX;
+    public static final String NAME = MARKET_STATIC_DATA.getName();
 
     @Override
     public PosDiffService getPosDiffService() {
@@ -51,8 +53,8 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public String getName() {
-        return NAME;
+    public MarketStaticData getMarketStaticData() {
+        return MARKET_STATIC_DATA;
     }
 
     @Override

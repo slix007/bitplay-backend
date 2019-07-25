@@ -34,6 +34,7 @@ public class FplayOrderUtils {
             final LimitOrder limitOrder = updateLimitOrder(existingLimit, updateLimit);
 
             updated = new FplayOrder( // use exists metadata over update metadata. Why? update may be a stub?
+                    exists.getMarketId() != null ? exists.getMarketId() : update.getMarketId(),
                     exists.getTradeId() != null ? exists.getTradeId() : update.getTradeId(),
                     exists.getCounterName(),
                     limitOrder,

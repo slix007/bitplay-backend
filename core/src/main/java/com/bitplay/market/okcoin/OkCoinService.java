@@ -18,6 +18,7 @@ import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.MarketUtils;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.Affordable;
@@ -144,7 +145,8 @@ public class OkCoinService extends MarketServicePreliq {
 
     private static final Logger ordersLogger = LoggerFactory.getLogger("OKCOIN_ORDERS_LOG");
 
-    public final static String NAME = "okcoin";
+    private static final MarketStaticData MARKET_STATIC_DATA = MarketStaticData.OKEX;
+    public static final String NAME = MARKET_STATIC_DATA.getName();
     ArbitrageService arbitrageService;
 
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
@@ -263,8 +265,8 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public String getName() {
-        return NAME;
+    public MarketStaticData getMarketStaticData() {
+        return MARKET_STATIC_DATA;
     }
 
     @Override
@@ -914,7 +916,7 @@ public class OkCoinService extends MarketServicePreliq {
             LimitOrder orderInfo = TmpAdapter.cloneWithId(limitOrder, orderId);
             tradeResponse.setLimitOrder(orderInfo);
             orderInfo.setOrderStatus(OrderStatus.NEW);
-            final FplayOrder fPlayOrder = new FplayOrder(tradeId, counterName, orderInfo, bestQuotes, PlacingType.TAKER, signalType,
+            final FplayOrder fPlayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, orderInfo, bestQuotes, PlacingType.TAKER, signalType,
                     portionsQty, portionsQtyMax);
             addOpenOrder(fPlayOrder);
 
@@ -1490,7 +1492,7 @@ public class OkCoinService extends MarketServicePreliq {
                             orderId);
 
                     tradeResponse.setLimitOrder(resultOrder);
-                    final FplayOrder fplayOrder = new FplayOrder(tradeId, counterName, resultOrder, bestQuotes, placingSubType, signalType,
+                    final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingSubType, signalType,
                             portionsQty, portionsQtyMax);
                     addOpenOrder(fplayOrder);
 

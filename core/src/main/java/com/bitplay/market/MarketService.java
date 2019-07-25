@@ -539,7 +539,13 @@ public abstract class MarketService extends MarketServiceWithState {
         return readyTime;
     }
 
-    public abstract String getName();
+    public String getName() {
+        return getMarketStaticData().getName();
+    }
+    public Integer getMarketId() {
+        return getMarketStaticData().getId();
+    }
+    public abstract MarketStaticData getMarketStaticData();
 
     public String getFuturesContractName() {
         return "";
@@ -1027,11 +1033,12 @@ public abstract class MarketService extends MarketServiceWithState {
         MoveResponse response;
         LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
         if (limitOrder.getLimitPrice() == null) {
-            final FplayOrder one = getPersistenceService().getOrderRepositoryService().findOne(limitOrder.getId());
-            if (one == null) {
+            final FplayOrder fromDb = getPersistenceService().getOrderRepositoryService().findOne(limitOrder.getId());
+            if (fromDb == null) {
                 return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null, id=" + limitOrder.getId());
             } else {
-                limitOrder = (LimitOrder) one.getOrder();
+                logger.warn("order found only in DB. " + fromDb);
+                limitOrder = (LimitOrder) fromDb.getOrder();
                 if (limitOrder.getLimitPrice() == null) {
                     return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null, id=" + limitOrder.getId());
                 }
@@ -1134,7 +1141,7 @@ public abstract class MarketService extends MarketServiceWithState {
             counterName = gerCurrCounterName(currOrders);
         }
 
-        return new FplayOrder(lastTradeId, counterName, null, bestQuotes, placingType, signalType);
+        return new FplayOrder(this.getMarketId(), lastTradeId, counterName, null, bestQuotes, placingType, signalType);
     }
 
     private Optional<FplayOrder> getLastOO(List<FplayOrder> currOrders) {

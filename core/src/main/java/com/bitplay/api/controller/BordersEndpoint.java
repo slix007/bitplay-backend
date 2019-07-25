@@ -274,7 +274,7 @@ public class BordersEndpoint {
         return new ResultJson(respDetails, respDetails, bP);
     }
 
-    private static class BordersSettings {
+    public static class BordersSettings {
         public String version;
         public String posMode;
         public String recalcPeriodSec;

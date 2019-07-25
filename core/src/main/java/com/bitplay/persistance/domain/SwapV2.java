@@ -1,8 +1,11 @@
 package com.bitplay.persistance.domain;
 
+import lombok.Data;
+
 /**
  * Created by Sergey Shurmin on 10/26/17.
  */
+@Data
 public class SwapV2 {
 
     String swapOpenType; //sell,buy
@@ -10,45 +13,13 @@ public class SwapV2 {
     Integer swapTimeCorrMs;
     String msToSwapString;
 
-    public String getSwapOpenType() {
-        return swapOpenType;
-    }
 
-    public void setSwapOpenType(String swapOpenType) {
-        this.swapOpenType = swapOpenType;
-    }
-
-    public String getSwapOpenAmount() {
-        return swapOpenAmount;
-    }
-
-    public void setSwapOpenAmount(String swapOpenAmount) {
-        this.swapOpenAmount = swapOpenAmount;
-    }
-
-    public Integer getSwapTimeCorrMs() {
-        return swapTimeCorrMs;
-    }
-
-    public void setSwapTimeCorrMs(Integer swapTimeCorrMs) {
-        this.swapTimeCorrMs = swapTimeCorrMs;
-    }
-
-    public String getMsToSwapString() {
-        return msToSwapString;
-    }
-
-    public void setMsToSwapString(String msToSwapString) {
-        this.msToSwapString = msToSwapString;
-    }
-
-    @Override
-    public String toString() {
-        return "SwapV2{" +
-                "swapOpenType='" + swapOpenType + '\'' +
-                ", swapOpenAmount='" + swapOpenAmount + '\'' +
-                ", swapTimeCorrMs=" + swapTimeCorrMs +
-                ", msToSwapString='" + msToSwapString + '\'' +
-                '}';
+    public static SwapV2 createDefault() {
+        final SwapV2 swapV2 = new SwapV2();
+        swapV2.swapOpenType = "";
+        swapV2.swapOpenAmount = "";
+        swapV2.swapTimeCorrMs = 0;
+        swapV2.msToSwapString = "";
+        return swapV2;
     }
 }

@@ -44,7 +44,7 @@ public class OrderRepositoryService {
         final String orderId = updated.getOrderId();
         FplayOrder one = orderRepository.findOne(orderId);
         if (one == null) {
-            one = updated;
+            return orderRepository.save(updated);
         }
         one = FplayOrderUtils.updateFplayOrder(one, updated);
         return orderRepository.save(one);

@@ -46,12 +46,14 @@ public class FplayOrder {
 
     private Long tradeId;
 
-    public FplayOrder(Long tradeId, String counterName) {
+    public FplayOrder(Integer marketId, Long tradeId, String counterName) {
         this.tradeId = tradeId;
         this.counterName = counterName;
+        this.marketId = marketId;
     }
 
-    public FplayOrder(Long tradeId, String counterName, Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
+    public FplayOrder(Integer marketId, Long tradeId, String counterName, Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType) {
+        this.marketId = marketId;
         this.tradeId = tradeId;
         this.counterName = counterName;
         this.orderId = order != null ? order.getId() : null;
@@ -61,8 +63,9 @@ public class FplayOrder {
         this.signalType = signalType;
     }
 
-    public FplayOrder(Long tradeId, String counterName, Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType,
+    public FplayOrder(Integer marketId, Long tradeId, String counterName, Order order, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType,
             Integer portionsQty, Integer portionsQtyMax) {
+        this.marketId = marketId;
         this.tradeId = tradeId;
         this.counterName = counterName;
         this.orderId = order != null ? order.getId() : null;
@@ -75,12 +78,12 @@ public class FplayOrder {
     }
 
     public FplayOrder cloneWithUpdate(LimitOrder limitOrder) {
-        return new FplayOrder(this.tradeId, this.counterName, limitOrder, this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
+        return new FplayOrder(this.getMarketId(), this.tradeId, this.counterName, limitOrder, this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
                 this.portionsQtyMax);
     }
 
     public FplayOrder cloneDeep() {
-        return new FplayOrder(this.tradeId, this.counterName, this.getLimitOrder(), this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
+        return new FplayOrder(this.getMarketId(), this.tradeId, this.counterName, this.getLimitOrder(), this.bestQuotes, this.placingType, this.signalType, this.portionsQty,
                 this.portionsQtyMax);
     }
 

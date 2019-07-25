@@ -72,7 +72,7 @@ public class BitmexSwapEndpoint {
         return new ResultJson("OK", respDetails);
     }
 
-    private static class SwapSettings {
+    public static class SwapSettings {
         public String version;
         public SwapV2 swapV2;
     }
