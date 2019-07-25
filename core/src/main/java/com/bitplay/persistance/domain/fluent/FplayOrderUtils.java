@@ -36,7 +36,7 @@ public class FplayOrderUtils {
             updated = new FplayOrder( // use exists metadata over update metadata. Why? update may be a stub?
                     exists.getMarketId() != null ? exists.getMarketId() : update.getMarketId(),
                     exists.getTradeId() != null ? exists.getTradeId() : update.getTradeId(),
-                    exists.getCounterName(),
+                    exists.getCounterName() != null ? exists.getCounterName() : update.getCounterName(),
                     limitOrder,
                     exists.getBestQuotes() != null ? exists.getBestQuotes() : update.getBestQuotes(),
                     exists.getPlacingType() != null ? exists.getPlacingType() : update.getPlacingType(),
@@ -49,6 +49,26 @@ public class FplayOrderUtils {
         }
 
         return updated;
+    }
+
+    public static void updateFplayOrderFields(FplayOrder exists, FplayOrder update) {
+
+        if (update != null) {
+            final LimitOrder existingLimit = (LimitOrder) exists.getOrder();
+            final LimitOrder updateLimit = (LimitOrder) update.getOrder();
+
+            final LimitOrder limitOrder = updateLimitOrder(existingLimit, updateLimit);
+
+            exists.setMarketId(exists.getMarketId() != null ? exists.getMarketId() : update.getMarketId());
+            exists.setTradeId(exists.getTradeId() != null ? exists.getTradeId() : update.getTradeId());
+            exists.setCounterName(exists.getCounterName() != null ? exists.getCounterName() : update.getCounterName());
+            exists.setOrderDetail(FplayOrderConverter.convert(limitOrder));
+            exists.setBestQuotes(exists.getBestQuotes() != null ? exists.getBestQuotes() : update.getBestQuotes());
+            exists.setPlacingType(exists.getPlacingType() != null ? exists.getPlacingType() : update.getPlacingType());
+            exists.setSignalType(exists.getSignalType() != null ? exists.getSignalType() : update.getSignalType());
+            exists.setPortionsQty(exists.getPortionsQty() != null ? exists.getPortionsQty() : update.getPortionsQty());
+            exists.setPortionsQtyMax(exists.getPortionsQtyMax() != null ? exists.getPortionsQtyMax() : update.getPortionsQtyMax());
+        }
     }
 
     private static LimitOrder updateLimitOrder(LimitOrder existing, LimitOrder update) {

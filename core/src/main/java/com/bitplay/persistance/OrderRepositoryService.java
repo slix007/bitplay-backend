@@ -40,22 +40,30 @@ public class OrderRepositoryService {
         return orderRepository.findOne(id);
     }
 
+    public List<FplayOrder> findAll(Long tradeId, Integer marketId) {
+        return orderRepository.findAllByTradeIdAndMarketId(tradeId, marketId);
+    }
+
     private FplayOrder updateTask(FplayOrder updated) {
-        final String orderId = updated.getOrderId();
-        FplayOrder one = orderRepository.findOne(orderId);
-        if (one == null) {
-            return orderRepository.save(updated);
+        try {
+            final String orderId = updated.getOrderId();
+            FplayOrder one = orderRepository.findOne(orderId);
+            if (one == null) {
+                return orderRepository.save(updated);
+            }
+
+            FplayOrderUtils.updateFplayOrderFields(one, updated);
+
+            orderRepository.save(one);
+            return one;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        one = FplayOrderUtils.updateFplayOrder(one, updated);
-        return orderRepository.save(one);
+        return null;
     }
 
     public Future<FplayOrder> updateAsync(FplayOrder updated) {
         return executor.submit(() -> updateTask(updated));
-    }
-
-    public void save(FplayOrder fplayOrder) {
-        orderRepository.save(fplayOrder);
     }
 
     public void updateAsync(Iterable<? extends FplayOrder> fplayOrders) {

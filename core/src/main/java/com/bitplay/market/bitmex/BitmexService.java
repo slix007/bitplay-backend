@@ -8,6 +8,7 @@ import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
@@ -828,7 +829,7 @@ public class BitmexService extends MarketServicePreliq {
             }
             updateFplayOrders(resultOOList);
 
-            if (!hasOpenOrders()) {
+            if (getMarketState() != MarketState.READY && !hasOpenOrders()) {
                 tradeLogger.warn("Free by iterateOpenOrdersMove");
                 logger.warn("Free by iterateOpenOrdersMove");
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
@@ -1607,13 +1608,12 @@ public class BitmexService extends MarketServicePreliq {
     private void mergeOpenOrders(OpenOrders updateOfOpenOrders) {
         logger.debug("OpenOrders: " + updateOfOpenOrders.toString());
 
-        final FplayOrder currStub = getCurrStub();
-        final Long tradeId = currStub.getTradeId();
-        final String counterName = currStub.getCounterName();
+        final FplayOrder stub = new FplayOrder(getMarketId());
         final List<LimitOrder> limitOrderList = updateOfOpenOrders.getOpenOrders();
 
-        updateFplayOrdersToCurrStab(limitOrderList, currStub);
+        updateFplayOrdersToCurrStab(limitOrderList, stub);
 
+        final String counterName = getCurrStub().getCounterName();
         getOpenOrders()
                 .stream()
                 .map(FplayOrder::getLimitOrder)
@@ -1877,7 +1877,7 @@ public class BitmexService extends MarketServicePreliq {
                         orderId = resultOrder.getId();
                         final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
                                 placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
-                        orderRepositoryService.save(fplayOrder); // updateAsync?
+                        orderRepositoryService.updateAsync(fplayOrder); // updateAsync?
                         if (orderId != null && !orderId.equals("0")) {
                             tradeResponse.setLimitOrder(resultOrder);
                             arbitrageService.getDealPrices().getbPriceFact()
@@ -1951,7 +1951,7 @@ public class BitmexService extends MarketServicePreliq {
                         thePrice = resultOrder.getAveragePrice();
                         final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
                                 placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
-                        orderRepositoryService.save(fplayOrder);// updateAsync?
+                        orderRepositoryService.updateAsync(fplayOrder);// updateAsync?
                         arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
                         arbitrageService.getDealPrices().getbPriceFact()
                                 .addPriceItem(counterName, orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(), resultOrder.getStatus());
@@ -2748,9 +2748,12 @@ public class BitmexService extends MarketServicePreliq {
      * Workaround! <br>
      * Bitmex sends wrong avgPrice. Fetch detailed history for each order and calc avgPrice.
      *
-     * @param avgPrice the object to be updated.
+     * @param dealPrices the object to be updated.
      */
-    public void updateAvgPrice(String counterName, AvgPrice avgPrice, boolean onlyOneAttempt) {
+    public void updateAvgPrice(String counterName, DealPrices dealPrices, boolean onlyOneAttempt) {
+        AvgPrice avgPrice = dealPrices.getbPriceFact();
+        updateAvgPriceFromDb(dealPrices.getTradeId(), avgPrice);
+
         final MarketState marketState = getMarketState();
         final String contractTypeStr = bitmexContractType.getCurrencyPair().toString();
         if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
@@ -3033,10 +3036,10 @@ public class BitmexService extends MarketServicePreliq {
                             contractTypeStr);
                 }
 
+                updateFplayOrdersToCurrStab(limitOrders, currStub);
                 if (beforePlacing) {
                     setMarketState(MarketState.PLACING_ORDER);
                 } else {
-                    updateFplayOrdersToCurrStab(limitOrders, currStub);
                     ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                     addCheckOoToFree();
                 }
@@ -3085,9 +3088,9 @@ public class BitmexService extends MarketServicePreliq {
                         order.getStatus());
             }
 
-            final FplayOrder currStub = getCurrStub();
-            final FplayOrder closeOrder = new FplayOrder(this.getMarketId(), currStub.getTradeId(),
-                    "closeAllPos", order, null, PlacingType.TAKER, null);
+            final FplayOrder stub = new FplayOrder(this.getMarketId(), null, "closeAllPos");
+            final FplayOrder closeOrder = new FplayOrder(stub.getMarketId(), stub.getTradeId(), stub.getCounterName(),
+                    order, null, PlacingType.TAKER, null);
             addOpenOrder(closeOrder);
             tradeLogger.info(String.format("#closeAllPos id=%s. %s", order.getId(), order));
 
@@ -3097,7 +3100,7 @@ public class BitmexService extends MarketServicePreliq {
 
             // one attempt to close all limit orders
             List<LimitOrder> limitOrders = tradeService.cancelAllOrders();
-            updateFplayOrdersToCurrStab(limitOrders, currStub);
+            updateFplayOrdersToCurrStab(limitOrders, stub);
             if (limitOrders.size() > 0) {
                 final String cancelledOrdersStr = limitOrders.stream()
                         .map(LimitOrder::toString)

@@ -128,7 +128,8 @@ public abstract class MarketServicePortions extends MarketService {
     public Integer cancelAllPortions() {
         final int inQueue = portionsQueue.size();
         portionsQueue.clear();
-        final List<LimitOrder> cancelPortionsFromUI = cancelAllOrders(null, "CancelPortionsFromUI", false);
+        final FplayOrder stub = new FplayOrder(getMarketId(), null, "CancelPortionsFromUI");
+        final List<LimitOrder> cancelPortionsFromUI = cancelAllOrders(stub, "CancelPortionsFromUI", false);
         return inQueue + cancelPortionsFromUI.size();
     }
 

@@ -62,8 +62,9 @@ public class AfterArbTask implements Runnable {
         try {
 //            final BigDecimal cm = bitmexService.getCm();
 
-            BigDecimal b_price_fact = fetchBtmFactPrice();
-            BigDecimal ok_price_fact = fetchOkFactPrice();
+            // updateAvgPriceFromDb and updateAvgPrice-from-Market
+            BigDecimal b_price_fact = fetchBtmFactPrice(); //always
+            BigDecimal ok_price_fact = fetchOkFactPrice(); //if fist RoundIsNotDone
 
             validateAvgPrice(dealPrices.getbPriceFact());
             validateAvgPrice(dealPrices.getoPriceFact());
@@ -230,7 +231,7 @@ public class AfterArbTask implements Runnable {
 
             try {
 
-                bitmexService.updateAvgPrice(counterName, dealPrices.getbPriceFact(), false);
+                bitmexService.updateAvgPrice(counterName, dealPrices, false);
                 StringBuilder logBuilder = new StringBuilder();
                 b_price_fact = dealPrices.getbPriceFact().getAvg(true, counterName, logBuilder);
                 deltaLogWriter.info(logBuilder.toString());
@@ -294,7 +295,7 @@ public class AfterArbTask implements Runnable {
                     log.error("Error on Wait 200mc for avgPrice", e1);
                 }
 
-                okCoinService.updateAvgPrice(counterName, dealPrices.getoPriceFact());
+                okCoinService.updateAvgPrice(counterName, dealPrices);
             }
         }
 

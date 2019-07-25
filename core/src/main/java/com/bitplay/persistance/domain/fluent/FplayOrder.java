@@ -46,6 +46,10 @@ public class FplayOrder {
 
     private Long tradeId;
 
+    public FplayOrder(Integer marketId) {
+        this.marketId = marketId;
+    }
+
     public FplayOrder(Integer marketId, Long tradeId, String counterName) {
         this.tradeId = tradeId;
         this.counterName = counterName;

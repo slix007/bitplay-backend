@@ -1,9 +1,10 @@
 package com.bitplay.arbitrage;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -12,14 +13,15 @@ import org.springframework.stereotype.Service;
 public class AfterArbService {
 
 
-    private final ExecutorService executor = Executors.newSingleThreadExecutor(
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("arb-after-worker-%d").build()
     );
     private static final long SHUTDOWN_TIME_SEC = 60;
+    private static final long DELAY_MS = 1000;
 
     public void addTask(AfterArbTask afterArbTask) {
 
-        Future<?> submit = executor.submit(afterArbTask);
+        Future<?> submit = executor.schedule(afterArbTask, DELAY_MS, TimeUnit.MILLISECONDS);
 
     }
 

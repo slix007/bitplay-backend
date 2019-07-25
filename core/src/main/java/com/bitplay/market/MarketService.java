@@ -1,6 +1,8 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.dto.AvgPrice;
+import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
@@ -51,8 +53,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -213,7 +217,9 @@ public abstract class MarketService extends MarketServiceWithState {
                 .andThen(recalcFullBalance())
                 .andThen(endSample)
                 .onErrorComplete(throwable -> {
-                    logger.error("stateUpdater recalc error", throwable);
+                    if (!(throwable instanceof NotYetInitializedException)) {
+                        logger.error("stateUpdater recalc error", throwable);
+                    }
                     return true;
                 })
                 .subscribe();
@@ -708,7 +714,7 @@ public abstract class MarketService extends MarketServiceWithState {
                     getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
                 }
 
-                updateFplayOrdersToCurrStab(fetchedList, getCurrStub());
+                updateFplayOrdersToCurrStab(fetchedList, new FplayOrder(getMarketId()));
             } catch (Exception e) {
                 logger.error("GetOpenOrdersError", e);
                 throw new IllegalStateException("GetOpenOrdersError", e);
@@ -732,7 +738,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     protected void setFreeIfNoOpenOrders(String checkerName) {
         try {
-            if (!hasOpenOrders()) {
+            if (getMarketState() != MarketState.READY && !hasOpenOrders()) {
                 getTradeLogger().warn(checkerName);
                 logger.warn(checkerName);
                 Long lastTradeId = tryFindLastTradeId();
@@ -1197,7 +1203,8 @@ public abstract class MarketService extends MarketServiceWithState {
                 warningLogger.info(msg);
                 getTradeLogger().info(msg);
 
-                cancelAllOrders(null, "StopAllActions: CancelAllOpenOrders", false);
+                final FplayOrder stub = new FplayOrder(getMarketId(), null, "stopAllActions");
+                cancelAllOrders(stub, "StopAllActions: CancelAllOpenOrders", false);
             }
         } catch (Exception e) {
             logger.error("stopAllActions error", e);
@@ -1233,4 +1240,37 @@ public abstract class MarketService extends MarketServiceWithState {
     public TradeResponse closeAllPos() {
         throw new IllegalArgumentException("Not implemented");
     }
+
+    /**
+     * For now only removes wrong.
+     * @param tradeId of the order
+     * @param avgPrice to update
+     */
+    public void updateAvgPriceFromDb(Long tradeId, AvgPrice avgPrice) {
+        final Map<String, AvgPriceItem> stringAvgPriceItemMap = avgPrice.getpItems();
+        for (String orderId : stringAvgPriceItemMap.keySet()) {
+            final FplayOrder order = getPersistenceService().getOrderRepositoryService().findOne(orderId);
+            if (order == null) {
+                logger.warn("Order is missing in DB. orderId=" + orderId);
+            } else {
+                if (!order.getTradeId().equals(tradeId)) {
+                    logger.warn(String.format("Wrong order in tradeId=%s. %s", tradeId, order));
+                    avgPrice.removeItem(orderId);
+                }
+            }
+        }
+
+        final List<FplayOrder> allByTradeId = getPersistenceService().getOrderRepositoryService().findAll(tradeId, getMarketId());
+        final Set<String> orderIds = avgPrice.getpItems().keySet();
+        for (FplayOrder fplayOrder : allByTradeId) {
+            if (!orderIds.contains(fplayOrder.getOrderId())) {
+                logger.warn(String.format("tradeId=%s is missing the order=%s ", tradeId, fplayOrder));
+                final LimitOrder ord = fplayOrder.getLimitOrder();
+                avgPrice.addPriceItem(fplayOrder.getCounterName(), fplayOrder.getOrderId(),
+                        ord.getCumulativeAmount(), ord.getAveragePrice(), ord.getStatus());
+            }
+        }
+
+    }
+
 }

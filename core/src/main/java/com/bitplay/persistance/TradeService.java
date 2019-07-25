@@ -76,23 +76,27 @@ public class TradeService {
     }
 
     public void setTradingMode(Long tradeId, TradingMode tradingMode) {
-        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
-                        //.and("tradingMode").ne(TradingMode.CURRENT_VOLATILE)), // redundant?
-                new Update()
-                        .inc("version", 1)
-                        .set("updated", new Date())
-                        .set("tradingMode", tradingMode),
-                FplayTrade.class);
+        if (tradeId != null) {
+            mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                    //.and("tradingMode").ne(TradingMode.CURRENT_VOLATILE)), // redundant?
+                    new Update()
+                            .inc("version", 1)
+                            .set("updated", new Date())
+                            .set("tradingMode", tradingMode),
+                    FplayTrade.class);
+        }
     }
 
     public void setEndStatus(Long tradeId, TradeStatus tradeStatus) {
-        mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
-                new Update()
-                        .inc("version", 1)
-                        .set("updated", new Date())
-                        .push("tradeStatusUpdates", LocalDateTime.now().format(DateTimeFormatter.ISO_TIME) + " " + tradeStatus.toString())
-                        .set("tradeStatus", tradeStatus),
-                FplayTrade.class);
+        if (tradeId != null) {
+            mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),
+                    new Update()
+                            .inc("version", 1)
+                            .set("updated", new Date())
+                            .push("tradeStatusUpdates", LocalDateTime.now().format(DateTimeFormatter.ISO_TIME) + " " + tradeStatus.toString())
+                            .set("tradeStatus", tradeStatus),
+                    FplayTrade.class);
+        }
     }
 
     public FplayTrade createTrade(String counterName, DeltaName deltaName, BitmexContractType b, OkexContractType o) {

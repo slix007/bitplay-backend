@@ -2,6 +2,7 @@ package com.bitplay.persistance.repository;
 
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 
+import java.util.List;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
@@ -9,4 +10,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  */
 public interface OrderRepository extends MongoRepository<FplayOrder, String> {
 
+    List<FplayOrder> findAllByTradeIdAndMarketId(Long tradeId, Integer marketId);
 }

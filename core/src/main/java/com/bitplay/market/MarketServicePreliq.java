@@ -13,6 +13,7 @@ import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.Preliq;
 import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.utils.Utils;
 import java.math.BigDecimal;
@@ -45,7 +46,8 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
 
     private void resetPreliqState() {
         if (getMarketState() == MarketState.PRELIQ) {
-            cancelAllOrders(null, "After PRELIQ: CancelAllOpenOrders", false);
+            final FplayOrder stub = new FplayOrder(getMarketId(), null, "cancellOnPreliq");
+            cancelAllOrders(stub, "After PRELIQ: CancelAllOpenOrders", false);
 
             MarketState toSet = MarketState.READY; // hasOpenOrders() ? MarketState.ARBITRAGE : MarketState.READY;
             log.warn(getName() + "_PRELIQ: resetPreliqState to " + toSet);

@@ -2,10 +2,10 @@ package com.bitplay.market;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
-import com.bitplay.utils.Utils;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,13 +13,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +43,10 @@ public abstract class MarketServiceOpenOrders {
     protected abstract String getCounterName();
 
     public abstract PersistenceService getPersistenceService();
+
+    private OrderRepositoryService getOrderRepositoryService() {
+        return getPersistenceService().getOrderRepositoryService();
+    }
 
     public abstract ArbitrageService getArbitrageService();
 
@@ -117,25 +118,47 @@ public abstract class MarketServiceOpenOrders {
 
     protected void updateFplayOrders(List<FplayOrder> updates) {
         synchronized (ooLock) {
-            // 1. update existing
+
+            // 1. Merge updates with this.openOrders and from DB => save to DB
+            final ArrayList<FplayOrder> allUpdated = new ArrayList<>();
+            for (FplayOrder u : updates) {
+                if (u.getOrderId() == null) {
+                    logger.warn("ORDER_ID IS NULL " + u);
+                    continue;
+                }
+                FplayOrder res = u;
+                final FplayOrder exists = this.openOrders.stream()
+                        .filter(curr -> u.getOrderId().equals(curr.getOrderId()))
+                        .findFirst()
+                        .orElseGet(() -> getOrderRepositoryService().findOne(u.getOrderId()));
+                if (exists != null) {
+                    res = FplayOrderUtils.updateFplayOrder(exists, u);
+                }
+//                getOrderRepositoryService().save(res); // TODO all orders from this.openOrders should be in DB.
+                getOrderRepositoryService().updateAsync(res);
+                allUpdated.add(res);
+            }
+
+            // 2. put into this.openOrders
+
+            // a)replace existing
             final List<String> updatedIds = new ArrayList<>();
             this.openOrders.replaceAll(curr ->
-                    updates.stream()
+                    allUpdated.stream()
                             .filter(u -> u.getOrderId().equals(curr.getOrderId()))
                             .findFirst()
                             .map(u -> {
                                 updatedIds.add(u.getOrderId());
-                                return FplayOrderUtils.updateFplayOrder(curr, u);
+                                return u; //FplayOrderUtils.updateFplayOrder(curr, u);
                             })
                             .orElse(curr));
-            // 2. add new
-            this.openOrders.addAll(updates.stream()
+            // b)add new
+            this.openOrders.addAll(allUpdated.stream()
                     .filter(o -> !updatedIds.contains(o.getOrderId()))
                     .collect(Collectors.toList())
             );
 
-            getPersistenceService().getOrderRepositoryService().updateAsync(this.openOrders);
-        }
+        } // ooLock
     }
 
     protected void updateFplayOrdersToCurrStab(List<LimitOrder> updates, final FplayOrder currStub) {

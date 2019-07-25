@@ -84,6 +84,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -737,9 +738,8 @@ public class OkCoinService extends MarketServicePreliq {
                 .subscribe(limitOrders -> {
                     logger.debug("got open orders: " + limitOrders.size());
 
-                    final FplayOrder currStub = getCurrStub();
-                    final Long tradeId = currStub.getTradeId();
-                    updateFplayOrdersToCurrStab(limitOrders, currStub);
+                    final FplayOrder stub = new FplayOrder(this.getMarketId());
+                    updateFplayOrdersToCurrStab(limitOrders, stub);
 
                     getOpenOrders().forEach(o -> {
                         arbitrageService.getDealPrices().getoPriceFact()
@@ -1096,7 +1096,7 @@ public class OkCoinService extends MarketServicePreliq {
                         getTradeLogger().info(msg);
                         warningLogger.info(msg);
                         final BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
-                        bitmexService.updateAvgPrice(getCounterName(), dealPrices.getbPriceFact(), true);
+                        bitmexService.updateAvgPrice(getCounterName(), dealPrices, true);
 
                         if (dealPrices.getbPriceFact().isNotFinished()) {
                             final String msg1 = String.format("#%s tradeId=%s "
@@ -1924,9 +1924,13 @@ public class OkCoinService extends MarketServicePreliq {
                 }
             }
         });
+
+        updateFplayOrdersToCurrStab(res, stub);
         final boolean cnlSuccess = res.size() > 0;
         if (beforePlacing && cnlSuccess) {
             setMarketState(MarketState.PLACING_ORDER);
+        } else {
+            addCheckOoToFree();
         }
 
         return res;
@@ -2398,9 +2402,12 @@ public class OkCoinService extends MarketServicePreliq {
     /**
      * Workaround! <br> Request orders details. Use it before ending of a Round.
      *
-     * @param avgPrice the object to be updated.
+     * @param dealPrices the object to be updated.
      */
-    public void updateAvgPrice(String counterName, AvgPrice avgPrice) {
+    public void updateAvgPrice(String counterName, DealPrices dealPrices) {
+        AvgPrice avgPrice = dealPrices.getoPriceFact();
+        updateAvgPriceFromDb(dealPrices.getTradeId(), avgPrice);
+
         final Set<String> orderIds = avgPrice.getpItems().keySet().stream()
                 .filter(orderId -> !orderId.equals(AvgPrice.FAKE_ORDER_ID))
                 .collect(Collectors.toSet());
@@ -2532,6 +2539,18 @@ public class OkCoinService extends MarketServicePreliq {
             tradeLogger.error(logString);
             warningLogger.error(logString);
         }
+
+        // update order info with correct counterName
+        final String orderId = tradeResponse.getOrderId();
+        if (orderId != null) {
+            final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterForLogs, 1, "closeAllPos:updateOrderStatus", getLogger());
+            if (orderInfoAttempts.isPresent()) {
+                Order orderInfo = orderInfoAttempts.get();
+                final LimitOrder limitOrder = (LimitOrder) orderInfo;
+                final FplayOrder closeOrder = new FplayOrder(getMarketId(), null, counterForLogs, limitOrder, null, PlacingType.TAKER, null);
+                addOpenOrder(closeOrder);
+            }
+        }
         return tradeResponse;
     }
 
@@ -2600,7 +2619,8 @@ public class OkCoinService extends MarketServicePreliq {
             order.setOrderStatus(OrderStatus.CANCELED); // may be FILLED, but it's ok here.
             res.append(":CANCELED");
 
-            updateFplayOrdersToCurrStab(Collections.singletonList(order), getCurrStub());
+            final FplayOrder stub = new FplayOrder(this.getMarketId(), null, "cancelOnMkt");
+            updateFplayOrdersToCurrStab(Collections.singletonList(order), stub);
 
         } else {
             res.append(":").append(result.getDetails());

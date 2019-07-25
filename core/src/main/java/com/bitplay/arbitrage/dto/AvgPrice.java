@@ -177,4 +177,8 @@ public class AvgPrice implements Serializable {
                 ", hash='@" + Integer.toHexString(hashCode()) + "'" +
                 '}';
     }
+
+    public synchronized void removeItem(String orderId) {
+        pItems.remove(orderId);
+    }
 }
