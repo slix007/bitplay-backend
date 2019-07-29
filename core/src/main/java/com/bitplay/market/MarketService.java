@@ -738,7 +738,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     protected void setFreeIfNoOpenOrders(String checkerName) {
         try {
-            if (getMarketState() != MarketState.READY && !hasOpenOrders()) {
+            if (getMarketState() == MarketState.ARBITRAGE && !hasOpenOrders()) {
                 getTradeLogger().warn(checkerName);
                 logger.warn(checkerName);
                 Long lastTradeId = tryFindLastTradeId();
