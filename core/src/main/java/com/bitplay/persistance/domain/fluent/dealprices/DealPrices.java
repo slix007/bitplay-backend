@@ -1,8 +1,10 @@
-package com.bitplay.arbitrage.dto;
+package com.bitplay.persistance.domain.fluent.dealprices;
 
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.BTM_MODE;
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MODE;
 
+import com.bitplay.arbitrage.dto.AvgPrice;
+import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
@@ -10,19 +12,36 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.Version;
 
 /**
  * Created by Sergey Shurmin on 5/24/17.
  */
 @Getter
 @Setter
+@Builder
 @ToString
 public class DealPrices implements Serializable {
+
+    @Id
+    private Long tradeId;
+    @Version
+    private Long version;
+    @CreatedDate
+    private LocalDateTime created;
+    @LastModifiedDate
+    private LocalDateTime updated;
 
     private List<BigDecimal> borderList = new ArrayList<>();
     private BigDecimal oBlock = BigDecimal.ZERO;
@@ -44,51 +63,36 @@ public class DealPrices implements Serializable {
     private PlacingType okexPlacingType;
     private PlacingType btmPlacingType;
     private TradingMode tradingMode;
-    private Long tradeId;
 
     public synchronized BigDecimal getBorder1() {
         return border1;
-    }
-
-    public void setBorder1(BigDecimal border1) {
-        this.border1 = border1;
     }
 
     public synchronized BigDecimal getBorder2() {
         return border2;
     }
 
-    public void setBorder2(BigDecimal border2) {
-        this.border2 = border2;
-    }
-
     public synchronized BorderParams getBorderParamsOnStart() {
         return borderParamsOnStart;
-    }
-
-    public void setBorderParamsOnStart(BorderParams borderParamsOnStart) {
-        this.borderParamsOnStart = borderParamsOnStart;
     }
 
     /**
      * The following should be set before:<br> BorderParams borderParamsOnStart, int pos_bo, DeltaName deltaName, BigDecimal b_block, BigDecimal o_block
      */
-    public void calcPlanPosAo() {
-        this.plan_pos_ao = calcPlanAfterOrderPos(bBlock, oBlock);
-    }
+//    public void calcPlanPosAo() {
+//        this.plan_pos_ao = calcPlanAfterOrderPos(bBlock, oBlock);
+//    }
 
-    public void calcPlanPosAo(BigDecimal b_block_input, BigDecimal o_block_input) {
-        this.plan_pos_ao = calcPlanAfterOrderPos(b_block_input, o_block_input);
-    }
-
-    public synchronized void setDeltaName(DeltaName deltaName) {
-        this.deltaName = deltaName;
+    public Integer calcPlanPosAo(BigDecimal b_block_input, BigDecimal o_block_input) {
+        this.plan_pos_ao = calcPlanAfterOrderPos(b_block_input, o_block_input, pos_bo, borderParamsOnStart.getPosMode(), deltaName);
+        return this.plan_pos_ao;
     }
 
     public synchronized DeltaName getDeltaName() {
         return deltaName;
     }
 
+    //TODO
     public synchronized void setSecondOpenPrice(BigDecimal secondOpenPrice) {
         final BigDecimal sop = secondOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
         oPriceFact.setOpenPrice(sop);
@@ -151,98 +155,7 @@ public class DealPrices implements Serializable {
         return details;
     }
 
-    public synchronized BigDecimal getoBlock() {
-        return oBlock;
-    }
-
-    public synchronized void setoBlock(BigDecimal oBlock) {
-        this.oBlock = oBlock;
-    }
-
-    public synchronized BigDecimal getbBlock() {
-        return bBlock;
-    }
-
-    public synchronized void setbBlock(BigDecimal bBlock) {
-        this.bBlock = bBlock;
-    }
-
-    public synchronized BigDecimal getDelta1Plan() {
-        return delta1Plan;
-    }
-
-    public synchronized void setDelta1Plan(BigDecimal delta1Plan) {
-        this.delta1Plan = delta1Plan;
-    }
-
-    public synchronized BigDecimal getDelta2Plan() {
-        return delta2Plan;
-    }
-
-    public synchronized void setDelta2Plan(BigDecimal delta2Plan) {
-        this.delta2Plan = delta2Plan;
-    }
-
-    public synchronized BigDecimal getbPricePlan() {
-        return bPricePlan;
-    }
-
-    public synchronized void setbPricePlan(BigDecimal bPricePlan) {
-        this.bPricePlan = bPricePlan;
-    }
-
-    public synchronized BigDecimal getoPricePlan() {
-        return oPricePlan;
-    }
-
-    public synchronized void setoPricePlan(BigDecimal oPricePlan) {
-        this.oPricePlan = oPricePlan;
-    }
-
-    public synchronized AvgPrice getbPriceFact() {
-        return bPriceFact;
-    }
-
-    public synchronized void setbPriceFact(AvgPrice bPriceFact) {
-        this.bPriceFact = bPriceFact;
-    }
-
-    public synchronized AvgPrice getoPriceFact() {
-        return oPriceFact;
-    }
-
-    public synchronized void setoPriceFact(AvgPrice oPriceFact) {
-        this.oPriceFact = oPriceFact;
-    }
-
-    public BestQuotes getBestQuotes() {
-        return bestQuotes;
-    }
-
-    public void setBestQuotes(BestQuotes bestQuotes) {
-        this.bestQuotes = bestQuotes;
-    }
-
-    public synchronized Integer getPos_bo() {
-        return pos_bo;
-    }
-
-    public synchronized void setPos_bo(Integer pos_bo) {
-        this.pos_bo = pos_bo;
-    }
-
-    public synchronized Integer getPlan_pos_ao() {
-        return plan_pos_ao;
-    }
-
-    public synchronized void setPlan_pos_ao(Integer plan_pos_ao) {
-        this.plan_pos_ao = plan_pos_ao;
-    }
-
-    public synchronized BigDecimal getoPricePlanOnStart() {
-        return oPricePlanOnStart;
-    }
-
+    //TODO
     public synchronized void setoPricePlanOnStart(BigDecimal oPricePlanOnStart) {
         this.oPricePlanOnStart = oPricePlanOnStart;
     }
@@ -258,9 +171,9 @@ public class DealPrices implements Serializable {
         }
     }
 
-    private int calcPlanAfterOrderPos(BigDecimal bBlock, BigDecimal oBlock) {
+    public static int calcPlanAfterOrderPos(BigDecimal bBlock, BigDecimal oBlock, Integer pos_bo, PosMode posMode, DeltaName deltaName) {
         int pos_ao = pos_bo;
-        final PosMode posMode = borderParamsOnStart.getPosMode();
+//        final PosMode posMode = borderParamsOnStart.getPosMode();
         if (posMode == BTM_MODE) {
             if (deltaName == DeltaName.B_DELTA) {
                 pos_ao = pos_bo - bBlock.intValue();

@@ -1,7 +1,7 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.AvgPrice;
-import com.bitplay.arbitrage.dto.DealPrices;
+import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
@@ -119,7 +119,7 @@ public class AfterArbTask implements Runnable {
 
     private void calcCumAndPrintLogs(BigDecimal b_price_fact, BigDecimal ok_price_fact) {
 
-        final BigDecimal con = dealPrices.getbBlock();
+        final BigDecimal con = dealPrices.getBBlock();
         final BigDecimal b_bid = dealPrices.getBestQuotes().getBid1_p();
         final BigDecimal b_ask = dealPrices.getBestQuotes().getAsk1_p();
         final BigDecimal ok_bid = dealPrices.getBestQuotes().getBid1_o();

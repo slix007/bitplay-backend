@@ -7,7 +7,7 @@ import com.bitplay.arbitrage.CumService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.arbitrage.dto.DealPrices;
+import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;

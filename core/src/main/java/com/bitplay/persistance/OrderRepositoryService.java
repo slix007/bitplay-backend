@@ -1,11 +1,14 @@
 package com.bitplay.persistance;
 
+import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
+import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.repository.OrderRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -84,4 +87,5 @@ public class OrderRepositoryService {
                 .max(Long::compareTo)
                 .orElse(null);
     }
+
 }

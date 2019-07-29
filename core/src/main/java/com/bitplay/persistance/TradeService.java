@@ -103,7 +103,7 @@ public class TradeService {
         return createTrade(counterName, new Date(), deltaName, b, o);
     }
 
-    private synchronized FplayTrade createTrade(String counterName, Date startTimestamp, DeltaName deltaName,
+    private FplayTrade createTrade(String counterName, Date startTimestamp, DeltaName deltaName,
             BitmexContractType bitmexContractType, OkexContractType okexContractType) {
         final FplayTrade fplayTrade = new FplayTrade();
         fplayTrade.setCounterName(counterName);
@@ -197,4 +197,9 @@ public class TradeService {
         }
         return lastId;
     }
+
+    public FplayTrade getById(Long tradeId) {
+        return fplayTradeRepository.findOne(tradeId);
+    }
+
 }

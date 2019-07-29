@@ -6,7 +6,6 @@ import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.BordersService.TradingSignal;
 import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.arbitrage.dto.DealPrices;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DeltaMon;
 import com.bitplay.arbitrage.dto.PlBlocks;
@@ -16,6 +15,7 @@ import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventBus;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.arbitrage.factprice.AvgPriceService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
@@ -34,6 +34,7 @@ import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
+import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SignalTimeService;
 import com.bitplay.persistance.TradeService;
@@ -48,6 +49,7 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayTrade;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
+import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
@@ -56,7 +58,6 @@ import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.domain.settings.UsdQuoteType;
-import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.utils.SchedulerUtils;
@@ -80,7 +81,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import javax.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.SerializationUtils;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -100,7 +100,7 @@ public class ArbitrageService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    private final DealPrices dealPrices = new DealPrices();
+    //    private final DealPrices dealPrices = new DealPrices();
     private boolean firstDeltasCalculated = false;
     @Autowired
     private BordersService bordersService;
@@ -127,7 +127,9 @@ public class ArbitrageService {
     @Autowired
     private TradeService fplayTradeService;
     @Autowired
-    private FplayTradeRepository fplayTradeRepository;
+    private DealPricesRepositoryService dealPricesRepositoryService;
+    @Autowired
+    private AvgPriceService avgPriceService;
     @Autowired
     private SlackNotifications slackNotifications;
     @Autowired
@@ -187,8 +189,19 @@ public class ArbitrageService {
     private final Scheduler signalScheduler = SchedulerUtils.singleThread("signal-%d");
     private volatile boolean preSignalRecheckInProgress = false;
 
+
+    public boolean btmHasStarted() {
+        final DealPrices byTradeId = dealPricesRepositoryService.findByTradeId(tradeId);
+        ((BitmexService) getFirstMarketService()).updateAvgPrice(counterName, dealPrices, false);
+
+        if (avgPriceService.getbPriceFact().getAvg().signum() > 0) {
+            return true;
+        }
+        return false;
+    }
+
     public DealPrices getDealPrices() {
-        return dealPrices;
+        return dealPricesRepositoryService.findByTradeId(tradeId);
     }
 
     public void init(TwoMarketStarter twoMarketStarter) {
@@ -356,11 +369,11 @@ public class ArbitrageService {
                     log.info(arbIsDoneMsg);
 
                     // use snapshot of Params
-                    final DealPrices dealPricesSnap;
-                    synchronized (dealPrices) {
-//                        dealPrices.setTradeId(tradeId); // redundant. Keep logic: Re-set all dealPrices or none.
-                        dealPricesSnap = SerializationUtils.clone(dealPrices);
-                    }
+                    final DealPrices dealPricesSnap = dealPricesRepositoryService.findByTradeId(tradeIdSnap);
+//                    synchronized (dealPrices) {
+////                        dealPrices.setTradeId(tradeId); // redundant. Keep logic: Re-set all dealPrices or none.
+//                        dealPricesSnap = SerializationUtils.clone(dealPrices);
+//                    }
                     final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
                     // todo separate startSignalParams with endSignalParams (cumParams)
                     final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
@@ -620,10 +633,7 @@ public class ArbitrageService {
             // if we replace-limit-orders then fix commissions for current signal.
             final PlacingType okexPlacingType = settings.getOkexPlacingType();
             final PlacingType btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : settings.getBitmexPlacingType();
-            synchronized (dealPrices) {
-                dealPrices.setBtmPlacingType(btmPlacingType);
-                dealPrices.setOkexPlacingType(okexPlacingType);
-            }
+            dealPricesRepositoryService.justSetVolatileMode(tradeId, btmPlacingType, okexPlacingType);
 
             volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs); // replace-limit-orders. it may set CURRENT_VOLATILE
         }
@@ -1122,7 +1132,8 @@ public class ArbitrageService {
         final BigDecimal delta2 = this.delta2;
         final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName, tradingMode);
 
-        setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, bid1_p, ask1_o, b_block_input, o_block_input, deltaName,
+        final DealPrices dealPrices = setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, bid1_p, ask1_o, b_block_input,
+                o_block_input, deltaName,
                 counterName, tradingMode, delta1, delta2);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(b_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
@@ -1139,7 +1150,7 @@ public class ArbitrageService {
         saveParamsToDb();
     }
 
-    private void setTradeParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
+    private DealPrices setTradeParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
             BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input, DeltaName deltaName, String counterName,
             TradingMode tradingMode, BigDecimal delta1, BigDecimal delta2) {
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
@@ -1162,57 +1173,62 @@ public class ArbitrageService {
         final PlacingType okexPlacingType = settings.getOkexPlacingType();
         final PlacingType btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : settings.getBitmexPlacingType();
 
-        synchronized (dealPrices) {
-            dealPrices.setBtmPlacingType(btmPlacingType);
-            dealPrices.setOkexPlacingType(okexPlacingType);
-            dealPrices.setBorder1(border1);
-            dealPrices.setBorder2(border2);
-            dealPrices.setbBlock(b_block);
-            dealPrices.setoBlock(o_block);
-            dealPrices.setDelta1Plan(delta1);
-            dealPrices.setDelta2Plan(delta2);
-            dealPrices.setbPricePlan(bPricePlan);
-            dealPrices.setoPricePlan(oPricePlan);
-            dealPrices.setoPricePlanOnStart(oPricePlan);
-            dealPrices.setDeltaName(deltaName);
-            dealPrices.setBestQuotes(bestQuotes);
+        Integer bitmexScale = firstMarketService.getContractType().getScale();
+        Integer okexScale = secondMarketService.getContractType().getScale();
+        AvgPrice btmPriceFact = new AvgPrice(counterName, b_block, "bitmex", bitmexScale);
+        AvgPrice okPriceFact = new AvgPrice(counterName, o_block, "okex", okexScale);
 
-            Integer bitmexScale = firstMarketService.getContractType().getScale();
-            Integer okexScale = secondMarketService.getContractType().getScale();
-            dealPrices.setbPriceFact(new AvgPrice(counterName, b_block, "bitmex", bitmexScale));
-            dealPrices.setoPriceFact(new AvgPrice(counterName, o_block, "okex", okexScale));
+        Integer plan_pos_ao = DealPrices.calcPlanAfterOrderPos(b_block_input, o_block_input, pos_bo, borderParams.getPosMode(), deltaName);
+        BigDecimal btmBlock = b_block;
+        BigDecimal okBlock = o_block;
 
-            dealPrices.setBorderParamsOnStart(borderParams);
-            dealPrices.setPos_bo(pos_bo);
-            dealPrices.calcPlanPosAo(b_block_input, o_block_input);
-
-            if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
-                fplayTradeService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
-                warningLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
-            }
-
-            if (b_block.signum() == 0) {
-                dealPrices.setbBlock(b_block_input);
-                AvgPrice avgPrice = new AvgPrice(counterName, b_block_input, "bitmex", bitmexScale);
-                avgPrice.setOpenPrice(bPricePlan);
-                avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, b_block_input, bPricePlan, OrderStatus.FILLED);
-                dealPrices.setbPriceFact(avgPrice);
-            }
-            if (o_block.signum() == 0) {
-                dealPrices.setoBlock(o_block_input);
-                AvgPrice avgPrice = new AvgPrice(counterName, o_block_input, "okex", okexScale);
-                avgPrice.setOpenPrice(oPricePlan);
-                avgPrice.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
-                dealPrices.setoPriceFact(avgPrice);
-            }
-            dealPrices.setTradingMode(tradingMode);
-            dealPrices.setTradeId(tradeId);
-
-            fplayTradeService.setTradingMode(tradeId, tradingMode);
+        if (b_block.signum() == 0) {
+            btmBlock = b_block_input;
+            btmPriceFact = new AvgPrice(counterName, b_block_input, "bitmex", bitmexScale);
+            btmPriceFact.setOpenPrice(bPricePlan);
+            btmPriceFact.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, b_block_input, bPricePlan, OrderStatus.FILLED);
         }
+        if (o_block.signum() == 0) {
+            okBlock = o_block_input;
+            okPriceFact = new AvgPrice(counterName, o_block_input, "okex", okexScale);
+            okPriceFact.setOpenPrice(oPricePlan);
+            okPriceFact.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
+        }
+
+        final DealPrices dealPrices = DealPrices.builder()
+                .btmPlacingType(btmPlacingType)
+                .okexPlacingType(okexPlacingType)
+                .border1(border1)
+                .border2(border2)
+                .bBlock(btmBlock)
+                .oBlock(okBlock)
+                .delta1Plan(delta1)
+                .delta2Plan(delta2)
+                .bPricePlan(bPricePlan)
+                .oPricePlan(oPricePlan)
+                .oPricePlanOnStart(oPricePlan)
+                .deltaName(deltaName)
+                .bestQuotes(bestQuotes)
+                .bPriceFact(btmPriceFact)
+                .oPriceFact(okPriceFact)
+                .borderParamsOnStart(borderParams)
+                .pos_bo(pos_bo)
+                .plan_pos_ao(plan_pos_ao)
+                .tradingMode(tradingMode)
+                .tradeId(tradeId)
+                .build();
+
+        if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
+            fplayTradeService.warn(tradeId, counterName, "WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
+            warningLogger.warn("WARNING: pos_bo==pos_ao==" + dealPrices.getPos_bo() + ". " + dealPrices.toString());
+        }
+
+        dealPricesRepositoryService.saveNew(dealPrices);
+        fplayTradeService.setTradingMode(tradeId, tradingMode);
 
         fplayTradeService.info(tradeId, counterName, String.format("#%s Trading mode = %s", counterName, tradingMode.getFullName()));
         fplayTradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
+        return dealPrices;
     }
 
     private void checkAndStartTradingOnDelta2(BorderParams borderParams,
@@ -1320,7 +1336,8 @@ public class ArbitrageService {
         final BigDecimal delta2 = this.delta2;
         final String counterName = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName, tradingMode);
 
-        setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, ask1_p, bid1_o, b_block_input, o_block_input, deltaName,
+        final DealPrices dealPrices = setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, ask1_p, bid1_o, b_block_input,
+                o_block_input, deltaName,
                 counterName, tradingMode, delta1, delta2);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(o_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
@@ -2191,7 +2208,7 @@ public class ArbitrageService {
 
     public Long getLastInProgressTradeId() {
         final Long tradeIdSnap = getLastTradeId();
-        FplayTrade one = fplayTradeRepository.findOne(tradeIdSnap);
+        FplayTrade one = fplayTradeService.getById(tradeIdSnap);
         if (one != null && one.getTradeStatus() == TradeStatus.IN_PROGRESS) {
             return tradeIdSnap;
         }

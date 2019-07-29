@@ -30,8 +30,7 @@ public class SequenceDaoImpl implements SequenceDao {
         options.returnNew(true);
 
         //this is the magic happened.
-        SequenceId seqId =
-                mongoOperation.findAndModify(query, update, options, SequenceId.class);
+        SequenceId seqId = mongoOperation.findAndModify(query, update, options, SequenceId.class);
 
         //if no id, throws SequenceException
         //optional, just a way to tell user when the sequence id is failed to generate.
