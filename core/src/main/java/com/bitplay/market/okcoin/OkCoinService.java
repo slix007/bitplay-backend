@@ -2273,7 +2273,7 @@ public class OkCoinService extends MarketServicePreliq {
                     final Boolean hadOoToMove = getMetricsDictionary().getOkexMovingIter().record(() ->
                             iterateOpenOrdersMoveSync(iterateArgs));
                     if (hadOoToMove) {
-                        setFreeIfNoOpenOrders("FreeAfterIterateOpenOrdersMove"); // shows in logs the source of 'free after openOrders check'
+                        setFreeIfNoOpenOrders("FreeAfterIterateOpenOrdersMove", 1); // shows in logs the source of 'free after openOrders check'
 //                        addCheckOoToFree();
                     }
                 }

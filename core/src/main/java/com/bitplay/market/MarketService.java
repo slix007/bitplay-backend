@@ -730,15 +730,22 @@ public abstract class MarketService extends MarketServiceWithState {
             .onBackpressureBuffer(1)
             .onBackpressureDrop()
             .subscribe((i) -> {
-                setFreeIfNoOpenOrders("freeOoChecker");
+                setFreeIfNoOpenOrders("freeOoChecker", i);
             }, e -> {
                 logger.error("freeOoChecker error", e);
                 getTradeLogger().warn("freeOoChecker error " + e.getMessage());
             });
 
-    protected void setFreeIfNoOpenOrders(String checkerName) {
+    protected void setFreeIfNoOpenOrders(String checkerName, int attempt) {
         try {
-            if (getMarketState() == MarketState.ARBITRAGE && !hasOpenOrders()) {
+            final MarketState marketState = getMarketState();
+            if (marketState != MarketState.ARBITRAGE && marketState != MarketState.READY) {
+                if (attempt > 1 && marketState != MarketState.PLACING_ORDER) { // log possible errors //todo remove this log
+                    logger.info("freeOoChecker attempt " + attempt + ", " + getName() + ", marketState=" + getMarketState());
+                }
+                addCheckOoToFreeRepeat(attempt + 1);
+            }
+            if (marketState == MarketState.ARBITRAGE && !hasOpenOrders()) {
                 getTradeLogger().warn(checkerName);
                 logger.warn(checkerName);
                 Long lastTradeId = tryFindLastTradeId();
@@ -753,8 +760,12 @@ public abstract class MarketService extends MarketServiceWithState {
         }
     }
 
+    protected void addCheckOoToFreeRepeat(int attempt) {
+        freeOoChecker.offer(attempt);
+    }
+
     protected void addCheckOoToFree() {
-        freeOoChecker.offer(1);
+        addCheckOoToFreeRepeat(1);
     }
 
     public Optional<Order> getOrderInfoAttempts(String orderId, String counterName, String logInfoId) throws InterruptedException {
