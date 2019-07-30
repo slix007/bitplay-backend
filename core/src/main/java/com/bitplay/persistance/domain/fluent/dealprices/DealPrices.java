@@ -3,16 +3,14 @@ package com.bitplay.persistance.domain.fluent.dealprices;
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.BTM_MODE;
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MODE;
 
-import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +21,9 @@ import lombok.ToString;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * Created by Sergey Shurmin on 5/24/17.
@@ -32,15 +32,17 @@ import org.springframework.data.annotation.Version;
 @Setter
 @Builder
 @ToString
+@Document(collection = "dealPricesSeries")
+@TypeAlias("DealPrices")
 public class DealPrices implements Serializable {
 
     @Id
     private Long tradeId;
     @Version
     private Long version;
-    @CreatedDate
+//    @CreatedDate
     private LocalDateTime created;
-    @LastModifiedDate
+//    @LastModifiedDate
     private LocalDateTime updated;
 
     private List<BigDecimal> borderList = new ArrayList<>();
@@ -51,8 +53,8 @@ public class DealPrices implements Serializable {
     private BigDecimal bPricePlan = BigDecimal.ZERO;
     private BigDecimal oPricePlan = BigDecimal.ZERO;
     private BigDecimal oPricePlanOnStart = BigDecimal.ZERO; // with CON_B_O, the plan and plan_start can be different.
-    private AvgPrice bPriceFact = new AvgPrice("", BigDecimal.ZERO, "bitmex", 2);
-    private AvgPrice oPriceFact = new AvgPrice("", BigDecimal.ZERO, "okex", 2);
+    private FactPrice bPriceFact;
+    private FactPrice oPriceFact; // = new AvgPrice("", BigDecimal.ZERO, "okex", 2);
     private DeltaName deltaName = DeltaName.B_DELTA;
     private BestQuotes bestQuotes;
     private Integer pos_bo; // before order
@@ -63,6 +65,7 @@ public class DealPrices implements Serializable {
     private PlacingType okexPlacingType;
     private PlacingType btmPlacingType;
     private TradingMode tradingMode;
+    private String counterName;
 
     public synchronized BigDecimal getBorder1() {
         return border1;

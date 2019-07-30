@@ -4,7 +4,7 @@ import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.BordersService.BorderVer;
 import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.BordersService.TradingSignal;
-import com.bitplay.arbitrage.dto.AvgPrice;
+import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DeltaMon;
@@ -20,6 +20,7 @@ import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -50,6 +51,7 @@ import com.bitplay.persistance.domain.fluent.FplayTrade;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
+import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
@@ -73,6 +75,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -82,7 +85,6 @@ import java.util.concurrent.TimeUnit;
 import javax.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
@@ -100,7 +102,6 @@ public class ArbitrageService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    //    private final DealPrices dealPrices = new DealPrices();
     private boolean firstDeltasCalculated = false;
     @Autowired
     private BordersService bordersService;
@@ -191,17 +192,31 @@ public class ArbitrageService {
 
 
     public boolean btmHasStarted() {
-        final DealPrices byTradeId = dealPricesRepositoryService.findByTradeId(tradeId);
-        ((BitmexService) getFirstMarketService()).updateAvgPrice(counterName, dealPrices, false);
-
-        if (avgPriceService.getbPriceFact().getAvg().signum() > 0) {
+        final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
+        final Map<String, AvgPriceItem> btmItems = persistenceService.getDealPricesRepositoryService()
+                .getPItems(dealPrices.getTradeId(), MarketStaticData.BITMEX.getId());
+        dealPrices.getBPriceFact().getPItems().putAll(btmItems);
+//        final BitmexService bitmexService = (BitmexService) getFirstMarketService();
+//        bitmexService.updateAvgPrice(dealPrices, false);
+        if (dealPrices.getBPriceFact().getAvg().signum() > 0) {
             return true;
         }
         return false;
     }
 
     public DealPrices getDealPrices() {
-        return dealPricesRepositoryService.findByTradeId(tradeId);
+        final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
+        updateFactPriceItemsFromDb(dealPrices);
+        return dealPrices;
+    }
+
+    private void updateFactPriceItemsFromDb(DealPrices dealPrices) {
+        final Map<String, AvgPriceItem> btmItems = persistenceService.getDealPricesRepositoryService()
+                .getPItems(dealPrices.getTradeId(), MarketStaticData.BITMEX.getId());
+        dealPrices.getBPriceFact().getPItems().putAll(btmItems);
+        final Map<String, AvgPriceItem> okItems = persistenceService.getDealPricesRepositoryService()
+                .getPItems(dealPrices.getTradeId(), MarketStaticData.OKEX.getId());
+        dealPrices.getOPriceFact().getPItems().putAll(okItems);
     }
 
     public void init(TwoMarketStarter twoMarketStarter) {
@@ -1175,8 +1190,10 @@ public class ArbitrageService {
 
         Integer bitmexScale = firstMarketService.getContractType().getScale();
         Integer okexScale = secondMarketService.getContractType().getScale();
-        AvgPrice btmPriceFact = new AvgPrice(counterName, b_block, "bitmex", bitmexScale);
-        AvgPrice okPriceFact = new AvgPrice(counterName, o_block, "okex", okexScale);
+//        AvgPrice btmPriceFact = new AvgPrice(counterName, b_block, "bitmex", bitmexScale);
+//        AvgPrice okPriceFact = new AvgPrice(counterName, o_block, "okex", okexScale);
+        FactPrice btmPriceFact = new FactPrice(MarketStaticData.BITMEX, b_block, bitmexScale);
+        FactPrice okPriceFact = new FactPrice(MarketStaticData.OKEX, o_block, okexScale);
 
         Integer plan_pos_ao = DealPrices.calcPlanAfterOrderPos(b_block_input, o_block_input, pos_bo, borderParams.getPosMode(), deltaName);
         BigDecimal btmBlock = b_block;
@@ -1184,15 +1201,15 @@ public class ArbitrageService {
 
         if (b_block.signum() == 0) {
             btmBlock = b_block_input;
-            btmPriceFact = new AvgPrice(counterName, b_block_input, "bitmex", bitmexScale);
+            btmPriceFact = new FactPrice(MarketStaticData.BITMEX, b_block, bitmexScale);
             btmPriceFact.setOpenPrice(bPricePlan);
-            btmPriceFact.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, b_block_input, bPricePlan, OrderStatus.FILLED);
+            btmPriceFact.setFakeOrder(b_block_input, bPricePlan);
         }
         if (o_block.signum() == 0) {
             okBlock = o_block_input;
-            okPriceFact = new AvgPrice(counterName, o_block_input, "okex", okexScale);
+            okPriceFact = new FactPrice(MarketStaticData.OKEX, o_block, okexScale);
             okPriceFact.setOpenPrice(oPricePlan);
-            okPriceFact.addPriceItem(counterName, AvgPrice.FAKE_ORDER_ID, o_block_input, oPricePlan, OrderStatus.FILLED);
+            okPriceFact.setFakeOrder(o_block_input, oPricePlan);
         }
 
         final DealPrices dealPrices = DealPrices.builder()
@@ -1216,6 +1233,7 @@ public class ArbitrageService {
                 .plan_pos_ao(plan_pos_ao)
                 .tradingMode(tradingMode)
                 .tradeId(tradeId)
+                .counterName(counterName)
                 .build();
 
         if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {

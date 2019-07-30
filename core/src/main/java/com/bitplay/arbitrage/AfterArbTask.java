@@ -1,7 +1,5 @@
 package com.bitplay.arbitrage;
 
-import com.bitplay.arbitrage.dto.AvgPrice;
-import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
@@ -20,6 +18,8 @@ import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
+import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
+import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import java.math.BigDecimal;
@@ -66,8 +66,8 @@ public class AfterArbTask implements Runnable {
             BigDecimal b_price_fact = fetchBtmFactPrice(); //always
             BigDecimal ok_price_fact = fetchOkFactPrice(); //if fist RoundIsNotDone
 
-            validateAvgPrice(dealPrices.getbPriceFact());
-            validateAvgPrice(dealPrices.getoPriceFact());
+            validateAvgPrice(dealPrices.getBPriceFact());
+            validateAvgPrice(dealPrices.getOPriceFact());
 
             calcCumAndPrintLogs(b_price_fact, ok_price_fact);
 
@@ -101,12 +101,12 @@ public class AfterArbTask implements Runnable {
 
     private void handleZeroOrders() {
         boolean hasZero = false;
-        if (dealPrices.getbPriceFact().isZeroOrder()) {
+        if (dealPrices.getBPriceFact().isZeroOrder()) {
             deltaLogWriter.info("Bitmex plan order amount is 0.");
             deltaLogWriter.setBitmexStatus(TradeMStatus.NONE);
             hasZero = true;
         }
-        if (dealPrices.getoPriceFact().isZeroOrder()) {
+        if (dealPrices.getOPriceFact().isZeroOrder()) {
             deltaLogWriter.info("Okex plan order amount is 0.");
             deltaLogWriter.setOkexStatus(TradeMStatus.NONE);
             hasZero = true;
@@ -231,12 +231,12 @@ public class AfterArbTask implements Runnable {
 
             try {
 
-                bitmexService.updateAvgPrice(counterName, dealPrices, false);
+                bitmexService.updateAvgPrice(dealPrices, false);
                 StringBuilder logBuilder = new StringBuilder();
-                b_price_fact = dealPrices.getbPriceFact().getAvg(true, counterName, logBuilder);
+                b_price_fact = dealPrices.getBPriceFact().getAvg(true, counterName, logBuilder);
                 deltaLogWriter.info(logBuilder.toString());
                 log.info(logBuilder.toString());
-                deltaLogWriter.info(dealPrices.getbPriceFact().getDeltaLogTmp());
+                deltaLogWriter.info(dealPrices.getBPriceFact().getDeltaLogTmp());
                 break;
 
             } catch (RoundIsNotDoneException e) {
@@ -272,11 +272,13 @@ public class AfterArbTask implements Runnable {
             attempt++;
 
             try {
+                okCoinService.setAvgPriceFromDbOrders(dealPrices);
+
                 StringBuilder logBuilder = new StringBuilder();
-                ok_price_fact = dealPrices.getoPriceFact().getAvg(true, counterName, logBuilder);
+                ok_price_fact = dealPrices.getOPriceFact().getAvg(true, counterName, logBuilder);
                 deltaLogWriter.info(logBuilder.toString());
                 log.info(logBuilder.toString());
-                deltaLogWriter.info(dealPrices.getoPriceFact().getDeltaLogTmp());
+                deltaLogWriter.info(dealPrices.getOPriceFact().getDeltaLogTmp());
 
                 okCoinService.writeAvgPriceLog();
                 break;
@@ -303,9 +305,9 @@ public class AfterArbTask implements Runnable {
     }
 
 
-    private void validateAvgPrice(AvgPrice avgPrice) throws RoundIsNotDoneException {
+    private void validateAvgPrice(FactPrice avgPrice) throws RoundIsNotDoneException {
         if (avgPrice.isItemsEmpty()) {
-            throw new RoundIsNotDoneException(avgPrice.getMarketName() + " has no orders");
+            throw new RoundIsNotDoneException(avgPrice.getMarketStaticData().getName() + " has no orders");
         }
     }
 
@@ -318,15 +320,15 @@ public class AfterArbTask implements Runnable {
         //     для delta2:
         //      diff2_pre = place_order_price - price_plan;
         //      diff2_post = price_fact - place_order_price;
-        final BigDecimal price_fact = dealPrices.getoPriceFact() != null ? dealPrices.getoPriceFact().getAvg() : BigDecimal.ZERO;
+        final BigDecimal price_fact = dealPrices.getOPriceFact() != null ? dealPrices.getOPriceFact().getAvg() : BigDecimal.ZERO;
         final BigDecimal diff2_pre;
         final BigDecimal diff2_post;
         if (deltaName == DeltaName.B_DELTA) {
-            diff2_pre = dealPrices.getoPricePlan().subtract(dealPrices.getoPricePlanOnStart());
-            diff2_post = dealPrices.getoPricePlanOnStart().subtract(price_fact);
+            diff2_pre = dealPrices.getOPricePlan().subtract(dealPrices.getOPricePlanOnStart());
+            diff2_post = dealPrices.getOPricePlanOnStart().subtract(price_fact);
         } else {
-            diff2_pre = dealPrices.getoPricePlanOnStart().subtract(dealPrices.getoPricePlan());
-            diff2_post = price_fact.subtract(dealPrices.getoPricePlanOnStart());
+            diff2_pre = dealPrices.getOPricePlanOnStart().subtract(dealPrices.getOPricePlan());
+            diff2_post = price_fact.subtract(dealPrices.getOPricePlanOnStart());
         }
         final BigDecimal diff2_con_bo = diff2_pre.add(diff2_post);
         cumService.addCumDiff2(dealPrices.getTradingMode(), diff2_pre, diff2_post);
@@ -334,7 +336,7 @@ public class AfterArbTask implements Runnable {
         final CumParams totalCommon = cumService.getTotalCommon();
         deltaLogWriter.info(String.format("#%s okex diff2_pre=%s, diff2_post=%s, diff2_con_bo=%s; (plan_price=%s, place_order_price=%s);"
                         + "cum_diff2_pre=%s, cum_diff2_post=%s",
-                counterName, diff2_pre, diff2_post, diff2_con_bo, dealPrices.getoPricePlan(), dealPrices.getoPricePlanOnStart(),
+                counterName, diff2_pre, diff2_post, diff2_con_bo, dealPrices.getOPricePlan(), dealPrices.getOPricePlanOnStart(),
                 totalCommon.getCumDiff2Pre().toPlainString(),
                 totalCommon.getCumDiff2Post().toPlainString()));
     }
@@ -472,9 +474,9 @@ public class AfterArbTask implements Runnable {
         final BigDecimal oFee = settings.getOFee(dealPrices.getOkexPlacingType());
         final Integer modeScale = settings.getContractMode().getModeScale();
 
-        final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
-        final BigDecimal ok_price_fact = dealPrices.getoPriceFact().getAvg();
-        final BigDecimal con = dealPrices.getbBlock();
+        final BigDecimal b_price_fact = dealPrices.getBPriceFact().getAvg();
+        final BigDecimal ok_price_fact = dealPrices.getOPriceFact().getAvg();
+        final BigDecimal con = dealPrices.getBBlock();
         // ast_com1 = con / b_price_fact * 0.075 / 100
         // ast_com2 = con / ok_price_fact * 0.015 / 100
         // ast_com = ast_com1 + ast_com2
@@ -512,8 +514,8 @@ public class AfterArbTask implements Runnable {
 
     private void setAndPrintP2CumBitmexMCom() {
 
-        final BigDecimal con = dealPrices.getbBlock();
-        final BigDecimal b_price_fact = dealPrices.getbPriceFact().getAvg();
+        final BigDecimal con = dealPrices.getBBlock();
+        final BigDecimal b_price_fact = dealPrices.getBPriceFact().getAvg();
 
         // bitmex_m_com = round(open_price_fact * 0.025 / 100; 4),
         final BigDecimal BITMEX_M_COM_FACTOR = new BigDecimal(0.025);

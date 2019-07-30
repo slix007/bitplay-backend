@@ -1,8 +1,6 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.PosDiffService;
-import com.bitplay.arbitrage.dto.AvgPrice;
-import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
@@ -53,10 +51,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -432,7 +428,7 @@ public abstract class MarketService extends MarketServiceWithState {
             if (marketStateToSet == MarketState.READY && getName().equals(BitmexService.NAME)
                     && getArbitrageService().getSecondMarketService().getMarketState() == MarketState.WAITING_ARB) {
                 // skip OKEX consistently, before bitemx-Ready
-                if (getArbitrageService().getDealPrices().getbPriceFact().getAvg().signum() == 0) {
+                if (getArbitrageService().getDealPrices().getBPriceFact().getAvg().signum() == 0) {
                     ((OkCoinService)getArbitrageService().getSecondMarketService()).resetWaitingArb();
                 } else {
                     ((OkCoinService)getArbitrageService().getSecondMarketService()).resetWaitingArb(Boolean.TRUE);
@@ -1257,31 +1253,31 @@ public abstract class MarketService extends MarketServiceWithState {
      * @param tradeId of the order
      * @param avgPrice to update
      */
-    public void updateAvgPriceFromDb(Long tradeId, AvgPrice avgPrice) {
-        final Map<String, AvgPriceItem> stringAvgPriceItemMap = avgPrice.getpItems();
-        for (String orderId : stringAvgPriceItemMap.keySet()) {
-            final FplayOrder order = getPersistenceService().getOrderRepositoryService().findOne(orderId);
-            if (order == null) {
-                logger.warn("Order is missing in DB. orderId=" + orderId);
-            } else {
-                if (!order.getTradeId().equals(tradeId)) {
-                    logger.warn(String.format("Wrong order in tradeId=%s. %s", tradeId, order));
-                    avgPrice.removeItem(orderId);
-                }
-            }
-        }
-
-        final List<FplayOrder> allByTradeId = getPersistenceService().getOrderRepositoryService().findAll(tradeId, getMarketId());
-        final Set<String> orderIds = avgPrice.getpItems().keySet();
-        for (FplayOrder fplayOrder : allByTradeId) {
-            if (!orderIds.contains(fplayOrder.getOrderId())) {
-                logger.warn(String.format("tradeId=%s is missing the order=%s ", tradeId, fplayOrder));
-                final LimitOrder ord = fplayOrder.getLimitOrder();
-                avgPrice.addPriceItem(fplayOrder.getCounterName(), fplayOrder.getOrderId(),
-                        ord.getCumulativeAmount(), ord.getAveragePrice(), ord.getStatus());
-            }
-        }
-
-    }
+//    public void updateAvgPriceFromDb(Long tradeId, AvgPrice avgPrice) {
+//        final Map<String, AvgPriceItem> stringAvgPriceItemMap = avgPrice.getpItems();
+//        for (String orderId : stringAvgPriceItemMap.keySet()) {
+//            final FplayOrder order = getPersistenceService().getOrderRepositoryService().findOne(orderId);
+//            if (order == null) {
+//                logger.warn("Order is missing in DB. orderId=" + orderId);
+//            } else {
+//                if (!order.getTradeId().equals(tradeId)) {
+//                    logger.warn(String.format("Wrong order in tradeId=%s. %s", tradeId, order));
+//                    avgPrice.removeItem(orderId);
+//                }
+//            }
+//        }
+//
+//        final List<FplayOrder> allByTradeId = getPersistenceService().getOrderRepositoryService().findAll(tradeId, getMarketId());
+//        final Set<String> orderIds = avgPrice.getpItems().keySet();
+//        for (FplayOrder fplayOrder : allByTradeId) {
+//            if (!orderIds.contains(fplayOrder.getOrderId())) {
+//                logger.warn(String.format("tradeId=%s is missing the order=%s ", tradeId, fplayOrder));
+//                final LimitOrder ord = fplayOrder.getLimitOrder();
+//                avgPrice.addPriceItem(fplayOrder.getCounterName(), fplayOrder.getOrderId(),
+//                        ord.getCumulativeAmount(), ord.getAveragePrice(), ord.getStatus());
+//            }
+//        }
+//
+//    }
 
 }

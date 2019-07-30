@@ -1,6 +1,7 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.factprice.AvgPriceService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.ExchangePair;
@@ -59,6 +60,9 @@ public class PersistenceService {
 
     @Autowired
     private OrderRepositoryService orderRepositoryService;
+
+    @Autowired
+    private DealPricesRepositoryService dealPricesRepositoryService;
 
     @Autowired
     private MongoTemplate mongoTemplate;
@@ -178,6 +182,10 @@ public class PersistenceService {
 
     public OrderRepositoryService getOrderRepositoryService() {
         return orderRepositoryService;
+    }
+
+    public DealPricesRepositoryService getDealPricesRepositoryService() {
+        return dealPricesRepositoryService;
     }
 
     public void resetSettingsPreset() {

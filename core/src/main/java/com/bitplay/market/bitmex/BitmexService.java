@@ -5,10 +5,8 @@ import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.PosDiffService;
-import com.bitplay.arbitrage.dto.AvgPrice;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
@@ -47,6 +45,8 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
+import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
+import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
@@ -811,14 +811,7 @@ public class BitmexService extends MarketServicePreliq {
                         List<FplayOrder> orderList = handleMovingResponse(response, maxAttempts, openOrder);
 
                         // update all fplayOrders
-                        for (FplayOrder resultOO : orderList) {
-                            final LimitOrder order = resultOO.getLimitOrder();
-                            arbitrageService.getDealPrices().getbPriceFact()
-                                    .addPriceItem(resultOO.getCounterName(), order.getId(),
-                                            order.getCumulativeAmount(),
-                                            order.getAveragePrice(), order.getStatus());
-                            resultOOList.add(resultOO);
-                        }
+                        resultOOList.addAll(orderList);
 
                     }
                 }
@@ -1854,7 +1847,7 @@ public class BitmexService extends MarketServicePreliq {
                                 ? settings.getBitmexPrice()
                                 : createBestPrice(orderType, placingType, orderBook, btmContType);
 
-                        arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
+                        arbitrageService.getDealPrices().getBPriceFact().setOpenPrice(thePrice);
 
                         boolean participateDoNotInitiate = placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK;
 
@@ -1878,12 +1871,6 @@ public class BitmexService extends MarketServicePreliq {
                         final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
                                 placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
                         orderRepositoryService.updateAsync(fplayOrder); // updateAsync?
-                        if (orderId != null && !orderId.equals("0")) {
-                            tradeResponse.setLimitOrder(resultOrder);
-                            arbitrageService.getDealPrices().getbPriceFact()
-                                    .addPriceItem(counterName, orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(),
-                                            resultOrder.getStatus());
-                        }
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
                             incCancelledInRow(contractTypeStr);
@@ -1952,9 +1939,7 @@ public class BitmexService extends MarketServicePreliq {
                         final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
                                 placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
                         orderRepositoryService.updateAsync(fplayOrder);// updateAsync?
-                        arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(thePrice);
-                        arbitrageService.getDealPrices().getbPriceFact()
-                                .addPriceItem(counterName, orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(), resultOrder.getStatus());
+                        arbitrageService.getDealPrices().getBPriceFact().setOpenPrice(thePrice);
 
                         // workaround for OO list: set as limit order
                         tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, currencyPair, orderId, new Date(),
@@ -2245,10 +2230,6 @@ public class BitmexService extends MarketServicePreliq {
                 tradeLogger.info(logString, contractTypeStr);
                 ordersLogger.info(logString);
 
-                arbitrageService.getDealPrices().getbPriceFact()
-                        .addPriceItem(counterName, updatedOrder.getId(), updatedOrder.getCumulativeAmount(), updatedOrder.getAveragePrice(),
-                                updatedOrder.getStatus());
-
                 if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
                     incCancelledInRow(contractTypeStr);
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
@@ -2392,15 +2373,13 @@ public class BitmexService extends MarketServicePreliq {
     private String setQuotesForArbLogs(String counterName, LimitOrder limitOrder, BigDecimal openPrice, boolean showDiff) {
         String diffWithSignal = "";
         if (openPrice != null) {
-            arbitrageService.getDealPrices().getbPriceFact().setOpenPrice(openPrice);
+            arbitrageService.getDealPrices().getBPriceFact().setOpenPrice(openPrice);
 
             if (showDiff) {
                 diffWithSignal = arbitrageService.getDealPrices().getDiffB().str;
             }
         }
 
-        arbitrageService.getDealPrices().getbPriceFact()
-                .addPriceItem(counterName, limitOrder.getId(), limitOrder.getCumulativeAmount(), limitOrder.getAveragePrice(), limitOrder.getStatus());
         return diffWithSignal;
     }
 
@@ -2750,12 +2729,20 @@ public class BitmexService extends MarketServicePreliq {
      *
      * @param dealPrices the object to be updated.
      */
-    public void updateAvgPrice(String counterName, DealPrices dealPrices, boolean onlyOneAttempt) {
-        AvgPrice avgPrice = dealPrices.getbPriceFact();
-        updateAvgPriceFromDb(dealPrices.getTradeId(), avgPrice);
+    public void updateAvgPrice(DealPrices dealPrices, boolean onlyOneAttempt) {
+        final String counterName = dealPrices.getCounterName();
+        final String contractTypeStr = bitmexContractType.getCurrencyPair().toString();
+        final FactPrice avgPrice = dealPrices.getBPriceFact();
+        if (avgPrice.isZeroOrder()) {
+            String msg = String.format("#%s WARNING: no updateAvgPrice for btm orders tradeId=%s. Zero order", counterName, dealPrices.getTradeId());
+            tradeLogger.info(msg, contractTypeStr);
+            logger.warn(msg);
+            return;
+        }
+
+        final Map<String, AvgPriceItem> itemMap = getPersistenceService().getDealPricesRepositoryService().getPItems(dealPrices.getTradeId(), getMarketId());
 
         final MarketState marketState = getMarketState();
-        final String contractTypeStr = bitmexContractType.getCurrencyPair().toString();
         if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
             tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. ArbState.STOPPED", counterName),
                     contractTypeStr);
@@ -2763,11 +2750,10 @@ public class BitmexService extends MarketServicePreliq {
         }
         final int LONG_SLEEP = 10000;
         final int SHORT_SLEEP = 1000;
-        final Map<String, AvgPriceItem> itemMap = avgPrice.getpItems();
+        avgPrice.getPItems().clear(); // TODO replace one by one.
         for (String orderId : itemMap.keySet()) {
             AvgPriceItem theItem = itemMap.get(orderId);
             if (theItem == null || theItem.getAmount() == null || theItem.getOrdStatus() == null
-                    || orderId.equals(AvgPrice.FAKE_ORDER_ID)
                     || (theItem.getAmount().signum() == 0 && theItem.getOrdStatus().equals("CANCELED"))) {
                 String msg = String.format("#%s WARNING: no updateAvgPrice for orderId=%s. theItem=%s", counterName, orderId, theItem);
                 tradeLogger.info(msg, contractTypeStr);
@@ -2802,7 +2788,7 @@ public class BitmexService extends MarketServicePreliq {
                             } else {
                                 tradeLogger.info(String.format("%s WARNING: no order parts. UpdatedOrderInfo:%s", logMsg, Arrays.toString(orders.toArray())),
                                         contractTypeStr);
-                                avgPrice.addPriceItem(counterName, orderId, order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus());
+                                avgPrice.addPriceItem(orderId, order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus());
                             }
                         }
                     } else {
@@ -2821,7 +2807,7 @@ public class BitmexService extends MarketServicePreliq {
 
                         if (amountSum.signum() > 0) {
                             final BigDecimal price = multiplySum.divide(amountSum, 2, RoundingMode.HALF_UP);
-                            avgPrice.addPriceItem(counterName, orderId, amountSum, price, ordStatus);
+                            avgPrice.addPriceItem(orderId, amountSum, price, ordStatus);
                             tradeLogger.info(String.format("%s p=%s, a=%s. ordStatus=%s", logMsg, price, amountSum, ordStatus),
                                     contractTypeStr);
                             break;
@@ -2887,6 +2873,8 @@ public class BitmexService extends MarketServicePreliq {
 
         tradeLogger.info(String.format("#%s %s", counterName, arbitrageService.getDealPrices().getDiffB().str),
                 contractTypeStr);
+
+        getPersistenceService().getDealPricesRepositoryService().update(dealPrices);
     }
 
     private boolean overloadByXRateLimit() {

@@ -34,9 +34,9 @@ public class FplayOrder {
     @Version
     private Long version;
     @CreatedDate
-    private LocalDateTime creationDate;
+    private LocalDateTime created;
     @LastModifiedDate
-    private LocalDateTime lastChange;
+    private LocalDateTime updated;
     private Integer marketId;// see MarketSettings#marketId
     private BestQuotes bestQuotes;
     private PlacingType placingType;

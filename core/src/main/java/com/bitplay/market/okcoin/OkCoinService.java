@@ -5,9 +5,8 @@ import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.CumService;
 import com.bitplay.arbitrage.PosDiffService;
-import com.bitplay.arbitrage.dto.AvgPrice;
+import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
@@ -49,6 +48,8 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
+import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
+import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
@@ -742,12 +743,6 @@ public class OkCoinService extends MarketServicePreliq {
                     updateFplayOrdersToCurrStab(limitOrders, stub);
 
                     getOpenOrders().forEach(o -> {
-                        arbitrageService.getDealPrices().getoPriceFact()
-                                .addPriceItem(o.getCounterName(),
-                                        o.getLimitOrder().getId(),
-                                        o.getLimitOrder().getCumulativeAmount(),
-                                        o.getLimitOrder().getAveragePrice(),
-                                        o.getLimitOrder().getStatus());
                         writeAvgPriceLog();
                     });
 
@@ -932,8 +927,6 @@ public class OkCoinService extends MarketServicePreliq {
             addOpenOrder(theUpdate);
 
             arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
-            arbitrageService.getDealPrices().getoPriceFact()
-                    .addPriceItem(counterName, orderInfo.getId(), orderInfo.getCumulativeAmount(), orderInfo.getAveragePrice(), orderInfo.getStatus());
 
             if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
                 tradeResponse.setErrorCode(TradeResponse.TAKER_WAS_CANCELLED_MESSAGE);
@@ -1085,7 +1078,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                     // check2
                     final DealPrices dealPrices = arbitrageService.getDealPrices();
-                    if (dealPrices.getbPriceFact().isNotFinished()) {
+                    if (dealPrices.getBPriceFact().isNotFinished()) {
                         final String msg = String.format("#%s tradeId=%s "
                                         + "WAITING_ARB: bitmex is not fully filled. Try to update the filled amount for all orders.",
                                 currArgs.getCounterName(),
@@ -1096,9 +1089,9 @@ public class OkCoinService extends MarketServicePreliq {
                         getTradeLogger().info(msg);
                         warningLogger.info(msg);
                         final BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
-                        bitmexService.updateAvgPrice(getCounterName(), dealPrices, true);
+                        bitmexService.updateAvgPrice(dealPrices, true);
 
-                        if (dealPrices.getbPriceFact().isNotFinished()) {
+                        if (dealPrices.getBPriceFact().isNotFinished()) {
                             final String msg1 = String.format("#%s tradeId=%s "
                                             + "WAITING_ARB: bitmex is not fully filled. Set READY.",
                                     currArgs.getCounterName(),
@@ -1518,8 +1511,6 @@ public class OkCoinService extends MarketServicePreliq {
                     }
 
                     arbitrageService.getDealPrices().setSecondOpenPrice(thePrice);
-                    arbitrageService.getDealPrices().getoPriceFact()
-                            .addPriceItem(counterName, orderId, resultOrder.getCumulativeAmount(), resultOrder.getAveragePrice(), resultOrder.getStatus());
 
                     orderIdToSignalInfo.put(orderId, bestQuotes);
 
@@ -1693,9 +1684,6 @@ public class OkCoinService extends MarketServicePreliq {
             final FplayOrder cancelledFplayOrd = FplayOrderUtils.updateFplayOrder(fOrderToCancel, cancelledOrder);
             final LimitOrder cancelledLimitOrder = (LimitOrder) cancelledFplayOrd.getOrder();
             orderRepositoryService.updateAsync(cancelledFplayOrd);
-
-            arbitrageService.getDealPrices().getoPriceFact().addPriceItem(counterName, cancelledLimitOrder.getId(), cancelledLimitOrder.getCumulativeAmount(),
-                    cancelledLimitOrder.getAveragePrice(), cancelledLimitOrder.getStatus());
 
             // 3. Already closed?
             final boolean alreadyFilled = cancelledLimitOrder.getStatus() == OrderStatus.FILLED;
@@ -2356,12 +2344,6 @@ public class OkCoinService extends MarketServicePreliq {
                 }
             }
 
-            // update all fplayOrders
-            for (FplayOrder resultOO : resultOOList) {
-                final LimitOrder order = resultOO.getLimitOrder();
-                arbitrageService.getDealPrices().getoPriceFact()
-                        .addPriceItem(resultOO.getCounterName(), order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus());
-            }
             updateFplayOrders(resultOOList);
 
             return true;
@@ -2373,7 +2355,7 @@ public class OkCoinService extends MarketServicePreliq {
     public void writeAvgPriceLog() {
         final DealPrices dealPrices = arbitrageService.getDealPrices();
         final DealPrices.Details diffO = dealPrices.getDiffO();
-        final BigDecimal avg = dealPrices.getoPriceFact().getAvg();
+        final BigDecimal avg = dealPrices.getOPriceFact().getAvg();
         final String counterForLogs = getCounterName();
         if ((counterToDiff == null || counterToDiff.counter == null || !counterToDiff.counter.equals(counterForLogs)
                 || counterToDiff.diff.compareTo(diffO.val) != 0)
@@ -2399,17 +2381,30 @@ public class OkCoinService extends MarketServicePreliq {
     protected void postOverload() {
     }
 
+    public void setAvgPriceFromDbOrders(DealPrices dealPrices) {
+        final Map<String, AvgPriceItem> itemMap = getPersistenceService().getDealPricesRepositoryService().getPItems(dealPrices.getTradeId(), getMarketId());
+        final FactPrice avgPrice = dealPrices.getOPriceFact();
+        avgPrice.getPItems().putAll(itemMap);
+        getPersistenceService().getDealPricesRepositoryService().update(dealPrices);
+    }
+
     /**
      * Workaround! <br> Request orders details. Use it before ending of a Round.
      *
      * @param dealPrices the object to be updated.
      */
     public void updateAvgPrice(String counterName, DealPrices dealPrices) {
-        AvgPrice avgPrice = dealPrices.getoPriceFact();
-        updateAvgPriceFromDb(dealPrices.getTradeId(), avgPrice);
+        final FactPrice avgPrice = dealPrices.getOPriceFact();
+        if (avgPrice.isZeroOrder()) {
+            String msg = String.format("#%s WARNING: no updateAvgPrice for okex orders tradeId=%s. Zero order", counterName, dealPrices.getTradeId());
+            tradeLogger.info(msg);
+            logger.warn(msg);
+            return;
+        }
 
-        final Set<String> orderIds = avgPrice.getpItems().keySet().stream()
-                .filter(orderId -> !orderId.equals(AvgPrice.FAKE_ORDER_ID))
+        final Map<String, AvgPriceItem> itemMap = getPersistenceService().getDealPricesRepositoryService().getPItems(dealPrices.getTradeId(), getMarketId());
+        final Set<String> orderIds = itemMap.keySet().stream()
+                .filter(orderId -> !orderId.equals(FactPrice.FAKE_ORDER_ID))
                 .collect(Collectors.toSet());
         Collection<Order> orderInfos = new ArrayList<>();
 
@@ -2437,9 +2432,10 @@ public class OkCoinService extends MarketServicePreliq {
                 }
             }
 
-            orderInfos.forEach(
-                    order -> avgPrice.addPriceItem(counterName, order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus()));
+            orderInfos.forEach(order -> avgPrice.addPriceItem(order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus()));
         }
+
+        getPersistenceService().getDealPricesRepositoryService().update(dealPrices);
     }
 
     @Override
