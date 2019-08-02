@@ -5,13 +5,12 @@ import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
 import com.bitplay.market.MarketStaticData;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.Getter;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderStatus;
 
@@ -31,7 +30,7 @@ public class FactPrice {
         this.scale = scale;
     }
 
-    private Map<String, AvgPriceItem> pItems = new LinkedHashMap<>();
+    private Map<String, AvgPriceItem> pItems = new HashMap<>();
     private String deltaLogTmp;
     private BigDecimal openPrice;
 

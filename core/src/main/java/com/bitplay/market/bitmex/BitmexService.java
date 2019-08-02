@@ -1606,11 +1606,9 @@ public class BitmexService extends MarketServicePreliq {
 
         updateFplayOrdersToCurrStab(limitOrderList, stub);
 
-        final String counterName = getCurrStub().getCounterName();
         getOpenOrders()
                 .stream()
-                .map(FplayOrder::getLimitOrder)
-                .forEach(l -> setQuotesForArbLogs(counterName, l, l.getAveragePrice(), false));
+                .forEach(o -> setQuotesForArbLogs(o.getTradeId(), o.getLimitOrder().getAveragePrice(), false));
 
         addCheckOoToFree();
     }
@@ -1847,7 +1845,7 @@ public class BitmexService extends MarketServicePreliq {
                                 ? settings.getBitmexPrice()
                                 : createBestPrice(orderType, placingType, orderBook, btmContType);
 
-                        arbitrageService.getDealPrices().getBPriceFact().setOpenPrice(thePrice);
+                        persistenceService.getDealPricesRepositoryService().setBtmOpenPrice(tradeId, thePrice);
 
                         boolean participateDoNotInitiate = placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK;
 
@@ -1939,7 +1937,7 @@ public class BitmexService extends MarketServicePreliq {
                         final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
                                 placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
                         orderRepositoryService.updateAsync(fplayOrder);// updateAsync?
-                        arbitrageService.getDealPrices().getBPriceFact().setOpenPrice(thePrice);
+                        persistenceService.getDealPricesRepositoryService().setBtmOpenPrice(tradeId, thePrice);
 
                         // workaround for OO list: set as limit order
                         tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, currencyPair, orderId, new Date(),
@@ -2210,7 +2208,7 @@ public class BitmexService extends MarketServicePreliq {
 
                 final LimitOrder updatedOrder = (LimitOrder)updated.getOrder();
 
-                String diffWithSignal = setQuotesForArbLogs(updated.getCounterName(), limitOrder, bestMakerPrice, showDiff);
+                String diffWithSignal = setQuotesForArbLogs(updated.getTradeId(), bestMakerPrice, showDiff);
 
                 final String logString = String.format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s.%s.%s.",
                         counterWithPortion,
@@ -2370,10 +2368,10 @@ public class BitmexService extends MarketServicePreliq {
         }
     }
 
-    private String setQuotesForArbLogs(String counterName, LimitOrder limitOrder, BigDecimal openPrice, boolean showDiff) {
+    private String setQuotesForArbLogs(Long tradeId, BigDecimal openPrice, boolean showDiff) {
         String diffWithSignal = "";
         if (openPrice != null) {
-            arbitrageService.getDealPrices().getBPriceFact().setOpenPrice(openPrice);
+            persistenceService.getDealPricesRepositoryService().setBtmOpenPrice(tradeId, openPrice);
 
             if (showDiff) {
                 diffWithSignal = arbitrageService.getDealPrices().getDiffB().str;
@@ -2874,7 +2872,7 @@ public class BitmexService extends MarketServicePreliq {
         tradeLogger.info(String.format("#%s %s", counterName, arbitrageService.getDealPrices().getDiffB().str),
                 contractTypeStr);
 
-        getPersistenceService().getDealPricesRepositoryService().update(dealPrices);
+        getPersistenceService().getDealPricesRepositoryService().updateBtmFactPrice(dealPrices.getTradeId(), avgPrice);
     }
 
     private boolean overloadByXRateLimit() {

@@ -1,10 +1,13 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.dto.AvgPriceItem;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
+import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.repository.DealPricesRepository;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +31,8 @@ public class DealPricesRepositoryService {
     private final OrderRepositoryService orderRepositoryService;
 
     public DealPrices saveNew(DealPrices dealPrices) {
-        dealPrices.setCreated(LocalDateTime.now());
-        dealPrices.setUpdated(LocalDateTime.now());
+//        dealPrices.setCreated(LocalDateTime.now());
+//        dealPrices.setUpdated(LocalDateTime.now());
         return dealPricesRepository.save(dealPrices);
     }
 
@@ -55,8 +58,72 @@ public class DealPricesRepositoryService {
                         o -> new AvgPriceItem(o.getCumulativeAmount(), o.getAveragePrice(), o.getStatus().toString())));
     }
 
-
-    public void update(DealPrices dealPrices) {
-        dealPricesRepository.save(dealPrices);
+    public void updateBtmFactPrice(Long tradeId, FactPrice avgPrice) {
+        if (tradeId != null) {
+            final Query query = new Query(Criteria.where("_id").is(tradeId)); // it is tradeId
+            final Update update = new Update()
+                    .inc("version", 1)
+                    .set("updated", LocalDateTime.now())
+                    .set("bPriceFact", avgPrice);
+            mongoOperation.updateFirst(query, update, DealPrices.class);
+        }
     }
+
+    public void updateOkexFactPrice(Long tradeId, FactPrice avgPrice) {
+        if (tradeId != null) {
+            final Query query = new Query(Criteria.where("_id").is(tradeId)); // it is tradeId
+            final Update update = new Update()
+                    .inc("version", 1)
+                    .set("updated", LocalDateTime.now())
+                    .set("oPriceFact", avgPrice);
+            mongoOperation.updateFirst(query, update, DealPrices.class);
+        }
+    }
+
+    public DealPrices getFullDealPrices(Long tradeId) {
+        final DealPrices dealPrices = findByTradeId(tradeId);
+        updateFactPriceItemsFromDb(dealPrices);
+        return dealPrices;
+    }
+
+    private void updateFactPriceItemsFromDb(DealPrices dealPrices) {
+        final Map<String, AvgPriceItem> btmItems = getPItems(dealPrices.getTradeId(), MarketStaticData.BITMEX.getId());
+        dealPrices.getBPriceFact().getPItems().putAll(btmItems);
+        final Map<String, AvgPriceItem> okItems = getPItems(dealPrices.getTradeId(), MarketStaticData.OKEX.getId());
+        dealPrices.getOPriceFact().getPItems().putAll(okItems);
+    }
+
+    public void setBtmOpenPrice(Long tradeId, BigDecimal thePrice) {
+        if (tradeId != null) {
+            final Query query = new Query(Criteria.where("_id").is(tradeId)); // it is tradeId
+            final Update update = new Update()
+                    .inc("version", 1)
+                    .set("updated", LocalDateTime.now())
+                    .set("bPriceFact.openPrice", thePrice);
+            mongoOperation.updateFirst(query, update, DealPrices.class);
+        }
+    }
+
+    public void setSecondOpenPrice(Long tradeId, BigDecimal thePrice) {
+        if (tradeId != null) {
+            final Query query = new Query(Criteria.where("_id").is(tradeId)); // it is tradeId
+            final Update update = new Update()
+                    .inc("version", 1)
+                    .set("updated", LocalDateTime.now())
+                    .set("oPriceFact.openPrice", thePrice);
+            mongoOperation.updateFirst(query, update, DealPrices.class);
+        }
+    }
+
+    public void setOPricePlanOnStart(Long tradeId, BigDecimal oPricePlanOnStart) {
+        if (tradeId != null) {
+            final Query query = new Query(Criteria.where("_id").is(tradeId)); // it is tradeId
+            final Update update = new Update()
+                    .inc("version", 1)
+                    .set("updated", LocalDateTime.now())
+                    .set("oPricePlanOnStart", oPricePlanOnStart);
+            mongoOperation.updateFirst(query, update, DealPrices.class);
+        }
+    }
+
 }

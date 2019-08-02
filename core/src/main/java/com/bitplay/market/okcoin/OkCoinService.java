@@ -926,7 +926,7 @@ public class OkCoinService extends MarketServicePreliq {
             final FplayOrder theUpdate = FplayOrderUtils.updateFplayOrder(fPlayOrder, orderInfo);
             addOpenOrder(theUpdate);
 
-            arbitrageService.getDealPrices().setSecondOpenPrice(orderInfo.getAveragePrice());
+            persistenceService.getDealPricesRepositoryService().setSecondOpenPrice(tradeId, orderInfo.getAveragePrice());
 
             if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
                 tradeResponse.setErrorCode(TradeResponse.TAKER_WAS_CANCELLED_MESSAGE);
@@ -1119,7 +1119,7 @@ public class OkCoinService extends MarketServicePreliq {
                         } else {
                             oPricePlanOnStart = Utils.getBestBid(this.orderBookShort).getLimitPrice(); // do sell -> use the opposite price.
                         }
-                        dealPrices.setoPricePlanOnStart(oPricePlanOnStart);
+                        persistenceService.getDealPricesRepositoryService().setOPricePlanOnStart(dealPrices.getTradeId(), oPricePlanOnStart);
                     }
 
                     fplayTradeService.setOkexStatus(currArgs.getTradeId(), TradeMStatus.IN_PROGRESS);
@@ -1507,10 +1507,10 @@ public class OkCoinService extends MarketServicePreliq {
                         tradeLogger.info(msg);
                     }
                     if (pricePlanOnStart) { // set oPricePlanOnStart for non-Taker
-                        arbitrageService.getDealPrices().setoPricePlanOnStart(thePrice);
+                        persistenceService.getDealPricesRepositoryService().setOPricePlanOnStart(tradeId, thePrice);
                     }
 
-                    arbitrageService.getDealPrices().setSecondOpenPrice(thePrice);
+                    persistenceService.getDealPricesRepositoryService().setSecondOpenPrice(tradeId, thePrice);
 
                     orderIdToSignalInfo.put(orderId, bestQuotes);
 
@@ -2385,7 +2385,7 @@ public class OkCoinService extends MarketServicePreliq {
         final Map<String, AvgPriceItem> itemMap = getPersistenceService().getDealPricesRepositoryService().getPItems(dealPrices.getTradeId(), getMarketId());
         final FactPrice avgPrice = dealPrices.getOPriceFact();
         avgPrice.getPItems().putAll(itemMap);
-        getPersistenceService().getDealPricesRepositoryService().update(dealPrices);
+        getPersistenceService().getDealPricesRepositoryService().updateOkexFactPrice(dealPrices.getTradeId(), avgPrice);
     }
 
     /**
@@ -2435,7 +2435,7 @@ public class OkCoinService extends MarketServicePreliq {
             orderInfos.forEach(order -> avgPrice.addPriceItem(order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus()));
         }
 
-        getPersistenceService().getDealPricesRepositoryService().update(dealPrices);
+        getPersistenceService().getDealPricesRepositoryService().updateOkexFactPrice(dealPrices.getTradeId(), avgPrice);
     }
 
     @Override

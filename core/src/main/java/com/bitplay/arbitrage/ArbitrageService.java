@@ -205,18 +205,7 @@ public class ArbitrageService {
     }
 
     public DealPrices getDealPrices() {
-        final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
-        updateFactPriceItemsFromDb(dealPrices);
-        return dealPrices;
-    }
-
-    private void updateFactPriceItemsFromDb(DealPrices dealPrices) {
-        final Map<String, AvgPriceItem> btmItems = persistenceService.getDealPricesRepositoryService()
-                .getPItems(dealPrices.getTradeId(), MarketStaticData.BITMEX.getId());
-        dealPrices.getBPriceFact().getPItems().putAll(btmItems);
-        final Map<String, AvgPriceItem> okItems = persistenceService.getDealPricesRepositoryService()
-                .getPItems(dealPrices.getTradeId(), MarketStaticData.OKEX.getId());
-        dealPrices.getOPriceFact().getPItems().putAll(okItems);
+        return dealPricesRepositoryService.getFullDealPrices(tradeId);
     }
 
     public void init(TwoMarketStarter twoMarketStarter) {
@@ -1190,8 +1179,6 @@ public class ArbitrageService {
 
         Integer bitmexScale = firstMarketService.getContractType().getScale();
         Integer okexScale = secondMarketService.getContractType().getScale();
-//        AvgPrice btmPriceFact = new AvgPrice(counterName, b_block, "bitmex", bitmexScale);
-//        AvgPrice okPriceFact = new AvgPrice(counterName, o_block, "okex", okexScale);
         FactPrice btmPriceFact = new FactPrice(MarketStaticData.BITMEX, b_block, bitmexScale);
         FactPrice okPriceFact = new FactPrice(MarketStaticData.OKEX, o_block, okexScale);
 

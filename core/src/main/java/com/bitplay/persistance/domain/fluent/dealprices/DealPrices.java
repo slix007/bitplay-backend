@@ -9,15 +9,14 @@ import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.TradingMode;
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -28,34 +27,34 @@ import org.springframework.data.mongodb.core.mapping.Document;
 /**
  * Created by Sergey Shurmin on 5/24/17.
  */
-@Getter
-@Setter
-@Builder
-@ToString
 @Document(collection = "dealPricesSeries")
 @TypeAlias("DealPrices")
-public class DealPrices implements Serializable {
+@Builder
+@RequiredArgsConstructor
+@AllArgsConstructor
+@Getter
+public class DealPrices {
 
     @Id
     private Long tradeId;
     @Version
     private Long version;
-//    @CreatedDate
+    @CreatedDate
     private LocalDateTime created;
-//    @LastModifiedDate
+    @LastModifiedDate
     private LocalDateTime updated;
 
     private List<BigDecimal> borderList = new ArrayList<>();
-    private BigDecimal oBlock = BigDecimal.ZERO;
-    private BigDecimal bBlock = BigDecimal.ZERO;
-    private BigDecimal delta1Plan = BigDecimal.ZERO;
-    private BigDecimal delta2Plan = BigDecimal.ZERO;
-    private BigDecimal bPricePlan = BigDecimal.ZERO;
-    private BigDecimal oPricePlan = BigDecimal.ZERO;
-    private BigDecimal oPricePlanOnStart = BigDecimal.ZERO; // with CON_B_O, the plan and plan_start can be different.
+    private BigDecimal oBlock;
+    private BigDecimal bBlock;
+    private BigDecimal delta1Plan;
+    private BigDecimal delta2Plan;
+    private BigDecimal bPricePlan;
+    private BigDecimal oPricePlan;
+    private BigDecimal oPricePlanOnStart; // with CON_B_O, the plan and plan_start can be different.
     private FactPrice bPriceFact;
     private FactPrice oPriceFact; // = new AvgPrice("", BigDecimal.ZERO, "okex", 2);
-    private DeltaName deltaName = DeltaName.B_DELTA;
+    private DeltaName deltaName;
     private BestQuotes bestQuotes;
     private Integer pos_bo; // before order
     private Integer plan_pos_ao; // after order
@@ -67,41 +66,7 @@ public class DealPrices implements Serializable {
     private TradingMode tradingMode;
     private String counterName;
 
-    public synchronized BigDecimal getBorder1() {
-        return border1;
-    }
-
-    public synchronized BigDecimal getBorder2() {
-        return border2;
-    }
-
-    public synchronized BorderParams getBorderParamsOnStart() {
-        return borderParamsOnStart;
-    }
-
-    /**
-     * The following should be set before:<br> BorderParams borderParamsOnStart, int pos_bo, DeltaName deltaName, BigDecimal b_block, BigDecimal o_block
-     */
-//    public void calcPlanPosAo() {
-//        this.plan_pos_ao = calcPlanAfterOrderPos(bBlock, oBlock);
-//    }
-
-    public Integer calcPlanPosAo(BigDecimal b_block_input, BigDecimal o_block_input) {
-        this.plan_pos_ao = calcPlanAfterOrderPos(b_block_input, o_block_input, pos_bo, borderParamsOnStart.getPosMode(), deltaName);
-        return this.plan_pos_ao;
-    }
-
-    public synchronized DeltaName getDeltaName() {
-        return deltaName;
-    }
-
-    //TODO
-    public synchronized void setSecondOpenPrice(BigDecimal secondOpenPrice) {
-        final BigDecimal sop = secondOpenPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
-        oPriceFact.setOpenPrice(sop);
-    }
-
-    public synchronized BigDecimal getDelta1Fact() {
+    public BigDecimal getDelta1Fact() {
         final BigDecimal firstOpenPrice = bPriceFact.getAvg();
         final BigDecimal secondOpenPrice = oPriceFact.getAvg();
         return (firstOpenPrice != null && secondOpenPrice != null)
@@ -109,7 +74,7 @@ public class DealPrices implements Serializable {
                 : BigDecimal.ZERO;
     }
 
-    public synchronized BigDecimal getDelta2Fact() {
+    public BigDecimal getDelta2Fact() {
         final BigDecimal firstOpenPrice = bPriceFact.getAvg();
         final BigDecimal secondOpenPrice = oPriceFact.getAvg();
         return (firstOpenPrice != null && secondOpenPrice != null)
@@ -123,7 +88,7 @@ public class DealPrices implements Serializable {
                 : oPriceFact.getScale();
     }
 
-    public synchronized Details getDiffB() {
+    public Details getDiffB() {
         if (bPricePlan == null || bPriceFact.getAvg() == null) {
             return new Details(BigDecimal.ZERO, "");
         }
@@ -141,7 +106,7 @@ public class DealPrices implements Serializable {
         return details;
     }
 
-    public synchronized Details getDiffO() {
+    public Details getDiffO() {
         if (oPricePlan == null || oPriceFact.getAvg() == null) {
             return new Details(BigDecimal.ZERO, "");
         }
@@ -158,11 +123,6 @@ public class DealPrices implements Serializable {
         return details;
     }
 
-    //TODO
-    public synchronized void setoPricePlanOnStart(BigDecimal oPricePlanOnStart) {
-        this.oPricePlanOnStart = oPricePlanOnStart;
-    }
-
     public static class Details {
 
         final public BigDecimal val;
@@ -174,6 +134,9 @@ public class DealPrices implements Serializable {
         }
     }
 
+    /**
+     * The following should be set before:<br> BorderParams borderParamsOnStart, int pos_bo, DeltaName deltaName, BigDecimal b_block, BigDecimal o_block
+     */
     public static int calcPlanAfterOrderPos(BigDecimal bBlock, BigDecimal oBlock, Integer pos_bo, PosMode posMode, DeltaName deltaName) {
         int pos_ao = pos_bo;
 //        final PosMode posMode = borderParamsOnStart.getPosMode();
