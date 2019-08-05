@@ -35,6 +35,7 @@ import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
+import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SignalTimeService;
@@ -111,6 +112,8 @@ public class ArbitrageService {
     private PersistenceService persistenceService;
     @Autowired
     private CumService cumService;
+    @Autowired
+    private CumPersistenceService cumPersistenceService;
     @Autowired
     private SignalService signalService;
     @Autowired
@@ -1071,9 +1074,9 @@ public class ArbitrageService {
             } else {
                 // Stop when was pre signal re-check
                 if (bestQuotes.getDeltaName() == DeltaName.B_DELTA) {
-                    cumService.incObRecheckUnstartedVert1(bestQuotes.getTradingMode());
+                    cumPersistenceService.incObRecheckUnstartedVert1(bestQuotes.getTradingMode());
                 } else {
-                    cumService.incObRecheckUnstartedVert2(bestQuotes.getTradingMode());
+                    cumPersistenceService.incObRecheckUnstartedVert2(bestQuotes.getTradingMode());
                 }
 
                 // Vertical was not started, b_delta (xx) <> b_border (xx), o_delta (xx) <> o_border (xx)
@@ -1363,9 +1366,9 @@ public class ArbitrageService {
             final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName, TradingMode tradingMode) {
 
         if (deltaName.getDeltaNumber().equals("1")) {
-            cumService.incCounter1(tradingMode);
+            cumPersistenceService.incCounter1(tradingMode);
         } else {
-            cumService.incCounter2(tradingMode);
+            cumPersistenceService.incCounter2(tradingMode);
         }
 
         final CumParams cumParams = cumService.getTotalCommon();

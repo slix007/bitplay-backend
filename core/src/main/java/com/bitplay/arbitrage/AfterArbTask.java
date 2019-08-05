@@ -130,23 +130,23 @@ public class AfterArbTask implements Runnable {
 
         final TradingMode mode = dealPrices.getTradingMode();
         if (dealPrices.getDeltaName() == DeltaName.B_DELTA) {
-            cumService.incCompletedCounter1(mode);
+            cumService.getCumPersistenceService().incCompletedCounter1(mode);
 
-            cumService.addCumDelta(mode, dealPrices.getDelta1Plan());
+            cumService.getCumPersistenceService().addCumDelta(mode, dealPrices.getDelta1Plan());
 
             // b_block = ok_block*100 = con (не идет в логи и на UI)
             // ast_delta1 = -(con / b_bid - con / ok_ask)
             // cum_ast_delta = sum(ast_delta)
             final BigDecimal ast_delta1 = ((con.divide(b_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(ok_ask, 16, RoundingMode.HALF_UP)))
                     .negate().setScale(8, RoundingMode.HALF_UP);
-            cumService.addAstDelta1(mode, ast_delta1);
+            cumService.getCumPersistenceService().addAstDelta1(mode, ast_delta1);
 //            cumParams.setCumAstDelta1((cumParams.getCumAstDelta1().add(cumParams.getAstDelta1())).setScale(8, BigDecimal.ROUND_HALF_UP));
             // ast_delta1_fact = -(con / b_price_fact - con / ok_price_fact)
             // cum_ast_delta_fact = sum(ast_delta_fact)
             final BigDecimal ast_delta1_fact = ((con.divide(b_price_fact, 16, RoundingMode.HALF_UP))
                     .subtract(con.divide(ok_price_fact, 16, RoundingMode.HALF_UP)))
                     .negate().setScale(8, RoundingMode.HALF_UP);
-            cumService.addAstDeltaFact1(mode, ast_delta1_fact);
+            cumService.getCumPersistenceService().addAstDeltaFact1(mode, ast_delta1_fact);
 
             printCumDelta(cumService.getTotalCommon().getCumDelta());
             setAndPrintCom(dealPrices);
@@ -174,21 +174,21 @@ public class AfterArbTask implements Runnable {
 
         } else if (dealPrices.getDeltaName() == DeltaName.O_DELTA) {
 //            cumParams.setCompletedCounter2(cumParams.getCompletedCounter2() + 1);
-            cumService.incCompletedCounter2(mode);
+            cumService.getCumPersistenceService().incCompletedCounter2(mode);
 
-            cumService.addCumDelta(mode, dealPrices.getDelta2Plan());
+            cumService.getCumPersistenceService().addCumDelta(mode, dealPrices.getDelta2Plan());
 
             // ast_delta2 = -(con / ok_bid - con / b_ask)
             final BigDecimal ast_delta2 = ((con.divide(ok_bid, 16, RoundingMode.HALF_UP)).subtract(con.divide(b_ask, 16, RoundingMode.HALF_UP)))
                     .negate().setScale(8, RoundingMode.HALF_UP);
-            cumService.addAstDelta2(mode, ast_delta2);
+            cumService.getCumPersistenceService().addAstDelta2(mode, ast_delta2);
 
             // ast_delta2_fact = -(con / ok_price_fact - con / b_price_fact)
             // cum_ast_delta_fact = sum(ast_delta_fact)
             final BigDecimal ast_delta2_fact = ((con.divide(ok_price_fact, 16, RoundingMode.HALF_UP))
                     .subtract(con.divide(b_price_fact, 16, RoundingMode.HALF_UP)))
                     .negate().setScale(8, RoundingMode.HALF_UP);
-            cumService.addAstDeltaFact2(mode, ast_delta2_fact);
+            cumService.getCumPersistenceService().addAstDeltaFact2(mode, ast_delta2_fact);
 
             printCumDelta(cumService.getTotalCommon().getCumDelta());
             setAndPrintCom(dealPrices);
@@ -331,7 +331,7 @@ public class AfterArbTask implements Runnable {
             diff2_post = price_fact.subtract(dealPrices.getOPricePlanOnStart());
         }
         final BigDecimal diff2_con_bo = diff2_pre.add(diff2_post);
-        cumService.addCumDiff2(dealPrices.getTradingMode(), diff2_pre, diff2_post);
+        cumService.getCumPersistenceService().addCumDiff2(dealPrices.getTradingMode(), diff2_pre, diff2_post);
 
         final CumParams totalCommon = cumService.getTotalCommon();
         deltaLogWriter.info(String.format("#%s okex diff2_pre=%s, diff2_post=%s, diff2_con_bo=%s; (plan_price=%s, place_order_price=%s);"
@@ -345,7 +345,7 @@ public class AfterArbTask implements Runnable {
             BigDecimal deltaFact, String deltaFactString, BigDecimal ast_diff_fact1, BigDecimal ast_diff_fact2, BigDecimal ast_delta,
             BigDecimal ast_delta_fact, BigDecimal delta) {
 
-        cumService.addDeltaFact(dealPrices.getTradingMode(), deltaFact);
+        cumService.getCumPersistenceService().addDeltaFact(dealPrices.getTradingMode(), deltaFact);
 
         final BigDecimal diff_fact_v1_b = dealPrices.getDiffB().val;
         final BigDecimal diff_fact_v1_o = dealPrices.getDiffO().val;
@@ -354,7 +354,7 @@ public class AfterArbTask implements Runnable {
         // diff_fact = delta_fact - delta
         // cum_diff_fact = sum(diff_fact)
         final BigDecimal diff_fact_v2 = deltaFact.subtract(delta);
-        cumService.addDiffFact(dealPrices.getTradingMode(), diff_fact_v1_b, diff_fact_v1_o, diff_fact_v2);
+        cumService.getCumPersistenceService().addDiffFact(dealPrices.getTradingMode(), diff_fact_v1_b, diff_fact_v1_o, diff_fact_v2);
 
         // 1. diff_fact_br = delta_fact - b (писать после diff_fact) cum_diff_fact_br = sum(diff_fact_br)
 //        final ArbUtils.DiffFactBr diffFactBr = ArbUtils.getDeltaFactBr(deltaFact, Collections.unmodifiableList(dealPrices.getBorderList()));
@@ -395,7 +395,7 @@ public class AfterArbTask implements Runnable {
                         warningLogger.warn(e.toString());
                         deltaLogWriter.warn("WARNING: " + e.toString());
                         log.warn("WARNING", e);
-                        cumService.incDiffFactBrFailsCount(dealPrices.getTradingMode());
+                        cumService.getCumPersistenceService().incDiffFactBrFailsCount(dealPrices.getTradingMode());
                         warningLogger.warn("diff_fact_br_fails_count = " + cumService.getTotalCommon().getDiffFactBrFailsCount());
                     }
                 }
@@ -411,11 +411,11 @@ public class AfterArbTask implements Runnable {
             warningLogger.warn(msg);
         }
 
-        cumService.addDiffFactBr(dealPrices.getTradingMode(), diffFactBr.getVal(), bitmexService.getContractType().isEth());
+        cumService.getCumPersistenceService().addDiffFactBr(dealPrices.getTradingMode(), diffFactBr.getVal(), bitmexService.getContractType().isEth());
 
         // ast_diff_fact = ast_delta_fact - ast_delta
         BigDecimal ast_diff_fact = ast_delta_fact.subtract(ast_delta);
-        cumService.addAstDiffFact(dealPrices.getTradingMode(), ast_diff_fact1, ast_diff_fact2, ast_diff_fact);
+        cumService.getCumPersistenceService().addAstDiffFact(dealPrices.getTradingMode(), ast_diff_fact1, ast_diff_fact2, ast_diff_fact);
 
         cumService.setSlip(dealPrices.getTradingMode());
 
@@ -485,14 +485,14 @@ public class AfterArbTask implements Runnable {
         final BigDecimal ast_com2 = con.divide(ok_price_fact, 16, RoundingMode.HALF_UP).multiply(oFee)
                 .divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
         final BigDecimal ast_com = ast_com1.add(ast_com2);
-        cumService.addAstCom(dealPrices.getTradingMode(), ast_com1, ast_com2, ast_com);
+        cumService.getCumPersistenceService().addAstCom(dealPrices.getTradingMode(), ast_com1, ast_com2, ast_com);
 
         final BigDecimal com1 = b_price_fact.multiply(bFee).divide(BigDecimal.valueOf(100), 16, BigDecimal.ROUND_HALF_UP)
                 .setScale(modeScale, BigDecimal.ROUND_HALF_UP);
         final BigDecimal com2 = ok_price_fact.multiply(oFee).divide(BigDecimal.valueOf(100), 16, BigDecimal.ROUND_HALF_UP)
                 .setScale(modeScale, BigDecimal.ROUND_HALF_UP);
 
-        cumService.addCom(dealPrices.getTradingMode(), com1, com2);
+        cumService.getCumPersistenceService().addCom(dealPrices.getTradingMode(), com1, com2);
 
         // print total common
         final BigDecimal com = com1.add(com2);
@@ -527,7 +527,7 @@ public class AfterArbTask implements Runnable {
         final BigDecimal ast_bitmex_m_com = con.divide(b_price_fact, 16, RoundingMode.HALF_UP).multiply(BITMEX_M_COM_FACTOR)
                 .divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
 
-        cumService.addBitmexMCom(dealPrices.getTradingMode(), bitmexMCom, ast_bitmex_m_com);
+        cumService.getCumPersistenceService().addBitmexMCom(dealPrices.getTradingMode(), bitmexMCom, ast_bitmex_m_com);
 
         // print total common
         final CumParams cumParams = cumService.getTotalCommon();

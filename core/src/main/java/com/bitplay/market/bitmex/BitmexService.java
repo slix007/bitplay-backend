@@ -1607,7 +1607,6 @@ public class BitmexService extends MarketServicePreliq {
         updateFplayOrdersToCurrStab(limitOrderList, stub);
 
         getOpenOrders()
-                .stream()
                 .forEach(o -> setQuotesForArbLogs(o.getTradeId(), o.getLimitOrder().getAveragePrice(), false));
 
         addCheckOoToFree();

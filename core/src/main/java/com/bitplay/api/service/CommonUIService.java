@@ -756,7 +756,7 @@ public class CommonUIService {
             lastPriceDeviationService.saveLastPriceDeviation(toUpdate);
             lastPriceDeviationService.getDelayTimer().stop();
         }
-        
+
         persistenceService.resetSettingsPreset();
 
         return lastPriceDeviationService.getLastPriceDeviation();

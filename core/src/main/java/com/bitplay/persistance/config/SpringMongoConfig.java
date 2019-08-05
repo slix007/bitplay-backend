@@ -12,7 +12,7 @@ import javax.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
+import org.springframework.data.mongodb.MongoDbFactory;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -45,7 +45,6 @@ public class SpringMongoConfig extends AbstractMongoConfiguration {
 
     @Override
     @Bean
-    @DependsOn("mongobee")
     public MongoClient mongo() {
         MongoClientOptions.Builder clientOptions = new MongoClientOptions.Builder();
         clientOptions.minConnectionsPerHost(100);//min
@@ -62,16 +61,19 @@ public class SpringMongoConfig extends AbstractMongoConfiguration {
 
     @Bean
     public MongoTemplate mongoTemplate() throws Exception {
-        MappingMongoConverter converter = new MappingMongoConverter(new DefaultDbRefResolver(mongoDbFactory()), new MongoMappingContext());
+        final MongoDbFactory mongoDbFactory = mongoDbFactory();
+        MappingMongoConverter converter = new MappingMongoConverter(new DefaultDbRefResolver(mongoDbFactory), new MongoMappingContext());
+        converter.setCustomConversions(MongoCustomConversions.customConversions());
         converter.afterPropertiesSet();
-        return new MongoTemplate(mongoDbFactory(), converter);
+        return new MongoTemplate(mongoDbFactory, converter);
     }
 
-    @Bean
-    public Mongobee mongobee() {
+    @Bean(name = "mongobee")
+    public Mongobee mongobee() throws Exception {
         Mongobee runner = new Mongobee(String.format("mongodb://%s/%s", HOST_WITH_PORT, DBNAME));
         runner.setDbName(DBNAME);         // host must be set if not set in URI
         runner.setChangeLogsScanPackage("com.bitplay.persistance.migration.changelogs"); // the package to be scanned for changesets
+        runner.setMongoTemplate(mongoTemplate());
 
         return runner;
     }

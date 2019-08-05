@@ -38,6 +38,7 @@ import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.exception.ApiException;
+import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
@@ -211,7 +212,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Autowired
     private MetricsDictionary metricsDictionary;
     @Autowired
-    private CumService cumService;
+    private CumPersistenceService cumPersistenceService;
 
     private OkExStreamingExchange exchange;
     private BitplayOkexEchange bitplayOkexEchange;
@@ -1205,7 +1206,7 @@ public class OkCoinService extends MarketServicePreliq {
                         counterNameWithPortion, attemptCount,
                         orderType, amountLeft, bestQuotes, false, signalType, message);
                 logger.error(details, e);
-                details = details.length() < 300 ? details : details.substring(0, 300); // we can get html page as error message
+                details = details.length() < 400 ? details : details.substring(0, 400); // we can get html page as error message
                 tradeLogger.error(details);
 
                 tradeResponse.setOrderId(message);
@@ -2226,10 +2227,10 @@ public class OkCoinService extends MarketServicePreliq {
                 final TradingMode tradingMode = dealPrices.getTradingMode();
                 final String s = placeOrderArgs != null ? placeOrderArgs.getCounterName() : "";
                 if (dealPrices.getDeltaName() == DeltaName.B_DELTA) {
-                    cumService.incUnstartedVert1(tradingMode);
+                    cumPersistenceService.incUnstartedVert1(tradingMode);
                     getTradeLogger().info( s + "Unstarted");
                 } else {
-                    cumService.incUnstartedVert2(tradingMode);
+                    cumPersistenceService.incUnstartedVert2(tradingMode);
                     getTradeLogger().info( s + "Unstarted");
                 }
             }
