@@ -364,11 +364,11 @@ public class AvgDeltaInParts implements AvgDelta {
     }
 
     private synchronized void addBtmDlt(Dlt dlt) {
-        if (b_delta_sma_map.containsKey(dlt.getTimestamp().toInstant())) {
-            logger.warn("btmx Double add of " + dlt.toString());
-            debugLog.warn("btmx Double add of " + dlt.toString());
-            return;
-        }
+//        if (b_delta_sma_map.containsKey(dlt.getTimestamp().toInstant())) {
+//            logger.warn("btmx Double add of " + dlt.toString());
+//            debugLog.warn("btmx Double add of " + dlt.toString());
+//            return;
+//        }
         b_delta_sma_map.put(dlt.getTimestamp().toInstant(), dlt.getDelta());
         num_sma_btm += dlt.getValue();
         den_sma_btm++;
@@ -383,11 +383,11 @@ public class AvgDeltaInParts implements AvgDelta {
     }
 
     private synchronized void addOkDlt(Dlt dlt) {
-        if (o_delta_sma_map.containsKey(dlt.getTimestamp().toInstant())) {
-            logger.warn("okex Double add of " + dlt.toString());
-            debugLog.warn("okex Double add of " + dlt.toString());
-            return;
-        }
+//        if (o_delta_sma_map.containsKey(dlt.getTimestamp().toInstant())) {
+//            logger.warn("okex Double add of " + dlt.toString());
+//            debugLog.warn("okex Double add of " + dlt.toString());
+//            return;
+//        }
         o_delta_sma_map.put(dlt.getTimestamp().toInstant(), dlt.getDelta());
         num_sma_ok += dlt.getValue();
         den_sma_ok++;
