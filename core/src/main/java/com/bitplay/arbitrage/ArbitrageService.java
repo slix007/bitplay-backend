@@ -996,8 +996,6 @@ public class ArbitrageService {
                 synchronized (arbStateLock) {
                     if (arbState == ArbState.READY) {
 
-                        printAdjWarning(b_block_input, o_block_input, b_block, o_block);
-
                         if (signalDelayActivateTime == null) {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
@@ -1132,6 +1130,8 @@ public class ArbitrageService {
 
         log.info("START SIGNAL 1");
         startSignalTime = Instant.now();
+
+        printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 
         final DeltaName deltaName = DeltaName.B_DELTA;
         final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
@@ -1269,8 +1269,6 @@ public class ArbitrageService {
                 synchronized (arbStateLock) {
                     if (arbState == ArbState.READY) {
 
-                        printAdjWarning(b_block_input, o_block_input, b_block, o_block);
-
                         if (signalDelayActivateTime == null) {
                             startSignalDelay(0);
                         } else if (isSignalDelayExceeded()) {
@@ -1337,6 +1335,8 @@ public class ArbitrageService {
 
         log.info("START SIGNAL 2");
         startSignalTime = Instant.now();
+
+        printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 
         final DeltaName deltaName = DeltaName.O_DELTA;
         final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
