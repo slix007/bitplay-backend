@@ -741,7 +741,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 ) { // log possible errors //todo remove this log
                     logger.info("freeOoChecker attempt " + attempt + ", " + getName() + ", marketState=" + getMarketState());
                 }
-                addCheckOoToFreeRepeat(attempt + 1);
+                ooSingleScheduler.scheduleDirect(() -> addCheckOoToFreeRepeat(attempt + 1), 1, TimeUnit.SECONDS);
             }
             if (marketState == MarketState.ARBITRAGE && !hasOpenOrders()) {
                 getTradeLogger().warn(checkerName);

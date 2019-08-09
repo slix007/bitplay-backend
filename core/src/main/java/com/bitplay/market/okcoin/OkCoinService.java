@@ -1127,9 +1127,14 @@ public class OkCoinService extends MarketServicePreliq {
                     currArgs.setPricePlanOnStart(true);
                     placeOrder(currArgs);
 
+                } else {
+                    final PlaceOrderArgs currArgs = placeOrderArgsRef.get();
+                    if (currArgs != null) {
+                        logger.warn("WAITING_ARB: deferredPlacingOrder warn. PlaceOrderArgs is not null. " + currArgs);
+                    }
                 }
             } catch (Exception e) {
-                logger.error("{} deferredPlacingOrder error", getName(), e);
+                logger.error("WAITING_ARB: deferredPlacingOrder error", e);
                 resetWaitingArb();
                 arbitrageService.resetArbState(getCounterName(), "deferredPlacingOrder");
                 slackNotifications.sendNotify(NotifyType.RESET_TO_FREE, "WAITING_ARB: deferredPlacingOrder error. Set READY. " + e.getMessage());
