@@ -736,7 +736,9 @@ public abstract class MarketService extends MarketServiceWithState {
         try {
             final MarketState marketState = getMarketState();
             if (marketState != MarketState.ARBITRAGE && marketState != MarketState.READY) {
-                if (attempt > 1 && marketState != MarketState.PLACING_ORDER) { // log possible errors //todo remove this log
+                if (marketState != MarketState.PLACING_ORDER
+                        && (attempt == 2 || attempt == 100 || attempt == 10000 || attempt == 100000 || attempt == 1000000)
+                ) { // log possible errors //todo remove this log
                     logger.info("freeOoChecker attempt " + attempt + ", " + getName() + ", marketState=" + getMarketState());
                 }
                 addCheckOoToFreeRepeat(attempt + 1);

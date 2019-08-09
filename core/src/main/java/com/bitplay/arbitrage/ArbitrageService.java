@@ -83,7 +83,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import javax.validation.constraints.NotNull;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -329,7 +329,7 @@ public class ArbitrageService {
                 }, throwable -> log.error("On event handling", throwable));
     }
 
-    private void onArbDone(@NotNull Long doneTradeId, String marketName) {
+    private void onArbDone(@NonNull Long doneTradeId, String marketName) {
 
         // marketState may be not set yet because of race condition
 //        if (!firstMarketService.isBusy() && !secondMarketService.isBusy()) {
