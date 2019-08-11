@@ -2739,14 +2739,11 @@ public class BitmexService extends MarketServicePreliq {
 
         final Map<String, AvgPriceItem> itemMap = getPersistenceService().getDealPricesRepositoryService().getPItems(dealPrices.getTradeId(), getMarketId());
 
-        final MarketState marketState = getMarketState();
         if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
             tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. ArbState.STOPPED", counterName),
                     contractTypeStr);
             return;
         }
-        final int LONG_SLEEP = 10000;
-        final int SHORT_SLEEP = 1000;
         avgPrice.getPItems().clear(); // TODO replace one by one.
         for (String orderId : itemMap.keySet()) {
             AvgPriceItem theItem = itemMap.get(orderId);
@@ -2760,7 +2757,6 @@ public class BitmexService extends MarketServicePreliq {
             final String logMsg = String.format("#%s AvgPrice update of orderId=%s.", counterName, orderId);
             int MAX_ATTEMPTS = 5;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-                int sleepIfFails = SHORT_SLEEP;
                 try {
                     if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
                         tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. ArbState.STOPPED", counterName), contractTypeStr);
@@ -2832,10 +2828,6 @@ public class BitmexService extends MarketServicePreliq {
 
                     overloadByXRateLimit();
 
-                    if (e.getMessage().contains("HTTP status code was not OK: 429")
-                            || marketState == MarketState.SYSTEM_OVERLOADED) {
-                        sleepIfFails = LONG_SLEEP;
-                    }
                     if (e.getMessage().contains("HTTP status code was not OK: 403")) {// banned, no repeats
                         break;
                     }
@@ -2851,15 +2843,7 @@ public class BitmexService extends MarketServicePreliq {
                     break;
                 }
 
-                try {
-                    if (sleepIfFails != LONG_SLEEP && marketState == MarketState.SYSTEM_OVERLOADED) {
-                        sleepIfFails = LONG_SLEEP;
-                    }
-
-                    Thread.sleep(sleepIfFails);
-                } catch (InterruptedException e) {
-                    logger.info(String.format("%s Sleep Error.", logMsg), e);
-                }
+                sleepByXrateLimit(logMsg);
             }
         }
         tradeLogger.info(String.format("#%s AvgPrice by %s orders(%s) is %s", counterName,
@@ -2872,6 +2856,20 @@ public class BitmexService extends MarketServicePreliq {
                 contractTypeStr);
 
         getPersistenceService().getDealPricesRepositoryService().updateBtmFactPrice(dealPrices.getTradeId(), avgPrice);
+    }
+
+    public void sleepByXrateLimit(String logStr) {
+        final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
+        int sleepSec = (xRateLimit.getxRateLimit() > 20) ? 1 : 5; // xRateLimit: 60 attempts in 1 min
+        final String rateLimitStr = String.format("%s. sleep=%s sec. X-RateLimit-Remaining=%s ", logStr, sleepSec, xRateLimit.getxRateLimit());
+        logger.info(rateLimitStr);
+        tradeLogger.info(rateLimitStr);
+        warningLogger.info(rateLimitStr);
+        try {
+            Thread.sleep(sleepSec);
+        } catch (InterruptedException e) {
+            logger.info(String.format("%s Sleep Error.", rateLimitStr), e);
+        }
     }
 
     private boolean overloadByXRateLimit() {

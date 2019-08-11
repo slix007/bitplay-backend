@@ -225,7 +225,7 @@ public class AfterArbTask implements Runnable {
 
         BigDecimal b_price_fact = BigDecimal.ZERO;
         int attempt = 0;
-        int maxAttempts = 5;
+        int maxAttempts = 3;
         while (attempt < maxAttempts) {
             attempt++;
 
@@ -245,14 +245,9 @@ public class AfterArbTask implements Runnable {
                 if (attempt == maxAttempts) {
                     throw e;
                 }
-                deltaLogWriter.info("Wait 200mc for avgPrice");
-
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e1) {
-                    log.error("Error on Wait 200mc for avgPrice", e1);
-                }
-
+                final String logStr = "fetchBtmFactPrice: RoundIsNotDoneException: sleep before retry.";
+                deltaLogWriter.info(logStr);
+                bitmexService.sleepByXrateLimit(logStr);
             }
         }
 
