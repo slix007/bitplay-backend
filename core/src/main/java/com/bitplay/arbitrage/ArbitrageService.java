@@ -208,6 +208,10 @@ public class ArbitrageService {
     }
 
     public DealPrices getDealPrices() {
+        return getDealPrices(tradeId);
+    }
+
+    public DealPrices getDealPrices(long tradeId) {
         return dealPricesRepositoryService.getFullDealPrices(tradeId);
     }
 
@@ -362,7 +366,8 @@ public class ArbitrageService {
                 if (arbState == ArbState.IN_PROGRESS) {
                     arbState = ArbState.READY;
 
-                    final String counterNameSnap = String.valueOf(firstMarketService.getCounterName());
+                    final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
+                    final String counterNameSnap = String.valueOf(firstMarketService.getCounterName(signalTypeSnap));
                     final long tradeIdSnap = tradeId;
 
                     if (signalTimeSec > 0) {
@@ -381,7 +386,6 @@ public class ArbitrageService {
 ////                        dealPrices.setTradeId(tradeId); // redundant. Keep logic: Re-set all dealPrices or none.
 //                        dealPricesSnap = SerializationUtils.clone(dealPrices);
 //                    }
-                    final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
                     // todo separate startSignalParams with endSignalParams (cumParams)
                     final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
                     final Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
@@ -456,7 +460,7 @@ public class ArbitrageService {
         theCheckBusyTimer = Completable.timer(6, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
 
-                    final String counterName = firstMarketService.getCounterName();
+                    final String counterName = firstMarketService.getCounterName(signalType);
 
                     if (firstMarketService.isMarketStopped()
                             || secondMarketService.isMarketStopped()
@@ -1162,8 +1166,8 @@ public class ArbitrageService {
             TradingMode tradingMode, BigDecimal delta1, BigDecimal delta2) {
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
-        firstMarketService.setBusy();
-        secondMarketService.setBusy();
+        firstMarketService.setBusy(counterName);
+        secondMarketService.setBusy(counterName);
 
         setSignalType(SignalType.AUTOMATIC);
 
@@ -1382,13 +1386,8 @@ public class ArbitrageService {
             iterationMarker = "whole iteration";
         }
 
-//        if (signalType.isPreliq()) {
-//            CorrParams corrParams = persistenceService.fetchCorrParams();
-//            corrParams.getPreliq().incTotalCount();
-//            persistenceService.saveCorrParams(corrParams);
-//        }
         setSignalType(SignalType.AUTOMATIC);
-        final String counterName = firstMarketService.getCounterName();
+        final String counterName = String.valueOf(counter1 + counter2);
 
         fplayTrade = fplayTradeService.createTrade(counterName, deltaName,
                 ((BitmexContractType) firstMarketService.getContractType()),

@@ -1933,9 +1933,8 @@ public class BitmexService extends MarketServicePreliq {
 
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
-                        final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
-                                placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
-                        orderRepositoryService.updateAsync(fplayOrder);// updateAsync?
+                        orderRepositoryService.updateAsync(new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType,
+                                signalType, placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax()));// updateAsync?
                         persistenceService.getDealPricesRepositoryService().setBtmOpenPrice(tradeId, thePrice);
 
                         // workaround for OO list: set as limit order
@@ -2177,7 +2176,6 @@ public class BitmexService extends MarketServicePreliq {
         }
         final String contractTypeStr = cntType.getCurrencyPair().toString();
 
-        final String counterName = fplayOrder.getCounterName();
         final String counterWithPortion = fplayOrder.getCounterWithPortion();
         Instant startReq = null;
         Instant endReq = null;

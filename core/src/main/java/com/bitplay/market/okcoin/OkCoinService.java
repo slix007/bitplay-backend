@@ -1078,12 +1078,14 @@ public class OkCoinService extends MarketServicePreliq {
                     }
 
                     // check2
-                    final DealPrices dealPrices = arbitrageService.getDealPrices();
+                    final String counterName = currArgs.getCounterName();
+                    final Long tradeId = currArgs.getTradeId();
+                    final DealPrices dealPrices = arbitrageService.getDealPrices(tradeId);
                     if (dealPrices.getBPriceFact().isNotFinished()) {
                         final String msg = String.format("#%s tradeId=%s "
                                         + "WAITING_ARB: bitmex is not fully filled. Try to update the filled amount for all orders.",
-                                currArgs.getCounterName(),
-                                currArgs.getTradeId()
+                                counterName,
+                                tradeId
                         );
                         logger.info(msg);
                         arbitrageService.getFirstMarketService().getTradeLogger().info(msg);
@@ -1095,8 +1097,8 @@ public class OkCoinService extends MarketServicePreliq {
                         if (dealPrices.getBPriceFact().isNotFinished()) {
                             final String msg1 = String.format("#%s tradeId=%s "
                                             + "WAITING_ARB: bitmex is not fully filled. Set READY.",
-                                    currArgs.getCounterName(),
-                                    currArgs.getTradeId()
+                                    counterName,
+                                    tradeId
                             );
                             logger.error(msg1);
                             arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
@@ -1123,7 +1125,7 @@ public class OkCoinService extends MarketServicePreliq {
                         persistenceService.getDealPricesRepositoryService().setOPricePlanOnStart(dealPrices.getTradeId(), oPricePlanOnStart);
                     }
 
-                    fplayTradeService.setOkexStatus(currArgs.getTradeId(), TradeMStatus.IN_PROGRESS);
+                    fplayTradeService.setOkexStatus(tradeId, TradeMStatus.IN_PROGRESS);
                     currArgs.setPricePlanOnStart(true);
                     placeOrder(currArgs);
 

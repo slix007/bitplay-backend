@@ -269,10 +269,6 @@ public abstract class MarketService extends MarketServiceWithState {
                 }, throwable -> logger.error("On event handling", throwable));
     }
 
-    public void setBusy() {
-        setBusy(getCounterName());
-    }
-
     public void setBusy(String counterName) {
         if (isMarketStopped()) {
             return;
