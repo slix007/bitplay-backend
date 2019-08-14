@@ -60,11 +60,7 @@ public class PortionsListener {
     public void check(MarketServicePortions marketService) {
         final PlaceOrderArgs poll = marketService.getPortionsQueue().poll();
         if (poll != null) {
-            if (marketService.getName().equals(BitmexService.NAME)) {
-                ((BitmexService) marketService).placeOrderToOpenOrders(poll);
-            } else {
-                marketService.placeOrder(poll);
-            }
+            marketService.placeOrder(poll);
         }
     }
 

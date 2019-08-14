@@ -110,7 +110,7 @@ public class SignalService {
                 placeOrderArgs.setBtmFokArgs(btmFokAutoArgs);
 
                 tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-                bitmexService.placeOrderToOpenOrders(placeOrderArgs);
+                bitmexService.placeOrder(placeOrderArgs);
 
             } catch (Exception e) {
                 log.error("Error on placeOrderOnSignal", e);

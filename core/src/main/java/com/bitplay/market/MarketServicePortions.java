@@ -46,9 +46,7 @@ public abstract class MarketServicePortions extends MarketService {
     public TradeResponseJson placeWithPortions(PlaceOrderArgs p, BigDecimal portionsQty) {
 
         if (portionsQty == null || portionsQty.compareTo(BigDecimal.ONE) <= 0) {
-            final TradeResponse r = this.getName().equals(BitmexService.NAME)
-                    ? ((BitmexService) this).placeOrderToOpenOrders(p)
-                    : this.placeOrder(p);
+            final TradeResponse r = this.placeOrder(p);
             return new TradeResponseJson(r.getOrderId(), r.getErrorCode());
         }
 
@@ -73,9 +71,7 @@ public abstract class MarketServicePortions extends MarketService {
                 .portionsQty(1)
                 .portionsQtyMax(parts.size())
                 .build();
-        final TradeResponse r = this.getName().equals(BitmexService.NAME)
-                ? ((BitmexService) this).placeOrderToOpenOrders(placeOrderArgs)
-                : this.placeOrder(placeOrderArgs);
+        final TradeResponse r = this.placeOrder(placeOrderArgs);
 
         for (int i = 1; i < parts.size(); i++) {
             final BigDecimal part = parts.get(i);

@@ -328,11 +328,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
                 placeOrderArgs.getAmount()
         ));
 
-        if (getName().equals(BitmexService.NAME)) {
-            ((BitmexService) this).placeOrderToOpenOrders(placeOrderArgs);
-        } else {
-            placeOrder(placeOrderArgs);
-        }
+        placeOrder(placeOrderArgs);
     }
 
     private BigDecimal getDqlCloseMin() {

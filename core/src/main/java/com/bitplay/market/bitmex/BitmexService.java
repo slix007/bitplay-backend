@@ -1698,28 +1698,11 @@ public class BitmexService extends MarketServicePreliq {
         final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1,
                 tradeId, counterName, null, contractType, amountType);
 
-        return placeOrderToOpenOrders(placeOrderArgs);
+        return placeOrder(placeOrderArgs);
     }
 
     public TradeResponse singleTakerOrder(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType) {
         return singleOrder(orderType, amountInContracts, bestQuotes, signalType, PlacingType.TAKER, null, AmountType.CONT);
-    }
-
-    public TradeResponse placeOrderToOpenOrders(final PlaceOrderArgs placeOrderArgs) {
-
-        final TradeResponse tradeResponse = placeOrder(placeOrderArgs);
-
-        // update this.openOrders
-        final List<LimitOrder> updates = new ArrayList<>();
-        if (tradeResponse.getCancelledOrders() != null) updates.addAll(tradeResponse.getCancelledOrders());
-        if (tradeResponse.getLimitOrder() != null) updates.add(tradeResponse.getLimitOrder());
-        final Long tradeId = placeOrderArgs.getTradeId();
-        final FplayOrder fPlayOrderStub = new FplayOrder(this.getMarketId(), tradeId, placeOrderArgs.getCounterName(), null, placeOrderArgs.getBestQuotes(),
-                placeOrderArgs.getPlacingType(), placeOrderArgs.getSignalType(), placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax()
-        );
-        addOpenOrders(updates, fPlayOrderStub);
-
-        return tradeResponse;
     }
 
     public TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
@@ -1735,10 +1718,10 @@ public class BitmexService extends MarketServicePreliq {
 
         final Settings settings = settingsRepositoryService.getSettings();
         final Integer maxAttempts = settings.getBitmexSysOverloadArgs().getPlaceAttempts();
+        final String counterName = placeOrderArgs.getCounterName();
         if (placeOrderArgs.getAttempt() > maxAttempts) {
-            final String counterForLogs = getCounterName();
             final String logString = String.format("#%s Bitmex Warning placing: too many attempt(%s) when SYSTEM_OVERLOADED. Do nothing.",
-                    counterForLogs,
+                    counterName,
                     maxAttempts);
 
             logger.error(logString);
@@ -1755,7 +1738,6 @@ public class BitmexService extends MarketServicePreliq {
         PlacingType placingTypeInitial = placeOrderArgs.getPlacingType();
         final SignalType signalType = placeOrderArgs.getSignalType();
         final Long tradeId = placeOrderArgs.getTradeId();
-        final String counterName = placeOrderArgs.getCounterName();
         final Instant lastObTime = placeOrderArgs.getLastObTime();
         final String symbol = btmContType.getSymbol();
         final Integer scale = btmContType.getScale();
@@ -1868,6 +1850,7 @@ public class BitmexService extends MarketServicePreliq {
                         final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
                                 placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
                         orderRepositoryService.updateAsync(fplayOrder); // updateAsync?
+                        addOpenOrder(fplayOrder);
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
                             incCancelledInRow(contractTypeStr);
@@ -1895,7 +1878,7 @@ public class BitmexService extends MarketServicePreliq {
                         // metrics
                         final Instant startReq = Instant.now();
                         throwTestingException();
-                        final Order resultOrder;
+                        final LimitOrder resultOrder;
                         if (placingType == PlacingType.TAKER_FOK) {
                             final StringBuilder fokExtraLogs = new StringBuilder();
                             thePrice = (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0)
@@ -1933,13 +1916,13 @@ public class BitmexService extends MarketServicePreliq {
 
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
-                        orderRepositoryService.updateAsync(new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType,
-                                signalType, placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax()));// updateAsync?
+                        final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType,
+                                signalType, placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
+                        orderRepositoryService.updateAsync(fplayOrder);// updateAsync?
                         persistenceService.getDealPricesRepositoryService().setBtmOpenPrice(tradeId, thePrice);
+                        addOpenOrder(fplayOrder);
 
-                        // workaround for OO list: set as limit order
-                        tradeResponse.setLimitOrder(new LimitOrder(orderType, amount, currencyPair, orderId, new Date(),
-                                thePrice, thePrice, resultOrder.getCumulativeAmount(), resultOrder.getStatus()));
+                        tradeResponse.setLimitOrder(resultOrder);
 
                         if (resultOrder.getStatus() == OrderStatus.CANCELED) {
                             ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
@@ -3055,15 +3038,16 @@ public class BitmexService extends MarketServicePreliq {
         try {
             final BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
 
-            Order order = tradeService.closeAllPos(symbol);
+            LimitOrder order = tradeService.closeAllPos(symbol);
 
             final Instant end = Instant.now();
             if (order.getTradableAmount() == null) { // if cancelled order
-                order = new MarketOrder(null,
+                order = new LimitOrder(null,
                         BigDecimal.ZERO,
                         order.getCurrencyPair(),
                         order.getId(),
                         order.getTimestamp(),
+                        null,
                         order.getAveragePrice(),
                         order.getCumulativeAmount(),
                         order.getStatus());

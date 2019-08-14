@@ -24,7 +24,6 @@ import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
 
 /**
@@ -147,8 +146,7 @@ public class BitmexAdapters {
             for (JsonNode node : jsonNode) {
                 io.swagger.client.model.Order order = mapper.treeToValue(node, io.swagger.client.model.Order.class);
 
-                //TODO MarketOrder can not be cast to LimitOrder
-                final LimitOrder limitOrder = (LimitOrder) adaptOrder(order, true, currencyToScale);
+                final LimitOrder limitOrder = adaptOrder(order, currencyToScale);
                 openOrders.add(limitOrder);
             }
         }
@@ -156,11 +154,7 @@ public class BitmexAdapters {
         return new OpenOrders(openOrders);
     }
 
-    public static Order adaptOrder(io.swagger.client.model.Order order, Map<CurrencyPair, Integer> currencyToScale) {
-        return adaptOrder(order, false, currencyToScale);
-    }
-
-    public static Order adaptOrder(io.swagger.client.model.Order order, boolean alwaysLimit, Map<CurrencyPair, Integer> currencyToScale) {
+    public static LimitOrder adaptOrder(io.swagger.client.model.Order order, Map<CurrencyPair, Integer> currencyToScale) {
         final String side = order.getSide(); // may be null
         Order.OrderType orderType = null;
         BigDecimal tradableAmount = null;
@@ -204,31 +198,16 @@ public class BitmexAdapters {
 
         final Order.OrderStatus orderStatus = convertOrderStatus(order.getOrdStatus());
 
-        Order resultOrder;
-        if (order.getOrdType() == null || order.getOrdType().equals("Limit") || alwaysLimit) {
-            resultOrder = new LimitOrder(orderType,
-                    tradableAmount,
-                    currencyPair,
-                    order.getOrderID(),
-                    timestamp,
-                    price,
-                    avgPrice,
-                    order.getCumQty(),
-                    orderStatus);
-
-        } else if (order.getOrdType().equals("Market")) {
-            resultOrder = new MarketOrder(orderType,
-                    tradableAmount,
-                    currencyPair,
-                    order.getOrderID(),
-                    timestamp,
-                    avgPrice,
-                    order.getCumQty(),
-                    orderStatus);
-        } else {
-            throw new IllegalStateException("unknown order type " + order.getOrdType());
-        }
-        return resultOrder;
+        // workaround for OO list: always set as limit order
+        return new LimitOrder(orderType,
+                tradableAmount,
+                currencyPair,
+                order.getOrderID(),
+                timestamp,
+                price,
+                avgPrice,
+                order.getCumQty(),
+                orderStatus);
     }
 
     private static Order.OrderStatus convertOrderStatus(String ordStatus) {
@@ -248,7 +227,7 @@ public class BitmexAdapters {
 
     public static LimitOrder updateLimitOrder(LimitOrder limitOrder, io.swagger.client.model.Order order,
             Map<CurrencyPair, Integer> currencyToScale) {
-        final LimitOrder convertedOrd = (LimitOrder) BitmexAdapters.adaptOrder(order, true, currencyToScale);
+        final LimitOrder convertedOrd = BitmexAdapters.adaptOrder(order, currencyToScale);
 
         return new LimitOrder(
                 limitOrder.getType(),
