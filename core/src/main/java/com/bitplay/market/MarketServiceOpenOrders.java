@@ -29,7 +29,7 @@ public abstract class MarketServiceOpenOrders {
     private final static Logger logger = LoggerFactory.getLogger(MarketServiceOpenOrders.class);
     protected static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    private final Object ooLock = new Object();
+//    private final Object ooLock = new Object();
     private volatile CopyOnWriteArrayList<FplayOrder> openOrders = new CopyOnWriteArrayList<>();
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
@@ -50,35 +50,35 @@ public abstract class MarketServiceOpenOrders {
 
     public abstract ArbitrageService getArbitrageService();
 
-    public List<FplayOrder> getOpenOrders() {
-        return openOrders;
+    public synchronized List<FplayOrder> getOpenOrders() {
+        return this.openOrders;
     }
 
-    public List<FplayOrder> getOpenOrdersClone() {
+    public synchronized List<FplayOrder> getOpenOrdersClone() {
         return this.openOrders.stream()
                 .map(FplayOrder::cloneDeep)
                 .collect(Collectors.toList());
     }
 
-    public List<LimitOrder> getOnlyOpenOrders() {
-        return openOrders.stream()
+    public synchronized List<LimitOrder> getOnlyOpenOrders() {
+        return this.openOrders.stream()
                 .filter(FplayOrder::isOpen)
                 .map(FplayOrder::getLimitOrder)
                 .collect(Collectors.toList());
     }
 
     public List<FplayOrder> getOnlyOpenFplayOrders() {
-        return openOrders.stream()
+        return this.openOrders.stream()
                 .filter(FplayOrder::isOpen)
                 .collect(Collectors.toList());
     }
 
-    public boolean hasOpenOrders() {
+    public synchronized boolean hasOpenOrders() {
         boolean hasOO;
 //        validateForDuplicatesOO(); // just to logs
-
-        hasOO = openOrders.stream()
-                .anyMatch(FplayOrder::isOpen);
+//        synchronized (ooLock) {
+            hasOO = this.openOrders.stream().anyMatch(FplayOrder::isOpen);
+//        }
         return hasOO;
     }
 
@@ -88,7 +88,7 @@ public abstract class MarketServiceOpenOrders {
 
     private void validateForDuplicatesOO() {
         Map<String, FplayOrder> map = new HashMap<>();
-        openOrders.forEach(fplayOrder -> {
+        this.openOrders.forEach(fplayOrder -> {
             String key = fplayOrder.getOrderId();
             if (map.containsKey(key)) {
                 FplayOrder first = map.get(key);
@@ -116,8 +116,8 @@ public abstract class MarketServiceOpenOrders {
         updateFplayOrdersToCurrStab(trades, stubOrderForNew);
     }
 
-    protected void updateFplayOrders(List<FplayOrder> updates) {
-        synchronized (ooLock) {
+    protected synchronized void updateFplayOrders(List<FplayOrder> updates) {
+//        synchronized (ooLock) {
 
             // 1. Merge updates with this.openOrders and from DB => save to DB
             final ArrayList<FplayOrder> allUpdated = new ArrayList<>();
@@ -158,7 +158,7 @@ public abstract class MarketServiceOpenOrders {
                     .collect(Collectors.toList())
             );
 
-        } // ooLock
+//        } // ooLock
     }
 
     protected void updateFplayOrdersToCurrStab(List<LimitOrder> updates, final FplayOrder currStub) {
@@ -168,7 +168,7 @@ public abstract class MarketServiceOpenOrders {
         updateFplayOrders(fplayOrderList);
     }
 
-    protected Integer getOpenOrdersSize() {
+    protected synchronized Integer getOpenOrdersSize() {
         return this.openOrders.size();
     }
 
@@ -181,12 +181,12 @@ public abstract class MarketServiceOpenOrders {
                 || status == Order.OrderStatus.STOPPED;
     }
 
-    protected void cleanOldOO() {
-        synchronized (ooLock) {
-            if (openOrders.size() > 0) {
+    protected synchronized void cleanOldOO() {
+//        synchronized (ooLock) {
+            if (this.openOrders.size() > 0) {
                 this.openOrders.removeIf(this::isOpenOrderToRemove);
             }
-        }
+//        }
     }
 
     private boolean isOpenOrderToRemove(FplayOrder fplayOrder) {
