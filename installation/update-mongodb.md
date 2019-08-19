@@ -8,11 +8,10 @@ Update 1 server with current instruction without troubles: 15 min.
 #### 1) 3.2 -> 3.4
 
 ```bash
-sudo systemctl stop bitplay2
-
-wget https://repo.mongodb.org/apt/ubuntu/dists/xenial/mongodb-org/3.4/multiverse/binary-amd64/mongodb-org-server_3.4.22_amd64.deb
-sudo systemctl stop mongod
-sudo dpkg -i mongodb-org-server_3.4.22_amd64.deb
+sudo systemctl stop bitplay2 && \
+wget https://repo.mongodb.org/apt/ubuntu/dists/xenial/mongodb-org/3.4/multiverse/binary-amd64/mongodb-org-server_3.4.22_amd64.deb && \
+sudo systemctl stop mongod && \
+sudo dpkg -i mongodb-org-server_3.4.22_amd64.deb && \
 sudo systemctl start mongod
 
 ```
@@ -23,6 +22,10 @@ $ mongo --port 26459
 > db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )
 # set new
 > db.adminCommand({setFeatureCompatibilityVersion: "3.4"})
+
+### or
+mongo --port 26459 --eval "db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )"
+mongo --port 26459 --eval 'db.adminCommand({setFeatureCompatibilityVersion: "3.4"})'
 ```
 #### 2) 3.4 -> 3.6
 NOTE: Don't change /etc/mongo.conf!
@@ -37,48 +40,65 @@ sudo systemctl start bitplay2
 # do check
 sudo systemctl stop bitplay2
 
-wget https://repo.mongodb.org/apt/ubuntu/dists/xenial/mongodb-org/3.6/multiverse/binary-amd64/mongodb-org-server_3.6.13_amd64.deb
-sudo systemctl stop mongod
+wget https://repo.mongodb.org/apt/ubuntu/dists/xenial/mongodb-org/3.6/multiverse/binary-amd64/mongodb-org-server_3.6.13_amd64.deb && \
+sudo systemctl stop mongod && \
 sudo dpkg -i mongodb-org-server_3.6.13_amd64.deb
+
 # If it asks to replace the file at /etc/mongod.conf just say no to keep your settings as they are.
 sudo systemctl start mongod
 
 ```
 Go to mongo console and set new compatibility version
 ```bash
-$ mongo --port 26459
-# check 
-> db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )
-# set new
-> db.adminCommand({setFeatureCompatibilityVersion: "3.6"})
+mongo --port 26459 --eval "db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )"
+mongo --port 26459 --eval 'db.adminCommand({setFeatureCompatibilityVersion: "3.6"})'
 ```
 
 
 ### 3) 3.6 -> 4.0 from apt repository
+
+```
+wget https://repo.mongodb.org/apt/ubuntu/dists/xenial/mongodb-org/4.0/multiverse/binary-amd64/mongodb-org-server_4.0.12_amd64.deb && \
+sudo systemctl stop mongod && \
+sudo apt install libcurl3 && \
+sudo dpkg -i mongodb-org-server_4.0.12_amd64.deb
+
+# If it asks to replace the file at /etc/mongod.conf just say no to keep your settings as they are.
+sudo systemctl start mongod
+```
+Go to mongo console and set new compatibility version
+
+```
+```bash
+mongo --port 26459 --eval "db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )"
+mongo --port 26459 --eval 'db.adminCommand({setFeatureCompatibilityVersion: "4.0"})'
+```
+
+### 3) 4.0 -> 4.2 from apt repository
 `sudo systemctl stop mongod`
 
 Check ubuntu version `lsb_release -a`
 Use proper repositorie from: https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
 ```bash
-wget -qO - https://www.mongodb.org/static/pgp/server-4.0.asc | sudo apt-key add -
+wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
 echo "deb ....."
 lsb_release -a
 ls /etc/apt/sources.list.d/
-sudo rm /etc/apt/sources.list.d/mongodb-org-3.4.list
-# use all commands from the instruction above
-sudo apt-get update
-sudo apt-get install -y mongodb-org
-apt search mongo | grep mongo
+sudo rm /etc/apt/sources.list.d/mongodb-org-3.2.list
+# See the instruction above... The 16.04 version
+sudo echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+
+sudo apt-get update && \
+sudo apt-get install -y mongodb-org && \
 sudo apt dist-upgrade
+
+apt search mongo | grep mongo | grep installed
 ``` 
 Go to mongo console and set new compatibility version
 ```bash
-$ sudo systemctl start mongod
-$ mongo --port 26459
-# check 
-> db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )
-# set new
-> db.adminCommand({setFeatureCompatibilityVersion: "4.0"})
+sudo systemctl start mongod
+mongo --port 26459 --eval "db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )"
+mongo --port 26459 --eval 'db.adminCommand({setFeatureCompatibilityVersion: "4.2"})'
 ```
 
 Trobleshooting:
@@ -100,19 +120,33 @@ sudo systemctl restart mongod
 ```bash
 sudo systemctl stop bitplay2
 sudo systemctl stop mongod
-#mongod --port 26459 --dbpath /var/lib/mongodb --replSet rs0 --bind_ip localhost
+# Manually start server in replica mod to check it:
+# mongod --port 26459 --dbpath /var/lib/mongodb --replSet rs0 --bind_ip localhost
 ```
+Change permissions: 
+```bash
+# storage.dbPath
+# systemLog.path
+sudo chown -R mongodb:mongodb /var/lib/mongodb && \
+sudo chown -R mongodb:mongodb /var/log/mongodb
+```
+
+
 Change config `sudo vim /etc/mongod.conf` 
 ```
 replication:
   replSetName: "rs0"
 ```
+Fix also processManagement: (with update to version 3.6)
+```
+processManagement:
+  timeZoneInfo: /usr/share/zoneinfo
+```
 `sudo systemctl start mongod`
 
 Initialize it:
 ```bash
-$ mongo --port 26459
-> rs.initiate()
+mongo --port 26459 --eval 'rs.initiate()'
 ```
 ##### troubleshooting
 Assertion: 28595:13: Permission denied src/mongo/db/storage/wiredtiger/wiredtiger_kv_engine.cpp 267
