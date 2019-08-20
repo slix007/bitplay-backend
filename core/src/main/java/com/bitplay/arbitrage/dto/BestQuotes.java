@@ -13,7 +13,6 @@ import org.springframework.data.annotation.Transient;
  * Created by Sergey Shurmin on 4/27/17.
  */
 @Getter
-@ToString
 public class BestQuotes implements Serializable {
 
     private final BigDecimal ask1_o;
@@ -86,5 +85,15 @@ public class BestQuotes implements Serializable {
 
     public BigDecimal getODelta() {
         return bid1_o.subtract(ask1_p);
+    }
+
+    @Override
+    public String toString() {
+        return "BestQuotes{" +
+                "ask1_o=" + ask1_o +
+                ", ask1_p=" + ask1_p +
+                ", bid1_o=" + bid1_o +
+                ", bid1_p=" + bid1_p +
+                '}';
     }
 }
