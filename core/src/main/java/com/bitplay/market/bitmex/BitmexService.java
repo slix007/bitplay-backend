@@ -1775,7 +1775,6 @@ public class BitmexService extends MarketServicePreliq {
                     logger.info("NO_REPEATS_ATTEMPT on placing. restore marketState to READY and reset WAITING_ARB");
                     tradeLogger.info("NO_REPEATS_ATTEMPT on placing. restore marketState to READY and reset WAITING_ARB");
                     ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
-                    Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
                     break;
                 }
                 if (settingsRepositoryService.getSettings().getManageType().isManual()) {
