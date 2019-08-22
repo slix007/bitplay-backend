@@ -31,6 +31,7 @@ import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -1077,6 +1078,12 @@ public abstract class MarketService extends MarketServiceWithState {
             }
 
             BigDecimal bestPrice = createBestPrice(limitOrder.getType(), fplayOrder.getPlacingType(), orderBook, contractType);
+            if (getName().equals(BitmexService.NAME)) {
+                final Settings settings = getPersistenceService().getSettingsRepositoryService().getSettings();
+                if (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0) {
+                    bestPrice = settings.getBitmexPrice();
+                }
+            }
 
             if (bestPrice.signum() == 0) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "bestPrice is 0");
