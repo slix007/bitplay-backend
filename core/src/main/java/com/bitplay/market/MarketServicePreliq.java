@@ -208,6 +208,12 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
                 dqlCurrStr, dqlCloseMinStr);
     }
 
+    public boolean isDqlOpenViolated() {
+        LiqInfo liqInfo = getLiqInfo();
+        final BigDecimal dqlOpenMin = getDqlOpenMin();
+        return isDqlViolated(liqInfo, dqlOpenMin);
+    }
+
     public boolean isDqlViolated() {
         LiqInfo liqInfo = getLiqInfo();
         final BigDecimal dqlCloseMin = getDqlCloseMin();
@@ -336,6 +342,13 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
             return getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
         }
         return getPersistenceService().fetchGuiLiqParams().getODQLCloseMin();
+    }
+
+    private BigDecimal getDqlOpenMin() {
+        if (getName().equals(BitmexService.NAME)) {
+            return getPersistenceService().fetchGuiLiqParams().getBDQLOpenMin();
+        }
+        return getPersistenceService().fetchGuiLiqParams().getODQLOpenMin();
     }
 
     private PreliqBlocks getPreliqBlocks(DeltaName deltaName, Pos posObj) {

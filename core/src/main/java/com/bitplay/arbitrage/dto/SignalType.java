@@ -82,4 +82,16 @@ public enum SignalType {
         return this == MANUAL_BUY || this == MANUAL_SELL;
     }
 
+    public SignalType switchMarket() {
+        final String inName = this.name().toUpperCase();
+        String outName = inName;
+        if (inName.startsWith("B_")) {
+            outName = "O_" + inName.substring(2);
+        }
+        if (inName.startsWith("O_")) {
+            outName = "B_" + inName.substring(2);
+        }
+        return SignalType.valueOf(outName);
+    }
+
 }

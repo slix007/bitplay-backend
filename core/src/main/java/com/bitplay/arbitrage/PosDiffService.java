@@ -63,6 +63,7 @@ import org.springframework.stereotype.Service;
 public class PosDiffService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+    private final ThrottledWarn dqlOpenWarn = new ThrottledWarn();
     private final ThrottledWarn dqlWarn = new ThrottledWarn();
     private final ThrottledWarn corrAdjWarn = new ThrottledWarn();
 
@@ -896,12 +897,12 @@ public class PosDiffService {
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParamsExtra);
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParamsExtra, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.ADJ) {
 
             fillCorrObjForAdj(corrObj, hedgeAmount, bP, oPL, oPS, cm, isEth, dc, true);
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams);
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
 
@@ -910,7 +911,7 @@ public class PosDiffService {
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParamsExtra);
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParamsExtra, dc, cm, isEth);
 
         } else { // corr
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
@@ -921,7 +922,7 @@ public class PosDiffService {
             } else {
                 adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
             }
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams);
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams, dc, cm, isEth);
 
         } // end corr
 
@@ -1040,7 +1041,12 @@ public class PosDiffService {
         return adjLimit || corrLimit;
     }
 
-    private void adaptCorrAdjByMaxVolCorrAndDql(final CorrObj corrObj, final CorrParams corrParams) {
+    private void adaptCorrAdjByMaxVolCorrAndDql(final CorrObj corrObj, final CorrParams corrParams, BigDecimal dc, BigDecimal cm, boolean isEth) {
+        maxVolCorrAdapt(corrObj, corrParams);
+        adaptCorrByDql(corrObj, dc, cm, isEth, corrParams);
+    }
+
+    private void maxVolCorrAdapt(CorrObj corrObj, CorrParams corrParams) {
         if (corrObj.marketService.getName().equals(OkCoinService.NAME)) {
             BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
             if (corrObj.correctAmount.compareTo(okMax) > 0) {
@@ -1052,20 +1058,58 @@ public class PosDiffService {
                 corrObj.correctAmount = bMax;
             }
         }
-        adaptCorrByDql(corrObj);
     }
 
-    private void adaptCorrByDql(final CorrObj corrObj) {
+    private void adaptCorrByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, CorrParams corrParams) {
         if (corrObj.signalType.isIncreasePos()) {
-            final boolean dqlViolated = corrObj.marketService.isDqlViolated();
-            if (dqlViolated) {
+            dqlOpenMinAdjust(corrObj, dc, cm, isEth, corrParams);
+            dqlCloseMinAdjust(corrObj);
+        }
+    }
+
+    private void dqlOpenMinAdjust(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, CorrParams corrParams) {
+        final boolean dqlOpenViolated = corrObj.marketService.isDqlOpenViolated();
+        if (dqlOpenViolated) {
+            // check if other market isOk
+            final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
+            boolean theOtherMarketIsViolated = theOtherService.isDqlOpenViolated();
+            if (theOtherMarketIsViolated) {
                 corrObj.correctAmount = BigDecimal.ZERO;
-                if (dqlWarn.isReadyToSend()) {
-                    warningLogger.warn("No %s. DQL is violated", corrObj.signalType);
-                }
+                sendDqlWarn(dqlOpenWarn, String.format("No %s. DQL_open_min is violated", corrObj.signalType));
             } else {
-                dqlWarn.reset();
+                dqlOpenWarn.reset();
+                switchMarkets(corrObj, dc, cm, isEth, corrParams, theOtherService);
             }
+        } else {
+            dqlOpenWarn.reset();
+        }
+    }
+
+    private void switchMarkets(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, CorrParams corrParams, MarketServicePreliq theOtherService) {
+        corrObj.marketService = theOtherService;
+        maxVolCorrAdapt(corrObj, corrParams);
+        corrObj.signalType = corrObj.signalType.switchMarket();
+        if (theOtherService.getName().equals(BitmexService.NAME)) {
+            defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
+        } else {
+            defineCorrectAmountOkex(corrObj, dc, isEth);
+        }
+    }
+
+    private void dqlCloseMinAdjust(CorrObj corrObj) {
+        final boolean dqlViolated = corrObj.marketService.isDqlViolated();
+        if (dqlViolated) {
+            corrObj.correctAmount = BigDecimal.ZERO;
+            sendDqlWarn(dqlWarn, String.format("No %s. DQL_close_min is violated", corrObj.signalType));
+        } else {
+            dqlWarn.reset();
+        }
+    }
+
+    private void sendDqlWarn(ThrottledWarn throttledWarn, String msg) {
+        if (throttledWarn.isReadyToSend()) {
+            warningLogger.warn(msg);
+            slackNotifications.sendNotify(NotifyType.CORR_ADJ_SKIP_DQL_OPEN_MIN, msg);
         }
     }
 
@@ -1454,7 +1498,7 @@ public class PosDiffService {
             BigDecimal btmCm = BigDecimal.valueOf(10).divide(cm, 4, RoundingMode.HALF_UP);
             corrObj.correctAmount = dc.abs().divide(btmCm, 0, RoundingMode.HALF_UP);
         } else {
-            if (corrObj.signalType == SignalType.ADJ) {
+            if (corrObj.signalType.isAdj()) {
                 corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.HALF_UP);
             } else {
                 corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.DOWN);
