@@ -7,7 +7,7 @@ import java.util.Map;
 import org.knowm.xchange.bitmex.BitmexAdapters;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.trade.OpenOrders;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
 
 /**
  * Created by Sergey Shurmin on 5/17/17.
@@ -22,7 +22,7 @@ public class BitmexStreamingTradingService implements StreamingTradingService {
 
     @Override
     public Observable<OpenOrders> getOpenOrdersObservable() {
-        throw new NotImplementedException();
+        throw new NotYetImplementedForExchangeException();
 //        return service.subscribeChannel("order", "order")
 //                .map(BitmexAdapters::adaptOpenOrdersUpdate);
     }
