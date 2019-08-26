@@ -16,6 +16,7 @@ import com.bitplay.market.bitmex.BitmexUtils;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.model.Pos;
@@ -860,7 +861,8 @@ public class PosDiffService {
 //    }
 
     private synchronized void doCorrection(final BigDecimal hedgeAmount, SignalType baseSignalType) {
-
+        // NOTE: CorrParams may be changed by UI request -> will create illegal state for CorrParams.
+        // change by preliq should not be possible according to business logic.
         final CorrParams corrParams = persistenceService.fetchCorrParams();
         countFailedOnStartCorr(corrParams, baseSignalType);
         if (hasNoSpareAttempts(baseSignalType, corrParams)) {
@@ -934,7 +936,12 @@ public class PosDiffService {
 
         // 3. check isAffordable
         boolean isAffordable = marketService.isAffordable(orderType, correctAmount);
-        if (correctAmount.signum() > 0 && isAffordable) {
+        if (corrObj.errorDescription != null) {
+            countOnStartCorr(corrParams, signalType);
+            final String msg = String.format("No %s. %s", baseSignalType, corrObj.errorDescription);
+            warningLogger.warn(msg);
+            slackNotifications.sendNotify(NotifyType.CORR_ADJ_SKIP_CORR, msg);
+        } else if (correctAmount.signum() > 0 && isAffordable) {
 
             corrAdjWarn.reset();
 
@@ -976,8 +983,23 @@ public class PosDiffService {
                 PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, correctAmount, null, placingType, signalType,
                         1, tradeId, counterName, null, contractType);
                 marketService.getTradeLogger().info(message + placeOrderArgs.toString());
-                marketService.placeOrder(placeOrderArgs);
-                marketService.getArbitrageService().setBusyStackChecker();
+                final TradeResponse tradeResponse = marketService.placeOrder(placeOrderArgs);
+                if (tradeResponse.errorInsufficientFunds()) {
+                    // switch the market
+                    final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
+                    switchMarkets(corrObj, dc, cm, isEth, corrParams, theOtherService);
+                    PlacingType pl = placingType == PlacingType.TAKER_FOK ? PlacingType.TAKER : placingType;
+                    PlaceOrderArgs theOhterMarketArgs = new PlaceOrderArgs(corrObj.orderType, corrObj.correctAmount, null,
+                            pl, corrObj.signalType, 1, tradeId, counterName, null, corrObj.contractType);
+                    corrObj.marketService.getTradeLogger().info(message + theOhterMarketArgs.toString());
+                    final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOhterMarketArgs);
+                    if (theOtherResp.errorInsufficientFunds()) {
+                        final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", baseSignalType);
+                        warningLogger.warn(msg);
+                        slackNotifications.sendNotify(NotifyType.CORR_ADJ_SKIP_CORR, msg);
+                    }
+                }
+                corrObj.marketService.getArbitrageService().setBusyStackChecker();
 
                 slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
                 log.info(message);
@@ -1075,7 +1097,7 @@ public class PosDiffService {
             boolean theOtherMarketIsViolated = theOtherService.isDqlOpenViolated();
             if (theOtherMarketIsViolated) {
                 corrObj.correctAmount = BigDecimal.ZERO;
-                sendDqlWarn(dqlOpenWarn, String.format("No %s. DQL_open_min is violated", corrObj.signalType));
+                corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated on both markets.";
             } else {
                 dqlOpenWarn.reset();
                 switchMarkets(corrObj, dc, cm, isEth, corrParams, theOtherService);
@@ -1109,7 +1131,7 @@ public class PosDiffService {
     private void sendDqlWarn(ThrottledWarn throttledWarn, String msg) {
         if (throttledWarn.isReadyToSend()) {
             warningLogger.warn(msg);
-            slackNotifications.sendNotify(NotifyType.CORR_ADJ_SKIP_DQL_OPEN_MIN, msg);
+            slackNotifications.sendNotify(NotifyType.CORR_ADJ_SKIP_CORR, msg);
         }
     }
 
@@ -1139,6 +1161,7 @@ public class PosDiffService {
         BigDecimal correctAmount;
         MarketServicePreliq marketService;
         ContractType contractType;
+        String errorDescription;
     }
 
     /**

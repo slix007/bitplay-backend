@@ -1705,6 +1705,7 @@ public class BitmexService extends MarketServicePreliq {
         return singleOrder(orderType, amountInContracts, bestQuotes, signalType, PlacingType.TAKER, null, AmountType.CONT);
     }
 
+    @Override
     public TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
         prevCumulativeAmount = BigDecimal.ZERO;
 
@@ -2154,7 +2155,7 @@ public class BitmexService extends MarketServicePreliq {
         final BitmexContractType cntType = BitmexContractType.parse(limitOrder.getCurrencyPair());
         if (cntType == null) {
             String msg = String.format("no moving. Can not determinate contractType! %s", limitOrder.toString());
-            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
+           return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
         }
         final String contractTypeStr = cntType.getCurrencyPair().toString();
 

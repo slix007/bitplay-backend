@@ -50,7 +50,7 @@ public enum NotifyType {
     RESET_TO_FREE(false),
     MAX_DELTA_VIOLATED(true, 30), // b_delta >= b_max_delta и/или o_delta >= o_max_delta. (раз в 30 сек).
 
-    CORR_ADJ_SKIP_DQL_OPEN_MIN(true, 60 * 30), // 30 min
+    CORR_ADJ_SKIP_CORR(false), // 30 min
 
     ;
 

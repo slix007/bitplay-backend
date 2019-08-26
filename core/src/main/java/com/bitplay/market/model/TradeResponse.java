@@ -1,5 +1,6 @@
 package com.bitplay.market.model;
 
+import com.bitplay.market.helper.TradeResponseHelper;
 import java.util.ArrayList;
 import java.util.List;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -11,6 +12,8 @@ public class TradeResponse {
 
     public static final String TAKER_BECAME_LIMIT = "Taker became limit";
     public static final String TAKER_WAS_CANCELLED_MESSAGE = "Taker wasn't filled. Cancelled";
+    public static final String INSUFFICIENT_BALANCE = "Account has insufficient Available Balance";
+    private static final TradeResponseHelper tradeResponseHelper = new TradeResponseHelper();
 
     String orderId;
     Object specificResponse;
@@ -68,4 +71,12 @@ public class TradeResponse {
             cancelledOrders.add(cancelledOrder);
         }
     }
+
+    public boolean errorInsufficientFunds() {
+        if (this.errorCode != null) {
+            return tradeResponseHelper.errorInsufficientFunds(this.errorCode);
+        }
+        return false;
+    }
+
 }
