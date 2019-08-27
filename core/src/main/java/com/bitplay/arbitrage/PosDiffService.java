@@ -1090,7 +1090,7 @@ public class PosDiffService {
 
     private void adaptCorrByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, CorrParams corrParams) {
         if (corrObj.signalType.isIncreasePos()) {
-            if (corrObj.signalType.isMainSet()) {
+            if (corrObj.signalType.isMainSet() && !corrObj.signalType.isAdj()) {
                 dqlOpenMinAdjust(corrObj, dc, cm, isEth, corrParams);
             }
             dqlCloseMinAdjust(corrObj);
