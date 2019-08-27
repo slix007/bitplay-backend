@@ -102,4 +102,41 @@ public enum SignalType {
         return getCounterName().contains("_btc");
     }
 
+    @SuppressWarnings("DuplicatedCode")
+    public SignalType toIncrease(boolean isBitmex) {
+        SignalType res = this;
+        if (this.isAdjBtc()) {
+            res = B_ADJ_BTC_INCREASE_POS;
+        } else if (this.isAdj()) {
+            res = B_ADJ_INCREASE_POS;
+        } else if (this.isCorrBtc()) {
+            res = B_CORR_BTC_INCREASE_POS;
+        } else if (this.isCorr()) {
+            res = B_CORR_INCREASE_POS;
+        }
+        if (isBitmex) {
+            return res;
+        }
+        String outName = "O_" + res.name().substring(2);
+        return SignalType.valueOf(outName);
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    public SignalType toDecrease(boolean isBitmex) {
+        SignalType res = this;
+        if (this.isAdjBtc()) {
+            res = B_ADJ_BTC;
+        } else if (this.isAdj()) {
+            res = B_ADJ;
+        } else if (this.isCorrBtc()) {
+            res = B_CORR_BTC;
+        } else if (this.isCorr()) {
+            res = B_CORR;
+        }
+        if (isBitmex) {
+            return res;
+        }
+        String outName = "O_" + res.name().substring(2);
+        return SignalType.valueOf(outName);
+    }
 }
