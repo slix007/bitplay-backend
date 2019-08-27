@@ -931,7 +931,7 @@ public class PosDiffService {
         final ContractType contractType = corrObj.contractType;
 
         // 3. check DQL, correctAmount
-        if (corrObj.errorDescription != null) { // DQL violation
+        if (corrObj.errorDescription != null) { // DQL violation (open_min or close_min)
             countOnStartCorr(corrParams, signalType); // inc counters
             final String msg = String.format("No %s. %s", baseSignalType, corrObj.errorDescription);
             warningLogger.warn(msg);
@@ -1087,7 +1087,9 @@ public class PosDiffService {
 
     private void adaptCorrByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, CorrParams corrParams) {
         if (corrObj.signalType.isIncreasePos()) {
-            dqlOpenMinAdjust(corrObj, dc, cm, isEth, corrParams);
+            if (corrObj.signalType.isMainSet()) {
+                dqlOpenMinAdjust(corrObj, dc, cm, isEth, corrParams);
+            }
             dqlCloseMinAdjust(corrObj);
         }
     }
@@ -1098,11 +1100,9 @@ public class PosDiffService {
             // check if other market isOk
             final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
             boolean theOtherMarketIsViolated = theOtherService.isDqlOpenViolated();
-            if (theOtherMarketIsViolated || corrObj.signalType.isExtraSet()) {
+            if (theOtherMarketIsViolated) {
                 corrObj.correctAmount = BigDecimal.ZERO;
-                corrObj.errorDescription = theOtherMarketIsViolated
-                        ? "Try INCREASE_POS when DQL_open_min is violated on both markets."
-                        : "Try INCREASE_POS when DQL_open_min is violated on extraSet."; // corrObj.signalType.isExtraSet()
+                corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated on both markets.";
             } else {
                 final String switchMsg = String.format("%s switch markets. %s DQL_open_min is violated.", corrObj.signalType, corrObj.marketService.getName());
                 warningLogger.warn(switchMsg);
@@ -1127,9 +1127,7 @@ public class PosDiffService {
         final boolean dqlViolated = corrObj.marketService.isDqlViolated();
         if (dqlViolated) {
             corrObj.correctAmount = BigDecimal.ZERO;
-            final String msg = String.format("No %s. DQL_close_min is violated", corrObj.signalType);
-            warningLogger.warn(msg);
-            slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, msg);
+            corrObj.errorDescription = "DQL_close_min is violated";
         }
     }
 
