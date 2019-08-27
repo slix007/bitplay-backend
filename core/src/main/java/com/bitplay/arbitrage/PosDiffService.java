@@ -930,14 +930,29 @@ public class PosDiffService {
         final SignalType signalType = corrObj.signalType;
         final ContractType contractType = corrObj.contractType;
 
-        // 3. check isAffordable
-        boolean isAffordable = marketService.isAffordable(orderType, correctAmount);
-        if (corrObj.errorDescription != null) {
+        // 3. check DQL, correctAmount
+        if (corrObj.errorDescription != null) { // DQL violation
             countOnStartCorr(corrParams, signalType); // inc counters
             final String msg = String.format("No %s. %s", baseSignalType, corrObj.errorDescription);
             warningLogger.warn(msg);
+            corrObj.marketService.getTradeLogger().warn(msg);
             slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, msg);
-        } else if (correctAmount.signum() > 0 && isAffordable) {
+        } else if (correctAmount.signum() <= 0) {
+            countOnStartCorr(corrParams, signalType); // inc counters
+            final String msg = String.format("No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, btmPos=%s, okPos=%s, hedge=%s, signal=%s",
+                    corrName,
+                    correctAmount,
+                    maxBtm, maxOkex, dc,
+                    arbitrageService.getFirstMarketService().getPos().toString(),
+                    arbitrageService.getSecondMarketService().getPos().toString(),
+                    hedgeAmount.toPlainString(),
+                    signalType
+            );
+            warningLogger.warn(msg);
+            corrObj.marketService.getTradeLogger().warn(msg);
+            slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY,
+                    String.format("No %s: amount=%s", corrName, correctAmount));
+        } else {
 
             final PlacingType placingType;
             if (!signalType.isAdj()) {
@@ -982,6 +997,7 @@ public class PosDiffService {
                     // switch the market
                     final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getName());
                     warningLogger.warn(switchMsg);
+                    corrObj.marketService.getTradeLogger().info(switchMsg);
                     slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
 
                     final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
@@ -994,6 +1010,7 @@ public class PosDiffService {
                     if (theOtherResp.errorInsufficientFunds()) {
                         final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", baseSignalType);
                         warningLogger.warn(msg);
+                        corrObj.marketService.getTradeLogger().warn(msg);
                         slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
                     }
                 }
@@ -1003,19 +1020,6 @@ public class PosDiffService {
                 log.info(message);
 
             }
-        } else {
-            countOnStartCorr(corrParams, signalType); // inc counters
-            warningLogger.warn("No {}: amount={}, isAffordable={}, maxBtm={}, maxOk={}, dc={}, btmPos={}, okPos={}, hedge={}, signal={}",
-                    corrName,
-                    correctAmount, isAffordable,
-                    maxBtm, maxOkex, dc,
-                    arbitrageService.getFirstMarketService().getPos().toString(),
-                    arbitrageService.getSecondMarketService().getPos().toString(),
-                    hedgeAmount.toPlainString(),
-                    signalType
-            );
-            slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY,
-                    String.format("No %s: amount=%s, isAffordable=%s", corrName, correctAmount, isAffordable));
         }
 
     }
