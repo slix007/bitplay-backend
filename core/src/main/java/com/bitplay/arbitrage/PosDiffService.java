@@ -4,7 +4,6 @@ import com.bitplay.arbitrage.BordersService.Borders;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.dto.SignalTypeEx;
-import com.bitplay.arbitrage.dto.ThrottledWarn;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
@@ -64,9 +63,6 @@ import org.springframework.stereotype.Service;
 public class PosDiffService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
-    private final ThrottledWarn dqlOpenWarn = new ThrottledWarn();
-    private final ThrottledWarn dqlWarn = new ThrottledWarn();
-    private final ThrottledWarn corrAdjWarn = new ThrottledWarn();
 
     private Disposable theTimerToImmediateCorr;
 
@@ -937,13 +933,11 @@ public class PosDiffService {
         // 3. check isAffordable
         boolean isAffordable = marketService.isAffordable(orderType, correctAmount);
         if (corrObj.errorDescription != null) {
-            countOnStartCorr(corrParams, signalType);
+            countOnStartCorr(corrParams, signalType); // inc counters
             final String msg = String.format("No %s. %s", baseSignalType, corrObj.errorDescription);
             warningLogger.warn(msg);
             slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, msg);
         } else if (correctAmount.signum() > 0 && isAffordable) {
-
-            corrAdjWarn.reset();
 
             final PlacingType placingType;
             if (!signalType.isAdj()) {
@@ -1010,17 +1004,18 @@ public class PosDiffService {
 
             }
         } else {
-            if (corrAdjWarn.isReadyToSend()) {
-                warningLogger.warn("No {}: amount={}, isAffordable={}, maxBtm={}, maxOk={}, dc={}, btmPos={}, okPos={}, hedge={}, signal={}",
-                        corrName,
-                        correctAmount, isAffordable,
-                        maxBtm, maxOkex, dc,
-                        arbitrageService.getFirstMarketService().getPos().toString(),
-                        arbitrageService.getSecondMarketService().getPos().toString(),
-                        hedgeAmount.toPlainString(),
-                        signalType
-                );
-            }
+            countOnStartCorr(corrParams, signalType); // inc counters
+            warningLogger.warn("No {}: amount={}, isAffordable={}, maxBtm={}, maxOk={}, dc={}, btmPos={}, okPos={}, hedge={}, signal={}",
+                    corrName,
+                    correctAmount, isAffordable,
+                    maxBtm, maxOkex, dc,
+                    arbitrageService.getFirstMarketService().getPos().toString(),
+                    arbitrageService.getSecondMarketService().getPos().toString(),
+                    hedgeAmount.toPlainString(),
+                    signalType
+            );
+            slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY,
+                    String.format("No %s: amount=%s, isAffordable=%s", corrName, correctAmount, isAffordable));
         }
 
     }
@@ -1087,7 +1082,7 @@ public class PosDiffService {
     }
 
     private void adaptCorrByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, CorrParams corrParams) {
-        if (corrObj.signalType.isIncreasePos() && corrObj.signalType.isMainSet()) {
+        if (corrObj.signalType.isIncreasePos()) {
             dqlOpenMinAdjust(corrObj, dc, cm, isEth, corrParams);
             dqlCloseMinAdjust(corrObj);
         }
@@ -1099,18 +1094,17 @@ public class PosDiffService {
             // check if other market isOk
             final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
             boolean theOtherMarketIsViolated = theOtherService.isDqlOpenViolated();
-            if (theOtherMarketIsViolated) {
+            if (theOtherMarketIsViolated || corrObj.signalType.isExtraSet()) {
                 corrObj.correctAmount = BigDecimal.ZERO;
-                corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated on both markets.";
+                corrObj.errorDescription = theOtherMarketIsViolated
+                        ? "Try INCREASE_POS when DQL_open_min is violated on both markets."
+                        : "Try INCREASE_POS when DQL_open_min is violated on extraSet."; // corrObj.signalType.isExtraSet()
             } else {
-                dqlOpenWarn.reset();
                 final String switchMsg = String.format("%s switch markets. %s DQL_open_min is violated.", corrObj.signalType, corrObj.marketService.getName());
                 warningLogger.warn(switchMsg);
                 slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
                 switchMarkets(corrObj, dc, cm, isEth, corrParams, theOtherService);
             }
-        } else {
-            dqlOpenWarn.reset();
         }
     }
 
@@ -1130,12 +1124,8 @@ public class PosDiffService {
         if (dqlViolated) {
             corrObj.correctAmount = BigDecimal.ZERO;
             final String msg = String.format("No %s. DQL_close_min is violated", corrObj.signalType);
-            if (dqlWarn.isReadyToSend()) {
-                warningLogger.warn(msg);
-                slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, msg);
-            }
-        } else {
-            dqlWarn.reset();
+            warningLogger.warn(msg);
+            slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, msg);
         }
     }
 
