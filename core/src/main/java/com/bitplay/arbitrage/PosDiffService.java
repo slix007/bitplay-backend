@@ -940,7 +940,7 @@ public class PosDiffService {
             countOnStartCorr(corrParams, signalType);
             final String msg = String.format("No %s. %s", baseSignalType, corrObj.errorDescription);
             warningLogger.warn(msg);
-            slackNotifications.sendNotify(NotifyType.CORR_ADJ_SKIP_CORR, msg);
+            slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, msg);
         } else if (correctAmount.signum() > 0 && isAffordable) {
 
             corrAdjWarn.reset();
@@ -1000,7 +1000,7 @@ public class PosDiffService {
                     if (theOtherResp.errorInsufficientFunds()) {
                         final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", baseSignalType);
                         warningLogger.warn(msg);
-                        slackNotifications.sendNotify(NotifyType.CORR_ADJ_SKIP_CORR, msg);
+                        slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
                     }
                 }
                 corrObj.marketService.getArbitrageService().setBusyStackChecker();
@@ -1129,16 +1129,13 @@ public class PosDiffService {
         final boolean dqlViolated = corrObj.marketService.isDqlViolated();
         if (dqlViolated) {
             corrObj.correctAmount = BigDecimal.ZERO;
-            sendDqlWarn(dqlWarn, String.format("No %s. DQL_close_min is violated", corrObj.signalType));
+            final String msg = String.format("No %s. DQL_close_min is violated", corrObj.signalType);
+            if (dqlWarn.isReadyToSend()) {
+                warningLogger.warn(msg);
+                slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, msg);
+            }
         } else {
             dqlWarn.reset();
-        }
-    }
-
-    private void sendDqlWarn(ThrottledWarn throttledWarn, String msg) {
-        if (throttledWarn.isReadyToSend()) {
-            warningLogger.warn(msg);
-            slackNotifications.sendNotify(NotifyType.CORR_ADJ_SKIP_CORR, msg);
         }
     }
 
