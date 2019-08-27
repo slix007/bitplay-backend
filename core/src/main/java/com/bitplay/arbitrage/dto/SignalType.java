@@ -94,4 +94,12 @@ public enum SignalType {
         return SignalType.valueOf(outName);
     }
 
+    public boolean isMainSet() {
+        return !isExtraSet();
+    }
+
+    public boolean isExtraSet() {
+        return getCounterName().contains("_btc");
+    }
+
 }

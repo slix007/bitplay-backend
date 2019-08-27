@@ -984,8 +984,12 @@ public class PosDiffService {
                         1, tradeId, counterName, null, contractType);
                 marketService.getTradeLogger().info(message + placeOrderArgs.toString());
                 final TradeResponse tradeResponse = marketService.placeOrder(placeOrderArgs);
-                if (tradeResponse.errorInsufficientFunds()) {
+                if (signalType.isMainSet() && tradeResponse.errorInsufficientFunds()) {
                     // switch the market
+                    final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getName());
+                    warningLogger.warn(switchMsg);
+                    slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
+
                     final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
                     switchMarkets(corrObj, dc, cm, isEth, corrParams, theOtherService);
                     PlacingType pl = placingType == PlacingType.TAKER_FOK ? PlacingType.TAKER : placingType;
@@ -1083,7 +1087,7 @@ public class PosDiffService {
     }
 
     private void adaptCorrByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, CorrParams corrParams) {
-        if (corrObj.signalType.isIncreasePos()) {
+        if (corrObj.signalType.isIncreasePos() && corrObj.signalType.isMainSet()) {
             dqlOpenMinAdjust(corrObj, dc, cm, isEth, corrParams);
             dqlCloseMinAdjust(corrObj);
         }
@@ -1100,6 +1104,9 @@ public class PosDiffService {
                 corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated on both markets.";
             } else {
                 dqlOpenWarn.reset();
+                final String switchMsg = String.format("%s switch markets. %s DQL_open_min is violated.", corrObj.signalType, corrObj.marketService.getName());
+                warningLogger.warn(switchMsg);
+                slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
                 switchMarkets(corrObj, dc, cm, isEth, corrParams, theOtherService);
             }
         } else {
