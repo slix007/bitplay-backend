@@ -1,5 +1,6 @@
 package org.knowm.xchange.bitmex.service;
 
+import com.bitplay.model.Pos;
 import java.io.IOException;
 import java.math.BigDecimal;
 import org.knowm.xchange.Exchange;
@@ -36,7 +37,7 @@ public class BitmexAccountService extends BitmexAccountServiceRaw implements Acc
         throw new NotYetImplementedForExchangeException();
     }
 
-    public Position fetchPositionInfo(String symbol) throws IOException {
+    public Pos fetchPositionInfo(String symbol) throws IOException {
         final ArrayListWithHeaders<io.swagger.client.model.Position> positions;
         try {
             positions = bitmexAuthenitcatedApi.position(exchange.getExchangeSpecification().getApiKey(),

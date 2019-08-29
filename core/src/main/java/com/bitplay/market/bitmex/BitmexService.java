@@ -337,8 +337,8 @@ public class BitmexService extends MarketServicePreliq {
         if (bitmexContractType.isEth()) {
             try {
                 final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
-                Position pUpdate = accountService.fetchPositionInfo(bitmexContractTypeXBTUSD.getSymbol());
-                mergeXBTUSDPos(MarketUtils.mapPos(pUpdate));
+                final Pos pUpdate = accountService.fetchPositionInfo(bitmexContractTypeXBTUSD.getSymbol());
+                mergeXBTUSDPos(pUpdate);
 
             } catch (HttpStatusIOException e) {
 
@@ -638,11 +638,9 @@ public class BitmexService extends MarketServicePreliq {
             warningLogger.warn("WARNING: no position fetch: SYSTEM_OVERLOADED");
             return BitmexUtils.positionToString(getPos());
         }
-        final Pos pUpdate;
         try {
             final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
-            Position p = accountService.fetchPositionInfo(bitmexContractType.getSymbol());
-            pUpdate = MarketUtils.mapPos(p);
+            final Pos pUpdate = accountService.fetchPositionInfo(bitmexContractType.getSymbol());
             mergePosition(pUpdate);
 
             stateRecalcInStateUpdaterThread();
@@ -670,6 +668,11 @@ public class BitmexService extends MarketServicePreliq {
         boolean success = false;
         while (!success) {
             final Pos current = this.pos.get();
+            if (current.getTimestamp() != null && pUpdate.getTimestamp() != null
+                    && pUpdate.getTimestamp().isBefore(current.getTimestamp())) {
+                logger.warn("skip older pos update. current=" + current.getTimestamp() + ", pUpdate=" + pUpdate.getTimestamp());
+                return;
+            }
 
             if (pUpdate.getPositionLong() == null) { // TODO when ETH then XBTUSD as null(only fetch XBTUSD once in 5 sec)
                 if (current.getPositionLong() != null) {
@@ -677,21 +680,21 @@ public class BitmexService extends MarketServicePreliq {
                     return; // no update when null
                 }
                 // use 0 when no pos yet
-                pUpdate = new Pos(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                        "position is empty"
-                );
+                pUpdate = Pos.emptyPos();
             }
 
             BigDecimal defaultLeverage = bitmexContractType.isEth() ? BigDecimal.valueOf(50) : BigDecimal.valueOf(100);
             final Pos updated = new Pos(
                     pUpdate.getPositionLong(),
                     pUpdate.getPositionShort(),
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
                     pUpdate.getLeverage() == null || pUpdate.getLeverage().signum() == 0 ? defaultLeverage : pUpdate.getLeverage(),
                     pUpdate.getLiquidationPrice() == null ? current.getLiquidationPrice() : pUpdate.getLiquidationPrice(),
                     pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : current.getMarkValue(),
                     pUpdate.getPriceAvgLong() == null || pUpdate.getPriceAvgLong().signum() == 0 ? current.getPriceAvgLong() : pUpdate.getPriceAvgLong(),
                     pUpdate.getPriceAvgShort() == null || pUpdate.getPriceAvgShort().signum() == 0 ? current.getPriceAvgShort() : pUpdate.getPriceAvgShort(),
-                    pUpdate.getRaw()
+                    pUpdate.getTimestamp(), pUpdate.getRaw()
             );
             success = this.pos.compareAndSet(current, updated);
 
@@ -706,16 +709,24 @@ public class BitmexService extends MarketServicePreliq {
         boolean success = false;
         while (!success) {
             final Pos pos = this.posXBTUSD.get();
+            if (pos.getTimestamp() != null && pUpdate.getTimestamp() != null
+                    && pUpdate.getTimestamp().isBefore(pos.getTimestamp())) {
+                logger.warn("skip older pos update. current=" + pos.getTimestamp() + ", pUpdate=" + pUpdate.getTimestamp());
+                return;
+            }
+
             BigDecimal defaultLeverage = BigDecimal.valueOf(100);
             final Pos updated = new Pos(
                     pUpdate.getPositionLong(),
                     pUpdate.getPositionShort(),
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
                     pUpdate.getLeverage() == null || pUpdate.getLeverage().signum() == 0 ? defaultLeverage : pUpdate.getLeverage(),
                     pUpdate.getLiquidationPrice() == null ? pos.getLiquidationPrice() : pUpdate.getLiquidationPrice(),
                     pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : pos.getMarkValue(),
                     pUpdate.getPriceAvgLong() == null || pUpdate.getPriceAvgLong().signum() == 0 ? pos.getPriceAvgLong() : pUpdate.getPriceAvgLong(),
                     pUpdate.getPriceAvgShort() == null || pUpdate.getPriceAvgShort().signum() == 0 ? pos.getPriceAvgShort() : pUpdate.getPriceAvgShort(),
-                    pUpdate.getRaw()
+                    pUpdate.getTimestamp(), pUpdate.getRaw()
             );
             success = this.posXBTUSD.compareAndSet(pos, updated);
             if (++iter > 1) {
@@ -2423,7 +2434,6 @@ public class BitmexService extends MarketServicePreliq {
                 .observeOn(stateUpdater)
                 .doOnError(throwable1 -> handleSubscriptionError(throwable1, "Position fetch error"))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
-                .map(MarketUtils::mapPos)
                 .subscribe(pUpdate -> {
                     try {
 

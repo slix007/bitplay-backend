@@ -34,6 +34,7 @@ public class MarketUtils {
                 position.getMarkValue(),
                 position.getPriceAvgLong(),
                 position.getPriceAvgShort(),
+                null,
                 position.getRaw());
     }
 

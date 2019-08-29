@@ -92,8 +92,8 @@ public abstract class MarketService extends MarketServiceWithState {
     protected volatile OrderBook orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected volatile OrderBook orderBookXBTUSDShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected final AtomicReference<AccountBalance> account = new AtomicReference<>(AccountBalance.empty());
-    protected final AtomicReference<Pos> pos = new AtomicReference<>(new Pos(null, null, null, BigDecimal.ZERO, ""));
-    protected final AtomicReference<Pos> posXBTUSD = new AtomicReference<>(new Pos(null, null, null, BigDecimal.ZERO, ""));
+    protected final AtomicReference<Pos> pos = new AtomicReference<>(Pos.nullPos());
+    protected final AtomicReference<Pos> posXBTUSD = new AtomicReference<>(Pos.nullPos());
     protected final AtomicReference<FullBalance> fullBalanceRef = new AtomicReference<>(new FullBalance(account.get(), pos.get(), null));
     protected volatile Affordable affordable = new Affordable();
     protected final AtomicReference<ContractIndex> contractIndex = new AtomicReference<>(new ContractIndex(BigDecimal.ZERO, new Date()));
@@ -614,7 +614,7 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public void setEmptyPos() {
-        pos.set(new Pos(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, ""));
+        pos.set(Pos.emptyPos());
     }
 
     public BigDecimal getPosVal() {

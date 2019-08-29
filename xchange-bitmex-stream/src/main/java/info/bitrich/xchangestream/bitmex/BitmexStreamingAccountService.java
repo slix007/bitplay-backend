@@ -1,5 +1,6 @@
 package info.bitrich.xchangestream.bitmex;
 
+import com.bitplay.model.Pos;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,7 +42,7 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
                 }).share();
     }
 
-    public Observable<org.knowm.xchange.dto.account.Position> getPositionObservable(String symbol) {
+    public Observable<Pos> getPositionObservable(String symbol) {
         return service.subscribeChannel("position", "position")
                 .map(s -> {
                     ObjectMapper mapper = new ObjectMapper();

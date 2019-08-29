@@ -1,5 +1,6 @@
 package org.knowm.xchange.bitmex;
 
+import com.bitplay.model.Pos;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -104,28 +105,21 @@ public class BitmexAdapters {
         return currencyPair.base.getSymbol().toUpperCase() + currencyPair.counter.getSymbol().toUpperCase();
     }
 
-    public static org.knowm.xchange.dto.account.Position adaptBitmexPosition(Position position, String symbol) {
+    public static Pos adaptBitmexPosition(Position position, String symbol) {
         if (position == null || position.getSymbol() == null || !position.getSymbol().equals(symbol)) {
-            return new org.knowm.xchange.dto.account.Position(
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    "position is null"
-            );
+            return Pos.nullPos();
         }
-
-        return new org.knowm.xchange.dto.account.Position(
+        return new Pos(
                 position.getCurrentQty(),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 position.getLeverage() != null ? BigDecimal.valueOf(position.getLeverage()) : BigDecimal.ZERO,
                 position.getLiquidationPrice() != null ? BigDecimal.valueOf(position.getLiquidationPrice()) : BigDecimal.ZERO,
                 position.getMarkValue(),
                 position.getAvgEntryPrice() != null ? BigDecimal.valueOf(position.getAvgEntryPrice()) : BigDecimal.ZERO,
                 position.getAvgEntryPrice() != null ? BigDecimal.valueOf(position.getAvgEntryPrice()) : BigDecimal.ZERO,
+                position.getTimestamp().toInstant(), //TODO check timezone
                 position.toString()
         );
     }
