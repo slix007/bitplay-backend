@@ -6,6 +6,7 @@ import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.okcoin.OkexSettlementService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.mon.MonRestart;
@@ -65,6 +66,9 @@ public class ExtrastopService {
 
     @Autowired
     private SlackNotifications slackNotifications;
+
+    @Autowired
+    private OkexSettlementService okexSettlementService;
 
     private String details = "";
 
@@ -155,6 +159,10 @@ public class ExtrastopService {
         boolean oWrong = isOrderBookPricesWrong(oOB);
         boolean isBDiff = bDiffSec > maxGap;
         boolean isODiff = oDiffSec > maxGap;
+        if (okexSettlementService.isSettlementMode()) {
+            oWrong = false;
+            isODiff = false;
+        }
 
         boolean isHanged = false;
         if (isBDiff || isODiff || bWrong || oWrong) {

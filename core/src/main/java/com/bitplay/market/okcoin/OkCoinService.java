@@ -213,6 +213,8 @@ public class OkCoinService extends MarketServicePreliq {
     private MetricsDictionary metricsDictionary;
     @Autowired
     private CumPersistenceService cumPersistenceService;
+    @Autowired
+    private OkexSettlementService okexSettlementService;
 
     private OkExStreamingExchange exchange;
     private BitplayOkexEchange bitplayOkexEchange;
@@ -347,7 +349,12 @@ public class OkCoinService extends MarketServicePreliq {
     public void init() {
         scheduler.scheduleWithFixedDelay(() -> {
             try {
-                checkForDecreasePosition();
+                if (okexSettlementService.isSettlementMode()) {
+                    resetPreliqState();
+                    dtPreliq.stop();
+                } else {
+                    checkForDecreasePosition();
+                }
             } catch (Exception e) {
                 logger.error("Error on checkForDecreasePosition", e);
             }

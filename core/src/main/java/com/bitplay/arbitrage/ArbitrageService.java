@@ -32,6 +32,7 @@ import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
+import com.bitplay.market.okcoin.OkexSettlementService;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
@@ -144,6 +145,8 @@ public class ArbitrageService {
     private MetricsDictionary metricsDictionary;
     @Autowired
     private VolatileModeSwitcherService volatileModeSwitcherService;
+    @Autowired
+    private OkexSettlementService okexSettlementService;
 
 
 //    @Autowired // WARNING - this leads to "successfully sent 23 metrics to InfluxDB." should be over 70 metrics.
@@ -610,7 +613,9 @@ public class ArbitrageService {
     private void doComparison(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal) {
 
         if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()
-                || persistenceService.getSettingsRepositoryService().getSettings().getManageType().isManual()) {
+                || persistenceService.getSettingsRepositoryService().getSettings().getManageType().isManual()
+                || okexSettlementService.isSettlementMode()
+        ) {
             // do nothing
             stopSignalDelay(bestQuotes, prevTradingSignal, "market is stopped or manualType is active");
         } else {

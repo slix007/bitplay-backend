@@ -18,6 +18,7 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
+import com.bitplay.market.okcoin.OkexSettlementService;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
@@ -30,7 +31,6 @@ import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.persistance.repository.FplayTradeRepository;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
@@ -116,7 +116,7 @@ public class PosDiffService {
     @Autowired
     private TradeService tradeService;
     @Autowired
-    private FplayTradeRepository fplayTradeRepository;
+    private OkexSettlementService okexSettlementService;
 
     private ScheduledExecutorService mdcExecutor;
     private ScheduledExecutorService calcPosDiffExecutor;
@@ -451,7 +451,8 @@ public class PosDiffService {
     }
 
     private boolean marketsStopped() {
-        return arbitrageService.isArbStateStopped()
+        return okexSettlementService.isSettlementMode()
+                || arbitrageService.isArbStateStopped()
                 || arbitrageService.getFirstMarketService().getMarketState() == MarketState.FORBIDDEN
                 || arbitrageService.getSecondMarketService().getMarketState() == MarketState.FORBIDDEN
                 || arbitrageService.isArbStatePreliq()
@@ -459,7 +460,8 @@ public class PosDiffService {
     }
 
     private boolean marketsReady() {
-        return arbitrageService.getFirstMarketService().isReadyForArbitrage()
+        return !okexSettlementService.isSettlementMode()
+                && arbitrageService.getFirstMarketService().isReadyForArbitrage()
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                 && !arbitrageService.isArbStateStopped()
                 && !arbitrageService.isArbStatePreliq()
@@ -473,7 +475,8 @@ public class PosDiffService {
         final boolean btmSo = bitmexService.getMarketState() == MarketState.SYSTEM_OVERLOADED;  // when SO, then corr on okex
         final boolean btmReadyForCorr = !bitmexService.hasOpenOrders() && (btmReady || btmSo);
 
-        return btmReadyForCorr
+        return !okexSettlementService.isSettlementMode()
+                && btmReadyForCorr
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                 && !arbitrageService.isArbStatePreliq()
                 && fullBalanceIsValid();
@@ -487,7 +490,8 @@ public class PosDiffService {
         final boolean btmSoReady = btmSo && adjOnOkex();
         final boolean btmReadyForAdj = !bitmexService.hasOpenOrders() && (btmReady || btmSoReady);
 
-        return btmReadyForAdj
+        return !okexSettlementService.isSettlementMode()
+                && btmReadyForAdj
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                 && !arbitrageService.isArbStatePreliq()
                 && fullBalanceIsValid();
@@ -1651,7 +1655,11 @@ public class PosDiffService {
     }
 
     private void updateTimerToImmediateCorr() {
-        if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
+        final boolean dcMainSetViolated = !isPosEqualByMaxAdj(getDcMainSet());
+        final boolean dcExtraSetViolated = !isPosEqualByMaxAdj(getDcExtraSet());
+        final boolean notOkexSettlementMode = !okexSettlementService.isSettlementMode();
+        if (notOkexSettlementMode
+                && (dcMainSetViolated || dcExtraSetViolated)) {
             if (theTimerToImmediateCorr == null || theTimerToImmediateCorr.isDisposed()) {
                 startTimerToImmediateCorrection();
             }

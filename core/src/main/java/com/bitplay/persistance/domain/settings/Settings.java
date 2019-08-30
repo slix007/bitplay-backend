@@ -97,6 +97,8 @@ public class Settings extends AbstractDocument {
     @Transient
     private final SettingsTransient settingsTransient = new SettingsTransient();
 
+    private OkexSettlement okexSettlement;
+
     public static Settings createDefault() {
         final Settings settings = new Settings();
         settings.manageType = ManageType.AUTO;
@@ -127,6 +129,7 @@ public class Settings extends AbstractDocument {
         settings.dql = new Dql();
         settings.dql.setDqlLevel(BigDecimal.ZERO);
         settings.bitmexObType = BitmexObType.INCREMENTAL_25;
+        settings.okexSettlement = OkexSettlement.createDefault();
         settings.setId(1L);
         return settings;
     }
