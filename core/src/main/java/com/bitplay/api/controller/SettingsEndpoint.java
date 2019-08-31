@@ -385,6 +385,12 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
         }
 
+        if (settingsUpdate.getOkexSettlement() != null) {
+            settingsUpdate.getOkexSettlement().fillStartAtTime();
+            settings.setOkexSettlement(settingsUpdate.getOkexSettlement());
+            settingsRepositoryService.saveSettings(settings);
+        }
+
         if (resetPreset) {
             persistenceService.resetSettingsPreset();
         }

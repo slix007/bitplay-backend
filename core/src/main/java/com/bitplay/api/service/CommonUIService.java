@@ -33,14 +33,15 @@ import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.model.ArbState;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.model.MarketState;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
+import com.bitplay.market.model.ArbState;
+import com.bitplay.market.model.MarketState;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.okcoin.OkexSettlementService;
 import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
@@ -140,6 +141,9 @@ public class CommonUIService {
 
     @Autowired
     private BitmexChangeOnSoService bitmexChangeOnSoService;
+
+    @Autowired
+    private OkexSettlementService okexSettlementService;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -374,7 +378,8 @@ public class CommonUIService {
                 preliqDelay,
                 signalPartsJson,
                 posDiff,
-                orderPortionsJson
+                orderPortionsJson,
+                okexSettlementService.isSettlementMode()
         );
     }
 
