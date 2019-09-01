@@ -32,7 +32,7 @@ public class MarketStatesJson {
     PosDiffJson posDiffJson;
     OrderPortionsJson orderPortionsJson;
     Boolean okexSettlementMode;
-    String okexSettlementModeEnding;
+    String nowMomentStr;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;

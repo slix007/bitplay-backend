@@ -69,6 +69,7 @@ import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
+import java.time.LocalTime;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -380,7 +381,7 @@ public class CommonUIService {
                 posDiff,
                 orderPortionsJson,
                 okexSettlementService.isSettlementMode(),
-                okexSettlementService.endOfSettlement()
+                LocalTime.now().toString()
         );
     }
 
