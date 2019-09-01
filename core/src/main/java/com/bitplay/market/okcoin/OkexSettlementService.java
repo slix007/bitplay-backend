@@ -31,10 +31,14 @@ public class OkexSettlementService {
     private boolean calcIsSettlementMode() {
         final OkexSettlement s = settingsRepositoryService.getSettings().getOkexSettlement();
         if (s.isActive()) {
-            final LocalTime now = LocalTime.now();
-            final LocalTime startOfPeriod = s.getStartAtTime();
-            final LocalTime endOfPeriod = s.getStartAtTime().plusMinutes(s.getPeriod());
-            return now.isAfter(startOfPeriod) && now.isBefore(endOfPeriod);
+            try {
+                final LocalTime now = LocalTime.now();
+                final LocalTime startOfPeriod = s.getStartAtTime();
+                final LocalTime endOfPeriod = s.getStartAtTime().plusMinutes(s.getPeriod());
+                return now.isAfter(startOfPeriod) && now.isBefore(endOfPeriod);
+            } catch (Exception e) {
+                // wrong settings. default is false.
+            }
         }
 
         return false;
