@@ -2,15 +2,12 @@ package com.bitplay.persistance.domain.settings;
 
 import java.time.LocalTime;
 import lombok.Data;
-import org.springframework.data.annotation.Transient;
 
 @Data
 public class OkexSettlement {
 
     private Boolean active;
-    @Transient
     private String startAtTimeStr;
-    private LocalTime startAtTime;
     private Integer period;
 
     public static OkexSettlement createDefault() {
@@ -22,10 +19,20 @@ public class OkexSettlement {
     }
 
     private boolean isInited() {
-        return active != null && startAtTime != null && period != null;
+        return active != null && startAtTimeStr != null && period != null && getStartAtTime() != null;
     }
 
-    public void fillStartAtTime() {
-        this.startAtTime = LocalTime.parse(this.startAtTimeStr); //"10:15:30"
+    public void setStartAtTime(String str) {
+        this.startAtTimeStr = str;
+    }
+
+    public LocalTime getStartAtTime() {
+        LocalTime parse = null;
+        try {
+            parse = LocalTime.parse(this.startAtTimeStr);
+        } catch (Exception e) {
+            // skip error
+        }
+        return parse; //"10:15:30"
     }
 }

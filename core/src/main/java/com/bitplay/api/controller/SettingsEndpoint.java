@@ -386,8 +386,15 @@ public class SettingsEndpoint {
         }
 
         if (settingsUpdate.getOkexSettlement() != null) {
-            settingsUpdate.getOkexSettlement().fillStartAtTime();
-            settings.setOkexSettlement(settingsUpdate.getOkexSettlement());
+            if (settingsUpdate.getOkexSettlement().getActive() != null) {
+                settings.getOkexSettlement().setActive(settingsUpdate.getOkexSettlement().getActive());
+            }
+            if (settingsUpdate.getOkexSettlement().getStartAtTimeStr() != null) {
+                settings.getOkexSettlement().setStartAtTime(settingsUpdate.getOkexSettlement().getStartAtTimeStr());
+            }
+            if (settingsUpdate.getOkexSettlement().getPeriod() != null) {
+                settings.getOkexSettlement().setPeriod(settingsUpdate.getOkexSettlement().getPeriod());
+            }
             settingsRepositoryService.saveSettings(settings);
         }
 

@@ -379,7 +379,8 @@ public class CommonUIService {
                 signalPartsJson,
                 posDiff,
                 orderPortionsJson,
-                okexSettlementService.isSettlementMode()
+                okexSettlementService.isSettlementMode(),
+                okexSettlementService.endOfSettlement()
         );
     }
 

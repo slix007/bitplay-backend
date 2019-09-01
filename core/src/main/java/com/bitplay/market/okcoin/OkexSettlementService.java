@@ -3,6 +3,7 @@ package com.bitplay.market.okcoin;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.OkexSettlement;
 import com.bitplay.utils.SchedulerUtils;
+import java.time.Duration;
 import java.time.LocalTime;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +46,17 @@ public class OkexSettlementService {
 
     public boolean isSettlementMode() {
         return settlementMode;
+    }
+
+    public String endOfSettlement() {
+        if (!settlementMode) {
+            return "";
+        }
+        final OkexSettlement s = settingsRepositoryService.getSettings().getOkexSettlement();
+        final LocalTime now = LocalTime.now();
+        final LocalTime endOfPeriod = s.getStartAtTime().plusMinutes(s.getPeriod());
+        return String.format("ends at %s, in %s sec", endOfPeriod.toString(),
+                Duration.between(now, endOfPeriod).getSeconds());
     }
 
 }
