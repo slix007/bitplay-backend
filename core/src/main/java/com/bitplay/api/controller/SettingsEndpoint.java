@@ -386,16 +386,7 @@ public class SettingsEndpoint {
         }
 
         if (settingsUpdate.getOkexSettlement() != null) {
-            if (settingsUpdate.getOkexSettlement().getActive() != null) {
-                settings.getOkexSettlement().setActive(settingsUpdate.getOkexSettlement().getActive());
-            }
-            if (settingsUpdate.getOkexSettlement().getStartAtTimeStr() != null) {
-                settings.getOkexSettlement().setStartAtTime(settingsUpdate.getOkexSettlement().getStartAtTimeStr());
-            }
-            if (settingsUpdate.getOkexSettlement().getPeriod() != null) {
-                settings.getOkexSettlement().setPeriod(settingsUpdate.getOkexSettlement().getPeriod());
-            }
-            settingsRepositoryService.saveSettings(settings);
+            updateOkexSettlement(settingsUpdate, settings);
         }
 
         if (resetPreset) {
@@ -410,17 +401,38 @@ public class SettingsEndpoint {
         return settings;
     }
 
+    private void updateOkexSettlement(@RequestBody Settings settingsUpdate, Settings settings) {
+        if (settingsUpdate.getOkexSettlement().getActive() != null) {
+            settings.getOkexSettlement().setActive(settingsUpdate.getOkexSettlement().getActive());
+        }
+        if (settingsUpdate.getOkexSettlement().getStartAtTimeStr() != null) {
+            settings.getOkexSettlement().setStartAtTime(settingsUpdate.getOkexSettlement().getStartAtTimeStr());
+        }
+        if (settingsUpdate.getOkexSettlement().getPeriod() != null) {
+            settings.getOkexSettlement().setPeriod(settingsUpdate.getOkexSettlement().getPeriod());
+        }
+        settingsRepositoryService.saveSettings(settings);
+    }
+
     private void updateBitmexChangeOnSo(BitmexChangeOnSo update, Settings mainSettings) {
         // set new if
         mainSettings.setBitmexChangeOnSo(mainSettings.getBitmexChangeOnSo() != null ? mainSettings.getBitmexChangeOnSo() : new BitmexChangeOnSo());
         final BitmexChangeOnSo current = mainSettings.getBitmexChangeOnSo();
 
-        if (update.getToTaker() != null) {
-            current.setToTaker(update.getToTaker());
-            settingsRepositoryService.saveSettings(mainSettings);
-        }
         if (update.getToConBo() != null) {
             current.setToConBo(update.getToConBo());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (update.getAdjToTaker() != null) {
+            current.setAdjToTaker(update.getAdjToTaker());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (update.getSignalPlacingType() != null) {
+            current.setSignalPlacingType(update.getSignalPlacingType());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (update.getSignalTo() != null) {
+            current.setSignalTo(update.getSignalTo());
             settingsRepositoryService.saveSettings(mainSettings);
         }
         if (update.getCountToActivate() != null) {

@@ -20,7 +20,6 @@ import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
-import com.bitplay.market.MarketUtils;
 import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -111,7 +110,6 @@ import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
@@ -795,8 +793,9 @@ public class BitmexService extends MarketServicePreliq {
             for (FplayOrder openOrder : getOpenOrders()) {
                 if (openOrder.isOpen()) {
 
-                    if (bitmexChangeOnSoService.toTakerActive()) {
-                        cancelAndPlaceOnSo(openOrder); // set status 'CANCELLED' if it is successful
+                    final PlacingType btmPlacingTypeToChange = bitmexChangeOnSoService.getPlacingTypeToChange(openOrder.getSignalType());
+                    if (btmPlacingTypeToChange != null) {
+                        cancelAndPlaceOnSo(openOrder, btmPlacingTypeToChange); // set status 'CANCELLED' if it is successful
                     }
 
                     if (openOrder.getOrderId() == null
@@ -932,8 +931,9 @@ public class BitmexService extends MarketServicePreliq {
             } else if (response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED) {
 
                 bitmexChangeOnSoService.tryActivate(soAttempts.incrementAndGet());
-                if (bitmexChangeOnSoService.toTakerActive()) {
-                    cancelAndPlaceOnSo(initialOpenOrder); // set status 'CANCELLED' if it is successful
+                final PlacingType btmPlacingTypeToChange = bitmexChangeOnSoService.getPlacingTypeToChange(initialOpenOrder.getSignalType());
+                if (btmPlacingTypeToChange != null) {
+                    cancelAndPlaceOnSo(initialOpenOrder, btmPlacingTypeToChange); // set status 'CANCELLED' if it is successful
                 }
 
                 if (movingErrorsOverloaded.incrementAndGet() >= maxAttempts) {
@@ -1018,7 +1018,7 @@ public class BitmexService extends MarketServicePreliq {
         return res;
     }
 
-    private void cancelAndPlaceOnSo(FplayOrder openOrder) {
+    private void cancelAndPlaceOnSo(FplayOrder openOrder, PlacingType btmPlacingTypeToChange) {
         FplayOrder placedFplayOrder = null;
         // 1. cancel current
         final String counterForLogs = getCounterName();
@@ -1046,7 +1046,7 @@ public class BitmexService extends MarketServicePreliq {
             if (cancelledOrder != null) {
                 openOrder.getOrderDetail().setOrderStatus(OrderStatus.CANCELED);
                 final BigDecimal amountLeft = cancelledOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount());
-                final List<FplayOrder> orderList = placeOrderInsteadOfCancelled(openOrder, amountLeft, PlacingType.TAKER);
+                final List<FplayOrder> orderList = placeOrderInsteadOfCancelled(openOrder, amountLeft, btmPlacingTypeToChange);
             }
         }
 
@@ -1760,7 +1760,7 @@ public class BitmexService extends MarketServicePreliq {
 
         if (placingTypeInitial == null) {
             tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs, contractTypeStr);
-            placingTypeInitial = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : settings.getBitmexPlacingType();
+            placingTypeInitial = bitmexChangeOnSoService.getPlacingType(signalType);
         }
 
         PlacingType placingType = placingTypeInitial;
@@ -1828,7 +1828,8 @@ public class BitmexService extends MarketServicePreliq {
 
                     bitmexChangeOnSoService.tryActivate(attemptCount);
 
-                    placingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : placingTypeInitial;
+                    final PlacingType changedPt = bitmexChangeOnSoService.getPlacingTypeToChange(signalType);
+                    placingType = changedPt != null ? changedPt : placingTypeInitial;
                     String extraLog = "";
 
                     if (placingType.isNonTaker()) {

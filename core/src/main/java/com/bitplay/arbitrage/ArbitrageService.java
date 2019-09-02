@@ -648,7 +648,7 @@ public class ArbitrageService {
 
             // if we replace-limit-orders then fix commissions for current signal.
             final PlacingType okexPlacingType = settings.getOkexPlacingType();
-            final PlacingType btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : settings.getBitmexPlacingType();
+            final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
             dealPricesRepositoryService.justSetVolatileMode(tradeId, btmPlacingType, okexPlacingType);
 
             volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs); // replace-limit-orders. it may set CURRENT_VOLATILE
@@ -1187,7 +1187,7 @@ public class ArbitrageService {
 
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final PlacingType okexPlacingType = settings.getOkexPlacingType();
-        final PlacingType btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER : settings.getBitmexPlacingType();
+        final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
 
         Integer bitmexScale = firstMarketService.getContractType().getScale();
         Integer okexScale = secondMarketService.getContractType().getScale();

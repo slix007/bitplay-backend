@@ -89,8 +89,7 @@ public class VolatileModeAfterService {
             }
         }
 
-        final PlacingType btmPlacingType = bitmexChangeOnSoService.toTakerActive() ? PlacingType.TAKER
-                : settingsRepositoryService.getSettings().getBitmexPlacingType();
+        final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
 
         replaceLimitOrders(bitmexService, btmPlacingType, bitmexOO, tradeId, btmFokAutoArgs);
     }

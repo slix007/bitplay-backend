@@ -1,8 +1,10 @@
 package com.bitplay.settings;
 
+import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.bitmex.BitmexTradeLogger;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,8 +47,25 @@ public class BitmexChangeOnSoService {
                 : 0;
     }
 
-    public boolean toTakerActive() {
-        return isActive() && settingsRepositoryService.getSettings().getBitmexChangeOnSo().getToTaker();
+    public PlacingType getPlacingTypeToChange(SignalType signalType) {
+        if (isActive()) {
+            if (signalType.isAdj() && settingsRepositoryService.getSettings().getBitmexChangeOnSo().getAdjToTaker()) {
+                return PlacingType.TAKER;
+            }
+            if (signalType == SignalType.AUTOMATIC && settingsRepositoryService.getSettings().getBitmexChangeOnSo().getSignalTo()) {
+                return settingsRepositoryService.getSettings().getBitmexChangeOnSo().getSignalPlacingType();
+            }
+        }
+        return null;
+    }
+
+    public PlacingType getPlacingType(SignalType signalType) {
+        final PlacingType placingTypeToChange = getPlacingTypeToChange(signalType);
+        return placingTypeToChange != null ? placingTypeToChange : settingsRepositoryService.getSettings().getBitmexPlacingType();
+    }
+
+    public PlacingType getPlacingType() {
+        return getPlacingType(SignalType.AUTOMATIC);
     }
 
     public boolean toConBoActive() {
@@ -81,11 +100,14 @@ public class BitmexChangeOnSoService {
     private void activate() {
         final BitmexChangeOnSo bitmexChangeOnSo = settingsRepositoryService.getSettings().getBitmexChangeOnSo();
         List<String> arr = new ArrayList<>();
-        if (bitmexChangeOnSo.getToTaker()) {
-            arr.add("ALWAYS_TAKER");
-        }
         if (bitmexChangeOnSo.getToConBo()) {
             arr.add("CON_B_O");
+        }
+        if (bitmexChangeOnSo.getAdjToTaker()) {
+            arr.add("Adj_to_TAKER");
+        }
+        if (bitmexChangeOnSo.getSignalTo()) {
+            arr.add("Signal_to_" + bitmexChangeOnSo.getSignalPlacingType());
         }
         final String msgStart = "BitmexChangeOnSo activated " + String.join(", ", arr);
         log.info(msgStart);

@@ -8,8 +8,10 @@ import org.springframework.data.annotation.Transient;
 @Data
 public class BitmexChangeOnSo {
 
-    private Boolean toTaker;
     private Boolean toConBo;
+    private Boolean adjToTaker;
+    private Boolean signalTo;
+    private PlacingType signalPlacingType; //TAKER or TAKER_FOK
     private Integer countToActivate;
     private Integer durationSec;
 
@@ -23,8 +25,8 @@ public class BitmexChangeOnSo {
     private Boolean testingSo;
 
     public boolean getAuto() {
-        return toTaker != null && toConBo != null &&
-                (toTaker || toConBo);
+        return adjToTaker != null && toConBo != null && signalTo != null &&
+                (adjToTaker || toConBo || signalTo);
     }
 
 }
