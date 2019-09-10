@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.model.Affordable;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -16,6 +17,7 @@ import com.bitplay.persistance.domain.borders.BordersV1;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
+import com.bitplay.persistance.domain.settings.PlacingBlocks.Ver;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -122,6 +124,7 @@ public class BordersServiceTest {
         borderBtmOpen.add(new BorderItem(2, BigDecimal.valueOf(30), 1000, 1000));
         borderBtmOpen.add(new BorderItem(3, BigDecimal.valueOf(40), 1500, 1500));
         borderBtmOpen.add(new BorderItem(4, BigDecimal.valueOf(50), 2000, 2000));
+        borderBtmOpen.add(new BorderItem(5, BigDecimal.valueOf(60), 2500, 2500));
         borders.add(new BorderTable("b_br_open", borderBtmOpen));
         final List<BorderItem> borderOkexClose = new ArrayList<>();
         borderOkexClose.add(new BorderItem(1, BigDecimal.valueOf(160), 0, 0));
@@ -451,6 +454,201 @@ public class BordersServiceTest {
         final BordersService.TradingSignal signal = bordersService.checkBordersForTests(bOb, oOb, delta1, delta2, bP, oPL, oPS);
 
         System.out.println(signal.toString());
+
+        assertEquals(17, signal.okexBlock);
+        assertEquals("52", signal.deltaVal);
+    }
+
+    private void initEthOrderBooks() {
+        final Order.OrderType ask = Order.OrderType.ASK;
+        final Order.OrderType bid = Order.OrderType.BID;
+
+        final ArrayList<LimitOrder> bAsks = new ArrayList<>();
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(100000), CurrencyPair.ETH_USD, "adf1f", new Date(), BigDecimal.valueOf(330.75)));
+        bAsks.add(new LimitOrder(ask, BigDecimal.valueOf(100000), CurrencyPair.ETH_USD, "adf1f", new Date(), BigDecimal.valueOf(330.80)));
+        final ArrayList<LimitOrder> bBids = new ArrayList<>();
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(100000), CurrencyPair.ETH_USD, "ba1", new Date(), BigDecimal.valueOf(330.70))); // 1
+        bBids.add(new LimitOrder(ask, BigDecimal.valueOf(100000), CurrencyPair.ETH_USD, "ba1", new Date(), BigDecimal.valueOf(330.65))); // 1
+        bOb = new OrderBook(new Date(), bAsks, bBids);
+
+        final ArrayList<LimitOrder> oAsks = new ArrayList<>();
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(261), CurrencyPair.ETH_USD, "17", new Date(), BigDecimal.valueOf(332.466)));  // 1
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(34), CurrencyPair.ETH_USD, "57", new Date(), BigDecimal.valueOf(332.467)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(60), CurrencyPair.ETH_USD, "68", new Date(), BigDecimal.valueOf(332.468)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(50), CurrencyPair.ETH_USD, "47", new Date(), BigDecimal.valueOf(332.469)));
+        oAsks.add(new LimitOrder(ask, BigDecimal.valueOf(1), CurrencyPair.ETH_USD, "78", new Date(), BigDecimal.valueOf(332.484)));
+        final ArrayList<LimitOrder> oBids = new ArrayList<>();
+        oBids.add(new LimitOrder(bid, BigDecimal.valueOf(5), CurrencyPair.ETH_USD, "156", new Date(), BigDecimal.valueOf(332.297)));
+        oBids.add(new LimitOrder(bid, BigDecimal.valueOf(45), CurrencyPair.ETH_USD, "145", new Date(), BigDecimal.valueOf(332.296)));
+        oBids.add(new LimitOrder(bid, BigDecimal.valueOf(214), CurrencyPair.ETH_USD, "13", new Date(), BigDecimal.valueOf(332.295)));
+        oBids.add(new LimitOrder(bid, BigDecimal.valueOf(32), CurrencyPair.ETH_USD, "12", new Date(), BigDecimal.valueOf(332.294)));
+        oBids.add(new LimitOrder(bid, BigDecimal.valueOf(10), CurrencyPair.ETH_USD, "11", new Date(), BigDecimal.valueOf(332.293)));
+        oOb = new OrderBook(new Date(), oAsks, oBids);
+
+    }
+
+    private BorderParams createDefaultBorders_dynAffordable() {
+        final List<BorderTable> borders = new ArrayList<>();
+        final List<BorderItem> borderBtmClose = new ArrayList<>();
+        borders.add(new BorderTable("b_br_close", borderBtmClose));
+        final List<BorderItem> borderBtmOpen = new ArrayList<>();
+        borders.add(new BorderTable("b_br_open", borderBtmOpen));
+        final List<BorderItem> borderOkexClose = new ArrayList<>();
+        borders.add(new BorderTable("o_br_close", borderOkexClose));
+        final List<BorderItem> borderOkexOpen = new ArrayList<>();
+        borderOkexOpen.add(new BorderItem(1, BigDecimal.valueOf(0.1), 40, 40));
+        borderOkexOpen.add(new BorderItem(2, BigDecimal.valueOf(0.2), 50, 50));
+        borderOkexOpen.add(new BorderItem(3, BigDecimal.valueOf(0.3), 100, 100));
+//        borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(1), 2000, 2000));
+//        borderOkexOpen.add(new BorderItem(5, BigDecimal.valueOf(60), 2500, 2500));
+        borders.add(new BorderTable("o_br_open", borderOkexOpen));
+
+        return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)), true);
+    }
+
+    @Test
+    public void test_maxBorder_FIXED_SMALL() {
+        initEthOrderBooks();
+        borderParams = createDefaultBorders_dynAffordable();
+        when(persistenceService.fetchBorders()).thenReturn(borderParams);
+        when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(Ver.FIXED);
+        settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(20)); // btm 5 cont, okex 2 cont
+//        settings.getPlacingBlocks().setActiveVersion(Ver.DYNAMIC);
+//        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20)); // btm 5 cont, okex 2 cont
+        settings.getPlacingBlocks().setCm(BigDecimal.valueOf(2.42));
+        settings.getPlacingBlocks().setEth(true);
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(-1.766); // 330.70 - 332.466 = -1.766
+        final BigDecimal delta2 = BigDecimal.valueOf(1.547); // o_bid - b_ask = 332.297 - 330.75 = 1.547
+        final BigDecimal bP = BigDecimal.valueOf(-65);
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.valueOf(3);
+        final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS, true,
+                firstAffordable, secondAffordable);
+
+        System.out.println(signal.toString());
+
+        assertEquals(BigDecimal.valueOf(0.2), signal.getMaxBorder()); // borderItem val=0.3 is skipped, because FIXED step is small
+    }
+
+    @Test
+    public void test_maxBorder_Dynamic_SMALL() {
+        initEthOrderBooks();
+        borderParams = createDefaultBorders_dynAffordable();
+        when(persistenceService.fetchBorders()).thenReturn(borderParams);
+        when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+//        settings.getPlacingBlocks().setActiveVersion(Ver.FIXED);
+//        settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(20)); // btm 5 cont, okex 2 cont
+        settings.getPlacingBlocks().setActiveVersion(Ver.DYNAMIC);
+        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20)); // btm 5 cont, okex 2 cont
+        settings.getPlacingBlocks().setCm(BigDecimal.valueOf(2.42));
+        settings.getPlacingBlocks().setEth(true);
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(-1.766); // 330.70 - 332.466 = -1.766
+        final BigDecimal delta2 = BigDecimal.valueOf(1.547); // o_bid - b_ask = 332.297 - 330.75 = 1.547
+        final BigDecimal bP = BigDecimal.valueOf(-65);
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.valueOf(3);
+        final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS, true,
+                firstAffordable, secondAffordable);
+
+        System.out.println(signal.toString());
+
+        assertEquals(BigDecimal.valueOf(0.2), signal.getMaxBorder()); // borderItem val=0.3 is skipped, because FIXED step is small
+    }
+
+    @Test
+    public void test_maxBorder_FIXED_big_step() {
+        initEthOrderBooks();
+        borderParams = createDefaultBorders_dynAffordable();
+        when(persistenceService.fetchBorders()).thenReturn(borderParams);
+        when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(Ver.FIXED);
+        settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(70)); // okex 7 cont when pos -3, borderItem(id=3, pSL=10)
+//        settings.getPlacingBlocks().setActiveVersion(Ver.DYNAMIC);
+//        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20)); // btm 5 cont, okex 2 cont
+        settings.getPlacingBlocks().setCm(BigDecimal.valueOf(2.42));
+        settings.getPlacingBlocks().setEth(true);
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(-1.766); // 330.70 - 332.466 = -1.766
+        final BigDecimal delta2 = BigDecimal.valueOf(1.547); // o_bid - b_ask = 332.297 - 330.75 = 1.547
+        final BigDecimal bP = BigDecimal.valueOf(-65);
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.valueOf(3);
+        final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS, true,
+                firstAffordable, secondAffordable);
+
+        System.out.println(signal.toString());
+
+        assertEquals(BigDecimal.valueOf(0.3), signal.getMaxBorder());
+        // okex 7 cont when pos -3, borderItem(id=3, val=0.3, pSL=10)
+    }
+
+    @Test
+    public void test_maxBorder_DYNAMIC_big_step() {
+        initEthOrderBooks();
+        borderParams = createDefaultBorders_dynAffordable();
+        when(persistenceService.fetchBorders()).thenReturn(borderParams);
+        when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(Ver.DYNAMIC);
+        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(70));
+        settings.getPlacingBlocks().setCm(BigDecimal.valueOf(2.42));
+        settings.getPlacingBlocks().setEth(true);
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(-1.766); // 330.70 - 332.466 = -1.766
+        final BigDecimal delta2 = BigDecimal.valueOf(1.547); // o_bid - b_ask = 332.297 - 330.75 = 1.547
+        final BigDecimal bP = BigDecimal.valueOf(-65);
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.valueOf(3);
+        final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS, true,
+                firstAffordable, secondAffordable);
+
+        System.out.println(signal.toString());
+
+        assertEquals(BigDecimal.valueOf(0.3), signal.getMaxBorder());
+        // okex 7 cont when pos -3, borderItem(id=3, val=0.3, pSL=10)
+    }
+
+    @Test
+    public void test_MaxBorder() {
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+//        settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
+//        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20000 * 100));
+        settings.getPlacingBlocks().setActiveVersion(Ver.FIXED);
+        settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(30000 * 100));
+
+        // delta1 == // b_bid[0] - o_ask[1]
+//        final BigDecimal delta1 = BigDecimal.valueOf(52); // cross 3,4
+        final BigDecimal delta1 = BigDecimal.valueOf(62);  // cross 3,4,5
+        final BigDecimal delta2 = BigDecimal.valueOf(-54);
+        final BigDecimal bP = BigDecimal.valueOf(-140000);
+        final BigDecimal oPL = BigDecimal.valueOf(1100);
+        final BigDecimal oPS = BigDecimal.ZERO;
+        final BordersService.TradingSignal signal = bordersService.checkBordersForTests(bOb, oOb, delta1, delta2, bP, oPL, oPS);
+
+        System.out.println(signal.toString());
+        System.out.println("minBorder=" + signal.getMinBorder());
+        System.out.println("maxBorder=" + signal.getMaxBorder());
+        System.out.println("delta=" + signal.getDelta());
+        System.out.println(signal.toBtmFokAutoArgs());
+
 
     }
 

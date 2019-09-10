@@ -33,11 +33,12 @@ public class VolatileModeSwitcherService {
 
     boolean trySwitchToVolatileModeBorderV2(final BordersService.TradingSignal tradingSignal) {
         if (tradingSignal.borderValueList != null) {
-            BigDecimal minBorder = tradingSignal.getMinBorder();
-            BigDecimal maxBorder = tradingSignal.getMaxBorder();
-            if (minBorder != null && maxBorder != null && tradingSignal.deltaVal != null && !tradingSignal.deltaVal.isEmpty()) {
-                BigDecimal delta = new BigDecimal(tradingSignal.deltaVal);
-                return trySwitchToVolatileMode(delta, minBorder, new BtmFokAutoArgs(delta, maxBorder, tradingSignal.borderValue));
+            final BigDecimal minBorder = tradingSignal.getMinBorder();
+            final BtmFokAutoArgs btmFokAutoArgs = tradingSignal.toBtmFokAutoArgs();
+            final BigDecimal maxBorder = btmFokAutoArgs.getMaxBorder();
+            final BigDecimal delta = btmFokAutoArgs.getDelta();
+            if (minBorder != null && maxBorder != null && delta != null) {
+                return trySwitchToVolatileMode(delta, minBorder, btmFokAutoArgs);
             }
         }
         return false;

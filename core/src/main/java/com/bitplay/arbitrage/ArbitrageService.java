@@ -738,184 +738,205 @@ public class ArbitrageService {
         BigDecimal btmMaxDelta = (borderParams == null || borderParams.getBtmMaxDelta() == null) ? defaultMax : borderParams.getBtmMaxDelta();
         BigDecimal okMaxDelta = (borderParams == null || borderParams.getOkMaxDelta() == null) ? defaultMax : borderParams.getOkMaxDelta();
 
-        if (borderParams == null || borderParams.getActiveVersion() == Ver.V1) {
-            BigDecimal border1 = getBorder1();
-            BigDecimal border2 = getBorder2();
-
-            if (delta1.compareTo(border1) >= 0 && delta1.compareTo(btmMaxDelta) < 0) {
-                volatileModeSwitcherService.trySwitchToVolatileMode(delta1, border1, new BtmFokAutoArgs(delta1, border1, border1.toPlainString()));
-                signalStatusDelta = DeltaName.B_DELTA;
-
-                if (signalDelayActivateTime == null) {
-                    startSignalDelay(0);
-                }
-
-                PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border1, DeltaName.B_DELTA, oPL, oPS);
-                if (plBlocks.getBlockOkex().signum() == 0) {
-                    //noinspection Duplicates
-                    isAffordableBitmex = false;
-                    isAffordableOkex = false;
-                    return;
-                }
-                String dynDeltaLogs = null;
-                if (plBlocks.isDynamic()) {
-                    plBlocks = dynBlockDecreaseByAffordable(DeltaName.B_DELTA, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
-                    dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
-                            + plBlocks.getDebugLog();
-                }
-
-                if (plBlocks.getBlockOkex().signum() > 0) {
-                    Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
-                    final TradingSignal tradingSignal = TradingSignal.createOnBorderV1(plBlocks.getVer(),
-                            plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA1_B_SELL_O_BUY, delta1, border1);
-                    checkAndStartTradingOnDelta1(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
-                            tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
-                    return;
-                } else {
-                    isAffordableBitmex = false;
-                    isAffordableOkex = false;
-                }
-            } else if (delta2.compareTo(border2) >= 0 && delta2.compareTo(okMaxDelta) < 0) {
-                volatileModeSwitcherService.trySwitchToVolatileMode(delta2, border2, new BtmFokAutoArgs(delta2, border2, border2.toPlainString()));
-                signalStatusDelta = DeltaName.O_DELTA;
-
-                if (signalDelayActivateTime == null) {
-                    startSignalDelay(0);
-                }
-
-                PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border2, DeltaName.O_DELTA, oPL, oPS);
-                if (plBlocks.getBlockOkex().signum() == 0) {
-                    //noinspection Duplicates
-                    isAffordableBitmex = false;
-                    isAffordableOkex = false;
-                    return;
-                }
-                String dynDeltaLogs = null;
-                if (plBlocks.isDynamic()) {
-                    plBlocks = dynBlockDecreaseByAffordable(DeltaName.O_DELTA, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
-                    dynDeltaLogs = composeDynBlockLogs("o_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
-                            + plBlocks.getDebugLog();
-                }
-                if (plBlocks.getBlockOkex().signum() > 0) {
-                    Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
-                    final TradingSignal tradingSignal = TradingSignal.createOnBorderV1(plBlocks.getVer(),
-                            plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA2_B_BUY_O_SELL, delta2, border2);
-                    checkAndStartTradingOnDelta2(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
-                            tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
-                    return;
-                } else {
-                    isAffordableBitmex = false;
-                    isAffordableOkex = false;
-                }
-            } else {
-                stopSignalDelay(bestQuotes, prevTradingSignal, "deltas v1 do not cross borders");
-            }
-
-        } else if (borderParams.getActiveVersion() == Ver.V2) {
-
-            boolean withWarningLogs =
-                    firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage() && posDiffService.checkIsPositionsEqual();
-
-            BordersService.TradingSignal tradingSignal;
-            tradingSignal = bordersService.checkBorders(bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs);
-            tradingSignal = applyMaxDelta(tradingSignal, btmMaxDelta, okMaxDelta, borderParams.getOnlyOpen());
-
-            final boolean justGotVolatileMode = volatileModeSwitcherService.trySwitchToVolatileModeBorderV2(tradingSignal);
-            if (justGotVolatileMode) {
-                borderParams = bordersService.getBorderParams();
-                defaultMax = BigDecimal.valueOf(9999);
-                btmMaxDelta = (borderParams == null || borderParams.getBtmMaxDelta() == null) ? defaultMax : borderParams.getBtmMaxDelta();
-                okMaxDelta = (borderParams == null || borderParams.getOkMaxDelta() == null) ? defaultMax : borderParams.getOkMaxDelta();
-                tradingSignal = bordersService.checkBorders(bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs);
-                tradingSignal = applyMaxDelta(tradingSignal, btmMaxDelta, okMaxDelta, borderParams.getOnlyOpen());
-            }
-
-            if (tradingSignal.okexBlock == 0) {
-                stopSignalDelay(bestQuotes, prevTradingSignal, "deltas v2: okexBlock==0");
+        if (borderParams != null && borderParams.getActiveVersion() == Ver.V1) {
+            if (bordersV1(bestQuotes, bitmexOrderBook, okCoinOrderBook, prevTradingSignal, oPL, oPS, borderParams, btmMaxDelta, okMaxDelta)) {
                 return;
             }
 
-            if (tradingSignal.tradeType != TradeType.NONE) {
-                if (signalDelayActivateTime == null) {
-                    startSignalDelay(0);
-                }
+        } else if (borderParams != null && borderParams.getActiveVersion() == Ver.V2) {
 
-                if (tradingSignal.tradeType == BordersService.TradeType.DELTA1_B_SELL_O_BUY) {
-                    signalStatusDelta = DeltaName.B_DELTA;
-                    if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
-                        final PlBlocks bl = dynBlockDecreaseByAffordable(DeltaName.B_DELTA, BigDecimal.valueOf(tradingSignal.bitmexBlock),
-                                BigDecimal.valueOf(tradingSignal.okexBlock));
-                        if (bl.getBlockOkex().signum() > 0) {
-                            final BordersService.TradingSignal ts = bordersService.setNewBlock(tradingSignal, bl.getBlockOkex().intValueExact());
-                            @SuppressWarnings("Duplicates") final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
-                            final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
-                            if (b_block.signum() > 0 && o_block.signum() > 0) {
-                                final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
-                                        + bl.getDebugLog();
-                                Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
-                                checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
-                                        tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
-                                return;
-                            } else {
-                                isAffordableBitmex = false;
-                                isAffordableOkex = false;
-                                warningLogger.warn("Block calc(after border2Calc): Block should be > 0, but okexBlock=" + bl.getBlockOkex());
-                            }
-                        } else {
-                            isAffordableBitmex = false;
-                            isAffordableOkex = false;
-                        }
-                    } else {
-                        final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
-                        final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
-                        Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
-                        checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
-                                tradingSignal, null, lastObTime, oPL, oPS);
-                        return;
-                    }
-
-                } else if (tradingSignal.tradeType == BordersService.TradeType.DELTA2_B_BUY_O_SELL) {
-                    signalStatusDelta = DeltaName.O_DELTA;
-                    if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
-                        final PlBlocks bl = dynBlockDecreaseByAffordable(DeltaName.O_DELTA, BigDecimal.valueOf(tradingSignal.bitmexBlock),
-                                BigDecimal.valueOf(tradingSignal.okexBlock));
-                        if (bl.getBlockOkex().signum() > 0) {
-                            final BordersService.TradingSignal ts = bordersService.setNewBlock(tradingSignal, bl.getBlockOkex().intValueExact());
-                            final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
-                            final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
-                            if (b_block.signum() > 0 && o_block.signum() > 0) {
-                                final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
-                                        + bl.getDebugLog();
-                                Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
-                                checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
-                                        tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
-                                return;
-                            } else {
-                                isAffordableBitmex = false;
-                                isAffordableOkex = false;
-                                warningLogger.warn("Block calc(after border2Calc): Block should be > 0, but okexBlock=" + bl.getBlockOkex());
-                            }
-                        } else {
-                            isAffordableBitmex = false;
-                            isAffordableOkex = false;
-                        }
-                    } else {
-                        final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
-                        final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
-                        Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
-                        checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
-                                tradingSignal, null, lastObTime, oPL, oPS);
-                        return;
-                    }
-                }
-            } else {
-                stopSignalDelay(bestQuotes, prevTradingSignal, "deltas v2: tradingSignal.tradeType == NONE");
+            if (bordersV2(bestQuotes, bitmexOrderBook, okCoinOrderBook, prevTradingSignal, bP, oPL, oPS, borderParams, btmMaxDelta, okMaxDelta)) {
+                return;
             }
         } else {
             stopSignalDelay(bestQuotes, prevTradingSignal, "borders version is OFF");
         }
 
         return;
+    }
+
+    private boolean bordersV2(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal, BigDecimal bP,
+            BigDecimal oPL, BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta) {
+        BigDecimal defaultMax;
+        boolean withWarningLogs =
+                firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage() && posDiffService.checkIsPositionsEqual();
+
+        final Affordable firstAffordable = firstMarketService.recalcAffordable();
+        final Affordable secondAffordable = secondMarketService.recalcAffordable();
+        TradingSignal tradingSignal;
+        tradingSignal = bordersService.checkBorders(bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs, firstAffordable,
+                secondAffordable);
+        tradingSignal = applyMaxDelta(tradingSignal, btmMaxDelta, okMaxDelta, borderParams.getOnlyOpen());
+
+        final boolean justGotVolatileMode = volatileModeSwitcherService.trySwitchToVolatileModeBorderV2(tradingSignal);
+        if (justGotVolatileMode) {
+            borderParams = bordersService.getBorderParams();
+            defaultMax = BigDecimal.valueOf(9999);
+            btmMaxDelta = borderParams.getBtmMaxDelta() == null ? defaultMax : borderParams.getBtmMaxDelta();
+            okMaxDelta = borderParams.getOkMaxDelta() == null ? defaultMax : borderParams.getOkMaxDelta();
+            tradingSignal = bordersService.checkBorders(bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs, firstAffordable,
+                    secondAffordable);
+            tradingSignal = applyMaxDelta(tradingSignal, btmMaxDelta, okMaxDelta, borderParams.getOnlyOpen());
+        }
+
+        if (tradingSignal.okexBlock == 0) {
+            stopSignalDelay(bestQuotes, prevTradingSignal, "deltas v2: okexBlock==0");
+            return true;
+        }
+
+        if (tradingSignal.tradeType != TradeType.NONE) {
+            if (signalDelayActivateTime == null) {
+                startSignalDelay(0);
+            }
+
+            if (tradingSignal.tradeType == TradeType.DELTA1_B_SELL_O_BUY) {
+                signalStatusDelta = DeltaName.B_DELTA;
+                if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
+                    final PlBlocks bl = dynBlockDecreaseByAffordable(DeltaName.B_DELTA, BigDecimal.valueOf(tradingSignal.bitmexBlock),
+                            BigDecimal.valueOf(tradingSignal.okexBlock));
+                    if (bl.getBlockOkex().signum() > 0) {
+                        final TradingSignal ts = bordersService.setNewBlock(tradingSignal, bl.getBlockOkex().intValueExact());
+                        final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
+                        final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
+                        if (b_block.signum() > 0 && o_block.signum() > 0) {
+                            final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
+                                    + bl.getDebugLog();
+                            Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                            checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
+                                    tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
+                            return true;
+                        } else {
+                            isAffordableBitmex = false;
+                            isAffordableOkex = false;
+                            warningLogger.warn("Block calc(after border2Calc): Block should be > 0, but okexBlock=" + bl.getBlockOkex());
+                        }
+                    } else {
+                        isAffordableBitmex = false;
+                        isAffordableOkex = false;
+                    }
+                } else {
+                    final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
+                    final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
+                    Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                    checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
+                            tradingSignal, null, lastObTime, oPL, oPS);
+                    return true;
+                }
+
+            } else if (tradingSignal.tradeType == TradeType.DELTA2_B_BUY_O_SELL) {
+                signalStatusDelta = DeltaName.O_DELTA;
+                if (tradingSignal.ver == PlacingBlocks.Ver.DYNAMIC) {
+                    final PlBlocks bl = dynBlockDecreaseByAffordable(DeltaName.O_DELTA, BigDecimal.valueOf(tradingSignal.bitmexBlock),
+                            BigDecimal.valueOf(tradingSignal.okexBlock));
+                    if (bl.getBlockOkex().signum() > 0) {
+                        final TradingSignal ts = bordersService.setNewBlock(tradingSignal, bl.getBlockOkex().intValueExact());
+                        final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
+                        final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
+                        if (b_block.signum() > 0 && o_block.signum() > 0) {
+                            final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
+                                    + bl.getDebugLog();
+                            Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                            checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
+                                    tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
+                            return true;
+                        } else {
+                            isAffordableBitmex = false;
+                            isAffordableOkex = false;
+                            warningLogger.warn("Block calc(after border2Calc): Block should be > 0, but okexBlock=" + bl.getBlockOkex());
+                        }
+                    } else {
+                        isAffordableBitmex = false;
+                        isAffordableOkex = false;
+                    }
+                } else {
+                    final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
+                    final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
+                    Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                    checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
+                            tradingSignal, null, lastObTime, oPL, oPS);
+                    return true;
+                }
+            }
+        } else {
+            stopSignalDelay(bestQuotes, prevTradingSignal, "deltas v2: tradingSignal.tradeType == NONE");
+        }
+        return false;
+    }
+
+    private boolean bordersV1(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal, BigDecimal oPL,
+            BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta) {
+        BigDecimal border1 = getBorder1();
+        BigDecimal border2 = getBorder2();
+
+        if (delta1.compareTo(border1) >= 0 && delta1.compareTo(btmMaxDelta) < 0) {
+            volatileModeSwitcherService.trySwitchToVolatileMode(delta1, border1, new BtmFokAutoArgs(delta1, border1, border1.toPlainString()));
+            signalStatusDelta = DeltaName.B_DELTA;
+
+            if (signalDelayActivateTime == null) {
+                startSignalDelay(0);
+            }
+
+            PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border1, DeltaName.B_DELTA, oPL, oPS);
+            if (plBlocks.getBlockOkex().signum() == 0) {
+                //noinspection Duplicates
+                isAffordableBitmex = false;
+                isAffordableOkex = false;
+                return true;
+            }
+            String dynDeltaLogs = null;
+            if (plBlocks.isDynamic()) {
+                plBlocks = dynBlockDecreaseByAffordable(DeltaName.B_DELTA, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
+                dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
+                        + plBlocks.getDebugLog();
+            }
+
+            if (plBlocks.getBlockOkex().signum() > 0) {
+                Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                final TradingSignal tradingSignal = TradingSignal.createOnBorderV1(plBlocks.getVer(),
+                        plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA1_B_SELL_O_BUY, delta1, border1);
+                checkAndStartTradingOnDelta1(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
+                        tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
+                return true;
+            } else {
+                isAffordableBitmex = false;
+                isAffordableOkex = false;
+            }
+        } else if (delta2.compareTo(border2) >= 0 && delta2.compareTo(okMaxDelta) < 0) {
+            volatileModeSwitcherService.trySwitchToVolatileMode(delta2, border2, new BtmFokAutoArgs(delta2, border2, border2.toPlainString()));
+            signalStatusDelta = DeltaName.O_DELTA;
+
+            if (signalDelayActivateTime == null) {
+                startSignalDelay(0);
+            }
+
+            PlBlocks plBlocks = placingBlocksService.getPlacingBlocks(bitmexOrderBook, okCoinOrderBook, border2, DeltaName.O_DELTA, oPL, oPS);
+            if (plBlocks.getBlockOkex().signum() == 0) {
+                //noinspection Duplicates
+                isAffordableBitmex = false;
+                isAffordableOkex = false;
+                return true;
+            }
+            String dynDeltaLogs = null;
+            if (plBlocks.isDynamic()) {
+                plBlocks = dynBlockDecreaseByAffordable(DeltaName.O_DELTA, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
+                dynDeltaLogs = composeDynBlockLogs("o_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
+                        + plBlocks.getDebugLog();
+            }
+            if (plBlocks.getBlockOkex().signum() > 0) {
+                Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                final TradingSignal tradingSignal = TradingSignal.createOnBorderV1(plBlocks.getVer(),
+                        plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA2_B_BUY_O_SELL, delta2, border2);
+                checkAndStartTradingOnDelta2(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
+                        tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
+                return true;
+            } else {
+                isAffordableBitmex = false;
+                isAffordableOkex = false;
+            }
+        } else {
+            stopSignalDelay(bestQuotes, prevTradingSignal, "deltas v1 do not cross borders");
+        }
+        return false;
     }
 
     private String composeDynBlockLogs(String deltaName, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, BigDecimal b_block, BigDecimal o_block) {
@@ -998,7 +1019,6 @@ public class ArbitrageService {
             final PlBlocks plBlocks = adjustByNtUsd(DeltaName.B_DELTA, b_block_input, o_block_input, oPL, oPS);
             final BigDecimal b_block = plBlocks.getBlockBitmex();
             final BigDecimal o_block = plBlocks.getBlockOkex();
-            final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
 
             if (checkAffordable(DeltaName.B_DELTA, b_block, o_block)) {
 
@@ -1012,6 +1032,7 @@ public class ArbitrageService {
                                 preSignalReCheck(DeltaName.B_DELTA, tradingSignal);
                             } else {
                                 arbState = ArbState.IN_PROGRESS;
+                                final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
                                 startTradingOnDelta1(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
                                         ask1_o,
                                         bid1_p, lastObTime, b_block_input, o_block_input);
@@ -1271,7 +1292,6 @@ public class ArbitrageService {
             final PlBlocks plBlocks = adjustByNtUsd(DeltaName.O_DELTA, b_block_input, o_block_input, oPL, oPS);
             final BigDecimal b_block = plBlocks.getBlockBitmex();
             final BigDecimal o_block = plBlocks.getBlockOkex();
-            final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
 
             if (checkAffordable(DeltaName.O_DELTA, b_block, o_block)) {
 
@@ -1285,6 +1305,7 @@ public class ArbitrageService {
                                 preSignalReCheck(DeltaName.O_DELTA, tradingSignal);
                             } else {
                                 arbState = ArbState.IN_PROGRESS;
+                                final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
                                 startTradingOnDelta2(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
                                         ask1_p,
                                         bid1_o, lastObTime, b_block_input, o_block_input);

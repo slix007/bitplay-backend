@@ -2,6 +2,7 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -9,6 +10,7 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingBlocks.Ver;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -16,6 +18,7 @@ import com.bitplay.persistance.domain.settings.TradingMode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -145,10 +148,15 @@ public class BordersService {
         final BigDecimal cm = bitmexService.getCm();
         int block = tradingSignal.posMode == BorderParams.PosMode.OK_MODE ? okexBlock :
                 (BigDecimal.valueOf(okexBlock).multiply(cm)).setScale(0, RoundingMode.HALF_UP).intValue();
+        final List<BigDecimal> list = Collections
+                .unmodifiableList(tradingSignal.borderValueList != null ? tradingSignal.borderValueList : new ArrayList<>());
+        final List<BigDecimal> listReal = Collections
+                .unmodifiableList(tradingSignal.borderValueListReal != null ? tradingSignal.borderValueListReal : new ArrayList<>());
         return new BordersService.TradingSignal(tradingSignal.tradeType, block,
                 tradingSignal.borderName,
                 tradingSignal.borderValue + ";adjusted by affordable. okexBlock was " + tradingSignal.okexBlock,
-                Collections.unmodifiableList(tradingSignal.borderValueList != null ? tradingSignal.borderValueList : new ArrayList<>()),
+                list,
+                listReal,
                 tradingSignal.deltaVal,
                 tradingSignal.ver, tradingSignal.posMode, cm);
     }
@@ -156,11 +164,13 @@ public class BordersService {
     TradingSignal checkBordersForTests(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP,
             BigDecimal oPL,
             BigDecimal oPS) {
-        return checkBorders(bitmexOrderBook, okexOrderBook, b_delta, o_delta, bP, oPL, oPS, true);
+        final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        return checkBorders(bitmexOrderBook, okexOrderBook, b_delta, o_delta, bP, oPL, oPS, true, firstAffordable, secondAffordable);
     }
 
     public TradingSignal checkBorders(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL,
-            BigDecimal oPS, boolean withLogs) {
+            BigDecimal oPS, boolean withLogs, Affordable bitmexAffordable, Affordable okexAffordable) {
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
         BigDecimal cm = placingBlocks.getCm();
 
@@ -201,7 +211,9 @@ public class BordersService {
             if (obCloseSignal != null) signal = obCloseSignal;
         }
         if (signal == null) {
-            TradingSignal bbOpenSignal = bDeltaBorderOpen(b_delta, block, pos, bordersV2, placingBlocks, bitmexOrderBook, okexOrderBook, withLogs, cm);
+            // DELTA1_B_SELL_O_BUY
+            TradingSignal bbOpenSignal = bDeltaBorderOpen(b_delta, block, pos, bordersV2, placingBlocks, bitmexOrderBook, okexOrderBook, withLogs, cm,
+                    bitmexAffordable, okexAffordable);
             if (bbOpenSignal != null) signal = bbOpenSignal;
         }
         if (signal == null) {
@@ -212,12 +224,14 @@ public class BordersService {
         // Decrease by current position
         if (signal != null && signal.tradeType == TradeType.DELTA1_B_SELL_O_BUY
                 && oPS.intValueExact() > 0 && signal.okexBlock > oPS.intValueExact()) {
-            signal = new TradingSignal(signal.tradeType, oPS.intValueExact(), signal.borderName, signal.borderValue, signal.borderValueList, signal.deltaVal,
+            signal = new TradingSignal(signal.tradeType, oPS.intValueExact(), signal.borderName, signal.borderValue, signal.borderValueList,
+                    signal.borderValueListReal, signal.deltaVal,
                     placingBlocks.getActiveVersion(), cm, signal.blockOnceWarn);
         }
         if (signal != null && signal.tradeType == TradeType.DELTA2_B_BUY_O_SELL
                 && oPL.intValueExact() > 0 && signal.okexBlock > oPL.intValueExact()) {
-            signal = new TradingSignal(signal.tradeType, oPL.intValueExact(), signal.borderName, signal.borderValue, signal.borderValueList, signal.deltaVal,
+            signal = new TradingSignal(signal.tradeType, oPL.intValueExact(), signal.borderName, signal.borderValue, signal.borderValueList,
+                    signal.borderValueListReal, signal.deltaVal,
                     placingBlocks.getActiveVersion(), cm, signal.blockOnceWarn);
         }
 
@@ -394,6 +408,7 @@ public class BordersService {
         int btm_br_close_calc_block = 0;
         StringBuilder borderValue = new StringBuilder();
         List<BigDecimal> borderValueList = new ArrayList<>();
+        List<BigDecimal> borderValueListReal = new ArrayList<>();
 
         if (pos != 0) {
             for (int i = 0; i < btm_br_close_cnt; i++) {
@@ -429,6 +444,10 @@ public class BordersService {
                                     .append(",m=").append(m)
                                     .append(",b=").append(b);
                             borderValueList.add(borderItem.getValue());
+                            int posAfter = pos + Math.min(btm_br_close_calc_block, block);
+                            if (posAfter >= posLongLimit) {
+                                borderValueListReal.add(borderItem.getValue());
+                            }
                         }
 
                         int posShortLimit = usdToCont(borderItem.getPosShortLimit());
@@ -459,6 +478,10 @@ public class BordersService {
                                     .append(",m=").append(m)
                                     .append(",b=").append(b);
                             borderValueList.add(borderItem.getValue());
+                            int posAfter = -pos + Math.min(btm_br_close_calc_block, block);
+                            if (posAfter >= posShortLimit) {
+                                borderValueListReal.add(borderItem.getValue());
+                            }
                         }
                     }
                 }
@@ -470,7 +493,9 @@ public class BordersService {
             btm_br_close_calc_block = doubleCheckMaxBlock(placingBlocks, btm_br_close_calc_block, blockOnceWarn, pos);
 
             return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, btm_br_close_calc_block, borderName, borderValue.toString(),
-                    Collections.unmodifiableList(borderValueList), b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm, blockOnceWarn.toString());
+                    Collections.unmodifiableList(borderValueList),
+                    Collections.unmodifiableList(borderValueListReal),
+                    b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm, blockOnceWarn.toString());
         }
 
         return null;
@@ -485,7 +510,7 @@ public class BordersService {
 
     @SuppressWarnings("Duplicates")
     private TradingSignal bDeltaBorderOpen(BigDecimal b_delta, int block, int pos, BordersV2 bordersV2, PlacingBlocks placingBlocks, OrderBook bitmexOrderBook,
-            OrderBook okexOrderBook, boolean withLogs, BigDecimal cm) {
+            OrderBook okexOrderBook, boolean withLogs, BigDecimal cm, Affordable bitmexAffordable, Affordable okexAffordable) {
         // Bitmex border open - input data
         final String borderName = "b_br_open";
         final Optional<BorderTable> b_br_open = bordersV2.getBorderTableByName(borderName);
@@ -504,6 +529,7 @@ public class BordersService {
         int btm_br_open_calc_block = 0;
         StringBuilder borderValue = new StringBuilder();
         List<BigDecimal> borderValueList = new ArrayList<>();
+        List<BigDecimal> borderValueListReal = new ArrayList<>();
 
         for (int i = 0; i < btm_br_open_cnt; i++) {
             BorderItem borderItem = btm_br_open.get(i);
@@ -541,6 +567,10 @@ public class BordersService {
                         borderValue.append(";").append(borderItem.toString())
                                 .append(",m=").append(m)
                                 .append(",b=").append(b);
+                        int posAfter = pos + Math.min(btm_br_open_calc_block, block);
+                        if (posAfter >= posLongLimit) {
+                            borderValueListReal.add(borderItem.getValue());
+                        }
                     }
 
                     int posShortLimit = usdToCont(borderItem.getPosShortLimit());
@@ -571,6 +601,10 @@ public class BordersService {
                                 .append(",m=").append(m)
                                 .append(",b=").append(b);
                         borderValueList.add(borderItem.getValue());
+                        int posAfter = -pos + Math.min(btm_br_open_calc_block, block);
+                        if (posAfter >= posShortLimit) {
+                            borderValueListReal.add(borderItem.getValue());
+                        }
                     }
                 }
             }
@@ -581,7 +615,9 @@ public class BordersService {
             btm_br_open_calc_block = doubleCheckMaxBlock(placingBlocks, btm_br_open_calc_block, blockOnceWarn, pos);
 
             return new TradingSignal(TradeType.DELTA1_B_SELL_O_BUY, btm_br_open_calc_block, borderName, borderValue.toString(),
-                    Collections.unmodifiableList(borderValueList), b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm, blockOnceWarn.toString());
+                    Collections.unmodifiableList(borderValueList),
+                    Collections.unmodifiableList(borderValueListReal),
+                    b_delta.toPlainString(), placingBlocks.getActiveVersion(), cm, blockOnceWarn.toString());
         }
 
         return null;
@@ -643,6 +679,7 @@ public class BordersService {
         int ok_br_close_calc_block = 0;
         StringBuilder borderValue = new StringBuilder();
         List<BigDecimal> borderValueList = new ArrayList<>();
+        List<BigDecimal> borderValueListReal = new ArrayList<>();
 
         if (pos != 0) {
             for (int i = 0; i < ok_br_close_cnt; i++) {
@@ -678,6 +715,10 @@ public class BordersService {
                                     .append(",m=").append(m)
                                     .append(",b=").append(b);
                             borderValueList.add(borderItem.getValue());
+                            int posAfter = pos + Math.min(ok_br_close_calc_block, block);
+                            if (posAfter >= posLongLimit) {
+                                borderValueListReal.add(borderItem.getValue());
+                            }
                         }
 
                         int posShortLimit = usdToCont(borderItem.getPosShortLimit());
@@ -708,6 +749,11 @@ public class BordersService {
                                     .append(",m=").append(m)
                                     .append(",b=").append(b);
                             borderValueList.add(borderItem.getValue());
+                            int posAfter = -pos + Math.min(ok_br_close_calc_block, block);
+                            if (posAfter >= posShortLimit) {
+                                borderValueListReal.add(borderItem.getValue());
+                            }
+
                         }
                     }
                 }
@@ -719,7 +765,9 @@ public class BordersService {
             ok_br_close_calc_block = doubleCheckMaxBlock(placingBlocks, ok_br_close_calc_block, blockOnceWarn, pos);
 
             return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, ok_br_close_calc_block, borderName, borderValue.toString(),
-                    Collections.unmodifiableList(borderValueList), o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm, blockOnceWarn.toString());
+                    Collections.unmodifiableList(borderValueList),
+                    Collections.unmodifiableList(borderValueListReal),
+                    o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm, blockOnceWarn.toString());
         }
 
         return null;
@@ -743,10 +791,12 @@ public class BordersService {
         // dynamic only
         int ok_lvl_max_limit = 0;
         int ok_lvl_block_limit = 0;
-        int b = 0, m = 0;
+        int b = 0; // block of crossing a borderItem by: [DYNAMIC: amount from OrderBooks] || [FIXED: block or block_once(limited to the borderItem)]
+        int m = 0; // block of crossing a borderItem by pos.
         int ok_br_open_calc_block = 0;
         StringBuilder borderValue = new StringBuilder();
         List<BigDecimal> borderValueList = new ArrayList<>();
+        List<BigDecimal> borderValueListReal = new ArrayList<>();
 
         for (int i = 0; i < ok_br_open_cnt; i++) {
             BorderItem borderItem = ok_br_open.get(i);
@@ -781,6 +831,10 @@ public class BordersService {
                                 .append(",m=").append(m)
                                 .append(",b=").append(b);
                         borderValueList.add(borderItem.getValue());
+                        int posAfter = pos + Math.min(ok_br_open_calc_block, block);
+                        if (posAfter >= posLongLimit) {
+                            borderValueListReal.add(borderItem.getValue());
+                        }
                     }
 
                     int posShortLimit = usdToCont(borderItem.getPosShortLimit());
@@ -811,6 +865,10 @@ public class BordersService {
                                 .append(",m=").append(m)
                                 .append(",b=").append(b);
                         borderValueList.add(borderItem.getValue());
+                        int posAfter = -pos + Math.min(ok_br_open_calc_block, block);
+                        if (posAfter >= posShortLimit) {
+                            borderValueListReal.add(borderItem.getValue());
+                        }
                     }
                 }
             }
@@ -820,12 +878,49 @@ public class BordersService {
             StringBuilder blockOnceWarn = new StringBuilder();
             ok_br_open_calc_block = doubleCheckMaxBlock(placingBlocks, ok_br_open_calc_block, blockOnceWarn, pos);
 
-            return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, ok_br_open_calc_block,
-                    borderName, borderValue.toString(), Collections.unmodifiableList(borderValueList), o_delta.toPlainString(),
-                    placingBlocks.getActiveVersion(), cm, blockOnceWarn.toString());
+            return new TradingSignal(TradeType.DELTA2_B_BUY_O_SELL, ok_br_open_calc_block, borderName, borderValue.toString(),
+                    Collections.unmodifiableList(borderValueList),
+                    Collections.unmodifiableList(borderValueListReal),
+                    o_delta.toPlainString(), placingBlocks.getActiveVersion(), cm, blockOnceWarn.toString());
         }
 
         return null;
+    }
+
+    private PlBlocks dynBlockDecreaseByAffordable(DeltaName deltaRef, BigDecimal blockSize1, BigDecimal blockSize2,
+            Affordable firstAffordable, Affordable secondAffordable) {
+        BigDecimal b1 = BigDecimal.ZERO;
+        BigDecimal b2 = BigDecimal.ZERO;
+        final BigDecimal cm = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks().getCm();
+        if (deltaRef == DeltaName.B_DELTA) {
+            // b_sell, o_buy
+            final BigDecimal b_sell_lim = firstAffordable.getForShort().signum() < 0 ? BigDecimal.ZERO : firstAffordable.getForShort();
+            final BigDecimal o_buy_lim = secondAffordable.getForLong().signum() < 0 ? BigDecimal.ZERO : secondAffordable.getForLong();
+            b1 = blockSize1.compareTo(b_sell_lim) < 0 ? blockSize1 : b_sell_lim;
+            b2 = blockSize2.compareTo(o_buy_lim) < 0 ? blockSize2 : o_buy_lim;
+        } else if (deltaRef == DeltaName.O_DELTA) {
+            // buy p , sell o
+            final BigDecimal b_buy_lim = firstAffordable.getForLong().signum() < 0 ? BigDecimal.ZERO : firstAffordable.getForLong();
+            final BigDecimal o_sell_lim = secondAffordable.getForShort().signum() < 0 ? BigDecimal.ZERO : secondAffordable.getForShort();
+            b1 = blockSize1.compareTo(b_buy_lim) < 0 ? blockSize1 : b_buy_lim;
+            b2 = blockSize2.compareTo(o_sell_lim) < 0 ? blockSize2 : o_sell_lim;
+        }
+
+        if (b1.signum() == 0 || b2.signum() == 0) {
+            b1 = BigDecimal.ZERO;
+            b2 = BigDecimal.ZERO;
+        } else if (b1.compareTo(b2.multiply(cm)) != 0) {
+            b2 = b2.min(b1.divide(cm, 0, RoundingMode.HALF_UP));
+            b1 = b2.multiply(cm).setScale(0, RoundingMode.HALF_UP);
+        }
+
+        b1 = b1.setScale(0, RoundingMode.HALF_UP);
+        b2 = b2.setScale(0, RoundingMode.HALF_UP);
+
+        String debugLog = String.format("dynBlockDecreaseByAffordable: %s, %s. bitmex %s, okex %s",
+                b1, b2, firstAffordable, secondAffordable);
+
+        return new PlBlocks(b1, b2, PlacingBlocks.Ver.DYNAMIC, debugLog);
     }
 
     public enum TradeType {NONE, DELTA1_B_SELL_O_BUY, DELTA2_B_BUY_O_SELL}
@@ -851,6 +946,7 @@ public class BordersService {
         final public String borderName;
         final public String borderValue;
         final public List<BigDecimal> borderValueList;
+        final public List<BigDecimal> borderValueListReal;
         final public String deltaVal;
         final public BigDecimal cm;
         final public BorderVer borderVer;
@@ -874,14 +970,16 @@ public class BordersService {
             this.borderName = null;
             this.borderValue = borderValueV1.toPlainString();
             this.borderValueList = Collections.singletonList(borderValueV1);
+            this.borderValueListReal = Collections.singletonList(borderValueV1);
             this.deltaVal = deltaVal;
             this.cm = null;
             this.blockOnceWarn = null;
         }
 
         @SuppressWarnings("Duplicates")
-        TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, List<BigDecimal> borderValueList, String deltaVal,
-                PlacingBlocks.Ver ver, BigDecimal cm, String blockOnceWarn) {
+        TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, List<BigDecimal> borderValueList,
+                List<BigDecimal> borderValueListReal, String deltaVal,
+                Ver ver, BigDecimal cm, String blockOnceWarn) {
             this.tradeType = tradeType;
             if (theMode == BorderParams.PosMode.BTM_MODE) { // usdInContract = 1; => min block is cm
                 bitmexBlock = block;
@@ -895,6 +993,7 @@ public class BordersService {
             this.borderName = borderName;
             this.borderValue = borderValue;
             this.borderValueList = borderValueList;
+            this.borderValueListReal = borderValueListReal;
             this.deltaVal = deltaVal;
             this.cm = cm;
             this.borderVer = BorderVer.borderV2;
@@ -902,8 +1001,9 @@ public class BordersService {
         }
 
         @SuppressWarnings("Duplicates")
-        TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, List<BigDecimal> borderValueList, String deltaVal,
-                PlacingBlocks.Ver ver, BorderParams.PosMode theMode, BigDecimal cm) {
+        TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, List<BigDecimal> borderValueList,
+                List<BigDecimal> borderValueListReal, String deltaVal,
+                Ver ver, PosMode theMode, BigDecimal cm) {
             this.tradeType = tradeType;
             if (theMode == BorderParams.PosMode.BTM_MODE) { // usdInContract = 1; => min block is cm
                 bitmexBlock = block;
@@ -917,6 +1017,7 @@ public class BordersService {
             this.borderName = borderName;
             this.borderValue = borderValue;
             this.borderValueList = borderValueList;
+            this.borderValueListReal = borderValueListReal;
             this.deltaVal = deltaVal;
             this.cm = cm;
             this.borderVer = BorderVer.borderV2;
@@ -925,7 +1026,8 @@ public class BordersService {
 
         @SuppressWarnings("Duplicates")
         private TradingSignal(TradeType tradeType, int bitmexBlock, int okexBlock, Ver ver,
-                PosMode posMode, String borderName, String borderValue, List<BigDecimal> borderValueList, String deltaVal, BigDecimal cm,
+                PosMode posMode, String borderName, String borderValue, List<BigDecimal> borderValueList, List<BigDecimal> borderValueListReal,
+                String deltaVal, BigDecimal cm,
                 BorderVer borderVer, String blockOnceWarn) {
             this.tradeType = tradeType;
             this.bitmexBlock = bitmexBlock;
@@ -935,6 +1037,7 @@ public class BordersService {
             this.borderName = borderName;
             this.borderValue = borderValue;
             this.borderValueList = borderValueList;
+            this.borderValueListReal = borderValueListReal;
             this.deltaVal = deltaVal;
             this.cm = cm;
             this.borderVer = borderVer;
@@ -942,13 +1045,13 @@ public class BordersService {
         }
 
         public static TradingSignal none() {
-            return new TradingSignal(TradeType.NONE, 0, null, null, null, null, null,
+            return new TradingSignal(TradeType.NONE, 0, null, null, null, null, null, null,
                     BigDecimal.valueOf(100), null);
         }
 
         TradingSignal changeBlocks(BigDecimal b_block, BigDecimal o_block) {
             return new TradingSignal(this.tradeType, b_block.intValue(), o_block.intValue(), this.ver,
-                    this.posMode, this.borderName, this.borderValue, this.borderValueList, this.deltaVal, this.cm,
+                    this.posMode, this.borderName, this.borderValue, this.borderValueList, this.borderValueListReal, this.deltaVal, this.cm,
                     this.borderVer, this.blockOnceWarn);
         }
 
@@ -976,6 +1079,8 @@ public class BordersService {
                         ", borderName='" + borderName + '\'' +
                         ", borderValue='" + borderValue + '\'' +
                         ", deltaVal='" + deltaVal + '\'' +
+                        ", borderValueListReal='" + (borderValueListReal != null ? Arrays.toString(borderValueListReal.toArray()) : "null") + '\'' +
+                        ", maxBorder='" + getMaxBorder() + '\'' +
                         blockOnceLine +
                         '}';
             } else { // if (borderVer == BorderVer.borderV1 || preliq) {
@@ -992,8 +1097,8 @@ public class BordersService {
 
         public BigDecimal getMaxBorder() {
             BigDecimal maxBorder = null;
-            if (borderValueList != null) {
-                maxBorder = borderValueList.stream().filter(Objects::nonNull)
+            if (borderValueListReal != null) {
+                maxBorder = borderValueListReal.stream().filter(Objects::nonNull)
                         .max(BigDecimal::compareTo).orElse(null);
             }
             return maxBorder;

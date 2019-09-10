@@ -11,9 +11,12 @@ import com.bitplay.persistance.domain.borders.BordersV2;
  */
 public class TestingMocks {
 
-    @SuppressWarnings("Duplicates")
     static BorderParams toUsd(BorderParams borderParams) {
-        boolean isEth = false;
+        return toUsd(borderParams, false);
+    }
+
+    @SuppressWarnings("Duplicates")
+    static BorderParams toUsd(BorderParams borderParams, boolean isEth) {
         BordersV2 bordersV2 = borderParams.getBordersV2();
         PosMode posMode = borderParams.getPosMode();
 

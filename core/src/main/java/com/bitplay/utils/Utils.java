@@ -231,7 +231,7 @@ public class Utils {
         synchronized (asks) {
             for (int i = 0; i < 10 && i < asks.size(); i++) {
                 final LimitOrder ask = asks.get(i);
-                obBuilder.append(String.format("%d,%s(%s)", i + 1, ask.getLimitPrice(), ask.getTradableAmount()));
+                obBuilder.append(String.format("%d. %s(%s);", i + 1, ask.getLimitPrice(), ask.getTradableAmount()));
             }
         }
         final List<LimitOrder> bids = orderBook.getBids();
