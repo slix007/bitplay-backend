@@ -12,6 +12,7 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV1;
 import com.bitplay.persistance.domain.borders.BordersV2;
@@ -627,7 +628,38 @@ public class BordersServiceTest {
     }
 
     @Test
-    public void test_MaxBorder() {
+    public void test_affordable_DYNAMIC_big_step() {
+        initEthOrderBooks();
+        borderParams = createDefaultBorders_dynAffordable();
+        when(persistenceService.fetchBorders()).thenReturn(borderParams);
+        when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
+        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        settings.getPlacingBlocks().setActiveVersion(Ver.DYNAMIC);
+        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(70));
+        settings.getPlacingBlocks().setCm(BigDecimal.valueOf(2.42));
+        settings.getPlacingBlocks().setEth(true);
+
+        // delta1 == // b_bid[0] - o_ask[1]
+        final BigDecimal delta1 = BigDecimal.valueOf(-1.766); // 330.70 - 332.466 = -1.766
+        final BigDecimal delta2 = BigDecimal.valueOf(1.547); // o_bid - b_ask = 332.297 - 330.75 = 1.547
+        final BigDecimal bP = BigDecimal.valueOf(-65);
+        final BigDecimal oPL = BigDecimal.ZERO;
+        final BigDecimal oPS = BigDecimal.valueOf(3);
+        final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(15));
+        final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS, true,
+                firstAffordable, secondAffordable);
+
+        System.out.println(signal.toString());
+
+        assertEquals(BigDecimal.valueOf(0.2), signal.getMaxBorder());
+        // okex 7 cont when pos -3, borderItem(id=3, val=0.3, pSL=10)
+        assertEquals(15, signal.bitmexBlock);
+        assertEquals(6, signal.okexBlock);
+    }
+
+    @Test
+    public void check_MaxBorder() {
         borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
 //        settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
 //        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20000 * 100));
