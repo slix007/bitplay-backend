@@ -28,8 +28,8 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class VolatileModeAfterService {
 
-    final ExecutorService executorService = Executors.newFixedThreadPool(2,
-            new NamedThreadFactory("volatile-mode-after"));
+    private final ExecutorService executorServiceBtm = Executors.newSingleThreadExecutor(new NamedThreadFactory("volatile-mode-after-btm"));
+    private final ExecutorService executorServiceOkex = Executors.newSingleThreadExecutor(new NamedThreadFactory("volatile-mode-after-okex"));
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
@@ -69,10 +69,10 @@ public class VolatileModeAfterService {
         okexService.changeDeferredPlacingType(okexPlacingType);
 
         if (bitmexOO.size() > 0) {
-            executorService.execute(() -> replaceLimitOrdersBitmex(bitmexOO, tradeId, btmFokAutoArgs));
+            executorServiceBtm.execute(() -> replaceLimitOrdersBitmex(bitmexOO, tradeId, btmFokAutoArgs));
         }
         if (okexOO.size() > 0) {
-            executorService.execute(() -> replaceLimitOrdersOkex(okexOO, tradeId));
+            executorServiceOkex.execute(() -> replaceLimitOrdersOkex(okexOO, tradeId));
         }
     }
 
