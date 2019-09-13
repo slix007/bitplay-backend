@@ -3,7 +3,9 @@ package com.bitplay.okex.v3.service.futures;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
+import com.bitplay.okex.v3.dto.futures.result.OkexPositions;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
+import com.fasterxml.jackson.databind.util.JSONPObject;
 
 /**
  * Futures Trade API Service
@@ -14,10 +16,10 @@ import com.bitplay.okex.v3.dto.futures.result.OrderResult;
  */
 public interface FuturesTradeApiService {
 
-//    /**
-//     * Get all of futures contract position list
-//     */
-//    JSONObject getPositions();
+    /**
+     * Get all of futures contract position list
+     */
+    OkexPositions getPositions();
 //
 //    /**
 //     * Get the futures contract product position

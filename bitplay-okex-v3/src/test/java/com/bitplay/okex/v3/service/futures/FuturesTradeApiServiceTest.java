@@ -4,7 +4,14 @@ import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
+import com.bitplay.okex.v3.dto.futures.result.OkexPosition;
+import com.bitplay.okex.v3.dto.futures.result.OkexPositions;
 import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.JSONPObject;
+import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -44,5 +51,22 @@ public class FuturesTradeApiServiceTest extends BaseTests {
     public void getAccounts() {
         final Accounts accounts = tradeApiService.getAccounts();
         LOG.info(accounts.toString());
+    }
+
+    @Test
+    public void getPosition() throws JsonProcessingException {
+        final OkexPositions positions = tradeApiService.getPositions();
+//        final Optional<Object> byInstrumentId = positions.getByInstrumentId("BTC-USD-190920");
+
+//        final ObjectMapper mapper = new ObjectMapper();
+//        final OkexPosition pos = byInstrumentId.get();
+//        final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(pos);
+        LOG.info(positions.toString());
+//        LOG.info(pos.getLongPnl().toPlainString());
+//        LOG.info(pos.getLongUnrealisedPnl().toPlainString());
+        // "instrument_id" : "BTC-USD-190920",
+
+//        LOG.info(positions.getResult());
+//        LOG.info(positions.getHolding().toString());
     }
 }

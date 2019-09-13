@@ -2,12 +2,16 @@ package com.bitplay.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * Created by Sergey Shurmin on 6/28/17.
  */
 @Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Pos {
 
     private BigDecimal positionLong;
@@ -18,9 +22,14 @@ public class Pos {
     private BigDecimal liquidationPrice;
     private BigDecimal priceAvgLong;
     private BigDecimal priceAvgShort;
-    private BigDecimal markValue;
+    private BigDecimal markValue; // bitmex only
     private Instant timestamp;
     private String raw;
+    // okex only:
+    private BigDecimal longPnl;
+    private BigDecimal longUnrealisedPnl;
+    private BigDecimal shortPnl;
+    private BigDecimal shortUnrealisedPnl;
 
     private Pos(BigDecimal positionLong, BigDecimal positionShort, BigDecimal leverage, BigDecimal liquidationPrice) {
         this.positionLong = positionLong;
@@ -70,6 +79,10 @@ public class Pos {
                 ", priceAvgShort=" + priceAvgShort +
                 ", markValue=" + markValue +
                 ", timestamp=" + timestamp +
+                ", longPnl=" + longPnl +
+                ", longUnrealisedPnl=" + longUnrealisedPnl +
+                ", shortPnl=" + shortPnl +
+                ", shortUnrealisedPnl=" + shortUnrealisedPnl +
                 '}';
     }
 

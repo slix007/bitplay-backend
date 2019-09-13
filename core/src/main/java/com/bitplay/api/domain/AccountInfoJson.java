@@ -1,11 +1,15 @@
 package com.bitplay.api.domain;
 
+import java.math.BigDecimal;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * Created by Sergey Shurmin on 4/15/17.
  */
 @Getter
+@AllArgsConstructor
 public class AccountInfoJson {
     private String btc;
     private String usd;
@@ -30,6 +34,11 @@ public class AccountInfoJson {
     private String entryPrice;
 
     private String raw;
+    // okex only:
+    private String longPnl;
+    private String longUnrealisedPnl;
+    private String shortPnl;
+    private String shortUnrealisedPnl;
 
     public AccountInfoJson() {
     }
@@ -43,7 +52,8 @@ public class AccountInfoJson {
     public AccountInfoJson(String wallet, String available, String margin, String positionStr, String upl, String leverage,
             String availableForLong, String availableForShort, String longAvailToClose, String shortAvailToClose,
             String quAvg, String ethBtcBid1, String liqPrice, String eMark,
-            String eLast, String eBest, String eAvg, String entryPrice, String raw) {
+            String eLast, String eBest, String eAvg, String entryPrice, String raw,
+            String longPnl, String longUnrealisedPnl, String shortPnl, String shortUnrealisedPnl) {
         this.wallet = wallet;
         this.available = available;
         this.margin = margin;
@@ -63,11 +73,15 @@ public class AccountInfoJson {
         this.eAvg = eAvg;
         this.entryPrice = entryPrice;
         this.raw = raw;
+        this.longPnl = longPnl;
+        this.longUnrealisedPnl = longUnrealisedPnl;
+        this.shortPnl = shortPnl;
+        this.shortUnrealisedPnl = shortUnrealisedPnl;
     }
 
     public static AccountInfoJson error() {
         return new AccountInfoJson("error","error", "error","error", "error", "error", "error", "error", "error", "error",
-                "error", "error", "error", "error", "error", "error", "error", "error", "error");
+                "error", "error", "error", "error", "error", "error", "error", "error", "error", "error", "error", "error", "error");
     }
 
     public String geteMark() {
