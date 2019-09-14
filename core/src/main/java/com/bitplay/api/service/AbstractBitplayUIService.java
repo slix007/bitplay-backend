@@ -170,17 +170,14 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 //            throw new IllegalStateException("Balance and/or Position are not yet defined. entryPrice=" + entryPrice);
             return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error", "error", "error", "error",
                     "error", "error", "error", "error", "error", "error", "error",
-                    entryPrice, "error", "error", "error", "error", "error");
+                    entryPrice, "error", "error");
         }
 
         final String ethBtcBid1 = getBusinessService().getEthBtcTicker() != null ? getBusinessService().getEthBtcTicker().getBid().toPlainString() : null;
 
         final BigDecimal longAvailToClose = position.getLongAvailToClose() != null ? position.getLongAvailToClose() : BigDecimal.ZERO;
         final BigDecimal shortAvailToClose = position.getShortAvailToClose() != null ? position.getShortAvailToClose() : BigDecimal.ZERO;
-        final String longPnl = position.getLongPnl() != null ? position.getLongPnl().toPlainString() : "";
-        final String longUnrealisedPnl = position.getLongUnrealisedPnl() != null ? position.getLongUnrealisedPnl().toPlainString() : "";
-        final String shortPnl = position.getShortPnl() != null ? position.getShortPnl().toPlainString() : "";
-        final String shortUnrealisedPnl = position.getShortUnrealisedPnl() != null ? position.getShortUnrealisedPnl().toPlainString() : "";
+        final String posPnl = position.getPosPnl() != null ? position.getPosPnl().toPlainString() : "";
         return new AccountInfoJson(
                 wallet.toPlainString(),
                 available.toPlainString(),
@@ -201,10 +198,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 eAvg != null ? eAvg.toPlainString() : "0",
                 entryPrice,
                 account.toString(),
-                longPnl,
-                longUnrealisedPnl,
-                shortPnl,
-                shortUnrealisedPnl);
+                posPnl);
     }
 
     protected String getPositionString(final Pos position) {

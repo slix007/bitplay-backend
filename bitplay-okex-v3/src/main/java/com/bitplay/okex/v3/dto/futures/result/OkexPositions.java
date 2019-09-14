@@ -16,7 +16,7 @@ public class OkexPositions {
     public Optional<OkexPosition> getByInstrumentId(String instrumentId) {
         return holding.stream()
                 .flatMap(Collection::stream)
-//                .filter(okexPosition -> okexPosition.getInstrumentId().equals(instrumentId))
+                .filter(okexPosition -> okexPosition.getInstrumentId().equals(instrumentId))
                 .findFirst();
     }
 
@@ -36,10 +36,7 @@ public class OkexPositions {
                     p.getShortAvgCost(),
                     p.getUpdatedAt().toInstant(),
                     p.toString(),
-                    p.getLongPnl(),
-                    p.getLongUnrealisedPnl(),
-                    p.getShortPnl(),
-                    p.getShortUnrealisedPnl()
+                    p.getLongPnl().add(p.getShortPnl())
             );
         }
 

@@ -25,11 +25,7 @@ public class Pos {
     private BigDecimal markValue; // bitmex only
     private Instant timestamp;
     private String raw;
-    // okex only:
-    private BigDecimal longPnl;
-    private BigDecimal longUnrealisedPnl;
-    private BigDecimal shortPnl;
-    private BigDecimal shortUnrealisedPnl;
+    private BigDecimal posPnl; // okex only:
 
     private Pos(BigDecimal positionLong, BigDecimal positionShort, BigDecimal leverage, BigDecimal liquidationPrice) {
         this.positionLong = positionLong;
@@ -79,10 +75,7 @@ public class Pos {
                 ", priceAvgShort=" + priceAvgShort +
                 ", markValue=" + markValue +
                 ", timestamp=" + timestamp +
-                ", longPnl=" + longPnl +
-                ", longUnrealisedPnl=" + longUnrealisedPnl +
-                ", shortPnl=" + shortPnl +
-                ", shortUnrealisedPnl=" + shortUnrealisedPnl +
+                ", posPnl=" + posPnl +
                 '}';
     }
 
@@ -98,6 +91,7 @@ public class Pos {
                 ", priceAvgShort=" + priceAvgShort +
                 ", markValue=" + markValue +
                 ", timestamp=" + timestamp +
+                ", posPnl=" + posPnl +
                 ", raw='" + raw + '\'' +
                 '}';
     }
