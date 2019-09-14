@@ -24,22 +24,26 @@ public class OkexPositions {
         final Optional<OkexPosition> byInstrumentId = getByInstrumentId(instrumentId);
         if (byInstrumentId.isPresent()) {
             final OkexPosition p = byInstrumentId.get();
-            return new Pos(
-                    p.getLongQty(),
-                    p.getShortQty(),
-                    p.getLongAvailQty(),
-                    p.getShortAvailQty(),
-                    p.getLeverage(),
-                    p.getLiquidationPrice(),
-                    BigDecimal.ZERO, //mark value
-                    p.getLongAvgCost(),
-                    p.getShortAvgCost(),
-                    p.getUpdatedAt().toInstant(),
-                    p.toString(),
-                    p.getLongPnl().add(p.getShortPnl())
-            );
+            return toPos(p);
         }
 
         return Pos.emptyPos();
+    }
+
+    private Pos toPos(OkexPosition p) {
+        return new Pos(
+                p.getLongQty(),
+                p.getShortQty(),
+                p.getLongAvailQty(),
+                p.getShortAvailQty(),
+                p.getLeverage(),
+                p.getLiquidationPrice(),
+                BigDecimal.ZERO, //mark value
+                p.getLongAvgCost(),
+                p.getShortAvgCost(),
+                p.getUpdatedAt().toInstant(),
+                p.toString(),
+                p.getLongPnl().add(p.getShortPnl())
+        );
     }
 }

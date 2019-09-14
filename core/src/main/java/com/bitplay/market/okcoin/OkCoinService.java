@@ -3,7 +3,6 @@ package com.bitplay.market.okcoin;
 import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.CumService;
 import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
@@ -18,7 +17,6 @@ import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
-import com.bitplay.market.MarketUtils;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.ArbState;
@@ -68,6 +66,7 @@ import info.bitrich.xchangestream.okexv3.OkExStreamingPrivateDataService;
 import info.bitrich.xchangestream.okexv3.dto.InstrumentDto;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkCoinDepth;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
+import info.bitrich.xchangestream.okexv3.dto.privatedata.OkExPosition;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
@@ -108,26 +107,20 @@ import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.UserTrades;
-import org.knowm.xchange.okcoin.OkCoinAdapters;
 import org.knowm.xchange.okcoin.OkCoinUtils;
 import org.knowm.xchange.okcoin.dto.marketdata.OkcoinForecastPrice;
-import org.knowm.xchange.okcoin.dto.trade.OkCoinPosition;
-import org.knowm.xchange.okcoin.dto.trade.OkCoinPositionResult;
 import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesAccountService;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesMarketDataService;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesTradeService;
 import org.knowm.xchange.okcoin.service.OkCoinTradeService;
-import org.knowm.xchange.okcoin.service.OkCoinTradeServiceRaw;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -605,62 +598,13 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public String fetchPosition() throws Exception {
-//        final OkCoinPositionResult positionResult = ((OkCoinTradeServiceRaw) exchange.getTradeService())
-//                .getFuturesPosition(
-//                        OkCoinAdapters.adaptSymbol(okexContractType.getCurrencyPair()),
-//                        okexContractType.getFuturesContract());
-//
-//        final Position position = mapPosition(positionResult);
-//        final Pos pos = MarketUtils.mapPos(position);
         final OkexPositions positions = bitplayOkexEchange.getTradeApiService().getPositions();
         final Pos pos = positions.toPos(instrDtos.get(0).getInstrumentId());
         this.pos.set(pos);
-//        if (pos.getLeverage() != null) {
-//            leverage = pos.getLeverage();
-//        }
 
         stateRecalcInStateUpdaterThread();
 
         return this.pos.toString();
-    }
-
-    private Position mapPosition(OkCoinPositionResult restUpdate) {
-        if (restUpdate.getPositions().length > 1) {
-            final String counterForLogs = getCounterName();
-            final String allPosStr = Arrays.toString(restUpdate.getPositions());
-            final String msg = String.format("#%s More than one positions found %s", counterForLogs, allPosStr);
-            logger.warn(msg);
-            tradeLogger.warn(msg);
-        }
-        final Position position;
-        if (restUpdate.getPositions().length == 0) {
-            position = new Position(
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.valueOf(20),
-                    BigDecimal.ZERO,
-                    ""
-            );
-        } else {
-            final BigDecimal forceLiquPrice = convertLiqPrice(restUpdate.getForceLiquPrice());
-            final OkCoinPosition okCoinPosition = restUpdate.getPositions()[0];
-            position = new Position(
-                    okCoinPosition.getBuyAmount(),
-                    okCoinPosition.getSellAmount(),
-                    okCoinPosition.getBuyAmountAvailable(),
-                    okCoinPosition.getSellAmountAvailable(),
-                    okCoinPosition.getRate(),
-                    forceLiquPrice,
-                    BigDecimal.ZERO,
-                    okCoinPosition.getBuyPriceAvg(),
-                    okCoinPosition.getSellPriceAvg(),
-                    okCoinPosition.toString()
-            );
-//                if (okCoinPosition.getBuyAmount().subtract(okCoinPosition.getSellAmount()).signum() == 0) {
-//                    logger.info("restUpdate: pos==0. " + getName());
-//                }
-        }
-        return position;
     }
 
     @Scheduled(fixedDelay = 500) // URL https://www.okex.com/api/v1/future_userinfo.do Request frequency 5 times/2s
@@ -703,19 +647,31 @@ public class OkCoinService extends MarketServicePreliq {
                 .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
-                .subscribe(positionInfo -> {
-                    logger.debug(positionInfo.toString());
-                    final Position pos = new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "");
-                    BeanUtils.copyProperties(positionInfo, pos);
-                    final Pos newPos = MarketUtils.mapPos(pos);
+                .map(this::okExPositionToPos)
+                .subscribe(newPos -> {
+                    logger.debug(newPos.toFullString());
                     this.pos.set(newPos);
-                    if (pos.getLeverage() != null) {
-                        leverage = pos.getLeverage();
-                    }
 
                     stateRecalcInStateUpdaterThread();
 
                 }, throwable -> logger.error("PositionObservable.Exception: ", throwable));
+    }
+
+    private Pos okExPositionToPos(OkExPosition p) {
+        return new Pos(
+                p.getLongQty(),
+                p.getShortQty(),
+                p.getLongAvailQty(),
+                p.getShortAvailQty(),
+                p.getLeverage(),
+                p.getLiquidationPrice(),
+                BigDecimal.ZERO, //mark value
+                p.getLongAvgCost(),
+                p.getShortAvgCost(),
+                p.getUpdatedAt().toInstant(),
+                p.toString(),
+                p.getLongPnl().add(p.getShortPnl())
+        );
     }
 
     @SuppressWarnings("Duplicates")
