@@ -6,10 +6,10 @@ import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
-import com.bitplay.okex.v3.dto.futures.result.OkexPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.service.futures.FuturesTradeApiService;
-import com.fasterxml.jackson.databind.util.JSONPObject;
 
 /**
  * Futures trade api
@@ -29,8 +29,13 @@ public class FuturesTradeApiServiceImpl implements FuturesTradeApiService {
     }
 
     @Override
-    public OkexPositions getPositions() {
+    public OkexAllPositions getPositions() {
         return this.client.executeSync(this.api.getPositions());
+    }
+
+    @Override
+    public OkexOnePosition getInstrumentPosition(String instrumentId) {
+        return this.client.executeSync(this.api.getInstrumentPosition(instrumentId));
     }
 
     @Override

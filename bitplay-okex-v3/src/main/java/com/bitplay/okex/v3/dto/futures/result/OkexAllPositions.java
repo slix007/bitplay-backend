@@ -8,7 +8,7 @@ import java.util.Optional;
 import lombok.Data;
 
 @Data
-public class OkexPositions {
+public class OkexAllPositions {
 
     Boolean result; // true
     List<List<OkexPosition>> holding;
@@ -30,7 +30,7 @@ public class OkexPositions {
         return Pos.emptyPos();
     }
 
-    private Pos toPos(OkexPosition p) {
+    public static Pos toPos(OkexPosition p) {
         return new Pos(
                 p.getLongQty(),
                 p.getShortQty(),

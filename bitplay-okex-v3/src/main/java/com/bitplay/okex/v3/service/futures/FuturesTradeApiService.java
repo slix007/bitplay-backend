@@ -3,9 +3,9 @@ package com.bitplay.okex.v3.service.futures;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
-import com.bitplay.okex.v3.dto.futures.result.OkexPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
-import com.fasterxml.jackson.databind.util.JSONPObject;
 
 /**
  * Futures Trade API Service
@@ -19,14 +19,14 @@ public interface FuturesTradeApiService {
     /**
      * Get all of futures contract position list
      */
-    OkexPositions getPositions();
-//
-//    /**
-//     * Get the futures contract product position
-//     *
-//     * @param instrumentId The id of the futures contract eg: BTC-USD-0331"
-//     */
-//    JSONObject getInstrumentPosition(String instrumentId);
+    OkexAllPositions getPositions();
+
+    /**
+     * Get the futures contract product position
+     *
+     * @param instrumentId The id of the futures contract eg: BTC-USD-0331"
+     */
+    OkexOnePosition getInstrumentPosition(String instrumentId);
 
     /**
      * Get all of futures contract account list

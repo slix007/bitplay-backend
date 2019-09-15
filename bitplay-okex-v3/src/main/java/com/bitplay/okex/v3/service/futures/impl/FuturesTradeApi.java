@@ -4,10 +4,9 @@ import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
-import com.bitplay.okex.v3.dto.futures.result.OkexPosition;
-import com.bitplay.okex.v3.dto.futures.result.OkexPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
-import com.fasterxml.jackson.databind.util.JSONPObject;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -23,11 +22,13 @@ import retrofit2.http.Path;
  */
 interface FuturesTradeApi {
 
+    // Rate Limit: 5 requests per 2 seconds
     @GET("/api/futures/v3/position")
-    Call<OkexPositions> getPositions();
-//
-//    @GET("/api/futures/v3/{instrument_id}/position")
-//    Call<JSONObject> getInstrumentPosition(@Path("instrument_id") String instrumentId);
+    Call<OkexAllPositions> getPositions();
+
+    // Rate Limit: 20 requests per 2 seconds
+    @GET("/api/futures/v3/{instrument_id}/position")
+    Call<OkexOnePosition> getInstrumentPosition(@Path("instrument_id") String instrumentId);
 
     @GET("/api/futures/v3/accounts")
     Call<Accounts> getAccounts();

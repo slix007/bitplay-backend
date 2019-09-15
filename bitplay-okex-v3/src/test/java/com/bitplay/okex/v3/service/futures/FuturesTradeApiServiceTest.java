@@ -4,14 +4,10 @@ import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
-import com.bitplay.okex.v3.dto.futures.result.OkexPosition;
-import com.bitplay.okex.v3.dto.futures.result.OkexPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.JSONPObject;
-import java.util.Optional;
-import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -55,7 +51,7 @@ public class FuturesTradeApiServiceTest extends BaseTests {
 
     @Test
     public void getPosition() throws JsonProcessingException {
-        final OkexPositions positions = tradeApiService.getPositions();
+        final OkexAllPositions positions = tradeApiService.getPositions();
 //        final Optional<Object> byInstrumentId = positions.getByInstrumentId("BTC-USD-190920");
 
         final ObjectMapper mapper = new ObjectMapper();
@@ -69,5 +65,14 @@ public class FuturesTradeApiServiceTest extends BaseTests {
 
 //        LOG.info(positions.getResult());
 //        LOG.info(positions.getHolding().toString());
+    }
+
+    @Test
+    public void getInstrumentPosition() throws JsonProcessingException {
+        final Object p = tradeApiService.getInstrumentPosition("BTC-USD-190920");
+
+        final ObjectMapper mapper = new ObjectMapper();
+        final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);
+        LOG.info(s);
     }
 }

@@ -33,7 +33,8 @@ import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BitplayOkexEchange;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
-import com.bitplay.okex.v3.dto.futures.result.OkexPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.exception.ApiException;
@@ -584,7 +585,8 @@ public class OkCoinService extends MarketServicePreliq {
 //        Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
 //    }
 
-    @Scheduled(fixedDelay = 2000)
+    @Scheduled(fixedDelay = 200)
+    // Rate Limit: 20 requests per 2 seconds
     public void fetchPositionScheduled() {
         Instant start = Instant.now();
         try {
@@ -598,11 +600,13 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public String fetchPosition() throws Exception {
-        final OkexPositions positions = bitplayOkexEchange.getTradeApiService().getPositions();
-        final Pos pos = positions.toPos(instrDtos.get(0).getInstrumentId());
-        this.pos.set(pos);
-
-        stateRecalcInStateUpdaterThread();
+        final String instrumentId = instrDtos.get(0).getInstrumentId();
+        final OkexOnePosition position = bitplayOkexEchange.getTradeApiService().getInstrumentPosition(instrumentId);
+        position.getOne().ifPresent(theOne -> {
+            final Pos pos = OkexAllPositions.toPos(theOne);
+            this.pos.set(pos);
+            stateRecalcInStateUpdaterThread();
+        });
 
         return this.pos.toString();
     }
@@ -2052,6 +2056,9 @@ public class OkCoinService extends MarketServicePreliq {
     protected Completable recalcLiqInfo() {
         return Completable.fromAction(() -> {
             final Pos position = this.pos.get();
+            if (position == null || position.getPositionLong() == null) {
+                return; // not yet initialized
+            }
             final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
             final BigDecimal oMrLiq = persistenceService.fetchGuiLiqParams().getOMrLiq();
 
