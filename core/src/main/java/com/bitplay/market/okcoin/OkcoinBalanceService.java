@@ -36,14 +36,17 @@ public class OkcoinBalanceService implements BalanceService {
         final BigDecimal eLast = account.getELast();
         final BigDecimal available = account.getAvailable();
         final BigDecimal margin = eLast != null ? eLast.subtract(available) : BigDecimal.ZERO; //equity and available may be updated with separate responses
+        BigDecimal wallet = account.getWallet();
 
         //set eBest & eAvg for account
         BigDecimal eBest = null;
         BigDecimal eAvg = null;
-        if (account.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
+        if (account.getEMark() != null && pObj != null && pObj.getPositionLong() != null) {
             final BigDecimal pos_cm = contractType.isEth() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
             final BigDecimal pos = (pObj.getPositionLong().subtract(pObj.getPositionShort())).multiply(pos_cm);
-            final BigDecimal wallet = account.getWallet();
+            final BigDecimal eMark = account.getEMark();
+            final BigDecimal posPnl = pObj.getPosPnl();
+            wallet = eMark.subtract(posPnl);
 
             if (pos.signum() > 0) {
                 //TODO how to find entryPrice.
@@ -104,7 +107,7 @@ public class OkcoinBalanceService implements BalanceService {
         eBest = okexEbestElast ? eLast : eBest;
 
         return new FullBalance(new AccountBalance(
-                account.getWallet(),
+                wallet,
                 available,
                 BigDecimal.ZERO,
                 eLast,

@@ -58,10 +58,11 @@ public class FuturesTradeApiServiceTest extends BaseTests {
         final OkexPositions positions = tradeApiService.getPositions();
 //        final Optional<Object> byInstrumentId = positions.getByInstrumentId("BTC-USD-190920");
 
-//        final ObjectMapper mapper = new ObjectMapper();
+        final ObjectMapper mapper = new ObjectMapper();
 //        final OkexPosition pos = byInstrumentId.get();
-//        final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(pos);
-        LOG.info(positions.toString());
+        final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(positions);
+//        LOG.info(positions.toString());
+        LOG.info(s);
 //        LOG.info(pos.getLongPnl().toPlainString());
 //        LOG.info(pos.getLongUnrealisedPnl().toPlainString());
         // "instrument_id" : "BTC-USD-190920",
