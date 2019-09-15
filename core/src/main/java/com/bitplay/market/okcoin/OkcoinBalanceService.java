@@ -97,9 +97,9 @@ public class OkcoinBalanceService implements BalanceService {
             }
         }
 
-        if (contractType.isEth()) {
-            tempValues += "<br>";
-        }
+//        if (contractType.isEth()) {
+//            tempValues += "<br>";
+//        }
 
         final boolean okexEbestElast = settingsRepositoryService.getSettings().getOkexEbestElast() != null
                 ? settingsRepositoryService.getSettings().getOkexEbestElast()
