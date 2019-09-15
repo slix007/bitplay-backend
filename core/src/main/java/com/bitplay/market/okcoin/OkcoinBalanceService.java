@@ -45,8 +45,8 @@ public class OkcoinBalanceService implements BalanceService {
             final BigDecimal pos_cm = contractType.isEth() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
             final BigDecimal pos = (pObj.getPositionLong().subtract(pObj.getPositionShort())).multiply(pos_cm);
             final BigDecimal eMark = account.getEMark();
-            final BigDecimal posPnl = pObj.getPosPnl();
-            wallet = eMark.subtract(posPnl);
+            final BigDecimal plPos = pObj.getPlPos();
+            wallet = eMark.subtract(plPos);
 
             if (pos.signum() > 0) {
                 //TODO how to find entryPrice.

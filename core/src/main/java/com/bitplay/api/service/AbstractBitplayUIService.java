@@ -177,7 +177,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
         final BigDecimal longAvailToClose = position.getLongAvailToClose() != null ? position.getLongAvailToClose() : BigDecimal.ZERO;
         final BigDecimal shortAvailToClose = position.getShortAvailToClose() != null ? position.getShortAvailToClose() : BigDecimal.ZERO;
-        final String posPnl = position.getPosPnl() != null ? position.getPosPnl().toPlainString() : "";
+        final String plPos = position.getPlPos() != null ? position.getPlPos().toPlainString() : "";
         return new AccountInfoJson(
                 wallet.toPlainString(),
                 available.toPlainString(),
@@ -198,7 +198,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 eAvg != null ? eAvg.toPlainString() : "0",
                 entryPrice,
                 account.toString(),
-                posPnl);
+                plPos);
     }
 
     protected String getPositionString(final Pos position) {
