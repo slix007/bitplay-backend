@@ -69,10 +69,10 @@ public class VolatileModeAfterService {
         okexService.changeDeferredPlacingType(okexPlacingType);
 
         if (bitmexOO.size() > 0) {
-            executorServiceBtm.execute(() -> replaceLimitOrdersBitmex(bitmexOO, tradeId, btmFokAutoArgs));
+            bitmexService.ooSingleExecutor.execute(() -> replaceLimitOrdersBitmex(bitmexOO, tradeId, btmFokAutoArgs));
         }
         if (okexOO.size() > 0) {
-            executorServiceOkex.execute(() -> replaceLimitOrdersOkex(okexOO, tradeId));
+            okexService.ooSingleExecutor.execute(() -> replaceLimitOrdersOkex(okexOO, tradeId));
         }
     }
 

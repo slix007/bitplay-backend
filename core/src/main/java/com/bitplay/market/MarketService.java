@@ -105,7 +105,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3,
             new ThreadFactoryBuilder().setNameFormat(getName() + "-overload-scheduler-%d").build());
-    protected final ExecutorService ooSingleExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory(getName() + "-oo-executor"));
+    public final ExecutorService ooSingleExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory(getName() + "-oo-executor"));
     protected final Scheduler ooSingleScheduler = Schedulers.from(ooSingleExecutor);
     protected final Scheduler indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-index-executor-%d").build()));
