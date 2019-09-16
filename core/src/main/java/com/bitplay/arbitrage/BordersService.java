@@ -422,7 +422,7 @@ public class BordersService {
         }
 
         if (pos != 0) {
-            for (int i = 0; i < btm_br_close_cnt; i++) {
+            for (int i = btm_br_close_cnt - 1; i >= 0 ; i--) {
                 BorderItem borderItem = btm_br_close.get(i);
                 if (borderItem.getId() != 0) {
                     if (b_delta.compareTo(borderItem.getValue()) >= 0) { // >=
@@ -453,12 +453,16 @@ public class BordersService {
                             if (affordable != null) {
                                 btm_br_close_calc_block = Math.min(btm_br_close_calc_block, affordable.intValue());
                             }
-                            int posAfter = pos + Math.min(btm_br_close_calc_block, block);
-                            if (posAfter >= posLongLimit) {
-                                borderValueList.add(borderItem.getValue());
-                                borderValue.append(";").append(borderItem.toString())
-                                        .append(",m=").append(m)
-                                        .append(",b=").append(b);
+                            if (btm_br_close_calc_block == 0) {
+                                break;
+                            }
+                            borderValueList.add(borderItem.getValue());
+                            borderValue.append(";").append(borderItem.toString())
+                                    .append(",m=").append(m)
+                                    .append(",b=").append(b)
+                                    .append(",full_b=").append(btm_br_close_calc_block);
+                            if (m > btm_br_close_calc_block) {
+                                break;
                             }
                         }
 
@@ -488,12 +492,16 @@ public class BordersService {
                             if (affordable != null) {
                                 btm_br_close_calc_block = Math.min(btm_br_close_calc_block, affordable.intValue());
                             }
-                            int posAfter = -pos + Math.min(btm_br_close_calc_block, block);
-                            if (posAfter >= posShortLimit) {
-                                borderValueList.add(borderItem.getValue());
-                                borderValue.append(";").append(borderItem.toString())
-                                        .append(",m=").append(m)
-                                        .append(",b=").append(b);
+                            if (btm_br_close_calc_block == 0) {
+                                break;
+                            }
+                            borderValueList.add(borderItem.getValue());
+                            borderValue.append(";").append(borderItem.toString())
+                                    .append(",m=").append(m)
+                                    .append(",b=").append(b)
+                                    .append(",full_b=").append(btm_br_close_calc_block);
+                            if (m > btm_br_close_calc_block) {
+                                break;
                             }
                         }
                     }
@@ -579,12 +587,16 @@ public class BordersService {
                         if (affordable != null) {
                             btm_br_open_calc_block = Math.min(btm_br_open_calc_block, affordable.intValue());
                         }
-                        int posAfter = pos + Math.min(btm_br_open_calc_block, block);
-                        if (posAfter >= posLongLimit) {
-                            borderValueList.add(borderItem.getValue());
-                            borderValue.append(";").append(borderItem.toString())
-                                    .append(",m=").append(m)
-                                    .append(",b=").append(b);
+                        if (btm_br_open_calc_block == 0) {
+                            break;
+                        }
+                        borderValueList.add(borderItem.getValue());
+                        borderValue.append(";").append(borderItem.toString())
+                                .append(",m=").append(m)
+                                .append(",b=").append(b)
+                                .append(",full_b=").append(btm_br_open_calc_block);
+                        if (m > btm_br_open_calc_block) {
+                            break;
                         }
                     }
 
@@ -614,12 +626,16 @@ public class BordersService {
                         if (affordable != null) {
                             btm_br_open_calc_block = Math.min(btm_br_open_calc_block, affordable.intValue());
                         }
-                        int posAfter = -pos + Math.min(btm_br_open_calc_block, block);
-                        if (posAfter >= posShortLimit) {
-                            borderValueList.add(borderItem.getValue());
-                            borderValue.append(";").append(borderItem.toString())
-                                    .append(",m=").append(m)
-                                    .append(",b=").append(b);
+                        if (btm_br_open_calc_block == 0) {
+                            break;
+                        }
+                        borderValueList.add(borderItem.getValue());
+                        borderValue.append(";").append(borderItem.toString())
+                                .append(",m=").append(m)
+                                .append(",b=").append(b)
+                                .append(",full_b=").append(btm_br_open_calc_block);
+                        if (m > btm_br_open_calc_block) {
+                            break;
                         }
                     }
                 }
@@ -699,7 +715,7 @@ public class BordersService {
         }
 
         if (pos != 0) {
-            for (int i = 0; i < ok_br_close_cnt; i++) {
+            for (int i = ok_br_close_cnt - 1; i >= 0 ; i--) {
                 BorderItem borderItem = ok_br_close.get(i);
                 if (borderItem.getId() != 0) {
                     if (o_delta.compareTo(borderItem.getValue()) >= 0) {
@@ -730,12 +746,16 @@ public class BordersService {
                             if (affordable != null) {
                                 ok_br_close_calc_block = Math.min(ok_br_close_calc_block, affordable.intValue());
                             }
-                            int posAfter = pos + Math.min(ok_br_close_calc_block, block);
-                            if (posAfter >= posLongLimit) {
-                                borderValueList.add(borderItem.getValue());
-                                borderValue.append(";").append(borderItem.toString())
-                                        .append(",m=").append(m)
-                                        .append(",b=").append(b);
+                            if (ok_br_close_calc_block == 0) {
+                                break;
+                            }
+                            borderValueList.add(borderItem.getValue());
+                            borderValue.append(";").append(borderItem.toString())
+                                    .append(",m=").append(m)
+                                    .append(",b=").append(b)
+                                    .append(",full_b=").append(ok_br_close_calc_block);
+                            if (m > ok_br_close_calc_block) {
+                                break;
                             }
                         }
 
@@ -765,12 +785,16 @@ public class BordersService {
                             if (affordable != null) {
                                 ok_br_close_calc_block = Math.min(ok_br_close_calc_block, affordable.intValue());
                             }
-                            int posAfter = -pos + Math.min(ok_br_close_calc_block, block);
-                            if (posAfter >= posShortLimit) {
-                                borderValueList.add(borderItem.getValue());
-                                borderValue.append(";").append(borderItem.toString())
-                                        .append(",m=").append(m)
-                                        .append(",b=").append(b);
+                            if (ok_br_close_calc_block == 0) {
+                                break;
+                            }
+                            borderValueList.add(borderItem.getValue());
+                            borderValue.append(";").append(borderItem.toString())
+                                    .append(",m=").append(m)
+                                    .append(",b=").append(b)
+                                    .append(",full_b=").append(ok_br_close_calc_block);
+                            if (m > ok_br_close_calc_block) {
+                                break;
                             }
 
                         }
@@ -849,12 +873,16 @@ public class BordersService {
                         if (affordable != null) {
                             ok_br_open_calc_block = Math.min(ok_br_open_calc_block, affordable.intValue());
                         }
-                        int posAfter = pos + Math.min(ok_br_open_calc_block, block);
-                        if (posAfter >= posLongLimit) {
-                            borderValueList.add(borderItem.getValue());
-                            borderValue.append(";").append(borderItem.toString())
-                                    .append(",m=").append(m)
-                                    .append(",b=").append(b);
+                        if (ok_br_open_calc_block == 0) {
+                            break;
+                        }
+                        borderValueList.add(borderItem.getValue());
+                        borderValue.append(";").append(borderItem.toString())
+                                .append(",m=").append(m)
+                                .append(",b=").append(b)
+                                .append(",full_b=").append(ok_br_open_calc_block);
+                        if (m > ok_br_open_calc_block) {
+                            break;
                         }
                     }
 
@@ -884,12 +912,16 @@ public class BordersService {
                         if (affordable != null) {
                             ok_br_open_calc_block = Math.min(ok_br_open_calc_block, affordable.intValue());
                         }
-                        int posAfter = -pos + Math.min(ok_br_open_calc_block, block);
-                        if (posAfter >= posShortLimit) {
-                            borderValueList.add(borderItem.getValue());
-                            borderValue.append(";").append(borderItem.toString())
-                                    .append(",m=").append(m)
-                                    .append(",b=").append(b);
+                        if (ok_br_open_calc_block == 0) {
+                            break;
+                        }
+                        borderValueList.add(borderItem.getValue());
+                        borderValue.append(";").append(borderItem.toString())
+                                .append(",m=").append(m)
+                                .append(",b=").append(b)
+                                .append(",full_b=").append(ok_br_open_calc_block);
+                        if (m > ok_br_open_calc_block) {
+                            break;
                         }
                     }
                 }
