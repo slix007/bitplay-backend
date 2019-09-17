@@ -39,8 +39,8 @@ public class OkcoinBalanceService implements BalanceService {
         BigDecimal wallet = account.getWallet();
 
         //set eBest & eAvg for account
-        BigDecimal eBest = null;
-        BigDecimal eAvg = null;
+        BigDecimal eBest = wallet;
+        BigDecimal eAvg = wallet;
         if (account.getEMark() != null && pObj != null && pObj.getPositionLong() != null) {
             final BigDecimal pos_cm = contractType.isEth() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
             final BigDecimal pos = (pObj.getPositionLong().subtract(pObj.getPositionShort())).multiply(pos_cm);
@@ -92,10 +92,6 @@ public class OkcoinBalanceService implements BalanceService {
 
                     tempValues += String.format("ask1=%s,askAvgPrice=%s", ask1, askAvgPrice);
                 }
-            } else { //pos==0
-                // e_best == btm_bal
-                eBest = wallet;
-                eAvg = wallet;
             }
         }
 
