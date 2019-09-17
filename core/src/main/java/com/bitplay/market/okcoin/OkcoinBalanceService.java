@@ -52,8 +52,8 @@ public class OkcoinBalanceService implements BalanceService {
                 wallet = eMark.subtract(plPos);
             }
 
-            final BigDecimal entryPrice = pObj.getPriceAvgLong().subtract(pObj.getPriceAvgShort());
             if (pos.signum() > 0) {
+                final BigDecimal entryPrice = pObj.getPriceAvgLong();
                 if (entryPrice != null && entryPrice.signum() != 0) {
                     final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
                     // upl_long = pos/entry_price - pos/bid[1]
@@ -75,6 +75,7 @@ public class OkcoinBalanceService implements BalanceService {
                 }
             } else if (pos.signum() < 0) {
 
+                final BigDecimal entryPrice = pObj.getPriceAvgShort();
                 if (entryPrice != null && entryPrice.signum() != 0) {
                     final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
                     // upl_short = pos / ask[1] - pos / entry_price
