@@ -39,8 +39,8 @@ public class OkexAllPositions {
                 p.getLeverage(),
                 p.getLiquidationPrice(),
                 BigDecimal.ZERO, //mark value
-                p.getLongAvgCost(),
-                p.getShortAvgCost(),
+                p.getLongQty().signum() == 0 ? BigDecimal.ZERO : p.getLongAvgCost(),
+                p.getShortQty().signum() == 0 ? BigDecimal.ZERO : p.getShortAvgCost(),
                 p.getUpdatedAt().toInstant(),
                 p.toString(),
                 p.getLongPnl().add(p.getShortPnl())
