@@ -120,8 +120,8 @@ public class BitmexAdapters {
                 position.getAvgEntryPrice() != null ? BigDecimal.valueOf(position.getAvgEntryPrice()) : BigDecimal.ZERO,
                 position.getAvgEntryPrice() != null ? BigDecimal.valueOf(position.getAvgEntryPrice()) : BigDecimal.ZERO,
                 position.getTimestamp().toInstant(), //TODO check timezone
-                position.toString()
-        );
+                position.toString(),
+                null);
     }
 
     public static BigDecimal priceToBigDecimal(Double aDouble, Integer scale) {

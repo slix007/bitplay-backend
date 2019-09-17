@@ -2,7 +2,6 @@ package com.bitplay.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -10,7 +9,6 @@ import lombok.NoArgsConstructor;
  * Created by Sergey Shurmin on 6/28/17.
  */
 @Getter
-@AllArgsConstructor
 @NoArgsConstructor
 public class Pos {
 
@@ -36,8 +34,8 @@ public class Pos {
 
     public static Pos emptyPos() {
         return new Pos(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, null, "position is empty"
-        );
+                BigDecimal.ZERO, null, "position is empty",
+                null);
     }
 
     //TODO refactor to emptyPos => use emptyPos on init => remove in Bitmex#mergePostition emptyPos() call
@@ -48,7 +46,7 @@ public class Pos {
     public Pos(BigDecimal positionLong, BigDecimal positionShort,
             BigDecimal longAvailToClose, BigDecimal shortAvailToClose,
             BigDecimal leverage, BigDecimal liquidationPrice, BigDecimal markValue,
-            BigDecimal priceAvgLong, BigDecimal priceAvgShort, Instant timestamp, String raw) {
+            BigDecimal priceAvgLong, BigDecimal priceAvgShort, Instant timestamp, String raw, BigDecimal plPos) {
         this.positionLong = positionLong;
         this.positionShort = positionShort;
         this.longAvailToClose = longAvailToClose;
@@ -60,6 +58,7 @@ public class Pos {
         this.priceAvgShort = priceAvgShort;
         this.timestamp = timestamp;
         this.raw = raw;
+        this.plPos = plPos;
     }
 
     @Override

@@ -26,9 +26,6 @@ public class OkcoinBalanceService implements BalanceService {
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
-//    private volatile Instant prevTime = Instant.now();
-//    private volatile FullBalance fullBalance;
-
     private FullBalance recalcEquity(AccountBalance account, Pos pObj, OrderBook orderBook, ContractType contractType) {
 
         String tempValues = "";
@@ -41,7 +38,12 @@ public class OkcoinBalanceService implements BalanceService {
         //set eBest & eAvg for account
         BigDecimal eBest = wallet;
         BigDecimal eAvg = wallet;
-        if (account.getEMark() != null && pObj != null && pObj.getPositionLong() != null) {
+        if (account.getEMark() != null
+                && pObj != null
+                && pObj.getPositionLong() != null
+                && pObj.getPriceAvgLong() != null
+                && pObj.getPriceAvgShort() != null
+        ) {
             final BigDecimal pos_cm = contractType.isEth() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
             final BigDecimal pos = (pObj.getPositionLong().subtract(pObj.getPositionShort())).multiply(pos_cm);
             final BigDecimal eMark = account.getEMark();
@@ -50,9 +52,8 @@ public class OkcoinBalanceService implements BalanceService {
                 wallet = eMark.subtract(plPos);
             }
 
+            final BigDecimal entryPrice = pObj.getPriceAvgLong().subtract(pObj.getPriceAvgShort());
             if (pos.signum() > 0) {
-                //TODO how to find entryPrice.
-                final BigDecimal entryPrice = pObj.getPriceAvgLong();
                 if (entryPrice != null && entryPrice.signum() != 0) {
                     final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
                     // upl_long = pos/entry_price - pos/bid[1]
@@ -73,7 +74,7 @@ public class OkcoinBalanceService implements BalanceService {
                     tempValues += String.format("bid1=%s,bidAvgPrice=%s", bid1, bidAvgPrice);
                 }
             } else if (pos.signum() < 0) {
-                final BigDecimal entryPrice = pObj.getPriceAvgShort();
+
                 if (entryPrice != null && entryPrice.signum() != 0) {
                     final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
                     // upl_short = pos / ask[1] - pos / entry_price
@@ -94,10 +95,6 @@ public class OkcoinBalanceService implements BalanceService {
                 }
             }
         }
-
-//        if (contractType.isEth()) {
-//            tempValues += "<br>";
-//        }
 
         final boolean okexEbestElast = settingsRepositoryService.getSettings().getOkexEbestElast() != null
                 ? settingsRepositoryService.getSettings().getOkexEbestElast()

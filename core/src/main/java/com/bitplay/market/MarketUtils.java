@@ -24,18 +24,4 @@ public class MarketUtils {
         return usd;
     }
 
-    public static Pos mapPos(Position position) {
-        return new Pos(position.getPositionLong(),
-                position.getPositionShort(),
-                position.getLongAvailToClose(),
-                position.getShortAvailToClose(),
-                position.getLeverage(),
-                position.getLiquidationPrice(),
-                position.getMarkValue(),
-                position.getPriceAvgLong(),
-                position.getPriceAvgShort(),
-                null,
-                position.getRaw());
-    }
-
 }
