@@ -2578,8 +2578,8 @@ public class BitmexService extends MarketServicePreliq {
                     } else {
                         dqlString = "b_DQL = na";
                         dql = null;
-                        warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
-                                m.toPlainString(), L.toPlainString()));
+//                        warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
+//                                m.toPlainString(), L.toPlainString()));
                     }
                 } else if (position.getPositionLong().signum() < 0) {
                     if (m.signum() > 0 && L.signum() > 0) {
@@ -2592,8 +2592,8 @@ public class BitmexService extends MarketServicePreliq {
                     } else {
                         dqlString = "b_DQL = na";
                         dql = null;
-                        warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
-                                m.toPlainString(), L.toPlainString()));
+//                        warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
+//                                m.toPlainString(), L.toPlainString()));
                     }
                 } else {
                     dqlString = "b_DQL = na";
