@@ -58,11 +58,6 @@ public class OkCoinEndpoint {
         return this.okCoin.doTrade(tradeRequestJson);
     }
 
-    @RequestMapping(value = "/trade-history", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<VisualTrade> tradeHistory() {
-        return this.okCoin.fetchTrades();
-    }
-
     @RequestMapping(value = "/open-orders", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<OrderJson> openOrders() {
         return this.okCoin.getOpenOrders();

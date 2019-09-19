@@ -38,17 +38,6 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
     }
 
     @Override
-    public List<VisualTrade> fetchTrades() {
-        final Trades trades = poloniexService.fetchTrades();
-
-        List<VisualTrade> askTrades = trades.getTrades().stream()
-                .sorted((o1, o2) -> o1.getTimestamp().before(o2.getTimestamp()) ? 1 : -1)
-                .map(this::toVisualTrade)
-                .collect(Collectors.toList());
-        return askTrades;
-    }
-
-    @Override
     protected AccountInfoJson convertAccountInfo(AccountInfo accountInfo, Position position) {
         if (accountInfo == null) {
             return new AccountInfoJson(null, null, null);

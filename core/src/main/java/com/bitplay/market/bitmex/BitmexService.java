@@ -1624,11 +1624,6 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
-    public UserTrades fetchMyTradeHistory() {
-        return null;
-    }
-
-    @Override
     protected Completable recalcAffordableContracts() {
         return Completable.fromAction(() -> {
             final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc1();

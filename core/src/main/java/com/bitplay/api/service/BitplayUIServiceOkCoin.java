@@ -44,17 +44,6 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         return service;
     }
 
-    @Override
-    public List<VisualTrade> fetchTrades() {
-        final UserTrades trades = service.fetchMyTradeHistory();
-
-        List<VisualTrade> askTrades = trades.getTrades().stream()
-                .sorted((o1, o2) -> o1.getTimestamp().before(o2.getTimestamp()) ? 1 : -1)
-                .map(this::toVisualTrade)
-                .collect(Collectors.toList());
-        return askTrades;
-    }
-
     @SuppressWarnings("Duplicates")
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {
         final BigDecimal amount = new BigDecimal(tradeRequestJson.getAmount());

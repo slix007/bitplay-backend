@@ -104,11 +104,6 @@ public class PoloniexEndpoint {
         return this.poloniex.doTrade(tradeRequestJson);
     }
 
-    @RequestMapping(value = "/trade-history", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<VisualTrade> tradeHistory() {
-        return this.poloniex.fetchTrades();
-    }
-
     @RequestMapping(value = "/open-orders", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<OrderJson> openOrders() {
         return this.poloniex.getOpenOrders();

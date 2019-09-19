@@ -107,11 +107,6 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public UserTrades fetchMyTradeHistory() {
-        return null;
-    }
-
-    @Override
     public TradeResponse placeOrder(PlaceOrderArgs placeOrderArgs) {
         return null;
     }

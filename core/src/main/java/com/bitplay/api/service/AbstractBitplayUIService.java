@@ -95,8 +95,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         );
     };
 
-    public abstract List<VisualTrade> fetchTrades();
-
     public abstract T getBusinessService();
 
     public abstract FutureIndexJson getFutureIndex();
@@ -221,19 +219,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 wallet.getBalance(Currency.BTC).getAvailable().setScale(8, BigDecimal.ROUND_HALF_UP).toPlainString(),
                 wallet.getBalance(Currency.USD).getAvailable().toPlainString(),
                 accountInfo.toString());
-    }
-
-    public List<VisualTrade> getTradeHistory() {
-        final UserTrades userTrades = getBusinessService().fetchMyTradeHistory();
-        return userTrades.getUserTrades().stream()
-                .map(userTrade -> new VisualTrade(
-                        userTrade.getCurrencyPair().toString(),
-                        userTrade.getPrice().toPlainString(),
-                        userTrade.getTradableAmount().toString(),
-                        userTrade.getType().toString(),
-                        userTrade.getTimestamp().toString()
-                ))
-                .collect(Collectors.toList());
     }
 
     public List<OrderJson> getOpenOrders() {

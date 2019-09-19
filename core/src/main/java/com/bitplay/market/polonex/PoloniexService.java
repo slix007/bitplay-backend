@@ -245,36 +245,6 @@ public class PoloniexService extends MarketService {
         return exchange.getTradeService();
     }
 
-    public Trades fetchTrades() {
-        Trades trades = null;
-
-        try {
-            List<CurrencyPairMetaData> selected = new ArrayList<>();
-
-            Map<CurrencyPair, CurrencyPairMetaData> selectedMeta = new HashMap<>();
-
-            exchange.getExchangeMetaData().getCurrencyPairs()
-                    .forEach((pair, currencyPairMetaData) -> {
-                if (pair.base == Currency.BTC
-                    //&& pair.counter == Currency.USD
-                        ) {
-                    selected.add(currencyPairMetaData);
-                    selectedMeta.put(pair, currencyPairMetaData);
-                }
-            });
-
-            final MarketDataService marketDataService = exchange.getMarketDataService();
-            trades = marketDataService.getTrades(selectedMeta.keySet().iterator().next());
-            logger.info("Fetched {} trades", trades.getTrades().size());
-
-        } catch (IOException e) {
-            logger.error("Can not fetchTrades", e);
-        } catch (Exception e) {
-            logger.error("Unexpected error on fetchTrades", e);
-        }
-        return trades;
-    }
-
 //    @Scheduled(fixedRate = 5000)
 //    public void check() {
 //        checkOpenOrdersForMoving(orderBook);
@@ -562,18 +532,6 @@ public class PoloniexService extends MarketService {
         exchange.getTradeService().placeLimitOrder(theOrder);
 
         return theOrder;
-    }
-
-    public UserTrades fetchMyTradeHistory() {
-//        returnTradeHistory
-        UserTrades tradeHistory = null;
-        try {
-            tradeHistory = exchange.getTradeService().getTradeHistory(TradeHistoryParamsZero.PARAMS_ZERO);
-        } catch (Exception e) {
-            logger.info("Exception on fetchMyTradeHistory", e);
-        }
-        return tradeHistory;
-
     }
 
     @Override

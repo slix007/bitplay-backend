@@ -141,8 +141,6 @@ public abstract class MarketService extends MarketServiceWithState {
 
     protected abstract void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs);
 
-    public abstract UserTrades fetchMyTradeHistory();
-
     public OrderBook getOrderBookXBTUSD() {
         return getOrderBook();
     }

@@ -59,11 +59,6 @@ public class BitmexEndpoint {
         return this.bitmex.doTrade(tradeRequestJson);
     }
 
-    @RequestMapping(value = "/trade-history", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<VisualTrade> tradeHistory() {
-        return this.bitmex.fetchTrades();
-    }
-
     @RequestMapping(value = "/open-orders", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<OrderJson> openOrders() {
         return this.bitmex.getOpenOrders();

@@ -1601,21 +1601,6 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public UserTrades fetchMyTradeHistory() {
-//        returnTradeHistory
-        UserTrades tradeHistory = null;
-        try {
-            tradeHistory = exchange.getTradeService()
-                    .getTradeHistory(new OkCoinTradeService.OkCoinTradeHistoryParams(
-                            10, 1, okexContractType.getCurrencyPair()));
-        } catch (Exception e) {
-            logger.info("Exception on fetchMyTradeHistory", e);
-        }
-        return tradeHistory;
-
-    }
-
-    @Override
     public TradeService getTradeService() {
         return exchange.getTradeService();
     }
