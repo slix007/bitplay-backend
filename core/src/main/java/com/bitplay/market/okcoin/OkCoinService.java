@@ -35,6 +35,7 @@ import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
+import com.bitplay.okex.v3.dto.futures.result.OkexPosition;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.exception.ApiException;
@@ -602,11 +603,14 @@ public class OkCoinService extends MarketServicePreliq {
     public String fetchPosition() throws Exception {
         final String instrumentId = instrDtos.get(0).getInstrumentId();
         final OkexOnePosition position = bitplayOkexEchange.getTradeApiService().getInstrumentPosition(instrumentId);
-        position.getOne().ifPresent(theOne -> {
-            final Pos pos = OkexAllPositions.toPos(theOne);
+        if (position.getOne().isPresent()) {
+            final OkexPosition okexPosition = position.getOne().get();
+            final Pos pos = OkexAllPositions.toPos(okexPosition);
             this.pos.set(pos);
             stateRecalcInStateUpdaterThread();
-        });
+        } else {
+            this.pos.set(Pos.emptyPos());
+        }
 
         return this.pos.toString();
     }

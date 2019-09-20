@@ -67,7 +67,7 @@ public class FuturesTradeApiServiceTest extends BaseTests {
 //        LOG.info(positions.getHolding().toString());
     }
 
-    @Test
+//    @Test
     public void getInstrumentPosition() throws JsonProcessingException {
         final Object p = tradeApiService.getInstrumentPosition("BTC-USD-190920");
 
