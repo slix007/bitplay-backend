@@ -1,9 +1,10 @@
 package com.bitplay.okex.v3.dto.futures.result;
 
-/**
- * Contract price estimate for delivery.  <br/>
- * Created by Tony Tian on 2018/2/26 15:52. <br/>
- */
+import java.math.BigDecimal;
+import java.util.Date;
+import lombok.Data;
+
+@Data
 public class EstimatedPrice {
     /**
      * The id of the futures contract
@@ -12,25 +13,10 @@ public class EstimatedPrice {
     /**
      * Estimated price
      */
-    private String settlement_price;
+    private BigDecimal settlement_price;
     /**
      * time
      */
-    private String timestamp;
+    private Date timestamp;
 
-    public String getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public String getInstrument_id() { return instrument_id; }
-
-    public void setInstrument_id(String instrument_id) { this.instrument_id = instrument_id; }
-
-    public String getSettlement_price() { return settlement_price; }
-
-    public void setSettlement_price(String settlement_price) { this.settlement_price = settlement_price; }
 }

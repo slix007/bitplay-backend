@@ -1,36 +1,14 @@
 package com.bitplay.okex.v3.dto.futures.result;
 
-/**
- * futures contract product book
- *
- * @author Tony Tian
- * @version 1.0.0
- * @date 2018/3/12 15:14
- */
+import java.math.BigDecimal;
+import java.util.Date;
+import lombok.Data;
+
+@Data
 public class Book {
 
-//    /**
-//     * asks book
-//     */
-//    JSONArray asks;
-//    /**
-//     * bids book
-//     */
-//    JSONArray bids;
-//    /**
-//     * time
-//     */
-//    String timestamp;
-//
-//    public JSONArray getAsks() { return asks; }
-//
-//    public void setAsks(JSONArray asks) { this.asks = asks; }
-//
-//    public JSONArray getBids() { return bids; }
-//
-//    public void setBids(JSONArray bids) { this.bids = bids; }
-//
-//    public String getTimestamp() { return timestamp; }
-//
-//    public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
+    private BigDecimal[][] asks;
+    private BigDecimal[][] bids;
+    private Date timestamp;
+
 }

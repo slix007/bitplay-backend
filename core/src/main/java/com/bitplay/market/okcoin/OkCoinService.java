@@ -25,6 +25,7 @@ import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.okcoin.convert.BookConverter;
 import com.bitplay.market.okcoin.convert.DtoToModelConverter;
 import com.bitplay.market.okcoin.convert.LimitOrderToOrderConverter;
 import com.bitplay.metrics.MetricsDictionary;
@@ -33,6 +34,8 @@ import com.bitplay.model.Pos;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BitplayOkexEchange;
 import com.bitplay.okex.v3.client.ApiCredentials;
+import com.bitplay.okex.v3.dto.futures.result.Book;
+import com.bitplay.okex.v3.dto.futures.result.EstimatedPrice;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
@@ -114,9 +117,7 @@ import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.okcoin.dto.marketdata.OkcoinForecastPrice;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesAccountService;
-import org.knowm.xchange.okcoin.service.OkCoinFuturesMarketDataService;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -552,9 +553,8 @@ public class OkCoinService extends MarketServicePreliq {
     public void fetchEstimatedDeliveryPrice() {
         Instant start = Instant.now();
         try {
-            final OkcoinForecastPrice result = ((OkCoinFuturesMarketDataService) exchange.getMarketDataService())
-                    .getFuturesForecastPrice(okexContractType.getCurrencyPair());
-            forecastPrice = result.getPrice() != null ? result.getPrice() : BigDecimal.ZERO;
+            final EstimatedPrice result = bitplayOkexEchange.getMarketAPIService().getEstimatedPrice(instrDtos.get(0).getInstrumentId());
+            forecastPrice = result.getSettlement_price() != null ? result.getSettlement_price() : BigDecimal.ZERO;
 
         } catch (Exception e) {
             logger.error("On fetchEstimatedDeliveryPrice", e);
@@ -1399,13 +1399,19 @@ public class OkCoinService extends MarketServicePreliq {
                     Thread.sleep(poArgs.getPostOnlyBetweenAttemptsMs());
                 }
 
+                final InstrumentDto instrumentDto = instrDtos.get(0);
                 OrderBook orderBook = getOrderBook();
                 // workaround. if OrderBook was not updated between attempts.
                 if (obTimestamp.equals(orderBook.getTimeStamp().toInstant().toString())) {
                     tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s is the same. Updating orderBook...",
                             counterNameWithPortion, attempt, obTimestamp));
-                    OrderBook ob = exchange.getMarketDataService().getOrderBook(okexContractType.getCurrencyPair());
-                    orderBook = new OrderBook(new Date(), ob.getAsks(), ob.getBids()); // because timestamp is null
+
+
+                    final Book book = bitplayOkexEchange.getMarketAPIService().getInstrumentBook(instrumentDto.getInstrumentId());
+                    orderBook = BookConverter.convertBook(book, instrumentDto.getCurrencyPair());
+                    if (orderBook.getTimeStamp() == null) {
+                        orderBook = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
+                    }
                 }
                 obTimestamp = orderBook.getTimeStamp().toInstant().toString();
                 tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s.",
@@ -1417,7 +1423,6 @@ public class OkCoinService extends MarketServicePreliq {
                 } else {
 
                     final Instant startReq = Instant.now();
-                    final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
                     FuturesOrderTypeEnum futuresOrderType = FuturesOrderTypeEnum.NORMAL_LIMIT;
                     if (placingSubType == PlacingType.MAKER || placingSubType == PlacingType.MAKER_TICK) {
                         final boolean theLastAndExcepted = (attempt == maxAttempts && poArgs.getPostOnlyWithoutLast());

@@ -3,9 +3,12 @@ package com.bitplay.okex.v3.service.futures;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
+import com.bitplay.okex.v3.dto.futures.result.Book;
+import com.bitplay.okex.v3.dto.futures.result.EstimatedPrice;
 import com.bitplay.okex.v3.dto.futures.result.Instrument;
 import com.bitplay.okex.v3.service.futures.impl.FuturesMarketApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.util.Date;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,5 +44,11 @@ public class FuturesMarketApiServiceTest extends BaseTests {
     public void testGetInstruments() throws JsonProcessingException {
         List<Instrument> instruments = marketAPIService.getInstruments();
         toResultString(LOG, "Instruments", instruments);
+    }
+
+//    @Test
+    public void testOrderBook() throws JsonProcessingException {
+        final Book res = marketAPIService.getInstrumentBook("BTC-USD-190927");
+        System.out.println(res);
     }
 }
