@@ -5,7 +5,9 @@ import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
+import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
+import java.util.List;
 
 /**
  * Futures Trade API Service
@@ -66,13 +68,12 @@ public interface FuturesTradeApiService {
 //     */
 //    JSONObject orders(Orders orders);
 //
-//    /**
-//     * Cancel the order
-//     *
-//     * @param instrumentId The id of the futures contract eg: BTC-USD-0331"
-//     * @param orderId   the order id provided by okex.com eg: 372238304216064
-//     */
-//    JSONObject cancelOrder(String instrumentId, long orderId);
+    /**
+     * Cancel the order
+     *  @param instrumentId The id of the futures contract eg: BTC-USD-0331"
+     * @param orderId   the order id provided by okex.com eg: 372238304216064
+     */
+    OrderResult cancelOrder(String instrumentId, String orderId);
 //
 //    /**
 //     * Batch Cancel the orders of this product id
@@ -93,12 +94,12 @@ public interface FuturesTradeApiService {
 //     */
 //    JSONObject getOrders(String instrument_id, int status, int from, int to, int limit);
 //
-//    /**
-//     * Get all of futures contract a order by order id
-//     *
-//     * @param instrumentId  eg: futures id
-//     */
-//    JSONObject getOrder(String instrumentId, long orderId);
+    /**
+     * Get all of futures contract a order by order id
+     *
+     * @param instrumentId  eg: futures id
+     */
+    OrderDetail getOrder(String instrumentId, String orderId);
 //
 //    /**
 //     * Get all of futures contract transactions.
@@ -141,5 +142,7 @@ public interface FuturesTradeApiService {
      */
     LeverageResult changeLeverageOnCross(String currency, String leverage);
 
+
+    List<OrderDetail> getOpenOrders(String instrumentId);
 
 }

@@ -5,9 +5,11 @@ import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
+import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -75,4 +77,30 @@ public class FuturesTradeApiServiceTest extends BaseTests {
         final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);
         LOG.info(s);
     }
+
+//    @Test
+    public void getOrders() throws JsonProcessingException {
+        final Object p = tradeApiService.getOpenOrders("BTC-USD-190920");
+        final ObjectMapper mapper = new ObjectMapper();
+        final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);
+        LOG.info(s);
+    }
+
+//    @Test
+    public void getOrder() throws JsonProcessingException {
+        final Object p = tradeApiService.getOrder("BTC-USD-190920", "35539403969710089");
+        final ObjectMapper mapper = new ObjectMapper();
+        final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);
+        LOG.info(s);
+    }
+
+    @Test
+    public void cancellOrder() throws JsonProcessingException {
+//        final Object p = tradeApiService.getOpenOrders("BTC-USD-190927");
+        final Object p = tradeApiService.cancelOrder("BTC-USD-190927", "3554909671083008");
+        final ObjectMapper mapper = new ObjectMapper();
+        final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);
+        LOG.info(s);
+    }
+
 }

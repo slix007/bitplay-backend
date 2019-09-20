@@ -6,13 +6,12 @@ import com.bitplay.api.domain.LiquidationInfoJson;
 import com.bitplay.api.domain.ResultJson;
 import com.bitplay.api.domain.TradeRequestJson;
 import com.bitplay.api.domain.TradeResponseJson;
-import com.bitplay.api.domain.VisualTrade;
 import com.bitplay.api.domain.ob.OrderBookJson;
 import com.bitplay.api.domain.ob.OrderJson;
 import com.bitplay.api.service.BitplayUIServiceOkCoin;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import java.util.List;
-import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
@@ -79,8 +78,8 @@ public class OkCoinEndpoint {
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrdersCancel(@RequestBody OrderJson orderJson) {
         final String id = orderJson.getId();
-        final OkCoinTradeResult cancelResult = this.okCoin.getBusinessService().cancelOrderSyncFromUi(id, "CancelFromUI");
-        return new ResultJson(String.valueOf(cancelResult.isResult()), cancelResult.getDetails());
+        final OrderResult cancelResult = this.okCoin.getBusinessService().cancelOrderSyncFromUi(id, "CancelFromUI");
+        return new ResultJson(String.valueOf(cancelResult.isResult()), cancelResult.getError_message());
     }
 
     @RequestMapping(value = "/open-orders/cancel-all",

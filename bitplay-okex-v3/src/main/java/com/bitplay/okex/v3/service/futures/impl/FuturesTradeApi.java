@@ -6,12 +6,15 @@ import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
+import com.bitplay.okex.v3.dto.futures.result.OpenOrdersResult;
+import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 /**
  * Futures trade api
@@ -48,18 +51,22 @@ interface FuturesTradeApi {
 //    @POST("/api/futures/v3/orders")
 //    Call<JSONObject> orders(@Body JSONObject orders);
 //
-//    @POST("/api/futures/v3/cancel_order/{instrument_id}/{order_id}")
-//    Call<JSONObject> cancelOrder(@Path("instrument_id") String instrumentId, @Path("order_id") String orderId);
+    @POST("/api/futures/v3/cancel_order/{instrument_id}/{order_id}")
+    Call<OrderResult> cancelOrder(@Path("instrument_id") String instrumentId, @Path("order_id") String orderId);
 //
 //    @POST("/api/futures/v3/cancel_batch_orders/{instrument_id}")
 //    Call<JSONObject> cancelOrders(@Path("instrument_id") String instrumentId, @Body JSONObject order_ids);
 //
 //    @GET("/api/futures/v3/orders/{instrument_id}")
-//    Call<JSONObject> getOrders(@Path("instrument_id") String instrumentId, @Query("status") int status,
+//    Call<OrderDetail> getOrders(@Path("instrument_id") String instrumentId, @Query("status") int status,
 //            @Query("from") int from, @Query("to") int to, @Query("limit") int limit);
 //
-//    @GET("/api/futures/v3/orders/{instrument_id}/{order_id}")
-//    Call<JSONObject> getOrder(@Path("instrument_id") String instrumentId, @Path("order_id") String orderId);
+    @GET("/api/futures/v3/orders/{instrument_id}")
+    Call<OpenOrdersResult> getOrdersWithState(@Path("instrument_id") String instrumentId, @Query("status") int status);
+//
+    // Rate limit: 40 requests per 2 seconds
+    @GET("/api/futures/v3/orders/{instrument_id}/{order_id}")
+    Call<OrderDetail> getOrder(@Path("instrument_id") String instrumentId, @Path("order_id") String orderId);
 //
 //    @GET("/api/futures/v3/fills")
 //    Call<JSONArray> getFills(@Query("instrument_id") String instrumentId, @Query("order_id") String orderId,

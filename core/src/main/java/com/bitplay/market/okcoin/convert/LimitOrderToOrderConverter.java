@@ -25,7 +25,7 @@ public class LimitOrderToOrderConverter implements SuperConverter<LimitOrder, Or
         return "";
     }
 
-    public Integer convertType(OrderType orderType) {
+    private static Integer convertType(OrderType orderType) {
         // 1:open long 2:open short 3:close long 4:close short
         if (orderType == OrderType.BID) {
             return FuturesTransactionTypeEnum.OPEN_LONG.code();
@@ -42,7 +42,7 @@ public class LimitOrderToOrderConverter implements SuperConverter<LimitOrder, Or
         return 0;
      }
 
-    public Order createOrder(String instrumentId, OrderType orderType, BigDecimal thePrice, BigDecimal tradeableAmount,
+    public static Order createOrder(String instrumentId, OrderType orderType, BigDecimal thePrice, BigDecimal tradeableAmount,
             FuturesOrderTypeEnum orderTypeEnum, BigDecimal leverage) {
         return Order.builder()
                 .instrument_id(instrumentId)

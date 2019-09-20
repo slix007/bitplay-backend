@@ -8,8 +8,11 @@ import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
+import com.bitplay.okex.v3.dto.futures.result.OpenOrdersResult;
+import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.service.futures.FuturesTradeApiService;
+import java.util.List;
 
 /**
  * Futures trade api
@@ -47,6 +50,25 @@ public class FuturesTradeApiServiceImpl implements FuturesTradeApiService {
     @Override
     public OrderResult order(Order order) {
         return this.client.executeSync(this.api.order(order));
+    }
+
+    @Override
+    public OrderResult cancelOrder(String instrumentId, String orderId) {
+        return this.client.executeSync(this.api.cancelOrder(instrumentId, orderId));
+    }
+
+    @Override
+    public OrderDetail getOrder(String instrumentId, String orderId) {
+        return this.client.executeSync(this.api.getOrder(instrumentId, orderId));
+    }
+
+    @Override
+    public List<OrderDetail> getOpenOrders(String instrumentId) {
+        // Order Status: -2 = Failed -1 = Canceled 0 = Open 1 = Partially Filled 2 = Completely Filled 3 = Submitting 4 = Canceling
+        // 6 = Incomplete (open + partially filled)
+        // 7 = Complete (canceled + completely filled)
+        final OpenOrdersResult openOrdersResult = this.client.executeSync(this.api.getOrdersWithState(instrumentId, 6));
+        return openOrdersResult.getOrder_info();
     }
 
     @Override

@@ -25,6 +25,7 @@ import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.okcoin.convert.DtoToModelConverter;
 import com.bitplay.market.okcoin.convert.LimitOrderToOrderConverter;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
@@ -35,10 +36,11 @@ import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
-import com.bitplay.okex.v3.dto.futures.result.OkexPosition;
+import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.exception.ApiException;
+import com.bitplay.okex.v3.utils.OkexErrors;
 import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
@@ -112,14 +114,9 @@ import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.UserTrades;
-import org.knowm.xchange.okcoin.OkCoinUtils;
 import org.knowm.xchange.okcoin.dto.marketdata.OkcoinForecastPrice;
-import org.knowm.xchange.okcoin.dto.trade.OkCoinTradeResult;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesAccountService;
 import org.knowm.xchange.okcoin.service.OkCoinFuturesMarketDataService;
-import org.knowm.xchange.okcoin.service.OkCoinFuturesTradeService;
-import org.knowm.xchange.okcoin.service.OkCoinTradeService;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -212,7 +209,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Autowired
     private OkexSettlementService okexSettlementService;
 
-    private OkExStreamingExchange exchange;
+    private OkExStreamingExchange exchange; // for streaming only
     private BitplayOkexEchange bitplayOkexEchange;
     private Disposable orderBookSubscription;
     private Disposable userPositionSub;
@@ -434,12 +431,13 @@ public class OkCoinService extends MarketServicePreliq {
         ExchangeSpecification spec = new ExchangeSpecification(OkExStreamingExchange.class);
         spec.setApiKey(key);
         spec.setSecretKey(secret);
-
+//
         spec.setExchangeSpecificParametersItem("Use_Intl", true);
         spec.setExchangeSpecificParametersItem("Use_Futures", true);
         spec.setExchangeSpecificParametersItem("Futures_Contract", okexContractType.getFuturesContract());
         leverage = BigDecimal.valueOf(20); // default
 
+        // init xchange-stream
         if (exArgs != null && exArgs.length == 3) {
             String exKey = (String) exArgs[0];
             String exSecret = (String) exArgs[1];
@@ -604,8 +602,7 @@ public class OkCoinService extends MarketServicePreliq {
         final String instrumentId = instrDtos.get(0).getInstrumentId();
         final OkexOnePosition position = bitplayOkexEchange.getTradeApiService().getInstrumentPosition(instrumentId);
         if (position.getOne().isPresent()) {
-            final OkexPosition okexPosition = position.getOne().get();
-            final Pos pos = OkexAllPositions.toPos(okexPosition);
+            final Pos pos = OkexAllPositions.toPos(position.getOne().get());
             this.pos.set(pos);
             stateRecalcInStateUpdaterThread();
         } else {
@@ -861,7 +858,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
             final OrderResult orderResult = bitplayOkexEchange.getTradeApiService().order(
-                    new LimitOrderToOrderConverter().createOrder(
+                    LimitOrderToOrderConverter.createOrder(
                             instrumentDto.getInstrumentId(),
                             orderType,
                             thePrice,
@@ -1437,7 +1434,7 @@ public class OkCoinService extends MarketServicePreliq {
                             futuresOrderType
                             ));
                     final OrderResult orderResult = bitplayOkexEchange.getTradeApiService().order(
-                            new LimitOrderToOrderConverter().createOrder(
+                            LimitOrderToOrderConverter.createOrder(
                                     instrumentDto.getInstrumentId(),
                                     orderType,
                                     thePrice,
@@ -1521,8 +1518,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         if (placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK) {
             // Status check
-            final TradeService tradeService = exchange.getTradeService();
-            final Collection<Order> order = tradeService.getOrder(orderId);
+            final Collection<Order> order = getApiOrders(new String[]{orderId});
             if (order.size() == 0) {
                 tradeLogger.info(String.format("#%s/%s id=%s, checkAfterPlacing: no orders in response",
                         counterNameWithPortion,
@@ -1585,7 +1581,7 @@ public class OkCoinService extends MarketServicePreliq {
         Order order = null;
         try {
             //NOT implemented yet
-            final Collection<Order> orderCollection = exchange.getTradeService().getOrder(orderId);
+            final Collection<Order> orderCollection = getApiOrders(new String[]{orderId});
             if (!orderCollection.isEmpty()) {
                 order = orderCollection.iterator().next();
                 tradeLogger.info(String.format("#%s OrderInfo id=%s, status=%s, filled=%s",
@@ -1807,7 +1803,6 @@ public class OkCoinService extends MarketServicePreliq {
      * Loop until status CANCELED or FILLED.
      */
     private LimitOrder getFinalOrderInfoSync(String orderId, String counterName, String logInfoId) {
-        final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
         LimitOrder result = null;
         int attemptCount = 0;
         final Instant start = Instant.now();
@@ -1817,7 +1812,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                 Thread.sleep(200);
 
-                final Collection<Order> order = tradeService.getOrder(orderId);
+                final Collection<Order> order = getApiOrders(new String[]{orderId});
                 result = (LimitOrder) order.iterator().next();
                 tradeLogger.info(String.format("#%s/%s %s id=%s, status=%s, filled=%s",
                         counterName,
@@ -1854,21 +1849,20 @@ public class OkCoinService extends MarketServicePreliq {
                     if (attemptCount > 1) {
                         Thread.sleep(1000);
                     }
-                    final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
-                    OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId,
-                            okexContractType.getCurrencyPair(),
-                            okexContractType.getFuturesContract());
-
+                    final OrderResult result = bitplayOkexEchange.getTradeApiService().cancelOrder(instrDtos.get(0).getInstrumentId(), orderId);
+                    final String translatedError = getErrorCodeTranslation(result);
                     tradeLogger.info(String.format("#%s/%s %s id=%s,res=%s,code=%s,details=%s(%s)",
                             counterForLogs, attemptCount,
                             logInfoId,
                             orderId,
                             result.isResult(),
-                            result.getErrorCode(),
-                            result.getDetails(),
-                            getErrorCodeTranslation(result)));
+                            result.getError_code(),
+                            result.getError_message(),
+                            translatedError));
 
-                    if (result.isResult() || result.getDetails().contains("20015") /* "Order does not exist"*/) {
+                    if (result.isResult()
+                            || translatedError.contains("order does not exist")
+                            || result.getError_message().contains("rder does not exist")) {
                         order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
                         res.add(order);
                         break;
@@ -1891,12 +1885,25 @@ public class OkCoinService extends MarketServicePreliq {
         return res;
     }
 
-    private String getErrorCodeTranslation(OkCoinTradeResult result) {
+//    private String getErrorCodeTranslationV1(OkCoinTradeResult result) {
+//        String errorCodeTranslation = "";
+//        if (result != null && result.getDetails() != null && result.getDetails().startsWith("Code: ")) { // Example: result.getDetails() == "Code: 20015"
+//            String errorCode = result.getDetails().substring(6);
+//            try {
+//                errorCodeTranslation = OkCoinUtils.getErrorMessage(Integer.parseInt(errorCode));
+//            } catch (NumberFormatException e) {
+//                logger.error("can not translate code " + errorCode);
+//            }
+//        }
+//        return errorCodeTranslation;
+//    }
+
+    private String getErrorCodeTranslation(OrderResult result) {
         String errorCodeTranslation = "";
-        if (result != null && result.getDetails() != null && result.getDetails().startsWith("Code: ")) { // Example: result.getDetails() == "Code: 20015"
-            String errorCode = result.getDetails().substring(6);
+        if (result != null && result.getError_code() != null) { // Example: result.getDetails() == "Code: 20015"
+            String errorCode = result.getError_code();
             try {
-                errorCodeTranslation = OkCoinUtils.getErrorMessage(Integer.parseInt(errorCode));
+                errorCodeTranslation = OkexErrors.getErrorMessage(Integer.parseInt(errorCode));
             } catch (NumberFormatException e) {
                 logger.error("can not translate code " + errorCode);
             }
@@ -1905,16 +1912,11 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @NotNull
-    public OkCoinTradeResult cancelOrderSyncFromUi(String orderId, String logInfoId) {
+    public OrderResult cancelOrderSyncFromUi(String orderId, String logInfoId) {
         final String counterForLogs = getCounterName();
-        OkCoinTradeResult result = new OkCoinTradeResult(false, 0, 0);
-
+        OrderResult result = new OrderResult(false, orderId);
         try {
-                final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
-                result = tradeService.cancelOrderWithResult(orderId,
-                        okexContractType.getCurrencyPair(),
-                        okexContractType.getFuturesContract());
-
+            result = bitplayOkexEchange.getTradeApiService().cancelOrder(instrDtos.get(0).getInstrumentId(), orderId);
                 if (result == null) {
                     tradeLogger.info(String.format("#%s %s id=%s, no response", counterForLogs, logInfoId, orderId));
                 } else {
@@ -1924,8 +1926,8 @@ public class OkCoinService extends MarketServicePreliq {
                             orderId,
                             result.isResult(),
                             result.isResult() ? "cancelled" : "probably already filled",
-                            result.getErrorCode(),
-                            result.getDetails(),
+                            result.getError_code(),
+                            result.getError_message(),
                             getErrorCodeTranslation(result)));
                     if (!result.isResult()) {
                         updateOOStatuses();
@@ -1938,10 +1940,10 @@ public class OkCoinService extends MarketServicePreliq {
                 final Order order = fetchOrderInfo(orderId, counterForLogs);
                 if (order != null) {
                     if (order.getStatus() == Order.OrderStatus.CANCELED) {
-                        result = new OkCoinTradeResult(true, 0, Long.valueOf(orderId));
+                        result = new OrderResult(true, orderId);
                     }
                     if (order.getStatus() == Order.OrderStatus.FILLED) {
-                        result = new OkCoinTradeResult(false, 0, Long.valueOf(orderId));
+                        result = new OrderResult(false, orderId);
                     }
                 }
         }
@@ -1969,12 +1971,9 @@ public class OkCoinService extends MarketServicePreliq {
                     Thread.sleep(1000);
                 }
 
-                final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
                 // 1. Cancel request
                 if (!cancelSucceed) {
-                    final OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId,
-                            okexContractType.getCurrencyPair(),
-                            okexContractType.getFuturesContract());
+                    final OrderResult result = bitplayOkexEchange.getTradeApiService().cancelOrder(instrDtos.get(0).getInstrumentId(), orderId);
 
                     if (result == null) {
                         tradeLogger.info(String.format("#%s/%s %s id=%s, no response", counterForLogs, attemptCount, logInfoId1, orderId));
@@ -1987,8 +1986,8 @@ public class OkCoinService extends MarketServicePreliq {
                             orderId,
                             result.isResult(),
                             result.isResult() ? "cancelled" : "probably already filled",
-                            result.getErrorCode(),
-                            result.getDetails(),
+                            result.getError_code(),
+                            result.getError_message(),
                             getErrorCodeTranslation(result)));
 
                     if (result.isResult()) {
@@ -2000,7 +1999,7 @@ public class OkCoinService extends MarketServicePreliq {
                 }
 
                 // 2. Status check
-                final Collection<Order> order = tradeService.getOrder(orderId);
+                final Collection<Order> order = getApiOrders(new String[]{orderId});
                 if (order.size() == 0) {
                     tradeLogger.info(String.format("#%s/%s %s id=%s no orders in response",
                             counterForLogs,
@@ -2323,17 +2322,18 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     public void writeAvgPriceLog() {
-        final DealPrices dealPrices = arbitrageService.getDealPrices();
-        final DealPrices.Details diffO = dealPrices.getDiffO();
-        final BigDecimal avg = dealPrices.getOPriceFact().getAvg();
-        final String counterForLogs = getCounterName();
-        if ((counterToDiff == null || counterToDiff.counter == null || !counterToDiff.counter.equals(counterForLogs)
-                || counterToDiff.diff.compareTo(diffO.val) != 0)
-                && avg != null && avg.signum() != 0) {
-            tradeLogger.info(String.format("#%s %s", counterForLogs, diffO.str));
-            counterToDiff = new CounterToDiff(counterForLogs, diffO.val);
+        if (arbitrageService.getTradeId() != null) {
+            final DealPrices dealPrices = arbitrageService.getDealPrices();
+            final DealPrices.Details diffO = dealPrices.getDiffO();
+            final BigDecimal avg = dealPrices.getOPriceFact().getAvg();
+            final String counterForLogs = getCounterName();
+            if ((counterToDiff == null || counterToDiff.counter == null || !counterToDiff.counter.equals(counterForLogs)
+                    || counterToDiff.diff.compareTo(diffO.val) != 0)
+                    && avg != null && avg.signum() != 0) {
+                tradeLogger.info(String.format("#%s %s", counterForLogs, diffO.str));
+                counterToDiff = new CounterToDiff(counterForLogs, diffO.val);
+            }
         }
-
     }
 
     static class CounterToDiff {
@@ -2413,7 +2413,6 @@ public class OkCoinService extends MarketServicePreliq {
         final TradeResponse tradeResponse = new TradeResponse();
         final StringBuilder res = new StringBuilder();
 
-        final OkCoinFuturesTradeService tradeService = (OkCoinFuturesTradeService) exchange.getTradeService();
         final Pos position = getPos();
 
         final String counterForLogs = "closeAllPos";
@@ -2438,10 +2437,10 @@ public class OkCoinService extends MarketServicePreliq {
                                 && position.getPositionLong().compareTo(position.getLongAvailToClose()) == 0) {
                             // если pos == long, ордер == long (avail == holding)
                             orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, position.getPositionLong());
-                            cancelOrderOnMkt(tradeService, counterForLogs, logInfoId, res, oo);
+                            cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
                         } else {
                             // если pos === long, ордер == short (avail < holding),
-                            cancelOrderOnMkt(tradeService, counterForLogs, logInfoId, res, oo);
+                            cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
                             orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, position.getPositionLong());
                         }
                         tradeResponse.setOrderId(orderId);
@@ -2454,10 +2453,10 @@ public class OkCoinService extends MarketServicePreliq {
                                 && position.getPositionShort().compareTo(position.getShortAvailToClose()) == 0) {
                             // если pos == short, ордер == short (avail == holding),
                             orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, position.getPositionShort());
-                            cancelOrderOnMkt(tradeService, counterForLogs, logInfoId, res, oo);
+                            cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
                         } else {
                             // если pos === short, ордер == long (avail < holding),
-                            cancelOrderOnMkt(tradeService, counterForLogs, logInfoId, res, oo);
+                            cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
                             orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, position.getPositionShort());
                         }
                         tradeResponse.setOrderId(orderId);
@@ -2466,7 +2465,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                 if (!specialHandling) {
                     if (onlyOpenOrders.size() > 0) {
-                        cancelAllOrdersOnMkt(onlyOpenOrders, tradeService, counterForLogs, logInfoId, res);
+                        cancelAllOrdersOnMkt(onlyOpenOrders, counterForLogs, logInfoId, res);
                     }
 
                     String orderId = null;
@@ -2526,6 +2525,7 @@ public class OkCoinService extends MarketServicePreliq {
     private String ftpdLimitOrder(String counterForLogs, OkexContractType okexContractType, OrderType orderType,
             BigDecimal amount)
             throws IOException {
+        //TODO use https://www.okex.com/docs/en/#futures-close_all
         if (amount.signum() != 0) {
             final BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
             final BigDecimal thePrice = Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
@@ -2533,7 +2533,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
             final OrderResult orderResult = bitplayOkexEchange.getTradeApiService().order(
-                    new LimitOrderToOrderConverter().createOrder(
+                    LimitOrderToOrderConverter.createOrder(
                             instrumentDto.getInstrumentId(),
                             orderType,
                             thePrice,
@@ -2557,31 +2557,32 @@ public class OkCoinService extends MarketServicePreliq {
         return "amount is 0";
     }
 
-    private void cancelAllOrdersOnMkt(List<LimitOrder> onlyOpenOrders, OkCoinFuturesTradeService tradeService, String counterForLogs, String logInfoId,
+    private void cancelAllOrdersOnMkt(List<LimitOrder> onlyOpenOrders, String counterForLogs, String logInfoId,
             StringBuilder res) throws IOException {
         for (LimitOrder oo : onlyOpenOrders) {
-            cancelOrderOnMkt(tradeService, counterForLogs, logInfoId, res, oo);
+            cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
         }
     }
 
-    private void cancelOrderOnMkt(OkCoinFuturesTradeService tradeService, String counterForLogs, String logInfoId, StringBuilder res, LimitOrder order)
+    private void cancelOrderOnMkt(String counterForLogs, String logInfoId, StringBuilder res, LimitOrder order)
             throws IOException {
         final String orderId = order.getId();
-        OkCoinTradeResult result = tradeService.cancelOrderWithResult(orderId,
-                okexContractType.getCurrencyPair(),
-                okexContractType.getFuturesContract());
+        final OrderResult result = bitplayOkexEchange.getTradeApiService().cancelOrder(instrDtos.get(0).getInstrumentId(), orderId);
 
+        final String translatedError = getErrorCodeTranslation(result);
         tradeLogger.info(String.format("#%s %s id=%s,res=%s,code=%s,details=%s(%s)",
                 counterForLogs,
                 logInfoId,
                 orderId,
                 result.isResult(),
-                result.getErrorCode(),
-                result.getDetails(),
-                getErrorCodeTranslation(result)));
+                result.getError_code(),
+                result.getError_message(),
+                translatedError));
 
         res.append(orderId);
-        if (result.isResult() || result.getDetails().contains("20015") /* "Order does not exist"*/) {
+        if (result.isResult()
+                || translatedError.contains("order does not exist")
+                || result.getError_message().contains("rder does not exist")) {
             order.setOrderStatus(OrderStatus.CANCELED); // may be FILLED, but it's ok here.
             res.append(":CANCELED");
 
@@ -2589,12 +2590,34 @@ public class OkCoinService extends MarketServicePreliq {
             updateFplayOrdersToCurrStab(Collections.singletonList(order), stub);
 
         } else {
-            res.append(":").append(result.getDetails());
+            res.append(":").append(result.getError_message());
         }
     }
 
     @Override
     protected MetricsDictionary getMetricsDictionary() {
         return metricsDictionary;
+    }
+
+    @Override
+    protected List<LimitOrder> getApiOpenOrders() throws IOException {
+        final InstrumentDto instrumentDto = instrDtos.get(0);
+        final String instrumentId = instrumentDto.getInstrumentId();
+        final List<OrderDetail> orders = bitplayOkexEchange.getTradeApiService().getOpenOrders(instrumentId);
+        return DtoToModelConverter.convertOrders(orders, instrumentDto.getCurrencyPair());
+    }
+
+    @Override
+    protected Collection<Order> getApiOrders(String[] orderIds) throws IOException {
+        final InstrumentDto instrumentDto = instrDtos.get(0);
+        final String instrumentId = instrumentDto.getInstrumentId();
+        final Collection<Order> orders = new ArrayList<>();
+        for (String orderId : orderIds) {
+            final OrderDetail orderDetail = bitplayOkexEchange.getTradeApiService().getOrder(instrumentId, orderId);
+            final LimitOrder order = DtoToModelConverter.convertOrder(orderDetail, instrumentDto.getCurrencyPair());
+            orders.add(order);
+        }
+
+        return orders;
     }
 }

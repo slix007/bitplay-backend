@@ -70,7 +70,6 @@ import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -697,10 +696,9 @@ public abstract class MarketService extends MarketServiceWithState {
      * @return list of open orders.
      */
     protected List<FplayOrder> fetchOpenOrders() {
-        if (getExchange() != null && getTradeService() != null) {
+        if (getExchange() != null) {
             try {
-                final List<LimitOrder> fetchedList = getTradeService().getOpenOrders(null)
-                        .getOpenOrders();
+                final List<LimitOrder> fetchedList = getApiOpenOrders();
                 if (fetchedList.size() > 1) {
                     getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
                 }
@@ -789,11 +787,20 @@ public abstract class MarketService extends MarketServiceWithState {
         return orderInfos.isEmpty() ? Optional.empty() : Optional.ofNullable(orderInfos.iterator().next());
     }
 
-    protected Collection<Order> getOrderInfos(String[] orderIds, String counterForLogs, int attemptCount, String logInfoId, LogService customLogger) {
+
+    protected List<LimitOrder> getApiOpenOrders() throws IOException {
+        return getTradeService().getOpenOrders(null).getOpenOrders();
+    }
+
+    protected Collection<Order> getApiOrders(String[] orderIds) throws IOException {
         final TradeService tradeService = getExchange().getTradeService();
+        return tradeService.getOrder(orderIds);
+    }
+
+    protected Collection<Order> getOrderInfos(String[] orderIds, String counterForLogs, int attemptCount, String logInfoId, LogService customLogger) {
         Collection<Order> orders = new ArrayList<>();
         try {
-            orders = tradeService.getOrder(orderIds);
+            orders = getApiOrders(orderIds);
             if (orders.isEmpty()) {
                 final String message = String.format("#%s/%s %s orderIds=%s, error: %s",
                         counterForLogs, attemptCount,
