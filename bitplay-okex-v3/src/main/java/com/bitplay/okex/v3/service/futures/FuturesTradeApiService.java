@@ -1,6 +1,7 @@
 package com.bitplay.okex.v3.service.futures;
 
 import com.bitplay.okex.v3.dto.futures.param.Order;
+import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
@@ -41,7 +42,7 @@ public interface FuturesTradeApiService {
 //     * @param currency {@link com.okcoin.commons.okex.open.api.enums.FuturesCurrenciesEnum}
 //     *                 eg: FuturesCurrenciesEnum.BTC.name()
 //     */
-//    JSONObject getAccountsByCurrency(String currency);
+    Account getAccountsByCurrency(String currency);
 //
 //    /**
 //     * Get the futures contract currency ledger

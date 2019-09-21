@@ -25,6 +25,7 @@ import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.okcoin.convert.AccountConverter;
 import com.bitplay.market.okcoin.convert.BookConverter;
 import com.bitplay.market.okcoin.convert.DtoToModelConverter;
 import com.bitplay.market.okcoin.convert.LimitOrderToOrderConverter;
@@ -34,6 +35,7 @@ import com.bitplay.model.Pos;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BitplayOkexEchange;
 import com.bitplay.okex.v3.client.ApiCredentials;
+import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Book;
 import com.bitplay.okex.v3.dto.futures.result.EstimatedPrice;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
@@ -117,7 +119,6 @@ import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.okcoin.service.OkCoinFuturesAccountService;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -430,12 +431,12 @@ public class OkCoinService extends MarketServicePreliq {
 
     private OkExStreamingExchange initExchange(String key, String secret, Object... exArgs) {
         ExchangeSpecification spec = new ExchangeSpecification(OkExStreamingExchange.class);
-        spec.setApiKey(key);
-        spec.setSecretKey(secret);
+//        spec.setApiKey(key);
+//        spec.setSecretKey(secret);
 //
-        spec.setExchangeSpecificParametersItem("Use_Intl", true);
-        spec.setExchangeSpecificParametersItem("Use_Futures", true);
-        spec.setExchangeSpecificParametersItem("Futures_Contract", okexContractType.getFuturesContract());
+//        spec.setExchangeSpecificParametersItem("Use_Intl", true);
+//        spec.setExchangeSpecificParametersItem("Use_Futures", true);
+//        spec.setExchangeSpecificParametersItem("Futures_Contract", okexContractType.getFuturesContract());
         leverage = BigDecimal.valueOf(20); // default
 
         // init xchange-stream
@@ -612,7 +613,7 @@ public class OkCoinService extends MarketServicePreliq {
         return this.pos.toString();
     }
 
-    @Scheduled(fixedDelay = 500) // URL https://www.okex.com/api/v1/future_userinfo.do Request frequency 5 times/2s
+    @Scheduled(fixedDelay = 200) // v3: Rate Limit: 20 requests per 2 seconds
     public void fetchUserInfoScheduled() {
         Instant start = Instant.now();
         try {
@@ -624,11 +625,11 @@ public class OkCoinService extends MarketServicePreliq {
         Utils.logIfLong(start, end, logger, "fetchPositionScheduled");
     }
 
-    @SuppressWarnings("Duplicates")
     private void fetchUserInfoContracts() throws IOException {
 
-        final AccountInfoContracts accountInfoContracts = ((OkCoinFuturesAccountService) exchange.getAccountService())
-                .getAccountInfoContracts(okexContractType.getCurrencyPair().base);
+        final String currencyCode = okexContractType.getCurrencyPair().base.getCurrencyCode().toLowerCase();
+        final Account account = bitplayOkexEchange.getTradeApiService().getAccountsByCurrency(currencyCode);
+        final AccountInfoContracts accountInfoContracts = AccountConverter.convert(account);
 
         mergeAccountSafe(accountInfoContracts);
     }

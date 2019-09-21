@@ -15,19 +15,8 @@ public class Account {
     private BigDecimal realized_pnl;
     private BigDecimal total_avail_balance;
     private BigDecimal unrealized_pnl;
-
-    @Override
-    public String toString() {
-        return "Account" +
-                "{\n equity=" + equity +
-                ",\n margin=" + margin +
-                ",\n margin_for_unfilled=" + margin_for_unfilled +
-                ",\n margin_frozen=" + margin_frozen +
-                ",\n margin_mode='" + margin_mode + '\'' +
-                ",\n margin_ratio=" + margin_ratio +
-                ",\n realized_pnl=" + realized_pnl +
-                ",\n total_avail_balance=" + total_avail_balance +
-                ",\n unrealized_pnl=" + unrealized_pnl +
-                "}\n";
-    }
+    private String liqui_mode; //tier, - 	Liquidation mode: tier（partial), legacy (complete)
+    private BigDecimal maint_margin_ratio; // 	Maintenance margin ratio
+    private BigDecimal liqui_fee_rate; // 	forced-liquidation fee
+    private BigDecimal can_withdraw; // 	transferrable amount
 }

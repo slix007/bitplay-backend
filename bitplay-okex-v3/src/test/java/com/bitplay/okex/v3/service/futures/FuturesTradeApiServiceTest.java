@@ -3,6 +3,7 @@ package com.bitplay.okex.v3.service.futures;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
+import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
@@ -47,7 +48,8 @@ public class FuturesTradeApiServiceTest extends BaseTests {
 
     @Test
     public void getAccounts() {
-        final Accounts accounts = tradeApiService.getAccounts();
+//        final Accounts accounts = tradeApiService.getAccounts();
+        final Account accounts = tradeApiService.getAccountsByCurrency("btc");
         LOG.info(accounts.toString());
     }
 
@@ -94,7 +96,7 @@ public class FuturesTradeApiServiceTest extends BaseTests {
         LOG.info(s);
     }
 
-    @Test
+//    @Test
     public void cancellOrder() throws JsonProcessingException {
 //        final Object p = tradeApiService.getOpenOrders("BTC-USD-190927");
         final Object p = tradeApiService.cancelOrder("BTC-USD-190927", "3554909671083008");

@@ -2,6 +2,7 @@ package com.bitplay.okex.v3.service.futures.impl;
 
 import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
 import com.bitplay.okex.v3.dto.futures.param.Order;
+import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
@@ -33,11 +34,13 @@ interface FuturesTradeApi {
     @GET("/api/futures/v3/{instrument_id}/position")
     Call<OkexOnePosition> getInstrumentPosition(@Path("instrument_id") String instrumentId);
 
+    // Rate Limit: once per 10 seconds
     @GET("/api/futures/v3/accounts")
     Call<Accounts> getAccounts();
 
-//    @GET("/api/futures/v3/accounts/{currency}")
-//    Call<JSONObject> getAccountsByCurrency(@Path("currency") String currency);
+    // Rate Limit: 20 requests per 2 seconds
+    @GET("/api/futures/v3/accounts/{currency}")
+    Call<Account> getAccountsByCurrency(@Path("currency") String currency);
 //
 //    @GET("/api/futures/v3/accounts/{currency}/ledger")
 //    Call<JSONArray> getAccountsLedgerByCurrency(@Path("currency") String currency);

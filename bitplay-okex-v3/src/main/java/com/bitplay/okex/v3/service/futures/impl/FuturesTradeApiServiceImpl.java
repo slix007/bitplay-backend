@@ -4,6 +4,7 @@ import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
 import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
 import com.bitplay.okex.v3.dto.futures.param.Order;
+import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
@@ -46,6 +47,10 @@ public class FuturesTradeApiServiceImpl implements FuturesTradeApiService {
         return this.client.executeSync(this.api.getAccounts());
     }
 
+    @Override
+    public Account getAccountsByCurrency(String currency) {
+        return this.client.executeSync(this.api.getAccountsByCurrency(currency));
+    }
 
     @Override
     public OrderResult order(Order order) {
