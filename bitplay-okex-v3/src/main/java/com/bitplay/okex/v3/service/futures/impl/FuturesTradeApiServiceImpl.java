@@ -2,10 +2,12 @@ package com.bitplay.okex.v3.service.futures.impl;
 
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
+import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
 import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
+import com.bitplay.okex.v3.dto.futures.result.ClosePositionResult;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
@@ -60,6 +62,12 @@ public class FuturesTradeApiServiceImpl implements FuturesTradeApiService {
     @Override
     public OrderResult cancelOrder(String instrumentId, String orderId) {
         return this.client.executeSync(this.api.cancelOrder(instrumentId, orderId));
+    }
+
+    @Override
+    public ClosePositionResult closePosition(ClosePosition closePosition) {
+        final ClosePositionResult closePositionResult = this.client.executeSync(this.api.closePosition(closePosition));
+        return closePositionResult;
     }
 
     @Override

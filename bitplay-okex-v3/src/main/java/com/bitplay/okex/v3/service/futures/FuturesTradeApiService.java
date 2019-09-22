@@ -1,8 +1,10 @@
 package com.bitplay.okex.v3.service.futures;
 
+import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
+import com.bitplay.okex.v3.dto.futures.result.ClosePositionResult;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
@@ -75,6 +77,8 @@ public interface FuturesTradeApiService {
      * @param orderId   the order id provided by okex.com eg: 372238304216064
      */
     OrderResult cancelOrder(String instrumentId, String orderId);
+
+    ClosePositionResult closePosition(ClosePosition closePosition);
 //
 //    /**
 //     * Batch Cancel the orders of this product id

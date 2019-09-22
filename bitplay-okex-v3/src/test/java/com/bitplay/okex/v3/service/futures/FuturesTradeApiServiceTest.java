@@ -3,14 +3,13 @@ package com.bitplay.okex.v3.service.futures;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
+import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
 import com.bitplay.okex.v3.dto.futures.result.Account;
-import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
-import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
+import com.bitplay.okex.v3.enums.FuturesDirectionEnum;
 import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -103,6 +102,21 @@ public class FuturesTradeApiServiceTest extends BaseTests {
         final ObjectMapper mapper = new ObjectMapper();
         final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);
         LOG.info(s);
+    }
+
+    //    @Test
+    public void closePosition() throws JsonProcessingException {
+        final ObjectMapper mapper = new ObjectMapper();
+        final ClosePosition closePosition = new ClosePosition("BTC-USD-190927", FuturesDirectionEnum.LONG);
+        LOG.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(closePosition));
+
+        final Object p = tradeApiService.closePosition(closePosition);
+        final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);
+        LOG.info(s);
+
+        // if pos == 0
+        // com.bitplay.okex.v3.exception.ApiException:
+        // 32014 : Positions that you are squaring exceeded the total no. of contracts allowed to close
     }
 
 }

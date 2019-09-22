@@ -1,9 +1,7 @@
 package com.bitplay.okex.v3.enums;
 
-/**
- * @author wenchao.jia@okcoin.com
- * @date 2019/5/7 11:29 AM
- */
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum FuturesDirectionEnum {
 
     LONG("long"), SHORT("short");
@@ -13,6 +11,7 @@ public enum FuturesDirectionEnum {
         this.direction = direction;
     }
 
+    @JsonValue
     public String getDirection() {
         return direction;
     }

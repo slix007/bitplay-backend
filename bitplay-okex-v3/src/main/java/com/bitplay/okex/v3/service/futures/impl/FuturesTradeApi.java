@@ -1,9 +1,11 @@
 package com.bitplay.okex.v3.service.futures.impl;
 
+import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
 import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
+import com.bitplay.okex.v3.dto.futures.result.ClosePositionResult;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
@@ -56,6 +58,9 @@ interface FuturesTradeApi {
 //
     @POST("/api/futures/v3/cancel_order/{instrument_id}/{order_id}")
     Call<OrderResult> cancelOrder(@Path("instrument_id") String instrumentId, @Path("order_id") String orderId);
+
+    @POST("/api/futures/v3/close_position")
+    Call<ClosePositionResult> closePosition(@Body ClosePosition closePosition);
 //
 //    @POST("/api/futures/v3/cancel_batch_orders/{instrument_id}")
 //    Call<JSONObject> cancelOrders(@Path("instrument_id") String instrumentId, @Body JSONObject order_ids);
