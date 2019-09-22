@@ -1,13 +1,11 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.api.domain.AccountInfoJson;
-import com.bitplay.api.domain.ob.OrderBookJson;
-import com.bitplay.api.domain.ob.OrderJson;
-import com.bitplay.api.domain.ResultJson;
-import com.bitplay.api.domain.TickerJson;
-import com.bitplay.api.domain.TradeRequestJson;
-import com.bitplay.api.domain.TradeResponseJson;
-import com.bitplay.api.domain.VisualTrade;
+import com.bitplay.api.dto.ob.OrderBookJson;
+import com.bitplay.api.dto.ob.OrderJson;
+import com.bitplay.api.dto.ResultJson;
+import com.bitplay.api.dto.TickerJson;
+import com.bitplay.api.dto.TradeRequestJson;
+import com.bitplay.api.dto.TradeResponseJson;
 import com.bitplay.api.service.BitplayUIServicePoloniex;
 
 import org.springframework.beans.factory.annotation.Autowired;

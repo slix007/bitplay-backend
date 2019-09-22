@@ -1,15 +1,15 @@
 package com.bitplay.api.service;
 
-import com.bitplay.api.domain.AccountInfoJson;
-import com.bitplay.api.domain.LiquidationInfoJson;
-import com.bitplay.api.domain.ResultJson;
-import com.bitplay.api.domain.TickerJson;
-import com.bitplay.api.domain.TradeRequestJson;
-import com.bitplay.api.domain.TradeResponseJson;
-import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.api.domain.ob.FutureIndexJson;
-import com.bitplay.api.domain.ob.OrderBookJson;
-import com.bitplay.api.domain.ob.OrderJson;
+import com.bitplay.api.dto.AccountInfoJson;
+import com.bitplay.api.dto.LiquidationInfoJson;
+import com.bitplay.api.dto.ResultJson;
+import com.bitplay.api.dto.TickerJson;
+import com.bitplay.api.dto.TradeRequestJson;
+import com.bitplay.api.dto.TradeResponseJson;
+import com.bitplay.api.dto.VisualTrade;
+import com.bitplay.api.dto.ob.FutureIndexJson;
+import com.bitplay.api.dto.ob.OrderBookJson;
+import com.bitplay.api.dto.ob.OrderJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.MarketService;
@@ -39,7 +39,6 @@ import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.dto.trade.ContractLimitOrder;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.UserTrades;
 
 /**
  * Created by Sergey Shurmin on 3/25/17.

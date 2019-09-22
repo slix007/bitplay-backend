@@ -1,12 +1,11 @@
 package com.bitplay.api.service;
 
-import com.bitplay.api.domain.ChangeRequestJson;
-import com.bitplay.api.domain.ResultJson;
-import com.bitplay.api.domain.TradeRequestJson;
-import com.bitplay.api.domain.TradeResponseJson;
-import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.api.domain.ob.FutureIndexJson;
-import com.bitplay.api.domain.ob.LimitsJson;
+import com.bitplay.api.dto.ChangeRequestJson;
+import com.bitplay.api.dto.ResultJson;
+import com.bitplay.api.dto.TradeRequestJson;
+import com.bitplay.api.dto.TradeResponseJson;
+import com.bitplay.api.dto.ob.FutureIndexJson;
+import com.bitplay.api.dto.ob.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexLimitsService;
@@ -23,10 +22,7 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.trade.UserTrades;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

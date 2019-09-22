@@ -1,7 +1,7 @@
 package com.bitplay.market.okcoin;
 
-import com.bitplay.api.domain.ob.InsideLimitsEx;
-import com.bitplay.api.domain.ob.LimitsJson;
+import com.bitplay.api.dto.ob.InsideLimitsEx;
+import com.bitplay.api.dto.ob.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;

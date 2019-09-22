@@ -1,8 +1,8 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.api.domain.ChangePresetJson;
-import com.bitplay.api.domain.ResultJson;
-import com.bitplay.api.domain.SettingsPresetsJson;
+import com.bitplay.api.dto.ChangePresetJson;
+import com.bitplay.api.dto.ResultJson;
+import com.bitplay.api.dto.SettingsPresetsJson;
 import com.bitplay.persistance.SettingsPresetRepositoryService;
 import com.bitplay.persistance.domain.settings.SettingsPreset;
 import lombok.extern.slf4j.Slf4j;

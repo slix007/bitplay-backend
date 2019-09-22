@@ -1,15 +1,13 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.api.domain.AccountInfoJson;
-import com.bitplay.api.domain.ChangeRequestJson;
-import com.bitplay.api.domain.LiquidationInfoJson;
-import com.bitplay.api.domain.ResultJson;
-import com.bitplay.api.domain.TradeRequestJson;
-import com.bitplay.api.domain.TradeRequestJson.Type;
-import com.bitplay.api.domain.TradeResponseJson;
-import com.bitplay.api.domain.VisualTrade;
-import com.bitplay.api.domain.ob.OrderBookJson;
-import com.bitplay.api.domain.ob.OrderJson;
+import com.bitplay.api.dto.AccountInfoJson;
+import com.bitplay.api.dto.ChangeRequestJson;
+import com.bitplay.api.dto.LiquidationInfoJson;
+import com.bitplay.api.dto.ResultJson;
+import com.bitplay.api.dto.TradeRequestJson;
+import com.bitplay.api.dto.TradeResponseJson;
+import com.bitplay.api.dto.ob.OrderBookJson;
+import com.bitplay.api.dto.ob.OrderJson;
 import com.bitplay.api.service.BitplayUIServiceBitmex;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import java.util.List;
@@ -22,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.async.DeferredResult;
 
 /**
  * Created by Sergey Shurmin on 4/3/17.

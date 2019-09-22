@@ -1,7 +1,7 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.api.domain.MonAllJson;
-import com.bitplay.api.domain.ResultJson;
+import com.bitplay.api.dto.MonAllJson;
+import com.bitplay.api.dto.ResultJson;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;

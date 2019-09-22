@@ -1,6 +1,6 @@
 package com.bitplay.persistance;
 
-import com.bitplay.api.domain.SettingsPresetsJson;
+import com.bitplay.api.dto.SettingsPresetsJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.dao.SequenceDao;

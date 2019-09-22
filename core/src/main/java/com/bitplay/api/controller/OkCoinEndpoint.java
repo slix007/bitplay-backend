@@ -1,13 +1,13 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.api.domain.AccountInfoJson;
-import com.bitplay.api.domain.LeverageRequest;
-import com.bitplay.api.domain.LiquidationInfoJson;
-import com.bitplay.api.domain.ResultJson;
-import com.bitplay.api.domain.TradeRequestJson;
-import com.bitplay.api.domain.TradeResponseJson;
-import com.bitplay.api.domain.ob.OrderBookJson;
-import com.bitplay.api.domain.ob.OrderJson;
+import com.bitplay.api.dto.AccountInfoJson;
+import com.bitplay.api.dto.LeverageRequest;
+import com.bitplay.api.dto.LiquidationInfoJson;
+import com.bitplay.api.dto.ResultJson;
+import com.bitplay.api.dto.TradeRequestJson;
+import com.bitplay.api.dto.TradeResponseJson;
+import com.bitplay.api.dto.ob.OrderBookJson;
+import com.bitplay.api.dto.ob.OrderJson;
 import com.bitplay.api.service.BitplayUIServiceOkCoin;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;

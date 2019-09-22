@@ -1,6 +1,6 @@
 package com.bitplay.market.bitmex;
 
-import com.bitplay.api.domain.ob.LimitsJson;
+import com.bitplay.api.dto.ob.LimitsJson;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;

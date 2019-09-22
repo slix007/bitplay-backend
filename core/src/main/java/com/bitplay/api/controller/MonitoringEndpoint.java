@@ -1,6 +1,6 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.api.domain.MonDeltaListJson;
+import com.bitplay.api.dto.MonDeltaListJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.dto.DeltaMon;

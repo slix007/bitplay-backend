@@ -1,7 +1,6 @@
 package com.bitplay.market;
 
-import com.bitplay.api.domain.TradeResponseJson;
-import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.api.dto.TradeResponseJson;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.persistance.domain.fluent.FplayOrder;

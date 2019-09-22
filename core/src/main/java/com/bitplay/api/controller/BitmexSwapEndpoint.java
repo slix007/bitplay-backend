@@ -1,6 +1,6 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.api.domain.ResultJson;
+import com.bitplay.api.dto.ResultJson;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.SwapParams;

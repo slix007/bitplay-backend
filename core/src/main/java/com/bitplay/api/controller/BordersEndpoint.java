@@ -1,6 +1,6 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.api.domain.ResultJson;
+import com.bitplay.api.dto.ResultJson;
 import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.DeltaMinService;

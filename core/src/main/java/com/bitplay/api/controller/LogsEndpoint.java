@@ -1,7 +1,6 @@
 package com.bitplay.api.controller;
 
-import com.bitplay.api.domain.DeltasJson;
-import com.bitplay.api.domain.TradeLogJson;
+import com.bitplay.api.dto.TradeLogJson;
 import com.bitplay.api.service.CommonUIService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
