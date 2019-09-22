@@ -43,6 +43,10 @@ interface FuturesTradeApi {
     // Rate Limit: 20 requests per 2 seconds
     @GET("/api/futures/v3/accounts/{currency}")
     Call<Account> getAccountsByCurrency(@Path("currency") String currency);
+
+    @GET("/api/futures/v3/accounts/{currency}")
+    Call<Object> testAccount(@Path("currency") String currency);
+
 //
 //    @GET("/api/futures/v3/accounts/{currency}/ledger")
 //    Call<JSONArray> getAccountsLedgerByCurrency(@Path("currency") String currency);

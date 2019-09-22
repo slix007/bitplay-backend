@@ -54,6 +54,11 @@ public class FuturesTradeApiServiceImpl implements FuturesTradeApiService {
         return this.client.executeSync(this.api.getAccountsByCurrency(currency));
     }
 
+    public Object testAccount(String currency) {
+        return this.client.executeSync(this.api.testAccount(currency));
+    }
+
+
     @Override
     public OrderResult order(Order order) {
         return this.client.executeSync(this.api.order(order));

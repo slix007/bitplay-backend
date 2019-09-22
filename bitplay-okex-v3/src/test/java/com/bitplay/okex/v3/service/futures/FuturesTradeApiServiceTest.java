@@ -47,8 +47,8 @@ public class FuturesTradeApiServiceTest extends BaseTests {
 
     @Test
     public void getAccounts() {
-//        final Accounts accounts = tradeApiService.getAccounts();
-        final Account accounts = tradeApiService.getAccountsByCurrency("btc");
+//        final Account accounts = tradeApiService.getAccountsByCurrency("btc");
+        final Object accounts = ((FuturesTradeApiServiceImpl) tradeApiService).testAccount("btc");
         LOG.info(accounts.toString());
     }
 
