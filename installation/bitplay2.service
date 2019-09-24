@@ -3,6 +3,8 @@ Description=bitplay core service
 After=syslog.target
 
 [Service]
+Restart=on-failure
+RestartSec=10
 WorkingDirectory=/opt/bitplay/bitmex-okcoin
 #ExecStart=/usr/bin/java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=3783,suspend=n -javaagent:/opt/plumbr/plumbr.jar -jar /opt/bitplay/bitmex-okcoin/bitplay.jar
 
