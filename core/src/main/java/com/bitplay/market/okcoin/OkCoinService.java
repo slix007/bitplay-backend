@@ -630,11 +630,15 @@ public class OkCoinService extends MarketServicePreliq {
 
     private void fetchUserInfoContracts() throws IOException {
 
-        final String currencyCode = okexContractType.getCurrencyPair().base.getCurrencyCode().toLowerCase();
-        final Account account = bitplayOkexEchange.getTradeApiService().getAccountsByCurrency(currencyCode);
+        final Account account = getAccountApiV3();
         final AccountInfoContracts accountInfoContracts = AccountConverter.convert(account);
 
         mergeAccountSafe(accountInfoContracts);
+    }
+
+    public Account getAccountApiV3() {
+        final String currencyCode = okexContractType.getCurrencyPair().base.getCurrencyCode().toLowerCase();
+        return bitplayOkexEchange.getTradeApiService().getAccountsByCurrency(currencyCode);
     }
 
     private BigDecimal convertLiqPrice(String forceLiquPrice) {
@@ -1331,20 +1335,21 @@ public class OkCoinService extends MarketServicePreliq {
             if (message.contains("connect timed out") // SocketTimeoutException
                     || message.contains("Read timed out") // SocketTimeoutException
                     || message.contains("Signature does not match")
-                    || message.contains("Order price differ more than 5") // ExchangeException
+                    || (message.contains("32019") && message.contains("Order price cannot be")) // more than 103% or less than 97%
                     // Code: 20018, translation: Order price differ more than 5% from the price in the last minute
                     || message.contains("Remote host closed connection during handshake") // javax.net.ssl.SSLHandshakeException
             ) { // ExchangeException
                 return NextStep.CONTINUE;
             }
-            if (message.contains("Close amount bigger than your open positions")) {
-                try {
-                    fetchPosition();
-                } catch (Exception e1) {
-                    logger.info("FetchPositionError:", e1);
-                }
-                return NextStep.CONTINUE;
-            }
+            // api v3 uses "32019" error code(see above)
+//            if (message.contains("Close amount bigger than your open positions")) {
+//                try {
+//                    fetchPosition();
+//                } catch (Exception e1) {
+//                    logger.info("FetchPositionError:", e1);
+//                }
+//                return NextStep.CONTINUE;
+//            }
             return NextStep.BREAK; // no retry by default
         }
     }

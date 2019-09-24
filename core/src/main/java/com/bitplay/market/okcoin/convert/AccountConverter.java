@@ -28,7 +28,7 @@ public class AccountConverter {
         BigDecimal margin = acc.getMargin().setScale(8, 4);
         BigDecimal upl = acc.getUnrealized_pnl().setScale(8, 4);
         BigDecimal wallet = equity.subtract(upl).setScale(8, 4);
-        BigDecimal available = acc.getCan_withdraw().setScale(8, 4);
+        BigDecimal available = acc.getTotal_avail_balance().setScale(8, 4);
 //        BigDecimal available = equity.subtract(margin).setScale(8, 4);
         BigDecimal rpl = acc.getRealized_pnl().setScale(8, 4);
         BigDecimal riskRate = acc.getMargin_ratio().setScale(8, 4);

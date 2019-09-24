@@ -10,6 +10,8 @@ import com.bitplay.api.dto.ob.OrderBookJson;
 import com.bitplay.api.dto.ob.OrderJson;
 import com.bitplay.api.service.BitplayUIServiceOkCoin;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,14 @@ public class OkCoinEndpoint {
     @Autowired
     @Qualifier("OkCoin")
     private BitplayUIServiceOkCoin okCoin;
+
+    @Autowired
+    private OkCoinService okCoinService;
+
+    @RequestMapping(value = "/raw-account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Account rawAccount() {
+        return okCoinService.getAccountApiV3();
+    }
 
     @RequestMapping(value = "/order-book", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderBookJson okCoinOrderBook() {
