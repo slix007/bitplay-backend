@@ -32,7 +32,7 @@ public class OkcoinBalanceService implements BalanceService {
 
         final BigDecimal eLast = account.getELast();
         final BigDecimal available = account.getAvailable();
-        final BigDecimal margin = eLast != null ? eLast.subtract(available) : BigDecimal.ZERO; //equity and available may be updated with separate responses
+        final BigDecimal margin = account.getMargin();
         BigDecimal wallet = account.getWallet();
 
         //set eBest & eAvg for account
