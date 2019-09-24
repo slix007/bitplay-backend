@@ -13,23 +13,6 @@ public class OkexAllPositions {
     Boolean result; // true
     List<List<OkexPosition>> holding;
 
-    public Optional<OkexPosition> getByInstrumentId(String instrumentId) {
-        return holding.stream()
-                .flatMap(Collection::stream)
-                .filter(okexPosition -> okexPosition.getInstrumentId().equals(instrumentId))
-                .findFirst();
-    }
-
-    public Pos toPos(String instrumentId) {
-        final Optional<OkexPosition> byInstrumentId = getByInstrumentId(instrumentId);
-        if (byInstrumentId.isPresent()) {
-            final OkexPosition p = byInstrumentId.get();
-            return toPos(p);
-        }
-
-        return Pos.emptyPos();
-    }
-
     public static Pos toPos(OkexPosition p) {
         return new Pos(
                 p.getLongQty(),

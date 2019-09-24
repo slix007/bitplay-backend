@@ -18,15 +18,15 @@ public class ApiConfiguration {
     private String endpoint;
 
     /**
-     * Host connection timeout.
+     * Host connection timeout sec.
      */
     private long connectTimeout;
     /**
-     * The host reads the information timeout.
+     * The host reads the information timeout sec.
      */
     private long readTimeout;
     /**
-     * The host writes the information timeout.
+     * The host writes the information timeout sec.
      */
     private long writeTimeout;
     /**

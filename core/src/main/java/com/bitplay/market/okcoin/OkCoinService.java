@@ -319,9 +319,6 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private void initBitplayExchange(Object... exArgs) {
-        ApiConfiguration config = new ApiConfiguration();
-
-        config.setEndpoint(ApiConfiguration.API_BASE_URL);
         final ApiCredentials cred = new ApiCredentials();
         if (exArgs != null && exArgs.length == 3) {
             String exKey = (String) exArgs[0];
@@ -332,8 +329,14 @@ public class OkCoinService extends MarketServicePreliq {
             cred.setPassphrase(exPassphrase);
         }
 
+        ApiConfiguration config = new ApiConfiguration();
+        config.setEndpoint(ApiConfiguration.API_BASE_URL);
         config.setApiCredentials(cred);
         config.setPrint(true);
+        config.setRetryOnConnectionFailure(true);
+        config.setConnectTimeout(15);
+        config.setReadTimeout(15);
+        config.setWriteTimeout(15);
         bitplayOkexEchange = new BitplayOkexEchange(config);
     }
 
