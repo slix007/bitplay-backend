@@ -2073,12 +2073,13 @@ public class OkCoinService extends MarketServicePreliq {
                 if (pos.signum() > 0) {
                     if (margin.signum() > 0 && equity.signum() > 0) {
                         if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
-                            return;
+                            dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s, L=0)", pos, margin, equity);
+                            dql = null;
+                        } else {
+                            final BigDecimal L = position.getLiquidationPrice();
+                            dql = m.subtract(L);
+                            dqlString = String.format("o_DQL = m%s - L%s = %s", m, L, dql);
                         }
-
-                        final BigDecimal L = position.getLiquidationPrice();
-                        dql = m.subtract(L);
-                        dqlString = String.format("o_DQL = m%s - L%s = %s", m, L, dql);
                     } else {
                         dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s)", pos, margin, equity);
                         dql = null;
@@ -2090,12 +2091,13 @@ public class OkCoinService extends MarketServicePreliq {
                 } else if (pos.signum() < 0) {
                     if (margin.signum() > 0 && equity.signum() > 0) {
                         if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
-                            return;
+                            dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s, L=0)", pos, margin, equity);
+                            dql = null;
+                        } else {
+                            final BigDecimal L = position.getLiquidationPrice();
+                            dql = L.subtract(m);
+                            dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
                         }
-
-                        final BigDecimal L = position.getLiquidationPrice();
-                        dql = L.subtract(m);
-                        dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
                     } else {
                         dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s)", pos, margin, equity);
                         dql = null;
