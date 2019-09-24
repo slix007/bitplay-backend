@@ -99,6 +99,8 @@ public class Settings extends AbstractDocument {
 
     private OkexSettlement okexSettlement;
 
+    private ConBoPortions conBoPortions;
+
     public static Settings createDefault() {
         final Settings settings = new Settings();
         settings.manageType = ManageType.AUTO;
@@ -130,6 +132,7 @@ public class Settings extends AbstractDocument {
         settings.dql.setDqlLevel(BigDecimal.ZERO);
         settings.bitmexObType = BitmexObType.INCREMENTAL_25;
         settings.okexSettlement = OkexSettlement.createDefault();
+        settings.conBoPortions = ConBoPortions.createDefault();
         settings.setId(1L);
         return settings;
     }

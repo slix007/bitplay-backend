@@ -389,6 +389,10 @@ public class SettingsEndpoint {
             updateOkexSettlement(settingsUpdate, settings);
         }
 
+        if (settingsUpdate.getConBoPortions() != null) {
+            updateConBoPortions(settingsUpdate, settings);
+        }
+
         if (resetPreset) {
             persistenceService.resetSettingsPreset();
         }
@@ -410,6 +414,16 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getOkexSettlement().getPeriod() != null) {
             settings.getOkexSettlement().setPeriod(settingsUpdate.getOkexSettlement().getPeriod());
+        }
+        settingsRepositoryService.saveSettings(settings);
+    }
+
+    private void updateConBoPortions(Settings settingsUpdate, Settings settings) {
+        if (settingsUpdate.getConBoPortions().getMinNtUsdToStartOkex() != null) {
+            settings.getConBoPortions().setMinNtUsdToStartOkex(settingsUpdate.getConBoPortions().getMinNtUsdToStartOkex());
+        }
+        if (settingsUpdate.getConBoPortions().getMaxPortionUsdOkex() != null) {
+            settings.getConBoPortions().setMaxPortionUsdOkex(settingsUpdate.getConBoPortions().getMaxPortionUsdOkex());
         }
         settingsRepositoryService.saveSettings(settings);
     }

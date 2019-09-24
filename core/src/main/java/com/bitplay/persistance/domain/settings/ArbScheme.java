@@ -13,5 +13,9 @@ public enum ArbScheme {
     /**
      * Simultaneously set both orders.
      */
-    SIM
+    SIM,
+    /**
+     * Consistently bitmex(one portion) then okex(multi-portions).
+     */
+    CON_B_O_PORTIONS
 }
