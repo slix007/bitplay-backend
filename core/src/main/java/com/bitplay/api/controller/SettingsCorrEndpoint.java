@@ -1,7 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.dto.ChangeRequestJson;
-import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.PersistenceService;

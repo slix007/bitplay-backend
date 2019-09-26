@@ -4,13 +4,13 @@ import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
@@ -116,7 +116,6 @@ import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
-import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
 import org.knowm.xchange.utils.Assert;
@@ -124,6 +123,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -220,6 +220,13 @@ public class BitmexService extends MarketServicePreliq {
     private BitmexChangeOnSoService bitmexChangeOnSoService;
     @Autowired
     private MetricsDictionary metricsDictionary;
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    @Override
+    protected ApplicationEventPublisher getApplicationEventPublisher() {
+        return applicationEventPublisher;
+    }
 
     private String key;
     private String secret;

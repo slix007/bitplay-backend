@@ -1,7 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;

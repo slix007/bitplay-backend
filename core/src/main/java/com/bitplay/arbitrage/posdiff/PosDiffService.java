@@ -1,6 +1,9 @@
-package com.bitplay.arbitrage;
+package com.bitplay.arbitrage.posdiff;
 
+import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.BordersService.Borders;
+import com.bitplay.arbitrage.HedgeService;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.dto.SignalTypeEx;
@@ -1552,7 +1555,7 @@ public class PosDiffService {
         return false;
     }
 
-    boolean checkIsPositionsEqual() {
+    public boolean checkIsPositionsEqual() {
 
         calcPosDiffExecutor.execute(() -> {
             try {
@@ -1572,7 +1575,7 @@ public class PosDiffService {
         return dc.abs().subtract(posAdjustmentMax).signum() <= 0;
     }
 
-    public boolean isPosEqualByMinAdj(final BigDecimal dc) {
+    private boolean isPosEqualByMinAdj(final BigDecimal dc) {
         final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
         final BigDecimal posAdjustmentMin = pa.getPosAdjustmentMin();
         return dc.abs().subtract(posAdjustmentMin).signum() <= 0;
@@ -1602,7 +1605,7 @@ public class PosDiffService {
         return dcAbs.subtract(min).signum() > 0 && dcAbs.subtract(max).signum() <= 0;
     }
 
-    private BigDecimal getDcMainSet() {
+    BigDecimal getDcMainSet() {
         final BigDecimal hedgeAmountUsd = getHedgeAmountMainSet();
         final boolean isEth = bitmexService.getContractType().isEth();
         final BigDecimal okexUsd = getOkexUsd(isEth);

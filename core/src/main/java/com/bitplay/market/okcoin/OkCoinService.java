@@ -3,12 +3,12 @@ package com.bitplay.market.okcoin;
 import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
@@ -124,6 +124,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -210,6 +211,13 @@ public class OkCoinService extends MarketServicePreliq {
     private CumPersistenceService cumPersistenceService;
     @Autowired
     private OkexSettlementService okexSettlementService;
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    @Override
+    protected ApplicationEventPublisher getApplicationEventPublisher() {
+        return applicationEventPublisher;
+    }
 
     private OkExStreamingExchange exchange; // for streaming only
     private BitplayOkexEchange bitplayOkexEchange;

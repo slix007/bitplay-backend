@@ -2,7 +2,7 @@ package com.bitplay;
 
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.PosDiffService;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketServicePreliq;

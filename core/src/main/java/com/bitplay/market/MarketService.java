@@ -1,12 +1,13 @@
 package com.bitplay.market;
 
-import com.bitplay.arbitrage.PosDiffService;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -72,6 +73,7 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Created by Sergey Shurmin on 4/16/17.
@@ -194,6 +196,10 @@ public abstract class MarketService extends MarketServiceWithState {
         throw new IllegalArgumentException("not implemented");
     }
 
+    protected ApplicationEventPublisher getApplicationEventPublisher() {
+        throw new IllegalArgumentException("not implemented");
+    }
+
     protected void stateRecalcInStateUpdaterThread() {
         final Completable startSample = Completable.fromAction(() -> {
             getMetricsDictionary().startRecalcAfterUpdate(getName());
@@ -202,11 +208,15 @@ public abstract class MarketService extends MarketServiceWithState {
             getMetricsDictionary().stopRecalcAfterUpdate(getName());
         });
 
+//        logger.info("new NtUsdCheckEvent");
+        getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
+
         startSample.subscribeOn(stateUpdater)
                 .observeOn(stateUpdater)
                 .andThen(recalcAffordableContracts())
                 .andThen(recalcLiqInfo())
                 .andThen(recalcFullBalance())
+//                .andThen(Completable.fromAction(() -> getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent())))
                 .andThen(endSample)
                 .onErrorComplete(throwable -> {
                     if (!(throwable instanceof NotYetInitializedException)) {
