@@ -15,7 +15,6 @@ import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventBus;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import com.bitplay.arbitrage.factprice.AvgPriceService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
@@ -133,8 +132,6 @@ public class ArbitrageService {
     private TradeService fplayTradeService;
     @Autowired
     private DealPricesRepositoryService dealPricesRepositoryService;
-    @Autowired
-    private AvgPriceService avgPriceService;
     @Autowired
     private SlackNotifications slackNotifications;
     @Autowired
@@ -385,11 +382,6 @@ public class ArbitrageService {
 
                     // use snapshot of Params
                     final DealPrices dealPricesSnap = dealPricesRepositoryService.findByTradeId(tradeIdSnap);
-//                    synchronized (dealPrices) {
-////                        dealPrices.setTradeId(tradeId); // redundant. Keep logic: Re-set all dealPrices or none.
-//                        dealPricesSnap = SerializationUtils.clone(dealPrices);
-//                    }
-                    // todo separate startSignalParams with endSignalParams (cumParams)
                     final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
                     final Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
                             .toBuilder().build();
@@ -409,10 +401,6 @@ public class ArbitrageService {
                             new DeltaLogWriter(tradeIdSnap, counterNameSnap, fplayTradeService),
                             slackNotifications
                     );
-
-//                    if (signalTypeSnap.isPreliq()) {
-//                        afterArbTask.preliqIsDone(); // sync ending
-//                    }
 
                     afterArbService.addTask(afterArbTask); // async ending
 

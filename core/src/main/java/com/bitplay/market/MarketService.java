@@ -20,7 +20,6 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.SpecialFlags;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.market.state.TmpStateKeeper;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
@@ -118,7 +117,6 @@ public abstract class MarketService extends MarketServiceWithState {
     private volatile PlaceOrderArgs placeOrderArgs;
     private volatile MarketState marketState = MarketState.READY;
     private volatile Instant readyTime = Instant.now();
-    private final TmpStateKeeper tmpStateKeeper = new TmpStateKeeper(getName());
 
     // moving mon
 //    protected volatile Instant lastMovingStart = null;
@@ -549,10 +547,6 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public abstract PosDiffService getPosDiffService();
 
-    public TmpStateKeeper getTmpStateKeeper() {
-        return tmpStateKeeper;
-    }
-
     public boolean accountInfoIsReady() {
         return account.get().getWallet().signum() != 0;
     }
@@ -718,12 +712,11 @@ public abstract class MarketService extends MarketServiceWithState {
             .observeOn(ooSingleScheduler)
             .onBackpressureBuffer(1)
             .onBackpressureDrop()
-            .subscribe((i) -> {
-                setFreeIfNoOpenOrders("freeOoChecker", i);
-            }, e -> {
-                logger.error("freeOoChecker error", e);
-                getTradeLogger().warn("freeOoChecker error " + e.getMessage());
-            });
+            .subscribe((i) -> setFreeIfNoOpenOrders("freeOoChecker", i),
+                    e -> {
+                        logger.error("freeOoChecker error", e);
+                        getTradeLogger().warn("freeOoChecker error " + e.getMessage());
+                    });
 
     protected void setFreeIfNoOpenOrders(String checkerName, int attempt) {
         try {

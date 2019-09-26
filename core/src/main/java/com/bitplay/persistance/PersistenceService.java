@@ -1,7 +1,6 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.factprice.AvgPriceService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.ExchangePair;

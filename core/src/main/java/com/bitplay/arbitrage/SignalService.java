@@ -29,8 +29,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class SignalService {
 
-    final ExecutorService executorService = Executors.newFixedThreadPool(2,
-            new NamedThreadFactory("signal-service"));
+    final ExecutorService executorService = Executors.newFixedThreadPool(2, new NamedThreadFactory("signal-service"));
 
     @Autowired
     private TradeService tradeService;

@@ -12,14 +12,12 @@ import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
-import com.bitplay.market.state.TmpStateKeeper;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.ContractType;
 import java.math.BigDecimal;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.trade.UserTrades;
 import org.knowm.xchange.service.trade.TradeService;
 import org.springframework.stereotype.Service;
 
