@@ -7,6 +7,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -648,6 +649,7 @@ public class BitmexService extends MarketServicePreliq {
             final Pos pUpdate = accountService.fetchPositionInfo(bitmexContractType.getSymbol());
             mergePosition(pUpdate);
 
+            getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
             stateRecalcInStateUpdaterThread();
 
         } catch (HttpStatusIOException e) {
@@ -2442,6 +2444,7 @@ public class BitmexService extends MarketServicePreliq {
 
                         mergePosition(pUpdate);
 
+                        getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
                         stateRecalcInStateUpdaterThread();
 
                     } catch (Exception e) {

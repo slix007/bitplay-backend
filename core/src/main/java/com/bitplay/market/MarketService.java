@@ -200,6 +200,9 @@ public abstract class MarketService extends MarketServiceWithState {
         throw new IllegalArgumentException("not implemented");
     }
 
+    /**
+     * Initiated by orderBook or position change.
+     */
     protected void stateRecalcInStateUpdaterThread() {
         final Completable startSample = Completable.fromAction(() -> {
             getMetricsDictionary().startRecalcAfterUpdate(getName());
@@ -208,15 +211,11 @@ public abstract class MarketService extends MarketServiceWithState {
             getMetricsDictionary().stopRecalcAfterUpdate(getName());
         });
 
-//        logger.info("new NtUsdCheckEvent");
-        getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
-
         startSample.subscribeOn(stateUpdater)
                 .observeOn(stateUpdater)
                 .andThen(recalcAffordableContracts())
                 .andThen(recalcLiqInfo())
                 .andThen(recalcFullBalance())
-//                .andThen(Completable.fromAction(() -> getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent())))
                 .andThen(endSample)
                 .onErrorComplete(throwable -> {
                     if (!(throwable instanceof NotYetInitializedException)) {

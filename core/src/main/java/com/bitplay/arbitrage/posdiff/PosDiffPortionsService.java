@@ -15,6 +15,9 @@ public class PosDiffPortionsService {
     @Autowired
     private PosDiffService posDiffService;
 
+    /**
+     * Runs on each pos change (bitmex on posDiffService event; okex each 200ms).
+     */
     @Async("ntUsdSignalCheckExecutor")
     @EventListener(NtUsdCheckEvent.class)
     public void doCheck() {

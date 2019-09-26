@@ -6,6 +6,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
@@ -616,10 +617,11 @@ public class OkCoinService extends MarketServicePreliq {
         if (position.getOne().isPresent()) {
             final Pos pos = OkexAllPositions.toPos(position.getOne().get());
             this.pos.set(pos);
-            stateRecalcInStateUpdaterThread();
         } else {
             this.pos.set(Pos.emptyPos());
         }
+        getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
+        stateRecalcInStateUpdaterThread();
 
         return this.pos.toString();
     }
@@ -673,6 +675,7 @@ public class OkCoinService extends MarketServicePreliq {
                     logger.debug(newPos.toFullString());
                     this.pos.set(newPos);
 
+                    getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
                     stateRecalcInStateUpdaterThread();
 
                 }, throwable -> logger.error("PositionObservable.Exception: ", throwable));
