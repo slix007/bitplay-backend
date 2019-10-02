@@ -2,6 +2,7 @@ package com.bitplay.api.dto.ob;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,8 +11,7 @@ import lombok.Setter;
  * Created by Sergey Shurmin on 4/22/17.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderJson {
@@ -25,6 +25,7 @@ public class OrderJson {
     String orderType;
     String timestamp;
     String amountInBtc;
+    String filledAmount;
 
     @Override
     public boolean equals(Object o) {

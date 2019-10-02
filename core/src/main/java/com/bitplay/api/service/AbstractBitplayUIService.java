@@ -68,7 +68,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 o.getTradableAmount().toPlainString(),
                 o.getType() != null ? o.getType().toString() : "null",
                 o.getTimestamp() != null ? LocalDateTime.ofInstant(o.getTimestamp().toInstant(), ZoneId.systemDefault()).toLocalTime().toString() : null,
-                amountInBtc
+                amountInBtc,
+                o.getCumulativeAmount() != null ? o.getCumulativeAmount().toPlainString() : ""
         );
     };
 
@@ -90,7 +91,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 o.getTradableAmount().toPlainString(),
                 o.getType() != null ? o.getType().toString() : "null",
                 o.getTimestamp() != null ? LocalDateTime.ofInstant(o.getTimestamp().toInstant(), ZoneId.systemDefault()).toLocalTime().toString() : null,
-                amountInBtc
+                amountInBtc,
+                o.getCumulativeAmount() != null ? o.getCumulativeAmount().toPlainString() : ""
         );
     };
 

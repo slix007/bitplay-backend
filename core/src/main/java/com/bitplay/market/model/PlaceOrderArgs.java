@@ -44,8 +44,8 @@ public class PlaceOrderArgs {
     private String preliqMarketName;
     private boolean pricePlanOnStart = false;
     private boolean preliqOrder = false;
-    private Integer portionsQty;
-    private Integer portionsQtyMax;
+    private Integer portionsQty;    // portion number in a row
+    private Integer portionsQtyMax; // amount of portions in a row
     private BtmFokAutoArgs btmFokArgs;
 
     public PlaceOrderArgs(OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, PlacingType placingType, SignalType signalType, int attempt,
@@ -133,6 +133,15 @@ public class PlaceOrderArgs {
         return new PlaceOrderArgs(this.orderType, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
                 this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
                 this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, this.portionsQty, this.portionsQtyMax, this.btmFokArgs);
+    }
+
+    public PlaceOrderArgs cloneAsPortion(BigDecimal amount, BigDecimal leftAmount) {
+        int portionsQty = this.portionsQty != null ? this.portionsQty : 1;
+        int portionsQtyMax = leftAmount.signum() > 0 ? portionsQty + 1 : portionsQty;
+
+        return new PlaceOrderArgs(this.orderType, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
+                this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
+                this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, portionsQty, portionsQtyMax, this.btmFokArgs);
     }
 
     public void setPricePlanOnStart(boolean pricePlanOnStart) {

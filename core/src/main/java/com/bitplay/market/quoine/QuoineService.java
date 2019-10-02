@@ -76,8 +76,9 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    protected void onReadyState() {
+    protected boolean onReadyState() {
         // nothing for now
+        return true;
     }
 
     @Override

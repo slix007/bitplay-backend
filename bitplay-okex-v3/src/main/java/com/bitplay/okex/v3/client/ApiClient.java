@@ -9,6 +9,7 @@ import com.bitplay.okex.v3.helper.OkexObjectMapper;
 import com.bitplay.okex.v3.utils.DateUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import org.apache.commons.lang3.StringUtils;
@@ -71,6 +72,8 @@ public class ApiClient {
             } else {
                 throw new ApiException(message);
             }
+        } catch (final SocketTimeoutException e) {
+            throw new ApiException("ApiClient executeSync exception." + e.getMessage());
         } catch (final IOException e) {
             throw new ApiException("ApiClient executeSync exception.", e);
         }

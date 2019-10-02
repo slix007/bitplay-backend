@@ -527,7 +527,10 @@ public abstract class MarketService extends MarketServiceWithState {
         logger.info(msg);
         if (newState == MarketState.READY) {
             this.readyTime = Instant.now();
-            onReadyState(); // may reset WAITING_ARB, iterateOpenOrdersMoveAsync
+            boolean isOk = onReadyState(); // may reset WAITING_ARB, iterateOpenOrdersMoveAsync
+            if (!isOk) {
+                return;// when okex_portions_not_finished
+            }
         }
         this.marketState = newState;
     }
@@ -891,7 +894,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     abstract protected void iterateOpenOrdersMoveAsync(Object... iterateArgs);
 
-    abstract protected void onReadyState();
+    abstract protected boolean onReadyState();
 
     abstract public ContractType getContractType();
 

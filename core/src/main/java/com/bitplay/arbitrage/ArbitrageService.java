@@ -1138,7 +1138,7 @@ public class ArbitrageService {
 
     private boolean getIsConBo() {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        return settings.getArbScheme() == ArbScheme.CON_B_O
+        return settings.getArbScheme().isConBo()
                 || bitmexChangeOnSoService.toConBoActive();
     }
 

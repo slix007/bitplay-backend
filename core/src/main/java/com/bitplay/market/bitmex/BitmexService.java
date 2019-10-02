@@ -743,8 +743,9 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
-    protected void onReadyState() {
+    protected boolean onReadyState() {
         iterateOpenOrdersMoveAsync();
+        return true;
     }
 
     @Override
