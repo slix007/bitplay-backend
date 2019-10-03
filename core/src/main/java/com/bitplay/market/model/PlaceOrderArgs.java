@@ -135,13 +135,12 @@ public class PlaceOrderArgs {
                 this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, this.portionsQty, this.portionsQtyMax, this.btmFokArgs);
     }
 
-    public PlaceOrderArgs cloneAsPortion(BigDecimal amount, BigDecimal leftAmount) {
+    public PlaceOrderArgs cloneAsPortion(BigDecimal amount) {
         int portionsQty = this.portionsQty != null ? this.portionsQty : 1;
-        int portionsQtyMax = leftAmount.signum() > 0 ? portionsQty + 1 : portionsQty;
 
         return new PlaceOrderArgs(this.orderType, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
                 this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
-                this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, portionsQty, portionsQtyMax, this.btmFokArgs);
+                this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, portionsQty, null, this.btmFokArgs);
     }
 
     public void setPricePlanOnStart(boolean pricePlanOnStart) {
@@ -153,8 +152,11 @@ public class PlaceOrderArgs {
     }
 
     public String getCounterNameWithPortion() {
-        if (portionsQty == null || portionsQtyMax == null) {
+        if (portionsQty == null) {
             return counterName;
+        }
+        if (portionsQtyMax == null) {
+            return String.format("%s_portion_%s", counterName, portionsQty);
         }
         return String.format("%s_portion_%s/%s", counterName, portionsQty, portionsQtyMax);
     }

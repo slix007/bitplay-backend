@@ -141,7 +141,7 @@ public class PosDiffPortionsService {
 
         // place
         final BigDecimal leftAmount = currArgs.getAmount().subtract(block);
-        final PlaceOrderArgs args = currArgs.cloneAsPortion(block, leftAmount);
+        final PlaceOrderArgs args = currArgs.cloneAsPortion(block);
         okCoinService.beforeDeferredPlacing(args);
         okCoinService.placeOrder(args);
 

@@ -125,6 +125,10 @@ public class FplayOrder {
         return String.format("%s/%s", portionsQty, portionsQtyMax);
     }
 
+    public String getCounterName() {
+        return counterName;
+    }
+
     public String getCounterWithPortion() {
         if (portionsQty == null || portionsQtyMax == null) {
             return counterName;

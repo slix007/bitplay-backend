@@ -1159,17 +1159,21 @@ public abstract class MarketService extends MarketServiceWithState {
         PlacingType placingType = null;
         SignalType signalType = null;
         String counterName;
+        Integer qty = null;
+        Integer qtyMax = null;
         if (lastOO.isPresent()) {
             final FplayOrder o = lastOO.get();
             bestQuotes = o.getBestQuotes();
             placingType = o.getPlacingType();
             signalType = o.getSignalType();
             counterName = o.getCounterName();
+            qty = o.getPortionsQty();
+            qtyMax = o.getPortionsQtyMax();
         } else {
             counterName = gerCurrCounterName(currOrders);
         }
 
-        return new FplayOrder(this.getMarketId(), lastTradeId, counterName, null, bestQuotes, placingType, signalType);
+        return new FplayOrder(this.getMarketId(), lastTradeId, counterName, null, bestQuotes, placingType, signalType, qty, qtyMax);
     }
 
     private Optional<FplayOrder> getLastOO(List<FplayOrder> currOrders) {
