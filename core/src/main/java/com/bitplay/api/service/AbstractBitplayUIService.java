@@ -16,6 +16,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
@@ -25,6 +26,7 @@ import com.bitplay.utils.Utils;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -50,8 +52,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
             limitOrder.getLimitPrice().toString(),
             limitOrder.getTradableAmount().toString(),
             limitOrder.getType().toString(),
-            LocalDateTime.ofInstant(limitOrder.getTimestamp().toInstant(), ZoneId.systemDefault())
-                    .toLocalTime().toString());
+            timestampToStr(limitOrder.getTimestamp()));
     Function<LimitOrder, OrderJson> toOrderJson = o -> {
         String amountInBtc = "";
         if (o instanceof ContractLimitOrder) {
@@ -67,7 +68,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 o.getLimitPrice().toPlainString(),
                 o.getTradableAmount().toPlainString(),
                 o.getType() != null ? o.getType().toString() : "null",
-                o.getTimestamp() != null ? LocalDateTime.ofInstant(o.getTimestamp().toInstant(), ZoneId.systemDefault()).toLocalTime().toString() : null,
+                o.getTimestamp() != null ? timestampToStr(o.getTimestamp()) : null,
                 amountInBtc,
                 o.getCumulativeAmount() != null ? o.getCumulativeAmount().toPlainString() : ""
         );
@@ -90,11 +91,15 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 limO.getLimitPrice() != null ? limO.getLimitPrice().toPlainString() : "",
                 o.getTradableAmount().toPlainString(),
                 o.getType() != null ? o.getType().toString() : "null",
-                o.getTimestamp() != null ? LocalDateTime.ofInstant(o.getTimestamp().toInstant(), ZoneId.systemDefault()).toLocalTime().toString() : null,
+                o.getTimestamp() != null ? timestampToStr(o.getTimestamp()) : null,
                 amountInBtc,
                 o.getCumulativeAmount() != null ? o.getCumulativeAmount().toPlainString() : ""
         );
     };
+
+    private String timestampToStr(Date timestamp) {
+        return LocalDateTime.ofInstant(timestamp.toInstant(), ZoneId.systemDefault()).toLocalTime().toString();
+    }
 
     public abstract T getBusinessService();
 
@@ -106,8 +111,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 trade.getPrice().toPlainString(),
                 trade.getTradableAmount().toPlainString(),
                 trade.getType().toString(),
-                LocalDateTime.ofInstant(trade.getTimestamp().toInstant(), ZoneId.systemDefault())
-                        .toLocalTime().toString()
+                timestampToStr(trade.getTimestamp())
         );
     }
 
@@ -223,9 +227,21 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public List<OrderJson> getOpenOrders() {
-        return getBusinessService().getOpenOrders().stream()
+        final T businessService = getBusinessService();
+        final List<OrderJson> res = businessService.getOpenOrders().stream()
                 .map(openOrderToJson)
                 .collect(Collectors.toList());
+        final PlaceOrderArgs da = businessService.getDeferredOrder();
+        if (da != null) {
+            final String currency = da.getContractType() != null && da.getContractType().getCurrencyPair() != null
+                    ? da.getContractType().getCurrencyPair().toString() : "";
+            res.add(new OrderJson(da.getCounterNameWithPortion(), "DEFERRED", "WAITING", currency, "",
+                    da.getAmount().toPlainString(),
+                    da.getOrderType() != null ? da.getOrderType().toString() : "null",
+                    "", "", ""
+            ));
+        }
+        return res;
 
     }
 

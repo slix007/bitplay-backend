@@ -1078,6 +1078,11 @@ public class OkCoinService extends MarketServicePreliq {
         return placeOrderArgsRef.get() != null;
     }
 
+    @Override
+    public PlaceOrderArgs getDeferredOrder() {
+        return placeOrderArgsRef.get();
+    }
+
     public AtomicReference<PlaceOrderArgs> getPlaceOrderArgsRef() {
         return placeOrderArgsRef;
     }

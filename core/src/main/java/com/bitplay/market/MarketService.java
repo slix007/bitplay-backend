@@ -757,6 +757,10 @@ public abstract class MarketService extends MarketServiceWithState {
         }
     }
 
+    public PlaceOrderArgs getDeferredOrder() {
+        return null;
+    }
+
     public boolean hasDeferredOrders() {
         return false;
     }
