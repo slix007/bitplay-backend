@@ -156,9 +156,9 @@ public class PlaceOrderArgs {
             return counterName;
         }
         if (portionsQtyMax == null) {
-            return String.format("%s_p_%s", counterName, portionsQty);
+            return String.format("%s_p%s", counterName, portionsQty);
         }
-        return String.format("%s_p_%s/%s", counterName, portionsQty, portionsQtyMax);
+        return String.format("%s_p%s/%s", counterName, portionsQty, portionsQtyMax);
     }
 
     public void setBtmFokArgs(BtmFokAutoArgs btmFokArgs) {

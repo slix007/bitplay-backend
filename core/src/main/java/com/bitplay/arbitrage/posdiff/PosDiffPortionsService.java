@@ -74,7 +74,7 @@ public class PosDiffPortionsService {
             final String msg = "wrong settings. PORTIONS minToStart=" + minToStart;
             warningLogger.info(msg);
             slackNotifications.sendNotify(NotifyType.SETTINGS_ERRORS, "msg");
-            minToStart = settings.isEth() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
+            minToStart = BigDecimal.ONE;
 //            return;
         }
         if (ntUsd.signum() == 0) {
