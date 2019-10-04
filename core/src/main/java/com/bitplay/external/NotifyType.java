@@ -50,6 +50,7 @@ public enum NotifyType {
     RESET_TO_FREE(false),
     MAX_DELTA_VIOLATED(true, 30), // b_delta >= b_max_delta и/или o_delta >= o_max_delta. (раз в 30 сек).
 
+    SETTINGS_ERRORS(true, 30), // initiated from developer
     ;
 
     private final boolean throttled;

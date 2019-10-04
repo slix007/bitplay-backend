@@ -63,7 +63,8 @@ public class DestinationResolver {
             NotifyType.PRELIQ_MAX_TOTAL,
             NotifyType.PRELIQ_MAX_ATTEMPT,
             NotifyType.RESET_TO_FREE,
-            NotifyType.MAX_DELTA_VIOLATED
+            NotifyType.MAX_DELTA_VIOLATED,
+            NotifyType.SETTINGS_ERRORS
     );
     //2) Trader passive: сервера 662, 669, 659, 667, 668
     //1. Stop all actions (MDC и signal limit)
@@ -85,7 +86,8 @@ public class DestinationResolver {
             NotifyType.ADJ_CORR_MAX_ATTEMPT,
             NotifyType.PRELIQ_MAX_TOTAL,
             NotifyType.PRELIQ_MAX_ATTEMPT,
-            NotifyType.MAX_DELTA_VIOLATED
+            NotifyType.MAX_DELTA_VIOLATED,
+            NotifyType.SETTINGS_ERRORS
     );
 
     //3) Coordinator: сервера 662, 669, 659,
@@ -111,7 +113,8 @@ public class DestinationResolver {
             NotifyType.BITMEX_OUTSIDE_LIMITS, NotifyType.OKEX_OUTSIDE_LIMITS,
             NotifyType.LAST_PRICE_DEVIATION,
             NotifyType.BITMEX_RECONNECT,
-            NotifyType.E_BEST_VIOLATION
+            NotifyType.E_BEST_VIOLATION,
+            NotifyType.SETTINGS_ERRORS
     );
 
 

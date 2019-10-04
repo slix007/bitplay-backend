@@ -2,6 +2,8 @@ package com.bitplay.arbitrage.posdiff;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.events.NtUsdCheckEvent;
+import com.bitplay.external.NotifyType;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -42,6 +44,9 @@ public class PosDiffPortionsService {
     @Autowired
     private OkCoinService okCoinService;
 
+    @Autowired
+    private SlackNotifications slackNotifications;
+
     /**
      * Runs on each pos change (bitmex on posDiffService event; okex each 200ms).
      */
@@ -62,11 +67,15 @@ public class PosDiffPortionsService {
             return;
         }
         final ConBoPortions conBoPortions = settings.getConBoPortions();
-        final BigDecimal minToStart = conBoPortions.getMinNtUsdToStartOkex();
+        BigDecimal minToStart = conBoPortions.getMinNtUsdToStartOkex();
         BigDecimal ntUsd = posDiffService.getDcMainSet();
         if (minToStart.signum() <= 0) {
             // wrong settings
-            return;
+            final String msg = "wrong settings. PORTIONS minToStart=" + minToStart;
+            warningLogger.info(msg);
+            slackNotifications.sendNotify(NotifyType.SETTINGS_ERRORS, "msg");
+            minToStart = settings.isEth() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
+//            return;
         }
         if (ntUsd.signum() == 0) {
             // no start
