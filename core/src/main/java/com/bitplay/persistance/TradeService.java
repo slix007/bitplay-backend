@@ -49,20 +49,20 @@ public class TradeService {
     }
 
 
-    public void info(Long tradeId, String counterName, String theLog) {
-        addLog(tradeId, counterName, LogLevel.INFO, theLog);
+    public void info(Long tradeId, String counterForLogs, String theLog) {
+        addLog(tradeId, counterForLogs, LogLevel.INFO, theLog);
     }
 
-    public void warn(Long tradeId, String counterName, String theLog) {
-        addLog(tradeId, counterName, LogLevel.WARN, theLog);
+    public void warn(Long tradeId, String counterForLogs, String theLog) {
+        addLog(tradeId, counterForLogs, LogLevel.WARN, theLog);
     }
 
-    public void error(Long tradeId, String counterName, String theLog) {
-        addLog(tradeId, counterName, LogLevel.ERROR, theLog);
+    public void error(Long tradeId, String counterForLogs, String theLog) {
+        addLog(tradeId, counterForLogs, LogLevel.ERROR, theLog);
     }
 
-    private void addLog(Long tradeId, String counterName, LogLevel logLevel, String theLog) {
-        deltasLogger.info(String.format("%s::%s %s", tradeId, counterName, theLog));
+    private void addLog(Long tradeId, String counterForLogs, LogLevel logLevel, String theLog) {
+        deltasLogger.info(String.format("%s::%s %s", tradeId, counterForLogs, theLog));
 
         if (tradeId != null) {
             mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId)),

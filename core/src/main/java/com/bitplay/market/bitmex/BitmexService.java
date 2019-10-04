@@ -2992,7 +2992,7 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing) {
         final FplayOrder currStub = stub != null ? stub : getCurrStub();
-        final String counterForLogs = currStub.getCounterName();
+        final String counterForLogs = currStub.getCounterWithPortion();
         String contractTypeStr = "";
 
         int attemptCount = 0;

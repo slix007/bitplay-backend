@@ -136,7 +136,7 @@ public class PlaceOrderArgs {
     }
 
     public PlaceOrderArgs cloneAsPortion(BigDecimal amount) {
-        int portionsQty = this.portionsQty != null ? this.portionsQty : 1;
+        int portionsQty = this.portionsQty != null ? this.portionsQty + 1 : 1;
 
         return new PlaceOrderArgs(this.orderType, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
                 this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
@@ -156,12 +156,16 @@ public class PlaceOrderArgs {
             return counterName;
         }
         if (portionsQtyMax == null) {
-            return String.format("%s_portion_%s", counterName, portionsQty);
+            return String.format("%s_p_%s", counterName, portionsQty);
         }
-        return String.format("%s_portion_%s/%s", counterName, portionsQty, portionsQtyMax);
+        return String.format("%s_p_%s/%s", counterName, portionsQty, portionsQtyMax);
     }
 
     public void setBtmFokArgs(BtmFokAutoArgs btmFokArgs) {
         this.btmFokArgs = btmFokArgs;
+    }
+
+    public void setPortionsQty(Integer portionsQty) {
+        this.portionsQty = portionsQty;
     }
 }

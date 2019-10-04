@@ -41,7 +41,7 @@ public class SignalService {
     private BitmexService bitmexService;
 
     public void placeOkexOrderOnSignal(OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo) {
+            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo, Integer portionsQty) {
 
         if (o_block.signum() <= 0) {
             executorService.execute(() -> {
@@ -65,6 +65,7 @@ public class SignalService {
             final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
                     placingType,
                     SignalType.AUTOMATIC, 1, tradeId, counterName, lastObTime);
+            placeOrderArgs.setPortionsQty(portionsQty);
 
             if (isConBo) {
                 okexService.deferredPlaceOrderOnSignal(placeOrderArgs);

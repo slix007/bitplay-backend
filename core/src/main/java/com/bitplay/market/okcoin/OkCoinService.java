@@ -1679,7 +1679,6 @@ public class OkCoinService extends MarketServicePreliq {
         final SignalType signalType = fOrderToCancel.getSignalType() != null ? fOrderToCancel.getSignalType() : getArbitrageService().getSignalType();
 
         final Long tradeId = fOrderToCancel.getTradeId();
-        final String counterName = fOrderToCancel.getCounterName();
         final String counterWithPortion = fOrderToCancel.getCounterWithPortion();
         if (limitOrder.getStatus() == Order.OrderStatus.CANCELED || limitOrder.getStatus() == Order.OrderStatus.FILLED) {
             tradeLogger.error(String.format("#%s do not move ALREADY_CLOSED order", counterWithPortion));
@@ -1742,8 +1741,7 @@ public class OkCoinService extends MarketServicePreliq {
                     getTradeLogger().warn("WARNING: PlaceType is null." + cancelledFplayOrd);
                 }
 
-                tradeResponse = finishMovingSync(tradeId, limitOrder, signalType, bestQuotes, counterName, cancelledLimitOrder,
-                        tradeResponse, cancelledFplayOrd);
+                tradeResponse = finishMovingSync(tradeId, limitOrder, signalType, bestQuotes, cancelledLimitOrder, tradeResponse, cancelledFplayOrd);
 
                 if (tradeResponse.getLimitOrder() != null) {
                     final LimitOrder newOrder = tradeResponse.getLimitOrder();
@@ -1752,7 +1750,7 @@ public class OkCoinService extends MarketServicePreliq {
                             newOrder, newFplayOrder, cancelledFplayOrd);
                 } else {
                     warningLogger.info(String.format("#%s Can not move orderId=%s, ONLY_CANCEL!!!",
-                            counterName, limitOrder.getId()));
+                            counterWithPortion, limitOrder.getId()));
                     response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, tradeResponse.getOrderId(),
                             null, null, cancelledFplayOrd);
                 }
@@ -1795,8 +1793,9 @@ public class OkCoinService extends MarketServicePreliq {
         return Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
     }
 
-    private TradeResponse finishMovingSync(Long tradeId, LimitOrder limitOrder, SignalType signalType, BestQuotes bestQuotes, String counterName,
+    private TradeResponse finishMovingSync(Long tradeId, LimitOrder limitOrder, SignalType signalType, BestQuotes bestQuotes,
             Order cancelledOrder, TradeResponse tradeResponse, FplayOrder cnlOrder) {
+        final String counterForLogs = cnlOrder.getCounterWithPortion();
         PlacingType placingType = cnlOrder.getPlacingType();
         BigDecimal newAmount = limitOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount())
                 .setScale(0, RoundingMode.HALF_UP);
@@ -1809,7 +1808,7 @@ public class OkCoinService extends MarketServicePreliq {
                     Thread.sleep(500 * attemptCount);
                 }
 
-                tradeLogger.info(String.format("#%s/%s Moving3:placingNew a=%s, placingType=%s, orderType=%s", counterName, attemptCount, newAmount,
+                tradeLogger.info(String.format("#%s/%s Moving3:placingNew a=%s, placingType=%s, orderType=%s", counterForLogs, attemptCount, newAmount,
                         placingType, limitOrder.getType()));
 
                 PlacingType okexPlacingType = placingType;
@@ -1818,16 +1817,17 @@ public class OkCoinService extends MarketServicePreliq {
                 }
 
                 if (placingType != PlacingType.TAKER) {
-                    tradeResponse = placeNonTakerOrder(tradeId, limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType, counterName,
-                            false, cnlOrder.getPortionsQty(), cnlOrder.getPortionsQtyMax(), cnlOrder.getCounterWithPortion());
+                    tradeResponse = placeNonTakerOrder(tradeId, limitOrder.getType(), newAmount, bestQuotes, true, signalType, okexPlacingType,
+                            cnlOrder.getCounterName(),
+                            false, cnlOrder.getPortionsQty(), cnlOrder.getPortionsQtyMax(), counterForLogs);
                 } else {
-                    tradeResponse = takerOrder(tradeId, limitOrder.getType(), newAmount, bestQuotes, signalType, counterName,
-                            cnlOrder.getPortionsQty(), cnlOrder.getPortionsQtyMax(), cnlOrder.getCounterWithPortion());
+                    tradeResponse = takerOrder(tradeId, limitOrder.getType(), newAmount, bestQuotes, signalType, cnlOrder.getCounterName(),
+                            cnlOrder.getPortionsQty(), cnlOrder.getPortionsQtyMax(), counterForLogs);
                 }
 
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().startsWith("Insufficient")) {
                     tradeLogger.info(String.format("#%s/%s Moving3:Failed %s amount=%s,quote=%s,id=%s,attempt=%s. Error: %s",
-                            counterName, attemptCount,
+                            counterForLogs, attemptCount,
                             limitOrder.getType(), //== Order.OrderType.BID ? "BUY" : "SELL"
                             limitOrder.getTradableAmount(),
                             limitOrder.getLimitPrice().toPlainString(),
@@ -1846,13 +1846,13 @@ public class OkCoinService extends MarketServicePreliq {
                 if (tradeResponse.getErrorCode() == null) {
                     break;
                 } else {
-                    final String errMsg = String.format("#%s/%s Warning: Moving3:placingError %s", counterName, attemptCount, tradeResponse.getErrorCode());
+                    final String errMsg = String.format("#%s/%s Warning: Moving3:placingError %s", counterForLogs, attemptCount, tradeResponse.getErrorCode());
                     logger.error(errMsg);
                     tradeLogger.error(errMsg);
                 }
             } catch (Exception e) {
-                logger.error("#{}/{} Moving3:placingError", counterName, attemptCount, e);
-                tradeLogger.error(String.format("#%s/%s Warning: Moving3:placingError %s", counterName, attemptCount, e.toString()));
+                logger.error("#{}/{} Moving3:placingError", counterForLogs, attemptCount, e);
+                tradeLogger.error(String.format("#%s/%s Warning: Moving3:placingError %s", counterForLogs, attemptCount, e.toString()));
                 tradeResponse.setOrderId(null);
                 tradeResponse.setErrorCode(e.getMessage());
 
@@ -1904,7 +1904,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing) {
         List<LimitOrder> res = new ArrayList<>();
-        final String counterForLogs = getCounterName();
+        final String counterForLogs = stub.getCounterWithPortion();
 
         getOnlyOpenOrders().forEach(order -> {
 

@@ -82,7 +82,7 @@ public class PosDiffPortionsService {
             return;
         }
 
-        if (checkMinToStartNtUsd(ntUsd, minToStart)) {
+        if (notEnoughMinToStartNtUsd(ntUsd, minToStart)) {
             return;
         }
         ntUsd = ntUsd.abs();
@@ -111,8 +111,12 @@ public class PosDiffPortionsService {
         placeDeferredPortion(block);
     }
 
-    private boolean checkMinToStartNtUsd(BigDecimal ntUsd, BigDecimal minToStart) {
+    private boolean notEnoughMinToStartNtUsd(BigDecimal ntUsd, BigDecimal minToStart) {
         final PlaceOrderArgs currArgs = okCoinService.getPlaceOrderArgsRef().get();
+        if (currArgs == null) {
+            // no deferred order
+            return true;
+        }
         final OrderType t = currArgs.getOrderType();
         final boolean b = t == OrderType.BID || t == OrderType.EXIT_ASK;
 //        final boolean a = t == OrderType.ASK || t == OrderType.EXIT_BID;

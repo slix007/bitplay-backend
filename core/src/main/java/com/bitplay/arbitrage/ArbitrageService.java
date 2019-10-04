@@ -54,7 +54,6 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
-import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
@@ -1167,7 +1166,7 @@ public class ArbitrageService {
         // in scheme MT2 Okex should be the first
         final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, lastObTime, isConBo);
+                counterName, tradeId, lastObTime, isConBo, null);
         signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
                 counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
 
@@ -1372,7 +1371,7 @@ public class ArbitrageService {
         // in scheme MT2 Okex should be the first
         final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, lastObTime, isConBo);
+                counterName, tradeId, lastObTime, isConBo, null);
         signalService.placeBitmexOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
                 counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
 

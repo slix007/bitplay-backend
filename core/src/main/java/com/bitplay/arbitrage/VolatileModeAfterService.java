@@ -104,8 +104,11 @@ public class VolatileModeAfterService {
 
             final MarketState prevState = marketService.getMarketState();
             // 1. cancel and set marketState=PLACING_ORDER
-            final String counterName = marketService.gerCurrCounterName(currOrders);
-            final FplayOrder stub = new FplayOrder(marketService.getMarketId(), tradeId, counterName);
+            final FplayOrder lastOO = marketService.getLastOO(currOrders);
+            final FplayOrder stub = marketService.getCurrStub(tradeId, lastOO, currOrders);
+            final String counterName = stub.getCounterName(); // no portions here
+            final String counterForLogs = stub.getCounterWithPortion(); // no portions here
+            final Integer portionsQty = lastOO != null ? lastOO.getPortionsQty() : null;
 
             final List<LimitOrder> orders = marketService.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders", true);
             final BigDecimal amountDiff = orders.stream()
@@ -119,7 +122,7 @@ public class VolatileModeAfterService {
             if (amountDiff.signum() != 0) {
 
                 fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
-                fplayTradeService.info(tradeId, counterName, String.format("#%s change Trading mode to current-volatile", counterName));
+                fplayTradeService.info(tradeId, counterForLogs, String.format("#%s change Trading mode to current-volatile", counterForLogs));
 
                 final OrderType orderType = amountDiff.signum() > 0 ? OrderType.BID : OrderType.ASK;
                 final BigDecimal amountLeft = amountDiff.abs();
@@ -129,7 +132,7 @@ public class VolatileModeAfterService {
                     signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false,
                             btmFokAutoArgs);
                 } else {
-                    signalService.placeOkexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false);
+                    signalService.placeOkexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false, portionsQty);
                 }
             } else {
                 log.warn("VolatileMode activated: no amountLeft.");

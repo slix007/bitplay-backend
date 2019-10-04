@@ -119,8 +119,11 @@ public class FplayOrder {
     }
 
     public String getPortionsStr() {
-        if (portionsQty == null || portionsQtyMax == null) {
+        if (portionsQty == null) {
             return "0/0";
+        }
+        if (portionsQtyMax == null) {
+            return String.format("%s", portionsQty);
         }
         return String.format("%s/%s", portionsQty, portionsQtyMax);
     }
@@ -130,9 +133,12 @@ public class FplayOrder {
     }
 
     public String getCounterWithPortion() {
-        if (portionsQty == null || portionsQtyMax == null) {
+        if (portionsQty == null) {
             return counterName;
         }
-        return String.format("%s_portion_%s/%s", counterName, portionsQty, portionsQtyMax);
+        if (portionsQtyMax == null) {
+            return String.format("%s_p_%s", counterName, portionsQty);
+        }
+        return String.format("%s_p_%s/%s", counterName, portionsQty, portionsQtyMax);
     }
 }

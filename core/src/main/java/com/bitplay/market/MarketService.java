@@ -1154,15 +1154,18 @@ public abstract class MarketService extends MarketServiceWithState {
     public FplayOrder getCurrStub() {
         Long lastTradeId = tryFindLastTradeId();
         final List<FplayOrder> currOrders = getOpenOrders();
-        final Optional<FplayOrder> lastOO = getLastOO(currOrders);
+        final FplayOrder lastOO = getLastOO(currOrders);
+        return getCurrStub(lastTradeId, lastOO, currOrders);
+    }
+
+    public FplayOrder getCurrStub(Long lastTradeId, FplayOrder o, List<FplayOrder> currOrders) {
         BestQuotes bestQuotes = null;
         PlacingType placingType = null;
         SignalType signalType = null;
         String counterName;
         Integer qty = null;
         Integer qtyMax = null;
-        if (lastOO.isPresent()) {
-            final FplayOrder o = lastOO.get();
+        if (o != null) {
             bestQuotes = o.getBestQuotes();
             placingType = o.getPlacingType();
             signalType = o.getSignalType();
@@ -1176,7 +1179,7 @@ public abstract class MarketService extends MarketServiceWithState {
         return new FplayOrder(this.getMarketId(), lastTradeId, counterName, null, bestQuotes, placingType, signalType, qty, qtyMax);
     }
 
-    private Optional<FplayOrder> getLastOO(List<FplayOrder> currOrders) {
+    public FplayOrder getLastOO(List<FplayOrder> currOrders) {
         return currOrders.stream()
                 .reduce((f1, f2) -> {
                     if (f1.getLimitOrder() != null && f2.getLimitOrder() != null) {
@@ -1199,7 +1202,7 @@ public abstract class MarketService extends MarketServiceWithState {
                         return f2;
                     }
                     return f1;
-                });
+                }).orElse(null);
     }
 
     public String gerCurrCounterName(List<FplayOrder> currOrders) {
