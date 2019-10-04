@@ -1073,6 +1073,11 @@ public class OkCoinService extends MarketServicePreliq {
         ooSingleExecutor.submit(task);
     }
 
+    @Override
+    public boolean hasDeferredOrders() {
+        return placeOrderArgsRef.get() != null;
+    }
+
     public AtomicReference<PlaceOrderArgs> getPlaceOrderArgsRef() {
         return placeOrderArgsRef;
     }

@@ -3,7 +3,6 @@ package com.bitplay.market;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.arbitrage.events.SignalEvent;
 import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -741,7 +740,9 @@ public abstract class MarketService extends MarketServiceWithState {
                 }
                 ooSingleScheduler.scheduleDirect(() -> addCheckOoToFreeRepeat(attempt + 1), 1, TimeUnit.SECONDS);
             }
-            if (marketState == MarketState.ARBITRAGE && !hasOpenOrders()) {
+            if (marketState == MarketState.ARBITRAGE
+                    && !hasOpenOrders()
+                    && !hasDeferredOrders()) {
                 getTradeLogger().warn(checkerName);
                 logger.warn(checkerName);
                 Long lastTradeId = tryFindLastTradeId();
@@ -754,6 +755,10 @@ public abstract class MarketService extends MarketServiceWithState {
             logger.error(checkerName + " error", e);
             getTradeLogger().warn(checkerName + " error " + e.getMessage());
         }
+    }
+
+    public boolean hasDeferredOrders() {
+        return false;
     }
 
     protected void addCheckOoToFreeRepeat(int attempt) {

@@ -87,16 +87,22 @@ public class PosDiffPortionsService {
         }
         ntUsd = ntUsd.abs();
 
-        if (okCoinService.getMarketState() != MarketState.WAITING_ARB) {
+        final MarketState marketState = okCoinService.getMarketState();
+        if (marketState != MarketState.WAITING_ARB) {
             // wrong state (okex already started?)
-            return;
+            final boolean waitingToStart = marketState == MarketState.ARBITRAGE
+                    && !okCoinService.hasOpenOrders()
+                    && okCoinService.hasDeferredOrders();
+            if (!waitingToStart) {
+                return;
+            }
         }
 
         final BigDecimal maxBlockUsd = conBoPortions.getMaxPortionUsdOkex();
         final BigDecimal usdBlock = ntUsd.compareTo(maxBlockUsd) <= 0
                 ? ntUsd
                 : maxBlockUsd;
-        final BigDecimal block = PlacingBlocks.toOkexCont(usdBlock, settings.isEth());
+        final BigDecimal block = PlacingBlocks.toOkexCont(usdBlock, okCoinService.getContractType().isEth());
         final String ntUsdString = String.format("nt_usd(%s)>min_to_start(%s). Okex: maxBlockUsd(%s) ==> usdBlock(%s) => block(%s)",
                 ntUsd, minToStart, maxBlockUsd, usdBlock, block);
         if (block.signum() == 0) {
