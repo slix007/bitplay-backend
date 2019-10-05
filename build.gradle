@@ -109,6 +109,8 @@ private void sshRun(hostName, remoteHomeDir, remoteInstallDir) {
             executeSudo "sudo systemctl stop bitplay2", pty: true
             executeSudo "sudo rm -f ${remoteInstallDir}/bitplay.jar", pty: true
             executeSudo "sudo cp ${remoteHomeDir}/bitplay-0.0.1-SNAPSHOT.jar ${remoteInstallDir}/bitplay.jar", pty: true
+            executeSudo "sudo chown root:root ${remoteInstallDir}/bitplay.jar", pty: true
+            executeSudo "sudo chmod 600 ${remoteInstallDir}/bitplay.jar", pty: true
             executeSudo "sudo systemctl start bitplay2", pty: true
             executeSudo "sudo systemctl start bitplay2", pty: true
         }
