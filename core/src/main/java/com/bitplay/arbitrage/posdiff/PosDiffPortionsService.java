@@ -15,6 +15,9 @@ import com.bitplay.persistance.domain.settings.ConBoPortions;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.slf4j.Logger;
@@ -47,6 +50,8 @@ public class PosDiffPortionsService {
 
     @Autowired
     private SlackNotifications slackNotifications;
+
+    private final static Integer WAIT_FOR_BTM_UPDATE_POS_SEC = 15;
 
     /**
      * Runs on each pos change (bitmex on posDiffService event; okex each 200ms).
@@ -107,7 +112,21 @@ public class PosDiffPortionsService {
                 // waiting for bitmex
                 return;
             } else {
-                final String ntUsdString = String.format("WAITING_ARB: PORTIONS: WARNING: nt_usd(%s)<min_to_start(%s), but BITMEX FINISHED", ntUsd, minToStart);
+                // still notEnoughMinToStartNtUsd, but this is en error state.
+                final Date bitmexFinishTime = arbitrageService.getFplayTrade().getBitmexFinishTime();
+//                final Date updated = arbitrageService.getFplayTrade().getUpdated();
+                if (bitmexFinishTime == null) {
+                    // waiting for bitmex
+                    return;
+                }
+                final long seconds = Duration.between(bitmexFinishTime.toInstant(), Instant.now()).getSeconds();
+                if (seconds < WAIT_FOR_BTM_UPDATE_POS_SEC) {
+                    // waiting for bitmex (time for pos update(nt_usd update))
+                    return;
+                }
+                // WARN: extra case. Reset
+                final String ntUsdString = String
+                        .format("WAITING_ARB: PORTIONS: WARNING: nt_usd(%s)<min_to_start(%s), but BITMEX FINISHED", ntUsd.abs(), minToStart);
                 log.info(ntUsdString);
                 okCoinService.getTradeLogger().info(ntUsdString);
                 warningLogger.error(ntUsdString);

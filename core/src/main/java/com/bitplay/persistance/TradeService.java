@@ -124,10 +124,12 @@ public class TradeService {
     }
 
     public void setBitmexStatus(Long tradeId, TradeMStatus status) {
+        final Date dateNow = new Date();
         mongoOperation.updateFirst(new Query(Criteria.where("_id").is(tradeId).and("bitmexStatus").ne(TradeMStatus.NONE)),
                 new Update()
                         .inc("version", 1)
-                        .set("updated", new Date())
+                        .set("updated", dateNow)
+                        .set("bitmexFinishTime", dateNow)
                         .push("bitmexStatusUpdates", LocalDateTime.now().format(DateTimeFormatter.ISO_TIME) + " " + status.toString())
                         .set("bitmexStatus", status),
                 FplayTrade.class);

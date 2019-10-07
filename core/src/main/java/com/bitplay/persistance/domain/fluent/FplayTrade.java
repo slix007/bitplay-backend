@@ -43,6 +43,7 @@ public class FplayTrade {
     private DeltaName deltaName;
     private TradeStatus tradeStatus;
     private TradeMStatus bitmexStatus;
+    private Date bitmexFinishTime;
     private TradeMStatus okexStatus;
     private List<String> tradeStatusUpdates;
     private List<String> bitmexStatusUpdates;
