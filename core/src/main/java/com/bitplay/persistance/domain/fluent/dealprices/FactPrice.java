@@ -34,12 +34,16 @@ public class FactPrice {
     private String deltaLogTmp;
     private BigDecimal openPrice;
 
-    public synchronized boolean isNotFinished() {
-        final BigDecimal filled = pItems.values().stream()
-                .map(AvgPriceItem::getAmount)
-                .reduce(BigDecimal::add)
-                .orElse(BigDecimal.ZERO);
+    public boolean isNotFinished() {
+        final BigDecimal filled = geFilled();
         return filled.compareTo(fullAmount) < 0;
+    }
+
+    public synchronized BigDecimal geFilled() {
+        return pItems.values().stream()
+                    .map(AvgPriceItem::getAmount)
+                    .reduce(BigDecimal::add)
+                    .orElse(BigDecimal.ZERO);
     }
 
     public synchronized boolean isItemsEmpty() {
