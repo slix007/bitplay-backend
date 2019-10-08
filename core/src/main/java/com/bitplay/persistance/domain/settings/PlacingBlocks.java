@@ -94,5 +94,12 @@ public class PlacingBlocks {
         return cont.multiply(BigDecimal.valueOf(100));
     }
 
+    public static BigDecimal bitmexContToUsd(BigDecimal cont, boolean isEth, BigDecimal cm) {
+        if (isEth) {
+            return cont.multiply(BigDecimal.valueOf(10)).divide(cm, 0, RoundingMode.HALF_UP);
+        }
+        return cont.setScale(0, RoundingMode.HALF_UP);
+    }
+
     public enum Ver {FIXED, DYNAMIC,}
 }

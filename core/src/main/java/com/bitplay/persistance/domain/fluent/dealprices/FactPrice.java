@@ -35,11 +35,11 @@ public class FactPrice {
     private BigDecimal openPrice;
 
     public boolean isNotFinished() {
-        final BigDecimal filled = geFilled();
+        final BigDecimal filled = getFilled();
         return filled.compareTo(fullAmount) < 0;
     }
 
-    public synchronized BigDecimal geFilled() {
+    public synchronized BigDecimal getFilled() {
         return pItems.values().stream()
                     .map(AvgPriceItem::getAmount)
                     .reduce(BigDecimal::add)

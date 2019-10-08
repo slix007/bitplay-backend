@@ -235,7 +235,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         if (da != null) {
             final String currency = da.getContractType() != null && da.getContractType().getCurrencyPair() != null
                     ? da.getContractType().getCurrencyPair().toString() : "";
-            res.add(new OrderJson(da.getCounterNameWithPortion(), "DEFERRED", "WAITING", currency, "",
+            res.add(new OrderJson(da.getCounterName(), "DEFERRED", "WAITING", currency, "",
                     da.getAmount().toPlainString(),
                     da.getOrderType() != null ? da.getOrderType().toString() : "null",
                     "", "", ""

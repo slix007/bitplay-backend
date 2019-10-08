@@ -3114,4 +3114,39 @@ public class BitmexService extends MarketServicePreliq {
     protected MetricsDictionary getMetricsDictionary() {
         return metricsDictionary;
     }
+
+    public BigDecimal getBtmFilled(PlaceOrderArgs currArgs) {
+        final String counterForLogs = currArgs.getCounterNameWithPortion();
+        final Long tradeId = currArgs.getTradeId();
+        final DealPrices dealPrices = arbitrageService.getDealPrices(tradeId);
+        final FactPrice bPriceFact = dealPrices.getBPriceFact();
+        BigDecimal filled = bPriceFact.getFilled();
+        if (filled.compareTo(bPriceFact.getFullAmount()) < 0) {
+            final String msg = String.format("#%s tradeId=%s "
+                            + "WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
+                    counterForLogs,
+                    tradeId,
+                    filled, bPriceFact.getFullAmount()
+            );
+            logger.info(msg);
+            arbitrageService.getFirstMarketService().getTradeLogger().info(msg);
+            arbitrageService.getSecondMarketService().getTradeLogger().info(msg);
+            warningLogger.info(msg);
+            updateAvgPrice(dealPrices, true);
+
+            filled = bPriceFact.getFilled();
+            final String msg1 = String.format("#%s tradeId=%s "
+                            + "WAITING_ARB: bitmex is not fully filled. %s of %s. Updated.",
+                    counterForLogs,
+                    tradeId,
+                    filled, bPriceFact.getFullAmount()
+            );
+            logger.info(msg1);
+            arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
+            arbitrageService.getSecondMarketService().getTradeLogger().info(msg1);
+            warningLogger.info(msg1);
+        }
+        return filled;
+    }
+
 }

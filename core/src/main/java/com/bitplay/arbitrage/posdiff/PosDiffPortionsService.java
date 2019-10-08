@@ -15,9 +15,6 @@ import com.bitplay.persistance.domain.settings.ConBoPortions;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.slf4j.Logger;
@@ -72,102 +69,108 @@ public class PosDiffPortionsService {
             // not portions signal
             return;
         }
-        final ConBoPortions conBoPortions = settings.getConBoPortions();
-        BigDecimal minToStart = conBoPortions.getMinNtUsdToStartOkex();
-        BigDecimal ntUsd = posDiffService.getDcMainSet();
-        if (minToStart.signum() <= 0) {
-            // wrong settings
-            final String msg = "wrong settings. PORTIONS minToStart=" + minToStart;
-            warningLogger.info(msg);
-            slackNotifications.sendNotify(NotifyType.SETTINGS_ERRORS, "msg");
-            minToStart = BigDecimal.ONE;
-//            return;
-        }
-        if (ntUsd.signum() == 0) {
-            // no start
-            return;
-        }
-
-        // check states Arb and Markets
-        final MarketState marketState = okCoinService.getMarketState();
-        if (marketState != MarketState.WAITING_ARB) {
-            // wrong state (okex already started?)
-            final boolean waitingToStart = marketState == MarketState.ARBITRAGE
-                    && !okCoinService.hasOpenOrders()
-                    && okCoinService.hasDeferredOrders();
-            if (!waitingToStart) {
-                return;
-            }
-        }
 
         final PlaceOrderArgs currArgs = okCoinService.getPlaceOrderArgsRef().get();
         if (currArgs == null) {
             // no deferred order
             return;
         }
-
-        if (notEnoughMinToStartNtUsd(ntUsd, minToStart, currArgs)) {
-            final boolean bitmexFinished = bitmexService.getMarketState() == MarketState.READY; // Bitmex finished with success or error
-            if (!bitmexFinished) {
-                // waiting for bitmex
-                return;
-            } else {
-                // still notEnoughMinToStartNtUsd, but this is en error state.
-                final Date bitmexFinishTime = arbitrageService.getFplayTrade().getBitmexFinishTime();
-//                final Date updated = arbitrageService.getFplayTrade().getUpdated();
-                if (bitmexFinishTime == null) {
-                    // waiting for bitmex
-                    return;
-                }
-                final long seconds = Duration.between(bitmexFinishTime.toInstant(), Instant.now()).getSeconds();
-                if (seconds < WAIT_FOR_BTM_UPDATE_POS_SEC) {
-                    // waiting for bitmex (time for pos update(nt_usd update))
-                    return;
-                }
-                // WARN: extra case. Reset
-                final String ntUsdString = String
-                        .format("WAITING_ARB: PORTIONS: WARNING: nt_usd(%s)<min_to_start(%s), but BITMEX FINISHED", ntUsd.abs(), minToStart);
-                log.info(ntUsdString);
-                okCoinService.getTradeLogger().info(ntUsdString);
-                warningLogger.error(ntUsdString);
-                // to further: use ntUsd or reset.
-            }
-        }
-        ntUsd = ntUsd.abs();
-
-        final BigDecimal maxBlockUsd = conBoPortions.getMaxPortionUsdOkex();
-        final BigDecimal usdBlock = ntUsd.compareTo(maxBlockUsd) <= 0
-                ? ntUsd
-                : maxBlockUsd;
-        final BigDecimal block = PlacingBlocks.toOkexCont(usdBlock, okCoinService.getContractType().isEth());
-        final String ntUsdString = String.format("WAITING_ARB: PORTIONS: nt_usd(%s)>min_to_start(%s). Okex: maxBlockUsd(%s) ==> usdBlock(%s) => block(%s)",
-                ntUsd, minToStart, maxBlockUsd, usdBlock, block);
-        if (block.signum() == 0) {
-            log.info(ntUsdString);
-            okCoinService.getTradeLogger().info(ntUsdString);
-            warningLogger.error(ntUsdString);
-            resetIfBtmReady();
+        if (!waitingToStart()) {
             return;
         }
+
+        final ConBoPortions conBoPortions = settings.getConBoPortions();
+        final StringBuilder logString = new StringBuilder();
+        final BigDecimal filledUsdBlock;
+        if (isBtmReady()) {
+            filledUsdBlock = getUsdBlockByBtmFilled(currArgs, logString);
+        } else {
+            filledUsdBlock = getBlockByNtUsd(currArgs, conBoPortions, logString);
+        }
+
+        if (filledUsdBlock == null) {
+            return; // waiting for nt_usd while Bitmex is not READY
+        }
+        final BigDecimal maxBlockUsd = conBoPortions.getMaxPortionUsdOkex();
+        final BigDecimal finalUsdBlock = filledUsdBlock.compareTo(maxBlockUsd) <= 0 ? filledUsdBlock : maxBlockUsd;
+        BigDecimal block = PlacingBlocks.toOkexCont(finalUsdBlock, okCoinService.getContractType().isEth());
+        final BigDecimal aLeft = currArgs.getAmount();
+        block = aLeft.compareTo(block) > 0 ? block : aLeft;
+        final String ntUsdString = String.format("#%s WAITING_ARB: PORTIONS: %s. "
+                        + "Okex: maxBlockUsd(%s), filledUsdBlock(%s), amountLeftCont(%s) => block(%s)",
+                currArgs.getCounterNameWithPortion(),
+                logString,
+                maxBlockUsd, filledUsdBlock, aLeft, block);
         log.info(ntUsdString);
+        okCoinService.getTradeLogger().info(ntUsdString);
+        if (block.signum() == 0) {
+            resetIfBtmReady(currArgs, filledUsdBlock);
+            return;
+        }
 
         placeDeferredPortion(block);
     }
 
-    private boolean notEnoughMinToStartNtUsd(BigDecimal ntUsd, BigDecimal minToStart, PlaceOrderArgs currArgs) {
+    private boolean isBtmReady() {
+        return bitmexService.getMarketState() == MarketState.READY && !bitmexService.hasOpenOrders();
+    }
+
+    private BigDecimal getUsdBlockByBtmFilled(PlaceOrderArgs currArgs, StringBuilder logString) {
+        final BigDecimal btmFilled = bitmexService.getBtmFilled(currArgs);
+        final BigDecimal cm = bitmexService.getCm();
+        final BigDecimal filledUsd = PlacingBlocks.bitmexContToUsd(btmFilled, bitmexService.getContractType().isEth(), cm);
+        logString.append(String.format("Bitmex READY. filledUsd = %s", filledUsd));
+        return filledUsd;
+    }
+
+    private BigDecimal getBlockByNtUsd(PlaceOrderArgs currArgs, ConBoPortions conBoPortions, StringBuilder logString) {
+        BigDecimal minToStart = conBoPortions.getMinNtUsdToStartOkex();
+        BigDecimal ntUsd = posDiffService.getDcMainSet();
+        if (minToStart.signum() <= 0) {
+            // wrong settings
+            final String msg = "wrong settings. PORTIONS minToStart=" + minToStart + ". Use 1usd.";
+            minToStart = BigDecimal.ONE;
+            warningLogger.info(msg);
+            slackNotifications.sendNotify(NotifyType.SETTINGS_ERRORS, "msg");
+        }
+        if (ntUsd.signum() == 0) {
+            // no start
+            return null;
+        }
+
+        ntUsd = getNtUsdAbs(ntUsd, currArgs); // can be negative if manual order in opposite direction
+
+        if (ntUsd.compareTo(minToStart) < 0) {
+            // waiting
+            return null;
+        }
+
+        logString.append(String.format("nt_usd(%s)>=min_to_start(%s).", ntUsd, minToStart));
+
+        return ntUsd;
+    }
+
+    private boolean waitingToStart() {
+        boolean waitingToStart = true;
+        // check states Arb and Markets
+        final MarketState marketState = okCoinService.getMarketState();
+        if (marketState != MarketState.WAITING_ARB) {
+            // wrong state (okex already started?)
+            waitingToStart = marketState == MarketState.ARBITRAGE
+                    && !okCoinService.hasOpenOrders()
+                    && okCoinService.hasDeferredOrders();
+        }
+        return waitingToStart;
+    }
+
+    private BigDecimal getNtUsdAbs(BigDecimal ntUsd, PlaceOrderArgs currArgs) {
         final OrderType t = currArgs.getOrderType();
         final boolean b = t == OrderType.BID || t == OrderType.EXIT_ASK;
 //        final boolean a = t == OrderType.ASK || t == OrderType.EXIT_BID;
-        final BigDecimal ntUsdAbs = b ? ntUsd.negate() : ntUsd;
-
-        if (ntUsdAbs.compareTo(minToStart) < 0) {
-            // not enough to start
-            return true;
-        }
-        return false;
+        return b ? ntUsd.negate() : ntUsd;
     }
 
-    private void resetIfBtmReady() {
+    private void resetIfBtmReady(PlaceOrderArgs currArgs, BigDecimal filledUsdBlock) {
         final ArbState arbState = arbitrageService.getArbState();
         if (arbState != ArbState.IN_PROGRESS) {
             final String ntUsdString = String.format("WAITING_ARB: PORTIONS: WARNING: arbState(%s)", arbState);
@@ -175,20 +178,13 @@ public class PosDiffPortionsService {
             okCoinService.getTradeLogger().info(ntUsdString);
             warningLogger.error(ntUsdString);
         }
-        if (bitmexService.getMarketState() == MarketState.READY || arbState != ArbState.IN_PROGRESS) {
-            okexReset();
+        if (isBtmReady() || arbState != ArbState.IN_PROGRESS) {
+            okexReset(currArgs, filledUsdBlock);
         }
     }
 
-    private void okexReset() {
-        final PlaceOrderArgs currArgs = okCoinService.getPlaceOrderArgsRef().getAndSet(null);
-        if (okCoinService.noDeferredOrderCheck(currArgs)) {
-            return;
-        }
-        if (okCoinService.btmNotFullyFilledCheck(currArgs)) {
-            return;
-        }
-        okCoinService.resetWaitingArb();
+    private void okexReset(PlaceOrderArgs currArgs, BigDecimal filledUsdBlock) {
+        okCoinService.resetWaitingArb(filledUsdBlock.signum() > 0);
         arbitrageService.resetArbState(okCoinService.getCounterName(), "deferredPlacingPortion");
     }
 
