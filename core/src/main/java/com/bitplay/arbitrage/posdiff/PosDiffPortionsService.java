@@ -92,7 +92,7 @@ public class PosDiffPortionsService {
             return; // waiting for nt_usd while Bitmex is not READY
         }
         final BigDecimal maxBlockUsd = conBoPortions.getMaxPortionUsdOkex();
-        final BigDecimal finalUsdBlock = filledUsdBlock.compareTo(maxBlockUsd) <= 0 ? filledUsdBlock : maxBlockUsd;
+        final BigDecimal finalUsdBlock = useMaxBlockUsd(filledUsdBlock, maxBlockUsd);
         BigDecimal block = PlacingBlocks.toOkexCont(finalUsdBlock, okCoinService.getContractType().isEth());
         final BigDecimal aLeft = currArgs.getAmount();
         block = aLeft.compareTo(block) > 0 ? block : aLeft;
@@ -109,6 +109,18 @@ public class PosDiffPortionsService {
         }
 
         placeDeferredPortion(block);
+    }
+
+    private BigDecimal useMaxBlockUsd(BigDecimal filledUsdBlock, BigDecimal maxBlockUsd) {
+        BigDecimal maxBlockCnt = PlacingBlocks.toOkexCont(maxBlockUsd, okCoinService.getContractType().isEth());
+        if (maxBlockCnt.signum() <= 0) {
+            // wrong settings
+            final String msg = "wrong settings. PORTIONS maxBlockUsd=" + maxBlockUsd + "=> maxBlockCnt=" + maxBlockCnt;
+            okCoinService.getTradeLogger().error(msg);
+            warningLogger.info(msg);
+            slackNotifications.sendNotify(NotifyType.SETTINGS_ERRORS, "msg");
+        }
+        return filledUsdBlock.compareTo(maxBlockUsd) <= 0 ? filledUsdBlock : maxBlockUsd;
     }
 
     private boolean isBtmReady() {
