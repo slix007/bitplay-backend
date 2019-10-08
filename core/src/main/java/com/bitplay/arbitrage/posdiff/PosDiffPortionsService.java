@@ -104,11 +104,11 @@ public class PosDiffPortionsService {
         log.info(ntUsdString);
         okCoinService.getTradeLogger().info(ntUsdString);
         if (block.signum() == 0) {
-            resetIfBtmReady(currArgs, filledUsdBlock);
+            resetIfBtmReady(filledUsdBlock);
             return;
         }
 
-        placeDeferredPortion(block);
+        placeDeferredPortion(currArgs, block);
     }
 
     private BigDecimal useMaxBlockUsd(BigDecimal filledUsdBlock, BigDecimal maxBlockUsd) {
@@ -182,7 +182,7 @@ public class PosDiffPortionsService {
         return b ? ntUsd.negate() : ntUsd;
     }
 
-    private void resetIfBtmReady(PlaceOrderArgs currArgs, BigDecimal filledUsdBlock) {
+    private void resetIfBtmReady(BigDecimal filledUsdBlock) {
         final ArbState arbState = arbitrageService.getArbState();
         if (arbState != ArbState.IN_PROGRESS) {
             final String ntUsdString = String.format("WAITING_ARB: PORTIONS: WARNING: arbState(%s)", arbState);
@@ -191,25 +191,16 @@ public class PosDiffPortionsService {
             warningLogger.error(ntUsdString);
         }
         if (isBtmReady() || arbState != ArbState.IN_PROGRESS) {
-            okexReset(currArgs, filledUsdBlock);
+            okexReset(filledUsdBlock);
         }
     }
 
-    private void okexReset(PlaceOrderArgs currArgs, BigDecimal filledUsdBlock) {
+    private void okexReset(BigDecimal filledUsdBlock) {
         okCoinService.resetWaitingArb(filledUsdBlock.signum() > 0);
         arbitrageService.resetArbState(okCoinService.getCounterName(), "deferredPlacingPortion");
     }
 
-    @SuppressWarnings("UnusedReturnValue")
-    private Boolean placeDeferredPortion(BigDecimal block) {
-
-        // check1
-        final PlaceOrderArgs currArgs = okCoinService.getPlaceOrderArgsRef().getAndSet(null);
-        if (okCoinService.noDeferredOrderCheck(currArgs)) {
-            return false;
-        }
-
-        // place
+    private void placeDeferredPortion(PlaceOrderArgs currArgs, BigDecimal block) {
         final BigDecimal leftAmount = currArgs.getAmount().subtract(block);
         final PlaceOrderArgs args = currArgs.cloneAsPortion(block);
         okCoinService.beforeDeferredPlacing(args);
@@ -224,8 +215,6 @@ public class PosDiffPortionsService {
                 warningLogger.error("WAITING_ARB: PORTIONS: concurrent placeOrderArgs" + leftArgs);
             }
         }
-        return true;
     }
-
 
 }
