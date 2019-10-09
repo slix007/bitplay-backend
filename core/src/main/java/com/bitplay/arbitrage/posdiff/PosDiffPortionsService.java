@@ -82,7 +82,8 @@ public class PosDiffPortionsService {
         final ConBoPortions conBoPortions = settings.getConBoPortions();
         final StringBuilder logString = new StringBuilder();
         final BigDecimal filledUsdBlock;
-        if (isBtmReady()) {
+        final boolean isBtmReady = bitmexService.getMarketState() == MarketState.READY && !bitmexService.hasOpenOrders();
+        if (isBtmReady) {
             filledUsdBlock = getUsdBlockByBtmFilled(currArgs, logString);
         } else {
             filledUsdBlock = getBlockByNtUsd(currArgs, conBoPortions, logString);
@@ -104,7 +105,7 @@ public class PosDiffPortionsService {
         log.info(ntUsdString);
         okCoinService.getTradeLogger().info(ntUsdString);
         if (block.signum() == 0) {
-            resetIfBtmReady(filledUsdBlock);
+            resetIfBtmReady(filledUsdBlock, isBtmReady);
             return;
         }
 
@@ -121,10 +122,6 @@ public class PosDiffPortionsService {
             slackNotifications.sendNotify(NotifyType.SETTINGS_ERRORS, "msg");
         }
         return filledUsdBlock.compareTo(maxBlockUsd) <= 0 ? filledUsdBlock : maxBlockUsd;
-    }
-
-    private boolean isBtmReady() {
-        return bitmexService.getMarketState() == MarketState.READY && !bitmexService.hasOpenOrders();
     }
 
     private BigDecimal getUsdBlockByBtmFilled(PlaceOrderArgs currArgs, StringBuilder logString) {
@@ -182,7 +179,7 @@ public class PosDiffPortionsService {
         return b ? ntUsd.negate() : ntUsd;
     }
 
-    private void resetIfBtmReady(BigDecimal filledUsdBlock) {
+    private void resetIfBtmReady(BigDecimal filledUsdBlock, boolean btmReady) {
         final ArbState arbState = arbitrageService.getArbState();
         if (arbState != ArbState.IN_PROGRESS) {
             final String ntUsdString = String.format("WAITING_ARB: PORTIONS: WARNING: arbState(%s)", arbState);
@@ -190,7 +187,7 @@ public class PosDiffPortionsService {
             okCoinService.getTradeLogger().info(ntUsdString);
             warningLogger.error(ntUsdString);
         }
-        if (isBtmReady() || arbState != ArbState.IN_PROGRESS) {
+        if (btmReady || arbState != ArbState.IN_PROGRESS) {
             okexReset(filledUsdBlock);
         }
     }
