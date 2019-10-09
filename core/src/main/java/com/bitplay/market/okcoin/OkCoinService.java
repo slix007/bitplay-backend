@@ -2281,10 +2281,10 @@ public class OkCoinService extends MarketServicePreliq {
                 final String s = placeOrderArgs != null ? placeOrderArgs.getCounterName() : "";
                 if (dealPrices.getDeltaName() == DeltaName.B_DELTA) {
                     cumPersistenceService.incUnstartedVert1(tradingMode);
-                    getTradeLogger().info( s + "Unstarted");
+                    getTradeLogger().info( "#" + s + " Unstarted");
                 } else {
                     cumPersistenceService.incUnstartedVert2(tradingMode);
-                    getTradeLogger().info( s + "Unstarted");
+                    getTradeLogger().info( "#" + s + " Unstarted");
                 }
             }
             setMarketState(MarketState.READY);
