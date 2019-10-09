@@ -1422,6 +1422,12 @@ public class OkCoinService extends MarketServicePreliq {
         if (this.placeOrderArgsRef.compareAndSet(null, currPlaceOrderArgs)) {
             setMarketState(MarketState.WAITING_ARB);
             tradeLogger.info(String.format("#%s MT2 deferred placing %s", counterName, currPlaceOrderArgs));
+            final Settings s = settingsRepositoryService.getSettings();
+            if (s.getArbScheme() == ArbScheme.CON_B_O_PORTIONS) {
+                getTradeLogger().info(String.format("CON_B_O_PORTIONS: min to start nt_usd=%s, maxPortion=%s",
+                        s.getConBoPortions().getMinNtUsdToStartOkex(),
+                        s.getConBoPortions().getMaxPortionUsdOkex()));
+            }
         } else {
             final String errorMessage = String.format("#%s double placing-order for MT2. New:%s.", counterName, currPlaceOrderArgs);
             logger.error(errorMessage);
