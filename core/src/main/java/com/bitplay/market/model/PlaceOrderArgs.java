@@ -135,6 +135,12 @@ public class PlaceOrderArgs {
                 this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, this.portionsQty, this.portionsQtyMax, this.btmFokArgs);
     }
 
+    public PlaceOrderArgs cloneWithAmountAndPortionsQty(BigDecimal amount, Integer portionsQty) {
+        return new PlaceOrderArgs(this.orderType, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
+                this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
+                this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, portionsQty, this.portionsQtyMax, this.btmFokArgs);
+    }
+
     public PlaceOrderArgs cloneAsPortion(BigDecimal amount) {
         int portionsQty = this.portionsQty != null ? this.portionsQty + 1 : 1;
 

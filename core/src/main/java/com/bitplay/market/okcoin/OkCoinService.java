@@ -1038,20 +1038,33 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     public void changeDeferredPlacingType(PlacingType placingType) {
-        placeOrderArgsRef.getAndUpdate(placeOrderArgs -> {
-            if (placeOrderArgs == null) {
+        placeOrderArgsRef.getAndUpdate(currArgs -> {
+            if (currArgs == null) {
                 return null;
             }
-            return placeOrderArgs.cloneWithPlacingType(placingType);
+            return currArgs.cloneWithPlacingType(placingType);
         });
     }
 
-    public void changeDeferredAmount(BigDecimal amount) {
-        placeOrderArgsRef.getAndUpdate(placeOrderArgs -> {
-            if (placeOrderArgs == null) {
+    public void changeDeferredAmountSubstract(BigDecimal placedBlock, Integer portionsQty) {
+        placeOrderArgsRef.getAndUpdate(currArgs -> {
+            if (currArgs == null) {
                 return null;
             }
-            return placeOrderArgs.cloneWithAmount(amount);
+            final BigDecimal aLeft = currArgs.getAmount().subtract(placedBlock);
+            if (aLeft.signum() == 0) {
+                return null;
+            }
+            return currArgs.cloneWithAmountAndPortionsQty(aLeft, portionsQty);
+        });
+    }
+
+    public void updateDeferredAmount(BigDecimal amount) {
+        placeOrderArgsRef.getAndUpdate(currArgs -> {
+            if (currArgs == null) {
+                return null;
+            }
+            return currArgs.cloneWithAmount(amount);
         });
     }
 
@@ -1393,25 +1406,27 @@ public class OkCoinService extends MarketServicePreliq {
             if (exception instanceof ApiException && exception.getCause() != null) {
                 message = exception.getCause().getMessage();
             }
-
-            if (message.contains("connect timed out") // SocketTimeoutException
-                    || message.contains("Read timed out") // SocketTimeoutException
-                    || message.contains("Signature does not match")
-                    || (message.contains("32019") && message.contains("Order price cannot be")) // more than 103% or less than 97%
-                    // Code: 20018, translation: Order price differ more than 5% from the price in the last minute
-                    || message.contains("Remote host closed connection during handshake") // javax.net.ssl.SSLHandshakeException
-            ) { // ExchangeException
-                return NextStep.CONTINUE;
-            }
-
-            // 32014 : Positions that you are squaring exceeded the total no. of contracts allowed to close
-            if (message.contains("32014")) {
-                try {
-                    fetchPosition();
-                } catch (Exception e1) {
-                    logger.info("FetchPositionError:", e1);
+            if (message == null) {
+                logger.error("null", exception);
+            } else {
+                if (message.contains("connect timed out") // SocketTimeoutException
+                        || message.contains("Read timed out") // SocketTimeoutException
+                        || message.contains("Signature does not match")
+                        || (message.contains("32019") && message.contains("Order price cannot be")) // more than 103% or less than 97%
+                        // Code: 20018, translation: Order price differ more than 5% from the price in the last minute
+                        || message.contains("Remote host closed connection during handshake") // javax.net.ssl.SSLHandshakeException
+                ) { // ExchangeException
+                    return NextStep.CONTINUE;
                 }
-                return NextStep.CONTINUE;
+                // 32014 : Positions that you are squaring exceeded the total no. of contracts allowed to close
+                if (message.contains("32014")) {
+                    try {
+                        fetchPosition();
+                    } catch (Exception e1) {
+                        logger.info("FetchPositionError:", e1);
+                    }
+                    return NextStep.CONTINUE;
+                }
             }
             return NextStep.BREAK; // no retry by default
         }
@@ -2295,17 +2310,13 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     protected boolean onReadyState() {
-        final PlaceOrderArgs prevArgs = placeOrderArgsRef.getAndSet(null);
-        if (prevArgs != null) {
-            if (settingsRepositoryService.getSettings().getArbScheme() == ArbScheme.CON_B_O_PORTIONS) {
-                // next okex portion:
-                placeOrderArgsRef.set(prevArgs);  // re-set the args
-                setMarketState(MarketState.WAITING_ARB);
-                getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
-                return false;
-            }
+        if (settingsRepositoryService.getSettings().getArbScheme() == ArbScheme.CON_B_O_PORTIONS
+                && placeOrderArgsRef.get() != null) {
             logger.warn("WAITING_ARB was reset by onReadyState");
             tradeLogger.warn("WAITING_ARB was reset by onReadyState");
+            setMarketState(MarketState.WAITING_ARB);
+            getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
+            return false;
         }
         ooHangedCheckerService.stopChecker();
         iterateOpenOrdersMoveAsync();
@@ -2708,7 +2719,9 @@ public class OkCoinService extends MarketServicePreliq {
         for (String orderId : orderIds) {
             final OrderDetail orderDetail = bitplayOkexEchange.getTradeApiService().getOrder(instrumentId, orderId);
             final LimitOrder order = DtoToModelConverter.convertOrder(orderDetail, instrumentDto.getCurrencyPair());
-            orders.add(order);
+            if (order != null) {
+                orders.add(order);
+            }
         }
 
         return orders;

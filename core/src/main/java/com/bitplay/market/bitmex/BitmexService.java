@@ -906,7 +906,7 @@ public class BitmexService extends MarketServicePreliq {
 
                         final BigDecimal okexAm = ArbitrageService.getOkexBlockByBitmexBlock(cm, ord.isEth(), amountLeft);
                         if (okexAm.signum() > 0) {
-                            ((OkCoinService) getArbitrageService().getSecondMarketService()).changeDeferredAmount(okexAm);
+                            ((OkCoinService) getArbitrageService().getSecondMarketService()).updateDeferredAmount(okexAm);
                             setOverloaded(null);
                         } else {
                             setOverloaded(null, true);

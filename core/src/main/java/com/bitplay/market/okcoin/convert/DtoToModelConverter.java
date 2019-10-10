@@ -1,30 +1,39 @@
 package com.bitplay.market.okcoin.convert;
 
 import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
-import com.bitplay.okex.v3.enums.FuturesTransactionTypeEnum;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.LimitOrder.Builder;
 
+@Slf4j
 public class DtoToModelConverter {
 
     public static LimitOrder convertOrder(OrderDetail orderDetail, CurrencyPair currencyPair) {
-        final OrderType orderType = convertType(orderDetail.getType());
-        final OrderStatus orderStatus = convertStatus(orderDetail.getState());
-        // we asked for this, don't spend resources to convert.
-        final LimitOrder order = new Builder(orderType, currencyPair)
-                .tradableAmount(orderDetail.getSize())
-                .timestamp(orderDetail.getTimestamp())
-                .id(orderDetail.getOrder_id())
-                .limitPrice(orderDetail.getPrice())
-                .averagePrice(orderDetail.getPrice_avg())
-                .orderStatus(orderStatus)
-                .build();
-        order.setCumulativeAmount(orderDetail.getFilled_qty());
+        if (orderDetail.getType() == null) {
+            log.info("DEBUG_okex_v3: " + orderDetail);
+        }
+        LimitOrder order = null;
+        try {
+            final OrderType orderType = convertType(orderDetail.getType());
+            final OrderStatus orderStatus = convertStatus(orderDetail.getState());
+            // we asked for this, don't spend resources to convert.
+            order = new Builder(orderType, currencyPair)
+                    .tradableAmount(orderDetail.getSize())
+                    .timestamp(orderDetail.getTimestamp())
+                    .id(orderDetail.getOrder_id())
+                    .limitPrice(orderDetail.getPrice())
+                    .averagePrice(orderDetail.getPrice_avg())
+                    .orderStatus(orderStatus)
+                    .build();
+            order.setCumulativeAmount(orderDetail.getFilled_qty());
+        } catch (Exception e) {
+            log.info("DEBUG_okex_v3: " + orderDetail);
+        }
         // There is also pnl and fee.
         return order;
     }
@@ -56,6 +65,9 @@ public class DtoToModelConverter {
     }
 
     private static OrderType convertType(String orderType) {
+        if (orderType == null) {
+            return null;
+        }
         // Type (1: open long 2: open short 3: close long 4: close short)
         switch (orderType) {
             case "1"://OPEN_LONG:

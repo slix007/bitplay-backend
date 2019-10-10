@@ -95,13 +95,13 @@ public class PosDiffPortionsService {
         final BigDecimal maxBlockUsd = conBoPortions.getMaxPortionUsdOkex();
         final BigDecimal finalUsdBlock = useMaxBlockUsd(filledUsdBlock, maxBlockUsd);
         BigDecimal block = PlacingBlocks.toOkexCont(finalUsdBlock, okCoinService.getContractType().isEth());
-        final BigDecimal aLeft = currArgs.getAmount();
-        block = aLeft.compareTo(block) > 0 ? block : aLeft;
+        final BigDecimal argsAmount = currArgs.getAmount();
+        block = argsAmount.compareTo(block) > 0 ? block : argsAmount;
         final String ntUsdString = String.format("#%s WAITING_ARB: PORTIONS: %s. "
                         + "Okex: maxBlockUsd(%s), filledUsdBlock(%s), amountLeftCont(%s) => block(%s)",
                 currArgs.getCounterNameWithPortion(),
                 logString,
-                maxBlockUsd, filledUsdBlock, aLeft, block);
+                maxBlockUsd, filledUsdBlock, argsAmount, block);
         log.info(ntUsdString);
         okCoinService.getTradeLogger().info(ntUsdString);
         if (block.signum() == 0) {
@@ -198,20 +198,10 @@ public class PosDiffPortionsService {
     }
 
     private void placeDeferredPortion(PlaceOrderArgs currArgs, BigDecimal block) {
-        final BigDecimal leftAmount = currArgs.getAmount().subtract(block);
         final PlaceOrderArgs args = currArgs.cloneAsPortion(block);
         okCoinService.beforeDeferredPlacing(args);
         okCoinService.placeOrder(args);
-
-        // check after
-        if (leftAmount.signum() > 0) {
-            final PlaceOrderArgs leftArgs = args.cloneWithAmount(leftAmount);
-            log.error("leftArgs=" + leftArgs);
-            if (!okCoinService.getPlaceOrderArgsRef().compareAndSet(null, leftArgs)) {
-                log.error("WAITING_ARB: PORTIONS: concurrent placeOrderArgs" + leftArgs);
-                warningLogger.error("WAITING_ARB: PORTIONS: concurrent placeOrderArgs" + leftArgs);
-            }
-        }
+        okCoinService.changeDeferredAmountSubstract(block, args.getPortionsQty());
     }
 
 }
