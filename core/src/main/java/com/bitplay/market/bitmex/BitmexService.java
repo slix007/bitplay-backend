@@ -1866,7 +1866,7 @@ public class BitmexService extends MarketServicePreliq {
                         orderId = resultOrder.getId();
                         final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
                                 placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
-                        orderRepositoryService.updateAsync(fplayOrder); // updateAsync?
+                        orderRepositoryService.updateSync(fplayOrder); // updateAsync?
                         addOpenOrder(fplayOrder);
 
                         if (resultOrder.getStatus() == Order.OrderStatus.CANCELED) {
@@ -2194,7 +2194,7 @@ public class BitmexService extends MarketServicePreliq {
             if (movedLimitOrder != null) {
 
                 FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, movedLimitOrder);
-                orderRepositoryService.updateAsync(updated);
+                orderRepositoryService.updateSync(updated);
 
                 boolean showDiff = false;
                 if (prevCumulativeAmount != null && movedLimitOrder.getCumulativeAmount() != null

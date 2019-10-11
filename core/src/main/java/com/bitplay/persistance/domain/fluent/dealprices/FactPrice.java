@@ -117,9 +117,9 @@ public class FactPrice {
                         BigDecimal::add);
 
         if (fullAmount.compareTo(sumDenominator) != 0) {
-            String msg = String.format("#%s %s WARNING avg price calc: %s NiceFormat: %s", counterName, marketName, this, sb.toString());
-            log.warn(msg);
             if (withLogs) {
+                String msg = String.format("#%s %s WARNING avg price calc: %s NiceFormat: %s", counterName, marketName, this, sb.toString());
+                log.warn(msg);
                 throw new RoundIsNotDoneException(msg);
             }
 //                final BigDecimal left = fullAmount.subtract(sumDenominator);
