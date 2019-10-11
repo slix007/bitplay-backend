@@ -1935,7 +1935,7 @@ public class BitmexService extends MarketServicePreliq {
                         thePrice = resultOrder.getAveragePrice();
                         final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType,
                                 signalType, placeOrderArgs.getPortionsQty(), placeOrderArgs.getPortionsQtyMax());
-                        orderRepositoryService.updateAsync(fplayOrder);// updateAsync?
+                        orderRepositoryService.updateSync(fplayOrder);// sync because avgPrice related to it.(fix: btm not fully filled)
                         persistenceService.getDealPricesRepositoryService().setBtmOpenPrice(tradeId, thePrice);
                         addOpenOrder(fplayOrder);
 

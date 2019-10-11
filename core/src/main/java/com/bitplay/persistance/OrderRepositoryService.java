@@ -66,6 +66,11 @@ public class OrderRepositoryService {
         return executor.submit(() -> updateTask(updated));
     }
 
+    public FplayOrder updateSync(FplayOrder updated) {
+        return updateTask(updated);
+    }
+
+
     public void updateAsync(Iterable<? extends FplayOrder> fplayOrders) {
         for (FplayOrder fplayOrder : fplayOrders) {
             executor.submit(() -> updateTask(fplayOrder));
