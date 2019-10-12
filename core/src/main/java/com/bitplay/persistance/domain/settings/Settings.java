@@ -34,6 +34,7 @@ public class Settings extends AbstractDocument {
     private ManageType manageType;
     private EnumSet<ExtraFlag> extraFlags;
     private ArbScheme arbScheme;
+    private AbortSignal abortSignal; // only ArbScheme.CON_B_O_PORTIONS
     private SysOverloadArgs bitmexSysOverloadArgs;
     private SysOverloadArgs okexSysOverloadArgs;
     private OkexPostOnlyArgs okexPostOnlyArgs;

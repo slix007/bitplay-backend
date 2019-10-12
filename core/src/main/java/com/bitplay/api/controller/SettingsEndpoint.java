@@ -9,6 +9,7 @@ import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.settings.AbortSignal;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
 import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.ExtraFlag;
@@ -152,6 +153,16 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getArbScheme() != null) {
             settings.setArbScheme(settingsUpdate.getArbScheme());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getAbortSignal() != null) {
+            final AbortSignal as = settingsUpdate.getAbortSignal();
+            if (as.getAbortSignalPtsEnabled() != null) {
+                settings.getAbortSignal().setAbortSignalPtsEnabled(as.getAbortSignalPtsEnabled());
+            }
+            if (as.getAbortSignalPts() != null) {
+                settings.getAbortSignal().setAbortSignalPts(as.getAbortSignalPts());
+            }
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getBitmexSysOverloadArgs() != null) {
