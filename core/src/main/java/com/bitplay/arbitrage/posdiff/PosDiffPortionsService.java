@@ -48,8 +48,6 @@ public class PosDiffPortionsService {
     @Autowired
     private SlackNotifications slackNotifications;
 
-    private final static Integer WAIT_FOR_BTM_UPDATE_POS_SEC = 15;
-
     /**
      * Runs on each pos change (bitmex on posDiffService event; okex each 200ms).
      */
@@ -97,9 +95,10 @@ public class PosDiffPortionsService {
         BigDecimal block = PlacingBlocks.toOkexCont(finalUsdBlock, okCoinService.getContractType().isEth());
         final BigDecimal argsAmount = currArgs.getAmount();
         block = argsAmount.compareTo(block) > 0 ? block : argsAmount;
-        final String ntUsdString = String.format("#%s WAITING_ARB: PORTIONS: %s. "
-                        + "Okex: maxBlockUsd(%s), filledUsdBlock(%s), amountLeftCont(%s) => block(%s)",
-                currArgs.getCounterNameWithPortion(),
+        final PlaceOrderArgs placeArgs = currArgs.cloneAsPortion(block);
+        final String nextPortion = placeArgs.getCounterNameWithPortion();
+        final String ntUsdString = String.format("#%s %s. Okex: maxBlockUsd(%s), filledUsdBlock(%s), amountLeftCont(%s) => block(%s)",
+                nextPortion,
                 logString,
                 maxBlockUsd, filledUsdBlock, argsAmount, block);
         log.info(ntUsdString);
@@ -109,14 +108,14 @@ public class PosDiffPortionsService {
             return;
         }
 
-        placeDeferredPortion(currArgs, block);
+        placeDeferredPortion(placeArgs, block);
     }
 
     private BigDecimal useMaxBlockUsd(BigDecimal filledUsdBlock, BigDecimal maxBlockUsd) {
         BigDecimal maxBlockCnt = PlacingBlocks.toOkexCont(maxBlockUsd, okCoinService.getContractType().isEth());
         if (maxBlockCnt.signum() <= 0) {
             // wrong settings
-            final String msg = "wrong settings. PORTIONS maxBlockUsd=" + maxBlockUsd + "=> maxBlockCnt=" + maxBlockCnt;
+            final String msg = "wrong portions settings. maxBlockUsd=" + maxBlockUsd + "=> maxBlockCnt=" + maxBlockCnt;
             okCoinService.getTradeLogger().error(msg);
             warningLogger.info(msg);
             slackNotifications.sendNotify(NotifyType.SETTINGS_ERRORS, "msg");
@@ -137,7 +136,7 @@ public class PosDiffPortionsService {
         BigDecimal ntUsd = posDiffService.getDcMainSet();
         if (minToStart.signum() <= 0) {
             // wrong settings
-            final String msg = "wrong settings. PORTIONS minToStart=" + minToStart + ". Use 1usd.";
+            final String msg = "wrong portions settings. minToStart=" + minToStart + ". Use 1usd.";
             minToStart = BigDecimal.ONE;
             warningLogger.info(msg);
             slackNotifications.sendNotify(NotifyType.SETTINGS_ERRORS, "msg");
@@ -182,7 +181,7 @@ public class PosDiffPortionsService {
     private void resetIfBtmReady(BigDecimal filledUsdBlock, boolean btmReady) {
         final ArbState arbState = arbitrageService.getArbState();
         if (arbState != ArbState.IN_PROGRESS) {
-            final String ntUsdString = String.format("WAITING_ARB: PORTIONS: WARNING: arbState(%s)", arbState);
+            final String ntUsdString = String.format("WARNING: arbState(%s)", arbState);
             log.info(ntUsdString);
             okCoinService.getTradeLogger().info(ntUsdString);
             warningLogger.error(ntUsdString);
@@ -197,8 +196,7 @@ public class PosDiffPortionsService {
         arbitrageService.resetArbState(okCoinService.getCounterName(), "deferredPlacingPortion");
     }
 
-    private void placeDeferredPortion(PlaceOrderArgs currArgs, BigDecimal block) {
-        final PlaceOrderArgs args = currArgs.cloneAsPortion(block);
+    private void placeDeferredPortion(PlaceOrderArgs args, BigDecimal block) {
         okCoinService.beforeDeferredPlacing(args);
         okCoinService.placeOrder(args);
         okCoinService.changeDeferredAmountSubstract(block, args.getPortionsQty());
