@@ -732,7 +732,7 @@ public abstract class MarketService extends MarketServiceWithState {
     protected void setFreeIfNoOpenOrders(String checkerName, int attempt) {
         try {
             final MarketState marketState = getMarketState();
-            if (marketState != MarketState.ARBITRAGE && marketState != MarketState.READY) {
+            if (marketState != MarketState.ARBITRAGE && marketState != MarketState.READY && marketState != MarketState.WAITING_ARB) {
                 if (marketState != MarketState.PLACING_ORDER
                         && (attempt == 2 || attempt == 100 || attempt == 10000 || attempt == 100000 || attempt == 1000000)
                 ) { // log possible errors //todo remove this log
@@ -740,7 +740,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 }
                 ooSingleScheduler.scheduleDirect(() -> addCheckOoToFreeRepeat(attempt + 1), 1, TimeUnit.SECONDS);
             }
-            if (marketState == MarketState.ARBITRAGE
+            if ((marketState == MarketState.ARBITRAGE || marketState == MarketState.WAITING_ARB)
                     && !hasOpenOrders()
                     && !hasDeferredOrders()) {
                 getTradeLogger().warn(checkerName);

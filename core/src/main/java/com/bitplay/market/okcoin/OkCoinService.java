@@ -1297,9 +1297,11 @@ public class OkCoinService extends MarketServicePreliq {
                         || nextState == MarketState.PLACING_ORDER
                         || nextState == MarketState.MOVING
                         || nextState == MarketState.FORBIDDEN
-                        || nextState == MarketState.ARBITRAGE
                 ) {
                     nextState = MarketState.ARBITRAGE;
+                }
+                if (placeOrderArgsRef.get() != null) {
+                    nextState = MarketState.WAITING_ARB;
                 }
 
                 setMarketState(nextState, counterName); // should be READY

@@ -216,8 +216,8 @@ public class PosDiffPortionsService {
 
     private void placeDeferredPortion(PlaceOrderArgs args, BigDecimal block) {
         okCoinService.beforeDeferredPlacing(args);
-        okCoinService.placeOrder(args);
         okCoinService.changeDeferredAmountSubstract(block, args.getPortionsQty());
+        okCoinService.placeOrder(args);
     }
 
 }
