@@ -1,7 +1,5 @@
 package com.bitplay.market.okcoin;
 
-import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
-
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
@@ -83,6 +81,31 @@ import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import lombok.Data;
+import org.knowm.xchange.Exchange;
+import org.knowm.xchange.ExchangeFactory;
+import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
+import org.knowm.xchange.dto.Order.OrderType;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.service.trade.TradeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import si.mazi.rescu.HttpStatusIOException;
+
+import javax.annotation.PreDestroy;
+import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -106,30 +129,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import javax.annotation.PreDestroy;
-import javax.validation.constraints.NotNull;
-import lombok.Data;
-import org.knowm.xchange.Exchange;
-import org.knowm.xchange.ExchangeFactory;
-import org.knowm.xchange.ExchangeSpecification;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.Order.OrderStatus;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.marketdata.ContractIndex;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.service.trade.TradeService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import si.mazi.rescu.HttpStatusIOException;
+
+import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 
 //import info.bitrich.xchangestream.okex.OkExStreamingExchange;
 //import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
@@ -742,6 +743,7 @@ public class OkCoinService extends MarketServicePreliq {
                     updateFplayOrdersToCurrStab(limitOrders, stub);
 
                     getOpenOrders().forEach(o -> {
+                        writeFilledOrderLog(o);
                         writeAvgPriceLog();
                     });
 
@@ -1743,7 +1745,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             final FplayOrder cancelledFplayOrd = FplayOrderUtils.updateFplayOrder(fOrderToCancel, cancelledOrder);
             final LimitOrder cancelledLimitOrder = (LimitOrder) cancelledFplayOrd.getOrder();
-            orderRepositoryService.updateAsync(cancelledFplayOrd);
+            orderRepositoryService.updateSync(cancelledFplayOrd);
 
             // 3. Already closed?
             final boolean alreadyFilled = cancelledLimitOrder.getStatus() == OrderStatus.FILLED;
@@ -1790,7 +1792,7 @@ public class OkCoinService extends MarketServicePreliq {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "wrong status on cancel/new: " + cancelledLimitOrder.getStatus());
             }
         } finally {
-            setMarketState(savedState);
+            setMarketState(savedState, counterWithPortion);
         }
 
         { // mon
@@ -2423,6 +2425,12 @@ public class OkCoinService extends MarketServicePreliq {
         } // OO-size > 0
 
         return false;
+    }
+
+    private void writeFilledOrderLog(FplayOrder o) {
+        if (o.getOrderDetail().getOrderStatus() == OrderStatus.FILLED) {
+            logger.info(String.format("#%s FILLED by subscirption, id=%s", o.getCounterWithPortion(), o.getOrderId()));
+        }
     }
 
     public void writeAvgPriceLog() {

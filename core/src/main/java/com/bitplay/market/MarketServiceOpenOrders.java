@@ -135,7 +135,7 @@ public abstract class MarketServiceOpenOrders {
                     res = FplayOrderUtils.updateFplayOrder(exists, u);
                 }
 //                getOrderRepositoryService().save(res); // TODO all orders from this.openOrders should be in DB.
-                getOrderRepositoryService().updateAsync(res);
+                getOrderRepositoryService().updateSync(res);
                 allUpdated.add(res);
             }
 
