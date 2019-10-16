@@ -10,6 +10,7 @@ import com.bitplay.arbitrage.dto.DeltaMon;
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.DeltaChange;
+import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.events.SignalEventBus;
@@ -78,6 +79,7 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -102,6 +104,7 @@ public class ArbitrageService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
+    private boolean initialized = false;
     private boolean firstDeltasCalculated = false;
     @Autowired
     private BordersService bordersService;
@@ -143,6 +146,8 @@ public class ArbitrageService {
     private VolatileModeSwitcherService volatileModeSwitcherService;
     @Autowired
     private OkexSettlementService okexSettlementService;
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
 
 //    @Autowired // WARNING - this leads to "successfully sent 23 metrics to InfluxDB." should be over 70 metrics.
@@ -189,7 +194,7 @@ public class ArbitrageService {
     private volatile boolean isAffordableBitmex = true;
     private volatile boolean isAffordableOkex = true;
     // Affordable for UI end
-    private final Scheduler signalScheduler = SchedulerUtils.singleThread("signal-%d");
+
     private volatile boolean preSignalRecheckInProgress = false;
 
     public DealPrices getDealPrices() {
@@ -207,56 +212,51 @@ public class ArbitrageService {
         this.posDiffService = twoMarketStarter.getPosDiffService();
 //        startArbitrageMonitoring();
         initArbitrageStateListener();
-        initSignalEventBus();
+        initialized = true;
     }
 
-    private Disposable initSignalEventBus() {
-        return signalEventBus.toObserverable()
-                .observeOn(signalScheduler)
-                .subscribe(e -> {
-                    try {
-                        if (preSignalRecheckInProgress) {
-                            if (!e.isPreSignalReChecked()) {
-                                return;
-                            } else {
-                                preSignalRecheckInProgress = false;
-                            }
-                        }
-                        final OrderBook firstOrderBook = e.getBtmOrderBook() != null ? e.getBtmOrderBook() : firstMarketService.getOrderBook();
-                        final OrderBook secondOrderBook = e.getOkOrderBook() != null ? e.getOkOrderBook() : secondMarketService.getOrderBook();
+    void sigEventCheck(SigEvent e) {
+        if (!initialized) {
+            return;
+        }
+        try {
+            if (preSignalRecheckInProgress) {
+                if (!e.isPreSignalReChecked()) {
+                    return;
+                } else {
+                    preSignalRecheckInProgress = false;
+                }
+            }
+            final OrderBook firstOrderBook = e.getBtmOrderBook() != null ? e.getBtmOrderBook() : firstMarketService.getOrderBook();
+            final OrderBook secondOrderBook = e.getOkOrderBook() != null ? e.getOkOrderBook() : secondMarketService.getOrderBook();
 
-                        final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
+            final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
 
-                        final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
-                        TradingSignal prevTradingSignal = null;
-                        if (preSignalObReFetch != null && preSignalObReFetch) {
-                            if (e.isPreSignalReChecked()) {
-                                final DeltaName deltaName = e.getDeltaName();
-                                final TradingMode tradingMode = e.getTradingMode();
-                                bestQuotes.setPreSignalReChecked(deltaName, tradingMode);
-                                prevTradingSignal = e.getPrevTradingSignal();
-                            } else {
-                                bestQuotes.setNeedPreSignalReCheck();
-                            }
-                        }
+            final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
+            TradingSignal prevTradingSignal = null;
+            if (preSignalObReFetch != null && preSignalObReFetch) {
+                if (e.isPreSignalReChecked()) {
+                    final DeltaName deltaName = e.getDeltaName();
+                    final TradingMode tradingMode = e.getTradingMode();
+                    bestQuotes.setPreSignalReChecked(deltaName, tradingMode);
+                    prevTradingSignal = e.getPrevTradingSignal();
+                } else {
+                    bestQuotes.setNeedPreSignalReCheck();
+                }
+            }
 
-                        params.setLastOBChange(new Date());
+            params.setLastOBChange(new Date());
 
-                        resetArbStatePreliq();
+            resetArbStatePreliq();
 
-                        doComparison(bestQuotes, firstOrderBook, secondOrderBook, prevTradingSignal);
+            doComparison(bestQuotes, firstOrderBook, secondOrderBook, prevTradingSignal);
 
-                    } catch (NotYetInitializedException ex) {
-                        // do nothing
-                    } catch (Exception ex) {
-                        log.error("ERROR: signalEventBus", ex);
-                        warningLogger.error("ERROR: signalEventBus." + ex.toString());
-                    }
-                }, throwable -> {
-                    log.error("signalEventBus errorOnEvent", throwable);
-                    warningLogger.error("ERROR: signalEventBus errorOnEvent." + throwable.toString());
-                    initSignalEventBus();
-                });
+        } catch (NotYetInitializedException ex) {
+            // do nothing
+        } catch (Exception ex) {
+            log.error("ERROR: sigEventCheck", ex);
+            warningLogger.error("ERROR: sigEventCheck." + ex.toString());
+        }
     }
 
     public SignalEventBus getSignalEventBus() {
@@ -1014,7 +1014,8 @@ public class ArbitrageService {
         }
 
         futureSignal = signalDelayScheduler.schedule(() -> {
-            signalEventBus.send(new SigEvent(SigType.BTM, null)); // to make sure that it will happen in the 'signalDeltayMs period'
+            // to make sure that it will happen in the 'signalDeltayMs period'
+            applicationEventPublisher.publishEvent(new ObChangeEvent(new SigEvent(SigType.BTM, null)));
         }, timeToSignalMs, TimeUnit.MILLISECONDS);
 
     }
@@ -1288,8 +1289,9 @@ public class ArbitrageService {
             warningLogger.info(msg);
         } finally {
             final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
-            signalEventBus.send(new SigEvent(SigType.BTM, Instant.now(), true, deltaName, tradingMode,
-                    prevTradingSignal, btmOb, okOb));
+            applicationEventPublisher.publishEvent((new ObChangeEvent(
+                    new SigEvent(SigType.BTM, Instant.now(), true, deltaName, tradingMode, prevTradingSignal, btmOb, okOb)
+            )));
         }
 
 //        params.setLastOBChange(new Date());

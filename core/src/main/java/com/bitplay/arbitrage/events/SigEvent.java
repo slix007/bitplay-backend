@@ -5,6 +5,7 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 
 import java.time.Instant;
@@ -14,6 +15,7 @@ import java.time.Instant;
  */
 @Getter
 @Setter
+@ToString
 public class SigEvent {
 
     private SigType sigType;

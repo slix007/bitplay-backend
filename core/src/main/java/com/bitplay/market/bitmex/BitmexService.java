@@ -8,6 +8,7 @@ import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.NtUsdCheckEvent;
+import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -1546,7 +1547,7 @@ public class BitmexService extends MarketServicePreliq {
                 }
             }
 
-            getArbitrageService().getSignalEventBus().send(new SigEvent(SigType.BTM, obChangeTime));
+            getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.BTM, obChangeTime)));
         }
     }
 

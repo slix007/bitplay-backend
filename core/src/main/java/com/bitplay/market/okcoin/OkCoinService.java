@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.NtUsdCheckEvent;
+import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
@@ -521,7 +522,7 @@ public class OkCoinService extends MarketServicePreliq {
                         logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
 
                         Instant lastObTime = Instant.now();
-                        getArbitrageService().getSignalEventBus().send(new SigEvent(SigType.OKEX, lastObTime));
+                        getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.OKEX, lastObTime)));
                     }
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
