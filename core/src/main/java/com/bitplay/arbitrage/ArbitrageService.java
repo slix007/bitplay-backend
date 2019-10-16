@@ -4,16 +4,15 @@ import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.BordersService.BorderVer;
 import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.BordersService.TradingSignal;
-import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DeltaMon;
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.DeltaChange;
-import com.bitplay.arbitrage.events.SignalEvent;
+import com.bitplay.arbitrage.events.SigEvent;
+import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.events.SignalEventBus;
-import com.bitplay.arbitrage.events.SignalEventEx;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
@@ -71,18 +70,6 @@ import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
@@ -93,6 +80,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Date;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Sergey Shurmin on 4/18/17.
@@ -214,69 +213,44 @@ public class ArbitrageService {
     private Disposable initSignalEventBus() {
         return signalEventBus.toObserverable()
                 .observeOn(signalScheduler)
-                .subscribe(eventQuant -> {
+                .subscribe(e -> {
                     try {
                         if (preSignalRecheckInProgress) {
-                            final boolean rechecked = eventQuant instanceof SignalEventEx && ((SignalEventEx) eventQuant).isPreSignalReChecked();
-                            if (!rechecked) {
+                            if (!e.isPreSignalReChecked()) {
                                 return;
                             } else {
                                 preSignalRecheckInProgress = false;
                             }
                         }
-                        SignalEvent signalEvent = eventQuant instanceof SignalEventEx
-                                ? ((SignalEventEx) eventQuant).getSignalEvent()
-                                : (SignalEvent) eventQuant;
+                        final OrderBook firstOrderBook = e.getBtmOrderBook() != null ? e.getBtmOrderBook() : firstMarketService.getOrderBook();
+                        final OrderBook secondOrderBook = e.getOkOrderBook() != null ? e.getOkOrderBook() : secondMarketService.getOrderBook();
 
-                        if (signalEvent == SignalEvent.B_ORDERBOOK_CHANGED || signalEvent == SignalEvent.O_ORDERBOOK_CHANGED) {
+                        final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
 
-                            OrderBook firstOrderBook = firstMarketService.getOrderBook();
-                            OrderBook secondOrderBook = secondMarketService.getOrderBook();
-                            boolean predefinedBtmOb = false;
-                            if (eventQuant instanceof SignalEventEx) {
-                                final SignalEventEx q = (SignalEventEx) eventQuant;
-                                firstOrderBook = q.getBtmOrderBook() != null ? q.getBtmOrderBook() : firstOrderBook;
-                                secondOrderBook = q.getOkOrderBook() != null ? q.getOkOrderBook() : secondOrderBook;
-                                predefinedBtmOb = true;
+                        final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
+                        TradingSignal prevTradingSignal = null;
+                        if (preSignalObReFetch != null && preSignalObReFetch) {
+                            if (e.isPreSignalReChecked()) {
+                                final DeltaName deltaName = e.getDeltaName();
+                                final TradingMode tradingMode = e.getTradingMode();
+                                bestQuotes.setPreSignalReChecked(deltaName, tradingMode);
+                                prevTradingSignal = e.getPrevTradingSignal();
+                            } else {
+                                bestQuotes.setNeedPreSignalReCheck();
                             }
-
-                            final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
-//                            boolean orderBookReFetched = true; // by default no reFetch
-//                            final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
-//                            if (preSignalObReFetch != null && preSignalObReFetch) {
-//                                orderBookReFetched = eventQuant instanceof SignalEventEx && ((SignalEventEx) eventQuant).isOrderBookReFetched();
-//                            }
-//                            bestQuotes.setOrderBookReFetched(orderBookReFetched);
-
-//                            if (predefinedBtmOb) {
-//                                bestQuotes.setBtmOrderBook(firstOrderBook);
-//                            }
-
-                            final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
-                            TradingSignal prevTradingSignal = null;
-                            if (preSignalObReFetch != null && preSignalObReFetch) {
-                                if (eventQuant instanceof SignalEventEx && ((SignalEventEx) eventQuant).isPreSignalReChecked()) {
-                                    final DeltaName deltaName = ((SignalEventEx) eventQuant).getDeltaName();
-                                    final TradingMode tradingMode = ((SignalEventEx) eventQuant).getTradingMode();
-                                    bestQuotes.setPreSignalReChecked(deltaName, tradingMode);
-                                    prevTradingSignal = ((SignalEventEx) eventQuant).getPrevTradingSignal();
-                                } else {
-                                    bestQuotes.setNeedPreSignalReCheck();
-                                }
-                            }
-
-                            params.setLastOBChange(new Date());
-
-                            resetArbStatePreliq();
-
-                            doComparison(bestQuotes, firstOrderBook, secondOrderBook, prevTradingSignal);
-
                         }
-                    } catch (NotYetInitializedException e) {
+
+                        params.setLastOBChange(new Date());
+
+                        resetArbStatePreliq();
+
+                        doComparison(bestQuotes, firstOrderBook, secondOrderBook, prevTradingSignal);
+
+                    } catch (NotYetInitializedException ex) {
                         // do nothing
-                    } catch (Exception e) {
-                        log.error("ERROR: signalEventBus", e);
-                        warningLogger.error("ERROR: signalEventBus." + e.toString());
+                    } catch (Exception ex) {
+                        log.error("ERROR: signalEventBus", ex);
+                        warningLogger.error("ERROR: signalEventBus." + ex.toString());
                     }
                 }, throwable -> {
                     log.error("signalEventBus errorOnEvent", throwable);
@@ -1040,7 +1014,7 @@ public class ArbitrageService {
         }
 
         futureSignal = signalDelayScheduler.schedule(() -> {
-            signalEventBus.send(SignalEvent.B_ORDERBOOK_CHANGED); // to make sure that it will happen in the 'signalDeltayMs period'
+            signalEventBus.send(new SigEvent(SigType.BTM, null)); // to make sure that it will happen in the 'signalDeltayMs period'
         }, timeToSignalMs, TimeUnit.MILLISECONDS);
 
     }
@@ -1314,7 +1288,7 @@ public class ArbitrageService {
             warningLogger.info(msg);
         } finally {
             final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
-            signalEventBus.send(new SignalEventEx(SignalEvent.B_ORDERBOOK_CHANGED, Instant.now(), true, deltaName, tradingMode,
+            signalEventBus.send(new SigEvent(SigType.BTM, Instant.now(), true, deltaName, tradingMode,
                     prevTradingSignal, btmOb, okOb));
         }
 

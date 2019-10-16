@@ -13,13 +13,13 @@ public class SignalEventBus {
 
     private static final Logger logger = LoggerFactory.getLogger(SignalEventBus.class);
 
-    private final Subject<EventQuant> _bus = PublishSubject.create();
+    private final Subject<SigEvent> _bus = PublishSubject.create();
 
-    public void send(EventQuant o) {
+    public void send(SigEvent o) {
         _bus.onNext(o);
     }
 
-    public Observable<EventQuant> toObserverable() {
+    public Observable<SigEvent> toObserverable() {
         return _bus
                 .doOnError(throwable -> logger.error("SignalEventBus.", throwable))
                 .retry()

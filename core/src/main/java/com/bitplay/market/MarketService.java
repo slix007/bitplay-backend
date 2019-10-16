@@ -3,8 +3,7 @@ package com.bitplay.market;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.events.SignalEvent;
-import com.bitplay.arbitrage.events.SignalEventEx;
+import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.market.bitmex.BitmexService;
@@ -42,6 +41,21 @@ import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.processors.PublishProcessor;
 import io.reactivex.schedulers.Schedulers;
+import org.knowm.xchange.Exchange;
+import org.knowm.xchange.currency.Currency;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
+import org.knowm.xchange.dto.Order.OrderType;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.marketdata.Ticker;
+import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.service.trade.TradeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -59,20 +73,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.knowm.xchange.Exchange;
-import org.knowm.xchange.currency.Currency;
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.Order.OrderStatus;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.marketdata.ContractIndex;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.marketdata.Ticker;
-import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.service.trade.TradeService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Created by Sergey Shurmin on 4/16/17.
@@ -878,12 +878,10 @@ public abstract class MarketService extends MarketServiceWithState {
                 .observeOn(movingExecutor)
                 .subscribe(eventQuant -> {
                     try {
-                        SignalEvent signalEvent = eventQuant instanceof SignalEventEx
-                                ? ((SignalEventEx) eventQuant).getSignalEvent()
-                                : (SignalEvent) eventQuant;
+                        SigType t = eventQuant.getSigType();
 
-                        if ((signalEvent == SignalEvent.B_ORDERBOOK_CHANGED && getName().equals(BitmexService.NAME))
-                                || (signalEvent == SignalEvent.O_ORDERBOOK_CHANGED && getName().equals(OkCoinService.NAME))) {
+                        if ((t == SigType.BTM && getName().equals(BitmexService.NAME))
+                                || (t == SigType.OKEX && getName().equals(OkCoinService.NAME))) {
                             checkOpenOrdersForMoving(eventQuant.startTime());
                         }
                     } catch (NotYetInitializedException e) {
