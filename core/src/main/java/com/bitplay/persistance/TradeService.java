@@ -11,9 +11,6 @@ import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.repository.FplayTradeRepository;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +20,10 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 
 /**
  * Created by Sergey Shurmin on 12/4/17.
@@ -146,9 +147,13 @@ public class TradeService {
     }
 
     public boolean isReadyToComplete(Long tradeId) {
-        final FplayTrade trade = fplayTradeRepository.findOne(tradeId);
-        boolean bothCompleted = trade.isBothCompleted();
-        boolean tradeStateInProgress = trade.getTradeStatus() == TradeStatus.IN_PROGRESS;
+        Query query = new Query(Criteria.where("_id").is(tradeId));
+        query.fields().include("bitmexStatus");
+        query.fields().include("okexStatus");
+        query.fields().include("tradeStatus");
+        final FplayTrade t = mongoOperation.findOne(query, FplayTrade.class);
+        boolean bothCompleted = t.getBitmexStatus() == TradeMStatus.FINISHED && t.getOkexStatus() == TradeMStatus.FINISHED;
+        boolean tradeStateInProgress = t.getTradeStatus() == TradeStatus.IN_PROGRESS;
         return bothCompleted && tradeStateInProgress;
     }
 

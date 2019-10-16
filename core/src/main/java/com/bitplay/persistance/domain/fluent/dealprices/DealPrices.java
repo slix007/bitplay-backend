@@ -4,6 +4,7 @@ import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.BTM_MO
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MODE;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.fluent.DeltaName;
@@ -22,7 +23,9 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 /**
  * Created by Sergey Shurmin on 5/24/17.
@@ -40,6 +43,8 @@ public class DealPrices {
     @Version
     private Long version;
     @CreatedDate
+    @Field
+    @Indexed(expireAfterSeconds = 3600 * 24 * 31) // one month
     private LocalDateTime created;
     @LastModifiedDate
     private LocalDateTime updated;
@@ -65,6 +70,7 @@ public class DealPrices {
     private PlacingType btmPlacingType;
     private TradingMode tradingMode;
     private String counterName;
+    private BtmFokAutoArgs btmFokAutoArgs;
 
     public BigDecimal getDelta1Fact() {
         final BigDecimal firstOpenPrice = bPriceFact.getAvg();

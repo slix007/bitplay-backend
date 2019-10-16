@@ -2,16 +2,12 @@ package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.market.MarketStaticData;
+import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.repository.DealPricesRepository;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.trade.LimitOrder;
@@ -20,6 +16,12 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -124,6 +126,13 @@ public class DealPricesRepositoryService {
                     .set("oPricePlanOnStart", oPricePlanOnStart);
             mongoOperation.updateFirst(query, update, DealPrices.class);
         }
+    }
+
+    public BtmFokAutoArgs findBtmFokAutoArgs(Long tradeId) {
+        final Query query = new Query(Criteria.where("_id").is(tradeId));
+        query.fields().include("btmFokAutoArgs");
+        final DealPrices d = mongoOperation.findOne(query, DealPrices.class);
+        return d != null ? d.getBtmFokAutoArgs() : null;
     }
 
 }

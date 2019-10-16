@@ -1,5 +1,6 @@
 package com.bitplay.persistance.domain.fluent;
 
+import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.TradingMode;

@@ -22,4 +22,9 @@ public class SpringAsyncConfig {
         return Executors.newSingleThreadExecutor(new NamedThreadFactory("signal-check"));
     }
 
+    @Bean(name = "portionsStopCheckExecutor")
+    public Executor portionsStopCheckExecutor() {
+        return Executors.newSingleThreadExecutor(new NamedThreadFactory("portions-stop-check"));
+    }
+
 }
