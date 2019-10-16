@@ -193,20 +193,6 @@ public class ArbitrageService {
     private final Scheduler signalScheduler = SchedulerUtils.singleThread("signal-%d");
     private volatile boolean preSignalRecheckInProgress = false;
 
-
-    public boolean btmHasStarted() {
-        final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
-        final Map<String, AvgPriceItem> btmItems = persistenceService.getDealPricesRepositoryService()
-                .getPItems(dealPrices.getTradeId(), MarketStaticData.BITMEX.getId());
-        dealPrices.getBPriceFact().getPItems().putAll(btmItems);
-//        final BitmexService bitmexService = (BitmexService) getFirstMarketService();
-//        bitmexService.updateAvgPrice(dealPrices, false);
-        if (dealPrices.getBPriceFact().getAvg().signum() > 0) {
-            return true;
-        }
-        return false;
-    }
-
     public DealPrices getDealPrices() {
         return getDealPrices(tradeId);
     }

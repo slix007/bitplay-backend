@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @ChangeLog
 public class Changelog1011 {
 
-    @ChangeSet(order = "2019-10-11", id = "2019-10-11: abortSignalPts.", author = "SergeiShurmin")
+    @ChangeSet(order = "2019-10-11", id = "2019-10-11: abortSignalPts.f1", author = "SergeiShurmin")
     public void change01(MongoTemplate mongoTemplate) {
         Query query = new Query();
         Update update = new Update();

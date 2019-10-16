@@ -5,7 +5,6 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.repository.SettingsRepository;
 import com.mongodb.WriteResult;
-import java.util.Date;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -14,6 +13,8 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+
+import java.util.Date;
 
 /**
  * Created by Sergey Shurmin on 12/4/17.
@@ -35,16 +36,22 @@ public class SettingsRepositoryService {
     }
 
     private volatile Settings settings;
+    private volatile boolean invalidated = true;
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
         settings = fetchSettings(); // in case of mongo ChangeSets
     }
 
+    public void setInvalidated() {
+        this.invalidated = true;
+    }
+
     public Settings getSettings() {
 
-        if (settings == null) {
+        if (settings == null || invalidated) {
             settings = fetchSettings();
+            invalidated = false;
         }
 
         setTransientCm();

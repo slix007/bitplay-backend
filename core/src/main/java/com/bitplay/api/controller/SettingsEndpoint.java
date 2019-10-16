@@ -132,6 +132,7 @@ public class SettingsEndpoint {
     public Settings updateSettings(@RequestBody Settings settingsUpdate) {
         boolean resetPreset = true;
 
+        settingsRepositoryService.setInvalidated();
         Settings settings = settingsRepositoryService.getSettings();
         if (settingsUpdate.getBitmexPlacingType() != null) {
             settings.setBitmexPlacingType(settingsUpdate.getBitmexPlacingType());
