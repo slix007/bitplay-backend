@@ -7,6 +7,7 @@ import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.PlacingType;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.repository.DealPricesRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +50,7 @@ public class DealPricesRepositoryService {
                 .set("updated", LocalDateTime.now())
                 .set("btmPlacingType", btmPlacingType)
                 .set("okexPlacingType", okexPlacingType);
+//                .set("tradingMode", TradingMode.VOLATILE); // current-volatile?
         mongoOperation.updateFirst(query, update, DealPrices.class);
     }
 
@@ -133,6 +135,29 @@ public class DealPricesRepositoryService {
         query.fields().include("btmFokAutoArgs");
         final DealPrices d = mongoOperation.findOne(query, DealPrices.class);
         return d != null ? d.getBtmFokAutoArgs() : null;
+    }
+
+    public void setAbortedSignal(Long tradeId) {
+        final Query query = new Query(Criteria.where("_id").is(tradeId));
+        final Update update = new Update()
+                .inc("version", 1)
+                .set("updated", LocalDateTime.now())
+                .set("abortedSignal", true);
+        mongoOperation.updateFirst(query, update, DealPrices.class);
+    }
+
+    public boolean isAbortedSignal(Long tradeId) {
+        final Query query = new Query(Criteria.where("_id").is(tradeId));
+        query.fields().include("abortedSignal");
+        final DealPrices d = mongoOperation.findOne(query, DealPrices.class);
+        return (d != null && d.getAbortedSignal() != null) ? d.getAbortedSignal() : false;
+    }
+
+    public TradingMode getTradingMode(Long tradeId) {
+        final Query query = new Query(Criteria.where("_id").is(tradeId));
+        query.fields().include("tradingMode");
+        final DealPrices d = mongoOperation.findOne(query, DealPrices.class);
+        return d != null ? d.getTradingMode() : null;
     }
 
 }

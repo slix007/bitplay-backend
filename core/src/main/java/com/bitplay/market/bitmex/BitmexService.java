@@ -2991,7 +2991,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
-    public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing) {
+    public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing, boolean withResetWaitingArb) {
         final FplayOrder currStub = stub != null ? stub : getCurrStub();
         final String counterForLogs = currStub.getCounterWithPortion();
         String contractTypeStr = "";
@@ -3022,7 +3022,9 @@ public class BitmexService extends MarketServicePreliq {
                 if (beforePlacing) {
                     setMarketState(MarketState.PLACING_ORDER);
                 } else {
-                    ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                    if (withResetWaitingArb) {
+                        ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                    }
                     addCheckOoToFree();
                 }
 

@@ -71,6 +71,7 @@ public class DealPrices {
     private TradingMode tradingMode;
     private String counterName;
     private BtmFokAutoArgs btmFokAutoArgs;
+    private Boolean abortedSignal;
 
     public BigDecimal getDelta1Fact() {
         final BigDecimal firstOpenPrice = bPriceFact.getAvg();

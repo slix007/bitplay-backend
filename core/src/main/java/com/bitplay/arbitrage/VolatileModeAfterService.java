@@ -110,7 +110,7 @@ public class VolatileModeAfterService {
             final String counterForLogs = stub.getCounterWithPortion(); // no portions here
             final Integer portionsQty = lastOO != null ? lastOO.getPortionsQty() : null;
 
-            final List<LimitOrder> orders = marketService.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders", true);
+            final List<LimitOrder> orders = marketService.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders", true, true);
             final BigDecimal amountDiff = orders.stream()
                     .map(o -> {
                         final BigDecimal am = o.getTradableAmount().subtract(o.getCumulativeAmount());

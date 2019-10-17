@@ -113,6 +113,14 @@ public class CumPersistenceService {
         mongoTemplate.updateMulti(cumParamsQuery(tradingMode), new Update().inc("obRecheckUnstartedVert2", 1), CumParams.class);
     }
 
+    public void incAbortedSignalUnstartedVert1(TradingMode tradingMode) {
+        mongoTemplate.updateMulti(cumParamsQuery(tradingMode), new Update().inc("abortedSignalUnstartedVert1", 1), CumParams.class);
+    }
+
+    public void incAbortedSignalUnstartedVert2(TradingMode tradingMode) {
+        mongoTemplate.updateMulti(cumParamsQuery(tradingMode), new Update().inc("abortedSignalUnstartedVert2", 1), CumParams.class);
+    }
+
     public void addCumDelta(TradingMode tradingMode, BigDecimal deltaPlan) {
         mongoTemplate.updateMulti(cumParamsQuery(tradingMode), new Update().inc("cumDelta", deltaPlan), CumParams.class);
     }

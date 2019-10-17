@@ -2,16 +2,19 @@ package com.bitplay.arbitrage.posdiff;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.events.ObChangeEvent;
-import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.persistance.domain.settings.TradingMode;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
@@ -21,6 +24,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
 
+@Slf4j
 @Service
 public class PosDiffPortionsStopListener {
 
@@ -39,10 +43,12 @@ public class PosDiffPortionsStopListener {
     @Autowired
     private DealPricesRepositoryService dealPricesRepositoryService;
 
+    @Autowired
+    private CumPersistenceService cumPersistenceService;
+
     @Async("portionsStopCheckExecutor")
     @EventListener(ObChangeEvent.class)
-    public void doCheckObChangeEvent(ObChangeEvent obChangeEvent) {
-        final SigEvent sigEvent = obChangeEvent.getSigEvent();
+    public void doCheckObChangeEvent() {
         checkForStop();
     }
 
@@ -75,15 +81,46 @@ public class PosDiffPortionsStopListener {
 
         // 3. delta >= max_border - abort_signal_pts (b_delta или o_delta,в зависимости от начатого сигнала)
         final BigDecimal maxBorder = getMaxBorder(currArgs.getTradeId());
-        final BigDecimal delta = getDelta(currArgs);
+        final DeltaName deltaName = getDeltaName(currArgs);
+        final BigDecimal delta = getDelta(deltaName);
         if (maxBorder == null || delta == null) {
             return; // wrong settings
         }
 
         if (delta.compareTo(maxBorder.subtract(abortSignalPts)) < 0) {
-            //TODO check it works
-            bitmexService.cancelAllOrders(oo.get(0), "abort_signal", false);
+            incCounters(currArgs, deltaName);
+            printSignalAborted(abortSignalPts, currArgs, maxBorder, deltaName, delta);
+            bitmexService.cancelAllOrders(oo.get(0), "abort_signal", false, false);
         }
+    }
+
+    private void incCounters(PlaceOrderArgs currArgs, DeltaName deltaName) {
+        final BigDecimal btmFilled = bitmexService.getBtmFilled(currArgs);
+        if (btmFilled.signum() == 0) {
+            final Long tradeId = currArgs.getTradeId();
+            final TradingMode tradingMode = dealPricesRepositoryService.getTradingMode(tradeId);
+            if (tradingMode != null) {
+                dealPricesRepositoryService.setAbortedSignal(tradeId);
+                if (deltaName == DeltaName.B_DELTA) {
+                    cumPersistenceService.incAbortedSignalUnstartedVert1(tradingMode);
+                } else {
+                    cumPersistenceService.incAbortedSignalUnstartedVert2(tradingMode);
+                }
+            }
+        }
+    }
+
+    private void printSignalAborted(BigDecimal abortSignalPts, PlaceOrderArgs currArgs, BigDecimal maxBorder, DeltaName deltaName, BigDecimal delta) {
+        final String ds = deltaName.getDeltaSymbol();
+        final String msg = String.format(
+                "#%s signal aborted %s_delta(%s)<%s_max_border(%s) - abort_signal_pts(%s)",
+                currArgs.getCounterNameWithPortion(),
+                ds, delta,
+                ds, maxBorder,
+                abortSignalPts);
+        okCoinService.getTradeLogger().info(msg);
+        bitmexService.getTradeLogger().info(msg);
+        log.info(msg);
     }
 
     private BigDecimal getMaxBorder(Long tradeId) {
@@ -91,10 +128,16 @@ public class PosDiffPortionsStopListener {
         return btmFokArgs != null ? btmFokArgs.getMaxBorder() : null;
     }
 
-    private BigDecimal getDelta(PlaceOrderArgs currArgsOkex) {
+    private DeltaName getDeltaName(PlaceOrderArgs currArgsOkex) {
         final Order.OrderType t = currArgsOkex.getOrderType();
         final boolean okexBuy = t == Order.OrderType.BID || t == Order.OrderType.EXIT_ASK;
-        return okexBuy ? arbitrageService.getDelta1() : arbitrageService.getDelta2(); //TODO check it
+        return okexBuy ? DeltaName.B_DELTA : DeltaName.O_DELTA;
+    }
+
+    private BigDecimal getDelta(DeltaName deltaName) {
+        return deltaName == DeltaName.B_DELTA
+                ? arbitrageService.getDelta1()
+                : arbitrageService.getDelta2();
     }
 
 

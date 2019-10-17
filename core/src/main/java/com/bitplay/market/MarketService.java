@@ -1240,7 +1240,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 getTradeLogger().info(msg);
 
                 final FplayOrder stub = new FplayOrder(getMarketId(), null, "stopAllActions");
-                cancelAllOrders(stub, "StopAllActions: CancelAllOpenOrders", false);
+                cancelAllOrders(stub, "StopAllActions: CancelAllOpenOrders", false, true);
             }
         } catch (Exception e) {
             logger.error("stopAllActions error", e);
@@ -1254,7 +1254,7 @@ public abstract class MarketService extends MarketServiceWithState {
     /**
      * @return cancelled order id list
      */
-    public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing) {
+    public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing, boolean withResetWaitingArb) {
         return new ArrayList<>();
     }
 

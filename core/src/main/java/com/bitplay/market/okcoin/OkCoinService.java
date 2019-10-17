@@ -6,8 +6,8 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.arbitrage.events.ObChangeEvent;
-import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.events.SigEvent;
+import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
@@ -47,6 +47,7 @@ import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.exception.ApiException;
 import com.bitplay.okex.v3.utils.OkexErrors;
 import com.bitplay.persistance.CumPersistenceService;
+import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
@@ -216,6 +217,8 @@ public class OkCoinService extends MarketServicePreliq {
     private OkexSettlementService okexSettlementService;
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
+    @Autowired
+    private DealPricesRepositoryService dealPricesRepositoryService;
 
     @Override
     protected ApplicationEventPublisher getApplicationEventPublisher() {
@@ -1938,7 +1941,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing) {
+    public List<LimitOrder> cancelAllOrders(FplayOrder stub, String logInfoId, boolean beforePlacing, boolean withResetWaitingArb) {
         List<LimitOrder> res = new ArrayList<>();
         final String counterForLogs = stub.getCounterWithPortion();
 
@@ -2296,15 +2299,17 @@ public class OkCoinService extends MarketServicePreliq {
             if (btmWasStarted != null && btmWasStarted.length > 0 && btmWasStarted[0]) {
                 // no changes for Vert
             } else {
-                final DealPrices dealPrices = arbitrageService.getDealPrices();
+                final Long tradeId = arbitrageService.getTradeId();
+                final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
                 final TradingMode tradingMode = dealPrices.getTradingMode();
-                final String s = placeOrderArgs != null ? placeOrderArgs.getCounterName() : "";
-                if (dealPrices.getDeltaName() == DeltaName.B_DELTA) {
-                    cumPersistenceService.incUnstartedVert1(tradingMode);
-                    getTradeLogger().info( "#" + s + " Unstarted");
-                } else {
-                    cumPersistenceService.incUnstartedVert2(tradingMode);
-                    getTradeLogger().info( "#" + s + " Unstarted");
+                if (dealPrices.getAbortedSignal() == null || !dealPrices.getAbortedSignal()) {
+                    final String s = placeOrderArgs != null ? placeOrderArgs.getCounterName() : "";
+                    if (dealPrices.getDeltaName() == DeltaName.B_DELTA) {
+                        cumPersistenceService.incUnstartedVert1(tradingMode);
+                    } else {
+                        cumPersistenceService.incUnstartedVert2(tradingMode);
+                    }
+                    getTradeLogger().info("#" + s + " Unstarted");
                 }
             }
             setMarketState(MarketState.READY);

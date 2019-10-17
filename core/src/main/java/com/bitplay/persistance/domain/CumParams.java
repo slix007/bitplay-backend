@@ -68,6 +68,8 @@ public class CumParams extends AbstractParams {
     private Integer unstartedVert2;
     private Integer obRecheckUnstartedVert1;
     private Integer obRecheckUnstartedVert2;
+    private Integer abortedSignalUnstartedVert1;
+    private Integer abortedSignalUnstartedVert2;
 
     public void setDefaults() {
         this.cumDelta = BigDecimal.ZERO;
@@ -117,6 +119,8 @@ public class CumParams extends AbstractParams {
         this.unstartedVert2 = 0;
         this.obRecheckUnstartedVert1 = 0;
         this.obRecheckUnstartedVert2 = 0;
+        this.abortedSignalUnstartedVert1 = 0;
+        this.abortedSignalUnstartedVert2 = 0;
     }
 
     public void update(CumParams update) {
@@ -167,5 +171,7 @@ public class CumParams extends AbstractParams {
         this.unstartedVert2 = update.unstartedVert2 != null ? update.unstartedVert2 : this.unstartedVert2;
         this.obRecheckUnstartedVert1 = update.obRecheckUnstartedVert1 != null ? update.obRecheckUnstartedVert1 : this.obRecheckUnstartedVert1;
         this.obRecheckUnstartedVert2 = update.obRecheckUnstartedVert2 != null ? update.obRecheckUnstartedVert2 : this.obRecheckUnstartedVert2;
+        this.abortedSignalUnstartedVert1 = update.abortedSignalUnstartedVert1 != null ? update.abortedSignalUnstartedVert1 : this.abortedSignalUnstartedVert1;
+        this.abortedSignalUnstartedVert2 = update.abortedSignalUnstartedVert2 != null ? update.abortedSignalUnstartedVert2 : this.abortedSignalUnstartedVert2;
     }
 }

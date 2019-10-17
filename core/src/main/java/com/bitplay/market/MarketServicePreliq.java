@@ -47,7 +47,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
     protected void resetPreliqState() {
         if (getMarketState() == MarketState.PRELIQ) {
             final FplayOrder stub = new FplayOrder(getMarketId(), null, "cancellOnPreliq");
-            cancelAllOrders(stub, "After PRELIQ: CancelAllOpenOrders", false);
+            cancelAllOrders(stub, "After PRELIQ: CancelAllOpenOrders", false, true);
 
             MarketState toSet = MarketState.READY; // hasOpenOrders() ? MarketState.ARBITRAGE : MarketState.READY;
             log.warn(getName() + "_PRELIQ: resetPreliqState to " + toSet);
