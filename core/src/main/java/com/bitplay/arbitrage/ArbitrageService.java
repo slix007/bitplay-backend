@@ -13,7 +13,6 @@ import com.bitplay.arbitrage.events.DeltaChange;
 import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.events.SigType;
-import com.bitplay.arbitrage.events.SignalEventBus;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
@@ -172,7 +171,6 @@ public class ArbitrageService {
 //    private Disposable theTimer;
     private Disposable theCheckBusyTimer;
     private volatile SignalType signalType = SignalType.AUTOMATIC;
-    private SignalEventBus signalEventBus = new SignalEventBus();
     private volatile DeltaParams deltaParams = DeltaParams.createDefault();
     private volatile DeltaMon deltaMon = new DeltaMon();
     private final PublishSubject<DeltaChange> deltaChangesPublisher = PublishSubject.create();
@@ -257,10 +255,6 @@ public class ArbitrageService {
             log.error("ERROR: sigEventCheck", ex);
             warningLogger.error("ERROR: sigEventCheck." + ex.toString());
         }
-    }
-
-    public SignalEventBus getSignalEventBus() {
-        return signalEventBus;
     }
 
     private void initArbitrageStateListener() {

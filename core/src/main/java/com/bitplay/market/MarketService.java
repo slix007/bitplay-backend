@@ -108,8 +108,6 @@ public abstract class MarketService extends MarketServiceWithState {
     protected final Scheduler ooSingleScheduler = Schedulers.from(ooSingleExecutor);
     protected final Scheduler indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-index-executor-%d").build()));
-    protected final Scheduler movingExecutor = Schedulers.from(Executors.newFixedThreadPool(5,
-            new ThreadFactoryBuilder().setNameFormat(getName() + "-moving-executor-%d").build()));
     protected final Scheduler stateUpdater = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-state-updater-%d").build()));
 
@@ -133,7 +131,6 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public void init(String key, String secret, ContractType contractType, Object... exArgs) {
         initEventBus();
-        initOpenOrdersMovingSubscription();
         initializeMarket(key, secret, contractType, exArgs);
     }
 
@@ -873,26 +870,7 @@ public abstract class MarketService extends MarketServiceWithState {
         return FplayOrderUtils.updateFplayOrder(fplayOrder, limitOrder);
     }
 
-    private void initOpenOrdersMovingSubscription() {
-        openOrdersMovingSubscription = getArbitrageService().getSignalEventBus().toObserverable()
-                .observeOn(movingExecutor)
-                .subscribe(eventQuant -> {
-                    try {
-                        SigType t = eventQuant.getSigType();
-
-                        if ((t == SigType.BTM && getName().equals(BitmexService.NAME))
-                                || (t == SigType.OKEX && getName().equals(OkCoinService.NAME))) {
-                            checkOpenOrdersForMoving(eventQuant.startTime());
-                        }
-                    } catch (NotYetInitializedException e) {
-                        // do nothing
-                    } catch (Exception e) {
-                        logger.error("{} openOrdersMovingSubscription error", getName(), e);
-                    }
-                }, throwable -> logger.error("{} openOrdersMovingSubscription error", getName(), throwable));
-    }
-
-    protected void checkOpenOrdersForMoving(Instant startTime) {
+    public void checkOpenOrdersForMoving(Instant startTime) {
 //        debugLog.info(getName() + ":checkOpenOrdersForMoving");
         if (!isMovingStopped()) {
             iterateOpenOrdersMoveAsync(startTime);

@@ -27,4 +27,9 @@ public class SpringAsyncConfig {
         return Executors.newSingleThreadExecutor(new NamedThreadFactory("portions-stop-check"));
     }
 
+    @Bean(name = "movingExecutor")
+    public Executor movingExecutor() {
+        return Executors.newFixedThreadPool(2, new NamedThreadFactory("moving-executor"));
+    }
+
 }
