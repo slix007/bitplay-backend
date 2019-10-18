@@ -60,9 +60,9 @@ public class CumParams extends AbstractParams {
     private BigDecimal slipBr;
 
     private Integer diffFactBrFailsCount;
-    private Integer vert1 = 0;
+    private Integer vert1;
     private Integer completedVert1;
-    private Integer vert2 = 0;
+    private Integer vert2;
     private Integer completedVert2;
     private Integer unstartedVert1;
     private Integer unstartedVert2;
@@ -173,5 +173,13 @@ public class CumParams extends AbstractParams {
         this.obRecheckUnstartedVert2 = update.obRecheckUnstartedVert2 != null ? update.obRecheckUnstartedVert2 : this.obRecheckUnstartedVert2;
         this.abortedSignalUnstartedVert1 = update.abortedSignalUnstartedVert1 != null ? update.abortedSignalUnstartedVert1 : this.abortedSignalUnstartedVert1;
         this.abortedSignalUnstartedVert2 = update.abortedSignalUnstartedVert2 != null ? update.abortedSignalUnstartedVert2 : this.abortedSignalUnstartedVert2;
+    }
+
+    public Integer getVert1Val() {
+        return vert1 - unstartedVert1 - abortedSignalUnstartedVert1; // obRecheck don't start a vert
+    }
+
+    public Integer getVert2Val() {
+        return vert2 - unstartedVert2 - abortedSignalUnstartedVert2; // obRecheck don't start a vert
     }
 }

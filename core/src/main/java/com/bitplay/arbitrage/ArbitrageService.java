@@ -1357,8 +1357,8 @@ public class ArbitrageService {
         }
 
         final CumParams cumParams = cumService.getTotalCommon();
-        final Integer counter1 = cumParams.getVert1();
-        final Integer counter2 = cumParams.getVert2();
+        final Integer counter1 = cumParams.getVert1Val();
+        final Integer counter2 = cumParams.getVert2Val();
         final Integer cc1 = cumParams.getCompletedVert1();
         final Integer cc2 = cumParams.getCompletedVert2();
 
@@ -2101,7 +2101,7 @@ public class ArbitrageService {
 
     public int getCounter() {
         final CumParams totalCommon = cumService.getTotalCommon();
-        return totalCommon.getVert1() + totalCommon.getVert2();
+        return totalCommon.getVert1Val() + totalCommon.getVert2Val();
     }
 
     public String getSumBalString() {
