@@ -1074,8 +1074,8 @@ public class OkCoinService extends MarketServicePreliq {
         });
     }
 
-    public void updateFullDeferredAmount(BigDecimal fullAmount) {
-        placeOrderArgsRef.getAndUpdate(currArgs -> {
+    public PlaceOrderArgs updateFullDeferredAmount(BigDecimal fullAmount) {
+        return placeOrderArgsRef.updateAndGet(currArgs -> {
             if (currArgs == null) {
                 return null;
             }

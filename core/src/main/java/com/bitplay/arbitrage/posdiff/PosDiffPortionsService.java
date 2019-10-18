@@ -78,7 +78,7 @@ public class PosDiffPortionsService {
             return;
         }
 
-        final PlaceOrderArgs currArgs = okCoinService.getPlaceOrderArgsRef().get();
+        PlaceOrderArgs currArgs = okCoinService.getPlaceOrderArgsRef().get();
         if (currArgs == null) {
             // no deferred order
             return;
@@ -93,7 +93,10 @@ public class PosDiffPortionsService {
         final boolean isBtmReady = bitmexService.getMarketState() == MarketState.READY && !bitmexService.hasOpenOrders();
         if (isBtmReady) {
             btmFilledUsd = getUsdBlockByBtmFilled(currArgs, logString);
-            resetFullAmount(currArgs, btmFilledUsd);
+            currArgs = resetFullAmount(currArgs, btmFilledUsd);
+            if (currArgs == null) { // how we end then?
+                return;
+            }
         } else {
             btmFilledUsd = getBlockByNtUsd(currArgs, conBoPortions, logString);
         }
@@ -120,30 +123,6 @@ public class PosDiffPortionsService {
         }
 
         placeDeferredPortion(placeArgs, block);
-    }
-
-    private void resetFullAmount(PlaceOrderArgs currArgs, BigDecimal btmFilledUsd) {
-        final Long tradeId = currArgs.getTradeId();
-        final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
-        final boolean isEth = bitmexService.getContractType().isEth();
-        final BigDecimal btmFilledCont = PlacingBlocks.toBitmexContPure(btmFilledUsd, isEth, bitmexService.getCm());
-        // when btmFilled < fullAmount
-        if (btmFilledCont.compareTo(dealPrices.getBPriceFact().getFullAmount()) < 0) {
-            final BigDecimal okexNewFullAmount = PlacingBlocks.toOkexCont(btmFilledUsd, isEth);
-            if (currArgs.getFullAmount().compareTo(okexNewFullAmount) != 0) {
-                okCoinService.updateFullDeferredAmount(okexNewFullAmount);
-            }
-            dealPricesRepositoryService.updateFactPriceFullAmount(tradeId, btmFilledCont, okexNewFullAmount);
-            // print delta logs
-            final DealPrices updatedDp = dealPricesRepositoryService.findByTradeId(tradeId);
-            tradeService.info(tradeId, currArgs.getCounterName(),
-                    String.format("PARTIAL FILL plan: b_block=%s, o_block=%s, final_blocks: b_block=%s, o_block=%s",
-                            updatedDp.getBBlock(),
-                            updatedDp.getOBlock(),
-                            updatedDp.getBPriceFact().getFullAmount(),
-                            updatedDp.getOPriceFact().getFullAmount()
-                    ));
-        }
     }
 
     private BigDecimal useMaxBlockUsd(BigDecimal filledUsdBlock, BigDecimal maxBlockUsd) {
@@ -254,4 +233,29 @@ public class PosDiffPortionsService {
         okCoinService.placeOrder(args);
     }
 
+    private PlaceOrderArgs resetFullAmount(PlaceOrderArgs currArgs, BigDecimal btmFilledUsd) {
+        PlaceOrderArgs updatedArgs = currArgs;
+        final Long tradeId = currArgs.getTradeId();
+        final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
+        final boolean isEth = bitmexService.getContractType().isEth();
+        final BigDecimal btmFilledCont = PlacingBlocks.toBitmexContPure(btmFilledUsd, isEth, bitmexService.getCm());
+        // when btmFilled < fullAmount
+        if (btmFilledCont.compareTo(dealPrices.getBPriceFact().getFullAmount()) < 0) {
+            final BigDecimal okexNewFullAmount = PlacingBlocks.toOkexCont(btmFilledUsd, isEth);
+            if (currArgs.getFullAmount().compareTo(okexNewFullAmount) != 0) {
+                updatedArgs = okCoinService.updateFullDeferredAmount(okexNewFullAmount);
+            }
+            dealPricesRepositoryService.updateFactPriceFullAmount(tradeId, btmFilledCont, okexNewFullAmount);
+            // print delta logs
+            final DealPrices updatedDp = dealPricesRepositoryService.findByTradeId(tradeId);
+            tradeService.info(tradeId, currArgs.getCounterName(),
+                    String.format("PARTIAL FILL plan: b_block=%s, o_block=%s, final_blocks: b_block=%s, o_block=%s",
+                            updatedDp.getBBlock(),
+                            updatedDp.getOBlock(),
+                            updatedDp.getBPriceFact().getFullAmount(),
+                            updatedDp.getOPriceFact().getFullAmount()
+                    ));
+        }
+        return updatedArgs;
+    }
 }
