@@ -1074,6 +1074,15 @@ public class OkCoinService extends MarketServicePreliq {
         });
     }
 
+    public void updateFullDeferredAmount(BigDecimal fullAmount) {
+        placeOrderArgsRef.getAndUpdate(currArgs -> {
+            if (currArgs == null) {
+                return null;
+            }
+            return currArgs.cloneWithFullAmount(fullAmount);
+        });
+    }
+
     /**
      * It is not thread safe. It uses <b>openOrdersLock</b>. Don't call it inside <b>arbStateLock</b>. That's why it is async.
      *

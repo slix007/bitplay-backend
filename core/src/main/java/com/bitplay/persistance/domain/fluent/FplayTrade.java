@@ -1,13 +1,9 @@
 package com.bitplay.persistance.domain.fluent;
 
-import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,6 +12,10 @@ import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 12/20/17.

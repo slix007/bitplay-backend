@@ -9,7 +9,6 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.polonex.PoloniexService;
-import java.math.BigDecimal;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfo;
@@ -18,6 +17,8 @@ import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.poloniex.dto.trade.PoloniexTradeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
 
 /**
  * Created by Sergey Shurmin on 3/25/17.
@@ -79,8 +80,15 @@ public class BitplayUIServicePoloniex extends AbstractBitplayUIService<PoloniexS
                 return new TradeResponseJson("Wrong orderType", "Wrong orderType");
             }
             Long tradeId = poloniexService.getArbitrageService().getLastInProgressTradeId();
-            tradeResponse = poloniexService.placeOrder(new PlaceOrderArgs(orderType, amount, null,
-                    null, signalType, 1, tradeId, signalType.getCounterName(), null));
+            final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
+                    .orderType(orderType)
+                    .amount(amount)
+                    .signalType(signalType)
+                    .attempt(1)
+                    .tradeId(tradeId)
+                    .counterName(signalType.getCounterName())
+                    .build();
+            tradeResponse = poloniexService.placeOrder(placeOrderArgs);
         }
 
         final PoloniexTradeResponse poloniexTradeResponse = tradeResponse.getSpecificResponse() != null

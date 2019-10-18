@@ -30,6 +30,7 @@ import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.CountedWithExtra;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
@@ -40,6 +41,7 @@ import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -998,8 +1000,16 @@ public class PosDiffService {
                 prevCounterName = counterName;
                 prevCorrObj = corrObj;
 
-                PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, correctAmount, null, placingType, signalType,
-                        1, tradeId, counterName, null, contractType);
+                PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
+                        .orderType(orderType)
+                        .amount(correctAmount)
+                        .placingType(placingType)
+                        .signalType(signalType)
+                        .attempt(1)
+                        .tradeId(tradeId)
+                        .counterName(counterName)
+                        .contractType(contractType)
+                        .build();
                 marketService.getTradeLogger().info(message + placeOrderArgs.toString());
                 final TradeResponse tradeResponse = marketService.placeOrder(placeOrderArgs);
                 if (signalType.isMainSet() && tradeResponse.errorInsufficientFunds()) {
@@ -1013,10 +1023,18 @@ public class PosDiffService {
                     switchMarkets(corrObj, dc, cm, isEth, corrParams, theOtherService);
                     defineCorrectSignalType(corrObj, bP, oPL, oPS);
                     PlacingType pl = placingType == PlacingType.TAKER_FOK ? PlacingType.TAKER : placingType;
-                    PlaceOrderArgs theOhterMarketArgs = new PlaceOrderArgs(corrObj.orderType, corrObj.correctAmount, null,
-                            pl, corrObj.signalType, 1, tradeId, counterName, null, corrObj.contractType);
-                    corrObj.marketService.getTradeLogger().info(message + theOhterMarketArgs.toString());
-                    final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOhterMarketArgs);
+                    PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
+                            .orderType(corrObj.orderType)
+                            .amount(corrObj.correctAmount)
+                            .placingType(pl)
+                            .signalType(corrObj.signalType)
+                            .attempt(1)
+                            .tradeId(tradeId)
+                            .counterName(counterName)
+                            .contractType(corrObj.contractType)
+                            .build();
+                    corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
+                    final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
                     if (theOtherResp.errorInsufficientFunds()) {
                         final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", baseSignalType);
                         warningLogger.warn(msg);

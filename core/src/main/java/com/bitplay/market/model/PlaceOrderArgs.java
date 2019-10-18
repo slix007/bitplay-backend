@@ -5,8 +5,7 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
-import java.math.BigDecimal;
-import java.time.Instant;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,11 +15,14 @@ import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.springframework.data.annotation.Transient;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+
 /**
  * Created by Sergey Shurmin on 11/19/17.
  */
-@AllArgsConstructor
-@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @Getter
 @ToString
@@ -30,6 +32,7 @@ public class PlaceOrderArgs {
     public static final int NO_REPEATS_ATTEMPT = -1;
 
     private Order.OrderType orderType;
+    private BigDecimal fullAmount; // need for portions
     private BigDecimal amount;
     private BestQuotes bestQuotes;
     private PlacingType placingType;
@@ -118,25 +121,42 @@ public class PlaceOrderArgs {
     }
 
     public static PlaceOrderArgs nextPlacingArgs(PlaceOrderArgs curr) {
-        return new PlaceOrderArgs(curr.orderType, curr.amount, curr.bestQuotes, curr.placingType, curr.signalType,
+        return new PlaceOrderArgs(curr.orderType, curr.fullAmount, curr.amount, curr.bestQuotes, curr.placingType, curr.signalType,
                 curr.attempt + 1, curr.tradeId, curr.counterName, curr.lastObTime, curr.contractType, curr.amountType, curr.preliqQueuedTime,
                 curr.preliqMarketName, curr.pricePlanOnStart, curr.preliqOrder, curr.portionsQty, curr.portionsQtyMax, curr.btmFokArgs);
     }
 
     public PlaceOrderArgs cloneWithPlacingType(PlacingType placingType) {
-        return new PlaceOrderArgs(this.orderType, this.amount, this.bestQuotes, placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
+        return new PlaceOrderArgs(this.orderType, this.fullAmount, this.amount, this.bestQuotes, placingType, this.signalType, this.attempt, this.tradeId,
+                this.counterName,
                 this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime, this.preliqMarketName,
                 this.pricePlanOnStart, this.preliqOrder, this.portionsQty, this.portionsQtyMax, this.btmFokArgs);
     }
 
     public PlaceOrderArgs cloneWithAmount(BigDecimal amount) {
-        return new PlaceOrderArgs(this.orderType, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
+        return new PlaceOrderArgs(this.orderType, amount, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId,
+                this.counterName,
+                this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
+                this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, this.portionsQty, this.portionsQtyMax, this.btmFokArgs);
+    }
+
+    public PlaceOrderArgs cloneWithFullAmount(BigDecimal newFullAmount) {
+        final BigDecimal amount;
+        if (this.fullAmount.compareTo(newFullAmount) == 0) {
+            amount = this.amount;
+        } else {
+            final BigDecimal filled = this.fullAmount.subtract(this.amount);
+            amount = newFullAmount.subtract(filled);
+        }
+        return new PlaceOrderArgs(this.orderType, newFullAmount, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId,
+                this.counterName,
                 this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
                 this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, this.portionsQty, this.portionsQtyMax, this.btmFokArgs);
     }
 
     public PlaceOrderArgs cloneWithAmountAndPortionsQty(BigDecimal amount, Integer portionsQty) {
-        return new PlaceOrderArgs(this.orderType, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
+        return new PlaceOrderArgs(this.orderType, this.fullAmount, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId,
+                this.counterName,
                 this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
                 this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, portionsQty, this.portionsQtyMax, this.btmFokArgs);
     }
@@ -144,7 +164,8 @@ public class PlaceOrderArgs {
     public PlaceOrderArgs cloneAsPortion(BigDecimal amount) {
         int portionsQty = this.portionsQty != null ? this.portionsQty + 1 : 1;
 
-        return new PlaceOrderArgs(this.orderType, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId, this.counterName,
+        return new PlaceOrderArgs(this.orderType, this.fullAmount, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId,
+                this.counterName,
                 this.lastObTime, this.contractType, this.amountType, this.preliqQueuedTime,
                 this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, portionsQty, null, this.btmFokArgs);
     }

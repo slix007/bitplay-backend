@@ -85,9 +85,17 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
             return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
         }
         // Portions for mainSet orders
-        Long tradeId = bitmexService.getArbitrageService().getLastInProgressTradeId();
-        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, null, placingType,
-                signalType, 1, tradeId, signalType.getCounterName(), null);
+        final Long tradeId = bitmexService.getArbitrageService().getLastInProgressTradeId();
+        final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
+                .orderType(orderType)
+                .amount(amount)
+                .placingType(placingType)
+                .signalType(signalType)
+                .attempt(1)
+                .tradeId(tradeId)
+                .counterName(signalType.getCounterName())
+                .build();
+
         return bitmexService.placeWithPortions(placeOrderArgs, tradeRequestJson.getPortionsQty());
     }
 

@@ -84,6 +84,18 @@ public class DealPricesRepositoryService {
         }
     }
 
+    public void updateFactPriceFullAmount(Long tradeId, BigDecimal bitmex, BigDecimal okex) {
+        if (tradeId != null) {
+            final Query query = new Query(Criteria.where("_id").is(tradeId)); // it is tradeId
+            final Update update = new Update()
+                    .inc("version", 1)
+                    .set("updated", LocalDateTime.now())
+                    .set("bPriceFact.fullAmount", bitmex)
+                    .set("oPriceFact.fullAmount", okex);
+            mongoOperation.updateFirst(query, update, DealPrices.class);
+        }
+    }
+
     public DealPrices getFullDealPrices(Long tradeId) {
         final DealPrices dealPrices = findByTradeId(tradeId);
         updateFactPriceItemsFromDb(dealPrices);

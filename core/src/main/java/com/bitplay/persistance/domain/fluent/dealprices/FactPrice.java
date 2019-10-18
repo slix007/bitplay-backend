@@ -102,19 +102,15 @@ public class FactPrice {
 
         final StringBuilder sb = new StringBuilder();
         //  (192 * 11550,00 + 82 * 11541,02) / (82 + 192) = 11547,31
-        BigDecimal sumNumerator = notNullItems.stream()
-                .peek(avgPriceItem -> {
-                    if (avgPriceItem.getAmount().signum() != 0 || avgPriceItem.getPrice().signum() != 0) {
-                        sb.append(String.format("(%s*%s)", avgPriceItem.getAmount(), avgPriceItem.getPrice()));
-                    }
-                })
-                .reduce(BigDecimal.ZERO,
-                        (accumulated, item) -> accumulated.add(item.getAmount().multiply(item.getPrice())),
-                        BigDecimal::add);
-        BigDecimal sumDenominator = notNullItems.stream()
-                .reduce(BigDecimal.ZERO,
-                        (accumulated, item) -> accumulated.add(item.getAmount()),
-                        BigDecimal::add);
+        BigDecimal sumNumerator = BigDecimal.ZERO;
+        BigDecimal sumDenominator = BigDecimal.ZERO;
+        for (AvgPriceItem item : notNullItems) {
+            if (item.getAmount().signum() != 0 || item.getPrice().signum() != 0) {
+                sb.append(String.format("(%s*%s)", item.getAmount(), item.getPrice()));
+            }
+            sumNumerator = sumNumerator.add(item.getAmount().multiply(item.getPrice()));
+            sumDenominator = sumDenominator.add(item.getAmount());
+        }
 
         if (fullAmount.compareTo(sumDenominator) != 0) {
             if (withLogs) {

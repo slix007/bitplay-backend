@@ -62,10 +62,19 @@ public class SignalService {
 
         } else {
 
-            final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, o_block, bestQuotes,
-                    placingType,
-                    SignalType.AUTOMATIC, 1, tradeId, counterName, lastObTime);
-            placeOrderArgs.setPortionsQty(portionsQty);
+            final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
+                    .orderType(orderType)
+                    .fullAmount(o_block)
+                    .amount(o_block)
+                    .bestQuotes(bestQuotes)
+                    .placingType(placingType)
+                    .signalType(SignalType.AUTOMATIC)
+                    .attempt(1)
+                    .tradeId(tradeId)
+                    .counterName(counterName)
+                    .lastObTime(lastObTime)
+                    .portionsQty(portionsQty)
+                    .build();
 
             if (isConBo) {
                 okexService.deferredPlaceOrderOnSignal(placeOrderArgs);
@@ -105,9 +114,19 @@ public class SignalService {
                 }
 
                 final int attempt = isConBo ? PlaceOrderArgs.NO_REPEATS_ATTEMPT : 1;
-                final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, b_block, bestQuotes, placingType, SignalType.AUTOMATIC,
-                        attempt, tradeId, counterName, lastObTime);
-                placeOrderArgs.setBtmFokArgs(btmFokAutoArgs);
+                final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
+                        .orderType(orderType)
+                        .fullAmount(b_block)
+                        .amount(b_block)
+                        .bestQuotes(bestQuotes)
+                        .placingType(placingType)
+                        .signalType(SignalType.AUTOMATIC)
+                        .attempt(attempt)
+                        .tradeId(tradeId)
+                        .counterName(counterName)
+                        .lastObTime(lastObTime)
+                        .btmFokArgs(btmFokAutoArgs)
+                        .build();
 
                 tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
                 bitmexService.placeOrder(placeOrderArgs);

@@ -87,6 +87,11 @@ public class PlacingBlocks {
         return usd.divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
     }
 
+    public static BigDecimal getOkexBlockByBitmexBlock(BigDecimal b_block, boolean isEth, BigDecimal cm) {
+        final BigDecimal usd = bitmexContToUsd(b_block, isEth, cm);
+        return toOkexCont(usd, isEth);
+    }
+
     public static BigDecimal okexContToUsd(BigDecimal cont, boolean isEth) {
         if (isEth) {
             return cont.multiply(BigDecimal.valueOf(10));

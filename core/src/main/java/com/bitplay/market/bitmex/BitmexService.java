@@ -1,7 +1,5 @@
 package com.bitplay.market.bitmex;
 
-import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
-
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
@@ -9,8 +7,8 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.arbitrage.events.ObChangeEvent;
-import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.events.SigEvent;
+import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
@@ -53,6 +51,7 @@ import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
@@ -78,31 +77,6 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.swagger.client.model.Error;
 import io.swagger.client.model.Execution;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.net.SocketTimeoutException;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import javax.annotation.PreDestroy;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.bitmex.dto.BitmexXRateLimit;
@@ -131,6 +105,34 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import si.mazi.rescu.HttpStatusIOException;
 import si.mazi.rescu.InvocationResult;
+
+import javax.annotation.PreDestroy;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.net.SocketTimeoutException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
@@ -905,7 +907,7 @@ public class BitmexService extends MarketServicePreliq {
                         final LimitOrder lo = ord.getLimitOrder();
                         final BigDecimal amountLeft = lo.getTradableAmount().subtract(lo.getCumulativeAmount());
 
-                        final BigDecimal okexAm = ArbitrageService.getOkexBlockByBitmexBlock(cm, ord.isEth(), amountLeft);
+                        final BigDecimal okexAm = PlacingBlocks.getOkexBlockByBitmexBlock(amountLeft, ord.isEth(), cm);
                         if (okexAm.signum() > 0) {
                             ((OkCoinService) getArbitrageService().getSecondMarketService()).updateDeferredAmount(okexAm);
                             setOverloaded(null);
@@ -996,17 +998,19 @@ public class BitmexService extends MarketServicePreliq {
             logger.warn("Error on moving: " + msg);
         } else {
 
-            final TradeResponse tradeResponse = placeOrder(new PlaceOrderArgs(
-                    openOrder.getLimitOrder().getType(),
-                    amountLeft,
-                    openOrder.getBestQuotes(),
-                    placingType,
-                    openOrder.getSignalType(),
-                    1,
-                    openOrder.getTradeId(),
-                    openOrder.getCounterName(),
-                    null,
-                    cntType));
+            final TradeResponse tradeResponse = placeOrder(
+                    PlaceOrderArgs.builder()
+                            .orderType(openOrder.getLimitOrder().getType())
+                            .amount(amountLeft)
+                            .bestQuotes(openOrder.getBestQuotes())
+                            .placingType(placingType)
+                            .signalType(openOrder.getSignalType())
+                            .attempt(1)
+                            .tradeId(openOrder.getTradeId())
+                            .counterName(openOrder.getCounterName())
+                            .contractType(cntType)
+                            .build()
+            );
 
             // 2. new order
             final LimitOrder placedOrder = tradeResponse.getLimitOrder();
@@ -1712,8 +1716,18 @@ public class BitmexService extends MarketServicePreliq {
                 ? bitmexContractTypeXBTUSD
                 : bitmexContractType;
 
-        final PlaceOrderArgs placeOrderArgs = new PlaceOrderArgs(orderType, amount, bestQuotes, placingType, signalType, 1,
-                tradeId, counterName, null, contractType, amountType);
+        final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
+                .orderType(orderType)
+                .amount(amount)
+                .bestQuotes(bestQuotes)
+                .placingType(placingType)
+                .signalType(signalType)
+                .attempt(1)
+                .tradeId(tradeId)
+                .counterName(counterName)
+                .contractType(contractType)
+                .amountType(amountType)
+                .build();
 
         return placeOrder(placeOrderArgs);
     }
@@ -1751,6 +1765,8 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
+//         MANUAL TEST
+//        final BigDecimal amount = BigDecimal.valueOf(10);
         final BigDecimal amount = BitmexUtils.amountInContracts(placeOrderArgs, cm);
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
         PlacingType placingTypeInitial = placeOrderArgs.getPlacingType();

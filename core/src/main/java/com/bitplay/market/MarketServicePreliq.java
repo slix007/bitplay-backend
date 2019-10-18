@@ -279,28 +279,32 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
         final PlaceOrderArgs placeOrderArgs;
         if (getName().equals(BitmexService.NAME)) {
             final BigDecimal b_block = preliqBlocks.b_block;
-            placeOrderArgs = new PlaceOrderArgs(
-                    deltaName == DeltaName.B_DELTA ? OrderType.ASK : OrderType.BID,
-                    b_block,
-                    bestQuotes,
-                    PlacingType.TAKER,
-                    signalType,
-                    1,
-                    tradeId,
-                    counterName,
-                    null, null, null, Instant.now(), getName());
+            placeOrderArgs = PlaceOrderArgs.builder()
+                    .orderType(deltaName == DeltaName.B_DELTA ? OrderType.ASK : OrderType.BID)
+                    .amount(b_block)
+                    .bestQuotes(bestQuotes)
+                    .placingType(PlacingType.TAKER)
+                    .signalType(signalType)
+                    .attempt(1)
+                    .tradeId(tradeId)
+                    .counterName(counterName)
+                    .preliqQueuedTime(Instant.now())
+                    .preliqMarketName(getName())
+                    .build();
         } else { // okex
             final BigDecimal o_block = preliqBlocks.o_block;
-            placeOrderArgs = new PlaceOrderArgs(
-                    deltaName == DeltaName.B_DELTA ? OrderType.BID : OrderType.ASK,
-                    o_block,
-                    bestQuotes,
-                    PlacingType.TAKER,
-                    signalType,
-                    1,
-                    tradeId,
-                    counterName,
-                    null, null, null, Instant.now(), getName());
+            placeOrderArgs = PlaceOrderArgs.builder()
+                    .orderType(deltaName == DeltaName.B_DELTA ? OrderType.BID : OrderType.ASK)
+                    .amount(o_block)
+                    .bestQuotes(bestQuotes)
+                    .placingType(PlacingType.TAKER)
+                    .signalType(signalType)
+                    .attempt(1)
+                    .tradeId(tradeId)
+                    .counterName(counterName)
+                    .preliqQueuedTime(Instant.now())
+                    .preliqMarketName(getName())
+                    .build();
         }
         placeOrderArgs.setPreliqOrder(true);
 

@@ -9,7 +9,10 @@ import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.TradeService;
+import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ConBoPortions;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
@@ -49,6 +52,12 @@ public class PosDiffPortionsService {
     @Autowired
     private SlackNotifications slackNotifications;
 
+    @Autowired
+    private DealPricesRepositoryService dealPricesRepositoryService;
+
+    @Autowired
+    private TradeService tradeService;
+
     /**
      * Runs on each pos change (bitmex on posDiffService event; okex each 200ms).
      */
@@ -84,6 +93,7 @@ public class PosDiffPortionsService {
         final boolean isBtmReady = bitmexService.getMarketState() == MarketState.READY && !bitmexService.hasOpenOrders();
         if (isBtmReady) {
             btmFilledUsd = getUsdBlockByBtmFilled(currArgs, logString);
+            resetFullAmount(currArgs, btmFilledUsd);
         } else {
             btmFilledUsd = getBlockByNtUsd(currArgs, conBoPortions, logString);
         }
@@ -110,6 +120,30 @@ public class PosDiffPortionsService {
         }
 
         placeDeferredPortion(placeArgs, block);
+    }
+
+    private void resetFullAmount(PlaceOrderArgs currArgs, BigDecimal btmFilledUsd) {
+        final Long tradeId = currArgs.getTradeId();
+        final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
+        final boolean isEth = bitmexService.getContractType().isEth();
+        final BigDecimal btmFilledCont = PlacingBlocks.toBitmexContPure(btmFilledUsd, isEth, bitmexService.getCm());
+        // when btmFilled < fullAmount
+        if (btmFilledCont.compareTo(dealPrices.getBPriceFact().getFullAmount()) < 0) {
+            final BigDecimal okexNewFullAmount = PlacingBlocks.toOkexCont(btmFilledUsd, isEth);
+            if (currArgs.getFullAmount().compareTo(okexNewFullAmount) != 0) {
+                okCoinService.updateFullDeferredAmount(okexNewFullAmount);
+            }
+            dealPricesRepositoryService.updateFactPriceFullAmount(tradeId, btmFilledCont, okexNewFullAmount);
+            // print delta logs
+            final DealPrices updatedDp = dealPricesRepositoryService.findByTradeId(tradeId);
+            tradeService.info(tradeId, currArgs.getCounterName(),
+                    String.format("PARTIAL FILL plan: b_block=%s, o_block=%s, final_blocks: b_block=%s, o_block=%s",
+                            updatedDp.getBBlock(),
+                            updatedDp.getOBlock(),
+                            updatedDp.getBPriceFact().getFullAmount(),
+                            updatedDp.getOPriceFact().getFullAmount()
+                    ));
+        }
     }
 
     private BigDecimal useMaxBlockUsd(BigDecimal filledUsdBlock, BigDecimal maxBlockUsd) {
