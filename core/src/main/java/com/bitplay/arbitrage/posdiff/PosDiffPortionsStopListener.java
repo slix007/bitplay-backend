@@ -87,7 +87,7 @@ public class PosDiffPortionsStopListener {
             return; // wrong settings
         }
 
-        if (delta.compareTo(maxBorder.subtract(abortSignalPts)) < 0) {
+        if (delta.compareTo(maxBorder.add(abortSignalPts)) < 0) {
             incCounters(currArgs, deltaName);
             printSignalAborted(abortSignalPts, currArgs, maxBorder, deltaName, delta);
             bitmexService.cancelAllOrders(oo.get(0), "abort_signal", false, false);
@@ -113,7 +113,7 @@ public class PosDiffPortionsStopListener {
     private void printSignalAborted(BigDecimal abortSignalPts, PlaceOrderArgs currArgs, BigDecimal maxBorder, DeltaName deltaName, BigDecimal delta) {
         final String ds = deltaName.getDeltaSymbol();
         final String msg = String.format(
-                "#%s signal aborted %s_delta(%s)<%s_max_border(%s) - abort_signal_pts(%s)",
+                "#%s signal aborted %s_delta(%s)<%s_max_border(%s) + abort_signal_pts(%s)",
                 currArgs.getCounterNameWithPortion(),
                 ds, delta,
                 ds, maxBorder,
