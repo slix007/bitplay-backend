@@ -90,7 +90,7 @@ public class PosDiffPortionsStopListener {
         if (delta.compareTo(maxBorder.add(abortSignalPts)) < 0) {
             incCounters(currArgs, deltaName);
             printSignalAborted(abortSignalPts, currArgs, maxBorder, deltaName, delta);
-            bitmexService.cancelAllOrders(oo.get(0), "abort_signal", false, false);
+            bitmexService.cancelAllOrders(oo.get(0), "abort_signal! order", false, false);
         }
     }
 
