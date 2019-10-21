@@ -49,7 +49,7 @@ public class PosDiffPortionsStopListener {
     @Async("portionsStopCheckExecutor")
     @EventListener(ObChangeEvent.class)
     public void doCheckObChangeEvent() {
-        checkForStop();
+        bitmexService.addOoExecutorTask(this::checkForStop);
     }
 
     private void checkForStop() {

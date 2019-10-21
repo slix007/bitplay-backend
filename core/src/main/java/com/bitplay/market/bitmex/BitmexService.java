@@ -760,6 +760,10 @@ public class BitmexService extends MarketServicePreliq {
         return bitmexObTypeCurrent;
     }
 
+    public void addOoExecutorTask(Runnable task) {
+        ooSingleExecutor.submit(task);
+    }
+
     @Override
     protected void iterateOpenOrdersMoveAsync(Object... iterateArgs) { // if synchronized then the queue for moving could be long
         ooSingleExecutor.execute(() ->

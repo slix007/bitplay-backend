@@ -13,14 +13,15 @@ import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by Sergey Shurmin on 1/21/18.
@@ -129,7 +130,7 @@ public class SignalService {
                         .build();
 
                 tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-                bitmexService.placeOrder(placeOrderArgs);
+                bitmexService.addOoExecutorTask(() -> bitmexService.placeOrder(placeOrderArgs));
 
             } catch (Exception e) {
                 log.error("Error on placeOrderOnSignal", e);
