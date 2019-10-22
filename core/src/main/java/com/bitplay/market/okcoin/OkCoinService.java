@@ -702,8 +702,9 @@ public class OkCoinService extends MarketServicePreliq {
 
     @SuppressWarnings("Duplicates")
     private Disposable startAccountInfoSubscription() {
+        final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
         return exchange.getStreamingPrivateDataService()
-                .getAccountInfoObservable(okexContractType.getCurrencyPair())
+                .getAccountInfoObservable(okexContractType.getCurrencyPair(), instrumentDto)
                 .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
