@@ -11,6 +11,7 @@ import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
@@ -88,14 +89,19 @@ public class PosDiffPortionsStopListener {
         }
 
         if (delta.compareTo(maxBorder.add(abortSignalPts)) < 0) {
-            incCounters(currArgs, deltaName);
-            printSignalAborted(abortSignalPts, currArgs, maxBorder, deltaName, delta);
-            bitmexService.cancelAllOrders(oo.get(0), "abort_signal! order", false, false);
+            final BigDecimal btmFilled = bitmexService.getBtmFilled(currArgs);
+            final FactPrice bPriceFact = dealPricesRepositoryService.getFullDealPrices(currArgs.getTradeId()).getBPriceFact();
+            if (btmFilled.compareTo(bPriceFact.getFullAmount()) < 0) {
+                incCounters(currArgs, deltaName, btmFilled);
+                printSignalAborted(abortSignalPts, currArgs, maxBorder, deltaName, delta);
+                bitmexService.cancelAllOrders(oo.get(0), "abort_signal! order", false, false);
+            } else {
+                // fully filled. Do nothing.
+            }
         }
     }
 
-    private void incCounters(PlaceOrderArgs currArgs, DeltaName deltaName) {
-        final BigDecimal btmFilled = bitmexService.getBtmFilled(currArgs);
+    private void incCounters(PlaceOrderArgs currArgs, DeltaName deltaName, BigDecimal btmFilled) {
         if (btmFilled.signum() == 0) {
             final Long tradeId = currArgs.getTradeId();
             final TradingMode tradingMode = dealPricesRepositoryService.getTradingMode(tradeId);

@@ -3145,11 +3145,8 @@ public class BitmexService extends MarketServicePreliq {
         final FactPrice bPriceFact = dealPrices.getBPriceFact();
         BigDecimal filled = bPriceFact.getFilled();
         if (filled.compareTo(bPriceFact.getFullAmount()) < 0) {
-            final String msg = String.format("#%s tradeId=%s "
-                            + "WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
-                    counterForLogs,
-                    tradeId,
-                    filled, bPriceFact.getFullAmount()
+            final String msg = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
+                    counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
             );
             logger.info(msg);
             arbitrageService.getFirstMarketService().getTradeLogger().info(msg);
@@ -3158,12 +3155,17 @@ public class BitmexService extends MarketServicePreliq {
             updateAvgPrice(dealPrices, true);
 
             filled = bPriceFact.getFilled();
-            final String msg1 = String.format("#%s tradeId=%s "
-                            + "WAITING_ARB: bitmex is not fully filled. %s of %s. Updated.",
-                    counterForLogs,
-                    tradeId,
-                    filled, bPriceFact.getFullAmount()
-            );
+            final String msg1;
+            if (filled.compareTo(bPriceFact.getFullAmount()) < 0) {
+                msg1 = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updated.",
+                        counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
+                );
+            } else {
+                msg1 = String.format("#%s tradeId=%s WAITING_ARB: bitmex is filled FULLY. %s of %s. Updated.",
+                        counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
+                );
+
+            }
             logger.info(msg1);
             arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
             arbitrageService.getSecondMarketService().getTradeLogger().info(msg1);

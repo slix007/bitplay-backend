@@ -83,12 +83,13 @@ public class SignalService {
                 executorService.submit(() -> {
                     try {
                         tradeService.setOkexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-                        TradeResponse tradeResponse = okexService.placeOrder(placeOrderArgs);
-
-                        if (tradeResponse.getErrorCode() != null) {
-                            okexService.getTradeLogger().warn("WARNING: " + tradeResponse.getErrorCode());
-                            log.warn("WARNING: " + tradeResponse.getErrorCode());
-                        }
+                        okexService.addOoExecutorTask(() -> {
+                            TradeResponse tradeResponse = okexService.placeOrder(placeOrderArgs);
+                            if (tradeResponse.getErrorCode() != null) {
+                                okexService.getTradeLogger().warn("WARNING: " + tradeResponse.getErrorCode());
+                                log.warn("WARNING: " + tradeResponse.getErrorCode());
+                            }
+                        });
 
                     } catch (Exception e) {
                         log.error("Error on placeOrderOnSignal", e);
