@@ -322,7 +322,7 @@ public class ArbitrageService {
                     arbState = ArbState.READY;
 
                     final SignalType signalTypeSnap = SignalType.valueOf(signalType.name());
-                    final String counterNameSnap = String.valueOf(firstMarketService.getCounterName(signalTypeSnap));
+                    final String counterNameSnap = fplayTrade.getCounterName();
                     final long tradeIdSnap = tradeId;
 
                     if (signalTimeSec > 0) {
