@@ -50,10 +50,18 @@ public class PosDiffPortionsStopListener {
     @Async("portionsStopCheckExecutor")
     @EventListener(ObChangeEvent.class)
     public void doCheckObChangeEvent() {
-        bitmexService.addOoExecutorTask(this::checkForStop);
+        bitmexService.addOoExecutorTask(this::checkForStopTask);
     }
 
-    private void checkForStop() {
+    private void checkForStopTask() {
+        try {
+            checkForStop();
+        } catch (Exception e) {
+            log.error("portionsStopError", e);
+        }
+    }
+
+    private void checkForStop() throws Exception {
         // 1. check settings enabled
         final Settings settings = settingsRepositoryService.getSettings();
         if (settings.getArbScheme() != ArbScheme.CON_B_O_PORTIONS) {
@@ -106,11 +114,14 @@ public class PosDiffPortionsStopListener {
             final Long tradeId = currArgs.getTradeId();
             final TradingMode tradingMode = dealPricesRepositoryService.getTradingMode(tradeId);
             if (tradingMode != null) {
-                dealPricesRepositoryService.setAbortedSignal(tradeId);
-                if (deltaName == DeltaName.B_DELTA) {
-                    cumPersistenceService.incAbortedSignalUnstartedVert1(tradingMode);
-                } else {
-                    cumPersistenceService.incAbortedSignalUnstartedVert2(tradingMode);
+                final boolean abortedSignal = dealPricesRepositoryService.isAbortedSignal(tradeId);
+                if (!abortedSignal) {
+                    dealPricesRepositoryService.setAbortedSignal(tradeId);
+                    if (deltaName == DeltaName.B_DELTA) {
+                        cumPersistenceService.incAbortedSignalUnstartedVert1(tradingMode);
+                    } else {
+                        cumPersistenceService.incAbortedSignalUnstartedVert2(tradingMode);
+                    }
                 }
             }
         }
