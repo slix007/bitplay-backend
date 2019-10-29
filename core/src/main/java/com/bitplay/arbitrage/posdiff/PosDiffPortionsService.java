@@ -138,7 +138,7 @@ public class PosDiffPortionsService {
     }
 
     private BigDecimal getUsdBlockByBtmFilled(PlaceOrderArgs currArgs, StringBuilder logString) {
-        final BigDecimal btmFilled = bitmexService.getBtmFilled(currArgs);
+        final BigDecimal btmFilled = bitmexService.getBtmFilled(currArgs, true);
         final BigDecimal cm = bitmexService.getCm();
         final BigDecimal filledUsd = PlacingBlocks.bitmexContToUsd(btmFilled, bitmexService.getContractType().isEth(), cm);
         logString.append("Bitmex READY.");

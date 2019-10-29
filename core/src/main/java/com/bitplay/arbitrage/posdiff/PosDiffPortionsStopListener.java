@@ -97,7 +97,7 @@ public class PosDiffPortionsStopListener {
         }
 
         if (delta.compareTo(maxBorder.add(abortSignalPts)) < 0) {
-            final BigDecimal btmFilled = bitmexService.getBtmFilled(currArgs);
+            final BigDecimal btmFilled = bitmexService.getBtmFilled(currArgs, false);
             final FactPrice bPriceFact = dealPricesRepositoryService.getFullDealPrices(currArgs.getTradeId()).getBPriceFact();
             if (btmFilled.compareTo(bPriceFact.getFullAmount()) < 0) {
                 incCounters(currArgs, deltaName, btmFilled);

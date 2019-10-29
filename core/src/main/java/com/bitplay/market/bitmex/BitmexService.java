@@ -3138,7 +3138,7 @@ public class BitmexService extends MarketServicePreliq {
         return metricsDictionary;
     }
 
-    public BigDecimal getBtmFilled(PlaceOrderArgs currArgs) {
+    public BigDecimal getBtmFilled(PlaceOrderArgs currArgs, boolean withLogs) {
         final String counterForLogs = currArgs.getCounterNameWithPortion();
         final Long tradeId = currArgs.getTradeId();
         final DealPrices dealPrices = arbitrageService.getDealPrices(tradeId);
@@ -3149,9 +3149,11 @@ public class BitmexService extends MarketServicePreliq {
                     counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
             );
             logger.info(msg);
-            arbitrageService.getFirstMarketService().getTradeLogger().info(msg);
-            arbitrageService.getSecondMarketService().getTradeLogger().info(msg);
-            warningLogger.info(msg);
+            if (withLogs) {
+                arbitrageService.getFirstMarketService().getTradeLogger().info(msg);
+                arbitrageService.getSecondMarketService().getTradeLogger().info(msg);
+                warningLogger.info(msg);
+            }
             updateAvgPrice(dealPrices, true);
 
             filled = bPriceFact.getFilled();
@@ -3167,9 +3169,11 @@ public class BitmexService extends MarketServicePreliq {
 
             }
             logger.info(msg1);
-            arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
-            arbitrageService.getSecondMarketService().getTradeLogger().info(msg1);
-            warningLogger.info(msg1);
+            if (withLogs) {
+                arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
+                arbitrageService.getSecondMarketService().getTradeLogger().info(msg1);
+                warningLogger.info(msg1);
+            }
         }
         return filled;
     }
