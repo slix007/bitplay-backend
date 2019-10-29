@@ -3,7 +3,6 @@ package com.bitplay.market;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.market.bitmex.BitmexService;
@@ -355,7 +354,7 @@ public abstract class MarketService extends MarketServiceWithState {
             return;
         }
 
-        final String counterForLogs = getCounterName();
+        final String counterForLogs = getCounterName(placeOrderArgs.getTradeId());
         final String changeStat = String.format("#%s change status from %s to %s",
                 counterForLogs,
                 currMarketState,
@@ -460,24 +459,32 @@ public abstract class MarketService extends MarketServiceWithState {
         return getCounterName(signalType, false);
     }
 
+    public String getCounterName(Long tradeId) {
+        final SignalType signalType = getArbitrageService().getSignalType();
+        return getCounterName(signalType, false, tradeId);
+    }
+
     private String getCounterNameNext() {
         final SignalType signalType = getArbitrageService().getSignalType();
         return getCounterName(signalType, true);
     }
 
-    public String getCounterName(SignalType signalType) {
-        return getCounterName(signalType, false);
+    public String getCounterName(SignalType signalType, Long tradeId) {
+        return getCounterName(signalType, false, tradeId);
     }
 
     public String getCounterNameNext(SignalType signalType) {
         return getCounterName(signalType, true);
     }
 
-    private String getCounterName(SignalType signalType, boolean isNext) {
+    private String getCounterName(SignalType signalType, boolean isNext, Long... tradeId) {
         String value;
         if (signalType == SignalType.AUTOMATIC) {
-            final int counter = getArbitrageService().getCounter();
-            value = String.valueOf(isNext ? counter + 1 : counter);
+            if (isNext) {
+                value = String.valueOf(getArbitrageService().getCounter() + 1);
+            } else {
+                value = getArbitrageService().getCounter(tradeId);
+            }
         } else if (signalType.isPreliq()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();
             final Integer counter = corrParams.getPreliq().getTotalCount();
@@ -858,7 +865,7 @@ public abstract class MarketService extends MarketServiceWithState {
         }
 
         final String orderId = fplayOrder.getOrderId();
-        final String counterForLogs = fplayOrder.getTradeId() + ":" + getCounterName();
+        final String counterForLogs = fplayOrder.getTradeId() + ":" + getCounterName(fplayOrder.getTradeId());
         final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterForLogs, 1, "updateOOStatus:", getLogger());
 
         if (!orderInfoAttempts.isPresent()) {

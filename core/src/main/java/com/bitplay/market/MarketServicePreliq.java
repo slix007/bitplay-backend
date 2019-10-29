@@ -274,7 +274,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
 
         final Long tradeId = getArbitrageService().getLastTradeId();
 
-        final String counterName = getCounterName(signalType);
+        final String counterName = getCounterName(signalType, tradeId);
 
         final PlaceOrderArgs placeOrderArgs;
         if (getName().equals(BitmexService.NAME)) {

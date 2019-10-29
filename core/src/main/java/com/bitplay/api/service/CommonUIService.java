@@ -489,7 +489,7 @@ public class CommonUIService {
         OkCoinService okex = (OkCoinService) arbitrageService.getSecondMarketService();
         okex.resetWaitingArb();
         okex.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, okex.tryFindLastTradeId()));
-        arbitrageService.resetArbState("", "'UI'");
+        arbitrageService.resetArbState("'UI'");
         log.info("Free markets states from UI");
         arbitrageService.printToCurrentDeltaLog("Free markets states from UI");
         return new MarketFlagsJson(

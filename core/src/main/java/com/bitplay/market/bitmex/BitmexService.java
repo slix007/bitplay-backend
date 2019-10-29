@@ -785,8 +785,7 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         if (movingDelay) {
-            final String counterForLogs = getCounterName();
-            final String logString = String.format("#%s Too often moving requests. movingDelay=%s", counterForLogs, movingDelay);
+            final String logString = String.format("Too often moving requests. movingDelay=%s", movingDelay);
             logger.error(logString);
             return;
         }
@@ -1040,7 +1039,7 @@ public class BitmexService extends MarketServicePreliq {
     private void cancelAndPlaceOnSo(FplayOrder openOrder, PlacingType btmPlacingTypeToChange) {
         FplayOrder placedFplayOrder = null;
         // 1. cancel current
-        final String counterForLogs = getCounterName();
+        final String counterForLogs = getCounterName(openOrder.getTradeId());
         LimitOrder cancelledOrder = null;
         if (getMarketState() != MarketState.SYSTEM_OVERLOADED) {
             final String orderId = openOrder.getOrderId();
@@ -1540,9 +1539,8 @@ public class BitmexService extends MarketServicePreliq {
             this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
             logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
             if (this.bestBid.compareTo(this.bestAsk) >= 0) {
-                final String counterForLogs = getCounterName();
-                String warn = String.format("#%s bid(%s) >= ask(%s). LastRun of 'checkOrderBooks' is %s. ",
-                        counterForLogs, this.bestBid, this.bestAsk, extrastopService.getLastRun());
+                String warn = String.format("bid(%s) >= ask(%s). LastRun of 'checkOrderBooks' is %s. ",
+                        this.bestBid, this.bestAsk, extrastopService.getLastRun());
                 if (obWrongCount.incrementAndGet() < 100) {
                     logger.warn(warn);
                     warningLogger.warn(warn);
@@ -1573,9 +1571,8 @@ public class BitmexService extends MarketServicePreliq {
             this.bestBidXBTUSD = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
             logger.debug("XBTUSD ask: {}, bid: {}", this.bestAskXBTUSD, this.bestBidXBTUSD);
             if (this.bestBidXBTUSD.compareTo(this.bestAskXBTUSD) >= 0) {
-                final String counterForLogs = getCounterName();
-                String warn = String.format("#%s bid(%s) >= ask(%s). LastRun of 'checkOrderBooks' is %s. ",
-                        counterForLogs, this.bestBidXBTUSD, this.bestAskXBTUSD, extrastopService.getLastRun());
+                String warn = String.format("bid(%s) >= ask(%s). LastRun of 'checkOrderBooks' is %s. ",
+                        this.bestBidXBTUSD, this.bestAskXBTUSD, extrastopService.getLastRun());
                 if (obWrongCountXBTUSD.incrementAndGet() < 100) {
                     logger.warn(warn);
                     warningLogger.warn(warn);
@@ -1715,7 +1712,7 @@ public class BitmexService extends MarketServicePreliq {
     public TradeResponse singleOrder(Order.OrderType orderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType,
             PlacingType placingType, String toolName, AmountType amountType) {
         final Long tradeId = arbitrageService.getLastInProgressTradeId();
-        final String counterName = getCounterName(signalType);
+        final String counterName = getCounterName(signalType, tradeId);
         final BitmexContractType contractType = (bitmexContractType.isEth() && toolName != null && toolName.equals("XBTUSD"))
                 ? bitmexContractTypeXBTUSD
                 : bitmexContractType;
@@ -1989,7 +1986,7 @@ public class BitmexService extends MarketServicePreliq {
                     final String httpBody = e.getHttpBody();
                     tradeResponse.setErrorCode(httpBody);
 
-                    HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "PlaceOrderError", attemptCount).invoke();
+                    HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(e, "PlaceOrderError", attemptCount, counterName).invoke();
 
                     if (overloadByXRateLimit(true)) {
                         nextMarketState = MarketState.SYSTEM_OVERLOADED;
@@ -2264,7 +2261,8 @@ public class BitmexService extends MarketServicePreliq {
             HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(
                     e,
                     String.format("MoveOrderError:ordId=%s", limitOrder.getId()),
-                    movingErrorsOverloaded.get()
+                    movingErrorsOverloaded.get(),
+                    counterWithPortion
             ).invoke();
             moveResponse = handler.getMoveResponse();
             // double check  "Invalid ordStatus"
@@ -2915,11 +2913,13 @@ public class BitmexService extends MarketServicePreliq {
         private HttpStatusIOException e;
         private String operationName;
         private int attemptCount;
+        private String counterName;
 
-        public HttpStatusIOExceptionHandler(HttpStatusIOException e, String operationName, int attemptCount) {
+        public HttpStatusIOExceptionHandler(HttpStatusIOException e, String operationName, int attemptCount, String counterName) {
             this.e = e;
             this.operationName = operationName;
             this.attemptCount = attemptCount;
+            this.counterName = counterName;
         }
 
         /**
@@ -2944,9 +2944,8 @@ public class BitmexService extends MarketServicePreliq {
                     marketResponseMessage = new ObjectMapper().readValue(httpBody, Error.class).getError().getMessage();
                 }
 
-                final String counterForLogs = getCounterName();
-                String fullMessage = String.format("#%s/%s %s: %s %s", counterForLogs, attemptCount, operationName, httpBody, rateLimitStr);
-                String shortMessage = String.format("#%s/%s %s: %s %s", counterForLogs, attemptCount, operationName, marketResponseMessage, rateLimitStr);
+                String fullMessage = String.format("#%s/%s %s: %s %s", counterName, attemptCount, operationName, httpBody, rateLimitStr);
+                String shortMessage = String.format("#%s/%s %s: %s %s", counterName, attemptCount, operationName, marketResponseMessage, rateLimitStr);
 
                 tradeLogger.error(shortMessage);
 

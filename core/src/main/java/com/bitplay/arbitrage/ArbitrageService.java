@@ -406,7 +406,7 @@ public class ArbitrageService {
         theCheckBusyTimer = Completable.timer(6, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
 
-                    final String counterName = firstMarketService.getCounterName(signalType);
+                    final String counterName = firstMarketService.getCounterName(signalType, tradeId);
 
                     if (firstMarketService.isMarketStopped()
                             || secondMarketService.isMarketStopped()
@@ -419,7 +419,7 @@ public class ArbitrageService {
 
                     } else if (firstMarketService.isBusy() || secondMarketService.isBusy()) {
                         String logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s). Checking bitmex openOrders...",
-                                getCounter(),
+                                getCounter(tradeId),
                                 firstMarketService.isBusy(),
                                 firstMarketService.getOnlyOpenOrders().size(),
                                 secondMarketService.isBusy(),
@@ -430,7 +430,7 @@ public class ArbitrageService {
                         firstMarketService.isReadyForArbitrageWithOOFetch();
 
                         logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s). After check of bitmex openOrders.",
-                                getCounter(),
+                                getCounter(tradeId),
                                 firstMarketService.isBusy(),
                                 firstMarketService.getOnlyOpenOrders().size(),
                                 secondMarketService.isBusy(),
@@ -459,7 +459,7 @@ public class ArbitrageService {
 
                     } else if (!firstMarketService.isReadyForArbitrageWithOOFetch() || !secondMarketService.isReadyForArbitrage()) {
                         final String logString = String.format("#%s Warning: busy for 6 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
-                                getCounter(),
+                                getCounter(tradeId),
                                 firstMarketService.isReadyForArbitrage(), firstMarketService.getOnlyOpenOrders().size(),
                                 secondMarketService.isReadyForArbitrage(), secondMarketService.getOnlyOpenOrders().size());
                         fplayTradeService.warn(tradeId, counterName, logString);
@@ -472,7 +472,7 @@ public class ArbitrageService {
                         synchronized (arbStateLock) {
                             if (arbState == ArbState.IN_PROGRESS) {
                                 arbState = ArbState.READY;
-                                resetArbState(counterName, "'busy for 6 min'");
+                                resetArbState("'busy for 6 min'");
                                 slackNotifications.sendNotify(NotifyType.BUSY_6_MIN,
                                         counterName + " busy for 6 min. Arbitrage state was reset to READY");
                             }
@@ -1521,7 +1521,7 @@ public class ArbitrageService {
 
     public Long printToCurrentDeltaLog(String msg) {
         final Long tradeIdSnap = getLastTradeId();
-        final String counterName = firstMarketService.getCounterName();
+        final String counterName = fplayTradeService.getCounterName(tradeIdSnap);
         fplayTradeService.info(tradeIdSnap, counterName, msg);
         return tradeIdSnap;
     }
@@ -2082,6 +2082,16 @@ public class ArbitrageService {
         this.signalType = signalType != null ? signalType : SignalType.AUTOMATIC;
     }
 
+    public String getCounter(Long... tradeId) {
+        if (tradeId != null && tradeId.length > 0) {
+            final String c = fplayTradeService.getCounterName(tradeId[0]);
+            if (c != null) {
+                return c;
+            }
+        }
+        return String.valueOf(getCounter());
+    }
+
     public int getCounter() {
         final CumParams totalCommon = cumService.getTotalCommon();
         return totalCommon.getVert1Val() + totalCommon.getVert2Val();
@@ -2124,10 +2134,11 @@ public class ArbitrageService {
         return arbState;
     }
 
-    public void resetArbState(String counterName, String from) {
+    public void resetArbState(String from) {
         String msg = "Arbitrage state was reset READY from " + from + ". ";
         warningLogger.warn(msg);
         log.warn(msg);
+        final String counterName = fplayTradeService.getCounterName(tradeId);
         fplayTradeService.warn(tradeId, counterName, msg);
 
         synchronized (arbStateLock) {

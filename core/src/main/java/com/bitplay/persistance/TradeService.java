@@ -209,4 +209,12 @@ public class TradeService {
         return fplayTradeRepository.findOne(tradeId);
     }
 
+    public String getCounterName(Long tradeId) {
+        final Query query = new Query(Criteria.where("_id").is(tradeId));
+        query.fields().include("counterName");
+        final FplayTrade t = mongoOperation.findOne(query, FplayTrade.class);
+        return t != null ? t.getCounterName() : null;
+    }
+
+
 }

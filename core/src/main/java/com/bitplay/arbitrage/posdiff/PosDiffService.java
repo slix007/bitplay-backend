@@ -30,7 +30,6 @@ import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.CountedWithExtra;
-import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
@@ -41,7 +40,6 @@ import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -333,7 +331,7 @@ public class PosDiffService {
                     if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
                         arbitrageService.getFirstMarketService().stopAllActions();
                         arbitrageService.getSecondMarketService().stopAllActions();
-                        arbitrageService.resetArbState("", "timer-state-reset");
+                        arbitrageService.resetArbState("timer-state-reset");
                         slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER: timer-state-reset");
                     }
                 })
@@ -412,7 +410,7 @@ public class PosDiffService {
                     warningLogger.info(msg);
                     arbitrageService.getFirstMarketService().stopAllActions();
                     arbitrageService.getSecondMarketService().stopAllActions();
-                    arbitrageService.resetArbState("", "MDC extraSet");
+                    arbitrageService.resetArbState("MDC extraSet");
                     dt.stop();
                     slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER:" + msg);
                 }
@@ -444,7 +442,7 @@ public class PosDiffService {
                     warningLogger.info(msg);
                     arbitrageService.getFirstMarketService().stopAllActions();
                     arbitrageService.getSecondMarketService().stopAllActions();
-                    arbitrageService.resetArbState("", "MDC mainSet");
+                    arbitrageService.resetArbState("MDC mainSet");
                     dt.stop();
                     slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER: " + msg);
                 }

@@ -224,7 +224,7 @@ public class PosDiffPortionsService {
 
     private void okexReset(BigDecimal filledUsdBlock) {
         okCoinService.resetWaitingArb(filledUsdBlock.signum() > 0);
-        arbitrageService.resetArbState(okCoinService.getCounterName(), "deferredPlacingPortion");
+        arbitrageService.resetArbState("deferredPlacingPortion");
     }
 
     private void placeDeferredPortion(PlaceOrderArgs args, BigDecimal block) {

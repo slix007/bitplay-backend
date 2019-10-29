@@ -260,7 +260,7 @@ public class ExtrastopService {
                 } else {
                     warningLogger.warn("No restart in 30 sec, back to READY. OrderBooks looks ok.");
 
-                    arbitrageService.resetArbState(bitmexService.getCounterName(), "orderBook-hangs");
+                    arbitrageService.resetArbState("orderBook-hangs");
                     slackNotifications.sendNotify(NotifyType.REBOOT_TIMESTAMP_OLD, "OrderBook timestamps is OK." + details);
                 }
             } catch (Exception e) {

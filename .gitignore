@@ -25,3 +25,5 @@ nbdist/
 
 logs/
 .gradle/
+
+.PVS-Studio/

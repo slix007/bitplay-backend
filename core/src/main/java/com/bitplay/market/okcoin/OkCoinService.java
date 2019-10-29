@@ -1139,7 +1139,7 @@ public class OkCoinService extends MarketServicePreliq {
         } catch (Exception e) {
             logger.error("WAITING_ARB: deferredPlacingOrder error", e);
             resetWaitingArb();
-            arbitrageService.resetArbState(getCounterName(), "deferredPlacingOrder");
+            arbitrageService.resetArbState("deferredPlacingOrder");
             slackNotifications.sendNotify(NotifyType.RESET_TO_FREE, "WAITING_ARB: deferredPlacingOrder error. Set READY. " + e.getMessage());
             return false;
         }
@@ -1151,7 +1151,7 @@ public class OkCoinService extends MarketServicePreliq {
             logger.error("WAITING_ARB: no deferred order. Set READY.");
             warningLogger.error("WAITING_ARB: no deferred order. Set READY.");
             resetWaitingArb();
-            arbitrageService.resetArbState(getCounterName(), "deferredPlacingOrder");
+            arbitrageService.resetArbState("deferredPlacingOrder");
             return true;
         }
         return false;
@@ -1186,7 +1186,7 @@ public class OkCoinService extends MarketServicePreliq {
                 getTradeLogger().info(msg1);
                 warningLogger.error(msg1);
                 resetWaitingArb();
-                arbitrageService.resetArbState(getCounterName(), "deferredPlacingOrder");
+                arbitrageService.resetArbState("deferredPlacingOrder");
                 return true;
             }
         }
@@ -2451,11 +2451,12 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     public void writeAvgPriceLog() {
-        if (arbitrageService.getTradeId() != null) {
+        final Long tradeId = arbitrageService.getTradeId();
+        if (tradeId != null) {
             final DealPrices dealPrices = arbitrageService.getDealPrices();
             final DealPrices.Details diffO = dealPrices.getDiffO();
             final BigDecimal avg = dealPrices.getOPriceFact().getAvg();
-            final String counterForLogs = getCounterName();
+            final String counterForLogs = getCounterName(tradeId);
             if ((counterToDiff == null || counterToDiff.counter == null || !counterToDiff.counter.equals(counterForLogs)
                     || counterToDiff.diff.compareTo(diffO.val) != 0)
                     && avg != null && avg.signum() != 0) {
