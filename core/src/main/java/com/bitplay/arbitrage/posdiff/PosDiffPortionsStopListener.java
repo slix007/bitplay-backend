@@ -9,6 +9,7 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
@@ -40,6 +41,9 @@ public class PosDiffPortionsStopListener {
 
     @Autowired
     private OkCoinService okCoinService;
+
+    @Autowired
+    private TradeService tradeService;
 
     @Autowired
     private DealPricesRepositoryService dealPricesRepositoryService;
@@ -137,6 +141,7 @@ public class PosDiffPortionsStopListener {
                 abortSignalPts);
         okCoinService.getTradeLogger().info(msg);
         bitmexService.getTradeLogger().info(msg);
+        tradeService.info(currArgs.getTradeId(), currArgs.getCounterNameWithPortion(), msg);
         log.info(msg);
     }
 
