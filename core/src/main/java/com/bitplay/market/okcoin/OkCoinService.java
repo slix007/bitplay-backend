@@ -2318,6 +2318,7 @@ public class OkCoinService extends MarketServicePreliq {
                     } else {
                         cumPersistenceService.incUnstartedVert2(tradingMode);
                     }
+                    dealPricesRepositoryService.setUnstartedSignal(tradeId);
                     getTradeLogger().info("#" + s + " Unstarted");
                 }
             }

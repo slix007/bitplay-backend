@@ -72,6 +72,7 @@ public class DealPrices {
     private String counterName;
     private BtmFokAutoArgs btmFokAutoArgs;
     private Boolean abortedSignal;
+    private Boolean unstartedSignal;
 
     public BigDecimal getDelta1Fact() {
         final BigDecimal firstOpenPrice = bPriceFact.getAvg();

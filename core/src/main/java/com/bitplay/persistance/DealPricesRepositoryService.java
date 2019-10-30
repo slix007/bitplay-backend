@@ -165,6 +165,22 @@ public class DealPricesRepositoryService {
         return (d != null && d.getAbortedSignal() != null) ? d.getAbortedSignal() : false;
     }
 
+    public void setUnstartedSignal(Long tradeId) {
+        final Query query = new Query(Criteria.where("_id").is(tradeId));
+        final Update update = new Update()
+                .inc("version", 1)
+                .set("updated", LocalDateTime.now())
+                .set("unstartedSignal", true);
+        mongoOperation.updateFirst(query, update, DealPrices.class);
+    }
+
+    public boolean isUnstartedSignal(Long tradeId) {
+        final Query query = new Query(Criteria.where("_id").is(tradeId));
+        query.fields().include("unstartedSignal");
+        final DealPrices d = mongoOperation.findOne(query, DealPrices.class);
+        return (d != null && d.getAbortedSignal() != null) ? d.getAbortedSignal() : false;
+    }
+
     public TradingMode getTradingMode(Long tradeId) {
         final Query query = new Query(Criteria.where("_id").is(tradeId));
         query.fields().include("tradingMode");

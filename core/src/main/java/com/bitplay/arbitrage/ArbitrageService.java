@@ -1351,8 +1351,8 @@ public class ArbitrageService {
         }
 
         final CumParams cumParams = cumService.getTotalCommon();
-        final Integer counter1 = cumParams.getVert1Val();
-        final Integer counter2 = cumParams.getVert2Val();
+        final Integer counter1 = cumParams.getVert1();
+        final Integer counter2 = cumParams.getVert2();
         final Integer cc1 = cumParams.getCompletedVert1();
         final Integer cc2 = cumParams.getCompletedVert2();
 
