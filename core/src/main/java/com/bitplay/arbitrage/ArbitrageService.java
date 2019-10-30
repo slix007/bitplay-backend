@@ -2083,18 +2083,26 @@ public class ArbitrageService {
     }
 
     public String getCounter(Long... tradeId) {
+        final Long trId;
         if (tradeId != null && tradeId.length > 0) {
-            final String c = fplayTradeService.getCounterName(tradeId[0]);
-            if (c != null) {
-                return c;
-            }
+            trId = tradeId[0];
+        } else {
+            trId = this.tradeId;
         }
-        return String.valueOf(getCounter());
+        return fplayTradeService.getCounterName(trId);
     }
 
     public int getCounter() {
-        final CumParams totalCommon = cumService.getTotalCommon();
-        return totalCommon.getVert1Val() + totalCommon.getVert2Val();
+        int i = -10; // just to show that something wrong
+        final String counterName = fplayTradeService.getCounterName(this.tradeId);
+        try {
+            i = Integer.parseInt(counterName);
+        } catch (NumberFormatException e) {
+            log.error("counterName={} error: {}", counterName, e.getMessage());
+        }
+        return i;
+//        final CumParams totalCommon = cumService.getTotalCommon();
+//        return totalCommon.getVert1Val() + totalCommon.getVert2Val();
     }
 
     public String getSumBalString() {
