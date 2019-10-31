@@ -72,22 +72,20 @@ public class PosDiffPortionsService {
     }
 
     private void checkAndPlace() {
-        final Settings settings = settingsRepositoryService.getSettings();
-        if (settings.getArbScheme() != ArbScheme.CON_B_O_PORTIONS) {
-            // not portions signal
-            return;
-        }
-
         PlaceOrderArgs currArgs = okCoinService.getPlaceOrderArgsRef().get();
         if (currArgs == null) {
             // no deferred order
+            return;
+        }
+        if (currArgs.getArbScheme() != ArbScheme.CON_B_O_PORTIONS) {
+            // not portions signal
             return;
         }
         if (!waitingToStart(currArgs.getCounterNameWithPortion())) {
             return;
         }
 
-        final ConBoPortions conBoPortions = settings.getConBoPortions();
+        final ConBoPortions conBoPortions = settingsRepositoryService.getSettings().getConBoPortions();
         final StringBuilder logString = new StringBuilder();
         final BigDecimal btmFilledUsd;
         final boolean isBtmReady = bitmexService.getMarketState() == MarketState.READY && !bitmexService.hasOpenOrders();

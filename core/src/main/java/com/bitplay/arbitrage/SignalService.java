@@ -11,6 +11,7 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
+import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +43,9 @@ public class SignalService {
     private BitmexService bitmexService;
 
     public void placeOkexOrderOnSignal(OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo, Integer portionsQty) {
+                                       PlacingType placingType, String counterName, Long tradeId, Instant lastObTime,
+                                       boolean isConBo, Integer portionsQty,
+                                       ArbScheme arbScheme) {
 
         if (o_block.signum() <= 0) {
             executorService.execute(() -> {
@@ -75,6 +78,7 @@ public class SignalService {
                     .counterName(counterName)
                     .lastObTime(lastObTime)
                     .portionsQty(portionsQty)
+                    .arbScheme(arbScheme)
                     .build();
 
             if (isConBo) {

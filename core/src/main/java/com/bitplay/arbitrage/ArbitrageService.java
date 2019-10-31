@@ -1109,7 +1109,8 @@ public class ArbitrageService {
         printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 
         final DeltaName deltaName = DeltaName.B_DELTA;
-        final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
+        final Settings s = persistenceService.getSettingsRepositoryService().getSettings();
+        final TradingMode tradingMode = s.getTradingModeState().getTradingMode();
         final BigDecimal delta1 = this.delta1;
         final BigDecimal delta2 = this.delta2;
         final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName, tradingMode);
@@ -1123,7 +1124,7 @@ public class ArbitrageService {
         // in scheme MT2 Okex should be the first
         final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, lastObTime, isConBo, null);
+                counterName, tradeId, lastObTime, isConBo, null, s.getArbScheme());
         signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
                 counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
 
@@ -1318,7 +1319,8 @@ public class ArbitrageService {
         printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 
         final DeltaName deltaName = DeltaName.O_DELTA;
-        final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
+        final Settings s = persistenceService.getSettingsRepositoryService().getSettings();
+        final TradingMode tradingMode = s.getTradingModeState().getTradingMode();
         final BigDecimal delta1 = this.delta1;
         final BigDecimal delta2 = this.delta2;
         final String counterName = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName, tradingMode);
@@ -1332,7 +1334,7 @@ public class ArbitrageService {
         // in scheme MT2 Okex should be the first
         final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, lastObTime, isConBo, null);
+                counterName, tradeId, lastObTime, isConBo, null, s.getArbScheme());
         signalService.placeBitmexOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
                 counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
 

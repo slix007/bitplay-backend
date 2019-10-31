@@ -68,10 +68,6 @@ public class PosDiffPortionsStopListener {
     private void checkForStop() throws Exception {
         // 1. check settings enabled
         final Settings settings = settingsRepositoryService.getSettings();
-        if (settings.getArbScheme() != ArbScheme.CON_B_O_PORTIONS) {
-            // not portions signal
-            return;
-        }
         if (!settings.getAbortSignal().getAbortSignalPtsEnabled()) {
             // not portions signal
             return;
@@ -85,6 +81,10 @@ public class PosDiffPortionsStopListener {
         final PlaceOrderArgs currArgs = okCoinService.getPlaceOrderArgsRef().get();
         if (currArgs == null) {
             // no deferred order //TODO ask do we need it
+            return;
+        }
+        if (currArgs.getArbScheme() != ArbScheme.CON_B_O_PORTIONS) {
+            // not portions signal
             return;
         }
         final List<FplayOrder> oo = bitmexService.getOnlyOpenFplayOrders();
