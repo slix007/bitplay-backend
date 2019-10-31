@@ -585,7 +585,7 @@ public class ArbitrageService {
         this.lastBtmFokAutoArgs = btmFokAutoArgs;
     }
 
-    void activateVolatileMode() {
+    public void activateVolatileMode() {
         if (persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
             final Settings settings = persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
             warningLogger.info("Set TradingMode.VOLATILE automatically");

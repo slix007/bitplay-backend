@@ -1356,7 +1356,7 @@ public class OkCoinService extends MarketServicePreliq {
                 logger.warn("LeverageResult WARNING: margin_mode is " + r.getMargin_mode());
             } else {
                 if (r.getLeverage() == null) { // !r.getCurrency().toUpperCase().equals(okexContractType.getBaseTool())
-                    logger.warn("LeverageResult WARNING: currency is different " + r);
+                    logger.warn("LeverageResult WARNING: " + r);
                 } else {
                     leverage = new BigDecimal(r.getLeverage());
                 }

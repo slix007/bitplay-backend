@@ -1,8 +1,8 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
@@ -22,8 +22,8 @@ import com.bitplay.persistance.domain.settings.RestartSettings;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SettingsVolatileMode;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
+import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.settings.BitmexChangeOnSoService;
-import java.util.EnumSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +34,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.EnumSet;
 
 /**
  * Created by Sergey Shurmin on 11/27/17.
@@ -369,8 +371,14 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getTradingModeState() != null && settingsUpdate.getTradingModeState().getTradingMode() != null) {
-            settings = settingsRepositoryService.updateTradingModeState(settingsUpdate.getTradingModeState().getTradingMode());
             warningLogger.info("Set TradingMode." + settingsUpdate.getTradingModeState().getTradingMode() + " by manual");
+            if (settingsUpdate.getTradingModeState().getTradingMode() == TradingMode.VOLATILE) {
+                arbitrageService.activateVolatileMode();
+                settings = settingsRepositoryService.getSettings();
+            } else {
+                settings = settingsRepositoryService.updateTradingModeState(settingsUpdate.getTradingModeState().getTradingMode());
+            }
+
         }
         if (settingsUpdate.getSettingsVolatileMode() != null) {
             final SettingsVolatileMode settingsVolatileMode = settings.getSettingsVolatileMode() != null
