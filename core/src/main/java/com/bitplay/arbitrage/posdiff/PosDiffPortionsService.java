@@ -16,7 +16,6 @@ import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ConBoPortions;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
-import com.bitplay.persistance.domain.settings.Settings;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.slf4j.Logger;
@@ -136,7 +135,7 @@ public class PosDiffPortionsService {
     }
 
     private BigDecimal getUsdBlockByBtmFilled(PlaceOrderArgs currArgs, StringBuilder logString) {
-        final BigDecimal btmFilled = bitmexService.getBtmFilled(currArgs, true);
+        final BigDecimal btmFilled = bitmexService.getBtmFilledAndUpdateBPriceFact(currArgs, true);
         final BigDecimal cm = bitmexService.getCm();
         final BigDecimal filledUsd = PlacingBlocks.bitmexContToUsd(btmFilled, bitmexService.getContractType().isEth(), cm);
         logString.append("Bitmex READY.");

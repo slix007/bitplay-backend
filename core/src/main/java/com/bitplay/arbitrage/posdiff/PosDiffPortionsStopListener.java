@@ -101,14 +101,17 @@ public class PosDiffPortionsStopListener {
         }
 
         if (delta.compareTo(maxBorder.add(abortSignalPts)) < 0) {
-            final BigDecimal btmFilled = bitmexService.getBtmFilled(currArgs, false);
+
+            bitmexService.cancelAllOrders(oo.get(0), "abort_signal! order", false, false);
+
+            final BigDecimal btmFilled = bitmexService.getBtmFilledAndUpdateBPriceFact(currArgs, false);
             final FactPrice bPriceFact = dealPricesRepositoryService.getFullDealPrices(currArgs.getTradeId()).getBPriceFact();
             if (btmFilled.compareTo(bPriceFact.getFullAmount()) < 0) {
                 incCounters(currArgs, deltaName, btmFilled);
                 printSignalAborted(abortSignalPts, currArgs, maxBorder, deltaName, delta);
-                bitmexService.cancelAllOrders(oo.get(0), "abort_signal! order", false, false);
             } else {
-                // fully filled. Do nothing.
+                // fully filled. Means bitmex was filled before 'cancel request'.
+                // Do nothing.
             }
         }
     }

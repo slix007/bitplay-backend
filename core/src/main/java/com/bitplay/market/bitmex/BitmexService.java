@@ -3137,7 +3137,7 @@ public class BitmexService extends MarketServicePreliq {
         return metricsDictionary;
     }
 
-    public BigDecimal getBtmFilled(PlaceOrderArgs currArgs, boolean withLogs) {
+    public BigDecimal getBtmFilledAndUpdateBPriceFact(PlaceOrderArgs currArgs, boolean withLogs) {
         final String counterForLogs = currArgs.getCounterNameWithPortion();
         final Long tradeId = currArgs.getTradeId();
         final DealPrices dealPrices = arbitrageService.getDealPrices(tradeId);
