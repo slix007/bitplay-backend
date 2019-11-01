@@ -22,5 +22,7 @@ public class MonAllJson {
     private Mon monBitmexMoving;
     private Mon monOkexPlacing;
     private Mon monOkexMoving;
+    private String xrateLimitBtm;
+    private String xrateLimitBtmUpdated;
 
 }

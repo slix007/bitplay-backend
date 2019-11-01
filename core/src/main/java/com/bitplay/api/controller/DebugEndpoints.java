@@ -10,6 +10,20 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.domain.mon.Mon;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.bitmex.dto.BitmexXRateLimit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
@@ -23,19 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchange.bitmex.dto.BitmexXRateLimit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.security.access.annotation.Secured;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Created by Sergey Shurmin on 9/23/17.
@@ -138,12 +139,13 @@ public class DebugEndpoints {
         }
         final BitmexService bs = (BitmexService) (arbitrageService.getFirstMarketService());
         final BitmexXRateLimit bitmexXRateLimit = bs.getxRateLimit();
+        String xrateLimitBtm = "";
+        String xrateLimitBtmUpdated = "";
         if (bitmexXRateLimit != null) {
-            final int theLimit = bitmexXRateLimit.getxRateLimit();
             final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
-            final String timestamp = formatter.format(bitmexXRateLimit.getLastUpdate());
-            monAllHtml += "<br>xRateLimit=" + (theLimit == 301 ? "no info" : theLimit)
-                    + "; lastUpdate: " + timestamp;
+            xrateLimitBtmUpdated = formatter.format(bitmexXRateLimit.getLastUpdate());
+            final int l = bitmexXRateLimit.getxRateLimit();
+            xrateLimitBtm = (l == BitmexXRateLimit.UNDEFINED ? "no info" : String.valueOf(l));
         }
 
         monAllHtml += "<br>OOHangedChecker: " + ooHangedCheckerService.getStatus();
@@ -166,7 +168,7 @@ public class DebugEndpoints {
         return new MonAllJson(resultJson.getResult(), monAllHtml,
                 bitmexReconnectCount,
                 monBitmexPlacing, monBitmexMoving,
-                monOkexPlacing, monOkexMoving);
+                monOkexPlacing, monOkexMoving, xrateLimitBtm, xrateLimitBtmUpdated);
     }
 
     @RequestMapping(value = "/mon/reset", method = RequestMethod.POST,

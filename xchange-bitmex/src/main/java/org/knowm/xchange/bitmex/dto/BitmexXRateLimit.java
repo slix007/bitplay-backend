@@ -9,9 +9,10 @@ public class BitmexXRateLimit {
 
     private final int xRateLimit;
     private final Instant lastUpdate;
+    public static final int UNDEFINED = 999;
 
     public static BitmexXRateLimit initValue() {
-        return new BitmexXRateLimit(301, Instant.now());
+        return new BitmexXRateLimit(UNDEFINED, Instant.now());
     }
 
     public BitmexXRateLimit(Integer xRateLimit, Instant lastUpdate) {
