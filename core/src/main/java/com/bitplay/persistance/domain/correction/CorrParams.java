@@ -21,12 +21,14 @@ public class CorrParams extends ExchangePairDocument {
     private Corr corr;
     private Preliq preliq;
     private Adj adj;
+    private RecoveryNtUsd recoveryNtUsd;
 
     public static CorrParams createDefault() {
         final CorrParams corrParams = new CorrParams();
         corrParams.corr = Corr.createDefault();
         corrParams.preliq = Preliq.createDefault();
         corrParams.adj = Adj.createDefault();
+        corrParams.recoveryNtUsd = RecoveryNtUsd.createDefault();
 
         corrParams.setId(1L);
         corrParams.setExchangePair(ExchangePair.BITMEX_OKEX);

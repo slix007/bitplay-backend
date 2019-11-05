@@ -354,7 +354,7 @@ public class PosDiffService {
         log.info(msg);
     }
 
-    private void stopTimerToImmediateCorrection() {
+    void stopTimerToImmediateCorrection() {
         if (theTimerToImmediateCorr != null) {
             theTimerToImmediateCorr.dispose();
         }
@@ -455,7 +455,7 @@ public class PosDiffService {
         }
     }
 
-    private boolean marketsStopped() {
+    boolean marketsStopped() {
         return okexSettlementService.isSettlementMode()
                 || arbitrageService.isArbStateStopped()
                 || arbitrageService.getFirstMarketService().getMarketState() == MarketState.FORBIDDEN
@@ -822,7 +822,7 @@ public class PosDiffService {
         return false;
     }
 
-    private BigDecimal getHedgeAmountMainSet() {
+    BigDecimal getHedgeAmountMainSet() {
         final BigDecimal hedgeAmount = bitmexService.getContractType().isEth()
                 ? hedgeService.getHedgeEth()
                 : hedgeService.getHedgeBtc();
@@ -865,7 +865,7 @@ public class PosDiffService {
 //        }
 //    }
 
-    private synchronized void doCorrection(final BigDecimal hedgeAmount, SignalType baseSignalType) {
+    private void doCorrection(final BigDecimal hedgeAmount, SignalType baseSignalType) {
         // NOTE: CorrParams may be changed by UI request -> will create illegal state for CorrParams.
         // change by preliq should not be possible according to business logic.
         final CorrParams corrParams = persistenceService.fetchCorrParams();
@@ -1573,9 +1573,13 @@ public class PosDiffService {
         return false;
     }
 
+    void addPosDiffTask(Runnable task) {
+        calcPosDiffExecutor.execute(task);
+    }
+
     public boolean checkIsPositionsEqual() {
 
-        calcPosDiffExecutor.execute(() -> {
+        addPosDiffTask(() -> {
             try {
                 checkPosDiff();
             } catch (Exception e) {

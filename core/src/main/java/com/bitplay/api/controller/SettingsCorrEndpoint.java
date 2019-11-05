@@ -9,6 +9,7 @@ import com.bitplay.persistance.domain.correction.Adj;
 import com.bitplay.persistance.domain.correction.Corr;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.Preliq;
+import com.bitplay.persistance.domain.correction.RecoveryNtUsd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -132,6 +133,14 @@ public class SettingsCorrEndpoint {
                     corrParams.getAdj().setMaxTotalCount(update.getMaxTotalCount());
                     persistenceService.saveCorrParams(corrParams);
                     posDiffService.stopTimer("adj");
+                }
+            }
+
+            if (anUpdate.getRecoveryNtUsd() != null) {
+                final RecoveryNtUsd u = anUpdate.getRecoveryNtUsd();
+                if (u.getMaxBlockUsd() != null) {
+                    corrParams.getRecoveryNtUsd().setMaxBlockUsd(u.getMaxBlockUsd());
+                    persistenceService.saveCorrParams(corrParams);
                 }
             }
         }
