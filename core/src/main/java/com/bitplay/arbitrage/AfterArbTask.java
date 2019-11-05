@@ -9,6 +9,7 @@ import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.Pos;
+import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
@@ -22,16 +23,17 @@ import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
-import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
 
 @Slf4j
 @Getter
@@ -51,6 +53,7 @@ public class AfterArbTask implements Runnable {
     private final Pos okPosition;
     private final BitmexService bitmexService;
     private final OkCoinService okCoinService;
+    private final DealPricesRepositoryService dealPricesRepositoryService;
     private final CumService cumService;
     private final ArbitrageService arbitrageService;
     private final DeltaLogWriter deltaLogWriter;
@@ -69,7 +72,9 @@ public class AfterArbTask implements Runnable {
             validateAvgPrice(dealPrices.getBPriceFact());
             validateAvgPrice(dealPrices.getOPriceFact());
 
-            calcCumAndPrintLogs(b_price_fact, ok_price_fact);
+            final boolean abortedSignal = dealPricesRepositoryService.isAbortedSignal(tradeId);
+            final boolean unstartedSignal = dealPricesRepositoryService.isAbortedSignal(tradeId);
+            calcCumAndPrintLogs(b_price_fact, ok_price_fact, abortedSignal, unstartedSignal);
 
             arbitrageService.printSumBal(tradeId, counterName); // TODO calcFull balance ???
 
@@ -77,8 +82,20 @@ public class AfterArbTask implements Runnable {
 
             handleZeroOrders();
 
-            deltaLogWriter.info(String.format("#%s Round completed", counterName));
-            deltaLogWriter.setEndStatus(TradeStatus.COMPLETED);
+            final String msgTradeStatus;
+            final TradeStatus tradeStatus;
+            if (abortedSignal) {
+                msgTradeStatus = String.format("#%s Round aborted", counterName);
+                tradeStatus = TradeStatus.ABORTED;
+            } else if (unstartedSignal) {
+                msgTradeStatus = String.format("#%s Round unstarted", counterName);
+                tradeStatus = TradeStatus.UNSTARTED;
+            } else {
+                msgTradeStatus = String.format("#%s Round completed", counterName);
+                tradeStatus = TradeStatus.COMPLETED;
+            }
+            deltaLogWriter.info(msgTradeStatus);
+            deltaLogWriter.setEndStatus(tradeStatus);
 
         } catch (RoundIsNotDoneException e) {
             deltaLogWriter.info(String.format("Round is not done: RoundIsNotDoneException: %s. %s. %s", e.getMessage(),
@@ -117,7 +134,7 @@ public class AfterArbTask implements Runnable {
         }
     }
 
-    private void calcCumAndPrintLogs(BigDecimal b_price_fact, BigDecimal ok_price_fact) {
+    private void calcCumAndPrintLogs(BigDecimal b_price_fact, BigDecimal ok_price_fact, boolean abortedSignal, boolean unstartedSignal) {
 
         final BigDecimal con = dealPrices.getBBlock();
         final BigDecimal b_bid = dealPrices.getBestQuotes().getBid1_p();
@@ -129,8 +146,9 @@ public class AfterArbTask implements Runnable {
                 counterName, con, b_bid, b_ask, ok_bid, ok_ask, b_price_fact, ok_price_fact));
 
         final TradingMode mode = dealPrices.getTradingMode();
-        if (dealPrices.getDeltaName() == DeltaName.B_DELTA) {
-            cumService.getCumPersistenceService().incCompletedCounter1(mode);
+        final DeltaName deltaName = dealPrices.getDeltaName();
+        if (deltaName == DeltaName.B_DELTA) {
+            incCompletedTmp(mode, deltaName, abortedSignal, unstartedSignal);
 
             cumService.getCumPersistenceService().addCumDelta(mode, dealPrices.getDelta1Plan());
 
@@ -172,9 +190,9 @@ public class AfterArbTask implements Runnable {
 
             printOAvgPrice();
 
-        } else if (dealPrices.getDeltaName() == DeltaName.O_DELTA) {
+        } else if (deltaName == DeltaName.O_DELTA) {
 //            cumParams.setCompletedCounter2(cumParams.getCompletedCounter2() + 1);
-            cumService.getCumPersistenceService().incCompletedCounter2(mode);
+            incCompletedTmp(mode, deltaName, abortedSignal, unstartedSignal);
 
             cumService.getCumPersistenceService().addCumDelta(mode, dealPrices.getDelta2Plan());
 
@@ -216,6 +234,16 @@ public class AfterArbTask implements Runnable {
 
             printOAvgPrice();
 
+        }
+    }
+
+    private void incCompletedTmp(TradingMode mode, DeltaName deltaName, boolean abortedSignal, boolean unstartedSignal) {
+        if (!abortedSignal && !unstartedSignal) {
+            if (deltaName == DeltaName.B_DELTA) {
+                cumService.getCumPersistenceService().incCompletedCounter1(mode);
+            } else {
+                cumService.getCumPersistenceService().incCompletedCounter2(mode);
+            }
         }
     }
 

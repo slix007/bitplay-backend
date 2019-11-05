@@ -6,6 +6,8 @@ package com.bitplay.persistance.domain.fluent;
 public enum TradeStatus {
     IN_PROGRESS,
     COMPLETED,
+    ABORTED,
+    UNSTARTED,
     INTERRUPTED,
     CORR
 }

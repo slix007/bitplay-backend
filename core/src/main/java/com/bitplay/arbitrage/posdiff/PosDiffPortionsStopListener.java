@@ -107,8 +107,8 @@ public class PosDiffPortionsStopListener {
             final BigDecimal btmFilled = bitmexService.getBtmFilledAndUpdateBPriceFact(currArgs, false);
             final FactPrice bPriceFact = dealPricesRepositoryService.getFullDealPrices(currArgs.getTradeId()).getBPriceFact();
             if (btmFilled.compareTo(bPriceFact.getFullAmount()) < 0) {
-                incCounters(currArgs, deltaName, btmFilled);
-                printSignalAborted(abortSignalPts, currArgs, maxBorder, deltaName, delta);
+                final boolean cntUpdated = incCounters(currArgs, deltaName, btmFilled);
+                printSignalAborted(abortSignalPts, currArgs, maxBorder, deltaName, delta, btmFilled, cntUpdated);
             } else {
                 // fully filled. Means bitmex was filled before 'cancel request'.
                 // Do nothing.
@@ -116,7 +116,7 @@ public class PosDiffPortionsStopListener {
         }
     }
 
-    private void incCounters(PlaceOrderArgs currArgs, DeltaName deltaName, BigDecimal btmFilled) {
+    private boolean incCounters(PlaceOrderArgs currArgs, DeltaName deltaName, BigDecimal btmFilled) {
         if (btmFilled.signum() == 0) {
             final Long tradeId = currArgs.getTradeId();
             final TradingMode tradingMode = dealPricesRepositoryService.getTradingMode(tradeId);
@@ -129,19 +129,24 @@ public class PosDiffPortionsStopListener {
                     } else {
                         cumPersistenceService.incAbortedSignalUnstartedVert2(tradingMode);
                     }
+                    return true;
                 }
             }
         }
+        return false;
     }
 
-    private void printSignalAborted(BigDecimal abortSignalPts, PlaceOrderArgs currArgs, BigDecimal maxBorder, DeltaName deltaName, BigDecimal delta) {
+    private void printSignalAborted(BigDecimal abortSignalPts, PlaceOrderArgs currArgs, BigDecimal maxBorder, DeltaName deltaName, BigDecimal delta,
+                                    BigDecimal btmFilled, boolean cntUpdated) {
         final String ds = deltaName.getDeltaSymbol();
         final String msg = String.format(
-                "#%s signal aborted %s_delta(%s)<%s_max_border(%s) + abort_signal_pts(%s)",
+                "#%s signal aborted %s_delta(%s)<%s_max_border(%s) + abort_signal_pts(%s); btmFilled=%s; aborted_counter_updated=%s",
                 currArgs.getCounterNameWithPortion(),
                 ds, delta,
                 ds, maxBorder,
-                abortSignalPts);
+                abortSignalPts,
+                btmFilled,
+                cntUpdated);
         okCoinService.getTradeLogger().info(msg);
         bitmexService.getTradeLogger().info(msg);
         tradeService.info(currArgs.getTradeId(), currArgs.getCounterNameWithPortion(), msg);

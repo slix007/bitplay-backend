@@ -351,6 +351,7 @@ public class ArbitrageService {
                             okexPosition,
                             (BitmexService) getFirstMarketService(),
                             (OkCoinService) getSecondMarketService(),
+                            dealPricesRepositoryService,
                             cumService,
                             this,
                             new DeltaLogWriter(tradeIdSnap, counterNameSnap, fplayTradeService),
