@@ -50,7 +50,7 @@ public class DealPricesRepositoryService {
                 .set("updated", LocalDateTime.now())
                 .set("btmPlacingType", btmPlacingType)
                 .set("okexPlacingType", okexPlacingType);
-//                .set("tradingMode", TradingMode.VOLATILE); // current-volatile?
+//                .set("tradingMode", TradingMode.VOLATILE); // VOLATILE or current-volatile. depends on
         mongoOperation.updateFirst(query, update, DealPrices.class);
     }
 

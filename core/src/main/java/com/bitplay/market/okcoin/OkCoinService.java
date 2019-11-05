@@ -1043,8 +1043,8 @@ public class OkCoinService extends MarketServicePreliq {
         return isAffordable;
     }
 
-    public void changeDeferredPlacingType(PlacingType placingType) {
-        placeOrderArgsRef.getAndUpdate(currArgs -> {
+    public PlaceOrderArgs changeDeferredPlacingType(PlacingType placingType) {
+        return placeOrderArgsRef.updateAndGet(currArgs -> {
             if (currArgs == null) {
                 return null;
             }

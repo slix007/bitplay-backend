@@ -5,6 +5,7 @@ import com.bitplay.market.MarketService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.MarketState;
+import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
@@ -68,7 +69,14 @@ public class VolatileModeAfterService {
 //        }
 
         final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getOkexPlacingType();
-        okexService.changeDeferredPlacingType(okexPlacingType);
+        final PlaceOrderArgs updateArgs = okexService.changeDeferredPlacingType(okexPlacingType);
+        if (updateArgs != null) {
+            final String counterForLogs = updateArgs.getCounterNameWithPortion();
+            fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
+            final String msg = String.format("#%s change Trading mode to current-volatile(okex has deferred)", counterForLogs);
+            fplayTradeService.info(tradeId, counterForLogs, msg);
+            okexService.getTradeLogger().info(msg);
+        }
 
         if (bitmexOO.size() > 0) {
             bitmexService.ooSingleExecutor.execute(() -> replaceLimitOrdersBitmex(bitmexOO, tradeId, btmFokAutoArgs));
@@ -124,7 +132,7 @@ public class VolatileModeAfterService {
             if (amountDiff.signum() != 0) {
 
                 fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
-                fplayTradeService.info(tradeId, counterForLogs, String.format("#%s change Trading mode to current-volatile", counterForLogs));
+                fplayTradeService.info(tradeId, counterForLogs, String.format("#%s change Trading mode to current-volatile(replacing order)", counterForLogs));
 
                 final OrderType orderType = amountDiff.signum() > 0 ? OrderType.BID : OrderType.ASK;
                 final BigDecimal amountLeft = amountDiff.abs();
