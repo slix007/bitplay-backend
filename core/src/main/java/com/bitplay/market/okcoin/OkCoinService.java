@@ -1976,6 +1976,7 @@ public class OkCoinService extends MarketServicePreliq {
                             translatedError));
 
                     if (result.isResult()
+                            || result.getError_code().contains("32004") // result.getError_message()=="You have not uncompleted order at the moment"
                             || translatedError.contains("order does not exist")
                             || result.getError_message().contains("rder does not exist")) {
                         order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
@@ -2712,6 +2713,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         res.append(orderId);
         if (result.isResult()
+                || result.getError_code().contains("32004") // result.getError_message()=="You have not uncompleted order at the moment"
                 || translatedError.contains("order does not exist")
                 || result.getError_message().contains("rder does not exist")) {
             order.setOrderStatus(OrderStatus.CANCELED); // may be FILLED, but it's ok here.

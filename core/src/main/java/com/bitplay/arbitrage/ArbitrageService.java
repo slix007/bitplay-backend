@@ -590,6 +590,7 @@ public class ArbitrageService {
         if (persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
             final Settings settings = persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
             warningLogger.info("Set TradingMode.VOLATILE automatically");
+            log.info("Set TradingMode.VOLATILE automatically");
 
             // if we replace-limit-orders then fix commissions for current signal.
             final PlacingType okexPlacingType = settings.getOkexPlacingType();

@@ -80,7 +80,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
 
-    protected static final int MAX_ATTEMPTS_CANCEL = 3;
+    protected static final int MAX_ATTEMPTS_CANCEL = 90;
 
     public static final int ORDERBOOK_MAX_SIZE = 5;
     protected volatile BigDecimal bestBid = BigDecimal.ZERO;
