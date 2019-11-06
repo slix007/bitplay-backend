@@ -38,16 +38,6 @@ import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Date;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
@@ -56,7 +46,19 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.PreDestroy;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 /**
  * Created by Sergey Shurmin on 7/15/17.
@@ -130,7 +132,7 @@ public class PosDiffService {
         calcPosDiffExecutor.shutdown();
     }
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     private void init() {
         ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("mdc-thread-%d").build();
         mdcExecutor = Executors.newSingleThreadScheduledExecutor(namedThreadFactory);

@@ -13,6 +13,16 @@ import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.trade.LimitOrder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -24,15 +34,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.trade.LimitOrder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 1/12/18.
@@ -83,13 +84,18 @@ public class ExtrastopService {
             } catch (Exception e) {
                 log.error("Error on checkOrderBooks", e);
             }
-        }, 60, 10, TimeUnit.SECONDS);
+        }, 0, 10, TimeUnit.SECONDS);
     }
 
     //    @Scheduled(initialDelay = 60 * 1000, fixedDelay = 10 * 1000)
     private void checkOrderBooks() {
         Instant start = Instant.now();
         try {
+            if (!arbitrageService.isFirstDeltasCalculated()) {
+                // not started yet
+                return;
+            }
+
             checkLastRun();
 
             if (bitmexService.isReconnectInProgress()) {
