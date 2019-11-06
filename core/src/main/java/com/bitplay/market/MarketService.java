@@ -709,7 +709,9 @@ public abstract class MarketService extends MarketServiceWithState {
             try {
                 final List<LimitOrder> fetchedList = getApiOpenOrders();
                 if (fetchedList.size() > 1) {
-                    getTradeLogger().warn("Warning: openOrders count " + fetchedList.size());
+                    final String msg = "Warning: openOrders count " + fetchedList.size();
+                    getTradeLogger().warn(msg);
+                    logger.warn(msg);
                 }
 
                 updateFplayOrdersToCurrStab(fetchedList, new FplayOrder(getMarketId()));

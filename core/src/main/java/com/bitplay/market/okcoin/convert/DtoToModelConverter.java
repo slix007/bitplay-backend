@@ -1,14 +1,15 @@
 package com.bitplay.market.okcoin.convert;
 
 import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.LimitOrder.Builder;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class DtoToModelConverter {
@@ -32,7 +33,7 @@ public class DtoToModelConverter {
                     .build();
             order.setCumulativeAmount(orderDetail.getFilled_qty());
         } catch (Exception e) {
-            log.info("DEBUG_okex_v3: " + orderDetail);
+            log.info("DEBUG_okex_v3: " + orderDetail, e);
         }
         // There is also pnl and fee.
         return order;
