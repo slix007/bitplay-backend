@@ -1090,7 +1090,8 @@ public class OkCoinService extends MarketServicePreliq {
      */
     public void tryPlaceDeferredOrder() {
 //        ooSingleExecutor - may read with arbStateLock
-        if (settingsRepositoryService.getSettings().getArbScheme() != ArbScheme.CON_B_O_PORTIONS) {
+        final PlaceOrderArgs currArgs = placeOrderArgsRef.get();
+        if (currArgs != null && currArgs.getArbScheme() != ArbScheme.CON_B_O_PORTIONS) {
             addOoExecutorTask(this::tryPlaceDeferredOrderTask);
         } else {
             getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
