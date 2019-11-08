@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DtoToModelConverter {
 
+    // WARN: may return null, if market does not update info yet and sends null fields
     public static LimitOrder convertOrder(OrderDetail orderDetail, CurrencyPair currencyPair) {
         if (orderDetail.getType() == null) {
             log.info("DEBUG_okex_v3: " + orderDetail);

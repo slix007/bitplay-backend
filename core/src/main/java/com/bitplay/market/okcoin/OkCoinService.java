@@ -1500,7 +1500,7 @@ public class OkCoinService extends MarketServicePreliq {
                 warningLogger.warn("placing maker, but subType is " + placingSubType);
             }
 
-            String obTimestamp = "";
+            String obTimestamp = " ";
             int attempt = 0;
             int maxAttempts = settingsRepositoryService.getSettings().getOkexPostOnlyArgs().getPostOnlyAttempts();
             while (attempt++ < maxAttempts) {
@@ -1514,9 +1514,10 @@ public class OkCoinService extends MarketServicePreliq {
                 OrderBook orderBook = getOrderBook();
                 // workaround. if OrderBook was not updated between attempts.
                 if (obTimestamp.equals(orderBook.getTimeStamp().toInstant().toString())) {
-                    tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s is the same. Updating orderBook...",
-                            counterNameWithPortion, attempt, obTimestamp));
-
+                    final String msg = String.format("#%s/%s orderBook timestamp=%s is the same. Updating orderBook...",
+                            counterNameWithPortion, attempt, obTimestamp);
+                    tradeLogger.info(msg);
+                    logger.info(msg);
 
                     final Book book = bitplayOkexEchange.getMarketAPIService().getInstrumentBook(instrumentDto.getInstrumentId());
                     orderBook = BookConverter.convertBook(book, instrumentDto.getCurrencyPair());
@@ -1525,8 +1526,9 @@ public class OkCoinService extends MarketServicePreliq {
                     }
                 }
                 obTimestamp = orderBook.getTimeStamp().toInstant().toString();
-                tradeLogger.info(String.format("#%s/%s orderBook timestamp=%s.",
-                        counterNameWithPortion, attempt, obTimestamp));
+                final String msgTimestamp = String.format("#%s/%s orderBook timestamp=%s.", counterNameWithPortion, attempt, obTimestamp);
+                tradeLogger.info(msgTimestamp);
+                logger.info(msgTimestamp);
                 thePrice = createBestPrice(orderType, placingSubType, orderBook, getContractType());
 
                 if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
@@ -1541,14 +1543,16 @@ public class OkCoinService extends MarketServicePreliq {
                             futuresOrderType = FuturesOrderTypeEnum.POST_ONLY;
                         }
                     }
-                    tradeLogger.info(String.format("#%s/%s placing order inst=%s, t=%s, p=%s, a=%s, %s",
+                    final String msgPlacing = String.format("#%s/%s placing order inst=%s, t=%s, p=%s, a=%s, %s",
                             counterNameWithPortion, attempt,
                             instrumentDto.getInstrumentId(),
                             orderType,
                             thePrice,
                             tradeableAmount,
                             futuresOrderType
-                            ));
+                    );
+                    tradeLogger.info(msgPlacing);
+                    logger.info(msgPlacing);
                     final OrderResult orderResult = bitplayOkexEchange.getTradeApiService().order(
                             LimitOrderToOrderConverter.createOrder(
                                     instrumentDto.getInstrumentId(),
@@ -1586,12 +1590,12 @@ public class OkCoinService extends MarketServicePreliq {
 
                     String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType;
 
-                    final boolean postOnlyCnl = resultOrder.getStatus() == OrderStatus.CANCELED;
-                    if (!isMoving || postOnlyCnl) {
+                    final boolean cnlBecausePostOnly = resultOrder.getStatus() == OrderStatus.CANCELED;
+                    if (!isMoving || cnlBecausePostOnly) {
                         final String msg = String.format("#%s/%s %s %s %s amount=%s, quote=%s, orderId=%s, status=%s",
                                 counterNameWithPortion,
                                 attempt,
-                                postOnlyCnl ? "CANCELED Post only" : "",
+                                cnlBecausePostOnly ? "CANCELED Post only" : "",
                                 placingTypeString,
                                 Utils.convertOrderTypeName(orderType),
                                 tradeableAmount.toPlainString(),
@@ -1600,6 +1604,7 @@ public class OkCoinService extends MarketServicePreliq {
                                 orderResult.isResult());
 
                         tradeLogger.info(msg);
+                        logger.info(msg);
                     }
                     if (pricePlanOnStart) { // set oPricePlanOnStart for non-Taker
                         persistenceService.getDealPricesRepositoryService().setOPricePlanOnStart(tradeId, thePrice);
@@ -1615,7 +1620,7 @@ public class OkCoinService extends MarketServicePreliq {
                             (resultOrder.getStatus() != null) ? resultOrder.getStatus().toString() : null,
                             counterNameWithPortion + "/" + attempt);
 
-                    if (!postOnlyCnl) {
+                    if (!cnlBecausePostOnly) {
                         break;
                     } else {
                         tradeResponse.setLimitOrder(null);
@@ -1633,24 +1638,27 @@ public class OkCoinService extends MarketServicePreliq {
             BigDecimal tradeableAmount, BigDecimal thePrice, String orderId) throws IOException {
 
         if (placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK) {
-            // Status check
             final Collection<Order> order = getApiOrders(new String[]{orderId});
-            if (order.size() == 0) {
-                tradeLogger.info(String.format("#%s/%s id=%s, checkAfterPlacing: no orders in response",
-                        counterNameWithPortion,
-                        attemptCount,
-                        orderId));
-            } else {
+            if (order.size() > 0) {
                 Order theOrder = order.iterator().next();
-                tradeLogger.info(String.format("#%s/%s id=%s, checkAfterPlacing: status=%s, filled=%s",
+                final String msg = String.format("#%s/%s id=%s, checkAfterPlacing: status=%s, filled=%s",
                         counterNameWithPortion,
                         attemptCount,
                         theOrder.getId(),
                         theOrder.getStatus(),
-                        theOrder.getCumulativeAmount()));
+                        theOrder.getCumulativeAmount());
+                tradeLogger.info(msg);
+                logger.info(msg);
 
                 return (LimitOrder) theOrder;
             }
+
+            final String warn = String.format("#%s/%s id=%s, checkAfterPlacing: no orders in response",
+                    counterNameWithPortion,
+                    attemptCount,
+                    orderId);
+            tradeLogger.info(warn);
+            logger.info(warn);
         }
         return new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
                 thePrice, BigDecimal.ZERO, BigDecimal.ZERO, OrderStatus.PENDING_NEW);
@@ -1669,6 +1677,7 @@ public class OkCoinService extends MarketServicePreliq {
                 orderId,
                 status);
         tradeLogger.info(message);
+        logger.info(message);
         ordersLogger.info(message);
     }
 
@@ -1782,6 +1791,7 @@ public class OkCoinService extends MarketServicePreliq {
                         limitOrder.getId(),
                         null);
                 tradeLogger.info(logString);
+                logger.info(logString);
 
                 // 3. Place order
             } else if (cancelledOrder.getStatus() == OrderStatus.CANCELED) {
@@ -1798,8 +1808,10 @@ public class OkCoinService extends MarketServicePreliq {
                     response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(),
                             newOrder, newFplayOrder, cancelledFplayOrd);
                 } else {
-                    warningLogger.info(String.format("#%s Can not move orderId=%s, ONLY_CANCEL!!!",
-                            counterWithPortion, limitOrder.getId()));
+                    final String warnMsg = String.format("#%s Can not move orderId=%s, ONLY_CANCEL!!!",
+                            counterWithPortion, limitOrder.getId());
+                    warningLogger.info(warnMsg);
+                    logger.info(warnMsg);
                     response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, tradeResponse.getOrderId(),
                             null, null, cancelledFplayOrd);
                 }
