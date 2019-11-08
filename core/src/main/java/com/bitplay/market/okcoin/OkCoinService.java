@@ -941,7 +941,7 @@ public class OkCoinService extends MarketServicePreliq {
             } else if (orderInfo.getStatus() == OrderStatus.FILLED) { //FILLED by any (orderInfo or cancelledOrder)
 
                 writeLogPlaceOrder(orderType, amount, "taker",
-                        orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString(), counterNameWithPortion);
+                        orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString(), counterNameWithPortion, orderResult);
 
                 tradeResponse.setOrderId(orderId);
                 tradeResponse.setLimitOrder(orderInfo);
@@ -1618,7 +1618,8 @@ public class OkCoinService extends MarketServicePreliq {
                             placingTypeString,
                             thePrice, orderId,
                             (resultOrder.getStatus() != null) ? resultOrder.getStatus().toString() : null,
-                            counterNameWithPortion + "/" + attempt);
+                            counterNameWithPortion + "/" + attempt,
+                            orderResult);
 
                     if (!cnlBecausePostOnly) {
                         break;
@@ -1675,16 +1676,17 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private void writeLogPlaceOrder(Order.OrderType orderType, BigDecimal tradeableAmount,
-            String placingType, BigDecimal thePrice, String orderId, String status, String counterForLogs) {
+            String placingType, BigDecimal thePrice, String orderId, String status, String counterForLogs, OrderResult rawResult) {
 
-        final String message = String.format("#%s/end: %s %s amount=%s, quote=%s, orderId=%s, status=%s",
+        final String message = String.format("#%s/end: %s %s amount=%s, quote=%s, orderId=%s, status=%s; rawResult=%s",
                 counterForLogs,
                 placingType, //isMoving ? "Moving3:Moved" : "maker",
                 Utils.convertOrderTypeName(orderType),
                 tradeableAmount.toPlainString(),
                 thePrice,
                 orderId,
-                status);
+                status,
+                rawResult);
         tradeLogger.info(message);
         logger.info(message);
         ordersLogger.info(message);
