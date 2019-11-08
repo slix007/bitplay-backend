@@ -66,8 +66,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -103,8 +103,9 @@ public abstract class MarketService extends MarketServiceWithState {
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3,
             new ThreadFactoryBuilder().setNameFormat(getName() + "-overload-scheduler-%d").build());
-    public final ExecutorService ooSingleExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory(getName() + "-oo-executor"));
-    protected final Scheduler ooSingleScheduler = Schedulers.from(ooSingleExecutor);
+    public final ScheduledExecutorService ooSingleExecutor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-oo-executor"));
+    protected final Scheduler freeOoCheckerScheduler =
+            Schedulers.from(Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-free-oo-checker")));
     protected final Scheduler indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-index-executor-%d").build()));
     protected final Scheduler stateUpdater = Schedulers.from(Executors.newSingleThreadExecutor(
@@ -726,14 +727,21 @@ public abstract class MarketService extends MarketServiceWithState {
     // Only one active task 'freeOoChecker' in ooSingleScheduler.
     private PublishProcessor<Integer> freeOoChecker = PublishProcessor.create();
     private Disposable disposable = Flowable.fromPublisher(freeOoChecker)
-            .observeOn(ooSingleScheduler)
+            .observeOn(freeOoCheckerScheduler)
             .onBackpressureBuffer(1)
             .onBackpressureDrop()
-            .subscribe((i) -> setFreeIfNoOpenOrders("freeOoChecker", i),
+            .subscribe((i) -> {
+                        if (i > 2) {
+                            Thread.sleep(1000);
+                        }
+                        final Future<?> task = ooSingleExecutor.submit(() -> setFreeIfNoOpenOrders("freeOoChecker", i));
+                        task.get(10, TimeUnit.SECONDS);
+                    },
                     e -> {
                         logger.error("freeOoChecker error", e);
                         getTradeLogger().warn("freeOoChecker error " + e.getMessage());
-                    });
+                    }
+            );
 
     protected void setFreeIfNoOpenOrders(String checkerName, int attempt) {
         try {
@@ -744,7 +752,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 ) { // log possible errors //todo remove this log
                     logger.info("freeOoChecker attempt " + attempt + ", " + getName() + ", marketState=" + getMarketState());
                 }
-                ooSingleScheduler.scheduleDirect(() -> addCheckOoToFreeRepeat(attempt + 1), 1, TimeUnit.SECONDS);
+                addCheckOoToFreeRepeat(attempt + 1);
             }
             if ((marketState == MarketState.ARBITRAGE || marketState == MarketState.WAITING_ARB)
                     && !hasOpenOrders()
