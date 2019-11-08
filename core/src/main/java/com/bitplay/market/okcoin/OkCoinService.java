@@ -1581,7 +1581,7 @@ public class OkCoinService extends MarketServicePreliq {
                     tradeResponse.setOrderId(orderId);
 
                     final LimitOrder resultOrder = checkOrderStatus(counterNameWithPortion, attempt, placingSubType, orderType, tradeableAmount, thePrice,
-                            orderId);
+                            orderId, 1);
 
                     tradeResponse.setLimitOrder(resultOrder);
                     final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingSubType, signalType,
@@ -1635,7 +1635,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private LimitOrder checkOrderStatus(String counterNameWithPortion, int attemptCount, PlacingType placingType, OrderType orderType,
-            BigDecimal tradeableAmount, BigDecimal thePrice, String orderId) throws IOException {
+                                        BigDecimal tradableAmount, BigDecimal thePrice, String orderId, int checkAttempt) throws IOException {
 
         if (placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK) {
             final Collection<Order> order = getApiOrders(new String[]{orderId});
@@ -1653,14 +1653,23 @@ public class OkCoinService extends MarketServicePreliq {
                 return (LimitOrder) theOrder;
             }
 
-            final String warn = String.format("#%s/%s id=%s, checkAfterPlacing: no orders in response",
-                    counterNameWithPortion,
-                    attemptCount,
-                    orderId);
+            final String warn = String.format("#%s/%s id=%s, checkAfterPlacing: no orders in response. checkAttempt=%s",
+                    counterNameWithPortion, attemptCount, orderId, checkAttempt);
             tradeLogger.info(warn);
             logger.info(warn);
+            if (checkAttempt < 3) {
+                if (checkAttempt > 1) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        logger.error("Sleep interrupted", e);
+                    }
+                }
+                return checkOrderStatus(counterNameWithPortion, attemptCount, placingType, orderType, tradableAmount, thePrice, orderId,
+                        checkAttempt + 1);
+            }
         }
-        return new LimitOrder(orderType, tradeableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
+        return new LimitOrder(orderType, tradableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
                 thePrice, BigDecimal.ZERO, BigDecimal.ZERO, OrderStatus.PENDING_NEW);
 
     }
