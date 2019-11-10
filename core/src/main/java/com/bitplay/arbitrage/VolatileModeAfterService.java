@@ -132,7 +132,10 @@ public class VolatileModeAfterService {
             if (amountDiff.signum() != 0) {
 
                 fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
-                fplayTradeService.info(tradeId, counterForLogs, String.format("#%s change Trading mode to current-volatile(replacing order)", counterForLogs));
+                final String changeModeMsg = String.format("#%s change Trading mode to current-volatile(replacing order)", counterForLogs);
+                fplayTradeService.info(tradeId, counterForLogs, changeModeMsg);
+                marketService.getTradeLogger().warn(changeModeMsg);
+                log.info(changeModeMsg);
 
                 final OrderType orderType = amountDiff.signum() > 0 ? OrderType.BID : OrderType.ASK;
                 final BigDecimal amountLeft = amountDiff.abs();
@@ -147,8 +150,10 @@ public class VolatileModeAfterService {
                             portionsQty, s.getArbScheme());
                 }
             } else {
-                log.warn("VolatileMode activated: no amountLeft.");
-                marketService.getTradeLogger().warn("VolatileMode activated: no amountLeft.");
+                final String msg = "VolatileMode activated: no amountLeft.";
+                log.warn(msg);
+                fplayTradeService.info(tradeId, counterForLogs, msg);
+                marketService.getTradeLogger().warn(msg);
                 marketService.setMarketState(prevState);
             }
         }

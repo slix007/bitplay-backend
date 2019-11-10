@@ -1670,6 +1670,10 @@ public class OkCoinService extends MarketServicePreliq {
                         checkAttempt + 1);
             }
         }
+
+        final String msg = "skip checkOrderStatus. Assume it is NEW.";
+        tradeLogger.warn(msg);
+        logger.warn(msg);
         return new LimitOrder(orderType, tradableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
                 thePrice, BigDecimal.ZERO, BigDecimal.ZERO, OrderStatus.PENDING_NEW);
 
@@ -2017,6 +2021,9 @@ public class OkCoinService extends MarketServicePreliq {
         updateFplayOrdersToCurrStab(res, stub);
         final boolean cnlSuccess = res.size() > 0;
         if (beforePlacing && cnlSuccess) {
+            final String msg = String.format("#%s (beforePlacing && cnlSuccess) changing to PLACING_ORDER...", stub.getCounterWithPortion());
+            getTradeLogger().info(msg);
+            logger.info(msg);
             setMarketState(MarketState.PLACING_ORDER);
         } else {
             addCheckOoToFree();
