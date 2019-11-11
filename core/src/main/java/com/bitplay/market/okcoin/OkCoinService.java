@@ -1536,11 +1536,13 @@ public class OkCoinService extends MarketServicePreliq {
                 } else {
 
                     final Instant startReq = Instant.now();
+                    boolean postOnly = false;
                     FuturesOrderTypeEnum futuresOrderType = FuturesOrderTypeEnum.NORMAL_LIMIT;
                     if (placingSubType == PlacingType.MAKER || placingSubType == PlacingType.MAKER_TICK) {
                         final boolean theLastAndExcepted = (attempt == maxAttempts && poArgs.getPostOnlyWithoutLast());
                         if (poArgs.getPostOnlyEnabled() && !theLastAndExcepted) {
                             futuresOrderType = FuturesOrderTypeEnum.POST_ONLY;
+                            postOnly = true;
                         }
                     }
                     final String msgPlacing = String.format("#%s/%s placing order inst=%s, t=%s, p=%s, a=%s, %s",
@@ -1581,7 +1583,7 @@ public class OkCoinService extends MarketServicePreliq {
                     tradeResponse.setOrderId(orderId);
 
                     final LimitOrder resultOrder = checkOrderStatus(counterNameWithPortion, attempt, placingSubType, orderType, tradeableAmount, thePrice,
-                            orderId, 1);
+                            orderId, 1, postOnly);
 
                     tradeResponse.setLimitOrder(resultOrder);
                     final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingSubType, signalType,
@@ -1636,39 +1638,31 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private LimitOrder checkOrderStatus(String counterNameWithPortion, int attemptCount, PlacingType placingType, OrderType orderType,
-                                        BigDecimal tradableAmount, BigDecimal thePrice, String orderId, int checkAttempt) throws IOException {
+                                        BigDecimal tradableAmount, BigDecimal thePrice, String orderId, int checkAttempt, boolean postOnly) throws IOException {
 
         if (placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK) {
             final Collection<Order> order = getApiOrders(new String[]{orderId});
+            final String preStr = String.format("#%s/%s checkAfterPlacing(check=%s): ", counterNameWithPortion, attemptCount, checkAttempt);
             if (order.size() > 0) {
                 Order theOrder = order.iterator().next();
-                final String msg = String.format("#%s/%s id=%s, checkAfterPlacing: status=%s, filled=%s",
-                        counterNameWithPortion,
-                        attemptCount,
-                        theOrder.getId(),
-                        theOrder.getStatus(),
-                        theOrder.getCumulativeAmount());
+                final String msg = String.format("%s id=%s, status=%s, filled=%s. postOnly=%s",
+                        preStr, theOrder.getId(), theOrder.getStatus(), theOrder.getCumulativeAmount(), postOnly);
                 tradeLogger.info(msg);
                 logger.info(msg);
+                if (postOnly && theOrder.getStatus() == OrderStatus.NEW) {
+                    final String warn = String.format("%s postOnly with status NEW.", preStr);
+                    if (needRepeatCheckOrderStatus(checkAttempt, warn))
+                        return checkOrderStatus(counterNameWithPortion, attemptCount, placingType, orderType, tradableAmount, thePrice, orderId,
+                                checkAttempt + 1, postOnly);
+                }
 
                 return (LimitOrder) theOrder;
             }
 
-            final String warn = String.format("#%s/%s id=%s, checkAfterPlacing: no orders in response. checkAttempt=%s",
-                    counterNameWithPortion, attemptCount, orderId, checkAttempt);
-            tradeLogger.info(warn);
-            logger.info(warn);
-            if (checkAttempt < 3) {
-                if (checkAttempt > 1) {
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        logger.error("Sleep interrupted", e);
-                    }
-                }
+            final String warn = String.format(preStr + "no orders in response", counterNameWithPortion, attemptCount, orderId);
+            if (needRepeatCheckOrderStatus(checkAttempt, warn))
                 return checkOrderStatus(counterNameWithPortion, attemptCount, placingType, orderType, tradableAmount, thePrice, orderId,
-                        checkAttempt + 1);
-            }
+                        checkAttempt + 1, postOnly);
         }
 
         final String msg = "skip checkOrderStatus. Assume it is NEW.";
@@ -1679,8 +1673,28 @@ public class OkCoinService extends MarketServicePreliq {
 
     }
 
+    private boolean needRepeatCheckOrderStatus(int checkAttempt, String warn) throws IOException {
+        if (checkAttempt < 3) {
+            if (checkAttempt > 1) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    logger.error("Sleep interrupted", e);
+                }
+            }
+            final String warnTrue = warn + "do repeat; checkAttempt=" + checkAttempt;
+            tradeLogger.info(warnTrue);
+            logger.info(warnTrue);
+            return true;
+        }
+        final String warnFalse = warn + "no checkAttempt left";
+        tradeLogger.info(warnFalse);
+        logger.info(warnFalse);
+        return false;
+    }
+
     private void writeLogPlaceOrder(Order.OrderType orderType, BigDecimal tradeableAmount,
-            String placingType, BigDecimal thePrice, String orderId, String status, String counterForLogs, OrderResult rawResult) {
+                                    String placingType, BigDecimal thePrice, String orderId, String status, String counterForLogs, OrderResult rawResult) {
 
         final String message = String.format("#%s/end: %s %s amount=%s, quote=%s, orderId=%s, status=%s; rawResult=%s",
                 counterForLogs,
