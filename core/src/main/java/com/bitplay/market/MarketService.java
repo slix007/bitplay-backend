@@ -729,7 +729,7 @@ public abstract class MarketService extends MarketServiceWithState {
     //    private Disposable periodicChecker = freeOoCheckerScheduler.schedulePeriodicallyDirect(this::addCheckOoToFree, 10, 2, TimeUnit.SECONDS);
     private Disposable disposable = Flowable.fromPublisher(freeOoChecker)
             .observeOn(freeOoCheckerScheduler)
-            .onBackpressureBuffer(1)
+            .onBackpressureBuffer(2)
             .onBackpressureDrop()
             .subscribe((i) -> {
                         if (i > 2) {
