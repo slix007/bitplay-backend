@@ -207,8 +207,6 @@ public class BitmexService extends MarketServicePreliq {
     protected BigDecimal bestAskXBTUSD = BigDecimal.ZERO;
 
     @Autowired
-    private PosDiffService posDiffService;
-    @Autowired
     private PersistenceService persistenceService;
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
@@ -268,7 +266,7 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public PosDiffService getPosDiffService() {
-        return posDiffService;
+        return arbitrageService.getPosDiffService();
     }
 
     @Override

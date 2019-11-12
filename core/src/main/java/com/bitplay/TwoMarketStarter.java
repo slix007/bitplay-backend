@@ -14,16 +14,18 @@ import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
@@ -71,8 +73,8 @@ public class TwoMarketStarter {
         this.settingsRepositoryService = settingsRepositoryService;
     }
 
-    @PostConstruct
-    private void init() {
+    @EventListener(ApplicationReadyEvent.class)
+    public void init() {
 
         final ExecutorService startExecutor = Executors.newFixedThreadPool(2,
                 new ThreadFactoryBuilder().setNameFormat("starting-thread-%d").build());
@@ -147,4 +149,6 @@ public class TwoMarketStarter {
     public PosDiffService getPosDiffService() {
         return posDiffService;
     }
+
+
 }

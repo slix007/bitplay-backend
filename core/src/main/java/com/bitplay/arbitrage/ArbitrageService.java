@@ -2224,4 +2224,8 @@ public class ArbitrageService {
     public SlackNotifications getSlackNotifications() {
         return slackNotifications;
     }
+
+    public PosDiffService getPosDiffService() {
+        return posDiffService;
+    }
 }

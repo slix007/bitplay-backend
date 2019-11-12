@@ -189,16 +189,21 @@ public class OkCoinService extends MarketServicePreliq {
     private final LastPriceDeviationService lastPriceDeviationService;
     private final com.bitplay.persistance.TradeService fplayTradeService;
     private final OkcoinBalanceService okcoinBalanceService;
-    private final PosDiffService posDiffService;
     private final PersistenceService persistenceService;
     private final SettingsRepositoryService settingsRepositoryService;
     private final OrderRepositoryService orderRepositoryService;
-    private final OkexLimitsService okexLimitsService;
-    private final OOHangedCheckerService ooHangedCheckerService;
-    private final OkexTradeLogger tradeLogger;
+
+    // TODO remove circular dependencies
+    @Autowired
+    private OkexLimitsService okexLimitsService;
+    @Autowired
+    private OOHangedCheckerService ooHangedCheckerService;
+    @Autowired
+    private OkexTradeLogger tradeLogger;
     private final DefaultLogService defaultLogger;
     private final MonitoringDataService monitoringDataService;
-    private final MetricsDictionary metricsDictionary;
+    @Autowired
+    private MetricsDictionary metricsDictionary;
     private final CumPersistenceService cumPersistenceService;
     private final OkexSettlementService okexSettlementService;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -230,7 +235,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public PosDiffService getPosDiffService() {
-        return posDiffService;
+        return arbitrageService.getPosDiffService();
     }
 
     @Override
@@ -730,10 +735,9 @@ public class OkCoinService extends MarketServicePreliq {
                     final FplayOrder stub = new FplayOrder(this.getMarketId());
                     updateFplayOrdersToCurrStab(limitOrders, stub);
 
-                    getOpenOrders().forEach(o -> {
-                        writeFilledOrderLog(o);
-                        writeAvgPriceLog();
-                    });
+                    writeFilledOrderLog(limitOrders, getOpenOrders());
+
+                    writeAvgPriceLog();
 
                     addCheckOoToFree();
 
@@ -1573,6 +1577,9 @@ public class OkCoinService extends MarketServicePreliq {
                     final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingSubType, signalType,
                             portionsQty, portionsQtyMax);
                     addOpenOrder(fplayOrder);
+                    if (resultOrder.getStatus() == OrderStatus.FILLED) {
+                        addCheckOoToFree();
+                    }
 
                     String placingTypeString = (isMoving ? "Moving3:Moved:" : "") + placingSubType;
 
@@ -1658,13 +1665,11 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private boolean needRepeatCheckOrderStatus(int checkAttempt, String warn) throws IOException {
-        if (checkAttempt < 3) {
-            if (checkAttempt > 1) {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    logger.error("Sleep interrupted", e);
-                }
+        if (checkAttempt < 2) {
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                logger.error("Sleep interrupted", e);
             }
             final String warnTrue = warn + "do repeat; checkAttempt=" + checkAttempt;
             tradeLogger.info(warnTrue);
@@ -2475,9 +2480,18 @@ public class OkCoinService extends MarketServicePreliq {
         return false;
     }
 
-    private void writeFilledOrderLog(FplayOrder o) {
-        if (o.getOrderDetail().getOrderStatus() == OrderStatus.FILLED) {
-            logger.info(String.format("#%s FILLED by subscirption, id=%s", o.getCounterWithPortion(), o.getOrderId()));
+    private void writeFilledOrderLog(List<LimitOrder> limitOrders, List<FplayOrder> openOrders) {
+        for (LimitOrder u : limitOrders) {
+            final OrderStatus s = u.getStatus();
+            if (s == OrderStatus.FILLED || s == OrderStatus.CANCELED) {
+                final FplayOrder f = openOrders.stream()
+                        .filter(o -> o.getOrderId().equals(u.getId())).findFirst().orElse(null);
+                final String msg = String.format("#%s %s by subscirption, id=%s",
+                        f != null ? f.getCounterWithPortion() : null,
+                        s, u.getId());
+                tradeLogger.info(msg);
+                logger.info(msg);
+            }
         }
     }
 

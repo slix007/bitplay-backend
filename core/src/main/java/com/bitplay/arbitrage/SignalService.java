@@ -14,9 +14,9 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -29,18 +29,13 @@ import java.util.concurrent.Executors;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class SignalService {
 
-    final ExecutorService executorService = Executors.newFixedThreadPool(2, new NamedThreadFactory("signal-service"));
-
-    @Autowired
-    private TradeService tradeService;
-
-    @Autowired
-    private OkCoinService okexService;
-
-    @Autowired
-    private BitmexService bitmexService;
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2, new NamedThreadFactory("signal-service"));
+    private final TradeService tradeService;
+    private final OkCoinService okexService;
+    private final BitmexService bitmexService;
 
     public void placeOkexOrderOnSignal(OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
                                        PlacingType placingType, String counterName, Long tradeId, Instant lastObTime,

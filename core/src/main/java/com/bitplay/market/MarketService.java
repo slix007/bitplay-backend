@@ -355,7 +355,7 @@ public abstract class MarketService extends MarketServiceWithState {
             return;
         }
 
-        final String counterForLogs = getCounterName(placeOrderArgs.getTradeId());
+        final String counterForLogs = getCounterName(placeOrderArgs != null ? placeOrderArgs.getTradeId() : null);
         final String changeStat = String.format("#%s change status from %s to %s",
                 counterForLogs,
                 currMarketState,
@@ -726,6 +726,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     // Only one active task 'freeOoChecker' in ooSingleScheduler.
     private PublishProcessor<Integer> freeOoChecker = PublishProcessor.create();
+    //    private Disposable periodicChecker = freeOoCheckerScheduler.schedulePeriodicallyDirect(this::addCheckOoToFree, 10, 2, TimeUnit.SECONDS);
     private Disposable disposable = Flowable.fromPublisher(freeOoChecker)
             .observeOn(freeOoCheckerScheduler)
             .onBackpressureBuffer(1)
@@ -750,7 +751,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 if (marketState != MarketState.PLACING_ORDER
                         && (attempt == 2 || attempt == 100 || attempt == 10000 || attempt == 100000 || attempt == 1000000)
                 ) { // log possible errors //todo remove this log
-                    logger.info("freeOoChecker attempt " + attempt + ", " + getName() + ", marketState=" + getMarketState());
+                    logger.info("freeOoChecker attempt " + attempt + ", " + getName() + ", marketState=" + marketState);
                 }
                 addCheckOoToFreeRepeat(attempt + 1);
             }
