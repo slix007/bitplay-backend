@@ -756,7 +756,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 addCheckOoToFreeRepeat(attempt + 1);
             }
             if ((marketState == MarketState.ARBITRAGE || marketState == MarketState.WAITING_ARB)
-                    && !hasOpenOrders()
+                    && !hasOpenOrdersNoBlock()
                     && !hasDeferredOrders()) {
                 getTradeLogger().warn(checkerName);
                 logger.warn(checkerName);

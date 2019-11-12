@@ -81,6 +81,10 @@ public abstract class MarketServiceOpenOrders {
                 .collect(Collectors.toList());
     }
 
+    public boolean hasOpenOrdersNoBlock() {
+        return this.openOrders.stream().anyMatch(FplayOrder::isOpen);
+    }
+
     public synchronized boolean hasOpenOrders() {
         boolean hasOO;
 //        validateForDuplicatesOO(); // just to logs
