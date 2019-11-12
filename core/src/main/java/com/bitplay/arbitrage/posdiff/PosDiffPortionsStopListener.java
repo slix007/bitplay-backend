@@ -87,7 +87,7 @@ public class PosDiffPortionsStopListener {
             // not portions signal
             return;
         }
-        final List<FplayOrder> oo = bitmexService.getOnlyOpenFplayOrders();
+        final List<FplayOrder> oo = bitmexService.getOnlyOpenFplayOrdersClone();
         if (oo.size() == 0) {
             return; // no in progress
         }

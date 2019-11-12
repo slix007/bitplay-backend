@@ -6,6 +6,11 @@ import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.trade.LimitOrder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,10 +21,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.trade.LimitOrder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Created by Sergey Shurmin on 12/24/17.
@@ -56,6 +57,13 @@ public abstract class MarketServiceOpenOrders {
 
     public synchronized List<FplayOrder> getOpenOrdersClone() {
         return this.openOrders.stream()
+                .map(FplayOrder::cloneDeep)
+                .collect(Collectors.toList());
+    }
+
+    public synchronized List<FplayOrder> getOnlyOpenFplayOrdersClone() {
+        return this.openOrders.stream()
+                .filter(FplayOrder::isOpen)
                 .map(FplayOrder::cloneDeep)
                 .collect(Collectors.toList());
     }

@@ -14,46 +14,31 @@ import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.settings.BitmexChangeOnSoService;
-import io.micrometer.core.instrument.util.NamedThreadFactory;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class VolatileModeAfterService {
 
-    private final ExecutorService executorServiceBtm = Executors.newSingleThreadExecutor(new NamedThreadFactory("volatile-mode-after-btm"));
-    private final ExecutorService executorServiceOkex = Executors.newSingleThreadExecutor(new NamedThreadFactory("volatile-mode-after-okex"));
-    @Autowired
-    private SettingsRepositoryService settingsRepositoryService;
-
-    @Autowired
-    private SignalService signalService;
-
-    @Autowired
-    private OkCoinService okexService;
-
-    @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private BitmexChangeOnSoService bitmexChangeOnSoService;
-
-    @Autowired
-    private TradeService fplayTradeService;
+    private final SettingsRepositoryService settingsRepositoryService;
+    private final SignalService signalService;
+    private final OkCoinService okexService;
+    private final BitmexService bitmexService;
+    private final BitmexChangeOnSoService bitmexChangeOnSoService;
+    private final TradeService fplayTradeService;
 
     void justSetVolatileMode(Long tradeId, BtmFokAutoArgs btmFokAutoArgs) {
-        final List<FplayOrder> bitmexOO = bitmexService.getOnlyOpenFplayOrders();
-        final List<FplayOrder> okexOO = okexService.getOnlyOpenFplayOrders();
+        final List<FplayOrder> bitmexOO = bitmexService.getOnlyOpenFplayOrdersClone();
+        final List<FplayOrder> okexOO = okexService.getOnlyOpenFplayOrdersClone();
 
         // case 1. На обоих биржах выставлены лимитные ордера
         // case 3. На Bitmex System_overloaded, на Okex выставлен лимитный ордер.
@@ -119,6 +104,12 @@ public class VolatileModeAfterService {
             final String counterName = stub.getCounterName(); // no portions here
             final String counterForLogs = stub.getCounterWithPortion(); // no portions here
             final Integer portionsQty = lastOO != null ? lastOO.getPortionsQty() : null;
+            if (counterForLogs == null) {
+                final String warnStr = String.format("#%s WARNING counter is null!!!. orderToCancel=%s, stub=%s", counterForLogs, lastOO, stub);
+                fplayTradeService.info(tradeId, null, warnStr);
+                marketService.getTradeLogger().warn(warnStr);
+                log.info(warnStr);
+            }
 
             final List<LimitOrder> orders = marketService.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders", true, true);
             final BigDecimal amountDiff = orders.stream()

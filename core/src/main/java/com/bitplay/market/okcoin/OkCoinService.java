@@ -84,6 +84,7 @@ import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
@@ -141,6 +142,7 @@ import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service("okcoin")
+@RequiredArgsConstructor
 public class OkCoinService extends MarketServicePreliq {
 
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
@@ -183,42 +185,24 @@ public class OkCoinService extends MarketServicePreliq {
         return priceRange;
     }
 
-    @Autowired
-    private SlackNotifications slackNotifications;
-    @Autowired
-    private LastPriceDeviationService lastPriceDeviationService;
-    @Autowired
-    private com.bitplay.persistance.TradeService fplayTradeService;
-    @Autowired
-    private OkcoinBalanceService okcoinBalanceService;
-    @Autowired
-    private PosDiffService posDiffService;
-    @Autowired
-    private PersistenceService persistenceService;
-    @Autowired
-    private SettingsRepositoryService settingsRepositoryService;
-    @Autowired
-    private OrderRepositoryService orderRepositoryService;
-    @Autowired
-    private OkexLimitsService okexLimitsService;
-    @Autowired
-    private OOHangedCheckerService ooHangedCheckerService;
-    @Autowired
-    private OkexTradeLogger tradeLogger;
-    @Autowired
-    private DefaultLogService defaultLogger;
-    @Autowired
-    private MonitoringDataService monitoringDataService;
-    @Autowired
-    private MetricsDictionary metricsDictionary;
-    @Autowired
-    private CumPersistenceService cumPersistenceService;
-    @Autowired
-    private OkexSettlementService okexSettlementService;
-    @Autowired
-    private ApplicationEventPublisher applicationEventPublisher;
-    @Autowired
-    private DealPricesRepositoryService dealPricesRepositoryService;
+    private final SlackNotifications slackNotifications;
+    private final LastPriceDeviationService lastPriceDeviationService;
+    private final com.bitplay.persistance.TradeService fplayTradeService;
+    private final OkcoinBalanceService okcoinBalanceService;
+    private final PosDiffService posDiffService;
+    private final PersistenceService persistenceService;
+    private final SettingsRepositoryService settingsRepositoryService;
+    private final OrderRepositoryService orderRepositoryService;
+    private final OkexLimitsService okexLimitsService;
+    private final OOHangedCheckerService ooHangedCheckerService;
+    private final OkexTradeLogger tradeLogger;
+    private final DefaultLogService defaultLogger;
+    private final MonitoringDataService monitoringDataService;
+    private final MetricsDictionary metricsDictionary;
+    private final CumPersistenceService cumPersistenceService;
+    private final OkexSettlementService okexSettlementService;
+    private final ApplicationEventPublisher applicationEventPublisher;
+    private final DealPricesRepositoryService dealPricesRepositoryService;
 
     @Override
     protected ApplicationEventPublisher getApplicationEventPublisher() {
