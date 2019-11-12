@@ -1463,20 +1463,21 @@ public class OkCoinService extends MarketServicePreliq {
         throw new IllegalArgumentException("Use placeOrder instead");
     }
 
-    private TradeResponse placeNonTakerOrder(Long tradeId, Order.OrderType orderType, BigDecimal tradeableAmount, BestQuotes bestQuotes,
-            boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName,
-            boolean pricePlanOnStart, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion) throws Exception {
+    private TradeResponse placeNonTakerOrder(Long tradeId, Order.OrderType orderType, BigDecimal tradableAmount, BestQuotes bestQuotes,
+                                             boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName,
+                                             boolean pricePlanOnStart, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion)
+            throws Exception {
         final TradeResponse tradeResponse = new TradeResponse();
 
         BigDecimal thePrice;
 
-        if (tradeableAmount.compareTo(BigDecimal.ZERO) == 0) {
+        if (tradableAmount.compareTo(BigDecimal.ZERO) == 0) {
 
-            tradeResponse.setErrorCode("Not enough amount left. amount=" + tradeableAmount.toPlainString());
+            tradeResponse.setErrorCode("Not enough amount left. amount=" + tradableAmount.toPlainString());
 
         } else {
             // USING REST API
-            orderType = adjustOrderType(orderType, tradeableAmount);
+            orderType = adjustOrderType(orderType, tradableAmount);
 
             final String message = Utils.getTenAskBid(getOrderBook(), counterNameWithPortion,
                     String.format("Before %s placing, orderType=%s,", placingSubType, Utils.convertOrderTypeName(orderType)));
@@ -1538,7 +1539,7 @@ public class OkCoinService extends MarketServicePreliq {
                             instrumentDto.getInstrumentId(),
                             orderType,
                             thePrice,
-                            tradeableAmount,
+                            tradableAmount,
                             futuresOrderType
                     );
                     tradeLogger.info(msgPlacing);
@@ -1548,7 +1549,7 @@ public class OkCoinService extends MarketServicePreliq {
                                     instrumentDto.getInstrumentId(),
                                     orderType,
                                     thePrice,
-                                    tradeableAmount,
+                                    tradableAmount,
                                     futuresOrderType,
                                     leverage
                             )
@@ -1570,8 +1571,13 @@ public class OkCoinService extends MarketServicePreliq {
 
                     tradeResponse.setOrderId(orderId);
 
-                    final LimitOrder resultOrder = checkOrderStatus(counterNameWithPortion, attempt, placingSubType, orderType, tradeableAmount, thePrice,
-                            orderId, 1, postOnly);
+                    final LimitOrder resultOrder = placingSubType == PlacingType.MAKER || placingSubType == PlacingType.MAKER_TICK
+                            // do check
+                            ? checkOrderStatus(counterNameWithPortion, attempt, orderType, tradableAmount, thePrice,
+                            orderId, 1, postOnly)
+                            // no check for taker
+                            : new LimitOrder(orderType, tradableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
+                                    thePrice, BigDecimal.ZERO, BigDecimal.ZERO, OrderStatus.PENDING_NEW);
 
                     tradeResponse.setLimitOrder(resultOrder);
                     final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingSubType, signalType,
@@ -1591,7 +1597,7 @@ public class OkCoinService extends MarketServicePreliq {
                                 cnlBecausePostOnly ? "CANCELED Post only" : "",
                                 placingTypeString,
                                 Utils.convertOrderTypeName(orderType),
-                                tradeableAmount.toPlainString(),
+                                tradableAmount.toPlainString(),
                                 thePrice,
                                 orderId,
                                 orderResult.isResult());
@@ -1607,7 +1613,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                     orderIdToSignalInfo.put(orderId, bestQuotes);
 
-                    writeLogPlaceOrder(orderType, tradeableAmount,
+                    writeLogPlaceOrder(orderType, tradableAmount,
                             placingTypeString,
                             thePrice, orderId,
                             (resultOrder.getStatus() != null) ? resultOrder.getStatus().toString() : null,
@@ -1628,40 +1634,53 @@ public class OkCoinService extends MarketServicePreliq {
         return tradeResponse;
     }
 
-    private LimitOrder checkOrderStatus(String counterNameWithPortion, int attemptCount, PlacingType placingType, OrderType orderType,
+    private LimitOrder updateOrderDetails(String counterNameWithPortion, LimitOrder limitOrder, int checkAttempt)
+            throws IOException {
+        final String orderId = limitOrder.getId();
+        final Collection<Order> order = getApiOrders(new String[]{orderId});
+        final String preStr = String.format("#%s updateOrderDetails id=%s: ", counterNameWithPortion, orderId);
+        if (order.size() > 0) {
+            Order theOrder = order.iterator().next();
+            final String msg = String.format("%s status=%s, filled=%s.", preStr, theOrder.getStatus(), theOrder.getCumulativeAmount());
+            tradeLogger.info(msg);
+            logger.info(msg);
+            return (LimitOrder) theOrder;
+        }
+        final String warn = preStr + " no orders in response";
+        if (needRepeatCheckOrderStatus(checkAttempt, warn)) {
+            updateOrderDetails(counterNameWithPortion, limitOrder, checkAttempt + 1);
+        }
+        return limitOrder;
+    }
+
+    private LimitOrder checkOrderStatus(String counterNameWithPortion, int attemptCount, OrderType orderType,
                                         BigDecimal tradableAmount, BigDecimal thePrice, String orderId, int checkAttempt, boolean postOnly) throws IOException {
 
-        if (placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK) {
-            final Collection<Order> order = getApiOrders(new String[]{orderId});
-            final String preStr = String.format("#%s/%s checkAfterPlacing(check=%s): ", counterNameWithPortion, attemptCount, checkAttempt);
-            if (order.size() > 0) {
-                Order theOrder = order.iterator().next();
-                final String msg = String.format("%s id=%s, status=%s, filled=%s. postOnly=%s",
-                        preStr, theOrder.getId(), theOrder.getStatus(), theOrder.getCumulativeAmount(), postOnly);
-                tradeLogger.info(msg);
-                logger.info(msg);
-                if (postOnly && theOrder.getStatus() == OrderStatus.NEW) {
-                    final String warn = String.format("%s postOnly with status NEW.", preStr);
-                    if (needRepeatCheckOrderStatus(checkAttempt, warn))
-                        return checkOrderStatus(counterNameWithPortion, attemptCount, placingType, orderType, tradableAmount, thePrice, orderId,
-                                checkAttempt + 1, postOnly);
-                }
-
-                return (LimitOrder) theOrder;
+        final Collection<Order> order = getApiOrders(new String[]{orderId});
+        final String preStr = String.format("#%s/%s checkAfterPlacing(check=%s) id=%s: ", counterNameWithPortion, attemptCount, checkAttempt, orderId);
+        if (order.size() > 0) {
+            Order theOrder = order.iterator().next();
+            final String msg = String.format("%s status=%s, filled=%s. postOnly=%s",
+                    preStr, theOrder.getStatus(), theOrder.getCumulativeAmount(), postOnly);
+            tradeLogger.info(msg);
+            logger.info(msg);
+            if (postOnly && theOrder.getStatus() == OrderStatus.NEW) {
+                final String warn = String.format("%s postOnly with status NEW.", preStr);
+                if (needRepeatCheckOrderStatus(checkAttempt, warn))
+                    return checkOrderStatus(counterNameWithPortion, attemptCount, orderType, tradableAmount, thePrice, orderId,
+                            checkAttempt + 1, postOnly);
             }
-
-            final String warn = String.format(preStr + "no orders in response", counterNameWithPortion, attemptCount, orderId);
-            if (needRepeatCheckOrderStatus(checkAttempt, warn))
-                return checkOrderStatus(counterNameWithPortion, attemptCount, placingType, orderType, tradableAmount, thePrice, orderId,
-                        checkAttempt + 1, postOnly);
+            return (LimitOrder) theOrder;
         }
 
-        final String msg = "skip checkOrderStatus. Assume it is NEW.";
-        tradeLogger.warn(msg);
-        logger.warn(msg);
+        final String warn = preStr + "no orders in response";
+        if (needRepeatCheckOrderStatus(checkAttempt, warn)) {
+            return checkOrderStatus(counterNameWithPortion, attemptCount, orderType, tradableAmount, thePrice, orderId,
+                    checkAttempt + 1, postOnly);
+        }
+
         return new LimitOrder(orderType, tradableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
                 thePrice, BigDecimal.ZERO, BigDecimal.ZERO, OrderStatus.PENDING_NEW);
-
     }
 
     private boolean needRepeatCheckOrderStatus(int checkAttempt, String warn) throws IOException {
@@ -1997,21 +2016,29 @@ public class OkCoinService extends MarketServicePreliq {
                     }
                     final OrderResult result = bitplayOkexEchange.getTradeApiService().cancelOrder(instrDtos.get(0).getInstrumentId(), orderId);
                     final String translatedError = getErrorCodeTranslation(result);
-                    tradeLogger.info(String.format("#%s/%s %s id=%s,res=%s,code=%s,details=%s(%s)",
+                    final String msg = String.format("#%s/%s %s id=%s,res=%s,code=%s,details=%s(%s)",
                             counterForLogs, attemptCount,
                             logInfoId,
                             orderId,
                             result.isResult(),
                             result.getError_code(),
                             result.getError_message(),
-                            translatedError));
+                            translatedError);
+                    tradeLogger.info(msg);
+                    logger.info(msg);
 
                     if (result.isResult()
                             || result.getError_code().contains("32004") // result.getError_message()=="You have not uncompleted order at the moment"
                             || translatedError.contains("order does not exist")
                             || result.getError_message().contains("rder does not exist")) {
-                        order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
-                        res.add(order);
+
+                        if (beforePlacing) { // need the real cumulativeAmount.
+                            final LimitOrder updated = updateOrderDetails(counterForLogs, order, 1);
+                            res.add(updated);
+                        } else {
+                            order.setOrderStatus(OrderStatus.CANCELED); // can be FILLED, but it's ok here.
+                            res.add(order);
+                        }
                         break;
                     }
                 } catch (Exception e) {
