@@ -82,6 +82,9 @@ public abstract class MarketServiceOpenOrders {
     }
 
     public boolean hasOpenOrdersNoBlock() {
+        if (Thread.holdsLock(this)) {
+            logger.warn("hasOpenOrdersNoBlock... but something holdsBlock");
+        }
         return this.openOrders.stream().anyMatch(FplayOrder::isOpen);
     }
 

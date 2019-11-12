@@ -732,16 +732,17 @@ public abstract class MarketService extends MarketServiceWithState {
             .onBackpressureBuffer(2)
             .onBackpressureDrop()
             .subscribe((i) -> {
-                        if (i > 2) {
-                            Thread.sleep(1000);
+                        try {
+                            if (i > 2) {
+                                Thread.sleep(1000);
+                            }
+                            final Future<?> task = ooSingleExecutor.submit(() -> setFreeIfNoOpenOrders("freeOoChecker", i));
+                            task.get(10, TimeUnit.SECONDS);
+                        } catch (Exception e) {
+                            logger.error("freeOoChecker error", e);
+                            getTradeLogger().warn("freeOoChecker error " + e.toString());
                         }
-                        final Future<?> task = ooSingleExecutor.submit(() -> setFreeIfNoOpenOrders("freeOoChecker", i));
-                        task.get(10, TimeUnit.SECONDS);
-                    },
-                    e -> {
-                        logger.error("freeOoChecker error", e);
-                        getTradeLogger().warn("freeOoChecker error " + e.getMessage());
-                    }
+                    }, e -> logger.error("ERROR freeOoChecker error", e)
             );
 
     protected void setFreeIfNoOpenOrders(String checkerName, int attempt) {
