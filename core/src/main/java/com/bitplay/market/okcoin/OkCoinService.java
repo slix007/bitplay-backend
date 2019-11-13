@@ -1415,12 +1415,14 @@ public class OkCoinService extends MarketServicePreliq {
             if (message == null) {
                 logger.error("null", exception);
             } else {
-                if (message.contains("connect timed out") // SocketTimeoutException
-                        || message.contains("Read timed out") // SocketTimeoutException
-                        || message.contains("Signature does not match")
+                if (message.contains("connect timed out") // SocketTimeoutException api-v1?
+                        || message.contains("Read timed out") // SocketTimeoutException api-v1?
+                        || message.contains("Remote host closed connection during handshake") // api-v1?: javax.net.ssl.SSLHandshakeException
+                        || message.contains("Signature does not match") // api-v1
+                        // api-v3:
+                        || message.contains("Gateway Time-out")
                         || (message.contains("32019") && message.contains("Order price cannot be")) // more than 103% or less than 97%
                         // Code: 20018, translation: Order price differ more than 5% from the price in the last minute
-                        || message.contains("Remote host closed connection during handshake") // javax.net.ssl.SSLHandshakeException
                 ) { // ExchangeException
                     return NextStep.CONTINUE;
                 }
