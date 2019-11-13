@@ -136,9 +136,18 @@ public class VolatileModeAfterService {
                     signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false,
                             btmFokAutoArgs);
                 } else {
-                    final Settings s = settingsRepositoryService.getSettings();
-                    signalService.placeOkexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false,
-                            portionsQty, s.getArbScheme());
+                    if (amountLeft.signum() <= 0 && okexService.hasDeferredOrders()) {
+                        final String warnMsg = String.format("#%s current-volatile. amountLeft=%s and hasDeferredOrders", counterForLogs, amountLeft);
+                        fplayTradeService.info(tradeId, counterForLogs, warnMsg);
+                        marketService.getTradeLogger().warn(warnMsg);
+                        log.info(warnMsg);
+
+                        okexService.setMarketState(MarketState.WAITING_ARB);
+                    } else {
+                        final Settings s = settingsRepositoryService.getSettings();
+                        signalService.placeOkexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false,
+                                portionsQty, s.getArbScheme());
+                    }
                 }
             } else {
                 final String msg = "VolatileMode activated: no amountLeft.";
