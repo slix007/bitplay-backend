@@ -36,6 +36,9 @@ interface FuturesTradeApi {
     @GET("/api/futures/v3/{instrument_id}/position")
     Call<OkexOnePosition> getInstrumentPosition(@Path("instrument_id") String instrumentId);
 
+    @GET("/api/futures/v3/{instrument_id}/position")
+    Call<Object> getInstrumentPositionTest(@Path("instrument_id") String instrumentId);
+
     // Rate Limit: once per 10 seconds
     @GET("/api/futures/v3/accounts")
     Call<Accounts> getAccounts();

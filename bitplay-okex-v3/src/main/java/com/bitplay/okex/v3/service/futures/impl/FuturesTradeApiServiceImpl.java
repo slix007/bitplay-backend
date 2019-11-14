@@ -43,6 +43,9 @@ public class FuturesTradeApiServiceImpl implements FuturesTradeApiService {
     public OkexOnePosition getInstrumentPosition(String instrumentId) {
         return this.client.executeSync(this.api.getInstrumentPosition(instrumentId));
     }
+    public Object getInstrumentPositionTest(String instrumentId) {
+        return this.client.executeSync(this.api.getInstrumentPositionTest(instrumentId));
+    }
 
     @Override
     public Accounts getAccounts() {

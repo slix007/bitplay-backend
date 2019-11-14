@@ -4,7 +4,6 @@ import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
-import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.enums.FuturesDirectionEnum;
 import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiServiceImpl;
@@ -70,7 +69,18 @@ public class FuturesTradeApiServiceTest extends BaseTests {
 //        LOG.info(positions.getHolding().toString());
     }
 
-//    @Test
+    //    @Test
+    public void getInstrumentPositionObj() throws JsonProcessingException {
+        final FuturesTradeApiServiceImpl service = (FuturesTradeApiServiceImpl) this.tradeApiService;
+
+        final Object p = service.getInstrumentPositionTest("ETH-USD-191122");
+
+        final ObjectMapper mapper = new ObjectMapper();
+        final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);
+        LOG.info(s);
+    }
+
+    //    @Test
     public void getInstrumentPosition() throws JsonProcessingException {
         final Object p = tradeApiService.getInstrumentPosition("BTC-USD-190920");
 
