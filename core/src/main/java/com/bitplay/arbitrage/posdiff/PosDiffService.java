@@ -35,7 +35,6 @@ import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
 import lombok.ToString;
@@ -50,13 +49,9 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PreDestroy;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
@@ -122,28 +117,13 @@ public class PosDiffService {
     private TradeService tradeService;
     @Autowired
     private OkexSettlementService okexSettlementService;
-
-    private ScheduledExecutorService mdcExecutor;
-    private ScheduledExecutorService calcPosDiffExecutor;
-
-    @PreDestroy
-    public void preDestory() {
-        mdcExecutor.shutdown();
-        calcPosDiffExecutor.shutdown();
-    }
+    @Autowired
+    private NtUsdExecutor ntUsdExecutor;
 
     @EventListener(ApplicationReadyEvent.class)
-    private void init() {
-        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("mdc-thread-%d").build();
-        mdcExecutor = Executors.newSingleThreadScheduledExecutor(namedThreadFactory);
-        calcPosDiffExecutor = Executors.newSingleThreadScheduledExecutor(
-                new ThreadFactoryBuilder().setNameFormat("pos-diff-thread-%d").build()
-        );
-        calcPosDiffExecutor.scheduleWithFixedDelay(this::calcPosDiffJob,
-                60, 1, TimeUnit.SECONDS);
-
-        mdcExecutor.scheduleWithFixedDelay(this::checkMDCJob,
-                60, 1, TimeUnit.SECONDS);
+    public void init() {
+        ntUsdExecutor.addScheduledTask(this::calcPosDiffJob, 60, 1, TimeUnit.SECONDS);
+        ntUsdExecutor.addScheduledTask(this::checkMDCJob, 60, 1, TimeUnit.SECONDS);
     }
 
     public DelayTimer getDtMdc() {
@@ -178,7 +158,7 @@ public class PosDiffService {
         return dtExtraAdj;
     }
 
-    private void calcPosDiffJob() {
+    public void calcPosDiffJob() {
         if (!hasGeneralCorrStarted) {
             warningLogger.info("General correction has started");
             hasGeneralCorrStarted = true;
@@ -360,7 +340,7 @@ public class PosDiffService {
         }
     }
 
-    private void checkMDCJob() {
+    public void checkMDCJob() {
         arbitrageService.getParams().setLastMDCCheck(new Date());
 
         if (marketsStopped()) {
@@ -1573,13 +1553,9 @@ public class PosDiffService {
         return false;
     }
 
-    void addPosDiffTask(Runnable task) {
-        calcPosDiffExecutor.execute(task);
-    }
-
     public boolean checkIsPositionsEqual() {
 
-        addPosDiffTask(() -> {
+        ntUsdExecutor.addTask(() -> {
             try {
                 checkPosDiff();
             } catch (Exception e) {

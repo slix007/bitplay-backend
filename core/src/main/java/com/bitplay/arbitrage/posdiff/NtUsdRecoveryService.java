@@ -15,7 +15,6 @@ import com.bitplay.model.Pos;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
-import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
@@ -40,13 +39,14 @@ import java.math.RoundingMode;
 public class NtUsdRecoveryService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    final PosDiffService posDiffService;
-    final SettingsRepositoryService settingsRepositoryService;
-    final BitmexService bitmexService;
-    final ArbitrageService arbitrageService;
+    private final NtUsdExecutor ntUsdExecutor;
+    private final PosDiffService posDiffService;
+    private final SettingsRepositoryService settingsRepositoryService;
+    private final BitmexService bitmexService;
+    private final ArbitrageService arbitrageService;
 
     public void tryRecovery() {
-        posDiffService.addPosDiffTask(() -> {
+        ntUsdExecutor.addTask(() -> {
             try {
                 tryRecoveryTask();
             } catch (Exception e) {
@@ -57,9 +57,10 @@ public class NtUsdRecoveryService {
     }
 
     private void tryRecoveryTask() {
-        if (!arbitrageService.getFirstMarketService().isStarted() || posDiffService.marketsStopped()) {
-            return;
-        }
+//        if (!arbitrageService.getFirstMarketService().isStarted() || posDiffService.marketsStopped()) {
+//            return;
+//        }
+        doRecovery();
     }
 
     private void doRecovery() {
