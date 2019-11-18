@@ -1688,7 +1688,7 @@ public class OkCoinService extends MarketServicePreliq {
     private boolean needRepeatCheckOrderStatus(int checkAttempt, String warn) throws IOException {
         if (checkAttempt < 2) {
             try {
-                Thread.sleep(200);
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 logger.error("Sleep interrupted", e);
             }
