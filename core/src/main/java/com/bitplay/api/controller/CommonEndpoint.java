@@ -132,6 +132,15 @@ public class CommonEndpoint {
         return commonUIService.freeMarketsStates();
     }
 
+    @RequestMapping(value = "/market/recovery-nt-usd",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public ResultJson recoveryNtUsd() {
+        return commonUIService.recoveryNtUsd();
+    }
+
 //    @RequestMapping(value = "/market/tradable-amount", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 //    public TradableAmountJson getTradableAmount() {
 //        return commonUIService.getTradableAmount();

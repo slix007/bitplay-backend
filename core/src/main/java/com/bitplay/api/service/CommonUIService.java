@@ -27,10 +27,11 @@ import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
-import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
@@ -63,6 +64,11 @@ import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.settings.TradingModeService;
 import com.bitplay.utils.Utils;
+import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.dto.Order.OrderType;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -71,10 +77,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.time.LocalTime;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 4/17/17.
@@ -145,6 +147,9 @@ public class CommonUIService {
 
     @Autowired
     private OkexSettlementService okexSettlementService;
+
+    @Autowired
+    private NtUsdRecoveryService ntUsdRecoveryService;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -496,6 +501,11 @@ public class CommonUIService {
                 btm.isReadyForArbitrage(),
                 okex.isReadyForArbitrage()
         );
+    }
+
+    public ResultJson recoveryNtUsd() {
+        ntUsdRecoveryService.tryRecovery();
+        return new ResultJson("async request sent", "");
     }
 //
 //    public TradableAmountJson getTradableAmount() {

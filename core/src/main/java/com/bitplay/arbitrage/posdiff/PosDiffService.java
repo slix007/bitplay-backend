@@ -1100,7 +1100,7 @@ public class PosDiffService {
         }
     }
 
-    void adaptCorrByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax) {
+    private void adaptCorrByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax) {
         if (corrObj.signalType.isIncreasePos()) {
             if (corrObj.signalType.isMainSet() && !corrObj.signalType.isAdj()) {
                 dqlOpenMinAdjust(corrObj, dc, cm, isEth, bMax, okMax);
@@ -1127,7 +1127,7 @@ public class PosDiffService {
         }
     }
 
-    private void switchMarkets(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax,
+    void switchMarkets(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax,
                                MarketServicePreliq theOtherService) {
         corrObj.marketService = theOtherService;
         maxVolCorrAdapt(corrObj, bMax, okMax);
@@ -1139,7 +1139,7 @@ public class PosDiffService {
         }
     }
 
-    private void defineCorrectSignalType(CorrObj corrObj, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
+    void defineCorrectSignalType(CorrObj corrObj, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
         if (corrObj.marketService.getName().equals(BitmexService.NAME)) {
             if (bP.signum() == 0
                     || (bP.signum() > 0 && corrObj.orderType == OrderType.BID)
@@ -1197,6 +1197,7 @@ public class PosDiffService {
                 ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
                 : bP;
 
+        //noinspection UnnecessaryLocalVariable
         final BigDecimal okEquiv = okexUsd;
         final BigDecimal bEquiv = bitmexUsd.subtract(hedgeAmount);
 

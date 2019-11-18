@@ -25,6 +25,7 @@ public enum SignalType {
     CORR_BTC_MDC("corr_btc_mdc"),
     CORR_TIMER("corr_timer"),
     RECOVERY_NTUSD("recovery_nt_usd"),
+    RECOVERY_NTUSD_INCREASE_POS("recovery_nt_usd_increase_pos"),
     B_PRE_LIQ("b_preliq"),
     O_PRE_LIQ("o_preliq"),
     MANUAL_BUY("button_buy"),
@@ -114,6 +115,8 @@ public enum SignalType {
             res = B_CORR_BTC_INCREASE_POS;
         } else if (this.isCorr()) {
             res = B_CORR_INCREASE_POS;
+        } else if (this == RECOVERY_NTUSD || this == RECOVERY_NTUSD_INCREASE_POS) {
+            return RECOVERY_NTUSD_INCREASE_POS;
         }
         if (isBitmex) {
             return res;
@@ -133,6 +136,8 @@ public enum SignalType {
             res = B_CORR_BTC;
         } else if (this.isCorr()) {
             res = B_CORR;
+        } else if (this == RECOVERY_NTUSD || this == RECOVERY_NTUSD_INCREASE_POS) {
+            return RECOVERY_NTUSD;
         }
         if (isBitmex) {
             return res;

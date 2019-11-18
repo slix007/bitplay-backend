@@ -4,7 +4,6 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.persistance.domain.settings.ContractType;
 import lombok.Data;
-import lombok.ToString;
 import org.knowm.xchange.dto.Order;
 
 import java.math.BigDecimal;
@@ -22,5 +21,4 @@ public class CorrObj {
     MarketServicePreliq marketService;
     ContractType contractType;
     String errorDescription;
-    boolean increasePos = false;
 }
