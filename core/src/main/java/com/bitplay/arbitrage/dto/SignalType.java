@@ -24,6 +24,7 @@ public enum SignalType {
     CORR_MDC("corr_mdc"),
     CORR_BTC_MDC("corr_btc_mdc"),
     CORR_TIMER("corr_timer"),
+    RECOVERY_NTUSD("recovery_nt_usd"),
     B_PRE_LIQ("b_preliq"),
     O_PRE_LIQ("o_preliq"),
     MANUAL_BUY("button_buy"),

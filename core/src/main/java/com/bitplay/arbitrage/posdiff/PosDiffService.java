@@ -37,7 +37,6 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -884,12 +883,16 @@ public class PosDiffService {
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParamsExtra, dc, cm, isEth);
+            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex());
+            final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.ADJ) {
 
             fillCorrObjForAdj(corrObj, hedgeAmount, bP, oPL, oPS, cm, isEth, dc, true);
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams, dc, cm, isEth);
+            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
+            final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
 
@@ -898,7 +901,9 @@ public class PosDiffService {
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParamsExtra, dc, cm, isEth);
+            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex());
+            final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else { // corr
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
@@ -909,7 +914,9 @@ public class PosDiffService {
             } else {
                 adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
             }
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, corrParams, dc, cm, isEth);
+            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
+            final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
+            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } // end corr
 
@@ -1000,7 +1007,9 @@ public class PosDiffService {
                     slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
 
                     final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
-                    switchMarkets(corrObj, dc, cm, isEth, corrParams, theOtherService);
+                    final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
+                    final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
+                    switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
                     defineCorrectSignalType(corrObj, bP, oPL, oPS);
                     PlacingType pl = placingType == PlacingType.TAKER_FOK ? PlacingType.TAKER : placingType;
                     PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
@@ -1074,35 +1083,33 @@ public class PosDiffService {
         return adjLimit || corrLimit;
     }
 
-    private void adaptCorrAdjByMaxVolCorrAndDql(final CorrObj corrObj, final CorrParams corrParams, BigDecimal dc, BigDecimal cm, boolean isEth) {
-        maxVolCorrAdapt(corrObj, corrParams);
-        adaptCorrByDql(corrObj, dc, cm, isEth, corrParams);
+    void adaptCorrAdjByMaxVolCorrAndDql(final CorrObj corrObj, BigDecimal bMax, BigDecimal okMax, BigDecimal dc, BigDecimal cm, boolean isEth) {
+        maxVolCorrAdapt(corrObj, bMax, okMax);
+        adaptCorrByDql(corrObj, dc, cm, isEth, bMax, okMax);
     }
 
-    private void maxVolCorrAdapt(CorrObj corrObj, CorrParams corrParams) {
+    private void maxVolCorrAdapt(CorrObj corrObj, BigDecimal bMax, BigDecimal okMax) {
         if (corrObj.marketService.getName().equals(OkCoinService.NAME)) {
-            BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
             if (corrObj.correctAmount.compareTo(okMax) > 0) {
                 corrObj.correctAmount = okMax;
             }
         } else {
-            BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
             if (corrObj.correctAmount.compareTo(bMax) > 0) {
                 corrObj.correctAmount = bMax;
             }
         }
     }
 
-    private void adaptCorrByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, CorrParams corrParams) {
+    void adaptCorrByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax) {
         if (corrObj.signalType.isIncreasePos()) {
             if (corrObj.signalType.isMainSet() && !corrObj.signalType.isAdj()) {
-                dqlOpenMinAdjust(corrObj, dc, cm, isEth, corrParams);
+                dqlOpenMinAdjust(corrObj, dc, cm, isEth, bMax, okMax);
             }
             dqlCloseMinAdjust(corrObj);
         }
     }
 
-    private void dqlOpenMinAdjust(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, CorrParams corrParams) {
+    private void dqlOpenMinAdjust(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax) {
         final boolean dqlOpenViolated = corrObj.marketService.isDqlOpenViolated();
         if (dqlOpenViolated) {
             // check if other market isOk
@@ -1115,14 +1122,15 @@ public class PosDiffService {
                 final String switchMsg = String.format("%s switch markets. %s DQL_open_min is violated.", corrObj.signalType, corrObj.marketService.getName());
                 warningLogger.warn(switchMsg);
                 slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
-                switchMarkets(corrObj, dc, cm, isEth, corrParams, theOtherService);
+                switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
             }
         }
     }
 
-    private void switchMarkets(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, CorrParams corrParams, MarketServicePreliq theOtherService) {
+    private void switchMarkets(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax,
+                               MarketServicePreliq theOtherService) {
         corrObj.marketService = theOtherService;
-        maxVolCorrAdapt(corrObj, corrParams);
+        maxVolCorrAdapt(corrObj, bMax, okMax);
         corrObj.signalType = corrObj.signalType.switchMarket();
         if (theOtherService.getName().equals(BitmexService.NAME)) {
             defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
@@ -1174,27 +1182,12 @@ public class PosDiffService {
         }
     }
 
-    @ToString
-    private class CorrObj {
-
-        CorrObj(SignalType signalType) {
-            this.signalType = signalType;
-        }
-
-        SignalType signalType;
-        OrderType orderType;
-        BigDecimal correctAmount;
-        MarketServicePreliq marketService;
-        ContractType contractType;
-        String errorDescription;
-    }
-
     /**
      * Corr/adj by 'trying decreasing pos'.
      */
     @SuppressWarnings("Duplicates")
-    private void adaptCorrAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
-            final BigDecimal dc, final BigDecimal cm, final boolean isEth) {
+    void adaptCorrAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
+                           final BigDecimal dc, final BigDecimal cm, final boolean isEth) {
 
         final BigDecimal okexUsd = isEth
                 ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
@@ -1514,7 +1507,7 @@ public class PosDiffService {
         }
     }
 
-    private void defineCorrectAmountBitmex(CorrObj corrObj, BigDecimal dc, final BigDecimal cm, final boolean isEth) {
+    void defineCorrectAmountBitmex(CorrObj corrObj, BigDecimal dc, final BigDecimal cm, final boolean isEth) {
         if (isEth) {
 //            adj/corr_cont_bitmex = abs(dc) / (10 / CM); // если делаем на Bitmex - usd to cont
             BigDecimal btmCm = BigDecimal.valueOf(10).divide(cm, 4, RoundingMode.HALF_UP);
@@ -1528,7 +1521,7 @@ public class PosDiffService {
         }
     }
 
-    private void defineCorrectAmountOkex(CorrObj corrObj, BigDecimal dc, boolean isEth) {
+    void defineCorrectAmountOkex(CorrObj corrObj, BigDecimal dc, boolean isEth) {
         if (isEth) {
 //            adj/corr_cont_okex = abs(dc) / 10; // если делаем на Okex
             corrObj.correctAmount = dc.abs().divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
@@ -1541,7 +1534,7 @@ public class PosDiffService {
         }
     }
 
-    private boolean outsideLimits(MarketService marketService, OrderType orderType, PlacingType placingType, SignalType signalType) {
+    boolean outsideLimits(MarketService marketService, OrderType orderType, PlacingType placingType, SignalType signalType) {
         if (marketService.getName().equals(BitmexService.NAME) && bitmexLimitsService.outsideLimits()) {
             warningLogger.error("Attempt of correction when outside limits. " + bitmexLimitsService.getLimitsJson());
             return true;

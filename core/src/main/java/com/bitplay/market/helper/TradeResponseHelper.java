@@ -1,9 +1,6 @@
 package com.bitplay.market.helper;
 
 import com.bitplay.market.model.TradeResponse;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import lombok.NonNull;
 
 public class TradeResponseHelper {
@@ -15,17 +12,17 @@ public class TradeResponseHelper {
         return errorCode;
     }
 
-    private String parseHttpErrorCodeOk(String errorCode) {
-        // 32015 :                                                  // margin ratio is lower than 100% before opening positions 32015
-        // 32016 : Risk rate lower than 100% after opening position // margin ratio is lower than 100% after opening position   32016
-        //                                                          // Risk ratio too high,Margin ratio too low when placing order	35008
-        //                                                          // Account risk too high	35053
-        //                                                          // Insufficient cross margin	35052
-        //                                                          // Insufficient account balance	35055
-        //                                                          //
+    private String parseHttpErrorCodeOk(String errorCode) { // okex api v3
+        // margin ratio is lower than 100% before opening positions 32015
+        // margin ratio is lower than 100% after opening position   32016
+        // Risk ratio too high,Margin ratio too low when placing order	35008
+        // Account risk too high	35053
+        // Insufficient cross margin	35052
+        // Insufficient account balance	35055
         if (errorCode.contains("32015")
                 || errorCode.contains("32016")
                 || errorCode.contains("35008")
+                || errorCode.contains("35053")
                 || errorCode.contains("35052")
                 || errorCode.contains("35055")
         ) {
