@@ -3,38 +3,23 @@ package com.bitplay.persistance;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.repository.OrderRepository;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-import org.knowm.xchange.dto.trade.LimitOrder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 12/4/17.
  */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class OrderRepositoryService {
 
-    private MongoOperations mongoOperation;
-
-    private ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("order-repo-%d").build());
-//    private Object lock = new Object();
-
-    @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
-    public OrderRepositoryService(MongoOperations mongoOperation) {
-        this.mongoOperation = mongoOperation;
-    }
+    private final OrderRepository orderRepository;
 
     public FplayOrder findOne(String id) {
         return orderRepository.findOne(id);
@@ -45,49 +30,44 @@ public class OrderRepositoryService {
     }
 
     private FplayOrder updateTask(FplayOrder updated) {
-        try {
-            final String orderId = updated.getOrderId();
-            FplayOrder one = orderRepository.findOne(orderId);
-            if (one == null) {
-                return orderRepository.save(updated);
-            }
-
-            FplayOrderUtils.updateFplayOrderFields(one, updated);
-
-            orderRepository.save(one);
-            return one;
-        } catch (Exception e) {
-            e.printStackTrace();
+//        final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+//        log.info("updateTask " + updated.getOrderId() + "; " + stackTrace[4]);
+//        log.info("updateTask from "
+//                + "\n " + stackTrace[3] // updateSync
+//                + "\n " + stackTrace[4] //
+//                + "\n " + stackTrace[5]
+//        );
+        final String orderId = updated.getOrderId();
+        FplayOrder one = orderRepository.findOne(orderId);
+        if (one == null) {
+            return orderRepository.save(updated);
         }
-        return null;
+
+        FplayOrderUtils.updateFplayOrderFields(one, updated);
+        orderRepository.save(one);
+        return one;
     }
 
-    public Future<FplayOrder> updateAsync(FplayOrder updated) {
-        return executor.submit(() -> updateTask(updated));
-    }
-
+    @SuppressWarnings("UnusedReturnValue")
     public FplayOrder updateSync(FplayOrder updated) {
-        return updateTask(updated);
+        return updateWithOneRepeat(updated);
     }
 
-
-    public void updateAsync(Iterable<? extends FplayOrder> fplayOrders) {
-        for (FplayOrder fplayOrder : fplayOrders) {
-            executor.submit(() -> updateTask(fplayOrder));
+    private FplayOrder updateWithOneRepeat(FplayOrder updated) {
+        FplayOrder fplayOrder = null;
+        try {
+            try {
+                fplayOrder = updateTask(updated);
+            } catch (DuplicateKeyException | OptimisticLockingFailureException e) {
+                log.error("order save error " + e.toString());
+                fplayOrder = updateTask(updated);
+            }
+        } catch (DuplicateKeyException | OptimisticLockingFailureException e) {
+            log.error("order save double error " + e.toString());
+        } catch (Exception e) {
+            log.error("order save double error", e);
         }
-    }
-
-    public Long findTradeId(List<LimitOrder> trades) {
-        List<String> orderIds = trades.stream()
-                .map(LimitOrder::getId)
-                .collect(Collectors.toList());
-
-        return mongoOperation.find(new Query(Criteria.where("_id").in(orderIds)), FplayOrder.class)
-                .stream()
-                .map(FplayOrder::getTradeId)
-                .filter(Objects::nonNull)
-                .max(Long::compareTo)
-                .orElse(null);
+        return fplayOrder;
     }
 
 }

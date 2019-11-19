@@ -564,7 +564,7 @@ public class OkCoinService extends MarketServicePreliq {
             forecastPrice = result.getSettlement_price() != null ? result.getSettlement_price() : BigDecimal.ZERO;
 
         } catch (Exception e) {
-            if (e.getMessage().endsWith("timeout")) {
+            if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
                 logger.error("On fetchEstimatedDeliveryPrice timeout");
             } else {
                 logger.error("On fetchEstimatedDeliveryPrice", e);
