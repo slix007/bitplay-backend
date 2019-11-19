@@ -1216,7 +1216,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 .orElse(getCounterName());
     }
 
-    public void stopAllActions() {
+    public void stopAllActions(String counterForLogs) {
         shouldStopPlacing = true;
 
         try {
@@ -1236,7 +1236,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 warningLogger.info(msg);
                 getTradeLogger().info(msg);
 
-                final FplayOrder stub = new FplayOrder(getMarketId(), null, "stopAllActions");
+                final FplayOrder stub = new FplayOrder(getMarketId(), null, counterForLogs);
                 cancelAllOrders(stub, "StopAllActions: CancelAllOpenOrders", false, true);
             }
         } catch (Exception e) {

@@ -64,20 +64,17 @@ public class NtUsdRecoveryService {
 
         posDiffService.stopTimerToImmediateCorrection(); // avoid double-correction
 
-        arbitrageService.getFirstMarketService().stopAllActions();
-        arbitrageService.getSecondMarketService().stopAllActions();
-        arbitrageService.resetArbState("timer-state-reset");
+        arbitrageService.getFirstMarketService().stopAllActions("recovery-nt-usd:stopAllActions");
+        arbitrageService.getSecondMarketService().stopAllActions("recovery-nt-usd:stopAllActions");
+        arbitrageService.resetArbState("recovery-nt-usd");
 
         BigDecimal dc = posDiffService.getDcMainSet().setScale(2, RoundingMode.HALF_UP);
-//        if (posDiffService.isPosEqualByMinAdj(dc)) {
-//            return "no recovery_nt_usd. (Only stopAllActions and resetArbState).";
-//        }
 
         final Settings s = settingsRepositoryService.getSettings();
         final BigDecimal cm = bitmexService.getCm();
         final boolean isEth = bitmexService.getContractType().isEth();
         final Integer maxBlockUsd = s.getCorrParams().getRecoveryNtUsd().getMaxBlockUsd();
-        BigDecimal maxBtm = PlacingBlocks.toBitmexCont(BigDecimal.valueOf(maxBlockUsd), isEth, cm);
+        BigDecimal maxBtm = PlacingBlocks.toBitmexContPure(BigDecimal.valueOf(maxBlockUsd), isEth, cm);
         BigDecimal maxOk = PlacingBlocks.toOkexCont(BigDecimal.valueOf(maxBlockUsd), isEth);
 
         BigDecimal bP = arbitrageService.getFirstMarketService().getPos().getPositionLong();

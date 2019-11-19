@@ -310,8 +310,8 @@ public class PosDiffService {
                     if (Thread.interrupted()) return;
 //                    doCorrectionImmediate(SignalType.CORR_TIMER); - no correction. StopAllActions instead.
                     if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
-                        arbitrageService.getFirstMarketService().stopAllActions();
-                        arbitrageService.getSecondMarketService().stopAllActions();
+                        arbitrageService.getFirstMarketService().stopAllActions("stopAllActions");
+                        arbitrageService.getSecondMarketService().stopAllActions("stopAllActions");
                         arbitrageService.resetArbState("timer-state-reset");
                         slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER: timer-state-reset");
                     }
@@ -389,8 +389,8 @@ public class PosDiffService {
                     final BigDecimal positionsDiffWithHedge = getDcExtraSet();
                     String msg = String.format("MDC extraSet posWithHedge=%s > mdc=%s", positionsDiffWithHedge, maxDiffCorr);
                     warningLogger.info(msg);
-                    arbitrageService.getFirstMarketService().stopAllActions();
-                    arbitrageService.getSecondMarketService().stopAllActions();
+                    arbitrageService.getFirstMarketService().stopAllActions("stopAllActions");
+                    arbitrageService.getSecondMarketService().stopAllActions("stopAllActions");
                     arbitrageService.resetArbState("MDC extraSet");
                     dt.stop();
                     slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER:" + msg);
@@ -421,8 +421,8 @@ public class PosDiffService {
                     final BigDecimal positionsDiffWithHedge = getDcMainSet();
                     String msg = String.format("%s posWithHedge=%s > mdc=%s", name, positionsDiffWithHedge, maxDiffCorr);
                     warningLogger.info(msg);
-                    arbitrageService.getFirstMarketService().stopAllActions();
-                    arbitrageService.getSecondMarketService().stopAllActions();
+                    arbitrageService.getFirstMarketService().stopAllActions("stopAllActions");
+                    arbitrageService.getSecondMarketService().stopAllActions("stopAllActions");
                     arbitrageService.resetArbState("MDC mainSet");
                     dt.stop();
                     slackNotifications.sendNotify(NotifyType.STOP_ALL_ACTIONS_BY_MDC_TIMER, "STOP_ALL_ACTIONS_BY_MDC_TIMER: " + msg);
@@ -1514,7 +1514,7 @@ public class PosDiffService {
             BigDecimal btmCm = BigDecimal.valueOf(10).divide(cm, 4, RoundingMode.HALF_UP);
             corrObj.correctAmount = dc.abs().divide(btmCm, 0, RoundingMode.HALF_UP);
         } else {
-            if (corrObj.signalType.isAdj()) {
+            if (corrObj.signalType.isAdj() || corrObj.signalType.isRecoveryNtUsd()) {
                 corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.HALF_UP);
             } else {
                 corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.DOWN);
@@ -1527,7 +1527,7 @@ public class PosDiffService {
 //            adj/corr_cont_okex = abs(dc) / 10; // если делаем на Okex
             corrObj.correctAmount = dc.abs().divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
         } else {
-            if (corrObj.signalType == SignalType.ADJ) {
+            if (corrObj.signalType.isAdj() || corrObj.signalType.isRecoveryNtUsd()) {
                 corrObj.correctAmount = dc.abs().divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
             } else {
                 corrObj.correctAmount = dc.abs().divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN);

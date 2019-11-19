@@ -84,7 +84,7 @@ public enum SignalType {
         return this == MANUAL_BUY || this == MANUAL_SELL || isRecoveryNtUsd();
     }
 
-    private boolean isRecoveryNtUsd() {
+    public boolean isRecoveryNtUsd() {
         return this == RECOVERY_NTUSD || this == RECOVERY_NTUSD_INCREASE_POS;
     }
 
