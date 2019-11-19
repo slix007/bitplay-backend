@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.concurrent.Future;
 
 import static org.knowm.xchange.dto.Order.OrderType;
 
@@ -42,34 +43,39 @@ public class NtUsdRecoveryService {
     private final ArbitrageService arbitrageService;
     private final TradeService tradeService;
 
-    public void tryRecovery() {
-        ntUsdExecutor.addTask(() -> {
+    public Future<String> tryRecovery() {
+        return ntUsdExecutor.runTask(() -> {
             try {
-                tryRecoveryTask();
+                return doRecovery();
             } catch (Exception e) {
-                warningLogger.error("recovery_nt_usd is failed." + e.getMessage());
                 log.error("recovery_nt_usd is failed.", e);
+                final String msg = "recovery_nt_usd is failed." + e.getMessage();
+                warningLogger.error(msg);
+                return msg;
             }
         });
     }
 
-    private void tryRecoveryTask() {
-//        if (!arbitrageService.getFirstMarketService().isStarted() || posDiffService.marketsStopped()) {
-//            return;
-//        }
-        doRecovery();
-    }
+    @SuppressWarnings("Duplicates")
+    private String doRecovery() {
+        String resultMsg = "";
 
-    private void doRecovery() {
+        String corrName = "recovery_nt_usd";
+
         posDiffService.stopTimerToImmediateCorrection(); // avoid double-correction
 
-        BigDecimal ntUsd = posDiffService.getDcMainSet().setScale(2, RoundingMode.HALF_UP);
+        arbitrageService.getFirstMarketService().stopAllActions();
+        arbitrageService.getSecondMarketService().stopAllActions();
+        arbitrageService.resetArbState("timer-state-reset");
+
+        BigDecimal dc = posDiffService.getDcMainSet().setScale(2, RoundingMode.HALF_UP);
+//        if (posDiffService.isPosEqualByMinAdj(dc)) {
+//            return "no recovery_nt_usd. (Only stopAllActions and resetArbState).";
+//        }
 
         final Settings s = settingsRepositoryService.getSettings();
         final BigDecimal cm = bitmexService.getCm();
         final boolean isEth = bitmexService.getContractType().isEth();
-//        final BigDecimal okexBlock = PlacingBlocks.toOkexCont(ntUsd, isEth);
-//        final BigDecimal btmBlock = PlacingBlocks.toBitmexCont(ntUsd, isEth, cm);
         final Integer maxBlockUsd = s.getCorrParams().getRecoveryNtUsd().getMaxBlockUsd();
         BigDecimal maxBtm = PlacingBlocks.toBitmexCont(BigDecimal.valueOf(maxBlockUsd), isEth, cm);
         BigDecimal maxOk = PlacingBlocks.toOkexCont(BigDecimal.valueOf(maxBlockUsd), isEth);
@@ -81,11 +87,7 @@ public class NtUsdRecoveryService {
 
         final CorrObj corrObj = new CorrObj(SignalType.RECOVERY_NTUSD);
 
-        // for logs
-        String corrName = "recovery_nt_usd";
-
         final BigDecimal hedgeAmount = posDiffService.getHedgeAmountMainSet();
-        final BigDecimal dc = posDiffService.getDcMainSet().setScale(2, RoundingMode.HALF_UP);
 
         final boolean btmSo = arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED;
         adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth, btmSo);
@@ -102,10 +104,11 @@ public class NtUsdRecoveryService {
 
         // 3. check DQL, correctAmount
         if (corrObj.errorDescription != null) { // DQL violation (open_min or close_min)
-            final String msg = String.format("No %s. %s", corrName, corrObj.errorDescription);
+            final String msg = String.format("No %s. %s.", corrName, corrObj.errorDescription);
             warningLogger.warn(msg);
             corrObj.marketService.getTradeLogger().warn(msg);
             log.warn(msg);
+            return msg;
         } else if (correctAmount.signum() <= 0) {
             final String msg = String.format("No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, btmPos=%s, okPos=%s, hedge=%s, signal=%s",
                     corrName,
@@ -119,10 +122,10 @@ public class NtUsdRecoveryService {
             warningLogger.warn(msg);
             corrObj.marketService.getTradeLogger().warn(msg);
             log.warn(msg);
+            return msg;
         } else {
             final PlacingType placingType = PlacingType.TAKER;
 
-            // TODO confirm with Maxim
             if (posDiffService.outsideLimits(marketService, orderType, placingType, signalType)) {
                 // do nothing
                 final String msg = String.format("outsideLimits. No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, btmPos=%s, okPos=%s, hedge=%s, signal=%s",
@@ -137,6 +140,7 @@ public class NtUsdRecoveryService {
                 warningLogger.warn(msg);
                 corrObj.marketService.getTradeLogger().warn(msg);
                 log.warn(msg);
+                return msg;
             } else {
 
                 arbitrageService.setSignalType(signalType);
@@ -157,7 +161,6 @@ public class NtUsdRecoveryService {
                 final String setStr = signalType.getCounterName().contains("btc") ? arbitrageService.getExtraSetStr() : arbitrageService.getMainSetStr();
                 tradeService.info(tradeId, counterName, String.format("#%s %s", signalTypeEx.getCounterName(), setStr));
                 tradeService.info(tradeId, counterName, message);
-
                 PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
                         .orderType(orderType)
                         .amount(correctAmount)
@@ -169,15 +172,19 @@ public class NtUsdRecoveryService {
                         .contractType(contractType)
                         .build();
                 marketService.getTradeLogger().info(message + placeOrderArgs.toString());
+                log.info(message);
+
                 final TradeResponse tradeResponse = marketService.placeOrder(placeOrderArgs);
 
-                // todo ask Maxkim
-                if (signalType.isMainSet() && tradeResponse.errorInsufficientFunds()) {
+                if (!tradeResponse.errorInsufficientFunds()) {
+                    resultMsg += parseResMsg(tradeResponse);
+                } else {
                     // switch the market
                     final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getName());
                     warningLogger.warn(switchMsg);
                     corrObj.marketService.getTradeLogger().info(switchMsg);
-////                    slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
+                    log.info(switchMsg);
+                    resultMsg += switchMsg;
 //
                     final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME)
                             ? okCoinService : bitmexService;
@@ -194,22 +201,35 @@ public class NtUsdRecoveryService {
                             .contractType(corrObj.contractType)
                             .build();
                     corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
+
                     final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
+
                     if (theOtherResp.errorInsufficientFunds()) {
                         final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", corrName);
                         warningLogger.warn(msg);
                         corrObj.marketService.getTradeLogger().warn(msg);
-//                        slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
+                        log.info(msg);
+                        resultMsg += msg;
+                    } else {
+                        resultMsg += parseResMsg(theOtherResp);
                     }
                 }
                 corrObj.marketService.getArbitrageService().setBusyStackChecker();
-
-//                slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
                 log.info(message);
-
             }
         }
+        return resultMsg;
+    }
 
+    private String parseResMsg(TradeResponse tradeResponse) {
+        String r = " orderId=" + tradeResponse.getOrderId();
+        if (tradeResponse.getErrorCode() != null) {
+            if (tradeResponse.getOrderId() == null) {
+                r += " error: ";
+            }
+            r += " " + tradeResponse.getErrorCode();
+        }
+        return r;
     }
 
     /**

@@ -81,7 +81,11 @@ public enum SignalType {
     }
 
     public boolean isManual() {
-        return this == MANUAL_BUY || this == MANUAL_SELL;
+        return this == MANUAL_BUY || this == MANUAL_SELL || isRecoveryNtUsd();
+    }
+
+    private boolean isRecoveryNtUsd() {
+        return this == RECOVERY_NTUSD || this == RECOVERY_NTUSD_INCREASE_POS;
     }
 
     public SignalType switchMarket() {
@@ -115,7 +119,7 @@ public enum SignalType {
             res = B_CORR_BTC_INCREASE_POS;
         } else if (this.isCorr()) {
             res = B_CORR_INCREASE_POS;
-        } else if (this == RECOVERY_NTUSD || this == RECOVERY_NTUSD_INCREASE_POS) {
+        } else if (this.isRecoveryNtUsd()) {
             return RECOVERY_NTUSD_INCREASE_POS;
         }
         if (isBitmex) {
@@ -136,7 +140,7 @@ public enum SignalType {
             res = B_CORR_BTC;
         } else if (this.isCorr()) {
             res = B_CORR;
-        } else if (this == RECOVERY_NTUSD || this == RECOVERY_NTUSD_INCREASE_POS) {
+        } else if (this.isRecoveryNtUsd()) {
             return RECOVERY_NTUSD;
         }
         if (isBitmex) {

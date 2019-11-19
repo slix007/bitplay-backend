@@ -1567,7 +1567,7 @@ public class PosDiffService {
         return dc.abs().subtract(posAdjustmentMax).signum() <= 0;
     }
 
-    private boolean isPosEqualByMinAdj(final BigDecimal dc) {
+    boolean isPosEqualByMinAdj(final BigDecimal dc) {
         final PosAdjustment pa = settingsRepositoryService.getSettings().getPosAdjustment();
         final BigDecimal posAdjustmentMin = pa.getPosAdjustmentMin();
         return dc.abs().subtract(posAdjustmentMin).signum() <= 0;

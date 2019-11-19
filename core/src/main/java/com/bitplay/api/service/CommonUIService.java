@@ -77,6 +77,8 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Sergey Shurmin on 4/17/17.
@@ -504,8 +506,14 @@ public class CommonUIService {
     }
 
     public ResultJson recoveryNtUsd() {
-        ntUsdRecoveryService.tryRecovery();
-        return new ResultJson("async request sent", "");
+        final Future<String> stringFuture = ntUsdRecoveryService.tryRecovery();
+        String res = "";
+        try {
+            res = stringFuture.get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            res = e.getMessage();
+        }
+        return new ResultJson(res, "");
     }
 //
 //    public TradableAmountJson getTradableAmount() {

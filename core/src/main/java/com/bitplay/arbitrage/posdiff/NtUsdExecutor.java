@@ -5,8 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -24,6 +26,10 @@ public class NtUsdExecutor {
 
     void addTask(Runnable task) {
         calcPosDiffExecutor.execute(task);
+    }
+
+    ScheduledFuture<String> runTask(Callable<String> task) {
+        return calcPosDiffExecutor.schedule(task, 0, TimeUnit.SECONDS);
     }
 
     void addScheduledTask(Runnable command, long initialDelay, long delay, TimeUnit unit) {
