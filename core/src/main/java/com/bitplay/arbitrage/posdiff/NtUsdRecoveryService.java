@@ -123,6 +123,22 @@ public class NtUsdRecoveryService {
         } else {
             final PlacingType placingType = PlacingType.TAKER;
 
+            arbitrageService.setSignalType(signalType);
+
+            // Market specific params
+            final String counterName = signalType.getCounterName();
+            marketService.setBusy(counterName);
+
+            final Long tradeId = arbitrageService.getLastTradeId();
+
+            final String soMark = (corrObj.marketService.getName().equals(OkCoinService.NAME)
+                    && corrObj.signalType.isIncreasePos()
+                    && arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED)
+                    ? "_SO" : "";
+            final SignalTypeEx signalTypeEx = new SignalTypeEx(signalType, soMark);
+
+            final String message = String.format("#%s %s %s amount=%s c=%s. ", counterName, placingType, orderType, correctAmount, contractType);
+
             if (posDiffService.outsideLimits(marketService, orderType, placingType, signalType)) {
                 // do nothing
                 final String msg = String.format("outsideLimits. No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, btmPos=%s, okPos=%s, hedge=%s, signal=%s",
@@ -137,24 +153,11 @@ public class NtUsdRecoveryService {
                 warningLogger.warn(msg);
                 corrObj.marketService.getTradeLogger().warn(msg);
                 log.warn(msg);
-                return msg;
+
+                resultMsg =
+                        switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj, placingType, counterName, tradeId, message);
             } else {
 
-                arbitrageService.setSignalType(signalType);
-
-                // Market specific params
-                final String counterName = signalType.getCounterName();
-                marketService.setBusy(counterName);
-
-                final Long tradeId = arbitrageService.getLastTradeId();
-
-                final String soMark = (corrObj.marketService.getName().equals(OkCoinService.NAME)
-                        && corrObj.signalType.isIncreasePos()
-                        && arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED)
-                        ? "_SO" : "";
-                final SignalTypeEx signalTypeEx = new SignalTypeEx(signalType, soMark);
-
-                final String message = String.format("#%s %s %s amount=%s c=%s. ", counterName, placingType, orderType, correctAmount, contractType);
                 final String setStr = signalType.getCounterName().contains("btc") ? arbitrageService.getExtraSetStr() : arbitrageService.getMainSetStr();
                 tradeService.info(tradeId, counterName, String.format("#%s %s", signalTypeEx.getCounterName(), setStr));
                 tradeService.info(tradeId, counterName, message);
@@ -176,44 +179,52 @@ public class NtUsdRecoveryService {
                 if (!tradeResponse.errorInsufficientFunds()) {
                     resultMsg += parseResMsg(tradeResponse);
                 } else {
-                    // switch the market
-                    final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getName());
-                    warningLogger.warn(switchMsg);
-                    corrObj.marketService.getTradeLogger().info(switchMsg);
-                    log.info(switchMsg);
-                    resultMsg += switchMsg;
-//
-                    final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME)
-                            ? okCoinService : bitmexService;
-                    posDiffService.switchMarkets(corrObj, dc, cm, isEth, maxBtm, maxOk, theOtherService);
-                    posDiffService.defineCorrectSignalType(corrObj, bP, oPL, oPS);
-                    PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
-                            .orderType(corrObj.orderType)
-                            .amount(corrObj.correctAmount)
-                            .placingType(placingType)
-                            .signalType(corrObj.signalType)
-                            .attempt(1)
-                            .tradeId(tradeId)
-                            .counterName(counterName)
-                            .contractType(corrObj.contractType)
-                            .build();
-                    corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
-
-                    final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
-
-                    if (theOtherResp.errorInsufficientFunds()) {
-                        final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", corrName);
-                        warningLogger.warn(msg);
-                        corrObj.marketService.getTradeLogger().warn(msg);
-                        log.info(msg);
-                        resultMsg += msg;
-                    } else {
-                        resultMsg += parseResMsg(theOtherResp);
-                    }
+                    resultMsg =
+                            switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj, placingType, counterName, tradeId, message);
                 }
-                corrObj.marketService.getArbitrageService().setBusyStackChecker();
-                log.info(message);
             }
+
+            corrObj.marketService.getArbitrageService().setBusyStackChecker();
+        }
+        return resultMsg;
+    }
+
+    private String switchMarkets(String resultMsg, String corrName, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal maxBtm, BigDecimal maxOk,
+                                 BigDecimal bP, BigDecimal oPL, BigDecimal oPS, CorrObj corrObj, PlacingType placingType, String counterName, Long tradeId,
+                                 String message) {
+        // switch the market
+        final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getName());
+        warningLogger.warn(switchMsg);
+        corrObj.marketService.getTradeLogger().info(switchMsg);
+        log.info(switchMsg);
+        resultMsg += switchMsg;
+//
+        final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME)
+                ? okCoinService : bitmexService;
+        posDiffService.switchMarkets(corrObj, dc, cm, isEth, maxBtm, maxOk, theOtherService);
+        posDiffService.defineCorrectSignalType(corrObj, bP, oPL, oPS);
+        PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
+                .orderType(corrObj.orderType)
+                .amount(corrObj.correctAmount)
+                .placingType(placingType)
+                .signalType(corrObj.signalType)
+                .attempt(1)
+                .tradeId(tradeId)
+                .counterName(counterName)
+                .contractType(corrObj.contractType)
+                .build();
+        corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
+
+        final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
+
+        if (theOtherResp.errorInsufficientFunds()) {
+            final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", corrName);
+            warningLogger.warn(msg);
+            corrObj.marketService.getTradeLogger().warn(msg);
+            log.info(msg);
+            resultMsg += msg;
+        } else {
+            resultMsg += parseResMsg(theOtherResp);
         }
         return resultMsg;
     }
