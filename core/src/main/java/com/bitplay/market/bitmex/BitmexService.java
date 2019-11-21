@@ -396,7 +396,9 @@ public class BitmexService extends MarketServicePreliq {
         if (account.get().getWallet().signum() == 0) {
             tradeLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener.", bitmexContractType.getCurrencyPair().toString());
             warningLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener.");
-            accountInfoSubscription.dispose();
+            if (accountInfoSubscription != null && !accountInfoSubscription.isDisposed()) {
+                accountInfoSubscription.dispose();
+            }
             accountInfoSubscription = startAccountInfoListener();
         }
         Instant end = Instant.now();
