@@ -10,6 +10,7 @@ import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ public class FuturesTradeApiServiceTest extends BaseTests {
     }
 
     @Test
+    @Ignore
     public void getAccounts() {
 //        final Account accounts = tradeApiService.getAccountsByCurrency("btc");
         final Object accounts = ((FuturesTradeApiServiceImpl) tradeApiService).testAccount("btc");
@@ -52,6 +54,7 @@ public class FuturesTradeApiServiceTest extends BaseTests {
     }
 
     @Test
+    @Ignore
     public void getPosition() throws JsonProcessingException {
         final OkexAllPositions positions = tradeApiService.getPositions();
 //        final Optional<Object> byInstrumentId = positions.getByInstrumentId("BTC-USD-190920");
