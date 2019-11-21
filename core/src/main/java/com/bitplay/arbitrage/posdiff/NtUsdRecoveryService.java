@@ -137,10 +137,10 @@ public class NtUsdRecoveryService {
                     ? "_SO" : "";
             final SignalTypeEx signalTypeEx = new SignalTypeEx(signalType, soMark);
 
-            final String message = String.format("#%s %s %s amount=%s c=%s. ", counterName, placingType, orderType, correctAmount, contractType);
+            final String message = String.format("#%s %s %s amount=%s c=%s. recovery_nt_usd maxBlock=%s",
+                    counterName, placingType, orderType, correctAmount, contractType, maxBlockUsd);
 
             if (posDiffService.outsideLimits(marketService, orderType, placingType, signalType)) {
-                // do nothing
                 final String msg = String.format("outsideLimits. No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, btmPos=%s, okPos=%s, hedge=%s, signal=%s",
                         corrName,
                         correctAmount,
@@ -158,7 +158,7 @@ public class NtUsdRecoveryService {
                         switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj, placingType, counterName, tradeId, message);
             } else {
 
-                final String setStr = signalType.getCounterName().contains("btc") ? arbitrageService.getExtraSetStr() : arbitrageService.getMainSetStr();
+                final String setStr = arbitrageService.getMainSetStr();
                 tradeService.info(tradeId, counterName, String.format("#%s %s", signalTypeEx.getCounterName(), setStr));
                 tradeService.info(tradeId, counterName, message);
                 PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
