@@ -11,7 +11,10 @@ public enum ContractMode {
     MODE3_SET_BU23("M20", "set_bu23", BitmexContractType.XBTZ19, OkexContractType.BTC_Quarter),
     MODE_TMP("TMP", "set_tmp", BitmexContractType.XBTU19, OkexContractType.BTC_Quarter),
     MODE4_SET_BU10_SET_EU11("M21", "set_eu11", BitmexContractType.ETHUSD, OkexContractType.ETH_ThisWeek),
-    MODE5_SET_BU10_SET_EU12("M22", "set_eu12", BitmexContractType.ETHUSD, OkexContractType.ETH_NextWeek);
+    MODE5_SET_BU10_SET_EU12("M22", "set_eu12", BitmexContractType.ETHUSD, OkexContractType.ETH_NextWeek),
+    BTC_SWAP_SET("BTC_SWAP", "BTC_SWAP", BitmexContractType.XBTUSD, OkexContractType.BTC_Swap),
+    ETH_SWAP_SET("ETH_SWAP", "ETH_SWAP", BitmexContractType.ETHUSD, OkexContractType.ETH_Swap),
+    ;
 
     private String modeName;
     private String mainSetName;

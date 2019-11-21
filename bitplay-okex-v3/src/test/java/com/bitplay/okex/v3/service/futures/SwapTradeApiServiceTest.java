@@ -4,21 +4,20 @@ import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
-import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
+import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
 import com.bitplay.okex.v3.enums.FuturesDirectionEnum;
 import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiService;
-import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiServiceImpl;
+import com.bitplay.okex.v3.service.swap.impl.SwapTradeApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FuturesTradeApiServiceTest extends BaseTests {
+public class SwapTradeApiServiceTest extends BaseTests {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FuturesTradeApiServiceTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SwapTradeApiServiceTest.class);
 
     private FuturesTradeApiService tradeApiService;
 
@@ -43,22 +42,24 @@ public class FuturesTradeApiServiceTest extends BaseTests {
     @Before
     public void setUp() {
         config = config();
-        tradeApiService = new FuturesTradeApiServiceImpl(config);
+        tradeApiService = new SwapTradeApiServiceImpl(config);
     }
 
     @Test
-    @Ignore
-    public void getAccounts() {
-//        final Account accounts = tradeApiService.getAccountsByCurrency("btc");
-        final Object accounts = ((FuturesTradeApiServiceImpl) tradeApiService).testAccount("btc");
-        toResultString(LOG, "depth", accounts);
+    public void getAccounts() throws JsonProcessingException {
+        final SwapAccounts accounts = tradeApiService.getAccountsByInstrumentId("ETH-USD-SWAP");
+        toResultString(LOG, "depth", accounts.getInfo());
+//        final Object accounts = ((SwapTradeApiServiceImpl) tradeApiService).testAccount("ETH-USD-SWAP");
+//        toResultString(LOG, "depth", accounts);
+//        LOG.info(accounts.toString());
     }
 
     @Test
-    @Ignore
     public void getPosition() throws JsonProcessingException {
-        final OkexAllPositions positions = tradeApiService.getPositions();
-//        final Optional<Object> byInstrumentId = positions.getByInstrumentId("BTC-USD-190920");
+//        final OkexAllPositions positions = tradeApiService.getPositions();
+        final Object positions = tradeApiService.testPositions();
+        System.out.println(positions);
+        toResultString(LOG, "pos", positions);
 
         final ObjectMapper mapper = new ObjectMapper();
 //        final OkexPosition pos = byInstrumentId.get();
@@ -73,20 +74,9 @@ public class FuturesTradeApiServiceTest extends BaseTests {
 //        LOG.info(positions.getHolding().toString());
     }
 
-    //    @Test
-    public void getInstrumentPositionObj() throws JsonProcessingException {
-        final FuturesTradeApiServiceImpl service = (FuturesTradeApiServiceImpl) this.tradeApiService;
-
-        final Object p = service.getInstrumentPositionTest("ETH-USD-191122");
-
-        final ObjectMapper mapper = new ObjectMapper();
-        final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);
-        LOG.info(s);
-    }
-
-    //    @Test
+    @Test
     public void getInstrumentPosition() throws JsonProcessingException {
-        final Object p = tradeApiService.testInstrumentPosition("BTC-USD-191025");
+        final Object p = tradeApiService.testInstrumentPosition("ETH-USD-SWAP");
 
         final ObjectMapper mapper = new ObjectMapper();
         final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);

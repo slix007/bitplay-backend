@@ -1,20 +1,23 @@
 package com.bitplay.persistance.domain.settings;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.okcoin.FuturesContract;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+
 @AllArgsConstructor
 @Getter
 public enum OkexContractType implements ContractType {
 
+    BTC_Swap(FuturesContract.Swap, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
     BTC_ThisWeek(FuturesContract.ThisWeek, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
     BTC_NextWeek(FuturesContract.NextWeek, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
     BTC_Quarter(FuturesContract.Quarter, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
+    ETH_Swap(FuturesContract.Swap, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
     ETH_ThisWeek(FuturesContract.ThisWeek, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
     ETH_NextWeek(FuturesContract.NextWeek, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
     ETH_Quarter(FuturesContract.Quarter, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
@@ -36,6 +39,10 @@ public enum OkexContractType implements ContractType {
      * Examples: BTC0907, ETH0831
      */
     public String getContractName() {
+        if (futuresContract == FuturesContract.Swap) {
+            return "SWAP";
+        }
+
         String toolName = getBaseTool();
         final LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         final String dayString = getExpString(now, false);

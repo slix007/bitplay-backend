@@ -1,9 +1,9 @@
-package com.bitplay.okex.v3.dto.futures.result;
+package com.bitplay.okex.v3.dto.swap.result;
+
+import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
-import lombok.Data;
 
 @Data
 public class Account {

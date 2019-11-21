@@ -38,4 +38,18 @@ public class LeverageResult {
      * Used in change request.
      */
     private String result;
+
+    // crossed:
+    // {
+    //    "long_leverage":"10.0000",
+    //    "short_leverage":"10.0000",
+    //    "margin_mode":"crossed",
+    //    "instrument_id":"BTC-USD-SWAP"
+    //}
+
+    /**
+     * SWAP
+     */
+    private String instrument_id;
+
 }

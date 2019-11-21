@@ -1,4 +1,4 @@
-package com.bitplay.okex.v3.service.futures.impl;
+package com.bitplay.okex.v3.service.swap.impl;
 
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
@@ -8,15 +8,15 @@ import com.bitplay.okex.v3.dto.futures.result.Instrument;
 
 import java.util.List;
 
-public abstract class FuturesMarketApiServiceImpl implements FuturesMarketApiService {
+public abstract class SwapMarketApiServiceImpl implements SwapMarketApiService {
 
 
     private ApiClient client;
-    private FuturesMarketApi api;
+    private SwapMarketApi api;
 
-    public FuturesMarketApiServiceImpl(ApiConfiguration config) {
+    public SwapMarketApiServiceImpl(ApiConfiguration config) {
         this.client = new ApiClient(config);
-        this.api = client.createService(FuturesMarketApi.class);
+        this.api = client.createService(SwapMarketApi.class);
     }
 
     @Override
@@ -26,7 +26,7 @@ public abstract class FuturesMarketApiServiceImpl implements FuturesMarketApiSer
 
     @Override
     public EstimatedPrice getEstimatedPrice(String instrumentId) {
-        return this.client.executeSync(this.api.getInstrumentEstimatedPrice(instrumentId));
+        return  null;
     }
 
     @Override

@@ -6,16 +6,16 @@ import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.Book;
 import com.bitplay.okex.v3.dto.futures.result.Instrument;
 import com.bitplay.okex.v3.service.futures.impl.FuturesMarketApiService;
-import com.bitplay.okex.v3.service.futures.impl.FuturesMarketApiServiceImpl;
+import com.bitplay.okex.v3.service.swap.impl.SwapMarketApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
-
-import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FuturesMarketApiServiceTest extends BaseTests {
+import java.util.List;
+
+public class SwapMarketApiServiceTest extends BaseTests {
 
     private static final Logger LOG = LoggerFactory.getLogger(FuturesMarketApiService.class);
 
@@ -37,7 +37,7 @@ public class FuturesMarketApiServiceTest extends BaseTests {
     @Before
     public void setUp() {
         config = config();
-        marketAPIService = new FuturesMarketApiServiceImpl(config);
+        marketAPIService = new SwapMarketApiServiceImpl(config);
     }
 
     @Test
@@ -46,9 +46,10 @@ public class FuturesMarketApiServiceTest extends BaseTests {
         toResultString(LOG, "Instruments", instruments);
     }
 
-//    @Test
+    @Test
     public void testOrderBook() throws JsonProcessingException {
-        final Book res = marketAPIService.getInstrumentBook("BTC-USD-190927");
-        System.out.println(res);
+        final Book res = marketAPIService.getInstrumentBook("BTC-USD-SWAP");
+        toResultString(LOG, "depth", res);
+//        System.out.println(res);
     }
 }

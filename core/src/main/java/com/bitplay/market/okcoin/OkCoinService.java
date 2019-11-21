@@ -33,7 +33,7 @@ import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
 import com.bitplay.okex.v3.ApiConfiguration;
-import com.bitplay.okex.v3.BitplayOkexEchange;
+import com.bitplay.okex.v3.FplayExchangeOkex;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Book;
@@ -96,6 +96,7 @@ import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.okcoin.FuturesContract;
 import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -215,7 +216,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private OkExStreamingExchange exchange; // for streaming only
-    private BitplayOkexEchange bitplayOkexEchange;
+    private FplayExchangeOkex bitplayOkexEchange;
     private Disposable orderBookSubscription;
     private Disposable userPositionSub;
     private Disposable userAccountSub;
@@ -340,7 +341,8 @@ public class OkCoinService extends MarketServicePreliq {
         config.setConnectTimeout(15);
         config.setReadTimeout(15);
         config.setWriteTimeout(15);
-        bitplayOkexEchange = new BitplayOkexEchange(config);
+
+        bitplayOkexEchange = FplayExchangeOkex.create(config, okexContractType.getFuturesContract().getName());
     }
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
@@ -560,7 +562,11 @@ public class OkCoinService extends MarketServicePreliq {
     public void fetchEstimatedDeliveryPrice() {
         Instant start = Instant.now();
         try {
-            final EstimatedPrice result = bitplayOkexEchange.getMarketAPIService().getEstimatedPrice(instrDtos.get(0).getInstrumentId());
+            final InstrumentDto instrumentDto = instrDtos.get(0);
+            if (instrumentDto.getFuturesContract() == FuturesContract.Swap) {
+                return;
+            }
+            final EstimatedPrice result = bitplayOkexEchange.getPublicApi().getEstimatedPrice(instrumentDto.getInstrumentId());
             forecastPrice = result.getSettlement_price() != null ? result.getSettlement_price() : BigDecimal.ZERO;
 
         } catch (Exception e) {
@@ -615,7 +621,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public String fetchPosition() throws Exception {
         final String instrumentId = instrDtos.get(0).getInstrumentId();
-        final OkexOnePosition position = bitplayOkexEchange.getTradeApiService().getInstrumentPosition(instrumentId);
+        final OkexOnePosition position = bitplayOkexEchange.getPrivateApi().getInstrumentPosition(instrumentId);
         if (position.getOne().isPresent()) {
             final Pos pos = OkexAllPositions.toPos(position.getOne().get());
             this.pos.set(pos);
@@ -649,6 +655,9 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     public Account getAccountApiV3() {
+        if (okexContractType.getFuturesContract() == FuturesContract.Swap) {
+            return bitplayOkexEchange.getTradeApiService().getAccountsByInstrumentId(instrDtos.get(0).getInstrumentId()).getInfo();
+        }
         final String currencyCode = okexContractType.getCurrencyPair().base.getCurrencyCode().toLowerCase();
         return bitplayOkexEchange.getTradeApiService().getAccountsByCurrency(currencyCode);
     }
@@ -1341,14 +1350,28 @@ public class OkCoinService extends MarketServicePreliq {
     public void fetchLeverRate() {
         Instant start = Instant.now();
         try {
-            final LeverageResult r = bitplayOkexEchange.getTradeApiService().getInstrumentLeverRate(okexContractType.getBaseTool());
-            if (!r.getMargin_mode().equals("crossed")) {
-                logger.warn("LeverageResult WARNING: margin_mode is " + r.getMargin_mode());
-            } else {
-                if (r.getLeverage() == null) { // !r.getCurrency().toUpperCase().equals(okexContractType.getBaseTool())
-                    logger.warn("LeverageResult WARNING: " + r);
+            if (okexContractType.getFuturesContract() == FuturesContract.Swap) {
+                final String instrumentId = instrDtos.get(0).getInstrumentId();
+                final LeverageResult r = bitplayOkexEchange.getTradeApiService().getInstrumentLeverRate(instrumentId);
+                if (!r.getMargin_mode().equals("crossed")) {
+                    logger.warn("LeverageResult WARNING: margin_mode is " + r.getMargin_mode());
                 } else {
-                    leverage = new BigDecimal(r.getLeverage());
+                    if (!r.getInstrument_id().toUpperCase().equals(instrumentId)) {
+                        logger.warn("LeverageResult WARNING: currency is different " + r.getCurrency());
+                    } else {
+                        leverage = new BigDecimal(r.getLeverage());
+                    }
+                }
+            } else {
+                final LeverageResult r = bitplayOkexEchange.getTradeApiService().getInstrumentLeverRate(okexContractType.getBaseTool());
+                if (!r.getMargin_mode().equals("crossed")) {
+                    logger.warn("LeverageResult WARNING: margin_mode is " + r.getMargin_mode());
+                } else {
+                    if (r.getLeverage() == null) { // !r.getCurrency().toUpperCase().equals(okexContractType.getBaseTool())
+                        logger.warn("LeverageResult WARNING: " + r);
+                    } else {
+                        leverage = new BigDecimal(r.getLeverage());
+                    }
                 }
             }
         } catch (Exception e) {
@@ -1365,8 +1388,11 @@ public class OkCoinService extends MarketServicePreliq {
     public String changeOkexLeverage(BigDecimal okexLeverage) {
         String resultDescription = "";
         try {
+            final String newCurrOrInstrId = okexContractType.getFuturesContract() == FuturesContract.Swap
+                    ? instrDtos.get(0).getInstrumentId()
+                    : okexContractType.getBaseTool().toLowerCase();
             final LeverageResult r = bitplayOkexEchange.getTradeApiService().changeLeverageOnCross(
-                    okexContractType.getBaseTool().toLowerCase(),
+                    newCurrOrInstrId,
                     okexLeverage.setScale(0, RoundingMode.DOWN).toPlainString()
             );
             leverage = new BigDecimal(r.getLeverage());

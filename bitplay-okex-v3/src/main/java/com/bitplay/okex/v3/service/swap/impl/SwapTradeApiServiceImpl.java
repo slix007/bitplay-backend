@@ -1,4 +1,4 @@
-package com.bitplay.okex.v3.service.futures.impl;
+package com.bitplay.okex.v3.service.swap.impl;
 
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
@@ -15,6 +15,7 @@ import com.bitplay.okex.v3.dto.futures.result.OpenOrdersResult;
 import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
+import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiService;
 
 import java.util.List;
 
@@ -25,14 +26,14 @@ import java.util.List;
  * @version 1.0.0
  * @date 2018/3/9 18:52
  */
-public abstract class FuturesTradeApiServiceImpl implements FuturesTradeApiService {
+public abstract class SwapTradeApiServiceImpl implements SwapTradeApiService {
 
     private ApiClient client;
-    private FuturesTradeApi api;
+    private SwapTradeApi api;
 
-    public FuturesTradeApiServiceImpl(ApiConfiguration config) {
+    public SwapTradeApiServiceImpl(ApiConfiguration config) {
         this.client = new ApiClient(config);
-        this.api = client.createService(FuturesTradeApi.class);
+        this.api = client.createService(SwapTradeApi.class);
     }
 
     @Override
@@ -45,12 +46,10 @@ public abstract class FuturesTradeApiServiceImpl implements FuturesTradeApiServi
         return this.client.executeSync(this.api.testPositions());
     }
 
+
     @Override
     public OkexOnePosition getInstrumentPosition(String instrumentId) {
         return this.client.executeSync(this.api.getInstrumentPosition(instrumentId));
-    }
-    public Object getInstrumentPositionTest(String instrumentId) {
-        return this.client.executeSync(this.api.getInstrumentPositionTest(instrumentId));
     }
 
     @Override
@@ -65,12 +64,12 @@ public abstract class FuturesTradeApiServiceImpl implements FuturesTradeApiServi
 
     @Override
     public Account getAccountsByCurrency(String currency) {
-        return this.client.executeSync(this.api.getAccountsByCurrency(currency));
+        throw new IllegalArgumentException("not supported");
     }
 
     @Override
     public SwapAccounts getAccountsByInstrumentId(String instrumentId) {
-        throw new IllegalArgumentException("not supported");
+        return this.client.executeSync(this.api.getAccountsByInstrumentId(instrumentId));
     }
 
     public Object testAccount(String currency) {
@@ -90,8 +89,9 @@ public abstract class FuturesTradeApiServiceImpl implements FuturesTradeApiServi
 
     @Override
     public ClosePositionResult closePosition(ClosePosition closePosition) {
-        final ClosePositionResult closePositionResult = this.client.executeSync(this.api.closePosition(closePosition));
-        return closePositionResult;
+        return null;
+//        final ClosePositionResult closePositionResult = this.client.executeSync(this.api.closePosition(closePosition));
+//        return closePositionResult;
     }
 
     @Override
@@ -114,7 +114,7 @@ public abstract class FuturesTradeApiServiceImpl implements FuturesTradeApiServi
     }
 
     @Override
-    public LeverageResult changeLeverageOnCross(String currency, String leverage) {
-        return this.client.executeSync(this.api.changeLeverageOnCross(currency, new LeverageCross(leverage)));
+    public LeverageResult changeLeverageOnCross(String instrumentId, String leverage) {
+        return this.client.executeSync(this.api.changeLeverageOnCross(instrumentId, new LeverageCross(leverage)));
     }
 }

@@ -1,5 +1,6 @@
-package com.bitplay.okex.v3.service.futures;
+package com.bitplay.okex.v3.service.futures.impl;
 
+import com.bitplay.externalapi.PrivateApi;
 import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Account;
@@ -10,6 +11,8 @@ import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
 import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
+import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
+
 import java.util.List;
 
 /**
@@ -19,12 +22,13 @@ import java.util.List;
  * @version 1.0.0
  * @date 2018/3/9 18:52
  */
-public interface FuturesTradeApiService {
+public interface FuturesTradeApiService extends PrivateApi {
 
     /**
      * Get all of futures contract position list
      */
     OkexAllPositions getPositions();
+    Object testPositions();
 
     /**
      * Get the futures contract product position
@@ -32,6 +36,7 @@ public interface FuturesTradeApiService {
      * @param instrumentId The id of the futures contract eg: BTC-USD-0331"
      */
     OkexOnePosition getInstrumentPosition(String instrumentId);
+    Object testInstrumentPosition(String instrumentId);
 
     /**
      * Get all of futures contract account list
@@ -45,6 +50,8 @@ public interface FuturesTradeApiService {
 //     *                 eg: FuturesCurrenciesEnum.BTC.name()
 //     */
     Account getAccountsByCurrency(String currency);
+
+    SwapAccounts getAccountsByInstrumentId(String instrumentId);
 //
 //    /**
 //     * Get the futures contract currency ledger
