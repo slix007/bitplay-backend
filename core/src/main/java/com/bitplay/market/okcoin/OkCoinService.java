@@ -1239,7 +1239,7 @@ public class OkCoinService extends MarketServicePreliq {
                 && !shouldStopPlacing;
                 attemptCount++) {
             try {
-                if (settingsRepositoryService.getSettings().getManageType().isManual()) {
+                if (settingsRepositoryService.getSettings().getManageType().isManual() && !signalType.isRecoveryNtUsd()) {
                     if (!signalType.isManual() || attemptCount > 1) {
                         warningLogger.info("MangeType is MANUAL. Stop placing.");
                         break; // when MangeType is MANUAL, only the first manualSignal is accepted

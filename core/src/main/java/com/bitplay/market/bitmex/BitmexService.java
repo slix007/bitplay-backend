@@ -1812,7 +1812,7 @@ public class BitmexService extends MarketServicePreliq {
                     ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                     break;
                 }
-                if (settingsRepositoryService.getSettings().getManageType().isManual()) {
+                if (settingsRepositoryService.getSettings().getManageType().isManual() && !signalType.isRecoveryNtUsd()) {
                     if (!signalType.isManual() || attemptCount > 1) {
                         logger.info("MangeType is MANUAL. Stop placing.");
                         tradeLogger.info("MangeType is MANUAL. Stop placing.");
