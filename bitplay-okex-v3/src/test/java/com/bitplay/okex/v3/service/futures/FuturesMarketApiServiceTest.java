@@ -5,8 +5,7 @@ import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.Book;
 import com.bitplay.okex.v3.dto.futures.result.Instrument;
-import com.bitplay.okex.v3.service.futures.impl.FuturesMarketApiService;
-import com.bitplay.okex.v3.service.futures.impl.FuturesMarketApiServiceImpl;
+import com.bitplay.okex.v3.service.futures.api.FuturesMarketApiService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.util.List;
@@ -37,18 +36,18 @@ public class FuturesMarketApiServiceTest extends BaseTests {
     @Before
     public void setUp() {
         config = config();
-        marketAPIService = new FuturesMarketApiServiceImpl(config);
+        marketAPIService = new FuturesPublicApi(config);
     }
 
     @Test
     public void testGetInstruments() throws JsonProcessingException {
-        List<Instrument> instruments = marketAPIService.getInstruments();
+        List<Instrument> instruments = marketAPIService.getInstrumentsApi();
         toResultString(LOG, "Instruments", instruments);
     }
 
 //    @Test
     public void testOrderBook() throws JsonProcessingException {
-        final Book res = marketAPIService.getInstrumentBook("BTC-USD-190927");
+        final Book res = marketAPIService.getInstrumentBookApi("BTC-USD-190927");
         System.out.println(res);
     }
 }

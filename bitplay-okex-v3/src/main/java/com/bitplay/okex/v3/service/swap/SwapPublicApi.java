@@ -1,7 +1,7 @@
 package com.bitplay.okex.v3.service.swap;
 
 import com.bitplay.okex.v3.ApiConfiguration;
-import com.bitplay.okex.v3.service.swap.impl.SwapMarketApiServiceImpl;
+import com.bitplay.okex.v3.service.swap.api.SwapMarketApiServiceImpl;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
@@ -18,16 +18,7 @@ public class SwapPublicApi extends SwapMarketApiServiceImpl {
     }
 
     @Override
-    public Ticker getTicker(CurrencyPair currencyPair, Object... args)
-            throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-
-
-        return null;
-    }
-
-    @Override
-    public OrderBook getOrderBook(CurrencyPair currencyPair, Object... args)
-            throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+    public OrderBook getInstrumentBook(String instrumentId, CurrencyPair currencyPair) {
         return null;
     }
 }

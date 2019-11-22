@@ -1,4 +1,4 @@
-package com.bitplay.okex.v3.service.futures.impl;
+package com.bitplay.okex.v3.service.futures.api;
 
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
@@ -20,17 +20,17 @@ public abstract class FuturesMarketApiServiceImpl implements FuturesMarketApiSer
     }
 
     @Override
-    public List<Instrument> getInstruments() {
+    public List<Instrument> getInstrumentsApi() {
         return this.client.executeSync(this.api.getInstruments());
     }
 
     @Override
-    public EstimatedPrice getEstimatedPrice(String instrumentId) {
+    public EstimatedPrice getEstimatedPriceApi(String instrumentId) {
         return this.client.executeSync(this.api.getInstrumentEstimatedPrice(instrumentId));
     }
 
     @Override
-    public Book getInstrumentBook(String instrumentId) {
+    public Book getInstrumentBookApi(String instrumentId) {
         return this.client.executeSync(this.api.getInstrumentBook(instrumentId, 20));
     }
 }

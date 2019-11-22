@@ -1,4 +1,4 @@
-package com.bitplay.okex.v3.service.futures.impl;
+package com.bitplay.okex.v3.service.futures.api;
 
 import com.bitplay.externalapi.PrivateApi;
 import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
@@ -27,21 +27,21 @@ public interface FuturesTradeApiService extends PrivateApi {
     /**
      * Get all of futures contract position list
      */
-    OkexAllPositions getPositions();
-    Object testPositions();
+    OkexAllPositions getPositionsApi();
+    Object testPositionsApi();
 
     /**
      * Get the futures contract product position
      *
      * @param instrumentId The id of the futures contract eg: BTC-USD-0331"
      */
-    OkexOnePosition getInstrumentPosition(String instrumentId);
-    Object testInstrumentPosition(String instrumentId);
+    OkexOnePosition getInstrumentPositionApi(String instrumentId);
+    Object testInstrumentPositionApi(String instrumentId);
 
     /**
      * Get all of futures contract account list
      */
-    Accounts getAccounts();
+    Accounts getAccountsApi();
 
 //    /**
 //     * Get the futures contract currency account
@@ -49,7 +49,7 @@ public interface FuturesTradeApiService extends PrivateApi {
 //     * @param currency {@link com.okcoin.commons.okex.open.api.enums.FuturesCurrenciesEnum}
 //     *                 eg: FuturesCurrenciesEnum.BTC.name()
 //     */
-    Account getAccountsByCurrency(String currency);
+    Account getAccountsByCurrencyApi(String currency);
 
     SwapAccounts getAccountsByInstrumentId(String instrumentId);
 //
@@ -71,7 +71,7 @@ public interface FuturesTradeApiService extends PrivateApi {
     /**
      * Create a new order
      */
-    OrderResult order(Order order);
+    OrderResult orderApi(Order order);
 
 //    /**
 //     * Batch create new order.(Max of 5 orders are allowed per request))

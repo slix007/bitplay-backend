@@ -1,16 +1,11 @@
 package com.bitplay.okex.v3.service.futures;
 
 import com.bitplay.okex.v3.ApiConfiguration;
-import com.bitplay.okex.v3.service.futures.impl.FuturesMarketApiServiceImpl;
-import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiServiceImpl;
+import com.bitplay.okex.v3.dto.futures.result.Book;
+import com.bitplay.okex.v3.service.futures.adapter.BookAdapter;
+import com.bitplay.okex.v3.service.futures.api.FuturesMarketApiServiceImpl;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.marketdata.Ticker;
-import org.knowm.xchange.exceptions.ExchangeException;
-import org.knowm.xchange.exceptions.NotAvailableFromExchangeException;
-import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
-
-import java.io.IOException;
 
 public class FuturesPublicApi extends FuturesMarketApiServiceImpl {
 
@@ -18,15 +13,16 @@ public class FuturesPublicApi extends FuturesMarketApiServiceImpl {
         super(config);
     }
 
-    @Override
-    public Ticker getTicker(CurrencyPair currencyPair, Object... args)
-            throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        return null;
-    }
+//    @Override
+//    public Ticker getTicker(CurrencyPair currencyPair, Object... args)
+//            throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+//        return null;
+//    }
+//
 
     @Override
-    public OrderBook getOrderBook(CurrencyPair currencyPair, Object... args)
-            throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
-        return null;
+    public OrderBook getInstrumentBook(String instrumentId, CurrencyPair currencyPair) {
+        final Book book = getInstrumentBookApi(instrumentId);
+        return BookAdapter.convertBook(book, currencyPair);
     }
 }

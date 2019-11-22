@@ -1,16 +1,15 @@
-package com.bitplay.okex.v3.service.swap.impl;
+package com.bitplay.okex.v3.service.futures.api;
 
 import com.bitplay.okex.v3.dto.futures.result.Book;
 import com.bitplay.okex.v3.dto.futures.result.EstimatedPrice;
 import com.bitplay.okex.v3.dto.futures.result.Instrument;
+import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
-import java.util.List;
-
-interface SwapMarketApi {
+interface FuturesMarketApi {
 
 //    @GET("/api/general/v3/time")
 //    Call<ServerTime> getServerTime();
@@ -18,13 +17,13 @@ interface SwapMarketApi {
 //    @GET("/api/futures/v3/rate")
 //    Call<ExchangeRate> getExchangeRate();
 
-    @GET("/api/swap/v3/instruments")
+    @GET("/api/futures/v3/instruments")
     Call<List<Instrument>> getInstruments();
 //
 //    @GET("/api/futures/v3/instruments/currencies")
 //    Call<List<Currencies>> getCurrencies();
 //
-    @GET("/api/swap/v3/instruments/{instrument_id}/depth")
+    @GET("/api/futures/v3/instruments/{instrument_id}/book")
     Call<Book> getInstrumentBook(@Path("instrument_id") String instrumentId, @Query("size") Integer size);
 //
 //    @GET("/api/futures/v3/instruments/{instrument_id}/ticker")
@@ -43,9 +42,8 @@ interface SwapMarketApi {
 //    @GET("/api/futures/v3/instruments/{instrument_id}/index")
 //    Call<Index> getInstrumentIndex(@Path("instrument_id") String instrumentId);
 //
-    // not in use
-//    @GET("/api/swap/v3/instruments/{instrument_id}/estimated_price")
-//    Call<EstimatedPrice> getInstrumentEstimatedPrice(@Path("instrument_id") String instrumentId);
+    @GET("/api/futures/v3/instruments/{instrument_id}/estimated_price")
+    Call<EstimatedPrice> getInstrumentEstimatedPrice(@Path("instrument_id") String instrumentId);
 //
 //    @GET("/api/futures/v3/instruments/{instrument_id}/open_interest")
 //    Call<Holds> getInstrumentHolds(@Path("instrument_id") String instrumentId);

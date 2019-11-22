@@ -1,14 +1,20 @@
-package com.bitplay.market.okcoin.convert;
+package com.bitplay.okex.v3.service.futures.adapter;
 
+import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v3.dto.futures.param.Order;
+import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.enums.FuturesTransactionTypeEnum;
 import java.math.BigDecimal;
+
+import com.bitplay.okex.v3.utils.OkexErrors;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
-public class LimitOrderToOrderConverter implements SuperConverter<LimitOrder, Order> {
+@Slf4j
+public class OkexOrderConverter implements SuperConverter<LimitOrder, Order> {
 
     @Override
     public Order apply(LimitOrder limitOrder) {
@@ -53,5 +59,24 @@ public class LimitOrderToOrderConverter implements SuperConverter<LimitOrder, Or
                 .order_type(orderTypeEnum.code())
                 .build();
     }
+
+    public static OrderResultTiny convertOrderResult(OrderResult o) {
+        return new OrderResultTiny(o.getClient_oid(), o.getOrder_id(), o.isResult(), o.getError_code(), o.getError_message());
+    }
+
+    public static String getErrorCodeTranslation(OrderResultTiny result) {
+        String errorCodeTranslation = "";
+        if (result != null && result.getError_code() != null) { // Example: result.getDetails() == "Code: 20015"
+            String errorCode = result.getError_code();
+            try {
+                errorCodeTranslation = OkexErrors.getErrorMessage(Integer.parseInt(errorCode));
+            } catch (NumberFormatException e) {
+                log.error("can not translate code " + errorCode);
+            }
+        }
+        return errorCodeTranslation;
+    }
+
+
 }
 

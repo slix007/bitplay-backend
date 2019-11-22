@@ -5,8 +5,9 @@ import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.Book;
 import com.bitplay.okex.v3.dto.futures.result.Instrument;
-import com.bitplay.okex.v3.service.futures.impl.FuturesMarketApiService;
-import com.bitplay.okex.v3.service.swap.impl.SwapMarketApiServiceImpl;
+import com.bitplay.okex.v3.service.futures.api.FuturesMarketApiService;
+import com.bitplay.okex.v3.service.swap.SwapPublicApi;
+import com.bitplay.okex.v3.service.swap.api.SwapMarketApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,7 +20,7 @@ public class SwapMarketApiServiceTest extends BaseTests {
 
     private static final Logger LOG = LoggerFactory.getLogger(FuturesMarketApiService.class);
 
-    private FuturesMarketApiService marketAPIService;
+    private SwapPublicApi marketAPIService;
 
     public ApiConfiguration config() {
         ApiConfiguration config = new ApiConfiguration();
@@ -37,19 +38,19 @@ public class SwapMarketApiServiceTest extends BaseTests {
     @Before
     public void setUp() {
         config = config();
-        marketAPIService = new SwapMarketApiServiceImpl(config);
+        marketAPIService = new SwapPublicApi(config);
     }
 
     @Test
     public void testGetInstruments() throws JsonProcessingException {
-        List<Instrument> instruments = marketAPIService.getInstruments();
-        toResultString(LOG, "Instruments", instruments);
+//        List<Instrument> instruments = marketAPIService.getInstruments();
+//        toResultString(LOG, "Instruments", instruments);
     }
 
     @Test
     public void testOrderBook() throws JsonProcessingException {
-        final Book res = marketAPIService.getInstrumentBook("BTC-USD-SWAP");
-        toResultString(LOG, "depth", res);
+//        final Book res = marketAPIService.getInstrumentBook("BTC-USD-SWAP");
+//        toResultString(LOG, "depth", res);
 //        System.out.println(res);
     }
 }

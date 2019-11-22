@@ -6,8 +6,8 @@ import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.enums.FuturesDirectionEnum;
-import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiService;
-import com.bitplay.okex.v3.service.futures.impl.FuturesTradeApiServiceImpl;
+import com.bitplay.okex.v3.service.futures.api.FuturesTradeApiService;
+import com.bitplay.okex.v3.service.futures.api.FuturesTradeApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
@@ -43,12 +43,12 @@ public class FuturesTradeApiServiceTest extends BaseTests {
     @Before
     public void setUp() {
         config = config();
-        tradeApiService = new FuturesTradeApiServiceImpl(config);
+        tradeApiService = new FuturesPrivateApi(config);
     }
 
     @Test
     @Ignore
-    public void getAccounts() {
+    public void getAccounts() throws JsonProcessingException {
 //        final Account accounts = tradeApiService.getAccountsByCurrency("btc");
         final Object accounts = ((FuturesTradeApiServiceImpl) tradeApiService).testAccount("btc");
         toResultString(LOG, "depth", accounts);
@@ -57,7 +57,7 @@ public class FuturesTradeApiServiceTest extends BaseTests {
     @Test
     @Ignore
     public void getPosition() throws JsonProcessingException {
-        final OkexAllPositions positions = tradeApiService.getPositions();
+        final OkexAllPositions positions = tradeApiService.getPositionsApi();
 //        final Optional<Object> byInstrumentId = positions.getByInstrumentId("BTC-USD-190920");
 
         final ObjectMapper mapper = new ObjectMapper();
@@ -86,7 +86,7 @@ public class FuturesTradeApiServiceTest extends BaseTests {
 
     //    @Test
     public void getInstrumentPosition() throws JsonProcessingException {
-        final Object p = tradeApiService.testInstrumentPosition("BTC-USD-191025");
+        final Object p = tradeApiService.testInstrumentPositionApi("BTC-USD-191025");
 
         final ObjectMapper mapper = new ObjectMapper();
         final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);

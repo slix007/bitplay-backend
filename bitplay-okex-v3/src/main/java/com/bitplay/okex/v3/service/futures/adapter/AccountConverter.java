@@ -1,4 +1,4 @@
-package com.bitplay.market.okcoin.convert;
+package com.bitplay.okex.v3.service.futures.adapter;
 
 import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;

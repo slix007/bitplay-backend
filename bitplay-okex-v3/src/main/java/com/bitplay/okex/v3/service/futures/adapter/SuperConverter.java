@@ -1,4 +1,4 @@
-package com.bitplay.market.okcoin.convert;
+package com.bitplay.okex.v3.service.futures.adapter;
 
 import java.util.List;
 import java.util.function.Function;

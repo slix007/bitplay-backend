@@ -1,4 +1,4 @@
-package com.bitplay.market.okcoin.convert;
+package com.bitplay.okex.v3.service.futures.adapter;
 
 import com.bitplay.okex.v3.dto.futures.result.Book;
 import java.math.BigDecimal;
@@ -11,7 +11,7 @@ import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
-public class BookConverter {
+public class BookAdapter {
 
     public static OrderBook convertBook(Book depth, CurrencyPair currencyPair) {
         List<LimitOrder> asks = adaptLimitOrders(OrderType.ASK, depth.getAsks(), currencyPair, depth.getTimestamp());

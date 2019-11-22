@@ -1,4 +1,4 @@
-package com.bitplay.okex.v3.service.futures.impl;
+package com.bitplay.okex.v3.service.futures.api;
 
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
@@ -36,17 +36,17 @@ public abstract class FuturesTradeApiServiceImpl implements FuturesTradeApiServi
     }
 
     @Override
-    public OkexAllPositions getPositions() {
+    public OkexAllPositions getPositionsApi() {
         return this.client.executeSync(this.api.getPositions());
     }
 
     @Override
-    public Object testPositions() {
+    public Object testPositionsApi() {
         return this.client.executeSync(this.api.testPositions());
     }
 
     @Override
-    public OkexOnePosition getInstrumentPosition(String instrumentId) {
+    public OkexOnePosition getInstrumentPositionApi(String instrumentId) {
         return this.client.executeSync(this.api.getInstrumentPosition(instrumentId));
     }
     public Object getInstrumentPositionTest(String instrumentId) {
@@ -54,17 +54,17 @@ public abstract class FuturesTradeApiServiceImpl implements FuturesTradeApiServi
     }
 
     @Override
-    public Object testInstrumentPosition(String instrumentId) {
+    public Object testInstrumentPositionApi(String instrumentId) {
         return this.client.executeSync(this.api.testInstrumentPosition(instrumentId));
     }
 
     @Override
-    public Accounts getAccounts() {
+    public Accounts getAccountsApi() {
         return this.client.executeSync(this.api.getAccounts());
     }
 
     @Override
-    public Account getAccountsByCurrency(String currency) {
+    public Account getAccountsByCurrencyApi(String currency) {
         return this.client.executeSync(this.api.getAccountsByCurrency(currency));
     }
 
@@ -79,7 +79,7 @@ public abstract class FuturesTradeApiServiceImpl implements FuturesTradeApiServi
 
 
     @Override
-    public OrderResult order(Order order) {
+    public OrderResult orderApi(Order order) {
         return this.client.executeSync(this.api.order(order));
     }
 

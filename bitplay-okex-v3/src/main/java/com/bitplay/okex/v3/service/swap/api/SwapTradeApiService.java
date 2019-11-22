@@ -1,4 +1,4 @@
-package com.bitplay.okex.v3.service.swap.impl;
+package com.bitplay.okex.v3.service.swap.api;
 
 //import com.okcoin.commons.okex.open.api.bean.swap.param.PpCancelOrderVO;
 //import com.okcoin.commons.okex.open.api.bean.swap.param.PpOrder;

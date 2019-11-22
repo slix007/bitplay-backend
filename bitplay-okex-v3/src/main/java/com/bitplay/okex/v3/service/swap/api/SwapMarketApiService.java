@@ -1,4 +1,4 @@
-package com.bitplay.okex.v3.service.swap.impl;
+package com.bitplay.okex.v3.service.swap.api;
 
 
 import com.bitplay.externalapi.PublicApi;
