@@ -11,12 +11,12 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.Pos;
-import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.TradeService;
+import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
-import com.bitplay.persistance.domain.settings.Settings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -37,7 +37,7 @@ public class NtUsdRecoveryService {
 
     private final NtUsdExecutor ntUsdExecutor;
     private final PosDiffService posDiffService;
-    private final SettingsRepositoryService settingsRepositoryService;
+    private final PersistenceService persistenceService;
     private final OkCoinService okCoinService;
     private final BitmexService bitmexService;
     private final ArbitrageService arbitrageService;
@@ -70,10 +70,10 @@ public class NtUsdRecoveryService {
 
         BigDecimal dc = posDiffService.getDcMainSet().setScale(2, RoundingMode.HALF_UP);
 
-        final Settings s = settingsRepositoryService.getSettings();
         final BigDecimal cm = bitmexService.getCm();
         final boolean isEth = bitmexService.getContractType().isEth();
-        final Integer maxBlockUsd = s.getCorrParams().getRecoveryNtUsd().getMaxBlockUsd();
+        final CorrParams corrParams = persistenceService.fetchCorrParams();
+        final Integer maxBlockUsd = corrParams.getRecoveryNtUsd().getMaxBlockUsd();
         BigDecimal maxBtm = PlacingBlocks.toBitmexContPure(BigDecimal.valueOf(maxBlockUsd), isEth, cm);
         BigDecimal maxOk = PlacingBlocks.toOkexCont(BigDecimal.valueOf(maxBlockUsd), isEth);
 
@@ -140,22 +140,11 @@ public class NtUsdRecoveryService {
             final String message = String.format("#%s %s %s amount=%s c=%s. recovery_nt_usd maxBlock=%s",
                     counterName, placingType, orderType, correctAmount, contractType, maxBlockUsd);
 
-            if (posDiffService.outsideLimits(marketService, orderType, placingType, signalType)) {
-                final String msg = String.format("outsideLimits. No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, btmPos=%s, okPos=%s, hedge=%s, signal=%s",
-                        corrName,
-                        correctAmount,
-                        maxBtm, maxOk, dc,
-                        arbitrageService.getFirstMarketService().getPos().toString(),
-                        arbitrageService.getSecondMarketService().getPos().toString(),
-                        hedgeAmount.toPlainString(),
-                        signalType
-                );
-                warningLogger.warn(msg);
-                corrObj.marketService.getTradeLogger().warn(msg);
-                log.warn(msg);
-
-                resultMsg =
-                        switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj, placingType, counterName, tradeId, message);
+            final boolean outsideLimits = checkOutsideLimits(corrName, dc, maxBtm, maxOk, corrObj, hedgeAmount,
+                            marketService, orderType, correctAmount, signalType, placingType);
+            if (outsideLimits) {
+                resultMsg = switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj,
+                        placingType, counterName, tradeId, message, hedgeAmount);
             } else {
 
                 final String setStr = arbitrageService.getMainSetStr();
@@ -176,22 +165,41 @@ public class NtUsdRecoveryService {
 
                 final TradeResponse tradeResponse = marketService.placeOrder(placeOrderArgs);
 
-                if (!tradeResponse.errorInsufficientFunds()) {
-                    resultMsg += parseResMsg(tradeResponse);
+                if (tradeResponse.errorInsufficientFunds()) {
+                    resultMsg = switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj,
+                            placingType, counterName, tradeId, message, hedgeAmount);
                 } else {
-                    resultMsg =
-                            switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj, placingType, counterName, tradeId, message);
+                    resultMsg += parseResMsg(tradeResponse);
+                    corrObj.marketService.getArbitrageService().setBusyStackChecker();
                 }
             }
-
-            corrObj.marketService.getArbitrageService().setBusyStackChecker();
         }
+
         return resultMsg;
+    }
+
+    private boolean checkOutsideLimits(String corrName, BigDecimal dc, BigDecimal maxBtm, BigDecimal maxOk, CorrObj corrObj, BigDecimal hedgeAmount,
+                                       MarketService marketService, OrderType orderType, BigDecimal correctAmount, SignalType signalType,
+                                       PlacingType placingType) {
+        final boolean outsideLimits = posDiffService.outsideLimits(marketService, orderType, placingType, signalType);
+        final String msg = String.format("outsideLimits. No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, btmPos=%s, okPos=%s, hedge=%s, signal=%s",
+                corrName,
+                correctAmount,
+                maxBtm, maxOk, dc,
+                arbitrageService.getFirstMarketService().getPos().toString(),
+                arbitrageService.getSecondMarketService().getPos().toString(),
+                hedgeAmount.toPlainString(),
+                signalType
+        );
+        warningLogger.warn(msg);
+        corrObj.marketService.getTradeLogger().warn(msg);
+        log.warn(msg);
+        return outsideLimits;
     }
 
     private String switchMarkets(String resultMsg, String corrName, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal maxBtm, BigDecimal maxOk,
                                  BigDecimal bP, BigDecimal oPL, BigDecimal oPS, CorrObj corrObj, PlacingType placingType, String counterName, Long tradeId,
-                                 String message) {
+                                 String message, BigDecimal hedgeAmount) {
         // switch the market
         final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getName());
         warningLogger.warn(switchMsg);
@@ -203,29 +211,42 @@ public class NtUsdRecoveryService {
                 ? okCoinService : bitmexService;
         posDiffService.switchMarkets(corrObj, dc, cm, isEth, maxBtm, maxOk, theOtherService);
         posDiffService.defineCorrectSignalType(corrObj, bP, oPL, oPS);
-        PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
-                .orderType(corrObj.orderType)
-                .amount(corrObj.correctAmount)
-                .placingType(placingType)
-                .signalType(corrObj.signalType)
-                .attempt(1)
-                .tradeId(tradeId)
-                .counterName(counterName)
-                .contractType(corrObj.contractType)
-                .build();
-        corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
 
-        final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
-
-        if (theOtherResp.errorInsufficientFunds()) {
-            final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", corrName);
+        final boolean outsideLimits = checkOutsideLimits(corrName, dc, maxBtm, maxOk, corrObj, hedgeAmount,
+                theOtherService, corrObj.orderType, corrObj.correctAmount, corrObj.signalType, placingType);
+        if (outsideLimits) {
+            final String msg = String.format("No %s. switchMarket: outsideLimits", corrName);
             warningLogger.warn(msg);
             corrObj.marketService.getTradeLogger().warn(msg);
             log.info(msg);
-            resultMsg += msg;
         } else {
-            resultMsg += parseResMsg(theOtherResp);
+
+            PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
+                    .orderType(corrObj.orderType)
+                    .amount(corrObj.correctAmount)
+                    .placingType(placingType)
+                    .signalType(corrObj.signalType)
+                    .attempt(1)
+                    .tradeId(tradeId)
+                    .counterName(counterName)
+                    .contractType(corrObj.contractType)
+                    .build();
+            corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
+
+            final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
+
+            if (theOtherResp.errorInsufficientFunds()) {
+                final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", corrName);
+                warningLogger.warn(msg);
+                corrObj.marketService.getTradeLogger().warn(msg);
+                log.info(msg);
+                resultMsg += msg;
+            } else {
+                resultMsg += parseResMsg(theOtherResp);
+                corrObj.marketService.getArbitrageService().setBusyStackChecker();
+            }
         }
+
         return resultMsg;
     }
 
