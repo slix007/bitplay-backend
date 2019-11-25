@@ -555,7 +555,7 @@ public class OkCoinService extends MarketServicePreliq {
         try {
             final InstrumentDto instrumentDto = instrDtos.get(0);
             if (instrumentDto.getFuturesContract() == FuturesContract.Swap) {
-                return;
+                return; // not in use for swap
             }
             final EstimatedPrice result = bitplayOkexEchange.getPublicApi().getEstimatedPrice(instrumentDto.getInstrumentId());
             forecastPrice = result.getPrice();

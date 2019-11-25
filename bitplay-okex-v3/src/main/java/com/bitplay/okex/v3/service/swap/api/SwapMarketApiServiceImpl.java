@@ -2,14 +2,7 @@ package com.bitplay.okex.v3.service.swap.api;
 
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.marketdata.Ticker;
-import org.knowm.xchange.exceptions.ExchangeException;
-import org.knowm.xchange.exceptions.NotAvailableFromExchangeException;
-import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
-
-import java.io.IOException;
+import com.bitplay.okex.v3.dto.futures.result.Book;
 
 public abstract class SwapMarketApiServiceImpl implements SwapMarketApiService {
 
@@ -22,15 +15,16 @@ public abstract class SwapMarketApiServiceImpl implements SwapMarketApiService {
         this.api = client.createService(SwapMarketApi.class);
     }
 
+    public Book getInstrumentBookApi(String instrumentId) {
+        return this.client.executeSync(this.api.getInstrumentBook(instrumentId, 20));
+    }
+
+
 //    @Override
 //    public List<Instrument> getInstruments() {
 //        return this.client.executeSync(this.api.getInstruments());
 //    }
 //
-//    @Override
-//    public EstimatedPrice getEstimatedPrice(String instrumentId) {
-//        return  null;
-//    }
 //
 //    @Override
 //    public Book getInstrumentBook(String instrumentId) {
