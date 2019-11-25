@@ -27,20 +27,16 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
+import com.bitplay.model.EstimatedPrice;
+import com.bitplay.model.Leverage;
 import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.FplayExchangeOkex;
 import com.bitplay.okex.v3.client.ApiCredentials;
-import com.bitplay.okex.v3.dto.futures.result.EstimatedPrice;
-import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
-import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.exception.ApiException;
-import com.bitplay.okex.v3.service.futures.adapter.DtoToModelConverter;
 import com.bitplay.okex.v3.service.futures.adapter.OkexOrderConverter;
-import com.bitplay.okex.v3.service.futures.api.FuturesMarketApiService;
-import com.bitplay.okex.v3.service.futures.api.FuturesTradeApiService;
 import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.LastPriceDeviationService;
@@ -561,9 +557,8 @@ public class OkCoinService extends MarketServicePreliq {
             if (instrumentDto.getFuturesContract() == FuturesContract.Swap) {
                 return;
             }
-            final FuturesMarketApiService publicApi = (FuturesMarketApiService) bitplayOkexEchange.getPublicApi();
-            final EstimatedPrice result = publicApi.getEstimatedPriceApi(instrumentDto.getInstrumentId());
-            forecastPrice = result.getSettlement_price() != null ? result.getSettlement_price() : BigDecimal.ZERO;
+            final EstimatedPrice result = bitplayOkexEchange.getPublicApi().getEstimatedPrice(instrumentDto.getInstrumentId());
+            forecastPrice = result.getPrice();
 
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
@@ -1335,30 +1330,17 @@ public class OkCoinService extends MarketServicePreliq {
     public void fetchLeverRate() {
         Instant start = Instant.now();
         try {
-            final FuturesTradeApiService privateApi = (FuturesTradeApiService) bitplayOkexEchange.getPrivateApi();
+            final String toolName;
             if (okexContractType.getFuturesContract() == FuturesContract.Swap) {
-                final String instrumentId = instrDtos.get(0).getInstrumentId();
-                final LeverageResult r = privateApi.getInstrumentLeverRate(instrumentId);
-                if (!r.getMargin_mode().equals("crossed")) {
-                    logger.warn("LeverageResult WARNING: margin_mode is " + r.getMargin_mode());
-                } else {
-                    if (!r.getInstrument_id().toUpperCase().equals(instrumentId)) {
-                        logger.warn("LeverageResult WARNING: currency is different " + r.getCurrency());
-                    } else {
-                        leverage = new BigDecimal(r.getLeverage());
-                    }
-                }
+                toolName = instrDtos.get(0).getInstrumentId();
             } else {
-                final LeverageResult r = privateApi.getInstrumentLeverRate(okexContractType.getBaseTool());
-                if (!r.getMargin_mode().equals("crossed")) {
-                    logger.warn("LeverageResult WARNING: margin_mode is " + r.getMargin_mode());
-                } else {
-                    if (r.getLeverage() == null) { // !r.getCurrency().toUpperCase().equals(okexContractType.getBaseTool())
-                        logger.warn("LeverageResult WARNING: " + r);
-                    } else {
-                        leverage = new BigDecimal(r.getLeverage());
-                    }
-                }
+                toolName = okexContractType.getBaseTool();
+            }
+            final Leverage lv = bitplayOkexEchange.getPrivateApi().getLeverage(toolName);
+            if (lv == null) {
+                logger.error("lv is null");
+            } else {
+                leverage = lv.getLeverage();
             }
         } catch (Exception e) {
             logger.error("fetchLeverRate error", e);
@@ -1377,14 +1359,13 @@ public class OkCoinService extends MarketServicePreliq {
             final String newCurrOrInstrId = okexContractType.getFuturesContract() == FuturesContract.Swap
                     ? instrDtos.get(0).getInstrumentId()
                     : okexContractType.getBaseTool().toLowerCase();
-            final FuturesTradeApiService privateApi = (FuturesTradeApiService) bitplayOkexEchange.getPrivateApi();
-            final LeverageResult r = privateApi.changeLeverageOnCross(
+            final Leverage r = bitplayOkexEchange.getPrivateApi().changeLeverage(
                     newCurrOrInstrId,
                     okexLeverage.setScale(0, RoundingMode.DOWN).toPlainString()
             );
-            leverage = new BigDecimal(r.getLeverage());
+            leverage = r.getLeverage();
             logger.info("Update okex leverage. " + r);
-            resultDescription = r.getResult();
+            resultDescription = r.getDescription();
         } catch (Exception e) {
             logger.error("Error updating okex leverage", e);
             resultDescription = e.getMessage();
@@ -1524,9 +1505,8 @@ public class OkCoinService extends MarketServicePreliq {
                     tradeLogger.info(msg);
                     logger.info(msg);
 
-                    final FuturesMarketApiService publicApi = (FuturesMarketApiService) bitplayOkexEchange.getPublicApi();
                     final CurrencyPair currencyPair = instrumentDto.getCurrencyPair();
-                    orderBook = publicApi.getInstrumentBook(instrumentDto.getInstrumentId(), currencyPair);
+                    orderBook = bitplayOkexEchange.getPublicApi().getInstrumentBook(instrumentDto.getInstrumentId(), currencyPair);
                     if (orderBook.getTimeStamp() == null) {
                         orderBook = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
                     }

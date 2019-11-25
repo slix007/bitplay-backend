@@ -1,9 +1,11 @@
 package com.bitplay.okex.v3.service.futures;
 
+import com.bitplay.model.Leverage;
 import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.dto.futures.result.Account;
+import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
 import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
@@ -13,6 +15,7 @@ import com.bitplay.okex.v3.service.futures.adapter.AccountConverter;
 import com.bitplay.okex.v3.service.futures.adapter.DtoToModelConverter;
 import com.bitplay.okex.v3.service.futures.adapter.OkexOrderConverter;
 import com.bitplay.okex.v3.service.futures.api.FuturesTradeApiServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
@@ -21,6 +24,7 @@ import org.knowm.xchange.dto.trade.LimitOrder;
 import java.math.BigDecimal;
 import java.util.List;
 
+@Slf4j
 public class FuturesPrivateApi extends FuturesTradeApiServiceImpl {
 
     public FuturesPrivateApi(ApiConfiguration config) {
@@ -69,4 +73,26 @@ public class FuturesPrivateApi extends FuturesTradeApiServiceImpl {
         final OrderDetail order = getOrder(instrumentId, orderId);
         return DtoToModelConverter.convertOrder(order, currencyPair);
     }
+
+    @Override
+    public Leverage getLeverage(String instrumentId) {
+        final LeverageResult r = getInstrumentLeverRate(instrumentId);
+        if (!r.getMargin_mode().equals("crossed")) {
+            log.warn("LeverageResult WARNING: margin_mode is " + r.getMargin_mode());
+        } else {
+            if (!r.getInstrument_id().toUpperCase().equals(instrumentId)) {
+                log.warn("LeverageResult WARNING: currency is different " + r.getCurrency());
+            } else {
+                return new Leverage(new BigDecimal(r.getLeverage()), r.getResult());
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Leverage changeLeverage(String newCurrOrInstrId, String newLeverageStr) {
+        final LeverageResult r = changeLeverageOnCross(newCurrOrInstrId, newLeverageStr);
+        return new Leverage(new BigDecimal(r.getLeverage()), r.getResult());
+    }
+
 }

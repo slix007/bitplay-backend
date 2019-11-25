@@ -1,5 +1,6 @@
 package com.bitplay.externalapi;
 
+import com.bitplay.model.EstimatedPrice;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 
@@ -12,4 +13,7 @@ public interface PublicApi {
 //            throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException;
 
     OrderBook getInstrumentBook(String instrumentId, CurrencyPair currencyPair);
+
+
+    EstimatedPrice getEstimatedPrice(String instrumentId);
 }

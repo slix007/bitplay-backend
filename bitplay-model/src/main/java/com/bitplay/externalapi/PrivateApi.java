@@ -1,5 +1,6 @@
 package com.bitplay.externalapi;
 
+import com.bitplay.model.Leverage;
 import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -32,4 +33,8 @@ public interface PrivateApi {
     List<LimitOrder> getOpenLimitOrders(String instrumentId, CurrencyPair currencyPair);
 
     LimitOrder getLimitOrder(String instrumentId, String orderId, CurrencyPair currencyPair);
+
+    Leverage getLeverage(String instrumentId);
+
+    Leverage changeLeverage(String newCurrOrInstrId, String newLeverageStr);
 }
