@@ -176,3 +176,12 @@ Starting: `mongo 127.0.0.1:26459 --eval "rs.initiate()"`
 
 
 
+
+# Extra mongo commands:
+
+####Checks that mongobeelock is released:
+```bash
+dsh -Mac -- "mongo bitplay --port 26459 --eval 'db.mongobeelock.stats()' | grep \\\"size"
+```
+
+
