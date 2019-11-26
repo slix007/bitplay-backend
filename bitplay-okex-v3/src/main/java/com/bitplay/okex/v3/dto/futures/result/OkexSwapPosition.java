@@ -2,41 +2,46 @@ package com.bitplay.okex.v3.dto.futures.result;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
+
 @Data
 public class OkexSwapPosition {
-// 17:59:34.030 [main] INFO com.bitplay.okex.v3.service.futures.SwapTradeApiServiceTest - {
-//  "margin_mode" : "crossed",
-//  "timestamp" : "2019-10-22T13:47:00.492Z",
-//  "holding" : [ {
-//    "avail_position" : "1",
-//    "avg_cost" : "173.38",
-//    "instrument_id" : "ETH-USD-SWAP",
-//    "last" : "173.35",
-//    "leverage" : "10.00",
-//    "liquidation_price" : "0.00",
-//    "maint_margin_ratio" : "0.0100",
-//    "margin" : "0.0057",
-//    "position" : "1",
-//    "realized_pnl" : "-0.0003",
-//    "settled_pnl" : "0.0000",
-//    "settlement_price" : "173.38",
-//    "side" : "long",
-//    "timestamp" : "2019-10-22T13:47:00.492Z"
-//  }, {
-//    "avail_position" : "2",
-//    "avg_cost" : "173.27",
-//    "instrument_id" : "ETH-USD-SWAP",
-//    "last" : "173.35",
-//    "leverage" : "10.00",
-//    "liquidation_price" : "0.00",
-//    "maint_margin_ratio" : "0.0100",
-//    "margin" : "0.0115",
-//    "position" : "2",
-//    "realized_pnl" : "-0.0003",
-//    "settled_pnl" : "0.0000",
-//    "settlement_price" : "173.27",
-//    "side" : "short",
-//    "timestamp" : "2019-10-22T13:47:00.492Z"
-//  } ]
-//}
+
+    private BigDecimal avail_position;
+    private BigDecimal avg_cost;
+    private String instrument_id; // "ETH-USD-SWAP"
+    private BigDecimal last;
+    private BigDecimal leverage;
+    private BigDecimal liquidation_price;
+    private BigDecimal maint_margin_ratio;
+    private BigDecimal margin;
+    private BigDecimal position;
+    private BigDecimal realized_pnl;
+    private BigDecimal settled_pnl;
+    private BigDecimal settlement_price;
+    private String side; //long, short
+    private Instant timestamp;
+    private BigDecimal unrealized_pnl;
+
+    public static OkexSwapPosition empty() {
+        final OkexSwapPosition p = new OkexSwapPosition();
+        p.avail_position = BigDecimal.ZERO;
+        p.avg_cost = BigDecimal.ZERO;
+        p.instrument_id = "";
+        p.last = BigDecimal.ZERO;
+        p.leverage = BigDecimal.ZERO;
+        p.liquidation_price = BigDecimal.ZERO;
+        p.maint_margin_ratio = BigDecimal.ZERO;
+        p.margin = BigDecimal.ZERO;
+        p.position = BigDecimal.ZERO;
+        p.realized_pnl = BigDecimal.ZERO;
+        p.settled_pnl = BigDecimal.ZERO;
+        p.settlement_price = BigDecimal.ZERO;
+        p.side = "";
+        p.timestamp = null;
+        p.unrealized_pnl = BigDecimal.ZERO;
+        return p;
+    }
 }

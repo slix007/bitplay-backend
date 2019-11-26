@@ -1,31 +1,15 @@
 package com.bitplay.okex.v3.service.swap.api;
 
+import com.bitplay.externalapi.PrivateApi;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
-import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
-import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
-import com.bitplay.okex.v3.dto.futures.param.Order;
-import com.bitplay.okex.v3.dto.futures.result.Account;
-import com.bitplay.okex.v3.dto.futures.result.Accounts;
-import com.bitplay.okex.v3.dto.futures.result.ClosePositionResult;
-import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
-import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
-import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
-import com.bitplay.okex.v3.dto.futures.result.OpenOrdersResult;
-import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
-import com.bitplay.okex.v3.dto.futures.result.OrderResult;
-import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
-
-import java.util.List;
+import com.bitplay.okex.v3.dto.futures.result.OkexSwapAllPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexSwapOnePosition;
 
 /**
  * Futures trade api
- *
- * @author Tony Tian
- * @version 1.0.0
- * @date 2018/3/9 18:52
  */
-public abstract class SwapTradeApiServiceImpl implements SwapTradeApiService {
+public abstract class SwapTradeApiServiceImpl implements PrivateApi {
 
     private ApiClient client;
     private SwapTradeApi api;
@@ -35,23 +19,18 @@ public abstract class SwapTradeApiServiceImpl implements SwapTradeApiService {
         this.api = client.createService(SwapTradeApi.class);
     }
 
-    @Override
-    public OkexAllPositions getPositions() {
+    public OkexSwapAllPositions getPositions() {
         return this.client.executeSync(this.api.getPositions());
     }
 
-    @Override
     public Object testPositions() {
         return this.client.executeSync(this.api.testPositions());
     }
 
-
-    @Override
-    public OkexOnePosition getInstrumentPosition(String instrumentId) {
+    public OkexSwapOnePosition getInstrumentPositionApi(String instrumentId) {
         return this.client.executeSync(this.api.getInstrumentPosition(instrumentId));
     }
 
-    @Override
     public Object testInstrumentPosition(String instrumentId) {
         return this.client.executeSync(this.api.testInstrumentPosition(instrumentId));
     }

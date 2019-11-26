@@ -4,8 +4,8 @@ import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
-import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
-import com.bitplay.okex.v3.dto.futures.result.OkexOnePosition;
+import com.bitplay.okex.v3.dto.futures.result.OkexSwapAllPositions;
+import com.bitplay.okex.v3.dto.futures.result.OkexSwapOnePosition;
 import com.bitplay.okex.v3.dto.futures.result.OpenOrdersResult;
 import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
@@ -28,13 +28,15 @@ interface SwapTradeApi {
 
     // Rate Limit: 5 requests per 2 seconds
     @GET("/api/swap/v3/position")
-    Call<OkexAllPositions> getPositions();
+    Call<OkexSwapAllPositions> getPositions();
+
     @GET("/api/swap/v3/position")
     Call<Object> testPositions();
 
     // Rate Limit: 20 requests per 2 seconds
     @GET("/api/swap/v3/{instrument_id}/position")
-    Call<OkexOnePosition> getInstrumentPosition(@Path("instrument_id") String instrumentId);
+    Call<OkexSwapOnePosition> getInstrumentPosition(@Path("instrument_id") String instrumentId);
+
     @GET("/api/swap/v3/{instrument_id}/position")
     Call<Object> testInstrumentPosition(@Path("instrument_id") String instrumentId);
 

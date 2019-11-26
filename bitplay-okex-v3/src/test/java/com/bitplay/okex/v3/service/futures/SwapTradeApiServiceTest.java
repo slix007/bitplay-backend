@@ -4,11 +4,9 @@ import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
-import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
+import com.bitplay.okex.v3.dto.futures.result.OkexSwapOnePosition;
 import com.bitplay.okex.v3.enums.FuturesDirectionEnum;
-import com.bitplay.okex.v3.service.futures.api.FuturesTradeApiService;
 import com.bitplay.okex.v3.service.swap.SwapPrivateApi;
-import com.bitplay.okex.v3.service.swap.api.SwapTradeApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
@@ -77,7 +75,8 @@ public class SwapTradeApiServiceTest extends BaseTests {
 
     @Test
     public void getInstrumentPosition() throws JsonProcessingException {
-        final Object p = tradeApiService.testInstrumentPosition("ETH-USD-SWAP");
+//        final Object p = tradeApiService.testInstrumentPosition("ETH-USD-SWAP");
+        final OkexSwapOnePosition p = tradeApiService.getInstrumentPositionApi("ETH-USD-SWAP");
 
         final ObjectMapper mapper = new ObjectMapper();
         final String s = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(p);

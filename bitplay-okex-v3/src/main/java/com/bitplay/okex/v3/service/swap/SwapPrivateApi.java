@@ -4,6 +4,7 @@ import com.bitplay.model.Leverage;
 import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v3.ApiConfiguration;
+import com.bitplay.okex.v3.dto.futures.result.OkexSwapOnePosition;
 import com.bitplay.okex.v3.service.swap.api.SwapTradeApiServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -23,7 +24,8 @@ public class SwapPrivateApi extends SwapTradeApiServiceImpl {
 
     @Override
     public Pos getPos(String instrumentId) {
-        return null;
+        final OkexSwapOnePosition position = getInstrumentPositionApi(instrumentId);
+        return position.toPos();
     }
 
     @Override
