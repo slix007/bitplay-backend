@@ -204,7 +204,7 @@ public class NtUsdRecoveryService {
                                  BigDecimal bP, BigDecimal oPL, BigDecimal oPS, CorrObj corrObj, PlacingType placingType, String counterName, Long tradeId,
                                  String message, BigDecimal hedgeAmount) {
         // switch the market
-        final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getName());
+        final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE. ", corrObj.signalType, corrObj.marketService.getName());
         warningLogger.warn(switchMsg);
         corrObj.marketService.getTradeLogger().info(switchMsg);
         log.info(switchMsg);
@@ -214,8 +214,19 @@ public class NtUsdRecoveryService {
                 ? okCoinService : bitmexService;
         posDiffService.switchMarkets(corrObj, dc, cm, isEth, maxBtm, maxOk, theOtherService);
         posDiffService.defineCorrectSignalType(corrObj, bP, oPL, oPS);
+        adaptCorrByDqlAfterSwitch(corrObj);
 
         final String corrNameWithMarket = corrName + " on " + theOtherService.getName();
+
+        if (corrObj.errorDescription != null) { // DQL violation (open_min or close_min)
+            final String msg = String.format("No %s. %s.", corrNameWithMarket, corrObj.errorDescription);
+            warningLogger.warn(msg);
+            corrObj.marketService.getTradeLogger().warn(msg);
+            log.info(msg);
+            resultMsg += msg;
+            return resultMsg;
+        }
+
         final boolean outsideLimits = checkOutsideLimits(corrNameWithMarket, dc, maxBtm, maxOk, corrObj, hedgeAmount,
                 theOtherService, corrObj.orderType, corrObj.correctAmount, corrObj.signalType, placingType);
         if (outsideLimits) {
@@ -223,34 +234,34 @@ public class NtUsdRecoveryService {
             warningLogger.warn(msg);
             corrObj.marketService.getTradeLogger().warn(msg);
             log.info(msg);
-        } else {
-
-            PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
-                    .orderType(corrObj.orderType)
-                    .amount(corrObj.correctAmount)
-                    .placingType(placingType)
-                    .signalType(corrObj.signalType)
-                    .attempt(1)
-                    .tradeId(tradeId)
-                    .counterName(counterName)
-                    .contractType(corrObj.contractType)
-                    .build();
-            corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
-
-            final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
-
-            if (theOtherResp.errorInsufficientFunds()) {
-                final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", corrNameWithMarket);
-                warningLogger.warn(msg);
-                corrObj.marketService.getTradeLogger().warn(msg);
-                log.info(msg);
-                resultMsg += msg;
-            } else {
-                resultMsg += parseResMsg(theOtherResp);
-                corrObj.marketService.getArbitrageService().setBusyStackChecker();
-            }
+            resultMsg += msg;
+            return resultMsg;
         }
 
+        PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
+                .orderType(corrObj.orderType)
+                .amount(corrObj.correctAmount)
+                .placingType(placingType)
+                .signalType(corrObj.signalType)
+                .attempt(1)
+                .tradeId(tradeId)
+                .counterName(counterName)
+                .contractType(corrObj.contractType)
+                .build();
+        corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
+
+        final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
+
+        if (theOtherResp.errorInsufficientFunds()) {
+            final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", corrNameWithMarket);
+            warningLogger.warn(msg);
+            corrObj.marketService.getTradeLogger().warn(msg);
+            log.info(msg);
+            resultMsg += msg;
+        } else {
+            resultMsg += parseResMsg(theOtherResp);
+            corrObj.marketService.getArbitrageService().setBusyStackChecker();
+        }
         return resultMsg;
     }
 
@@ -337,5 +348,14 @@ public class NtUsdRecoveryService {
         corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
     }
 
+    private void adaptCorrByDqlAfterSwitch(final CorrObj corrObj) {
+        if (corrObj.signalType.isIncreasePos()) {
+            boolean theOtherMarketIsViolated = corrObj.marketService.isDqlOpenViolated();
+            if (theOtherMarketIsViolated) {
+                corrObj.correctAmount = BigDecimal.ZERO;
+                corrObj.errorDescription = "DQL_open_min is violated";
+            }
+        }
+    }
 
 }
