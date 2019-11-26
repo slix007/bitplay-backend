@@ -4,5 +4,5 @@ import lombok.Data;
 
 @Data
 public class SwapAccounts {
-    private Account info;
+    private SwapAccount info;
 }

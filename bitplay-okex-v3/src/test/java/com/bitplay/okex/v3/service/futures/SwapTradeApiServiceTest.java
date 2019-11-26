@@ -5,6 +5,7 @@ import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
 import com.bitplay.okex.v3.dto.futures.result.OkexSwapOnePosition;
+import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
 import com.bitplay.okex.v3.enums.FuturesDirectionEnum;
 import com.bitplay.okex.v3.service.swap.SwapPrivateApi;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -46,9 +47,9 @@ public class SwapTradeApiServiceTest extends BaseTests {
 
     @Test
     public void getAccounts() throws JsonProcessingException {
-//        final SwapAccounts accounts = tradeApiService.getAccountsByInstrumentId("ETH-USD-SWAP");
-//        toResultString(LOG, "depth", accounts.getInfo());
-//        final Object accounts = ((SwapTradeApiServiceImpl) tradeApiService).testAccount("ETH-USD-SWAP");
+        final SwapAccounts accounts = tradeApiService.getAccountsByInstrumentApi("ETH-USD-SWAP");
+        toResultString(LOG, "depth", accounts.getInfo());
+//        final Object accounts = ((SwapTradeApiServiceImpl) tradeApiService).testAccountsByInstrumentApi("ETH-USD-SWAP");
 //        toResultString(LOG, "depth", accounts);
 //        LOG.info(accounts.toString());
     }

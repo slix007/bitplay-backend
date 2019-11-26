@@ -5,6 +5,9 @@ import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.dto.futures.result.OkexSwapOnePosition;
+import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
+import com.bitplay.okex.v3.service.futures.adapter.AccountConverter;
+import com.bitplay.okex.v3.service.swap.adapter.SwapAccountConverter;
 import com.bitplay.okex.v3.service.swap.api.SwapTradeApiServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -30,7 +33,8 @@ public class SwapPrivateApi extends SwapTradeApiServiceImpl {
 
     @Override
     public AccountInfoContracts getAccount(String currencyCode) {
-        return null;
+        final SwapAccounts byCurrencyApi = getAccountsByInstrumentApi(currencyCode);
+        return SwapAccountConverter.convert(byCurrencyApi);
     }
 
     @Override

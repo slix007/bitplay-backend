@@ -3,8 +3,10 @@ package com.bitplay.okex.v3.service.swap.api;
 import com.bitplay.externalapi.PrivateApi;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
+import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.OkexSwapAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexSwapOnePosition;
+import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
 
 /**
  * Futures trade api
@@ -35,10 +37,12 @@ public abstract class SwapTradeApiServiceImpl implements PrivateApi {
         return this.client.executeSync(this.api.testInstrumentPosition(instrumentId));
     }
 
-//    @Override
-//    public Accounts getAccounts() {
-//        return this.client.executeSync(this.api.getAccounts());
-//    }
+    public SwapAccounts getAccountsByInstrumentApi(String instrumentId) {
+        return this.client.executeSync(this.api.getAccountByInstrumentId(instrumentId));
+    }
+    public Object testAccountsByInstrumentApi(String instrumentId) {
+        return this.client.executeSync(this.api.testAccountByInstrumentId(instrumentId));
+    }
 //
 //    @Override
 //    public Account getAccountsByCurrency(String currency) {

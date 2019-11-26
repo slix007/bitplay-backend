@@ -46,10 +46,10 @@ interface SwapTradeApi {
 
     // Rate Limit: 20 requests per 2 seconds
     @GET("/api/swap/v3/{instrumentId}/accounts")
-    Call<SwapAccounts> getAccountsByInstrumentId(@Path("instrumentId") String instrumentId);
+    Call<SwapAccounts> getAccountByInstrumentId(@Path("instrumentId") String instrumentId);
 
     @GET("/api/swap/v3/{instrumentId}/accounts")
-    Call<Object> testAccount(@Path("instrumentId") String instrumentId);
+    Call<Object> testAccountByInstrumentId(@Path("instrumentId") String instrumentId);
 
 //
 //    @GET("/api/futures/v3/accounts/{currency}/ledger")
