@@ -123,12 +123,7 @@ public class NtUsdRecoveryService {
             return msg;
         } else {
             final PlacingType placingType = PlacingType.TAKER;
-
-            arbitrageService.setSignalType(signalType);
-
-            // Market specific params
             final String counterName = signalType.getCounterName();
-            marketService.setBusy(counterName);
 
             final Long tradeId = arbitrageService.getLastTradeId();
 
@@ -145,7 +140,7 @@ public class NtUsdRecoveryService {
                             marketService, orderType, correctAmount, signalType, placingType);
             if (outsideLimits) {
                 resultMsg = switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj,
-                        placingType, counterName, tradeId, message, hedgeAmount);
+                        placingType, counterName, tradeId, message, hedgeAmount, signalType);
             } else {
 
                 final String setStr = arbitrageService.getMainSetStr();
@@ -164,11 +159,14 @@ public class NtUsdRecoveryService {
                 marketService.getTradeLogger().info(message + placeOrderArgs.toString());
                 log.info(message);
 
+                arbitrageService.setSignalType(signalType);
+                marketService.setBusy(counterName);
                 final TradeResponse tradeResponse = marketService.placeOrder(placeOrderArgs);
 
                 if (tradeResponse.errorInsufficientFunds()) {
+                    marketService.setMarketState(MarketState.READY);
                     resultMsg = switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj,
-                            placingType, counterName, tradeId, message, hedgeAmount);
+                            placingType, counterName, tradeId, message, hedgeAmount, signalType);
                 } else {
                     resultMsg += parseResMsg(tradeResponse);
                     corrObj.marketService.getArbitrageService().setBusyStackChecker();
@@ -202,7 +200,7 @@ public class NtUsdRecoveryService {
 
     private String switchMarkets(String resultMsg, String corrName, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal maxBtm, BigDecimal maxOk,
                                  BigDecimal bP, BigDecimal oPL, BigDecimal oPS, CorrObj corrObj, PlacingType placingType, String counterName, Long tradeId,
-                                 String message, BigDecimal hedgeAmount) {
+                                 String message, BigDecimal hedgeAmount, SignalType signalType) {
         // switch the market
         final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE. ", corrObj.signalType, corrObj.marketService.getName());
         warningLogger.warn(switchMsg);
@@ -250,10 +248,13 @@ public class NtUsdRecoveryService {
                 .build();
         corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
 
+        arbitrageService.setSignalType(signalType);
+        corrObj.marketService.setBusy(counterName);
         final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
 
         if (theOtherResp.errorInsufficientFunds()) {
-            final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", corrNameWithMarket);
+            corrObj.marketService.setMarketState(MarketState.READY);
+            final String msg = String.format("No %s. INSUFFICIENT_BALANCE on switched market.", corrNameWithMarket);
             warningLogger.warn(msg);
             corrObj.marketService.getTradeLogger().warn(msg);
             log.info(msg);
