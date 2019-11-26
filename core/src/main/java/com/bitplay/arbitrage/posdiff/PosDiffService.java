@@ -1130,13 +1130,13 @@ public class PosDiffService {
     void switchMarkets(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax,
                                MarketServicePreliq theOtherService) {
         corrObj.marketService = theOtherService;
-        maxVolCorrAdapt(corrObj, bMax, okMax);
         corrObj.signalType = corrObj.signalType.switchMarket();
         if (theOtherService.getName().equals(BitmexService.NAME)) {
             defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
         } else {
             defineCorrectAmountOkex(corrObj, dc, isEth);
         }
+        maxVolCorrAdapt(corrObj, bMax, okMax);
     }
 
     void defineCorrectSignalType(CorrObj corrObj, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
