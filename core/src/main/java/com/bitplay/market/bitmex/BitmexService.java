@@ -325,9 +325,10 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public boolean isStarted() {
-        return !bitmexContractType.isEth()
+        return bitmexContractType != null &&
+                (!bitmexContractType.isEth()
                 ||
-                (bitmexContractType.isEth() && cm != null);
+                (bitmexContractType.isEth() && cm != null));
     }
 
     @Scheduled(fixedDelay = 2000)
@@ -340,6 +341,10 @@ public class BitmexService extends MarketServicePreliq {
 
     @Scheduled(fixedDelay = 5000)
     public void posXBTUSDUpdater() {
+        if (!isStarted()) {
+            return;
+        }
+
         Instant start = Instant.now();
         if (bitmexContractType.isEth()) {
             try {
@@ -392,6 +397,10 @@ public class BitmexService extends MarketServicePreliq {
 
     @Scheduled(fixedDelay = 30000)
     public void dobleCheckAvailableBalance() {
+        if (!isStarted()) {
+            return;
+        }
+
         Instant start = Instant.now();
         if (account.get().getWallet().signum() == 0) {
             tradeLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener.", bitmexContractType.getCurrencyPair().toString());

@@ -19,6 +19,8 @@ package com.bitplay.okex.v3.dto.futures.result;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * <p> margin_mode=crossed: currency, leverage </p>
  * <p> margin_mode=fixed: instrument_id, long_leverage, short_leverage </p>
@@ -52,4 +54,6 @@ public class LeverageResult {
      */
     private String instrument_id;
 
+    private BigDecimal long_leverage;
+    private BigDecimal short_leverage;
 }

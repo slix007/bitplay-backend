@@ -5,9 +5,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Data
 public class OkexSwapOnePosition {
@@ -27,19 +25,24 @@ public class OkexSwapOnePosition {
             }
         }
         final BigDecimal liquidationPrice = l.getLiquidation_price() != null ? l.getLiquidation_price() : s.getLiquidation_price();
+        final BigDecimal leverage = l.getPosition().signum() != 0 ? l.getLeverage() : s.getLeverage();
+
+        BigDecimal longAvailToClose = l.getAvail_position();
+        BigDecimal shortAvailToClose = s.getAvail_position();
+
         return new Pos(
                 l.getPosition(),
                 s.getPosition(),
-                l.getAvail_position(),
-                s.getAvail_position(),
-                l.getLeverage(),
+                longAvailToClose,
+                shortAvailToClose,
+                leverage,
                 liquidationPrice,
                 BigDecimal.ZERO, //mark value
                 l.getAvg_cost(),
                 s.getAvg_cost(),
                 timestamp,
                 holding.toString(),
-                l.getRealized_pnl().add(s.getRealized_pnl())
+                l.getUnrealized_pnl().add(s.getUnrealized_pnl())
         );
     }
 

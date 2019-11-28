@@ -1,8 +1,9 @@
 package com.bitplay.okex.v3.service.swap.api;
 
-import com.bitplay.okex.v3.dto.futures.param.LeverageCross;
+import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
+import com.bitplay.okex.v3.dto.futures.result.ClosePositionResult;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexSwapAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexSwapOnePosition;
@@ -10,6 +11,7 @@ import com.bitplay.okex.v3.dto.futures.result.OpenOrdersResult;
 import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
+import com.bitplay.okex.v3.dto.swap.SwapLeverageCross;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -67,10 +69,6 @@ interface SwapTradeApi {
     @POST("/api/swap/v3/cancel_order/{instrument_id}/{order_id}")
     Call<OrderResult> cancelOrder(@Path("instrument_id") String instrumentId, @Path("order_id") String orderId);
 
-    // no implementation on market
-//    @POST("/api/swap/v3/close_position")
-//    Call<ClosePositionResult> closePosition(@Body ClosePosition closePosition);
-//
 //    @POST("/api/futures/v3/cancel_batch_orders/{instrument_id}")
 //    Call<JSONObject> cancelOrders(@Path("instrument_id") String instrumentId, @Body JSONObject order_ids);
 //
@@ -89,7 +87,8 @@ interface SwapTradeApi {
 //    Call<JSONArray> getFills(@Query("instrument_id") String instrumentId, @Query("order_id") String orderId,
 //            @Query("from") int before, @Query("to") int after, @Query("limit") int limit);
 //
-    @GET("/api/swap/v3/accounts/{instrumentId}/leverage")
+    //Rate limit：5 requests per 2 seconds
+    @GET("/api/swap/v3/accounts/{instrumentId}/settings")
     Call<LeverageResult> getLeverRate(@Path("instrumentId") String instrumentId);
 
 //    @POST("/api/futures/v3/accounts/{currency}/leverage")
@@ -98,6 +97,6 @@ interface SwapTradeApi {
 //
     @POST("/api/swap/v3/accounts/{instrumentId}/leverage")
     Call<LeverageResult> changeLeverageOnCross(@Path("instrumentId") String instrumentId,
-                                               @Body LeverageCross changeLeverage);
+                                               @Body SwapLeverageCross changeLeverage);
 
 }

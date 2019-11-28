@@ -75,16 +75,12 @@ public class FuturesPrivateApi extends FuturesTradeApiServiceImpl {
     }
 
     @Override
-    public Leverage getLeverage(String instrumentId) {
-        final LeverageResult r = getInstrumentLeverRate(instrumentId);
+    public Leverage getLeverage(String currencyPair) {
+        final LeverageResult r = getInstrumentLeverRate(currencyPair);
         if (!r.getMargin_mode().equals("crossed")) {
             log.warn("LeverageResult WARNING: margin_mode is " + r.getMargin_mode());
         } else {
-            if (!r.getInstrument_id().toUpperCase().equals(instrumentId)) {
-                log.warn("LeverageResult WARNING: currency is different " + r.getCurrency());
-            } else {
-                return new Leverage(new BigDecimal(r.getLeverage()), r.getResult());
-            }
+            return new Leverage(new BigDecimal(r.getLeverage()), r.getResult());
         }
         return null;
     }
