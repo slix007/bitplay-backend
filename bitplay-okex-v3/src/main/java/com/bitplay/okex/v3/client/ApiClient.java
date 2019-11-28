@@ -68,7 +68,10 @@ public class ApiClient {
             } else if (ApiConstants.resultStatusArray.contains(status)) {
                 assert response.errorBody() != null;
                 final HttpResult result = OkexObjectMapper.get().readValue(new String(response.errorBody().bytes()), HttpResult.class);
-                throw new ApiException(result.getCode(), result.getMessage());
+                if (result != null) {
+                    throw new ApiException(result.getCode(), result.getMessage());
+                }
+                throw new ApiException(message);
             } else {
                 throw new ApiException(message);
             }
