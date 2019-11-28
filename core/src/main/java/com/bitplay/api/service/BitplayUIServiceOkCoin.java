@@ -8,6 +8,7 @@ import com.bitplay.api.dto.ob.FutureIndexJson;
 import com.bitplay.api.dto.ob.LimitsJson;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.model.SwapSettlement;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
@@ -110,7 +111,8 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
                 : "Quote ETH/BTC: " + service.getEthBtcTicker().getBid().toPlainString();
 
         final String okexEstimatedDeliveryPrice = service.getForecastPrice().toPlainString();
-        return new FutureIndexJson(indexString, indexVal, sdf.format(timestamp), limitsJson, ethBtcBal, okexEstimatedDeliveryPrice);
+        final SwapSettlement swapSettlement = service.getSwapSettlement();
+        return new FutureIndexJson(indexString, indexVal, sdf.format(timestamp), limitsJson, ethBtcBal, okexEstimatedDeliveryPrice, swapSettlement);
     }
 
     public ResultJson changeLeverage(LeverageRequest leverageRequest) {

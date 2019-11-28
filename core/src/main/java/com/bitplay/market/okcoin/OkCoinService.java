@@ -30,6 +30,7 @@ import com.bitplay.model.AccountBalance;
 import com.bitplay.model.EstimatedPrice;
 import com.bitplay.model.Leverage;
 import com.bitplay.model.Pos;
+import com.bitplay.model.SwapSettlement;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.FplayExchangeOkex;
@@ -106,6 +107,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -165,6 +167,9 @@ public class OkCoinService extends MarketServicePreliq {
     private volatile BigDecimal markPrice = BigDecimal.ZERO;
     private volatile BigDecimal forecastPrice = BigDecimal.ZERO;
     private volatile OkcoinPriceRange priceRange;
+    private volatile SwapSettlement swapSettlement = new SwapSettlement(
+            LocalDateTime.MIN, BigDecimal.ZERO, BigDecimal.ZERO, LocalDateTime.MIN
+    );
 
     public BigDecimal getMarkPrice() {
         return markPrice;
@@ -582,7 +587,35 @@ public class OkCoinService extends MarketServicePreliq {
         Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
     }
 
-//    @Scheduled(fixedDelay = 1000) // Request frequency 20 times/2s
+    @Scheduled(fixedDelay = 200) // Request frequency 20 times/2s
+    public void fetchSwapSettlement() {
+        if (!isStarted()) {
+            return;
+        }
+
+        Instant start = Instant.now();
+        try {
+            final InstrumentDto instrumentDto = instrDtos.get(0);
+            if (instrumentDto.getFuturesContract() != FuturesContract.Swap) {
+                return; // not in use for futures
+            }
+            swapSettlement = bitplayOkexEchange.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
+        } catch (Exception e) {
+            if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
+                logger.error("On fetchSwapSettlement timeout");
+            } else {
+                logger.error("On fetchSwapSettlement", e);
+            }
+        }
+        Instant end = Instant.now();
+        Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
+    }
+
+    public SwapSettlement getSwapSettlement() {
+        return swapSettlement;
+    }
+
+    //    @Scheduled(fixedDelay = 1000) // Request frequency 20 times/2s
 //    public void fetchIndexPrice() {
 //        Instant start = Instant.now();
 //        try {

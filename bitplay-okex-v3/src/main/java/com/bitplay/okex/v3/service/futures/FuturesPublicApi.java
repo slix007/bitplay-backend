@@ -28,4 +28,6 @@ public class FuturesPublicApi extends FuturesMarketApiServiceImpl {
         final BigDecimal price = r.getSettlement_price() != null ? r.getSettlement_price() : BigDecimal.ZERO;
         return new EstimatedPrice(price, r.getTimestamp());
     }
+
+
 }

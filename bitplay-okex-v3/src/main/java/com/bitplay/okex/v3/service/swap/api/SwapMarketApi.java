@@ -2,6 +2,7 @@ package com.bitplay.okex.v3.service.swap.api;
 
 import com.bitplay.okex.v3.dto.futures.result.Book;
 import com.bitplay.okex.v3.dto.futures.result.Instrument;
+import com.bitplay.okex.v3.dto.swap.result.SwapFundingTime;
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
@@ -19,12 +20,17 @@ interface SwapMarketApi {
 
     @GET("/api/swap/v3/instruments")
     Call<List<Instrument>> getInstruments();
-//
+
+    //
 //    @GET("/api/futures/v3/instruments/currencies")
 //    Call<List<Currencies>> getCurrencies();
 //
     @GET("/api/swap/v3/instruments/{instrument_id}/depth")
     Call<Book> getInstrumentBook(@Path("instrument_id") String instrumentId, @Query("size") Integer size);
+
+    // Rate limit：20/2s
+    @GET("/api/swap/v3/instruments/{instrument_id}/funding_time")
+    Call<SwapFundingTime> getSwapFundingTime(@Path("instrument_id") String instrumentId);
 //
 //    @GET("/api/futures/v3/instruments/{instrument_id}/ticker")
 //    Call<Ticker> getInstrumentTicker(@Path("instrument_id") String instrumentId);

@@ -3,6 +3,7 @@ package com.bitplay.okex.v3.service.swap.api;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.client.ApiClient;
 import com.bitplay.okex.v3.dto.futures.result.Book;
+import com.bitplay.okex.v3.dto.swap.result.SwapFundingTime;
 
 public abstract class SwapMarketApiServiceImpl implements SwapMarketApiService {
 
@@ -19,6 +20,9 @@ public abstract class SwapMarketApiServiceImpl implements SwapMarketApiService {
         return this.client.executeSync(this.api.getInstrumentBook(instrumentId, 20));
     }
 
+    public SwapFundingTime getSwapFundingTime(String instrumentId) {
+        return this.client.executeSync(this.api.getSwapFundingTime(instrumentId));
+    }
 
 //    @Override
 //    public List<Instrument> getInstruments() {
