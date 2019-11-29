@@ -306,7 +306,8 @@ public class NtUsdRecoveryService {
 
         if (dc.signum() < 0) {
             corrObj.orderType = OrderType.BID;
-            if (bEquiv.compareTo(okEquiv) < 0 && !btmSo) {
+            if ((bEquiv.compareTo(okEquiv) < 0 && !btmSo)
+                    || posDiffService.okexAmountIsZero(corrObj, dc, isEth)) {
                 // bitmex buy
                 posDiffService.defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
                 corrObj.marketService = arbitrageService.getFirstMarketService();
@@ -326,7 +327,8 @@ public class NtUsdRecoveryService {
             }
         } else {
             corrObj.orderType = OrderType.ASK;
-            if (bEquiv.compareTo(okEquiv) < 0 || btmSo) {
+            if ((bEquiv.compareTo(okEquiv) < 0 || btmSo)
+                    && !posDiffService.okexAmountIsZero(corrObj, dc, isEth)) {
                 // okcoin sell
                 posDiffService.defineCorrectAmountOkex(corrObj, dc, isEth);
                 if (oPL.signum() > 0 && oPL.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_BID
