@@ -7,14 +7,13 @@ import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.LimitsService;
-import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.Limits;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.utils.Utils;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
-import java.math.BigDecimal;
-import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -23,6 +22,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by Sergey Shurmin on 4/8/18.
@@ -61,6 +63,7 @@ public class OkexLimitsService implements LimitsService {
         BigDecimal limitAsk;
         BigDecimal minPrice;
         BigDecimal maxPrice;
+        String priceRangeTimestamp;
     }
 
     public Params getParams() {
@@ -77,7 +80,8 @@ public class OkexLimitsService implements LimitsService {
         final OrderBook ob = okCoinService.getOrderBook();
         final BigDecimal limitBid = ob.getBids().get(ind).getLimitPrice();
         final BigDecimal limitAsk = ob.getAsks().get(ind).getLimitPrice();
-        return new Params(limits.getIgnoreLimits(), okexLimitPriceNumber, limitBid, limitAsk, minPrice, maxPrice);
+        return new Params(limits.getIgnoreLimits(), okexLimitPriceNumber, limitBid, limitAsk, minPrice, maxPrice,
+                Utils.timestampToStr(priceRange.getTimestamp()));
     }
 
     @Override
@@ -110,6 +114,7 @@ public class OkexLimitsService implements LimitsService {
         }
 
         return new LimitsJson(p.okexLimitPriceNumber, p.limitAsk, p.limitBid, p.minPrice, p.maxPrice,
+                p.priceRangeTimestamp,
                 insideLimits, insideLimitsEx, p.ignoreLimits, minPriceForTest, maxPriceForTest);
     }
 

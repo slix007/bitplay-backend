@@ -3,15 +3,6 @@ package com.bitplay.utils;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.Position;
@@ -19,6 +10,18 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.slf4j.Logger;
 import org.springframework.data.util.Pair;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
@@ -300,4 +303,13 @@ public class Utils {
         limitOrder.setOrderFlags(l.getOrderFlags());
         return limitOrder;
     }
+
+    public static String timestampToStr(Date timestamp) {
+        return timestampToStr(timestamp.toInstant());
+    }
+
+    public static String timestampToStr(Instant timestamp) {
+        return LocalDateTime.ofInstant(timestamp, ZoneId.systemDefault()).toLocalTime().toString();
+    }
+
 }

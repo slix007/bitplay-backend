@@ -22,14 +22,6 @@ import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
-import com.bitplay.utils.Utils;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -41,6 +33,15 @@ import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.dto.trade.ContractLimitOrder;
 import org.knowm.xchange.dto.trade.LimitOrder;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static com.bitplay.utils.Utils.getBestAsks;
+import static com.bitplay.utils.Utils.getBestBids;
+import static com.bitplay.utils.Utils.timestampToStr;
 
 /**
  * Created by Sergey Shurmin on 3/25/17.
@@ -97,10 +98,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         );
     };
 
-    private String timestampToStr(Date timestamp) {
-        return LocalDateTime.ofInstant(timestamp.toInstant(), ZoneId.systemDefault()).toLocalTime().toString();
-    }
-
     public abstract T getBusinessService();
 
     public abstract FutureIndexJson getFutureIndex();
@@ -124,11 +121,11 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     protected OrderBookJson convertOrderBookAndFilter(OrderBook orderBook, Ticker ticker) {
         final OrderBookJson orderJson = new OrderBookJson();
-        final List<LimitOrder> bestBids = Utils.getBestBids(orderBook, 5);
+        final List<LimitOrder> bestBids = getBestBids(orderBook, 5);
         orderJson.setBid(bestBids.stream()
                 .map(toOrderJson)
                 .collect(Collectors.toList()));
-        final List<LimitOrder> bestAsks = Utils.getBestAsks(orderBook, 5);
+        final List<LimitOrder> bestAsks = getBestAsks(orderBook, 5);
         orderJson.setAsk(bestAsks.stream()
                 .map(toOrderJson)
                 .collect(Collectors.toList()));

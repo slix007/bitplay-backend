@@ -7,15 +7,17 @@ import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.LimitsService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
+import com.bitplay.utils.Utils;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * Created by Sergey Shurmin on 4/8/18.
@@ -57,6 +59,7 @@ public class BitmexLimitsService implements LimitsService {
         final BigDecimal lp = bitmexLimitPrice.divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         final BigDecimal maxPrice = indexPrice.multiply(BigDecimal.ONE.add(lp)).setScale(2, RoundingMode.HALF_UP);
         final BigDecimal minPrice = indexPrice.multiply(BigDecimal.ONE.subtract(lp)).setScale(2, RoundingMode.HALF_UP);
+        final String priceRangeTimestamp = Utils.timestampToStr(contractIndex.getTimestamp());
         // insideLimits: Limit Ask < Max price && Limit bid > Min price
         final boolean insideLimits = (limitAsk.compareTo(maxPrice) < 0 && limitBid.compareTo(minPrice) > 0);
 
@@ -79,6 +82,7 @@ public class BitmexLimitsService implements LimitsService {
                 limitBid,
                 minPrice,
                 maxPrice,
+                priceRangeTimestamp,
                 insideLimits,
                 null,
                 limits.getIgnoreLimits());

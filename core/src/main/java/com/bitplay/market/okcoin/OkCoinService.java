@@ -403,7 +403,7 @@ public class OkCoinService extends MarketServicePreliq {
         pingStatSub = startPingStatSub();
         markPriceSubscription = startMarkPriceListener();
         tickerSubscription = startTickerListener();
-        priceRangeSub = startPriceRangeListener();
+        reSubscribePriceRangeListener();
         if (okexContractType.getBaseTool().equals("ETH")) {
             tickerEthSubscription = startEthTickerListener();
         }
@@ -903,6 +903,25 @@ public class OkCoinService extends MarketServicePreliq {
                     this.ticker = ticker;
                     lastPriceDeviationService.updateAndCheckDeviationAsync();
                 }, throwable -> logger.error("OkexFutureTicker.Exception: ", throwable));
+    }
+
+    private void checkPriceRangeTime() {
+        if (priceRange == null || priceRange.getTimestamp() == null ||
+                priceRange.getTimestamp().plusSeconds(15).isBefore(Instant.now())) {
+            final String warn = "ReSubscribe PriceRange: " + priceRange;
+            warningLogger.warn(warn);
+            getTradeLogger().warn(warn);
+            logger.warn(warn);
+            reSubscribePriceRangeListener();
+        }
+    }
+
+    private void reSubscribePriceRangeListener() {
+        logger.info("priceRange: " + (priceRange != null ? priceRange.getTimestamp() : "null"));
+        if (priceRangeSub != null && !priceRangeSub.isDisposed()) {
+            priceRangeSub.dispose();
+        }
+        priceRangeSub = startPriceRangeListener();
     }
 
     private Disposable startPriceRangeListener() {
@@ -2010,9 +2029,13 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     protected BigDecimal createBestTakerPrice(OrderType orderType, OrderBook orderBook) {
+        checkPriceRangeTime();
         final BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
         final BigDecimal priceForTaker = Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
         final BigDecimal thePrice = priceForTaker.setScale(okexContractType.getScale(), RoundingMode.HALF_UP); // .00 -> .000 for eth
+        final String ftpdDetails = String.format("The fake taker price is %s; %s", thePrice.toPlainString(), priceRange);
+        getTradeLogger().info(ftpdDetails);
+        logger.info(ftpdDetails);
         return thePrice;
     }
 
@@ -2841,9 +2864,14 @@ public class OkCoinService extends MarketServicePreliq {
             throws IOException {
         //TODO use https://www.okex.com/docs/en/#futures-close_all
         if (amount.signum() != 0) {
+
+            checkPriceRangeTime();
+
             final BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
             final BigDecimal thePrice = Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
-            getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
+            final String ftpdDetails = String.format("The fake taker price is %s; %s", thePrice.toPlainString(), priceRange);
+            getTradeLogger().info(ftpdDetails);
+            logger.info(ftpdDetails);
 
             final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
             final OrderResultTiny orderResult = bitplayOkexEchange.getPrivateApi().limitOrder(
