@@ -905,7 +905,8 @@ public class OkCoinService extends MarketServicePreliq {
                 }, throwable -> logger.error("OkexFutureTicker.Exception: ", throwable));
     }
 
-    private void checkPriceRangeTime() {
+    @Scheduled(initialDelay = 60000, fixedDelay = 10000)
+    public void checkPriceRangeTime() {
         if (priceRange == null || priceRange.getTimestamp() == null ||
                 priceRange.getTimestamp().plusSeconds(15).isBefore(Instant.now())) {
             final String warn = "ReSubscribe PriceRange: " + priceRange;
@@ -2029,7 +2030,6 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     protected BigDecimal createBestTakerPrice(OrderType orderType, OrderBook orderBook) {
-        checkPriceRangeTime();
         final BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
         final BigDecimal priceForTaker = Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
         final BigDecimal thePrice = priceForTaker.setScale(okexContractType.getScale(), RoundingMode.HALF_UP); // .00 -> .000 for eth
@@ -2864,8 +2864,6 @@ public class OkCoinService extends MarketServicePreliq {
             throws IOException {
         //TODO use https://www.okex.com/docs/en/#futures-close_all
         if (amount.signum() != 0) {
-
-            checkPriceRangeTime();
 
             final BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
             final BigDecimal thePrice = Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
