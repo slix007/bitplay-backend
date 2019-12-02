@@ -1,35 +1,42 @@
 package com.bitplay.model;
 
+import lombok.Getter;
+
 import java.math.BigDecimal;
 import java.time.Instant;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * Created by Sergey Shurmin on 6/28/17.
  */
 @Getter
-@NoArgsConstructor
 public class Pos {
 
-    private BigDecimal positionLong;
-    private BigDecimal positionShort;
-    private BigDecimal longAvailToClose;
-    private BigDecimal shortAvailToClose;
-    private BigDecimal leverage;
-    private BigDecimal liquidationPrice;
-    private BigDecimal priceAvgLong;
-    private BigDecimal priceAvgShort;
-    private BigDecimal markValue; // bitmex only
-    private Instant timestamp;
-    private String raw;
-    private BigDecimal plPos; // okex only:
+    private final BigDecimal positionLong;
+    private final BigDecimal positionShort;
+    private final BigDecimal longAvailToClose;
+    private final BigDecimal shortAvailToClose;
+    private final BigDecimal leverage;
+    private final BigDecimal liquidationPrice;
+    private final BigDecimal priceAvgLong;
+    private final BigDecimal priceAvgShort;
+    private final BigDecimal markValue; // bitmex only
+    private final Instant timestamp;
+    private final String raw;
+    private final BigDecimal plPos; // okex only:
 
     private Pos(BigDecimal positionLong, BigDecimal positionShort, BigDecimal leverage, BigDecimal liquidationPrice) {
         this.positionLong = positionLong;
         this.positionShort = positionShort;
         this.leverage = leverage;
         this.liquidationPrice = liquidationPrice;
+        this.longAvailToClose = null;
+        this.shortAvailToClose = null;
+        this.priceAvgLong = null;
+        this.priceAvgShort = null;
+        this.markValue = null;
+        this.timestamp = null;
+        this.raw = null;
+        this.plPos = null;
     }
 
     public static Pos emptyPos() {

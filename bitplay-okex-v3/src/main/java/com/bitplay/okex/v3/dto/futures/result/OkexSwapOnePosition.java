@@ -24,7 +24,16 @@ public class OkexSwapOnePosition {
                 s = p;
             }
         }
-        final BigDecimal liquidationPrice = l.getLiquidation_price() != null ? l.getLiquidation_price() : s.getLiquidation_price();
+        final BigDecimal longLiqPrice = l.getLiquidation_price() != null ? l.getLiquidation_price() : BigDecimal.ZERO;
+        final BigDecimal shortLiqPrice = s.getLiquidation_price() != null ? s.getLiquidation_price() : BigDecimal.ZERO;
+        final BigDecimal liqPrice;
+        if (longLiqPrice.signum() > 0 && shortLiqPrice.signum() > 0) {
+            liqPrice = l.getPosition().compareTo(s.getPosition()) > 0
+                    ? longLiqPrice
+                    : shortLiqPrice;
+        } else {
+            liqPrice = longLiqPrice.signum() > 0 ? longLiqPrice : shortLiqPrice;
+        }
         final BigDecimal leverage = l.getPosition().signum() != 0 ? l.getLeverage() : s.getLeverage();
 
         BigDecimal longAvailToClose = l.getAvail_position();
@@ -36,7 +45,7 @@ public class OkexSwapOnePosition {
                 longAvailToClose,
                 shortAvailToClose,
                 leverage,
-                liquidationPrice,
+                liqPrice,
                 BigDecimal.ZERO, //mark value
                 l.getAvg_cost(),
                 s.getAvg_cost(),
