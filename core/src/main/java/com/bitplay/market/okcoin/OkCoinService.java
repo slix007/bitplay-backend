@@ -1802,12 +1802,13 @@ public class OkCoinService extends MarketServicePreliq {
         final String preStr = String.format("#%s/%s checkAfterPlacing(check=%s) id=%s: ", counterNameWithPortion, attemptCount, checkAttempt, orderId);
         if (order.size() > 0) {
             Order theOrder = order.iterator().next();
+            final OrderStatus theOrderStatus = theOrder.getStatus();
             final String msg = String.format("%s status=%s, filled=%s. postOnly=%s",
-                    preStr, theOrder.getStatus(), theOrder.getCumulativeAmount(), postOnly);
+                    preStr, theOrderStatus, theOrder.getCumulativeAmount(), postOnly);
             tradeLogger.info(msg);
             logger.info(msg);
-            if (postOnly && theOrder.getStatus() == OrderStatus.NEW) {
-                final String warn = String.format("%s postOnly with status NEW.", preStr);
+            if (postOnly && (theOrderStatus == OrderStatus.NEW || theOrderStatus == OrderStatus.PENDING_NEW)) {
+                final String warn = String.format("%s postOnly with status %s.", preStr, theOrderStatus);
                 if (needRepeatCheckOrderStatus(checkAttempt, warn))
                     return checkOrderStatus(counterNameWithPortion, attemptCount, orderType, tradableAmount, thePrice, orderId,
                             checkAttempt + 1, postOnly);
