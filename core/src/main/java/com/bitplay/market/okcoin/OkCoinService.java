@@ -905,10 +905,10 @@ public class OkCoinService extends MarketServicePreliq {
                 }, throwable -> logger.error("OkexFutureTicker.Exception: ", throwable));
     }
 
-    @Scheduled(initialDelay = 60000, fixedDelay = 10000)
+    @Scheduled(initialDelay = 60000, fixedDelay = 30000)
     public void checkPriceRangeTime() {
         if (priceRange == null || priceRange.getTimestamp() == null ||
-                priceRange.getTimestamp().plusSeconds(15).isBefore(Instant.now())) {
+                priceRange.getTimestamp().plusSeconds(30).isBefore(Instant.now())) {
             final String warn = "ReSubscribe PriceRange: " + priceRange;
             warningLogger.warn(warn);
             getTradeLogger().warn(warn);
