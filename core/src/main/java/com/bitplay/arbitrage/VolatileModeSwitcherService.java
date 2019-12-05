@@ -3,6 +3,8 @@ package com.bitplay.arbitrage;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.TradeService;
+import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
@@ -30,6 +32,7 @@ public class VolatileModeSwitcherService {
     private final ArbitrageService arbitrageService;
     private final BitmexChangeOnSoService bitmexChangeOnSoService;
     private final DealPricesRepositoryService dealPricesRepositoryService;
+    private final TradeService fplayTradeService;
     private final VolatileModeAfterService volatileModeAfterService;
 
     private final ScheduledExecutorService delayService = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("volatile-mode-delay"));
@@ -128,8 +131,9 @@ public class VolatileModeSwitcherService {
 
     }
 
-    public void activateVolatileMode() {
+    public synchronized void activateVolatileMode() {
         if (persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
+            final ArbScheme arbScheme = persistenceService.getSettingsRepositoryService().getSettings().getArbSchemeRaw(); //raw is always for current
             final Settings settings = persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
             warningLogger.info("Set TradingMode.VOLATILE automatically");
             log.info("Set TradingMode.VOLATILE automatically");
@@ -138,10 +142,28 @@ public class VolatileModeSwitcherService {
             final PlacingType okexPlacingType = settings.getOkexPlacingType();
             final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
             final Long tradeId = arbitrageService.getTradeId();
-            dealPricesRepositoryService.justSetVolatileMode(tradeId, btmPlacingType, okexPlacingType);
+            if (fplayTradeService.isInProgress(tradeId)) {
+                if (arbScheme == ArbScheme.CON_B_O_PORTIONS) {
+                    justSetVolatileOnConBoPorstions(tradeId);
+                } else {
+                    // old behaviour
+                    dealPricesRepositoryService.justSetVolatileMode(tradeId, btmPlacingType, okexPlacingType);
+                    volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs); // replace-limit-orders. it may set CURRENT_VOLATILE
 
-            volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs); // replace-limit-orders. it may set CURRENT_VOLATILE
+                }
+
+            }
+
         }
+    }
+
+    private void justSetVolatileOnConBoPorstions(Long tradeId) {
+        // do not change current vertical.
+        // 1. cancel bitmex. bitmex filled amount = 0. Okex has no orders. => just cancel bitmex
+        // 2. cancel bitmex. bitmex filled amount > 0. Okex finishes the con_b_o_portions algo.
+
+        volatileModeAfterService.justSetVolatileModeConBoPortions(tradeId, this.lastBtmFokAutoArgs); // replace-limit-orders. it may set CURRENT_VOLATILE
+
     }
 
 }

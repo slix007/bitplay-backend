@@ -94,7 +94,8 @@ public class VolatileModeAfterService {
         replaceLimitOrders(okexService, okexPlacingType, okexOO, tradeId, null);
     }
 
-    private void replaceLimitOrders(MarketService marketService, PlacingType placingType, List<FplayOrder> currOrders, Long tradeId, BtmFokAutoArgs btmFokAutoArgs) {
+    private void replaceLimitOrders(MarketService marketService, PlacingType placingType, List<FplayOrder> currOrders, Long tradeId,
+                                    BtmFokAutoArgs btmFokAutoArgs) {
         if (placingType != PlacingType.MAKER && placingType != PlacingType.MAKER_TICK) {
 
             final MarketState prevState = marketService.getMarketState();
@@ -166,4 +167,76 @@ public class VolatileModeAfterService {
                 .findFirst()
                 .orElse(null);
     }
+
+    void justSetVolatileModeConBoPortions(Long tradeId, BtmFokAutoArgs btmFokAutoArgs) {
+        // do not change current vertical.
+        // 1. cancel bitmex. bitmex filled amount = 0. Okex has no orders. => just cancel bitmex
+        // 2. cancel bitmex. bitmex filled amount > 0. Okex finishes the con_b_o_portions algo.
+
+        final List<FplayOrder> bitmexOO = bitmexService.getOnlyOpenFplayOrdersClone();
+//        final List<FplayOrder> okexOO = okexService.getOnlyOpenFplayOrdersClone();
+
+//        final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getOkexPlacingType();
+//        final PlaceOrderArgs updateArgs = okexService.changeDeferredPlacingType(okexPlacingType);
+//        if (updateArgs != null) {
+//            final String counterForLogs = updateArgs.getCounterNameWithPortion();
+//            fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
+//            final String msg = String.format("#%s change Trading mode to current-volatile(okex has deferred)", counterForLogs);
+//            fplayTradeService.info(tradeId, counterForLogs, msg);
+//            okexService.getTradeLogger().info(msg);
+//        }
+
+        if (bitmexOO.size() > 0) {
+            bitmexService.ooSingleExecutor.execute(() -> cancelLimitOrdersBitmex(bitmexOO, tradeId, btmFokAutoArgs));
+        }
+//        if (okexOO.size() > 0) {
+//            okexService.ooSingleExecutor.execute(() -> replaceLimitOrdersOkex(okexOO, tradeId));
+//        }
+    }
+
+    private void cancelLimitOrdersBitmex(List<FplayOrder> bitmexOO, Long tradeId, BtmFokAutoArgs btmFokAutoArgs) {
+        while (bitmexService.getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                log.error("Sleep error", e);
+                return;
+            }
+            if (bitmexService.isMarketStopped()) {
+                return;
+            }
+        }
+
+        final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
+        // ===
+
+        final FplayOrder lastOO = bitmexService.getLastOO(bitmexOO);
+        final FplayOrder stub = bitmexService.getCurrStub(tradeId, lastOO, bitmexOO);
+        final String counterName = stub.getCounterName(); // no portions here
+        final String counterForLogs = stub.getCounterWithPortion(); // no portions here
+        final Integer portionsQty = lastOO != null ? lastOO.getPortionsQty() : null;
+        if (counterForLogs == null) {
+            final String warnStr = String.format("#%s WARNING counter is null!!!. orderToCancel=%s, stub=%s", counterForLogs, lastOO, stub);
+            fplayTradeService.info(tradeId, null, warnStr);
+            bitmexService.getTradeLogger().warn(warnStr);
+            log.info(warnStr);
+        }
+
+        final List<LimitOrder> orders = bitmexService.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders", true,
+                false);
+        //TODO change okex deferredOrder.
+
+
+//        final BigDecimal amountFilled = orders.stream()
+//                .map(o -> {
+//                    final BigDecimal am = o.getTradableAmount().subtract(o.getCumulativeAmount());
+//                    final boolean sellType = o.getType() == OrderType.ASK || o.getType() == OrderType.EXIT_BID;
+//                    return sellType ? am.negate() : am;
+//                })
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+
+
+    }
+
 }
