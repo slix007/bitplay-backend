@@ -24,6 +24,7 @@ import com.bitplay.persistance.domain.settings.SettingsVolatileMode;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.settings.BitmexChangeOnSoService;
+import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,7 @@ import java.util.EnumSet;
 /**
  * Created by Sergey Shurmin on 11/27/17.
  */
+@AllArgsConstructor
 @Secured("ROLE_TRADER")
 @RestController
 @RequestMapping("/settings")
@@ -48,35 +50,16 @@ public class SettingsEndpoint {
     private final static Logger logger = LoggerFactory.getLogger(SettingsEndpoint.class);
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    @Autowired
-    private VolatileModeSwitcherService volatileModeSwitcherService;
-
-    @Autowired
-    private PersistenceService persistenceService;
-
-    @Autowired
-    SettingsRepositoryService settingsRepositoryService;
-
-    @Autowired
-    private ArbitrageService arbitrageService;
-
-    @Autowired
-    private OkCoinService okCoinService;
-
-    @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private PosDiffService posDiffService;
-
-    @Autowired
-    private SettingsCorrEndpoint settingsCorrEndpoint;
-
-    @Autowired
-    private BitmexChangeOnSoService bitmexChangeOnSoService;
-
-    @Autowired
-    private OkexLimitsService okexLimitsService;
+    private final VolatileModeSwitcherService volatileModeSwitcherService;
+    private final PersistenceService persistenceService;
+    private final SettingsRepositoryService settingsRepositoryService;
+    private final ArbitrageService arbitrageService;
+    private final OkCoinService okCoinService;
+    private final BitmexService bitmexService;
+    private final PosDiffService posDiffService;
+    private final SettingsCorrEndpoint settingsCorrEndpoint;
+    private final BitmexChangeOnSoService bitmexChangeOnSoService;
+    private final OkexLimitsService okexLimitsService;
 
     /**
      * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
@@ -373,7 +356,7 @@ public class SettingsEndpoint {
         if (settingsUpdate.getTradingModeState() != null && settingsUpdate.getTradingModeState().getTradingMode() != null) {
             warningLogger.info("Set TradingMode." + settingsUpdate.getTradingModeState().getTradingMode() + " by manual");
             if (settingsUpdate.getTradingModeState().getTradingMode() == TradingMode.VOLATILE) {
-                arbitrageService.activateVolatileMode();
+                volatileModeSwitcherService.activateVolatileMode();
                 settings = settingsRepositoryService.getSettings();
             } else {
                 settings = settingsRepositoryService.updateTradingModeState(settingsUpdate.getTradingModeState().getTradingMode());

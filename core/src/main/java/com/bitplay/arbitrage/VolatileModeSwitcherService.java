@@ -1,35 +1,42 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.market.model.BtmFokAutoArgs;
+import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
+import com.bitplay.settings.BitmexChangeOnSoService;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class VolatileModeSwitcherService {
-
-    private final ScheduledExecutorService delayService = Executors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("volatile-mode-delay"));
-    private volatile ScheduledFuture<?> delayTask = null;
-
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    @Autowired
-    private PersistenceService persistenceService;
-    @Autowired
-    private ArbitrageService arbitrageService;
+    private final PersistenceService persistenceService;
+    private final ArbitrageService arbitrageService;
+    private final BitmexChangeOnSoService bitmexChangeOnSoService;
+    private final DealPricesRepositoryService dealPricesRepositoryService;
+    private final VolatileModeAfterService volatileModeAfterService;
+
+    private final ScheduledExecutorService delayService = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("volatile-mode-delay"));
+    private volatile ScheduledFuture<?> delayTask = null;
+
+    // it's used for Volatile mode. When the activation is delayed, the param should be kept up-do-date.
+    private volatile BtmFokAutoArgs lastBtmFokAutoArgs;
 
     boolean trySwitchToVolatileModeBorderV2(final BordersService.TradingSignal tradingSignal) {
         if (tradingSignal.borderValueList != null) {
@@ -52,7 +59,7 @@ public class VolatileModeSwitcherService {
         if (settings.getTradingModeAuto()
                 && borderCrossDepth.signum() > 0
                 && delta.subtract(minBorder).compareTo(borderCrossDepth) >= 0) {
-            arbitrageService.setLastBtmFokAutoArgs(btmFokAutoArgs);
+            this.lastBtmFokAutoArgs = btmFokAutoArgs;
             if (settings.getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
                 final Integer vModeDelayMs = settings.getSettingsVolatileMode().getVolatileDelayMs();
                 if (vModeDelayMs != null && vModeDelayMs > 0) {
@@ -60,11 +67,10 @@ public class VolatileModeSwitcherService {
                         String msg = String.format("volatile-mode signal. Waiting delay(ms)=%s", vModeDelayMs);
                         log.info(msg);
                         warningLogger.info(msg);
-                        delayTask = delayService.schedule(() -> arbitrageService.activateVolatileMode(),
-                                vModeDelayMs, TimeUnit.MILLISECONDS);
+                        delayTask = delayService.schedule(this::activateVolatileMode, vModeDelayMs, TimeUnit.MILLISECONDS);
                     } // else delayTask is in_progress
                 } else {
-                    arbitrageService.activateVolatileMode();
+                    this.activateVolatileMode();
                     return true;
                 }
             } else {
@@ -98,10 +104,9 @@ public class VolatileModeSwitcherService {
                     // 2) remainingMs=45 => passed=5 => updated=95  (dAfter-passed)
                     final long updated = dAfterMs - passedMs;
                     if (updated > 0) {
-                        delayTask = delayService.schedule(() -> arbitrageService.activateVolatileMode(),
-                                updated, TimeUnit.MILLISECONDS);
+                        delayTask = delayService.schedule(this::activateVolatileMode, updated, TimeUnit.MILLISECONDS);
                     } else {
-                        arbitrageService.activateVolatileMode();
+                        this.activateVolatileMode();
                     }
                 } else {
                     log.warn("restartVolatileDelay. cancel attempt. isCancelled=false");
@@ -122,4 +127,21 @@ public class VolatileModeSwitcherService {
                 : 0;
 
     }
+
+    public void activateVolatileMode() {
+        if (persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
+            final Settings settings = persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
+            warningLogger.info("Set TradingMode.VOLATILE automatically");
+            log.info("Set TradingMode.VOLATILE automatically");
+
+            // if we replace-limit-orders then fix commissions for current signal.
+            final PlacingType okexPlacingType = settings.getOkexPlacingType();
+            final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
+            final Long tradeId = arbitrageService.getTradeId();
+            dealPricesRepositoryService.justSetVolatileMode(tradeId, btmPlacingType, okexPlacingType);
+
+            volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs); // replace-limit-orders. it may set CURRENT_VOLATILE
+        }
+    }
+
 }

@@ -118,8 +118,6 @@ public class ArbitrageService {
     @Autowired
     private SignalService signalService;
     @Autowired
-    private VolatileModeAfterService volatileModeAfterService;
-    @Autowired
     private DiffFactBrService diffFactBrService;
     @Autowired
     private DeltasCalcService deltasCalcService;
@@ -577,28 +575,6 @@ public class ArbitrageService {
             }
         }
 
-    }
-
-    // it's used for Volatile mode. When the activation is delayed, the param should be kept up-do-date.
-    private volatile BtmFokAutoArgs lastBtmFokAutoArgs;
-
-    public void setLastBtmFokAutoArgs(BtmFokAutoArgs btmFokAutoArgs) {
-        this.lastBtmFokAutoArgs = btmFokAutoArgs;
-    }
-
-    public void activateVolatileMode() {
-        if (persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode() == TradingMode.CURRENT) {
-            final Settings settings = persistenceService.getSettingsRepositoryService().updateTradingModeState(TradingMode.VOLATILE);
-            warningLogger.info("Set TradingMode.VOLATILE automatically");
-            log.info("Set TradingMode.VOLATILE automatically");
-
-            // if we replace-limit-orders then fix commissions for current signal.
-            final PlacingType okexPlacingType = settings.getOkexPlacingType();
-            final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
-            dealPricesRepositoryService.justSetVolatileMode(tradeId, btmPlacingType, okexPlacingType);
-
-            volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs); // replace-limit-orders. it may set CURRENT_VOLATILE
-        }
     }
 
     private BordersService.TradingSignal applyMaxDelta(final BordersService.TradingSignal tradingSignal,
