@@ -161,7 +161,7 @@ public class TradeService {
         Query query = new Query(Criteria.where("_id").is(tradeId));
         query.fields().include("tradeStatus");
         final FplayTrade t = mongoOperation.findOne(query, FplayTrade.class);
-        return t.getTradeStatus() == TradeStatus.IN_PROGRESS;
+        return t != null && t.getTradeStatus() == TradeStatus.IN_PROGRESS;
     }
 
     private void addBitmexOrder(long tradeId, String bitmexOrderId) {

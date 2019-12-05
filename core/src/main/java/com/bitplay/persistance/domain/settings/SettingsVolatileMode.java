@@ -40,6 +40,8 @@ public class SettingsVolatileMode {
 
     private ArbScheme arbScheme;
 
+    private ConBoPortions conBoPortions;
+
     //TODO corr max total, corr max adj: общее количество коррекций/подгонок (0=off);
 
     public enum Field {
@@ -50,6 +52,23 @@ public class SettingsVolatileMode {
         posAdjustment,
         adjustByNtUsd,
         corr_adj,
-        arb_scheme
+        arb_scheme,
+        conBoPortions_minNtUsdToStartOkex,
+        conBoPortions_maxPortionUsdOkex
+    }
+
+    public ConBoPortions getConBoPortions(ConBoPortions mainMode) {
+        final ConBoPortions res = new ConBoPortions();
+        if (getActiveFields().contains(Field.conBoPortions_maxPortionUsdOkex)) {
+            res.setMaxPortionUsdOkex(this.conBoPortions.getMaxPortionUsdOkex());
+        } else {
+            res.setMaxPortionUsdOkex(mainMode.getMaxPortionUsdOkex());
+        }
+        if (getActiveFields().contains(Field.conBoPortions_minNtUsdToStartOkex)) {
+            res.setMinNtUsdToStartOkex(this.conBoPortions.getMinNtUsdToStartOkex());
+        } else {
+            res.setMinNtUsdToStartOkex(mainMode.getMinNtUsdToStartOkex());
+        }
+        return res;
     }
 }

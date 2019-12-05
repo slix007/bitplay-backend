@@ -12,6 +12,7 @@ public class ConBoPortions {
     public static ConBoPortions createDefault() {
         final ConBoPortions conBoPortions = new ConBoPortions();
         conBoPortions.minNtUsdToStartOkex = BigDecimal.ZERO;
+        conBoPortions.maxPortionUsdOkex = BigDecimal.ZERO;
         return conBoPortions;
     }
 }

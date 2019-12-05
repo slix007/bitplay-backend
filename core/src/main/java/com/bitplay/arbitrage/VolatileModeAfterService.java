@@ -174,7 +174,7 @@ public class VolatileModeAfterService {
         // 2. cancel bitmex. bitmex filled amount > 0. Okex finishes the con_b_o_portions algo.
 
         final List<FplayOrder> bitmexOO = bitmexService.getOnlyOpenFplayOrdersClone();
-//        final List<FplayOrder> okexOO = okexService.getOnlyOpenFplayOrdersClone();
+        final List<FplayOrder> okexOO = okexService.getOnlyOpenFplayOrdersClone();
 
 //        final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getOkexPlacingType();
 //        final PlaceOrderArgs updateArgs = okexService.changeDeferredPlacingType(okexPlacingType);
@@ -189,9 +189,9 @@ public class VolatileModeAfterService {
         if (bitmexOO.size() > 0) {
             bitmexService.ooSingleExecutor.execute(() -> cancelLimitOrdersBitmex(bitmexOO, tradeId, btmFokAutoArgs));
         }
-//        if (okexOO.size() > 0) {
-//            okexService.ooSingleExecutor.execute(() -> replaceLimitOrdersOkex(okexOO, tradeId));
-//        }
+        if (okexOO.size() > 0) {
+            okexService.ooSingleExecutor.execute(() -> replaceLimitOrdersOkex(okexOO, tradeId));
+        }
     }
 
     private void cancelLimitOrdersBitmex(List<FplayOrder> bitmexOO, Long tradeId, BtmFokAutoArgs btmFokAutoArgs) {
@@ -222,8 +222,8 @@ public class VolatileModeAfterService {
             log.info(warnStr);
         }
 
-        final List<LimitOrder> orders = bitmexService.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders", true,
-                false);
+        final List<LimitOrder> orders = bitmexService.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders",
+                false, false);
         //TODO change okex deferredOrder.
 
 

@@ -228,6 +228,18 @@ public class Settings extends AbstractDocument {
                 : arbScheme;
     }
 
+    public ConBoPortions getConBoPortionsRaw() {
+        return conBoPortions;
+    }
+
+    public ConBoPortions getConBoPortions() {
+        return tradingModeState != null && settingsVolatileMode != null
+                && tradingModeState.getTradingMode() == TradingMode.VOLATILE
+                ? settingsVolatileMode.getConBoPortions(conBoPortions)
+                : conBoPortions;
+
+    }
+
     public PlacingType getBitmexPlacingTypeRaw() {
         return bitmexPlacingType;
     }

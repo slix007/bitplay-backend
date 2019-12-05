@@ -27,7 +27,6 @@ import com.bitplay.settings.BitmexChangeOnSoService;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -392,7 +391,7 @@ public class SettingsEndpoint {
             updateOkexSettlement(settingsUpdate, settings);
         }
 
-        if (settingsUpdate.getConBoPortions() != null) {
+        if (settingsUpdate.getConBoPortionsRaw() != null) {
             updateConBoPortions(settingsUpdate, settings);
         }
 
@@ -422,11 +421,11 @@ public class SettingsEndpoint {
     }
 
     private void updateConBoPortions(Settings settingsUpdate, Settings settings) {
-        if (settingsUpdate.getConBoPortions().getMinNtUsdToStartOkex() != null) {
-            settings.getConBoPortions().setMinNtUsdToStartOkex(settingsUpdate.getConBoPortions().getMinNtUsdToStartOkex());
+        if (settingsUpdate.getConBoPortionsRaw().getMinNtUsdToStartOkex() != null) {
+            settings.getConBoPortionsRaw().setMinNtUsdToStartOkex(settingsUpdate.getConBoPortionsRaw().getMinNtUsdToStartOkex());
         }
-        if (settingsUpdate.getConBoPortions().getMaxPortionUsdOkex() != null) {
-            settings.getConBoPortions().setMaxPortionUsdOkex(settingsUpdate.getConBoPortions().getMaxPortionUsdOkex());
+        if (settingsUpdate.getConBoPortionsRaw().getMaxPortionUsdOkex() != null) {
+            settings.getConBoPortionsRaw().setMaxPortionUsdOkex(settingsUpdate.getConBoPortionsRaw().getMaxPortionUsdOkex());
         }
         settingsRepositoryService.saveSettings(settings);
     }
@@ -563,6 +562,15 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getArbScheme() != null) {
             settings.setArbScheme(settingsUpdate.getArbScheme());
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getConBoPortions() != null) {
+            if (settingsUpdate.getConBoPortions().getMinNtUsdToStartOkex() != null) {
+                settings.getConBoPortions().setMinNtUsdToStartOkex(settingsUpdate.getConBoPortions().getMinNtUsdToStartOkex());
+            }
+            if (settingsUpdate.getConBoPortions().getMaxPortionUsdOkex() != null) {
+                settings.getConBoPortions().setMaxPortionUsdOkex(settingsUpdate.getConBoPortions().getMaxPortionUsdOkex());
+            }
             settingsRepositoryService.saveSettings(mainSettings);
         }
 
