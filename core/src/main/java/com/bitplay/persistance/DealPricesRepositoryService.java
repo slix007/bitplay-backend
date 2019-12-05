@@ -54,6 +54,16 @@ public class DealPricesRepositoryService {
         mongoOperation.updateFirst(query, update, DealPrices.class);
     }
 
+    public void updateOkexPlacingType(Long tradeId, PlacingType okexPlacingType) {
+        final Query query = new Query(Criteria.where("_id").is(tradeId));
+        final Update update = new Update()
+                .inc("version", 1)
+                .set("updated", LocalDateTime.now())
+                .set("okexPlacingType", okexPlacingType);
+        mongoOperation.updateFirst(query, update, DealPrices.class);
+    }
+
+
     public Map<String, AvgPriceItem> getPItems(Long tradeId, Integer marketId) {
         final List<FplayOrder> allByTradeId = orderRepositoryService.findAll(tradeId, marketId);
         return allByTradeId.stream()
@@ -174,11 +184,17 @@ public class DealPricesRepositoryService {
         mongoOperation.updateFirst(query, update, DealPrices.class);
     }
 
-    public boolean isUnstartedSignal(Long tradeId) {
+    public boolean isNotAbortedOrUnstartedSignal(Long tradeId) {
         final Query query = new Query(Criteria.where("_id").is(tradeId));
         query.fields().include("unstartedSignal");
+        query.fields().include("abortedSignal");
         final DealPrices d = mongoOperation.findOne(query, DealPrices.class);
-        return (d != null && d.getAbortedSignal() != null) ? d.getAbortedSignal() : false;
+        if (d == null) {
+            return true;
+        }
+        final boolean notAborted = d.getAbortedSignal() == null || !d.getAbortedSignal();
+        final boolean notUnstarted = d.getUnstartedSignal() == null || !d.getUnstartedSignal();
+        return notAborted && notUnstarted;
     }
 
     public TradingMode getTradingMode(Long tradeId) {

@@ -246,7 +246,8 @@ public class PosDiffPortionsService {
             // print delta logs
             final DealPrices updatedDp = dealPricesRepositoryService.findByTradeId(tradeId);
             tradeService.info(tradeId, currArgs.getCounterName(),
-                    String.format("PARTIAL FILL plan: b_block=%s, o_block=%s, final_blocks: b_block=%s, o_block=%s",
+                    String.format("Reset okex amount(bitmex %s FILL). plan: b_block=%s, o_block=%s, final_blocks: b_block=%s, o_block=%s",
+                            btmFilledCont.signum() > 0 ? "PARTIAL" : "ZERO",
                             updatedDp.getBBlock(),
                             updatedDp.getOBlock(),
                             updatedDp.getBPriceFact().getFullAmount(),

@@ -2,6 +2,7 @@ package com.bitplay.market.model;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ContractType;
@@ -197,4 +198,11 @@ public class PlaceOrderArgs {
     public void setPortionsQty(Integer portionsQty) {
         this.portionsQty = portionsQty;
     }
+
+    public DeltaName getDeltaName() {
+        final Order.OrderType t = getOrderType();
+        final boolean okexBuy = t == Order.OrderType.BID || t == Order.OrderType.EXIT_ASK;
+        return okexBuy ? DeltaName.B_DELTA : DeltaName.O_DELTA;
+    }
+
 }

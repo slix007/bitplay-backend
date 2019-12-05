@@ -94,7 +94,7 @@ public class PosDiffPortionsStopListener {
 
         // 3. delta >= max_border - abort_signal_pts (b_delta или o_delta,в зависимости от начатого сигнала)
         final BigDecimal maxBorder = getMaxBorder(currArgs.getTradeId());
-        final DeltaName deltaName = getDeltaName(currArgs);
+        final DeltaName deltaName = currArgs.getDeltaName();
         final BigDecimal delta = getDelta(deltaName);
         if (maxBorder == null || delta == null) {
             return; // wrong settings
@@ -156,12 +156,6 @@ public class PosDiffPortionsStopListener {
     private BigDecimal getMaxBorder(Long tradeId) {
         final BtmFokAutoArgs btmFokArgs = dealPricesRepositoryService.findBtmFokAutoArgs(tradeId);
         return btmFokArgs != null ? btmFokArgs.getMaxBorder() : null;
-    }
-
-    private DeltaName getDeltaName(PlaceOrderArgs currArgsOkex) {
-        final Order.OrderType t = currArgsOkex.getOrderType();
-        final boolean okexBuy = t == Order.OrderType.BID || t == Order.OrderType.EXIT_ASK;
-        return okexBuy ? DeltaName.B_DELTA : DeltaName.O_DELTA;
     }
 
     private BigDecimal getDelta(DeltaName deltaName) {

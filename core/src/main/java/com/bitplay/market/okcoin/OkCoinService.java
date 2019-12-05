@@ -2509,7 +2509,8 @@ public class OkCoinService extends MarketServicePreliq {
                 final Long tradeId = arbitrageService.getTradeId();
                 final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
                 final TradingMode tradingMode = dealPrices.getTradingMode();
-                if (dealPrices.getAbortedSignal() == null || !dealPrices.getAbortedSignal()) {
+                final boolean notAbortedOrUnstartedSignal = dealPricesRepositoryService.isNotAbortedOrUnstartedSignal(tradeId);
+                if (notAbortedOrUnstartedSignal) {
                     final String s = placeOrderArgs != null ? placeOrderArgs.getCounterName() : "";
                     if (dealPrices.getDeltaName() == DeltaName.B_DELTA) {
                         cumPersistenceService.incUnstartedVert1(tradingMode);

@@ -144,26 +144,17 @@ public class VolatileModeSwitcherService {
             final Long tradeId = arbitrageService.getTradeId();
             if (fplayTradeService.isInProgress(tradeId)) {
                 if (arbScheme == ArbScheme.CON_B_O_PORTIONS) {
-                    justSetVolatileOnConBoPorstions(tradeId);
+                    // cancel bitmex, but replace okex
+                    volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs, true);
                 } else {
-                    // old behaviour
                     dealPricesRepositoryService.justSetVolatileMode(tradeId, btmPlacingType, okexPlacingType);
-                    volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs); // replace-limit-orders. it may set CURRENT_VOLATILE
-
+                    // replace-limit-orders. it may set CURRENT_VOLATILE
+                    volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs, false);
                 }
 
             }
 
         }
-    }
-
-    private void justSetVolatileOnConBoPorstions(Long tradeId) {
-        // do not change current vertical.
-        // 1. cancel bitmex. bitmex filled amount = 0. Okex has no orders. => just cancel bitmex
-        // 2. cancel bitmex. bitmex filled amount > 0. Okex finishes the con_b_o_portions algo.
-
-        volatileModeAfterService.justSetVolatileModeConBoPortions(tradeId, this.lastBtmFokAutoArgs); // replace-limit-orders. it may set CURRENT_VOLATILE
-
     }
 
 }
