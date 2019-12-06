@@ -13,7 +13,6 @@ import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.PlacingType;
-import io.micrometer.core.instrument.util.NamedThreadFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -21,8 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Created by Sergey Shurmin on 1/21/18.
@@ -32,7 +30,6 @@ import java.util.concurrent.Executors;
 @RequiredArgsConstructor
 public class SignalService {
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(2, new NamedThreadFactory("signal-service"));
     private final TradeService tradeService;
     private final OkCoinService okexService;
     private final BitmexService bitmexService;
@@ -41,100 +38,91 @@ public class SignalService {
                                        PlacingType placingType, String counterName, Long tradeId, Instant lastObTime,
                                        boolean isConBo, Integer portionsQty,
                                        ArbScheme arbScheme) {
+        try {
+            if (o_block.signum() <= 0) {
 
-        if (o_block.signum() <= 0) {
-            executorService.execute(() -> {
+                Thread.sleep(1000); // let the other market finish it's placing, before set to READY.
+                String warn = "WARNING: o_block=" + o_block + ". No order on signal";
+                okexService.getTradeLogger().warn(warn);
+                log.warn(warn);
 
-                try {
-                    Thread.sleep(1000); // let the other market finish it's placing, before set to READY.
-                    String warn = "WARNING: o_block=" + o_block + ". No order on signal";
-                    okexService.getTradeLogger().warn(warn);
-                    log.warn(warn);
+                okexService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
 
-                    okexService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
-
-                } catch (InterruptedException e) {
-                    log.error("Error on placeOrderOnSignal", e);
-                }
-
-            });
-
-        } else {
-
-            final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
-                    .orderType(orderType)
-                    .fullAmount(o_block)
-                    .amount(o_block)
-                    .bestQuotes(bestQuotes)
-                    .placingType(placingType)
-                    .signalType(SignalType.AUTOMATIC)
-                    .attempt(1)
-                    .tradeId(tradeId)
-                    .counterName(counterName)
-                    .lastObTime(lastObTime)
-                    .portionsQty(portionsQty)
-                    .arbScheme(arbScheme)
-                    .build();
-
-            if (isConBo) {
-                okexService.deferredPlaceOrderOnSignal(placeOrderArgs);
             } else {
-                executorService.submit(() -> {
-                    try {
-                        tradeService.setOkexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-                        okexService.addOoExecutorTask(() -> {
-                            TradeResponse tradeResponse = okexService.placeOrder(placeOrderArgs);
-                            if (tradeResponse.getErrorCode() != null) {
-                                okexService.getTradeLogger().warn("WARNING: " + tradeResponse.getErrorCode());
-                                log.warn("WARNING: " + tradeResponse.getErrorCode());
-                            }
-                        });
 
-                    } catch (Exception e) {
-                        log.error("Error on placeOrderOnSignal", e);
-                    }
-                });
-            }
-        }
-    }
-
-    public void placeBitmexOrderOnSignal(OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo, BtmFokAutoArgs btmFokAutoArgs) {
-
-        executorService.submit(() -> {
-            try {
-
-                if (b_block.signum() <= 0) {
-                    Thread.sleep(1000);
-                    String warn = "WARNING: b_block=" + b_block + ". No order on signal";
-                    bitmexService.getTradeLogger().warn(warn);
-                    log.warn(warn);
-
-                    bitmexService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
-                    return;
-                }
-
-                final int attempt = isConBo ? PlaceOrderArgs.NO_REPEATS_ATTEMPT : 1;
                 final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
                         .orderType(orderType)
-                        .fullAmount(b_block)
-                        .amount(b_block)
+                        .fullAmount(o_block)
+                        .amount(o_block)
                         .bestQuotes(bestQuotes)
                         .placingType(placingType)
                         .signalType(SignalType.AUTOMATIC)
-                        .attempt(attempt)
+                        .attempt(1)
                         .tradeId(tradeId)
                         .counterName(counterName)
                         .lastObTime(lastObTime)
-                        .btmFokArgs(btmFokAutoArgs)
+                        .portionsQty(portionsQty)
+                        .arbScheme(arbScheme)
                         .build();
 
-                tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-                bitmexService.addOoExecutorTask(() -> bitmexService.placeOrder(placeOrderArgs));
+                if (isConBo) {
+                    okexService.deferredPlaceOrderOnSignal(placeOrderArgs);
+                } else {
+                    tradeService.setOkexStatus(tradeId, TradeMStatus.IN_PROGRESS);
+                    okexService.addOoExecutorTask(() -> {
+                        TradeResponse tradeResponse = okexService.placeOrder(placeOrderArgs);
+                        if (tradeResponse.getErrorCode() != null) {
+                            okexService.getTradeLogger().warn("WARNING: " + tradeResponse.getErrorCode());
+                            log.warn("WARNING: " + tradeResponse.getErrorCode());
+                        }
+                    });
 
-            } catch (Exception e) {
-                log.error("Error on placeOrderOnSignal", e);
+                }
             }
-        });
+        } catch (InterruptedException e) {
+            log.error("Error on placeOrderOnSignal", e);
+        }
+    }
+
+    public CompletableFuture<Void> placeBitmexOrderOnSignal(OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
+                                                            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo,
+                                                            BtmFokAutoArgs btmFokAutoArgs) {
+
+        CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
+        try {
+
+            if (b_block.signum() <= 0) {
+                Thread.sleep(1000);
+                String warn = "WARNING: b_block=" + b_block + ". No order on signal";
+                bitmexService.getTradeLogger().warn(warn);
+                log.warn(warn);
+
+                bitmexService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
+                return promise;
+            }
+
+            final int attempt = isConBo ? PlaceOrderArgs.NO_REPEATS_ATTEMPT : 1;
+            final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
+                    .orderType(orderType)
+                    .fullAmount(b_block)
+                    .amount(b_block)
+                    .bestQuotes(bestQuotes)
+                    .placingType(placingType)
+                    .signalType(SignalType.AUTOMATIC)
+                    .attempt(attempt)
+                    .tradeId(tradeId)
+                    .counterName(counterName)
+                    .lastObTime(lastObTime)
+                    .btmFokArgs(btmFokAutoArgs)
+                    .build();
+
+            tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
+            bitmexService.addOoExecutorTask(() -> bitmexService.placeOrder(placeOrderArgs));
+
+        } catch (Exception e) {
+            log.error("Error on placeOrderOnSignal", e);
+            promise = CompletableFuture.completedFuture(null);
+        }
+        return promise;
     }
 }

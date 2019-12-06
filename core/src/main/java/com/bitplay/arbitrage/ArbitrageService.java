@@ -87,6 +87,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -1091,11 +1092,13 @@ public class ArbitrageService {
         final TradingMode tradingMode = s.getTradingModeState().getTradingMode();
         final BigDecimal delta1 = this.delta1;
         final BigDecimal delta2 = this.delta2;
-        final String counterName = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName, tradingMode);
+        final FplayTrade fplayTrade = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName, tradingMode);
+        final Long tradeId = fplayTrade.getId();
+        final String counterName = fplayTrade.getCounterName();
 
         final DealPrices dealPrices = setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, bid1_p, ask1_o, b_block_input,
                 o_block_input, deltaName,
-                counterName, tradingMode, delta1, delta2, tradingSignal.toBtmFokAutoArgs());
+                counterName, tradingMode, delta1, delta2, tradingSignal.toBtmFokAutoArgs(), fplayTrade);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(b_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
@@ -1103,19 +1106,22 @@ public class ArbitrageService {
         final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
                 counterName, tradeId, lastObTime, isConBo, null, s.getArbScheme());
-        signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
+        final CompletableFuture<Void> btmStartPromise = signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
                 counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
 
         setTimeoutAfterStartTrading();
 
         saveParamsToDb();
+
+        btmStartPromise.whenComplete((aVoid, e) -> vertHasStarted(fplayTrade, tradeId, counterName));
     }
 
     private DealPrices setTradeParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
                                              BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input,
                                              DeltaName deltaName, String counterName,
                                              TradingMode tradingMode, BigDecimal delta1, BigDecimal delta2,
-                                             BtmFokAutoArgs btmFokAutoArgs) {
+                                             BtmFokAutoArgs btmFokAutoArgs, FplayTrade fplayTrade) {
+        final Long tradeId = fplayTrade.getId();
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
         firstMarketService.setBusy(counterName);
@@ -1192,7 +1198,6 @@ public class ArbitrageService {
         fplayTradeService.setTradingMode(tradeId, tradingMode);
 
         fplayTradeService.info(tradeId, counterName, String.format("#%s Trading mode = %s", counterName, tradingMode.getFullName()));
-        fplayTradeService.info(tradeId, counterName, String.format("#%s is started ---", counterName));
         return dealPrices;
     }
 
@@ -1301,11 +1306,13 @@ public class ArbitrageService {
         final TradingMode tradingMode = s.getTradingModeState().getTradingMode();
         final BigDecimal delta1 = this.delta1;
         final BigDecimal delta2 = this.delta2;
-        final String counterName = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName, tradingMode);
+        final FplayTrade fplayTrade = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName, tradingMode);
+        final Long tradeId = fplayTrade.getId();
+        final String counterName = fplayTrade.getCounterName();
 
         final DealPrices dealPrices = setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, ask1_p, bid1_o, b_block_input,
                 o_block_input, deltaName,
-                counterName, tradingMode, delta1, delta2, tradingSignal.toBtmFokAutoArgs());
+                counterName, tradingMode, delta1, delta2, tradingSignal.toBtmFokAutoArgs(), fplayTrade);
 
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(o_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
 
@@ -1313,16 +1320,26 @@ public class ArbitrageService {
         final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
                 counterName, tradeId, lastObTime, isConBo, null, s.getArbScheme());
-        signalService.placeBitmexOrderOnSignal(Order.OrderType.BID, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
-                counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
+        final CompletableFuture<Void> btmStartPromise = signalService.placeBitmexOrderOnSignal(OrderType.BID, b_block, bestQuotes,
+                dealPrices.getBtmPlacingType(), counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
 
         setTimeoutAfterStartTrading();
 
         saveParamsToDb();
+
+        btmStartPromise.whenComplete((aVoid, e) -> vertHasStarted(fplayTrade, tradeId, counterName));
     }
 
-    private String createCounterOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final TradingSignal tradingSignal,
-            final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName, TradingMode tradingMode) {
+    private void vertHasStarted(FplayTrade fplayTrade, Long tradeId, String counterName) {
+        this.tradeId = tradeId;
+        this.fplayTrade = fplayTrade;
+        final String msg = String.format("#%s has started. Set current tradeId=%s ---", counterName, tradeId);
+        log.info(msg);
+        fplayTradeService.info(tradeId, counterName, msg);
+    }
+
+    private FplayTrade createCounterOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final TradingSignal tradingSignal,
+                                                 final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName, TradingMode tradingMode) {
 
         if (deltaName.getDeltaNumber().equals("1")) {
             cumPersistenceService.incCounter1(tradingMode);
@@ -1344,10 +1361,10 @@ public class ArbitrageService {
         setSignalType(SignalType.AUTOMATIC);
         final String counterName = String.valueOf(counter1 + counter2);
 
-        fplayTrade = fplayTradeService.createTrade(counterName, deltaName,
+        final FplayTrade fplayTrade = fplayTradeService.createTrade(counterName, deltaName,
                 ((BitmexContractType) firstMarketService.getContractType()),
                 ((OkexContractType) secondMarketService.getContractType()));
-        tradeId = fplayTrade.getId();
+        final Long tradeId = fplayTrade.getId();
         fplayTradeService.info(tradeId, counterName, "------------------------------------------");
 
         fplayTradeService.info(tradeId, counterName, String.format("count=%s+%s=%s(completed=%s+%s=%s) %s",
@@ -1370,7 +1387,7 @@ public class ArbitrageService {
 
         printSumBal(tradeId, counterName);
 
-        return counterName;
+        return fplayTrade;
     }
 
     @SuppressWarnings("Duplicates")

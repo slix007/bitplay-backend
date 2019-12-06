@@ -123,6 +123,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -769,8 +770,8 @@ public class BitmexService extends MarketServicePreliq {
         return bitmexObTypeCurrent;
     }
 
-    public void addOoExecutorTask(Runnable task) {
-        ooSingleExecutor.submit(task);
+    public CompletableFuture<Void> addOoExecutorTask(Runnable task) {
+        return CompletableFuture.runAsync(task, ooSingleExecutor);
     }
 
     @Override

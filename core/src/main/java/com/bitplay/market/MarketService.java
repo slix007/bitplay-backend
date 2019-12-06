@@ -761,11 +761,8 @@ public abstract class MarketService extends MarketServiceWithState {
                     && !hasDeferredOrders()) {
                 getTradeLogger().warn(checkerName);
                 logger.warn(checkerName);
-                Long lastTradeId = tryFindLastTradeId();
-                if (lastTradeId == null) {
-                    lastTradeId = getArbitrageService().getTradeId();
-                }
-                eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, lastTradeId));
+                final Long tradeId = getArbitrageService().getTradeId();
+                eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
             }
         } catch (Exception e) {
             logger.error(checkerName + " error", e);
