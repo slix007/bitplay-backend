@@ -136,7 +136,7 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                             indexPrice,
                             markPrice,
                             lastPrice,
-                            Date.from(instrument.getTimestamp().toInstant()),
+                            instrument.getTimestamp() != null ? Date.from(instrument.getTimestamp().toInstant()) : new Date(),
                             fundingRate,
                             fundingTimestamp);
                 });
