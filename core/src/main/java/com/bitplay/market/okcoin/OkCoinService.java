@@ -1578,6 +1578,7 @@ public class OkCoinService extends MarketServicePreliq {
                         || message.contains("Signature does not match") // api-v1
                         // api-v3:
                         || message.contains("Gateway Time-out")
+                        || message.contains("Bad Gateway") // 502 / Bad Gateway
                         || (message.contains("32019") && message.contains("Order price cannot be")) // more than 103% or less than 97%
                         // Code: 20018, translation: Order price differ more than 5% from the price in the last minute
                 ) { // ExchangeException
