@@ -27,8 +27,8 @@ import java.util.List;
  */
 public abstract class FuturesTradeApiServiceImpl implements FuturesTradeApiService {
 
-    private ApiClient client;
-    private FuturesTradeApi api;
+    private volatile ApiClient client;
+    private volatile FuturesTradeApi api;
 
     public FuturesTradeApiServiceImpl(ApiConfiguration config) {
         this.client = new ApiClient(config);

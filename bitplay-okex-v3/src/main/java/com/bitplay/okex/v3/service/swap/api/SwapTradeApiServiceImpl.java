@@ -20,8 +20,8 @@ import java.util.List;
  */
 public abstract class SwapTradeApiServiceImpl implements PrivateApi {
 
-    private ApiClient client;
-    private SwapTradeApi api;
+    private volatile ApiClient client;
+    private volatile SwapTradeApi api;
 
     public SwapTradeApiServiceImpl(ApiConfiguration config) {
         this.client = new ApiClient(config);
