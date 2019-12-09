@@ -117,4 +117,9 @@ public abstract class FuturesTradeApiServiceImpl implements FuturesTradeApiServi
     public LeverageResult changeLeverageOnCross(String currency, String leverage) {
         return this.client.executeSync(this.api.changeLeverageOnCross(currency, new LeverageCross(leverage)));
     }
+
+    @Override
+    public boolean notCreated() {
+        return this.client == null || this.api == null;
+    }
 }

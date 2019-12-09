@@ -37,4 +37,6 @@ public interface PrivateApi {
     Leverage getLeverage(String instrumentId);
 
     Leverage changeLeverage(String newCurrOrInstrId, String newLeverageStr);
+
+    boolean notCreated();
 }

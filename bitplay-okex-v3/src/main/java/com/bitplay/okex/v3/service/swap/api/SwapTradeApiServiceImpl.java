@@ -79,4 +79,10 @@ public abstract class SwapTradeApiServiceImpl implements PrivateApi {
     public LeverageResult changeLeverageOnCross(String instrumentId, String leverage) {
         return this.client.executeSync(this.api.changeLeverageOnCross(instrumentId, new SwapLeverageCross(leverage, "3")));
     }
+
+    @Override
+    public boolean notCreated() {
+        return this.client == null || this.api == null;
+    }
+
 }
