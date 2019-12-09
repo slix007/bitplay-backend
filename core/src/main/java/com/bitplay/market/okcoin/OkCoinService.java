@@ -1346,7 +1346,8 @@ public class OkCoinService extends MarketServicePreliq {
         tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
         logger.info(String.format("#%s MT2 start placing ", currArgs));
 
-        if (currArgs.getPlacingType() == PlacingType.TAKER) {// set oPricePlanOnStart for Taker
+        boolean firstPortion = currArgs.getPortionsQty() == null || currArgs.getPortionsQty() == 1;
+        if (currArgs.getPlacingType() == PlacingType.TAKER && firstPortion) {// set oPricePlanOnStart for Taker
             final BigDecimal oPricePlanOnStart;
             if (currArgs.getOrderType() == OrderType.BID || currArgs.getOrderType() == OrderType.EXIT_ASK) {
                 oPricePlanOnStart = Utils.getBestAsk(this.orderBookShort).getLimitPrice(); // buy -> use the opposite price.
@@ -1763,7 +1764,8 @@ public class OkCoinService extends MarketServicePreliq {
                         tradeLogger.info(msg);
                         logger.info(msg);
                     }
-                    if (pricePlanOnStart) { // set oPricePlanOnStart for non-Taker
+                    boolean firstPortion = portionsQty == null || portionsQty == 1;
+                    if (pricePlanOnStart && firstPortion) { // set oPricePlanOnStart for non-Taker
                         persistenceService.getDealPricesRepositoryService().setOPricePlanOnStart(tradeId, thePrice);
                     }
 
