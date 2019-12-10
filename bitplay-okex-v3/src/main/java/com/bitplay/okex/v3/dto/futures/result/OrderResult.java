@@ -25,10 +25,4 @@ public class OrderResult {
     private String error_code;
     private String error_message;
 
-    // create default result
-    public OrderResult(boolean result, String order_id) {
-        this.result = result;
-        this.order_id = order_id;
-        this.error_code = "0";
-    }
 }

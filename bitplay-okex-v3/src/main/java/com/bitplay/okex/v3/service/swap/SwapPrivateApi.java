@@ -10,6 +10,7 @@ import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
 import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
+import com.bitplay.okex.v3.exception.ApiException;
 import com.bitplay.okex.v3.service.futures.adapter.DtoToModelConverter;
 import com.bitplay.okex.v3.service.futures.adapter.OkexOrderConverter;
 import com.bitplay.okex.v3.service.swap.adapter.SwapAccountConverter;
@@ -55,8 +56,18 @@ public class SwapPrivateApi extends SwapTradeApiServiceImpl {
 
     @Override
     public OrderResultTiny cnlOrder(String instrumentId, String orderId) {
-        final OrderResult orderResult = cancelOrder(instrumentId, orderId);
-        return OkexOrderConverter.convertOrderResult(orderResult);
+        OrderResultTiny orderResultTiny;
+        try {
+            final OrderResult orderResult = cancelOrder(instrumentId, orderId);
+            orderResultTiny = OkexOrderConverter.convertOrderResult(orderResult);
+        } catch (ApiException e) {
+            log.error("ApiException on cnlOrder. Assume result=false. Exception: " + e.getMessage());
+            // api returns no details error.
+            // use "order does not exist" assumption.
+            orderResultTiny = new OrderResultTiny(null, orderId, false, "-400",
+                    "order does not exist(cnlOrder=>null-response)");
+        }
+        return orderResultTiny;
     }
 
     @Override
