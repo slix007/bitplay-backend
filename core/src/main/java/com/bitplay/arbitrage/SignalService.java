@@ -117,7 +117,7 @@ public class SignalService {
                     .build();
 
             tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-            bitmexService.addOoExecutorTask(() -> bitmexService.placeOrder(placeOrderArgs));
+            promise = bitmexService.addOoExecutorTask(() -> bitmexService.placeOrder(placeOrderArgs));
 
         } catch (Exception e) {
             log.error("Error on placeOrderOnSignal", e);
