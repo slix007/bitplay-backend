@@ -13,11 +13,11 @@ import java.time.ZoneOffset;
 @Getter
 public enum OkexContractType implements ContractType {
 
-    BTC_Swap(FuturesContract.Swap, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
+    BTC_Swap(FuturesContract.Swap, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.1), 1),
     BTC_ThisWeek(FuturesContract.ThisWeek, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
     BTC_NextWeek(FuturesContract.NextWeek, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
     BTC_Quarter(FuturesContract.Quarter, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
-    ETH_Swap(FuturesContract.Swap, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
+    ETH_Swap(FuturesContract.Swap, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.01), 2),
     ETH_ThisWeek(FuturesContract.ThisWeek, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
     ETH_NextWeek(FuturesContract.NextWeek, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
     ETH_Quarter(FuturesContract.Quarter, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
