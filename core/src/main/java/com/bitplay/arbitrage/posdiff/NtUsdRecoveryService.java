@@ -160,7 +160,7 @@ public class NtUsdRecoveryService {
                 log.info(message);
 
                 arbitrageService.setSignalType(signalType);
-                marketService.setBusy(counterName);
+                marketService.setBusy(counterName, MarketState.ARBITRAGE);
                 final TradeResponse tradeResponse = marketService.placeOrder(placeOrderArgs);
 
                 if (tradeResponse.errorInsufficientFunds()) {
@@ -249,7 +249,7 @@ public class NtUsdRecoveryService {
         corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
 
         arbitrageService.setSignalType(signalType);
-        corrObj.marketService.setBusy(counterName);
+        corrObj.marketService.setBusy(counterName, MarketState.ARBITRAGE);
         final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
 
         if (theOtherResp.errorInsufficientFunds()) {

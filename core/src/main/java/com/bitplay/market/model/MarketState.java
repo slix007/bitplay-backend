@@ -5,6 +5,7 @@ package com.bitplay.market.model;
  */
 public enum MarketState {
     READY,
+    STARTING_VERT,
     ARBITRAGE,
     WAITING_ARB,
     MOVING,

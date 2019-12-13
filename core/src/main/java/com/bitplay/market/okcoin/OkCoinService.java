@@ -325,7 +325,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Scheduled(initialDelay = 60, fixedDelay = 60)
     public void checkExchange() {
-        if (fplayOkexExchange.getPrivateApi().notCreated()) {
+        if (fplayOkexExchange == null || fplayOkexExchange.getPrivateApi() == null || fplayOkexExchange.getPrivateApi().notCreated()) {
             final String msg = "OkexExchange is not fully created. Re-create it.";
             logger.warn(msg);
             warningLogger.warn(msg);
@@ -923,7 +923,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Scheduled(initialDelay = 60000, fixedDelay = 30000)
     public void checkPriceRangeTime() {
         if (priceRange == null || priceRange.getTimestamp() == null ||
-                priceRange.getTimestamp().plusSeconds(30).isBefore(Instant.now())) {
+                priceRange.getTimestamp().plusSeconds(60).isBefore(Instant.now())) {
             final String warn = "ReSubscribe PriceRange: " + priceRange;
             warningLogger.warn(warn);
             getTradeLogger().warn(warn);
@@ -1454,6 +1454,7 @@ public class OkCoinService extends MarketServicePreliq {
             } else {
                 if ((nextState == MarketState.WAITING_ARB && placeOrderArgsRef.get() == null)
                         || nextState == MarketState.PLACING_ORDER
+                        || nextState == MarketState.STARTING_VERT
                         || nextState == MarketState.MOVING
                         || nextState == MarketState.FORBIDDEN
                 ) {
@@ -1603,14 +1604,19 @@ public class OkCoinService extends MarketServicePreliq {
         final String counterName = currPlaceOrderArgs.getCounterName();
         if (this.placeOrderArgsRef.compareAndSet(null, currPlaceOrderArgs)) {
             setMarketState(MarketState.WAITING_ARB);
-            tradeLogger.info(String.format("#%s MT2 deferred placing %s", counterName, currPlaceOrderArgs));
+            final String msgStart = String.format("#%s MT2 deferred placing %s", counterName, currPlaceOrderArgs);
+            tradeLogger.info(msgStart);
+            logger.info(msgStart);
             final Settings s = settingsRepositoryService.getSettings();
             if (s.getArbScheme() == ArbScheme.CON_B_O_PORTIONS) {
-                getTradeLogger().info(String.format("CON_B_O_PORTIONS: min to start nt_usd=%s, maxPortion=%s",
+                final String msg = String.format("CON_B_O_PORTIONS: min to start nt_usd=%s, maxPortion=%s",
                         s.getConBoPortions().getMinNtUsdToStartOkex(),
-                        s.getConBoPortions().getMaxPortionUsdOkex()));
+                        s.getConBoPortions().getMaxPortionUsdOkex());
+                tradeLogger.info(msg);
+                logger.info(msg);
             }
         } else {
+            setMarketState(MarketState.ARBITRAGE);
             final String errorMessage = String.format("#%s double placing-order for MT2. New:%s.", counterName, currPlaceOrderArgs);
             logger.error(errorMessage);
             tradeLogger.error(errorMessage);
@@ -2524,7 +2530,9 @@ public class OkCoinService extends MarketServicePreliq {
             if (btmWasStarted != null && btmWasStarted.length > 0 && btmWasStarted[0]) {
                 // no changes for Vert
             } else {
-                final Long tradeId = arbitrageService.getTradeId();
+                final Long tradeId = placeOrderArgs != null && placeOrderArgs.getTradeId() != null
+                        ? placeOrderArgs.getTradeId()
+                        : arbitrageService.getTradeId();
                 final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
                 final TradingMode tradingMode = dealPrices.getTradingMode();
                 final boolean notAbortedOrUnstartedSignal = dealPricesRepositoryService.isNotAbortedOrUnstartedSignal(tradeId);

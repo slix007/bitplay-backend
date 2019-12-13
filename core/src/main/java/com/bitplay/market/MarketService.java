@@ -270,15 +270,16 @@ public abstract class MarketService extends MarketServiceWithState {
                 }, throwable -> logger.error("On event handling", throwable));
     }
 
-    public void setBusy(String counterName) {
+    public void setBusy(String counterName, MarketState stateToSet) {
         if (isMarketStopped()) {
             return;
         }
         if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (!isBusy()) {
-                getTradeLogger().info(String.format("#%s %s: busy, %s", counterName, getName(), getArbitrageService().getFullPosDiff()));
+                getTradeLogger().info(String.format("#%s %s: busy marketState=%s, %s", counterName, getName(),
+                        stateToSet, getArbitrageService().getFullPosDiff()));
             }
-            this.marketState = MarketState.ARBITRAGE;
+            this.marketState = stateToSet;
         }
     }
 
@@ -301,6 +302,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 break;
             case WAITING_ARB: // openOrderSubscr can setFree, when it's not needed
             case PLACING_ORDER: // openOrderSubscr can setFree, when it's not needed
+            case STARTING_VERT:
             case MOVING:
             case FORBIDDEN:
             case PRELIQ:
@@ -749,7 +751,7 @@ public abstract class MarketService extends MarketServiceWithState {
         try {
             final MarketState marketState = getMarketState();
             if (marketState != MarketState.ARBITRAGE && marketState != MarketState.READY && marketState != MarketState.WAITING_ARB) {
-                if (marketState != MarketState.PLACING_ORDER
+                if (marketState != MarketState.PLACING_ORDER && marketState != MarketState.STARTING_VERT
                         && (attempt == 2 || attempt == 100 || attempt == 10000 || attempt == 100000 || attempt == 1000000)
                 ) { // log possible errors //todo remove this log
                     logger.info("freeOoChecker attempt " + attempt + ", " + getName() + ", marketState=" + marketState);

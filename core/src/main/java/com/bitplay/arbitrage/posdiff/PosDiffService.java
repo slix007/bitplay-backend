@@ -976,7 +976,7 @@ public class PosDiffService {
 
                 // Market specific params
                 final String counterName = marketService.getCounterNameNext(signalType);
-                marketService.setBusy(counterName);
+                marketService.setBusy(counterName, MarketState.ARBITRAGE);
 
                 final Long tradeId = arbitrageService.getLastTradeId();
 

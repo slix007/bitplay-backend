@@ -177,7 +177,7 @@ public class PosDiffPortionsService {
         boolean waitingToStart = true;
         // check states Arb and Markets
         final MarketState marketState = okCoinService.getMarketState();
-        if (marketState != MarketState.WAITING_ARB) {
+        if (marketState != MarketState.WAITING_ARB && marketState != MarketState.STARTING_VERT) {
             // wrong state (okex already started?)
             final boolean hasOpenOrders = okCoinService.hasOpenOrders();
             if (marketState == MarketState.ARBITRAGE) {

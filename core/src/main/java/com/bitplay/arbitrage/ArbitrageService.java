@@ -1093,7 +1093,6 @@ public class ArbitrageService {
         final BigDecimal delta1 = this.delta1;
         final BigDecimal delta2 = this.delta2;
         final FplayTrade fplayTrade = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName, tradingMode);
-        final Long tradeId = fplayTrade.getId();
         final String counterName = fplayTrade.getCounterName();
 
         final DealPrices dealPrices = setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, bid1_p, ask1_o, b_block_input,
@@ -1113,7 +1112,7 @@ public class ArbitrageService {
 
         saveParamsToDb();
 
-        btmStartPromise.whenComplete((aVoid, e) -> vertHasStarted(fplayTrade, tradeId, counterName));
+        btmStartPromise.whenComplete((aVoid, e) -> vertHasStartedLog(tradeId, counterName));
     }
 
     private DealPrices setTradeParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
@@ -1124,10 +1123,12 @@ public class ArbitrageService {
         final Long tradeId = fplayTrade.getId();
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
-        firstMarketService.setBusy(counterName);
-        secondMarketService.setBusy(counterName);
+        firstMarketService.setBusy(counterName, MarketState.STARTING_VERT);
+        secondMarketService.setBusy(counterName, MarketState.STARTING_VERT);
 
         setSignalType(SignalType.AUTOMATIC);
+        this.fplayTrade = fplayTrade;
+        this.tradeId = tradeId;
 
         if (dynamicDeltaLogs != null) {
             fplayTradeService.info(tradeId, counterName, String.format("#%s %s", counterName, dynamicDeltaLogs));
@@ -1198,6 +1199,7 @@ public class ArbitrageService {
         fplayTradeService.setTradingMode(tradeId, tradingMode);
 
         fplayTradeService.info(tradeId, counterName, String.format("#%s Trading mode = %s", counterName, tradingMode.getFullName()));
+        fplayTradeService.info(tradeId, counterName, String.format("#%s is started, tradeId=%s ---", counterName, tradeId));
         return dealPrices;
     }
 
@@ -1307,7 +1309,6 @@ public class ArbitrageService {
         final BigDecimal delta1 = this.delta1;
         final BigDecimal delta2 = this.delta2;
         final FplayTrade fplayTrade = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName, tradingMode);
-        final Long tradeId = fplayTrade.getId();
         final String counterName = fplayTrade.getCounterName();
 
         final DealPrices dealPrices = setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, ask1_p, bid1_o, b_block_input,
@@ -1327,13 +1328,11 @@ public class ArbitrageService {
 
         saveParamsToDb();
 
-        btmStartPromise.whenComplete((aVoid, e) -> vertHasStarted(fplayTrade, tradeId, counterName));
+        btmStartPromise.whenComplete((aVoid, e) -> vertHasStartedLog(tradeId, counterName));
     }
 
-    private void vertHasStarted(FplayTrade fplayTrade, Long tradeId, String counterName) {
-        this.tradeId = tradeId;
-        this.fplayTrade = fplayTrade;
-        final String msg = String.format("#%s has started. Set current tradeId=%s ---", counterName, tradeId);
+    private void vertHasStartedLog(Long tradeId, String counterName) {
+        final String msg = String.format("#%s:%s bitmex orders sent. ---", counterName, tradeId);
         log.info(msg);
         fplayTradeService.info(tradeId, counterName, msg);
     }

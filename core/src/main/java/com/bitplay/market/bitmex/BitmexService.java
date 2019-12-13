@@ -2073,7 +2073,7 @@ public class BitmexService extends MarketServicePreliq {
             logger.info("restore marketState to PRELIQ");
             setMarketState(MarketState.PRELIQ, counterName);
         } else {
-            if (nextMarketState == MarketState.PLACING_ORDER) {
+            if (nextMarketState == MarketState.PLACING_ORDER || nextMarketState == MarketState.STARTING_VERT) {
                 nextMarketState = MarketState.ARBITRAGE;
             }
 
