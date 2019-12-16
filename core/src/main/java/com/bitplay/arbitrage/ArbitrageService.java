@@ -307,7 +307,7 @@ public class ArbitrageService {
             if (marketName.equals(BitmexService.NAME)) {
                 fplayTrade.setBitmexFinishTime(new Date());
                 fplayTrade.setBitmexStatus(TradeMStatus.FINISHED);
-                fplayTradeService.setBitmexStatus(doneTradeId, TradeMStatus.FINISHED);
+                fplayTradeService.setBitmexS9tatus(doneTradeId, TradeMStatus.FINISHED);
                 conBoTryDeferredOrder = true;
             } else {
                 fplayTrade.setOkexStatus(TradeMStatus.FINISHED);

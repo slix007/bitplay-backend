@@ -15,6 +15,7 @@ import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexUtils;
+import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -52,6 +53,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -82,6 +84,7 @@ public class PosDiffService {
     private volatile Long prevTradeId;
     private volatile String prevCounterName;
     private volatile CorrObj prevCorrObj;
+    private final AtomicReference<DqlState> dqlStateAtomicReference = new AtomicReference<>(DqlState.ANY_ORDERS);
 
     @Autowired
     private BordersService bordersService;
