@@ -3,6 +3,7 @@ package info.bitrich.xchangestream.bitmex.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -13,11 +14,13 @@ public class BitmexOrderBook {
 
     private final String action; //partial, delete, update, insert
     private final List<BitmexOrder> bitmexOrderList;
+    private final long gettingTimeEpochMs;
 
     public BitmexOrderBook(@JsonProperty("action") String action,
                            @JsonProperty("data") List<BitmexOrder> bitmexOrderList) {
         this.action = action;
         this.bitmexOrderList = bitmexOrderList;
+        this.gettingTimeEpochMs = Instant.now().toEpochMilli();
     }
 
     public String getAction() {
@@ -28,11 +31,16 @@ public class BitmexOrderBook {
         return bitmexOrderList;
     }
 
+    public long getGettingTimeEpochMs() {
+        return gettingTimeEpochMs;
+    }
+
     @Override
     public String toString() {
         return "BitmexOrderBook{" +
                 "action='" + action + '\'' +
                 ", bitmexOrderList=" + bitmexOrderList +
+                ", gettingTimeEpochMs=" + gettingTimeEpochMs +
                 '}';
     }
 }

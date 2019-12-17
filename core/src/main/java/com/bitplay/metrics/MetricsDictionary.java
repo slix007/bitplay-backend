@@ -10,12 +10,13 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.spring.autoconfigure.MeterRegistryCustomizer;
-import java.math.BigDecimal;
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class MetricsDictionary {
@@ -28,6 +29,11 @@ public class MetricsDictionary {
     private Timer bitmexPlacing;
     private Timer bitmexPlacingWhole;
     private Timer bitmexPlacingBefore;
+    private Timer bitmex_plBefore_ob_saveTime_traditional10;
+    private Timer bitmex_plBefore_ob_saveTime_incremental50;
+    private Timer bitmex_plBefore_ob_saveTime_incrementalFull;
+    private Timer bitmex_plBefore_checkTime;
+    private Timer bitmex_plBefore_preparePlaceTime;
     private Timer bitmexUpdateOrder;
     private Timer okexPlacing;
     private Timer okexPlacingWhole;
@@ -43,7 +49,8 @@ public class MetricsDictionary {
     private Timer okexMovingIter;
 
     private MeterRegistry meterRegistry;
-
+    //TODO fix "The dependencies of some of the beans in the application context form a cycle:"
+    //use @RequiredArgsConstructor and private final HostResolver hostResolver;
     @Autowired
     private HostResolver hostResolver;
 
@@ -96,6 +103,11 @@ public class MetricsDictionary {
             bitmexPlacingWhole = Timer.builder("fplay.timer.bitmexPlacingWhole").register(registry);
             okexPlacingWhole = Timer.builder("fplay.timer.okexPlacingWhole").register(registry);
             bitmexPlacingBefore = Timer.builder("fplay.timer.bitmexPlacingBefore").register(registry);
+            bitmex_plBefore_ob_saveTime_traditional10 = Timer.builder("fplay.timer.bitmex_plBefore_ob_saveTime_traditional10").register(registry);
+            bitmex_plBefore_ob_saveTime_incremental50 = Timer.builder("fplay.timer.bitmex_plBefore_ob_saveTime_incremental50").register(registry);
+            bitmex_plBefore_ob_saveTime_incrementalFull = Timer.builder("fplay.timer.bitmex_plBefore_ob_saveTime_incrementalFull").register(registry);
+            bitmex_plBefore_checkTime = Timer.builder("fplay.timer.bitmex_plBefore_checkTime").register(registry);
+            bitmex_plBefore_preparePlaceTime = Timer.builder("fplay.timer.bitmex_plBefore_preparePlaceTime").register(registry);
             okexPlacingBefore = Timer.builder("fplay.timer.okexPlacingBefore").register(registry);
             bitmexUpdateOrder = Timer.builder("fplay.timer.bitmexUpdateOrder").register(registry);
             okexMovingWhole = Timer.builder("fplay.timer.okexMovingWhole").register(registry);
@@ -108,12 +120,6 @@ public class MetricsDictionary {
             bitmexObCounter = registry.counter("fplay.counter.bitmexObCounter");
             okexObCounter = registry.counter("fplay.counter.okexObCounter");
 
-//            FunctionCounter counter = FunctionCounter
-//                    .builder("counter", state, state -> state.count())
-//                    .baseUnit("beans") // optional
-//                    .description("a description of what this counter does") // optional
-//                    .tags("region", "test") // optional
-//                    .register(registry);
             meterRegistry = registry;
         };
     }
@@ -167,6 +173,27 @@ public class MetricsDictionary {
         bitmexPlacingBefore.record(ms, TimeUnit.MILLISECONDS);
     }
 
+    public void putBitmex_plBefore_ob_saveTime_traditional10(long ms) {
+        bitmex_plBefore_ob_saveTime_traditional10.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putBitmex_plBefore_ob_saveTime_incremental50(long ms) {
+        bitmex_plBefore_ob_saveTime_incremental50.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putBitmex_plBefore_ob_saveTime_incrementalFull(long ms) {
+        bitmex_plBefore_ob_saveTime_incrementalFull.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putBitmex_plBefore_checkTime(long ms) {
+        bitmex_plBefore_checkTime.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putBitmex_plBefore_preparePlaceTime(long ms) {
+        bitmex_plBefore_preparePlaceTime.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+
     public void putOkexPlacingBefore(long ms) {
         okexPlacingBefore.record(ms, TimeUnit.MILLISECONDS);
     }
@@ -202,10 +229,6 @@ public class MetricsDictionary {
                 }
             }
         }
-    }
-
-    public MeterRegistry getMeterRegistry() {
-        return meterRegistry;
     }
 
     public Timer getBitmexMovingIter() {

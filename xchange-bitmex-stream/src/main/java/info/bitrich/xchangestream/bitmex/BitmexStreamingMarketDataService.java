@@ -11,16 +11,17 @@ import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.swagger.client.model.Instrument;
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class BitmexStreamingMarketDataService implements StreamingMarketDataService {
     private final StreamingServiceBitmex service;

@@ -1365,6 +1365,9 @@ public class BitmexService extends MarketServicePreliq {
             // skip the update
             throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
         }
+
+        final long ms = Instant.now().toEpochMilli() - obUpdate.getTimestamp().toInstant().toEpochMilli();
+        metricsDictionary.putBitmex_plBefore_ob_saveTime_incrementalFull(ms);
         return finalOB;
     }
 
@@ -1433,6 +1436,13 @@ public class BitmexService extends MarketServicePreliq {
                     finalOB.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()))
                     : this.orderBookXBTUSD;
             shortOb = this.orderBookXBTUSDShort;
+        }
+
+        final long ms = Instant.now().toEpochMilli() - obUpdate.getGettingTimeEpochMs();
+        if (obType == BitmexObType.INCREMENTAL_FULL) {
+            metricsDictionary.putBitmex_plBefore_ob_saveTime_incrementalFull(ms);
+        } else {
+            metricsDictionary.putBitmex_plBefore_ob_saveTime_incremental50(ms);
         }
 
         return shortOb;
