@@ -442,7 +442,7 @@ public class PosDiffService {
                 || arbitrageService.isArbStateStopped()
                 || arbitrageService.getFirstMarketService().getMarketState() == MarketState.FORBIDDEN
                 || arbitrageService.getSecondMarketService().getMarketState() == MarketState.FORBIDDEN
-                || arbitrageService.isArbStatePreliq()
+                || arbitrageService.getDqlStateService().isPreliq()
                 || !fullBalanceIsValid();
     }
 
@@ -451,7 +451,7 @@ public class PosDiffService {
                 && arbitrageService.getFirstMarketService().isReadyForArbitrage()
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
                 && !arbitrageService.isArbStateStopped()
-                && !arbitrageService.isArbStatePreliq()
+                && !arbitrageService.getDqlStateService().isPreliq()
                 && fullBalanceIsValid();
     }
 
@@ -465,7 +465,7 @@ public class PosDiffService {
         return !okexSettlementService.isSettlementMode()
                 && btmReadyForCorr
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                && !arbitrageService.isArbStatePreliq()
+                && !arbitrageService.getDqlStateService().isPreliq()
                 && fullBalanceIsValid();
     }
 
@@ -480,7 +480,7 @@ public class PosDiffService {
         return !okexSettlementService.isSettlementMode()
                 && btmReadyForAdj
                 && arbitrageService.getSecondMarketService().isReadyForArbitrage()
-                && !arbitrageService.isArbStatePreliq()
+                && !arbitrageService.getDqlStateService().isPreliq()
                 && fullBalanceIsValid();
     }
 

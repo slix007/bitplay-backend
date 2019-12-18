@@ -2593,7 +2593,7 @@ public class OkCoinService extends MarketServicePreliq {
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED
                 || getMarketState() == MarketState.PLACING_ORDER
                 || isMarketStopped()
-                || getArbitrageService().getArbState() == ArbState.PRELIQ) {
+                || getArbitrageService().getDqlStateService().isPreliq()) {
             return false;
         }
 

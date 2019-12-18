@@ -1139,7 +1139,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     private boolean isMovingStopped() {
         final boolean flagMovingStopped = getPersistenceService().getSettingsRepositoryService().getSettings().flagMovingStopped();
-        return flagMovingStopped || getArbitrageService().isArbStatePreliq();
+        return flagMovingStopped || getArbitrageService().getDqlStateService().isPreliq();
     }
 
     public boolean getMovingStop() {

@@ -787,7 +787,7 @@ public class BitmexService extends MarketServicePreliq {
             if (marketState == MarketState.SYSTEM_OVERLOADED
                     || marketState == MarketState.PLACING_ORDER
                     || isMarketStopped()
-                    || getArbitrageService().getArbState() == ArbState.PRELIQ) {
+                    || getArbitrageService().getDqlStateService().isPreliq()) {
                 return;
             }
         } catch (NotYetInitializedException e) {

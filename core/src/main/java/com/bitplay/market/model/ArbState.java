@@ -6,6 +6,5 @@ package com.bitplay.market.model;
 public enum ArbState {
     READY,
     IN_PROGRESS,
-    PRELIQ,
     STOPPED,
 }

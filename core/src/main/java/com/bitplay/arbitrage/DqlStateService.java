@@ -1,6 +1,7 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.market.model.DqlState;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -12,6 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * <p>
  * Uses by {@link ArbitrageService}
  */
+@Slf4j
 @Component
 public class DqlStateService {
 
@@ -25,4 +27,17 @@ public class DqlStateService {
         return dqlStateAtomicReference.get();
     }
 
+    public boolean isPreliq() {
+        return getDqlState() == DqlState.PRELIQ;
+    }
+
+    public void tryResetPreliq() {
+        final DqlState dqlState = getDqlState();
+        if (dqlState == DqlState.PRELIQ) {
+            //TODO check if need CLOSE_ONLY
+            setDqlState(DqlState.ANY_ORDERS);
+            log.info("reset DqlState from PRELIQ to ANY_ORDERS");
+        }
+
+    }
 }

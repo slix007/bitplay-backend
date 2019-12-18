@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -16,12 +17,13 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.utils.Utils;
-import java.math.BigDecimal;
-import java.time.Instant;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
+
+import java.math.BigDecimal;
+import java.time.Instant;
 
 @Getter
 @Slf4j
@@ -44,7 +46,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
         }
     }
 
-    protected void resetPreliqState() {
+    public void resetPreliqState() {
         if (getMarketState() == MarketState.PRELIQ) {
             final FplayOrder stub = new FplayOrder(getMarketId(), null, "cancellOnPreliq");
             cancelAllOrders(stub, "After PRELIQ: CancelAllOpenOrders", false, true);
@@ -96,7 +98,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
 
                 boolean gotActivated = dtPreliq.activate();
                 if (gotActivated) {
-                    getArbitrageService().setArbStatePreliq(); // do setPreliqState for arbState and both markets
+                    getArbitrageService().getDqlStateService().setDqlState(DqlState.PRELIQ);
                 } else {
                     setPreliqState(); // NOTE: race condition with setMarketState in "finishing placeOrder" and preliq gotActivated
                 }
@@ -169,9 +171,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
     private void printPreliqStarting(String counterForLogs, String nameSymbol) {
         try {
             final String prefix = String.format("#%s %s_PRE_LIQ starting: ", counterForLogs, nameSymbol);
-            final MarketServicePreliq thatMarket = getName().equals(BitmexService.NAME)
-                    ? getArbitrageService().getSecondMarketService()
-                    : getArbitrageService().getFirstMarketService();
+            final MarketServicePreliq thatMarket = getTheOtherMarket();
 
             final String thisMarketStr = prefix + getPreliqStartingStr();
             final String thatMarketStr = prefix + thatMarket.getPreliqStartingStr();
@@ -193,6 +193,12 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
             getTradeLogger().error(err);
             getArbitrageService().printToCurrentDeltaLog(err);
         }
+    }
+
+    private MarketServicePreliq getTheOtherMarket() {
+        return getName().equals(BitmexService.NAME)
+                ? getArbitrageService().getSecondMarketService()
+                : getArbitrageService().getFirstMarketService();
     }
 
     private String getPreliqStartingStr() {

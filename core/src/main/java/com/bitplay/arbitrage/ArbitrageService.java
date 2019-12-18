@@ -71,6 +71,7 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -100,12 +101,15 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ArbitrageService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private boolean initialized = false;
     private boolean firstDeltasCalculated = false;
+
+    private final DqlStateService dqlStateService;
     @Autowired
     private BordersService bordersService;
     @Autowired
@@ -307,7 +311,7 @@ public class ArbitrageService {
             if (marketName.equals(BitmexService.NAME)) {
                 fplayTrade.setBitmexFinishTime(new Date());
                 fplayTrade.setBitmexStatus(TradeMStatus.FINISHED);
-                fplayTradeService.setBitmexS9tatus(doneTradeId, TradeMStatus.FINISHED);
+                fplayTradeService.setBitmexStatus(doneTradeId, TradeMStatus.FINISHED);
                 conBoTryDeferredOrder = true;
             } else {
                 fplayTrade.setOkexStatus(TradeMStatus.FINISHED);
@@ -877,20 +881,10 @@ public class ArbitrageService {
                 bMsg, oMsg);
     }
 
-    public boolean isArbStatePreliq() {
-        synchronized (arbStateLock) {
-            return arbState == ArbState.PRELIQ;
-        }
-    }
-
     public boolean isArbStateStopped() {
         synchronized (arbStateLock) {
             return arbState == ArbState.STOPPED;
         }
-    }
-
-    public void setArbStatePreliq() {
-        setArbState(ArbState.PRELIQ);
     }
 
     public void setArbStateStopped() {
@@ -901,22 +895,13 @@ public class ArbitrageService {
         synchronized (arbStateLock) {
             log.info("set ArbState." + newState);
             arbState = newState;
-            if (newState == ArbState.PRELIQ) {
-                firstMarketService.setPreliqState();
-                secondMarketService.setPreliqState();
-            }
         }
     }
 
     public void resetArbStatePreliq() {
-        synchronized (arbStateLock) {
-            if (arbState == ArbState.PRELIQ) {
-                if (firstMarketService.noPreliq() && secondMarketService.noPreliq()) {
-                    // do reset
-                    arbState = ArbState.READY; // arbStatePrevPreliq != null ? arbStatePrevPreliq : ArbState.READY;
-                    log.info("reset ArbState from PRELIQ to READY");
-//                    slackNotifications.sendNotify(NotifyType.SET_FREE, "reset ArbState from PRELIQ to READY");
-                }
+        if (dqlStateService.isPreliq()) {
+            if (firstMarketService.noPreliq() && secondMarketService.noPreliq()) {
+                dqlStateService.tryResetPreliq();
             }
         }
     }
@@ -2219,5 +2204,9 @@ public class ArbitrageService {
 
     public PosDiffService getPosDiffService() {
         return posDiffService;
+    }
+
+    public DqlStateService getDqlStateService() {
+        return dqlStateService;
     }
 }
