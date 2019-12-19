@@ -19,7 +19,6 @@ import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.Affordable;
-import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
@@ -45,6 +44,7 @@ import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
@@ -2483,7 +2483,9 @@ public class OkCoinService extends MarketServicePreliq {
      */
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
-        final BigDecimal oDQLOpenMin = persistenceService.fetchGuiLiqParams().getODQLOpenMin();
+        final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
+        final BigDecimal oDQLCloseMin = guiLiqParams.getODQLCloseMin();
+        final BigDecimal oDQLOpenMin = guiLiqParams.getODQLOpenMin();
         final Pos position = getPos();
         final LiqInfo liqInfo = getLiqInfo();
 
@@ -2520,6 +2522,8 @@ public class OkCoinService extends MarketServicePreliq {
         } else {
             slackNotifications.resetThrottled(NotifyType.OKEX_DQL_OPEN_MIN);
         }
+
+        arbitrageService.getDqlStateService().setOkexDqlState(oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
 
         return isOk;
     }

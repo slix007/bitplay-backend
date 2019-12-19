@@ -98,7 +98,9 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
 
                 boolean gotActivated = dtPreliq.activate();
                 if (gotActivated) {
-                    getArbitrageService().getDqlStateService().setDqlState(DqlState.PRELIQ);
+                    getArbitrageService().getDqlStateService().setPreliqState();
+                    setPreliqState();
+                    getTheOtherMarket().setPreliqState();
                 } else {
                     setPreliqState(); // NOTE: race condition with setMarketState in "finishing placeOrder" and preliq gotActivated
                 }

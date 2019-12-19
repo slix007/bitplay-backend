@@ -24,7 +24,6 @@ import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
-import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
@@ -41,6 +40,7 @@ import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
+import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
@@ -2686,7 +2686,9 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
-        final BigDecimal bDQLOpenMin = persistenceService.fetchGuiLiqParams().getBDQLOpenMin();
+        final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
+        final BigDecimal bDQLOpenMin = guiLiqParams.getBDQLOpenMin();
+        final BigDecimal bDQLCloseMin = guiLiqParams.getBDQLCloseMin();
         final Pos position = getPos();
         final LiqInfo liqInfo = getLiqInfo();
 
@@ -2717,6 +2719,8 @@ public class BitmexService extends MarketServicePreliq {
         } else {
             slackNotifications.resetThrottled(NotifyType.BITMEX_DQL_OPEN_MIN);
         }
+
+        arbitrageService.getDqlStateService().setBtmDqlState(bDQLOpenMin, bDQLCloseMin, liqInfo.getDqlCurr());
 
         return isOk;
     }
