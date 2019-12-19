@@ -8,14 +8,15 @@ import com.bitplay.okex.v3.exception.ApiException;
 import com.bitplay.okex.v3.helper.OkexObjectMapper;
 import com.bitplay.okex.v3.utils.DateUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.net.SocketTimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import org.apache.commons.lang3.StringUtils;
 import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
+
+import java.io.IOException;
+import java.net.SocketTimeoutException;
 
 
 @Slf4j
@@ -66,15 +67,17 @@ public class ApiClient {
             if (response.isSuccessful()) {
                 return response.body();
             } else if (ApiConstants.resultStatusArray.contains(status)) {
-                assert response.errorBody() != null;
-                final HttpResult result = OkexObjectMapper.get().readValue(new String(response.errorBody().bytes()), HttpResult.class);
-                if (result != null) {
-                    if (result.getMessage() == null) {
-                        log.error("code=" + result.getCode() + " message=" + message + " " + response);
-                    }
+                final String content = new String(response.errorBody().bytes());
+                final HttpResult result = OkexObjectMapper.get().readValue(content, HttpResult.class);
+                if (result == null) {
+                    log.error(content);
+                    throw new ApiException("ApiClient executeSync exception=" + content);
+                }
+                if (result.getCode() == 0 && result.getMessage() == null) {
+                    throw new ApiException(result.getErrorCode(), result.getErrorMessage());
+                } else {
                     throw new ApiException(result.getCode(), result.getMessage());
                 }
-                throw new ApiException(message);
             } else {
                 throw new ApiException(message);
             }
