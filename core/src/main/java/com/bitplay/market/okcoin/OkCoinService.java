@@ -1385,7 +1385,6 @@ public class OkCoinService extends MarketServicePreliq {
 
         // SET STATE
         arbitrageService.setSignalType(signalType);
-        MarketState nextState = getMarketState();
         setMarketState(MarketState.PLACING_ORDER);
 
         BigDecimal amountLeft = amount;
@@ -1431,7 +1430,7 @@ public class OkCoinService extends MarketServicePreliq {
                 details = details.length() < 400 ? details : details.substring(0, 400); // we can get html page as error message
                 tradeLogger.error(details);
 
-                tradeResponse.setOrderId(message);
+                tradeResponse.setOrderId(null);
                 tradeResponse.setErrorCode(message);
 
                 final NextStep nextStep = handlePlacingException(e, tradeResponse);
@@ -1451,23 +1450,18 @@ public class OkCoinService extends MarketServicePreliq {
             if (placingType != PlacingType.TAKER) {
                 ooHangedCheckerService.startChecker();
                 setMarketState(MarketState.ARBITRAGE, counterName);
-            } else {
-                if ((nextState == MarketState.WAITING_ARB && placeOrderArgsRef.get() == null)
-                        || nextState == MarketState.PLACING_ORDER
-                        || nextState == MarketState.STARTING_VERT
-                        || nextState == MarketState.MOVING
-                        || nextState == MarketState.FORBIDDEN
-                ) {
-                    nextState = MarketState.ARBITRAGE;
-                }
-                if (placeOrderArgsRef.get() != null) {
-                    nextState = MarketState.WAITING_ARB;
-                }
-
-                setMarketState(nextState, counterName); // should be READY
-                if (tradeResponse.getOrderId() != null) {
+                if (tradeResponse.getOrderId() == null) { // any exception.
                     setFree(placeOrderArgs.getTradeId()); // ARBITRAGE->READY and iterateOOToMove
                 }
+            } else {
+                // TAKER ORDER
+                if (placeOrderArgsRef.get() != null) {
+                    setMarketState(MarketState.WAITING_ARB, counterName); // should be READY
+                } else {
+                    setMarketState(MarketState.ARBITRAGE, counterName); // should be READY
+                    setFree(placeOrderArgs.getTradeId()); // ARBITRAGE->READY and iterateOOToMove
+                }
+
             }
         }
 
@@ -1543,7 +1537,7 @@ public class OkCoinService extends MarketServicePreliq {
         if (exception instanceof HttpStatusIOException) {
             HttpStatusIOException e = (HttpStatusIOException) exception;
             final String httpBody = e.getHttpBody();
-            tradeResponse.setOrderId(httpBody);
+            tradeResponse.setOrderId(null);
             tradeResponse.setErrorCode(httpBody);
 /*
                 try {
@@ -2118,13 +2112,17 @@ public class OkCoinService extends MarketServicePreliq {
                 if (tradeResponse.getErrorCode() != null && tradeResponse.getErrorCode().equals(TradeResponse.TAKER_BECAME_LIMIT)) {
                     break;
                 }
-                if (tradeResponse.getErrorCode() == null) {
-                    break;
-                } else {
+                if (tradeResponse.getErrorCode() != null) {
                     final String errMsg = String.format("#%s/%s Warning: Moving3:placingError %s", counterForLogs, attemptCount, tradeResponse.getErrorCode());
                     logger.error(errMsg);
                     tradeLogger.error(errMsg);
+                    tradeResponse.setOrderId(null);
+                    continue;
                 }
+
+                // Order placed successfully. Exit loop.
+                break;
+
             } catch (Exception e) {
                 logger.error("#{}/{} Moving3:placingError", counterForLogs, attemptCount, e);
                 tradeLogger.error(String.format("#%s/%s Warning: Moving3:placingError %s", counterForLogs, attemptCount, e.toString()));
