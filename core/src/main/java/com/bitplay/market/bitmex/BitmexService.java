@@ -2059,6 +2059,7 @@ public class BitmexService extends MarketServicePreliq {
 //                            break;
 //                        }
 //                    } else {
+                    nextMarketState = MarketState.READY;
                     ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
                     break; // any unknown exception - no retry
 //                    }
@@ -2076,6 +2077,7 @@ public class BitmexService extends MarketServicePreliq {
             logger.error("Place market order error", e);
             tradeLogger.info(String.format("maker error %s", e.toString()), contractTypeStr);
             tradeResponse.setErrorCode(e.getMessage());
+            nextMarketState = MarketState.READY;
             ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
         }
 
