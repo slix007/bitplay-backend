@@ -68,13 +68,13 @@ public class ApiClient {
                 return response.body();
             } else if (ApiConstants.resultStatusArray.contains(status)) {
                 final String content = new String(response.errorBody().bytes());
+                log.error("ApiClient error: " + content);
                 final HttpResult result = OkexObjectMapper.get().readValue(content, HttpResult.class);
                 if (result == null) {
-                    log.error(content);
                     throw new ApiException("ApiClient executeSync exception=" + content);
                 }
                 if (result.getCode() == 0 && result.getMessage() == null) {
-                    throw new ApiException(result.getErrorCode(), result.getErrorMessage());
+                    throw new ApiException(result.getError_code(), result.getError_message());
                 } else {
                     throw new ApiException(result.getCode(), result.getMessage());
                 }

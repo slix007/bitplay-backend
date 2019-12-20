@@ -1581,13 +1581,17 @@ public class OkCoinService extends MarketServicePreliq {
                         // api-v3:
                         || message.contains("Gateway Time-out")
                         || message.contains("Bad Gateway") // 502 / Bad Gateway
-                        || (message.contains("32019") && message.contains("Order price cannot be")) // more than 103% or less than 97%
-                        // Code: 20018, translation: Order price differ more than 5% from the price in the last minute
+                        || message.contains("32019") // futures: Order price cannot be more than 103% or less than 97%
+                        || message.contains("35014") // swap: {"error_message":"Order price is not within limit","result":"FALSE","error_code":"35014","order_id":"-1"}
+
+                    // Code: 20018, translation: Order price differ more than 5% from the price in the last minute
                 ) { // ExchangeException
                     return NextStep.CONTINUE;
                 }
-                // 32014 : Positions that you are squaring exceeded the total no. of contracts allowed to close
-                if (message.contains("32014")) {
+                // Api V3:
+                // futures: 32014 : Positions that you are squaring exceeded the total no. of contracts allowed to close
+                // swap: 35010 : Position closing too large,Closing position size larger than available size
+                if (message.contains("32014") || message.contains("35010")) {
                     try {
                         fetchPosition();
                     } catch (Exception e1) {
