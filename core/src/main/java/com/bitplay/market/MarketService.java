@@ -170,6 +170,10 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public abstract boolean checkLiquidationEdge(Order.OrderType orderType);
 
+    public void updateDqlState() {
+        throw new IllegalArgumentException("not implemented");
+    }
+
     public abstract BalanceService getBalanceService();
 
     public abstract boolean isAffordable(Order.OrderType orderType, BigDecimal tradableAmount);
@@ -670,6 +674,7 @@ public abstract class MarketService extends MarketServiceWithState {
         liqParams.setDmrlMax(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(-10000));
 
         storeLiqParams(liqParams); // race condition with recalcLiqInfo() => user just have to reset one more time.
+        updateDqlState();
     }
 
     public abstract TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes, SignalType signalType);

@@ -41,19 +41,18 @@ public class DqlStateService {
         preliqState = DqlState.PRELIQ;
     }
 
-    public void setBtmDqlState(BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
+    public void updateBtmDqlState(BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
         btmState = setMarketState(bDQLOpenMin, bDQLCloseMin, dqlCurr, btmState);
     }
 
-    public void setOkexDqlState(BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
+    public void updateOkexDqlState(BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
         okexState = setMarketState(oDQLOpenMin, oDQLCloseMin, dqlCurr, okexState);
     }
 
     private DqlState setMarketState(BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr, DqlState currState) {
-        DqlState resState = currState;
+        final DqlState resState;
         if (dqlCurr == null) {
-            // nothing to change
-            return resState;
+            resState = DqlState.ANY_ORDERS;
         } else {
             if (dqlCurr.compareTo(oDQLOpenMin) >= 0) {
                 resState = DqlState.ANY_ORDERS;
@@ -66,6 +65,16 @@ public class DqlStateService {
             }
         }
         return resState;
+    }
+
+    public DqlState getCommonDqlState() {
+        if (preliqState == DqlState.PRELIQ || okexState == DqlState.PRELIQ || btmState == DqlState.PRELIQ) {
+            return DqlState.PRELIQ;
+        }
+        if (okexState == DqlState.CLOSE_ONLY || btmState == DqlState.CLOSE_ONLY) {
+            return DqlState.CLOSE_ONLY;
+        }
+        return DqlState.ANY_ORDERS;
     }
 
 //    public void decreaseState(BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {

@@ -1,6 +1,7 @@
 package com.bitplay.api.dto.states;
 
 import com.bitplay.api.dto.pos.PosDiffJson;
+import com.bitplay.market.model.DqlState;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -33,6 +34,7 @@ public class MarketStatesJson {
     OrderPortionsJson orderPortionsJson;
     Boolean okexSettlementMode;
     String nowMomentStr;
+    DqlState dqlState;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;

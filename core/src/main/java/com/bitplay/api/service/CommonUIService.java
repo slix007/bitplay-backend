@@ -27,6 +27,7 @@ import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
+import com.bitplay.arbitrage.DqlStateService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -40,6 +41,7 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.ArbState;
+import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexSettlementService;
@@ -95,6 +97,9 @@ public class CommonUIService {
 
     @Autowired
     private OkCoinService okCoinService;
+
+    @Autowired
+    private DqlStateService dqlStateService;
 
     @Autowired
     private Config config;
@@ -369,6 +374,8 @@ public class CommonUIService {
 
         final OrderPortionsJson orderPortionsJson = new OrderPortionsJson(bitmexService.getPortionsProgressForUi(), okCoinService.getPortionsProgressForUi());
 
+        final DqlState dqlState = dqlStateService.getCommonDqlState();
+
         return new MarketStatesJson(
                 btmState.toString(),
                 okState.toString(),
@@ -388,7 +395,8 @@ public class CommonUIService {
                 posDiff,
                 orderPortionsJson,
                 okexSettlementService.isSettlementMode(),
-                LocalTime.now().toString()
+                LocalTime.now().toString(),
+                dqlState
         );
     }
 

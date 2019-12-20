@@ -902,6 +902,8 @@ public class ArbitrageService {
         if (dqlStateService.isPreliq()) {
             if (firstMarketService.noPreliq() && secondMarketService.noPreliq()) {
                 dqlStateService.tryResetPreliq();
+                firstMarketService.updateDqlState();
+                secondMarketService.updateDqlState();
             }
         }
     }

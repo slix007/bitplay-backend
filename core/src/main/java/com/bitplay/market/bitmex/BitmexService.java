@@ -2680,8 +2680,18 @@ public class BitmexService extends MarketServicePreliq {
                 liqInfo.setDmrlString(dmrlString);
 
                 storeLiqParams(liqParams); // race condition with resetLiqInfo() => user just have to reset one more time.
+                updateDqlState();
             }
         });
+    }
+
+    @Override
+    public void updateDqlState() {
+        final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
+        final BigDecimal bDQLOpenMin = guiLiqParams.getBDQLOpenMin();
+        final BigDecimal bDQLCloseMin = guiLiqParams.getBDQLCloseMin();
+        final LiqInfo liqInfo = getLiqInfo();
+        arbitrageService.getDqlStateService().updateBtmDqlState(bDQLOpenMin, bDQLCloseMin, liqInfo.getDqlCurr());
     }
 
     @Override
@@ -2720,7 +2730,7 @@ public class BitmexService extends MarketServicePreliq {
             slackNotifications.resetThrottled(NotifyType.BITMEX_DQL_OPEN_MIN);
         }
 
-        arbitrageService.getDqlStateService().setBtmDqlState(bDQLOpenMin, bDQLCloseMin, liqInfo.getDqlCurr());
+        arbitrageService.getDqlStateService().updateBtmDqlState(bDQLOpenMin, bDQLCloseMin, liqInfo.getDqlCurr());
 
         return isOk;
     }
@@ -2732,7 +2742,7 @@ public class BitmexService extends MarketServicePreliq {
     public void init() {
         preliqScheduler.scheduleWithFixedDelay(() -> {
             try {
-                checkForDecreasePosition();
+                checkForPreliq();
             } catch (Exception e) {
                 logger.error("Error on checkForDecreasePosition", e);
             }

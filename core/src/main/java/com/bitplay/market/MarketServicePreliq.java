@@ -54,10 +54,11 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
             MarketState toSet = MarketState.READY; // hasOpenOrders() ? MarketState.ARBITRAGE : MarketState.READY;
             log.warn(getName() + "_PRELIQ: resetPreliqState to " + toSet);
             setMarketState(toSet);
+            updateDqlState();
         }
     }
 
-    protected void checkForDecreasePosition() {
+    protected void checkForPreliq() {
         Instant start = Instant.now();
 
         if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {

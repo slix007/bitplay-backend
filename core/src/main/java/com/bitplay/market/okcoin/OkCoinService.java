@@ -370,7 +370,7 @@ public class OkCoinService extends MarketServicePreliq {
                     resetPreliqState();
                     dtPreliq.stop();
                 } else {
-                    checkForDecreasePosition();
+                    checkForPreliq();
                 }
             } catch (Exception e) {
                 logger.error("Error on checkForDecreasePosition", e);
@@ -2474,8 +2474,18 @@ public class OkCoinService extends MarketServicePreliq {
                 liqInfo.setDmrlString(dmrlString);
 
                 storeLiqParams(liqParams);
+                updateDqlState();
             }
         });
+    }
+
+    @Override
+    public void updateDqlState() {
+        final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
+        final BigDecimal oDQLCloseMin = guiLiqParams.getODQLCloseMin();
+        final BigDecimal oDQLOpenMin = guiLiqParams.getODQLOpenMin();
+        final LiqInfo liqInfo = getLiqInfo();
+        arbitrageService.getDqlStateService().updateOkexDqlState(oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
     }
 
     /**
@@ -2523,7 +2533,7 @@ public class OkCoinService extends MarketServicePreliq {
             slackNotifications.resetThrottled(NotifyType.OKEX_DQL_OPEN_MIN);
         }
 
-        arbitrageService.getDqlStateService().setOkexDqlState(oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
+        arbitrageService.getDqlStateService().updateOkexDqlState(oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
 
         return isOk;
     }
