@@ -920,7 +920,7 @@ public class OkCoinService extends MarketServicePreliq {
                 }, throwable -> logger.error("OkexFutureTicker.Exception: ", throwable));
     }
 
-    @Scheduled(initialDelay = 60000, fixedDelay = 30000)
+    @Scheduled(initialDelay = 60000, fixedDelay = 60000)
     public void checkPriceRangeTime() {
         if (priceRange == null || priceRange.getTimestamp() == null ||
                 priceRange.getTimestamp().plusSeconds(60).isBefore(Instant.now())) {
@@ -936,6 +936,17 @@ public class OkCoinService extends MarketServicePreliq {
         logger.info("priceRange: " + (priceRange != null ? priceRange.getTimestamp() : "null"));
         if (priceRangeSub != null && !priceRangeSub.isDisposed()) {
             priceRangeSub.dispose();
+            // TODO listen to priceRangeSub unsubscribe response
+            // wait 10 sec to dispose
+            int i = 0;
+            try {
+                Thread.sleep(1000); // noticed from logs that 'Unsubscribing from channel' takes about 400ms
+                while (!priceRangeSub.isDisposed() && i++ < 100) {
+                    Thread.sleep(100);
+                }
+            } catch (InterruptedException e) {
+                logger.error("priceRangeSub.dispose() interrupted");
+            }
         }
         priceRangeSub = startPriceRangeListener();
     }
