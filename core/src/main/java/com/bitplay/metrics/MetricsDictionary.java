@@ -32,6 +32,7 @@ public class MetricsDictionary {
     private Timer bitmex_plBefore_ob_saveTime_traditional10;
     private Timer bitmex_plBefore_ob_saveTime_incremental50;
     private Timer bitmex_plBefore_ob_saveTime_incrementalFull;
+    private Timer bitmex_plBefore_to_checkTime;
     private Timer bitmex_plBefore_checkTime;
     private Timer bitmex_plBefore_preparePlaceTime;
     private Timer bitmexUpdateOrder;
@@ -106,6 +107,7 @@ public class MetricsDictionary {
             bitmex_plBefore_ob_saveTime_traditional10 = Timer.builder("fplay.timer.bitmex_plBefore_ob_saveTime_traditional10").register(registry);
             bitmex_plBefore_ob_saveTime_incremental50 = Timer.builder("fplay.timer.bitmex_plBefore_ob_saveTime_incremental50").register(registry);
             bitmex_plBefore_ob_saveTime_incrementalFull = Timer.builder("fplay.timer.bitmex_plBefore_ob_saveTime_incrementalFull").register(registry);
+            bitmex_plBefore_to_checkTime = Timer.builder("fplay.timer.bitmex_plBefore_to_checkTime").register(registry);
             bitmex_plBefore_checkTime = Timer.builder("fplay.timer.bitmex_plBefore_checkTime").register(registry);
             bitmex_plBefore_preparePlaceTime = Timer.builder("fplay.timer.bitmex_plBefore_preparePlaceTime").register(registry);
             okexPlacingBefore = Timer.builder("fplay.timer.okexPlacingBefore").register(registry);
@@ -187,6 +189,10 @@ public class MetricsDictionary {
 
     public void putBitmex_plBefore_checkTime(long ms) {
         bitmex_plBefore_checkTime.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putBitmex_plBefore_to_checkTime(long ms) {
+        bitmex_plBefore_to_checkTime.record(ms, TimeUnit.MILLISECONDS);
     }
 
     public void putBitmex_plBefore_preparePlaceTime(long ms) {

@@ -9,6 +9,7 @@ import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.settings.ArbScheme;
@@ -19,6 +20,7 @@ import org.knowm.xchange.dto.Order.OrderType;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 
@@ -33,6 +35,7 @@ public class SignalService {
     private final TradeService tradeService;
     private final OkCoinService okexService;
     private final BitmexService bitmexService;
+    private final MetricsDictionary metricsDictionary;
 
     public void placeOkexOrderOnSignal(OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
                                        PlacingType placingType, String counterName, Long tradeId, Instant lastObTime,
@@ -86,7 +89,7 @@ public class SignalService {
 
     public CompletableFuture<Void> placeBitmexOrderOnSignal(OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
                                                             PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo,
-                                                            BtmFokAutoArgs btmFokAutoArgs) {
+                                                            BtmFokAutoArgs btmFokAutoArgs, Instant startSignalTime) {
 
         CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
         try {
@@ -117,7 +120,13 @@ public class SignalService {
                     .build();
 
             tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-            promise = bitmexService.addOoExecutorTask(() -> bitmexService.placeOrder(placeOrderArgs));
+            promise = bitmexService.addOoExecutorTask(() -> {
+                if (startSignalTime != null) {
+                    final long ms = Duration.between(startSignalTime, Instant.now()).toMillis();
+                    metricsDictionary.putBitmex_plBefore_preparePlaceTime(ms);
+                }
+                bitmexService.placeOrder(placeOrderArgs);
+            });
 
         } catch (Exception e) {
             log.error("Error on placeOrderOnSignal", e);

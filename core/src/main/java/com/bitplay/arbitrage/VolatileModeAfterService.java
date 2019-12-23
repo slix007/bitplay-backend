@@ -151,7 +151,7 @@ public class VolatileModeAfterService {
 
                 if (marketService.getName().equals(BitmexService.NAME)) {
                     signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false,
-                            btmFokAutoArgs);
+                            btmFokAutoArgs, null);
                 } else {
                     if (amountLeft.signum() <= 0 && okexService.hasDeferredOrders()) {
                         final String warnMsg = String.format("#%s current-volatile. amountLeft=%s and hasDeferredOrders", counterForLogs, amountLeft);

@@ -179,6 +179,8 @@ public class ArbitrageService {
     private final PublishSubject<DeltaChange> deltaChangesPublisher = PublishSubject.create();
     private final Object arbStateLock = new Object();
     private volatile ArbState arbState = ArbState.READY;
+    private volatile Instant lastBtmObTimestamp = null;
+    private volatile Instant startSignalCheck = null;
     private volatile Instant startSignalTime = null;
     private volatile Instant lastCalcSumBal = null;
 
@@ -247,6 +249,7 @@ public class ArbitrageService {
             }
 
             params.setLastOBChange(new Date());
+            startSignalCheck = Instant.now();
 
             resetArbStatePreliq();
 
@@ -656,6 +659,7 @@ public class ArbitrageService {
 
     private void calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal) {
 
+        lastBtmObTimestamp = bitmexOrderBook.getTimeStamp().toInstant();
         final BigDecimal bP = firstMarketService.getPos().getPositionLong();
         final BigDecimal oPL = secondMarketService.getPos().getPositionLong();
         final BigDecimal oPS = secondMarketService.getPos().getPositionShort();
@@ -1071,6 +1075,8 @@ public class ArbitrageService {
 
         log.info("START SIGNAL 1");
         startSignalTime = Instant.now();
+        metricsDictionary.putBitmex_plBefore_checkTime(Duration.between(startSignalCheck, startSignalTime).toMillis());
+        metricsDictionary.putBitmex_plBefore_to_checkTime(Duration.between(lastBtmObTimestamp, startSignalTime).toMillis());
 
         printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 
@@ -1092,8 +1098,9 @@ public class ArbitrageService {
         final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
                 counterName, tradeId, lastObTime, isConBo, null, s.getArbScheme());
-        final CompletableFuture<Void> btmStartPromise = signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
-                counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
+        final CompletableFuture<Void> btmStartPromise =
+                signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
+                        counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs(), startSignalTime);
 
         setTimeoutAfterStartTrading();
 
@@ -1287,6 +1294,8 @@ public class ArbitrageService {
 
         log.info("START SIGNAL 2");
         startSignalTime = Instant.now();
+        metricsDictionary.putBitmex_plBefore_checkTime(Duration.between(startSignalCheck, startSignalTime).toMillis());
+        metricsDictionary.putBitmex_plBefore_to_checkTime(Duration.between(lastBtmObTimestamp, startSignalTime).toMillis());
 
         printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 
@@ -1309,7 +1318,7 @@ public class ArbitrageService {
         signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
                 counterName, tradeId, lastObTime, isConBo, null, s.getArbScheme());
         final CompletableFuture<Void> btmStartPromise = signalService.placeBitmexOrderOnSignal(OrderType.BID, b_block, bestQuotes,
-                dealPrices.getBtmPlacingType(), counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs());
+                dealPrices.getBtmPlacingType(), counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs(), startSignalTime);
 
         setTimeoutAfterStartTrading();
 
