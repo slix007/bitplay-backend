@@ -3178,6 +3178,7 @@ public class BitmexService extends MarketServicePreliq {
         final Long tradeId = currArgs.getTradeId();
         final DealPrices dealPrices = arbitrageService.getDealPrices(tradeId);
         final FactPrice bPriceFact = dealPrices.getBPriceFact();
+        final BigDecimal filledInitial = bPriceFact.getFilled();
         BigDecimal filled = bPriceFact.getFilled();
         if (filled.compareTo(bPriceFact.getFullAmount()) < 0) {
             final String msg = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
@@ -3189,9 +3190,18 @@ public class BitmexService extends MarketServicePreliq {
                 arbitrageService.getSecondMarketService().getTradeLogger().info(msg);
                 warningLogger.info(msg);
             }
-            updateAvgPrice(dealPrices, true);
-
-            filled = bPriceFact.getFilled();
+            for (int i = 0; i < 2; i++) {
+                updateAvgPrice(dealPrices, true);
+                filled = bPriceFact.getFilled();
+                if (filled.compareTo(filledInitial) >= 0) {
+                    break;
+                }
+                final String updMsg = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
+                        counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
+                );
+                logger.info(updMsg);
+                warningLogger.info(updMsg);
+            }
             final String msg1;
             if (filled.compareTo(bPriceFact.getFullAmount()) < 0) {
                 msg1 = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updated.",
