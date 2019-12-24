@@ -3190,11 +3190,16 @@ public class BitmexService extends MarketServicePreliq {
                 arbitrageService.getSecondMarketService().getTradeLogger().info(msg);
                 warningLogger.info(msg);
             }
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 3; i++) {
                 updateAvgPrice(dealPrices, true);
                 filled = bPriceFact.getFilled();
                 if (filled.compareTo(filledInitial) >= 0) {
                     break;
+                }
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    logger.error("sleep interrupted", e);
                 }
                 final String updMsg = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
                         counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
