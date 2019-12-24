@@ -30,6 +30,11 @@ class DomainAwarePermissionEvaluator implements PermissionEvaluator {
 //                return hasRole("ROLE_ADMIN", authentication);
 //            }
 //        }
+        boolean roleAdmin = hasRole("ROLE_ADMIN", authentication);
+        if (roleAdmin) {
+            return true;
+        }
+
         if ("e_best_min-check".equals(permission)) {
 //            log.info("check permission '{}' for user '{}'", permission, authentication.getName());
             return traderPermissionsService.hasPermissionByEBestMin();

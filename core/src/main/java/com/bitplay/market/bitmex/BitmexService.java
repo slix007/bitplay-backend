@@ -278,7 +278,7 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public boolean isMarketStopped() {
         return getArbitrageService().isArbStateStopped()
-                || getMarketState() == MarketState.FORBIDDEN
+                || getArbitrageService().isArbForbidden()
                 || bitmexLimitsService.outsideLimits();
     }
 
@@ -1821,7 +1821,7 @@ public class BitmexService extends MarketServicePreliq {
             shouldStopPlacing = false;
             while (attemptCount < maxAttempts
                     && !getArbitrageService().isArbStateStopped()
-                    && getMarketState() != MarketState.FORBIDDEN
+                    && !getArbitrageService().isArbForbidden()
                     && !shouldStopPlacing) {
                 attemptCount++;
                 if (placeOrderArgs.getAttempt() == PlaceOrderArgs.NO_REPEATS_ATTEMPT && attemptCount > 1) {
@@ -2792,7 +2792,7 @@ public class BitmexService extends MarketServicePreliq {
 
         final Map<String, AvgPriceItem> itemMap = getPersistenceService().getDealPricesRepositoryService().getPItems(dealPrices.getTradeId(), getMarketId());
 
-        if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
+        if (getArbitrageService().isArbStateStopped() || getArbitrageService().isArbForbidden()) {
             tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. ArbState.STOPPED", counterName),
                     contractTypeStr);
             return;
@@ -2811,7 +2811,7 @@ public class BitmexService extends MarketServicePreliq {
             int MAX_ATTEMPTS = 5;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 try {
-                    if (getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN) {
+                    if (getArbitrageService().isArbStateStopped() || getArbitrageService().isArbForbidden()) {
                         tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. ArbState.STOPPED", counterName), contractTypeStr);
                         return;
                     }

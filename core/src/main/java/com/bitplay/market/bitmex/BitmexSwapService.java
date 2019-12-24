@@ -104,7 +104,6 @@ public class BitmexSwapService {
             case MOVING:
             case PLACING_ORDER:
             case STARTING_VERT:
-            case FORBIDDEN:
             case PRELIQ:
                 break;
 

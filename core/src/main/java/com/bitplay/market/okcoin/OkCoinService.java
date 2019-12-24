@@ -260,7 +260,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public boolean isMarketStopped() {
-        return getArbitrageService().isArbStateStopped() || getMarketState() == MarketState.FORBIDDEN;
+        return getArbitrageService().isArbStateStopped() || getArbitrageService().isArbForbidden();
     }
 
     public OkexLimitsService getOkexLimitsService() {
@@ -1402,7 +1402,7 @@ public class OkCoinService extends MarketServicePreliq {
         shouldStopPlacing = false;
         for (int attemptCount = 1; attemptCount < maxAttempts
                 && !getArbitrageService().isArbStateStopped()
-                && getMarketState() != MarketState.FORBIDDEN
+                && !getArbitrageService().isArbForbidden()
                 && !shouldStopPlacing;
                 attemptCount++) {
             try {

@@ -22,7 +22,7 @@ public enum NotifyType {
 
     STOP_ALL_ACTIONS_BY_MDC_TIMER(false),
     PRELIQ(false),
-    FORBIDDEN(true, 60 * 30), // 30 min
+    SEBEST_LOWER(true, 60 * 30), // 30 min
     E_BEST_VIOLATION(true, 60 * 60), // 60 min
     CORR_NOTIFY(false),
     ADJ_NOTIFY(false),

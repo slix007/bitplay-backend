@@ -13,7 +13,6 @@ public enum MarketState {
     SWAP,
     SWAP_AWAIT,
     SYSTEM_OVERLOADED,
-    FORBIDDEN,
     PRELIQ,
     ;
 

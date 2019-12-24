@@ -308,7 +308,6 @@ public abstract class MarketService extends MarketServiceWithState {
             case PLACING_ORDER: // openOrderSubscr can setFree, when it's not needed
             case STARTING_VERT:
             case MOVING:
-            case FORBIDDEN:
             case PRELIQ:
                 if (flags != null && flags.length > 0 && (flags[0].equals("UI") || flags[0].equals("FORCE_RESET"))) {
                     logger.info("reset {} from " + flags[0], marketState);
@@ -515,7 +514,7 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public boolean isReadyForMoving() {
-        return marketState != MarketState.SYSTEM_OVERLOADED && !getArbitrageService().isArbStateStopped() && getMarketState() != MarketState.FORBIDDEN;
+        return marketState != MarketState.SYSTEM_OVERLOADED && !getArbitrageService().isArbStateStopped() && !getArbitrageService().isArbForbidden();
     }
 
     public EventBus getEventBus() {

@@ -1466,17 +1466,7 @@ public class ArbitrageService {
                     sumA.toPlainString(), sumA.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                     usdQuote.toPlainString());
 
-            if (!traderPermissionsService.isEBestMinOk()) {
-                Integer eBestMin = persistenceService.getSettingsRepositoryService().getSettings().getEBestMin();
-                String msg = String.format("WARNING: sumEBestUsd(%s) < e_best_min(%s)", sumEBestUsd, eBestMin);
-                warningLogger.warn(msg);
-
-                firstMarketService.setMarketState(MarketState.FORBIDDEN);
-                secondMarketService.setMarketState(MarketState.FORBIDDEN);
-                slackNotifications.sendNotify(NotifyType.FORBIDDEN, "FORBIDDEN: " + msg);
-            } else {
-                slackNotifications.resetThrottled(NotifyType.FORBIDDEN);
-            }
+            traderPermissionsService.checkEBestMin();
 
             // calc auto hedge
             if (firstMarketService.getContractType().isEth()) {
@@ -2126,8 +2116,7 @@ public class ArbitrageService {
     }
 
     public boolean isArbForbidden() {
-        return firstMarketService.getMarketState() == MarketState.FORBIDDEN
-                || secondMarketService.getMarketState() == MarketState.FORBIDDEN;
+        return traderPermissionsService.isForbidden();
     }
 
     public ArbState getArbState() {

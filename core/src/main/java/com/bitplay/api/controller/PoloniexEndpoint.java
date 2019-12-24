@@ -10,6 +10,7 @@ import com.bitplay.api.service.BitplayUIServicePoloniex;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -98,6 +99,7 @@ public class PoloniexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public TradeResponseJson placeMarketOrder(@RequestBody TradeRequestJson tradeRequestJson) {
         return this.poloniex.doTrade(tradeRequestJson);
     }
@@ -111,6 +113,7 @@ public class PoloniexEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrders(@RequestBody OrderJson orderJson) {
         return this.poloniex.moveOpenOrder(orderJson);
     }

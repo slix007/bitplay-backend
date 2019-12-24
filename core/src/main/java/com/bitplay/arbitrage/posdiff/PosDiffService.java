@@ -440,8 +440,7 @@ public class PosDiffService {
     boolean marketsStopped() {
         return okexSettlementService.isSettlementMode()
                 || arbitrageService.isArbStateStopped()
-                || arbitrageService.getFirstMarketService().getMarketState() == MarketState.FORBIDDEN
-                || arbitrageService.getSecondMarketService().getMarketState() == MarketState.FORBIDDEN
+                || arbitrageService.isArbForbidden()
                 || arbitrageService.getDqlStateService().isPreliq()
                 || !fullBalanceIsValid();
     }

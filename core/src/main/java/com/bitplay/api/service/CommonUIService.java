@@ -396,7 +396,8 @@ public class CommonUIService {
                 orderPortionsJson,
                 okexSettlementService.isSettlementMode(),
                 LocalTime.now().toString(),
-                dqlState
+                dqlState,
+                traderPermissionsService.getSebestStatus()
         );
     }
 
@@ -485,10 +486,6 @@ public class CommonUIService {
         final MarketState second = MarketState.valueOf(marketStatesJson.getSecondMarket());
         arbitrageService.getFirstMarketService().setMarketState(first);
         arbitrageService.getSecondMarketService().setMarketState(second);
-
-        if (first == MarketState.FORBIDDEN || second == MarketState.FORBIDDEN) {
-            slackNotifications.sendNotify(NotifyType.FORBIDDEN, "FORBIDDEN from UI");
-        }
 
         return new MarketStatesJson(
                 arbitrageService.getFirstMarketService().getMarketState().name(),

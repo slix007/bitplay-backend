@@ -74,6 +74,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public DeltasJson updateBorders(@RequestBody BorderUpdateJson borderUpdateJson) {
         return commonUIService.updateBorders(borderUpdateJson);
     }
@@ -82,6 +83,7 @@ public class CommonEndpoint {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public DeltasJson updateMakerDelta(@RequestBody DeltalUpdateJson deltalUpdateJson) {
         return commonUIService.updateMakerDelta(deltalUpdateJson);
     }
@@ -120,15 +122,27 @@ public class CommonEndpoint {
         return commonUIService.setMarketsStates(marketStatesJson);
     }
 
+    @RequestMapping(value = "/market/reset-ebestmin",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public ResultJson resetEbestmin() {
+        traderPermissionsService.resetSebestMin();
+        return new ResultJson("requested", "");
+    }
+
     @RequestMapping(value = "/market/free-states",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public MarketFlagsJson freeStates() {
         // forbidden when eBestMinViolates, but ok with market states FORBIDDEN
         if (!traderPermissionsService.isEBestMinOk()) {
             return new MarketFlagsJson(false, false);
         }
+        traderPermissionsService.resetSebestMin();
         return commonUIService.freeMarketsStates();
     }
 
