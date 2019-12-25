@@ -129,7 +129,7 @@ public class CommonEndpoint {
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson resetEbestmin() {
         traderPermissionsService.resetSebestMin();
-        return new ResultJson("requested", "");
+        return new ResultJson("reset requested", "");
     }
 
     @RequestMapping(value = "/market/free-states",
@@ -142,7 +142,6 @@ public class CommonEndpoint {
         if (!traderPermissionsService.isEBestMinOk()) {
             return new MarketFlagsJson(false, false);
         }
-        traderPermissionsService.resetSebestMin();
         return commonUIService.freeMarketsStates();
     }
 

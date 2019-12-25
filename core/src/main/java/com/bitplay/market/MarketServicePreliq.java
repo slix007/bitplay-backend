@@ -61,7 +61,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
     protected void checkForPreliq() {
         Instant start = Instant.now();
 
-        if (getArbitrageService().isArbStateStopped() || getArbitrageService().isArbForbidden()) {
+        if (getArbitrageService().isArbStateStopped()) {
             dtPreliq.stop();
             return;
         }

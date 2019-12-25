@@ -50,8 +50,6 @@ public class TraderPermissionsService {
             throttledWarn.warn(msg);
             sebestStatus = SebestStatus.LOWER;
             slackNotifications.sendNotify(NotifyType.SEBEST_LOWER, "S_e_best=LOWER: " + msg);
-        } else {
-            slackNotifications.resetThrottled(NotifyType.SEBEST_LOWER);
         }
 
     }
@@ -135,6 +133,7 @@ public class TraderPermissionsService {
 
     public void resetSebestMin() {
         sebestStatus = SebestStatus.NORMAL;
+        slackNotifications.resetThrottled(NotifyType.SEBEST_LOWER);
         checkEBestMin();
     }
 }
