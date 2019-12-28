@@ -24,6 +24,7 @@ import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.BeforeSignalMetrics;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
@@ -1793,12 +1794,15 @@ public class BitmexService extends MarketServicePreliq {
         PlacingType placingTypeInitial = placeOrderArgs.getPlacingType();
         final SignalType signalType = placeOrderArgs.getSignalType();
         final Long tradeId = placeOrderArgs.getTradeId();
-        final Instant lastObTime = placeOrderArgs.getLastObTime();
+//        final Instant lastObTime = placeOrderArgs.getLastObTime();
+        final BeforeSignalMetrics beforeSignalMetrics =
+                placeOrderArgs.getBeforeSignalMetrics() != null ? placeOrderArgs.getBeforeSignalMetrics() : new BeforeSignalMetrics(null);
         final String symbol = btmContType.getSymbol();
         final Integer scale = btmContType.getScale();
         BtmFokAutoArgs btmFokArgs = placeOrderArgs.getBtmFokArgs(); // not null only when by signal
 
         final Instant startPlacing = Instant.now();
+        beforeSignalMetrics.setStartPlacing(startPlacing);
         final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
 
         if (placingTypeInitial == null) {
@@ -2100,13 +2104,20 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         // metrics
-        if (lastObTime != null) {
-            long beforeMs = startPlacing.toEpochMilli() - lastObTime.toEpochMilli();
+        if (beforeSignalMetrics.getLastObTime() != null) {
+            long beforeMs = startPlacing.toEpochMilli() - beforeSignalMetrics.getLastObTime().toEpochMilli();
             monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
             metricsDictionary.putBitmexPlacingBefore(beforeMs);
             if (beforeMs > 5000) {
                 logger.warn(placingType + "bitmex beforePlaceOrderMs=" + beforeMs);
             }
+            metricsDictionary.putBitmex_plBefore_to_checkTime(beforeSignalMetrics.calcPlBeforeToCheckTime());
+            metricsDictionary.putBitmex_plBefore_checkTime(beforeSignalMetrics.calcPlBeforeCheckTime());
+            metricsDictionary.putBitmex_plBefore_preparePlaceTime(beforeSignalMetrics.calcPlBeforePreparePlacingTime());
+
+            metricsDictionary.putBitmex_plBefore_prep_addTask(beforeSignalMetrics.calcPlBeforeAddPlacingTask());
+            metricsDictionary.putBitmex_plBefore_prep_startTask(beforeSignalMetrics.calcPlBeforeStartPlacingTask());
+            metricsDictionary.putBitmex_plBefore_prep_startPlacing(beforeSignalMetrics.calcPlBeforeStartPlacingTaskToStart());
         }
         final Instant endPlacing = Instant.now();
         long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();

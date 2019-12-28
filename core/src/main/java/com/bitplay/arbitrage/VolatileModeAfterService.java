@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.posdiff.PosDiffPortionsStopListener;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.model.BeforeSignalMetrics;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -150,8 +151,9 @@ public class VolatileModeAfterService {
                 BestQuotes bestQuotes = getBestQuotes(currOrders);
 
                 if (marketService.getName().equals(BitmexService.NAME)) {
-                    signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, null, false,
-                            btmFokAutoArgs, null);
+                    signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId,
+                            new BeforeSignalMetrics(null), false,
+                            btmFokAutoArgs);
                 } else {
                     if (amountLeft.signum() <= 0 && okexService.hasDeferredOrders()) {
                         final String warnMsg = String.format("#%s current-volatile. amountLeft=%s and hasDeferredOrders", counterForLogs, amountLeft);

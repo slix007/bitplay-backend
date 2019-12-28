@@ -5,11 +5,11 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
+import com.bitplay.market.model.BeforeSignalMetrics;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.settings.ArbScheme;
@@ -20,7 +20,6 @@ import org.knowm.xchange.dto.Order.OrderType;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 
@@ -35,10 +34,9 @@ public class SignalService {
     private final TradeService tradeService;
     private final OkCoinService okexService;
     private final BitmexService bitmexService;
-    private final MetricsDictionary metricsDictionary;
 
     public void placeOkexOrderOnSignal(OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-                                       PlacingType placingType, String counterName, Long tradeId, Instant lastObTime,
+                                       PlacingType placingType, String counterName, Long tradeId, BeforeSignalMetrics beforeSignalMetrics,
                                        boolean isConBo, Integer portionsQty,
                                        ArbScheme arbScheme) {
         try {
@@ -63,7 +61,7 @@ public class SignalService {
                         .attempt(1)
                         .tradeId(tradeId)
                         .counterName(counterName)
-                        .lastObTime(lastObTime)
+                        .beforeSignalMetrics(beforeSignalMetrics)
                         .portionsQty(portionsQty)
                         .arbScheme(arbScheme)
                         .build();
@@ -88,8 +86,9 @@ public class SignalService {
     }
 
     public CompletableFuture<Void> placeBitmexOrderOnSignal(OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-                                                            PlacingType placingType, String counterName, Long tradeId, Instant lastObTime, boolean isConBo,
-                                                            BtmFokAutoArgs btmFokAutoArgs, Instant startSignalTime) {
+                                                            PlacingType placingType, String counterName, Long tradeId, BeforeSignalMetrics beforeSignalMetrics,
+                                                            boolean isConBo,
+                                                            BtmFokAutoArgs btmFokAutoArgs) {
 
         CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
         try {
@@ -115,16 +114,14 @@ public class SignalService {
                     .attempt(attempt)
                     .tradeId(tradeId)
                     .counterName(counterName)
-                    .lastObTime(lastObTime)
+                    .beforeSignalMetrics(beforeSignalMetrics)
                     .btmFokArgs(btmFokAutoArgs)
                     .build();
 
             tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
+            beforeSignalMetrics.setAddPlacingTask(Instant.now());
             promise = bitmexService.addOoExecutorTask(() -> {
-                if (startSignalTime != null) {
-                    final long ms = Duration.between(startSignalTime, Instant.now()).toMillis();
-                    metricsDictionary.putBitmex_plBefore_preparePlaceTime(ms);
-                }
+                beforeSignalMetrics.setStartPlacingTask(Instant.now());
                 bitmexService.placeOrder(placeOrderArgs);
             });
 

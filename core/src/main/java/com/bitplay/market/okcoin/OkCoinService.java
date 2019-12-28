@@ -19,6 +19,7 @@ import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.BeforeSignalMetrics;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
@@ -1391,7 +1392,7 @@ public class OkCoinService extends MarketServicePreliq {
         final String counterName = placeOrderArgs.getCounterName();
         final String counterNameWithPortion = placeOrderArgs.getCounterNameWithPortion();
         final Long tradeId = placeOrderArgs.getTradeId();
-        final Instant lastObTime = placeOrderArgs.getLastObTime();
+        final BeforeSignalMetrics beforeSignalMetrics = placeOrderArgs.getBeforeSignalMetrics();
         final Instant startPlacing = Instant.now();
 
         // SET STATE
@@ -1478,8 +1479,8 @@ public class OkCoinService extends MarketServicePreliq {
 
         // metrics
         final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
-        if (lastObTime != null) {
-            long beforeMs = startPlacing.toEpochMilli() - lastObTime.toEpochMilli();
+        if (beforeSignalMetrics.getLastObTime() != null) {
+            long beforeMs = startPlacing.toEpochMilli() - beforeSignalMetrics.getLastObTime().toEpochMilli();
             monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
             metricsDictionary.putOkexPlacingBefore(beforeMs);
             if (beforeMs > 5000) {

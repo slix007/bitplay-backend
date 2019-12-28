@@ -26,6 +26,7 @@ import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.ArbState;
+import com.bitplay.market.model.BeforeSignalMetrics;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
@@ -179,7 +180,6 @@ public class ArbitrageService {
     private final PublishSubject<DeltaChange> deltaChangesPublisher = PublishSubject.create();
     private final Object arbStateLock = new Object();
     private volatile ArbState arbState = ArbState.READY;
-    private volatile Instant lastBtmObTimestamp = null;
     private volatile Instant startSignalCheck = null;
     private volatile Instant startSignalTime = null;
     private volatile Instant lastCalcSumBal = null;
@@ -659,7 +659,6 @@ public class ArbitrageService {
 
     private void calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal) {
 
-        lastBtmObTimestamp = bitmexOrderBook.getTimeStamp().toInstant();
         final BigDecimal bP = firstMarketService.getPos().getPositionLong();
         final BigDecimal oPL = secondMarketService.getPos().getPositionLong();
         final BigDecimal oPS = secondMarketService.getPos().getPositionShort();
@@ -733,8 +732,9 @@ public class ArbitrageService {
                             final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
                                     + bl.getDebugLog();
                             Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                            final BeforeSignalMetrics beforeSignalMetrics = new BeforeSignalMetrics(lastObTime, startSignalCheck);
                             checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
-                                    tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
+                                    tradingSignal, dynDeltaLogs, beforeSignalMetrics, oPL, oPS);
                             return true;
                         } else {
                             isAffordableBitmex = false;
@@ -748,9 +748,10 @@ public class ArbitrageService {
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
-                    Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                    final Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                    final BeforeSignalMetrics beforeSignalMetrics = new BeforeSignalMetrics(lastObTime, startSignalCheck);
                     checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
-                            tradingSignal, null, lastObTime, oPL, oPS);
+                            tradingSignal, null, beforeSignalMetrics, oPL, oPS);
                     return true;
                 }
 
@@ -767,8 +768,9 @@ public class ArbitrageService {
                             final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
                                     + bl.getDebugLog();
                             Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                            final BeforeSignalMetrics beforeSignalMetrics = new BeforeSignalMetrics(lastObTime, startSignalCheck);
                             checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
-                                    tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
+                                    tradingSignal, dynDeltaLogs, beforeSignalMetrics, oPL, oPS);
                             return true;
                         } else {
                             isAffordableBitmex = false;
@@ -783,8 +785,9 @@ public class ArbitrageService {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
                     Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                    final BeforeSignalMetrics beforeSignalMetrics = new BeforeSignalMetrics(lastObTime, startSignalCheck);
                     checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
-                            tradingSignal, null, lastObTime, oPL, oPS);
+                            tradingSignal, null, beforeSignalMetrics, oPL, oPS);
                     return true;
                 }
             }
@@ -822,11 +825,12 @@ public class ArbitrageService {
             }
 
             if (plBlocks.getBlockOkex().signum() > 0) {
-                Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                final Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                final BeforeSignalMetrics beforeSignalMetrics = new BeforeSignalMetrics(lastObTime, startSignalCheck);
                 final TradingSignal tradingSignal = TradingSignal.createOnBorderV1(plBlocks.getVer(),
                         plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA1_B_SELL_O_BUY, delta1, border1);
                 checkAndStartTradingOnDelta1(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
-                        tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
+                        tradingSignal, dynDeltaLogs, beforeSignalMetrics, oPL, oPS);
                 return true;
             } else {
                 isAffordableBitmex = false;
@@ -855,10 +859,11 @@ public class ArbitrageService {
             }
             if (plBlocks.getBlockOkex().signum() > 0) {
                 Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
+                final BeforeSignalMetrics beforeSignalMetrics = new BeforeSignalMetrics(lastObTime, startSignalCheck);
                 final TradingSignal tradingSignal = TradingSignal.createOnBorderV1(plBlocks.getVer(),
                         plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA2_B_BUY_O_SELL, delta2, border2);
                 checkAndStartTradingOnDelta2(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
-                        tradingSignal, dynDeltaLogs, lastObTime, oPL, oPS);
+                        tradingSignal, dynDeltaLogs, beforeSignalMetrics, oPL, oPS);
                 return true;
             } else {
                 isAffordableBitmex = false;
@@ -914,7 +919,7 @@ public class ArbitrageService {
 
     private void checkAndStartTradingOnDelta1(BorderParams borderParams, final BestQuotes bestQuotes, final BigDecimal b_block_input,
             final BigDecimal o_block_input, final TradingSignal tradingSignal, String dynamicDeltaLogs,
-            final Instant lastObTime, BigDecimal oPL, BigDecimal oPS) {
+            final BeforeSignalMetrics beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
 
@@ -949,7 +954,7 @@ public class ArbitrageService {
                                 final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
                                 startTradingOnDelta1(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
                                         ask1_o,
-                                        bid1_p, lastObTime, b_block_input, o_block_input);
+                                        bid1_p, beforeSignalMetrics, b_block_input, o_block_input);
                             }
                         }
                     }
@@ -1070,13 +1075,12 @@ public class ArbitrageService {
 
     private void startTradingOnDelta1(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_o, BigDecimal bid1_p,
-            Instant lastObTime,
+            BeforeSignalMetrics beforeSignalMetrics,
             BigDecimal b_block_input, BigDecimal o_block_input) {
 
         log.info("START SIGNAL 1");
         startSignalTime = Instant.now();
-        metricsDictionary.putBitmex_plBefore_checkTime(Duration.between(startSignalCheck, startSignalTime).toMillis());
-        metricsDictionary.putBitmex_plBefore_to_checkTime(Duration.between(lastBtmObTimestamp, startSignalTime).toMillis());
+        beforeSignalMetrics.setStartSignalTime(Instant.now());
 
         printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 
@@ -1097,10 +1101,10 @@ public class ArbitrageService {
         // in scheme MT2 Okex should be the first
         final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, lastObTime, isConBo, null, s.getArbScheme());
+                counterName, tradeId, beforeSignalMetrics, isConBo, null, s.getArbScheme());
         final CompletableFuture<Void> btmStartPromise =
                 signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
-                        counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs(), startSignalTime);
+                        counterName, tradeId, beforeSignalMetrics, isConBo, tradingSignal.toBtmFokAutoArgs());
 
         setTimeoutAfterStartTrading();
 
@@ -1200,7 +1204,7 @@ public class ArbitrageService {
     private void checkAndStartTradingOnDelta2(BorderParams borderParams,
             final BestQuotes bestQuotes, final BigDecimal b_block_input, final BigDecimal o_block_input,
             final TradingSignal tradingSignal, String dynamicDeltaLogs,
-            final Instant lastObTime, BigDecimal oPL, BigDecimal oPS) {
+            final BeforeSignalMetrics beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
@@ -1236,7 +1240,7 @@ public class ArbitrageService {
                                 final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
                                 startTradingOnDelta2(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
                                         ask1_p,
-                                        bid1_o, lastObTime, b_block_input, o_block_input);
+                                        bid1_o, beforeSignalMetrics, b_block_input, o_block_input);
                             }
                         }
                     }
@@ -1289,13 +1293,12 @@ public class ArbitrageService {
 
     private void startTradingOnDelta2(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
             TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_p, BigDecimal bid1_o,
-            Instant lastObTime,
+            BeforeSignalMetrics beforeSignalMetrics,
             BigDecimal b_block_input, BigDecimal o_block_input) {
 
         log.info("START SIGNAL 2");
         startSignalTime = Instant.now();
-        metricsDictionary.putBitmex_plBefore_checkTime(Duration.between(startSignalCheck, startSignalTime).toMillis());
-        metricsDictionary.putBitmex_plBefore_to_checkTime(Duration.between(lastBtmObTimestamp, startSignalTime).toMillis());
+        beforeSignalMetrics.setStartSignalTime(Instant.now());
 
         printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 
@@ -1316,9 +1319,9 @@ public class ArbitrageService {
         // in scheme MT2 Okex should be the first
         final boolean isConBo = getIsConBo();
         signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, lastObTime, isConBo, null, s.getArbScheme());
+                counterName, tradeId, beforeSignalMetrics, isConBo, null, s.getArbScheme());
         final CompletableFuture<Void> btmStartPromise = signalService.placeBitmexOrderOnSignal(OrderType.BID, b_block, bestQuotes,
-                dealPrices.getBtmPlacingType(), counterName, tradeId, lastObTime, isConBo, tradingSignal.toBtmFokAutoArgs(), startSignalTime);
+                dealPrices.getBtmPlacingType(), counterName, tradeId, beforeSignalMetrics, isConBo, tradingSignal.toBtmFokAutoArgs());
 
         setTimeoutAfterStartTrading();
 

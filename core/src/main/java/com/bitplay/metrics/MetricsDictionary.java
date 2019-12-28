@@ -35,6 +35,9 @@ public class MetricsDictionary {
     private Timer bitmex_plBefore_to_checkTime;
     private Timer bitmex_plBefore_checkTime;
     private Timer bitmex_plBefore_preparePlaceTime;
+    private Timer bitmex_plBefore_prep_addTask;
+    private Timer bitmex_plBefore_prep_startTask;
+    private Timer bitmex_plBefore_prep_startPlacing;
     private Timer bitmexUpdateOrder;
     private Timer okexPlacing;
     private Timer okexPlacingWhole;
@@ -110,6 +113,9 @@ public class MetricsDictionary {
             bitmex_plBefore_to_checkTime = Timer.builder("fplay.timer.bitmex_plBefore_to_checkTime").register(registry);
             bitmex_plBefore_checkTime = Timer.builder("fplay.timer.bitmex_plBefore_checkTime").register(registry);
             bitmex_plBefore_preparePlaceTime = Timer.builder("fplay.timer.bitmex_plBefore_preparePlaceTime").register(registry);
+            bitmex_plBefore_prep_addTask = Timer.builder("fplay.timer.bitmex_plBefore_prep_addTask").register(registry);
+            bitmex_plBefore_prep_startTask = Timer.builder("fplay.timer.bitmex_plBefore_prep_startTask").register(registry);
+            bitmex_plBefore_prep_startPlacing = Timer.builder("fplay.timer.bitmex_plBefore_prep_startPlacing").register(registry);
             okexPlacingBefore = Timer.builder("fplay.timer.okexPlacingBefore").register(registry);
             bitmexUpdateOrder = Timer.builder("fplay.timer.bitmexUpdateOrder").register(registry);
             okexMovingWhole = Timer.builder("fplay.timer.okexMovingWhole").register(registry);
@@ -197,6 +203,15 @@ public class MetricsDictionary {
 
     public void putBitmex_plBefore_preparePlaceTime(long ms) {
         bitmex_plBefore_preparePlaceTime.record(ms, TimeUnit.MILLISECONDS);
+    }
+    public void putBitmex_plBefore_prep_addTask(long ms) {
+        bitmex_plBefore_prep_addTask.record(ms, TimeUnit.MILLISECONDS);
+    }
+    public void putBitmex_plBefore_prep_startTask(long ms) {
+        bitmex_plBefore_prep_startTask.record(ms, TimeUnit.MILLISECONDS);
+    }
+    public void putBitmex_plBefore_prep_startPlacing(long ms) {
+        bitmex_plBefore_prep_startPlacing.record(ms, TimeUnit.MILLISECONDS);
     }
 
 
