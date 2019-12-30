@@ -29,6 +29,7 @@ public class MetricsDictionary {
     private Timer bitmexPlacing;
     private Timer bitmexPlacingWhole;
     private Timer bitmexPlacingBefore;
+    private Timer putBitmex_plBefore_ob_saveTime_traditional10_market;
     private Timer bitmex_plBefore_ob_saveTime_traditional10;
     private Timer bitmex_plBefore_ob_saveTime_incremental50;
     private Timer bitmex_plBefore_ob_saveTime_incrementalFull;
@@ -108,6 +109,7 @@ public class MetricsDictionary {
             bitmexPlacingWhole = Timer.builder("fplay.timer.bitmexPlacingWhole").register(registry);
             okexPlacingWhole = Timer.builder("fplay.timer.okexPlacingWhole").register(registry);
             bitmexPlacingBefore = Timer.builder("fplay.timer.bitmexPlacingBefore").register(registry);
+            putBitmex_plBefore_ob_saveTime_traditional10_market = Timer.builder("fplay.timer.putBitmex_plBefore_ob_saveTime_traditional10_market").register(registry);
             bitmex_plBefore_ob_saveTime_traditional10 = Timer.builder("fplay.timer.bitmex_plBefore_ob_saveTime_traditional10").register(registry);
             bitmex_plBefore_ob_saveTime_incremental50 = Timer.builder("fplay.timer.bitmex_plBefore_ob_saveTime_incremental50").register(registry);
             bitmex_plBefore_ob_saveTime_incrementalFull = Timer.builder("fplay.timer.bitmex_plBefore_ob_saveTime_incrementalFull").register(registry);
@@ -181,6 +183,10 @@ public class MetricsDictionary {
 
     public void putBitmexPlacingBefore(long ms) {
         bitmexPlacingBefore.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putBitmex_plBefore_ob_saveTime_traditional10_market(long ms) {
+        putBitmex_plBefore_ob_saveTime_traditional10_market.record(ms, TimeUnit.MILLISECONDS);
     }
 
     public void putBitmex_plBefore_ob_saveTime_traditional10(long ms) {

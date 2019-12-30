@@ -1367,8 +1367,10 @@ public class BitmexService extends MarketServicePreliq {
             throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
         }
 
-        final long ms = Instant.now().toEpochMilli() - obUpdate.getTimestamp().toInstant().toEpochMilli();
-        metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10(ms);
+        final long endMergeMs = Instant.now().toEpochMilli();
+        final long ms = endMergeMs - obUpdate.getTimestamp().toInstant().toEpochMilli();
+        metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10_market(ms);
+        metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10(endMergeMs - obUpdate.getReceiveTime().toInstant().toEpochMilli());
         return finalOB;
     }
 

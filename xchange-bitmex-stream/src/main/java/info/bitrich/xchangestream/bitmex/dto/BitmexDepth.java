@@ -15,6 +15,7 @@ public class BitmexDepth {
   private final BigDecimal[][] asks;
   private final BigDecimal[][] bids;
   private final Date timestamp;
+  private Date receiveTime;
 
   public BitmexDepth(
           @JsonProperty("symbol") final String symbol,
@@ -31,5 +32,9 @@ public class BitmexDepth {
   public String toString() {
 
     return "OkCoinDepth [asks=" + Arrays.toString(asks) + ", bids=" + Arrays.toString(bids) + "]";
+  }
+
+  public void setReceiveTime(Date receiveTime) {
+    this.receiveTime = receiveTime;
   }
 }

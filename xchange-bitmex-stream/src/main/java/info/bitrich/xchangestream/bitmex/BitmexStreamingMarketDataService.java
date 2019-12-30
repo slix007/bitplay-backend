@@ -18,6 +18,7 @@ import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.List;
@@ -83,6 +84,7 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                     // timestamp
                     //noinspection UnnecessaryLocalVariable
                     final BitmexDepth data = mapper.treeToValue(s.get("data").get(0), BitmexDepth.class);
+                    data.setReceiveTime(new Date());
                     return data;
                 });
     }
