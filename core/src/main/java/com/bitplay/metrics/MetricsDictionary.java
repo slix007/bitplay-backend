@@ -38,6 +38,7 @@ public class MetricsDictionary {
     private Timer bitmex_plBefore_prep_addTask;
     private Timer bitmex_plBefore_prep_startTask;
     private Timer bitmex_plBefore_prep_startPlacing;
+    private Timer bitmex_pl_from_ob_to_order;
     private Timer bitmexUpdateOrder;
     private Timer okexPlacing;
     private Timer okexPlacingWhole;
@@ -116,6 +117,7 @@ public class MetricsDictionary {
             bitmex_plBefore_prep_addTask = Timer.builder("fplay.timer.bitmex_plBefore_prep_addTask").register(registry);
             bitmex_plBefore_prep_startTask = Timer.builder("fplay.timer.bitmex_plBefore_prep_startTask").register(registry);
             bitmex_plBefore_prep_startPlacing = Timer.builder("fplay.timer.bitmex_plBefore_prep_startPlacing").register(registry);
+            bitmex_pl_from_ob_to_order = Timer.builder("fplay.timer.bitmex_pl_from_ob_to_order").register(registry);
             okexPlacingBefore = Timer.builder("fplay.timer.okexPlacingBefore").register(registry);
             bitmexUpdateOrder = Timer.builder("fplay.timer.bitmexUpdateOrder").register(registry);
             okexMovingWhole = Timer.builder("fplay.timer.okexMovingWhole").register(registry);
@@ -212,6 +214,10 @@ public class MetricsDictionary {
     }
     public void putBitmex_plBefore_prep_startPlacing(long ms) {
         bitmex_plBefore_prep_startPlacing.record(ms, TimeUnit.MILLISECONDS);
+    }
+
+    public void putBitmex_pl_from_ob_to_order(long ms) {
+        bitmex_pl_from_ob_to_order.record(ms, TimeUnit.MILLISECONDS);
     }
 
 

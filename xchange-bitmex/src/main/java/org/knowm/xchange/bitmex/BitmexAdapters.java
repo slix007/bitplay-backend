@@ -11,13 +11,6 @@ import io.swagger.client.model.Margin;
 import io.swagger.client.model.OrderBookL2;
 import io.swagger.client.model.Position;
 import io.swagger.client.model.Wallet;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
@@ -26,6 +19,14 @@ import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Sergey Shurmin on 5/3/17.
@@ -188,7 +189,9 @@ public class BitmexAdapters {
             avgPrice = priceToBigDecimal(order.getAvgPx(), scale);
         }
 
-        final Date timestamp = Date.from(order.getTimestamp().toInstant());
+        final Date timestamp = order.getTransactTime() != null
+                ? Date.from(order.getTransactTime().toInstant())
+                : Date.from(order.getTimestamp().toInstant());
 
         final Order.OrderStatus orderStatus = convertOrderStatus(order.getOrdStatus());
 

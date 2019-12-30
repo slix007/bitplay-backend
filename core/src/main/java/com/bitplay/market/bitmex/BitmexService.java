@@ -1368,7 +1368,7 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         final long ms = Instant.now().toEpochMilli() - obUpdate.getTimestamp().toInstant().toEpochMilli();
-        metricsDictionary.putBitmex_plBefore_ob_saveTime_incrementalFull(ms);
+        metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10(ms);
         return finalOB;
     }
 
@@ -1904,6 +1904,11 @@ public class BitmexService extends MarketServicePreliq {
                         monitoringDataService.saveMon(monPlacing);
                         metricsDictionary.putBitmexPlacing(waitingMarketMs);
                         fplayTradeService.addBitmexPlacingMs(tradeId, waitingMarketMs);
+                        if (attemptCount == 1 && beforeSignalMetrics.getLastObTime() != null
+                                && settingsRepositoryService.getSettings().getBitmexObType() == BitmexObType.TRADITIONAL_10) {
+                            final Instant answerTime = resultOrder.getTimestamp().toInstant();
+                            metricsDictionary.putBitmex_pl_from_ob_to_order(Duration.between(beforeSignalMetrics.getLastObTime(), answerTime).toMillis());
+                        }
 
                         orderId = resultOrder.getId();
                         final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingType, signalType,
@@ -2105,7 +2110,7 @@ public class BitmexService extends MarketServicePreliq {
 
         // metrics
         if (beforeSignalMetrics.getLastObTime() != null) {
-            long beforeMs = startPlacing.toEpochMilli() - beforeSignalMetrics.getLastObTime().toEpochMilli();
+            long beforeMs = beforeSignalMetrics.getStartPlacing().toEpochMilli() - beforeSignalMetrics.getLastObTime().toEpochMilli();
             monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
             metricsDictionary.putBitmexPlacingBefore(beforeMs);
             if (beforeMs > 5000) {
