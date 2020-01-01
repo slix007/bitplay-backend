@@ -1392,7 +1392,8 @@ public class OkCoinService extends MarketServicePreliq {
         final String counterName = placeOrderArgs.getCounterName();
         final String counterNameWithPortion = placeOrderArgs.getCounterNameWithPortion();
         final Long tradeId = placeOrderArgs.getTradeId();
-        final BeforeSignalMetrics beforeSignalMetrics = placeOrderArgs.getBeforeSignalMetrics();
+        final BeforeSignalMetrics beforeSignalMetrics =
+                placeOrderArgs.getBeforeSignalMetrics() != null ? placeOrderArgs.getBeforeSignalMetrics() : new BeforeSignalMetrics(null);
         final Instant startPlacing = Instant.now();
 
         // SET STATE
@@ -1403,7 +1404,7 @@ public class OkCoinService extends MarketServicePreliq {
         shouldStopPlacing = false;
         for (int attemptCount = 1; attemptCount < maxAttempts
                 && !getArbitrageService().isArbStateStopped()
-                && !getArbitrageService().isArbForbidden()
+                && !getArbitrageService().isArbForbidden(signalType)
                 && !shouldStopPlacing;
                 attemptCount++) {
             try {
@@ -1479,7 +1480,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         // metrics
         final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
-        if (beforeSignalMetrics.getLastObTime() != null) {
+        if (beforeSignalMetrics != null && beforeSignalMetrics.getLastObTime() != null) {
             long beforeMs = startPlacing.toEpochMilli() - beforeSignalMetrics.getLastObTime().toEpochMilli();
             monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
             metricsDictionary.putOkexPlacingBefore(beforeMs);
@@ -2620,7 +2621,7 @@ public class OkCoinService extends MarketServicePreliq {
     private boolean iterateOpenOrdersMoveSync(Object... iterateArgs) { // if synchronized then the queue for moving could be long
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED
                 || getMarketState() == MarketState.PLACING_ORDER
-                || isMarketStopped()
+                || getArbitrageService().isArbStateStopped()
                 || getArbitrageService().getDqlStateService().isPreliq()) {
             return false;
         }
@@ -2641,6 +2642,9 @@ public class OkCoinService extends MarketServicePreliq {
                 } else if (openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.NEW
                         && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PENDING_NEW
                         && openOrder.getOrderDetail().getOrderStatus() != Order.OrderStatus.PARTIALLY_FILLED) {
+                    // keep the order
+                    resultOOList.add(openOrder);
+                } else if (arbitrageService.isArbForbidden(openOrder.getSignalType())) {
                     // keep the order
                     resultOOList.add(openOrder);
                 } else {

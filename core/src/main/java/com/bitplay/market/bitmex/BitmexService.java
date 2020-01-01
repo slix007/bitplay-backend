@@ -787,7 +787,8 @@ public class BitmexService extends MarketServicePreliq {
             final MarketState marketState = getMarketState();
             if (marketState == MarketState.SYSTEM_OVERLOADED
                     || marketState == MarketState.PLACING_ORDER
-                    || isMarketStopped()
+                    || getArbitrageService().isArbStateStopped()
+                    || bitmexLimitsService.outsideLimits()
                     || getArbitrageService().getDqlStateService().isPreliq()) {
                 return;
             }
@@ -818,7 +819,7 @@ public class BitmexService extends MarketServicePreliq {
             List<FplayOrder> resultOOList = new ArrayList<>();
 
             for (FplayOrder openOrder : getOpenOrders()) {
-                if (openOrder.isOpen()) {
+                if (openOrder.isOpen() && !arbitrageService.isArbForbidden(openOrder.getSignalType())) {
 
                     final PlacingType btmPlacingTypeToChange = bitmexChangeOnSoService.getPlacingTypeToChange(openOrder.getSignalType());
                     if (btmPlacingTypeToChange != null) {
@@ -1827,7 +1828,7 @@ public class BitmexService extends MarketServicePreliq {
             shouldStopPlacing = false;
             while (attemptCount < maxAttempts
                     && !getArbitrageService().isArbStateStopped()
-                    && !getArbitrageService().isArbForbidden()
+                    && !getArbitrageService().isArbForbidden(signalType)
                     && !shouldStopPlacing) {
                 attemptCount++;
                 if (placeOrderArgs.getAttempt() == PlaceOrderArgs.NO_REPEATS_ATTEMPT && attemptCount > 1) {

@@ -149,4 +149,8 @@ public enum SignalType {
         String outName = "O_" + res.name().substring(2);
         return SignalType.valueOf(outName);
     }
+
+    public boolean isButton() {
+        return this == MANUAL_BUY || this == MANUAL_SELL;
+    }
 }

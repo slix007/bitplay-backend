@@ -2122,6 +2122,10 @@ public class ArbitrageService {
         return traderPermissionsService.isForbidden();
     }
 
+    public boolean isArbForbidden(SignalType signalType) {
+        return isArbForbidden() && !signalType.isButton() && !signalType.isPreliq() && !signalType.isAdj();
+    }
+
     public ArbState getArbState() {
         return arbState;
     }

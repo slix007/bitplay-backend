@@ -285,6 +285,7 @@ public class PosDiffService {
 
     private void startTimerToImmediateCorrection() {
         if (marketsStopped()) {
+            stopTimerToImmediateCorrection();
             return;
         }
         if (!hasTimerStarted) {
@@ -537,7 +538,13 @@ public class PosDiffService {
     private void checkPosDiff() throws Exception {
         if (!hasGeneralCorrStarted
                 || arbitrageService.getFirstMarketService() == null
-                || !arbitrageService.getFirstMarketService().isStarted()) {
+                || !arbitrageService.getFirstMarketService().isStarted()
+                || marketsStopped()
+        ) {
+            dtCorr.stop();
+            dtExtraCorr.stop();
+            dtAdj.stop();
+            dtExtraAdj.stop();
             return;
         }
 
