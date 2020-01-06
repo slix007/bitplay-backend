@@ -377,9 +377,19 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
             resetPreset = false;
         }
-        if (settingsUpdate.getDql() != null && settingsUpdate.getDql().getDqlLevel() != null) {
-            settings.getDql().setDqlLevel(settingsUpdate.getDql().getDqlLevel());
-            settingsRepositoryService.saveSettings(settings);
+        if (settingsUpdate.getDql() != null) {
+            if (settingsUpdate.getDql().getBtmDqlKillPos() != null) {
+                settings.getDql().setBtmDqlKillPos(settingsUpdate.getDql().getBtmDqlKillPos());
+                settingsRepositoryService.saveSettings(settings);
+            }
+            if (settingsUpdate.getDql().getOkexDqlKillPos() != null) {
+                settings.getDql().setOkexDqlKillPos(settingsUpdate.getDql().getOkexDqlKillPos());
+                settingsRepositoryService.saveSettings(settings);
+            }
+            if (settingsUpdate.getDql().getDqlLevel() != null) {
+                settings.getDql().setDqlLevel(settingsUpdate.getDql().getDqlLevel());
+                settingsRepositoryService.saveSettings(settings);
+            }
         }
 
         if (settingsUpdate.getPreSignalObReFetch() != null) {

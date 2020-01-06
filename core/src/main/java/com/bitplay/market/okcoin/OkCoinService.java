@@ -2500,7 +2500,8 @@ public class OkCoinService extends MarketServicePreliq {
         final BigDecimal oDQLCloseMin = guiLiqParams.getODQLCloseMin();
         final BigDecimal oDQLOpenMin = guiLiqParams.getODQLOpenMin();
         final LiqInfo liqInfo = getLiqInfo();
-        arbitrageService.getDqlStateService().updateOkexDqlState(oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
+        final BigDecimal okexDqlKillPos = persistenceService.getSettingsRepositoryService().getSettings().getDql().getOkexDqlKillPos();
+        arbitrageService.getDqlStateService().updateOkexDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
     }
 
     /**
@@ -2548,7 +2549,8 @@ public class OkCoinService extends MarketServicePreliq {
             slackNotifications.resetThrottled(NotifyType.OKEX_DQL_OPEN_MIN);
         }
 
-        arbitrageService.getDqlStateService().updateOkexDqlState(oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
+        final BigDecimal okexDqlKillPos = persistenceService.getSettingsRepositoryService().getSettings().getDql().getOkexDqlKillPos();
+        arbitrageService.getDqlStateService().updateOkexDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
 
         return isOk;
     }

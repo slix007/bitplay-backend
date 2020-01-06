@@ -4,5 +4,6 @@ public enum DqlState {
     ANY_ORDERS,
     CLOSE_ONLY,
     PRELIQ,
+    KILLPOS,
     ;
 }

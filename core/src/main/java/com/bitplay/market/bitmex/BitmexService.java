@@ -2712,7 +2712,8 @@ public class BitmexService extends MarketServicePreliq {
         final BigDecimal bDQLOpenMin = guiLiqParams.getBDQLOpenMin();
         final BigDecimal bDQLCloseMin = guiLiqParams.getBDQLCloseMin();
         final LiqInfo liqInfo = getLiqInfo();
-        arbitrageService.getDqlStateService().updateBtmDqlState(bDQLOpenMin, bDQLCloseMin, liqInfo.getDqlCurr());
+        final BigDecimal btmDqlKillPos = persistenceService.getSettingsRepositoryService().getSettings().getDql().getBtmDqlKillPos();
+        arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, liqInfo.getDqlCurr());
     }
 
     @Override
@@ -2751,7 +2752,8 @@ public class BitmexService extends MarketServicePreliq {
             slackNotifications.resetThrottled(NotifyType.BITMEX_DQL_OPEN_MIN);
         }
 
-        arbitrageService.getDqlStateService().updateBtmDqlState(bDQLOpenMin, bDQLCloseMin, liqInfo.getDqlCurr());
+        final BigDecimal btmDqlKillPos = persistenceService.getSettingsRepositoryService().getSettings().getDql().getBtmDqlKillPos();
+        arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, liqInfo.getDqlCurr());
 
         return isOk;
     }

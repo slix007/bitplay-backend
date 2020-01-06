@@ -84,7 +84,6 @@ public class PosDiffService {
     private volatile Long prevTradeId;
     private volatile String prevCounterName;
     private volatile CorrObj prevCorrObj;
-    private final AtomicReference<DqlState> dqlStateAtomicReference = new AtomicReference<>(DqlState.ANY_ORDERS);
 
     @Autowired
     private BordersService bordersService;
