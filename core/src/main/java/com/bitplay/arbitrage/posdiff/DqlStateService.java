@@ -1,6 +1,8 @@
-package com.bitplay.arbitrage;
+package com.bitplay.arbitrage.posdiff;
 
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.model.DqlState;
+import com.bitplay.market.model.LiqInfo;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -32,11 +34,14 @@ public class DqlStateService {
         return preliqState == DqlState.PRELIQ
                 || btmState == DqlState.PRELIQ
                 || okexState == DqlState.PRELIQ
+                || preliqState == DqlState.KILLPOS
+                || btmState == DqlState.KILLPOS
+                || okexState == DqlState.KILLPOS
                 ;
     }
 
     public void tryResetPreliq() {
-        if (preliqState == DqlState.PRELIQ) {
+        if (preliqState == DqlState.PRELIQ || preliqState == DqlState.KILLPOS) {
             //TODO check if need CLOSE_ONLY
             preliqState = DqlState.ANY_ORDERS;
             log.info("reset DqlState from PRELIQ to ANY_ORDERS");
@@ -44,8 +49,12 @@ public class DqlStateService {
     }
 
     //TODO remove preliqState. Don't set preliq when killpos.
-    public void setPreliqState() {
-        preliqState = DqlState.PRELIQ;
+    public void setPreliqState(LiqInfo liqInfo, BigDecimal dqlKillPos) {
+        if (liqInfo.getDqlCurr().compareTo(dqlKillPos) < 0) {
+            preliqState = DqlState.KILLPOS;
+        } else {
+            preliqState = DqlState.PRELIQ;
+        }
     }
 
     public void updateBtmDqlState(BigDecimal btmDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
@@ -79,7 +88,7 @@ public class DqlStateService {
     }
 
     public DqlState getCommonDqlState() {
-        if (okexState == DqlState.KILLPOS || btmState == DqlState.KILLPOS) {
+        if (preliqState == DqlState.KILLPOS || okexState == DqlState.KILLPOS || btmState == DqlState.KILLPOS) {
             return DqlState.KILLPOS;
         }
         if (preliqState == DqlState.PRELIQ || okexState == DqlState.PRELIQ || btmState == DqlState.PRELIQ) {

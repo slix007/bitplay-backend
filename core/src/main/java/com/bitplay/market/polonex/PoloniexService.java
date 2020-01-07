@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
@@ -73,6 +74,11 @@ public class PoloniexService extends MarketService {
     //    @Autowired
 //    WebSocketEndpoint webSocketEndpoint;
     private List<Long> latencyList = new ArrayList<>();
+
+    @Override
+    public SlackNotifications getSlackNotifications() {
+        return null;
+    }
 
     @Override
     public PosDiffService getPosDiffService() {

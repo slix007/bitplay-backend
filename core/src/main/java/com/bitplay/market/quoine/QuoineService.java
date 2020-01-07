@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
@@ -73,6 +74,11 @@ public class QuoineService extends MarketService {
     @Override
     public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
 
+    }
+
+    @Override
+    public SlackNotifications getSlackNotifications() {
+        return null;
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -99,7 +100,7 @@ public abstract class MarketService extends MarketServiceWithState {
     protected volatile Ticker ticker;
     protected volatile Ticker ethBtcTicker;
     protected volatile int usdInContract = 0;
-    protected final DelayTimer dtPreliq = new DelayTimer();
+    protected ExtraCloseService extraCloseService;
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3,
             new ThreadFactoryBuilder().setNameFormat(getName() + "-overload-scheduler-%d").build());
@@ -163,6 +164,8 @@ public abstract class MarketService extends MarketServiceWithState {
         }
         return this.orderBookShort;
     }
+
+    public abstract SlackNotifications getSlackNotifications();
 
     public abstract String fetchPosition() throws Exception;
 
@@ -1270,7 +1273,7 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public DelayTimer getDtPreliq() {
-        return dtPreliq;
+        return extraCloseService != null ? extraCloseService.getDtPreliq() : new DelayTimer();
     }
 
     public TradeResponse closeAllPos() {
