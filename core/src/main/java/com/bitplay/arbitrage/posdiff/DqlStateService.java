@@ -1,8 +1,8 @@
 package com.bitplay.arbitrage.posdiff;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.DqlState;
-import com.bitplay.market.model.LiqInfo;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -48,12 +48,24 @@ public class DqlStateService {
         }
     }
 
-    //TODO remove preliqState. Don't set preliq when killpos.
-    public void setPreliqState(LiqInfo liqInfo, BigDecimal dqlKillPos) {
-        if (liqInfo.getDqlCurr().compareTo(dqlKillPos) < 0) {
-            preliqState = DqlState.KILLPOS;
+    public void setPreliqState(DqlState dqlState) {
+        preliqState = dqlState;
+    }
+
+//    //TODO remove preliqState. Don't set preliq when killpos.
+//    public void setPreliqState(LiqInfo liqInfo, BigDecimal dqlKillPos) {
+//        if (liqInfo.getDqlCurr().compareTo(dqlKillPos) < 0) {
+//            preliqState = DqlState.KILLPOS;
+//        } else {
+//            preliqState = DqlState.PRELIQ;
+//        }
+//    }
+
+    public DqlState updateDqlState(String serviceName, BigDecimal dqlKillPos, BigDecimal dqlOpenMin, BigDecimal dqlCloseMin, BigDecimal dqlCurr) {
+        if (serviceName.equals(BitmexService.NAME)) {
+            return updateBtmDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr);
         } else {
-            preliqState = DqlState.PRELIQ;
+            return updateOkexDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr);
         }
     }
 
@@ -78,7 +90,7 @@ public class DqlStateService {
                 resState = DqlState.ANY_ORDERS;
             } else if (dqlCurr.compareTo(xDQLCloseMin) >= 0) {
                 resState = DqlState.CLOSE_ONLY;
-            } else if (dqlCurr.compareTo(xDQLCloseMin) < 0) {
+            } else if (dqlCurr.compareTo(xDQLKillPos) >= 0 && dqlCurr.compareTo(xDQLCloseMin) < 0) {
                 resState = DqlState.PRELIQ;
             } else if (dqlCurr.compareTo(xDQLKillPos) < 0) {
                 resState = DqlState.KILLPOS;

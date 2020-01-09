@@ -20,7 +20,12 @@ public class KillPosService {
 
     private final MarketServicePreliq marketService;
 
-    public void doKillPos() {
+    public void doKillPos(String counterForLogs) {
+        final String msg = String.format("%s %s KILLPOS", counterForLogs, marketService.getName());
+        log.error(msg);
+        warningLogger.error(msg);
+        marketService.getTradeLogger().info(msg);
+
         // 1) Срабатывает механизм автоматического прожатия кнопки close_all_pos mkt у соответствующей биржи;
         //2) В случае успешного первого действия, непосредственно после него срабатывает автоматическое действие recovery_nt_usd 26nv19 Кнопка recovery nt_usd со следующими особенностями:
 

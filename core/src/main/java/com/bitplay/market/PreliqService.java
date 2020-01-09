@@ -68,7 +68,7 @@ public class PreliqService {
         final CorrParams corrParams = persistenceService.fetchCorrParams();
 
         final DqlStateService dqlStateService = arbitrageService.getDqlStateService();
-        dqlStateService.updateBtmDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
+        dqlStateService.updateDqlState(getName(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
         final DqlState commonDqlState = dqlStateService.getCommonDqlState();
 
         if (commonDqlState != DqlState.PRELIQ && commonDqlState != DqlState.KILLPOS) {
@@ -91,11 +91,15 @@ public class PreliqService {
 
                 boolean gotActivated = dtPreliq.activate();
                 if (gotActivated) {
-                    arbitrageService.getDqlStateService().setPreliqState(liqInfo, dqlKillPos);
-                    setPreliqState(marketService);
-                    setPreliqState(getTheOtherMarket());
+                    arbitrageService.getDqlStateService().setPreliqState(commonDqlState);
+                    marketService.getArbitrageService().setBusyStackChecker();
+//                    setPreliqState(marketService, commonDqlState);
+//                    setPreliqState(getTheOtherMarket());
                 } else {
-                    setPreliqState(marketService); // NOTE: race condition with setMarketState in "finishing placeOrder" and preliq gotActivated
+//                    setPreliqState(marketService); // NOTE: race condition with setMarketState in "finishing placeOrder" and preliq gotActivated
+                }
+                if (commonDqlState == DqlState.PRELIQ) {
+                    setPreliqState(marketService);
                 }
 
                 final Integer delaySec = persistenceService.getSettingsRepositoryService().getSettings().getPosAdjustment().getPreliqDelaySec();
@@ -124,7 +128,7 @@ public class PreliqService {
                             if (commonDqlState == DqlState.PRELIQ) {
                                 doPreliqOrder(preliqParams);
                             } else { // commonDqlState == DqlState.KILLPOS
-                                marketService.getKillPosService().doKillPos();
+                                marketService.getKillPosService().doKillPos(counterForLogs);
                             }
                         } else {
                             resetPreliqState();
@@ -174,7 +178,7 @@ public class PreliqService {
 
     public void resetPreliqState() {
         if (marketService.getMarketState() == MarketState.PRELIQ) {
-            final FplayOrder stub = new FplayOrder(marketService.getMarketId(), null, "cancellOnPreliq");
+            final FplayOrder stub = new FplayOrder(marketService.getMarketId(), null, "cancelOnPreliq");
             marketService.cancelAllOrders(stub, "After PRELIQ: CancelAllOpenOrders", false, true);
 
             MarketState toSet = MarketState.READY; // hasOpenOrders() ? MarketState.ARBITRAGE : MarketState.READY;
