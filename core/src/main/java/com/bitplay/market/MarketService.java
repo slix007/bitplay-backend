@@ -100,7 +100,7 @@ public abstract class MarketService extends MarketServiceWithState {
     protected volatile Ticker ticker;
     protected volatile Ticker ethBtcTicker;
     protected volatile int usdInContract = 0;
-    protected ExtraCloseService extraCloseService;
+
 
     protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3,
             new ThreadFactoryBuilder().setNameFormat(getName() + "-overload-scheduler-%d").build());
@@ -1270,10 +1270,6 @@ public abstract class MarketService extends MarketServiceWithState {
         return positionXBTUSD.getPositionLong() != null
                 ? positionXBTUSD.getPositionLong()
                 : BigDecimal.ZERO;
-    }
-
-    public DelayTimer getDtPreliq() {
-        return extraCloseService != null ? extraCloseService.getDtPreliq() : new DelayTimer();
     }
 
     public TradeResponse closeAllPos() {

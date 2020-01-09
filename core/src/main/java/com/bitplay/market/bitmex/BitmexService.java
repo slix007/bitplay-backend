@@ -15,7 +15,7 @@ import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
-import com.bitplay.market.ExtraCloseService;
+import com.bitplay.market.PreliqService;
 import com.bitplay.market.ExtrastopService;
 import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
@@ -2764,7 +2764,7 @@ public class BitmexService extends MarketServicePreliq {
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
-        extraCloseService = new ExtraCloseService(getLimitsService(), getArbitrageService(), getPersistenceService(), this);
+        extraCloseService = new PreliqService(getLimitsService(), getArbitrageService(), getPersistenceService(), this);
 
         preliqScheduler.scheduleWithFixedDelay(() -> {
             try {

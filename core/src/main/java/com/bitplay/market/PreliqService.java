@@ -36,7 +36,7 @@ import static org.knowm.xchange.dto.Order.OrderType;
 @RequiredArgsConstructor
 @Getter
 @Slf4j
-public class ExtraCloseService {
+public class PreliqService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 

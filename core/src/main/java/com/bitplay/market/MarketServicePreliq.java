@@ -1,5 +1,6 @@
 package com.bitplay.market;
 
+import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.LiqInfo;
 import lombok.Getter;
@@ -10,6 +11,8 @@ import java.math.BigDecimal;
 @Getter
 @Slf4j
 public abstract class MarketServicePreliq extends MarketServicePortions {
+
+    protected PreliqService extraCloseService;
 
     public abstract LimitsService getLimitsService();
 
@@ -48,6 +51,10 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
             return getPersistenceService().fetchGuiLiqParams().getBDQLOpenMin();
         }
         return getPersistenceService().fetchGuiLiqParams().getODQLOpenMin();
+    }
+
+    public DelayTimer getDtPreliq() {
+        return extraCloseService != null ? extraCloseService.getDtPreliq() : new DelayTimer();
     }
 
 }
