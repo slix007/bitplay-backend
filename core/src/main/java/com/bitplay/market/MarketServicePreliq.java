@@ -12,7 +12,8 @@ import java.math.BigDecimal;
 @Slf4j
 public abstract class MarketServicePreliq extends MarketServicePortions {
 
-    protected PreliqService extraCloseService;
+    protected final PreliqService extraCloseService = new PreliqService(this);
+    private final KillPosService killPosService = new KillPosService(this);
 
     public abstract LimitsService getLimitsService();
 
@@ -57,4 +58,7 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
         return extraCloseService != null ? extraCloseService.getDtPreliq() : new DelayTimer();
     }
 
+    public KillPosService getKillPosService() {
+        return killPosService;
+    }
 }

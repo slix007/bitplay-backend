@@ -17,6 +17,7 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -46,7 +47,8 @@ public class NtUsdRecoveryService {
     public Future<String> tryRecovery() {
         return ntUsdExecutor.runTask(() -> {
             try {
-                return doRecovery();
+                RecoveryResult recoveryResult = doRecovery(false);
+                return recoveryResult.details;
             } catch (Exception e) {
                 log.error("recovery_nt_usd is failed.", e);
                 final String msg = "recovery_nt_usd is failed." + e.getMessage();
@@ -56,10 +58,33 @@ public class NtUsdRecoveryService {
         });
     }
 
-    @SuppressWarnings("Duplicates")
-    private String doRecovery() {
-        String resultMsg = "";
+    public Future<String> tryRecoveryAfterKillPos() {
+        return ntUsdExecutor.runTask(() -> {
+            try {
+                RecoveryResult r1 = doRecovery(true);
+                String resDetails = r1.details;
+                if (r1.okexThroughZero) {
+                    RecoveryResult r2 = doRecovery(true);
+                    resDetails += "; Second: " + r2.details;
+                }
+                return resDetails;
+            } catch (Exception e) {
+                log.error("recovery_nt_usd is failed.", e);
+                final String msg = "recovery_nt_usd is failed." + e.getMessage();
+                warningLogger.error(msg);
+                return msg;
+            }
+        });
+    }
 
+    @Data
+    class RecoveryResult {
+        private final String details;
+        private final Boolean okexThroughZero;
+    }
+
+    @SuppressWarnings("Duplicates")
+    private RecoveryResult doRecovery(boolean afterKillpos) {
         posDiffService.stopTimerToImmediateCorrection(); // avoid double-correction
 
         arbitrageService.getFirstMarketService().stopAllActions("recovery-nt-usd:stopAllActions");
@@ -71,7 +96,7 @@ public class NtUsdRecoveryService {
         final BigDecimal cm = bitmexService.getCm();
         final boolean isEth = bitmexService.getContractType().isEth();
         final CorrParams corrParams = persistenceService.fetchCorrParams();
-        final Integer maxBlockUsd = corrParams.getRecoveryNtUsd().getMaxBlockUsd();
+        final int maxBlockUsd = afterKillpos ? Integer.MAX_VALUE : corrParams.getRecoveryNtUsd().getMaxBlockUsd();
         BigDecimal maxBtm = PlacingBlocks.toBitmexContPure(BigDecimal.valueOf(maxBlockUsd), isEth, cm);
         BigDecimal maxOk = PlacingBlocks.toOkexCont(BigDecimal.valueOf(maxBlockUsd), isEth);
 
@@ -80,7 +105,7 @@ public class NtUsdRecoveryService {
         BigDecimal oPL = secondPos.getPositionLong();
         BigDecimal oPS = secondPos.getPositionShort();
 
-        final CorrObj corrObj = new CorrObj(SignalType.RECOVERY_NTUSD);
+        final CorrObj corrObj = new CorrObj(SignalType.RECOVERY_NTUSD, oPL, oPS);
 
         final BigDecimal hedgeAmount = posDiffService.getHedgeAmountMainSet();
 
@@ -89,7 +114,7 @@ public class NtUsdRecoveryService {
 
         posDiffService.adaptCorrAdjByMaxVolCorrAndDql(corrObj, maxBtm, maxOk, dc, cm, isEth);
 
-        posDiffService.defineCorrectSignalType(corrObj, bP, oPL, oPS);
+        posDiffService.defineSignalTypeToIncrease(corrObj, bP, oPL, oPS);
 
         final MarketService marketService = corrObj.marketService;
         final OrderType orderType = corrObj.orderType;
@@ -100,15 +125,14 @@ public class NtUsdRecoveryService {
         String corrName = "recovery_nt_usd";
         String corrNameWithMarket = corrName + " on " + marketService.getName();
 
-        // 3. check DQL, correctAmount
+        String resultMsg = "";
         if (corrObj.errorDescription != null) { // DQL violation (open_min or close_min)
-            final String msg = String.format("No %s. %s.", corrNameWithMarket, corrObj.errorDescription);
-            warningLogger.warn(msg);
-            corrObj.marketService.getTradeLogger().warn(msg);
-            log.warn(msg);
-            return msg;
+            resultMsg = String.format("No %s. %s.", corrNameWithMarket, corrObj.errorDescription);
+            warningLogger.warn(resultMsg);
+            corrObj.marketService.getTradeLogger().warn(resultMsg);
+            log.warn(resultMsg);
         } else if (correctAmount.signum() <= 0) {
-            final String msg = String.format("No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, btmPos=%s, okPos=%s, hedge=%s, signal=%s",
+            resultMsg = String.format("No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, btmPos=%s, okPos=%s, hedge=%s, signal=%s",
                     corrNameWithMarket,
                     correctAmount,
                     maxBtm, maxOk, dc,
@@ -117,10 +141,9 @@ public class NtUsdRecoveryService {
                     hedgeAmount.toPlainString(),
                     signalType
             );
-            warningLogger.warn(msg);
-            corrObj.marketService.getTradeLogger().warn(msg);
-            log.warn(msg);
-            return msg;
+            warningLogger.warn(resultMsg);
+            corrObj.marketService.getTradeLogger().warn(resultMsg);
+            log.warn(resultMsg);
         } else {
             final PlacingType placingType = PlacingType.TAKER;
             final String counterName = signalType.getCounterName();
@@ -174,7 +197,7 @@ public class NtUsdRecoveryService {
             }
         }
 
-        return resultMsg;
+        return new RecoveryResult(resultMsg, corrObj.okexThroughZero);
     }
 
     private boolean checkOutsideLimits(String corrName, BigDecimal dc, BigDecimal maxBtm, BigDecimal maxOk, CorrObj corrObj, BigDecimal hedgeAmount,
@@ -211,7 +234,7 @@ public class NtUsdRecoveryService {
         final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME)
                 ? okCoinService : bitmexService;
         posDiffService.switchMarkets(corrObj, dc, cm, isEth, maxBtm, maxOk, theOtherService);
-        posDiffService.defineCorrectSignalType(corrObj, bP, oPL, oPS);
+        posDiffService.defineSignalTypeToIncrease(corrObj, bP, oPL, oPS);
         adaptCorrByDqlAfterSwitch(corrObj);
 
         final String corrNameWithMarket = corrName + " on " + theOtherService.getName();
@@ -317,9 +340,7 @@ public class NtUsdRecoveryService {
             } else {
                 // okcoin buy
                 posDiffService.defineCorrectAmountOkex(corrObj, dc, isEth);
-                if (oPS.signum() > 0 && oPS.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_ASK
-                    corrObj.correctAmount = oPS;
-                }
+                posDiffService.defineOkexThroughZero(corrObj);
                 corrObj.marketService = arbitrageService.getSecondMarketService();
                 if ((oPL.subtract(oPS)).signum() >= 0) {
                     corrObj.signalType = SignalType.RECOVERY_NTUSD_INCREASE_POS;
@@ -331,9 +352,7 @@ public class NtUsdRecoveryService {
                     && !posDiffService.okexAmountIsZero(corrObj, dc, isEth)) {
                 // okcoin sell
                 posDiffService.defineCorrectAmountOkex(corrObj, dc, isEth);
-                if (oPL.signum() > 0 && oPL.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_BID
-                    corrObj.correctAmount = oPL;
-                }
+                posDiffService.defineOkexThroughZero(corrObj);
                 if ((oPL.subtract(oPS)).signum() <= 0) {
                     corrObj.signalType = SignalType.RECOVERY_NTUSD_INCREASE_POS;
                 }

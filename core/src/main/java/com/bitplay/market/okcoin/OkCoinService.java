@@ -366,8 +366,6 @@ public class OkCoinService extends MarketServicePreliq {
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
-        extraCloseService = new PreliqService(getLimitsService(), getArbitrageService(), getPersistenceService(), this);
-
         scheduler.scheduleWithFixedDelay(() -> {
             try {
                 if (okexSettlementService.isSettlementMode()) {

@@ -15,6 +15,7 @@ import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
@@ -112,6 +113,8 @@ public class ArbitrageService {
     private boolean firstDeltasCalculated = false;
 
     private final DqlStateService dqlStateService;
+    @Autowired
+    private NtUsdRecoveryService ntUsdRecoveryService;
     @Autowired
     private BordersService bordersService;
     @Autowired
@@ -2216,5 +2219,9 @@ public class ArbitrageService {
 
     public DqlStateService getDqlStateService() {
         return dqlStateService;
+    }
+
+    public NtUsdRecoveryService getNtUsdRecoveryService() {
+        return ntUsdRecoveryService;
     }
 }

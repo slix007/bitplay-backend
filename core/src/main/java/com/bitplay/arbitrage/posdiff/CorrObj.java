@@ -11,8 +11,10 @@ import java.math.BigDecimal;
 @Data
 public class CorrObj {
 
-    CorrObj(SignalType signalType) {
+    CorrObj(SignalType signalType, BigDecimal oPL, BigDecimal oPS) {
         this.signalType = signalType;
+        this.oPL = oPL;
+        this.oPS = oPS;
     }
 
     SignalType signalType;
@@ -21,4 +23,7 @@ public class CorrObj {
     MarketServicePreliq marketService;
     ContractType contractType;
     String errorDescription;
+
+    boolean okexThroughZero = false;
+    BigDecimal oPL, oPS;
 }

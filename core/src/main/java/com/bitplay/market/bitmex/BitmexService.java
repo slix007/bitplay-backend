@@ -2764,8 +2764,6 @@ public class BitmexService extends MarketServicePreliq {
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
-        extraCloseService = new PreliqService(getLimitsService(), getArbitrageService(), getPersistenceService(), this);
-
         preliqScheduler.scheduleWithFixedDelay(() -> {
             try {
                 extraCloseService.checkForPreliq();

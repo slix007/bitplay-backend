@@ -57,12 +57,14 @@ public class DqlStateService {
         }
     }
 
-    public void updateBtmDqlState(BigDecimal btmDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
+    public DqlState updateBtmDqlState(BigDecimal btmDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
         btmState = setMarketState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, btmState);
+        return btmState;
     }
 
-    public void updateOkexDqlState(BigDecimal okexDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
+    public DqlState updateOkexDqlState(BigDecimal okexDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
         okexState = setMarketState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr, okexState);
+        return okexState;
     }
 
     private DqlState setMarketState(BigDecimal xDQLKillPos, BigDecimal xDQLOpenMin, BigDecimal xDQLCloseMin, BigDecimal dqlCurr,

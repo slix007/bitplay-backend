@@ -496,7 +496,7 @@ public class PosDiffService {
         final BigDecimal cm = bitmexService.getCm();
         boolean isEth = bitmexService.getContractType().isEth();
         final BigDecimal dc = getDcMainSet().setScale(2, RoundingMode.HALF_UP);
-        final CorrObj corrObj = new CorrObj(SignalType.ADJ);
+        final CorrObj corrObj = new CorrObj(SignalType.ADJ, oPL, oPS);
         final BigDecimal hedgeAmount = getHedgeAmountMainSet();
 
         fillCorrObjForAdj(corrObj, hedgeAmount, bP, oPL, oPS, cm, isEth, dc, false);
@@ -879,7 +879,7 @@ public class PosDiffService {
 
         // --- Filling corrObj ---> market and amount
 
-        final CorrObj corrObj = new CorrObj(baseSignalType);
+        final CorrObj corrObj = new CorrObj(baseSignalType, oPL, oPS);
 
         // for logs
         Integer maxBtm = null;// = corrParams.getCorr().getMaxVolCorrBitmex(bitmexService.getCm());
@@ -930,7 +930,7 @@ public class PosDiffService {
 
         } // end corr
 
-        defineCorrectSignalType(corrObj, bP, oPL, oPS);
+        defineSignalTypeToIncrease(corrObj, bP, oPL, oPS);
 
         // ------
 
@@ -1022,7 +1022,7 @@ public class PosDiffService {
                     final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
                     final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
                     switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
-                    defineCorrectSignalType(corrObj, bP, oPL, oPS);
+                    defineSignalTypeToIncrease(corrObj, bP, oPL, oPS);
                     PlacingType pl = placingType == PlacingType.TAKER_FOK ? PlacingType.TAKER : placingType;
                     PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
                             .orderType(corrObj.orderType)
@@ -1148,11 +1148,12 @@ public class PosDiffService {
         } else {
             // no check okexAmountIsZero(corrObj, dc, isEth)
             defineCorrectAmountOkex(corrObj, dc, isEth);
+            defineOkexThroughZero(corrObj);
         }
         maxVolCorrAdapt(corrObj, bMax, okMax);
     }
 
-    void defineCorrectSignalType(CorrObj corrObj, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
+    void defineSignalTypeToIncrease(CorrObj corrObj, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
         if (corrObj.marketService.getName().equals(BitmexService.NAME)) {
             if (bP.signum() == 0
                     || (bP.signum() > 0 && corrObj.orderType == OrderType.BID)
@@ -1237,9 +1238,7 @@ public class PosDiffService {
             } else {
                 // okcoin buy
                 defineCorrectAmountOkex(corrObj, dc, isEth);
-                if (oPS.signum() > 0 && oPS.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_ASK
-                    corrObj.correctAmount = oPS;
-                }
+                defineOkexThroughZero(corrObj);
 
                 corrObj.marketService = arbitrageService.getSecondMarketService();
                 if (corrObj.signalType == SignalType.CORR) {
@@ -1262,9 +1261,7 @@ public class PosDiffService {
             if (bEquiv.compareTo(okEquiv) < 0 && !okexAmountIsZero(corrObj, dc, isEth)) {
                 // okcoin sell
                 defineCorrectAmountOkex(corrObj, dc, isEth);
-                if (oPL.signum() > 0 && oPL.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_BID
-                    corrObj.correctAmount = oPL;
-                }
+                defineOkexThroughZero(corrObj);
 
                 if (corrObj.signalType == SignalType.CORR) {
                     if ((oPL.subtract(oPS)).signum() <= 0) {
@@ -1315,9 +1312,7 @@ public class PosDiffService {
             // okcoin buy
             corrObj.orderType = Order.OrderType.BID;
             defineCorrectAmountOkex(corrObj, dc, isEth);
-            if (oPS.signum() > 0 && oPS.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_ASK
-                corrObj.correctAmount = oPS;
-            }
+            defineOkexThroughZero(corrObj);
 
             if ((oPL.subtract(oPS)).signum() >= 0) {
                 corrObj.signalType = SignalType.O_CORR_INCREASE_POS;
@@ -1328,9 +1323,7 @@ public class PosDiffService {
             // okcoin sell
             corrObj.orderType = Order.OrderType.ASK;
             defineCorrectAmountOkex(corrObj, dc, isEth);
-            if (oPL.signum() > 0 && oPL.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_BID
-                corrObj.correctAmount = oPL;
-            }
+            defineOkexThroughZero(corrObj);
 
             if ((oPL.subtract(oPS)).signum() <= 0) {
                 corrObj.signalType = SignalType.O_CORR_INCREASE_POS;
@@ -1386,9 +1379,7 @@ public class PosDiffService {
                 corrObj.marketService = arbitrageService.getSecondMarketService();
                 corrObj.orderType = OrderType.ASK;
                 defineCorrectAmountOkex(corrObj, dc, isEth);
-                if (oPL.signum() > 0 && oPL.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_BID
-                    corrObj.correctAmount = oPL;
-                }
+                defineOkexThroughZero(corrObj);
                 if ((oPL.subtract(oPS)).signum() <= 0) {
                     corrObj.signalType = SignalType.O_ADJ_INCREASE_POS;
                 } else {
@@ -1433,9 +1424,7 @@ public class PosDiffService {
                 corrObj.marketService = arbitrageService.getSecondMarketService();
                 corrObj.orderType = OrderType.BID;
                 defineCorrectAmountOkex(corrObj, dc, isEth);
-                if (oPS.signum() > 0 && oPS.subtract(corrObj.correctAmount).signum() < 0) { // orderType==CLOSE_ASK
-                    corrObj.correctAmount = oPS;
-                }
+                defineOkexThroughZero(corrObj);
                 if ((oPL.subtract(oPS)).signum() >= 0) {
                     corrObj.signalType = SignalType.O_ADJ_INCREASE_POS;
                 } else {
@@ -1538,7 +1527,7 @@ public class PosDiffService {
     }
 
     private BigDecimal getCorrectAmountOkex(SignalType signalType, BigDecimal dc, boolean isEth) {
-        BigDecimal am = BigDecimal.ZERO;
+        final BigDecimal am;
         if (isEth) {
 //            adj/corr_cont_okex = abs(dc) / 10; // если делаем на Okex
             am = dc.abs().divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
@@ -1559,6 +1548,26 @@ public class PosDiffService {
 
     void defineCorrectAmountOkex(CorrObj corrObj, BigDecimal dc, boolean isEth) {
         corrObj.correctAmount = getCorrectAmountOkex(corrObj.signalType, dc, isEth);
+    }
+
+    void defineOkexThroughZero(CorrObj corrObj) {
+        final OrderType orderType = corrObj.orderType;
+        final BigDecimal oPL = corrObj.getOPL();
+        final BigDecimal oPS = corrObj.getOPS();
+        // okcoin sell
+        if (orderType == OrderType.ASK || orderType == OrderType.EXIT_BID) {
+            corrObj.okexThroughZero = oPL.signum() > 0 && oPL.subtract(corrObj.correctAmount).signum() < 0;
+            if (corrObj.okexThroughZero) { // orderType==CLOSE_BID
+                corrObj.correctAmount = oPL;
+            }
+        }
+        // okcoin buy
+        if (orderType == OrderType.BID || orderType == OrderType.EXIT_ASK) {
+            corrObj.okexThroughZero = oPS.signum() > 0 && oPS.subtract(corrObj.correctAmount).signum() < 0;
+            if (corrObj.okexThroughZero) { // orderType==CLOSE_ASK
+                corrObj.correctAmount = oPS;
+            }
+        }
     }
 
     boolean outsideLimits(MarketService marketService, OrderType orderType, PlacingType placingType, SignalType signalType) {

@@ -6,4 +6,8 @@ public enum DqlState {
     PRELIQ,
     KILLPOS,
     ;
+
+    public boolean isClose() {
+        return this == PRELIQ || this == KILLPOS;
+    }
 }
