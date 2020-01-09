@@ -15,7 +15,6 @@ import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
-import com.bitplay.market.PreliqService;
 import com.bitplay.market.ExtrastopService;
 import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
@@ -67,6 +66,8 @@ import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
+import info.bitrich.xchangestream.bitmex.dto.BitmexQuote;
+import info.bitrich.xchangestream.bitmex.dto.BitmexQuoteLine;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
@@ -171,6 +172,7 @@ public class BitmexService extends MarketServicePreliq {
     private volatile AtomicInteger obWrongCount = new AtomicInteger(0);
     private volatile AtomicInteger obWrongCountXBTUSD = new AtomicInteger(0);
 
+    private volatile Disposable quoteSubscription;
     private volatile Disposable orderBookSubscription;
     private volatile Disposable openOrdersSubscription;
     private volatile Disposable accountInfoSubscription;
@@ -474,6 +476,7 @@ public class BitmexService extends MarketServicePreliq {
     private void startAllListeners() {
 
         logger.info("startAllListeners");
+        quoteSubscription = startQuoteListener();
         orderBookSubscription = startOrderBookListener();
         accountInfoSubscription = startAccountInfoListener();
         openOrdersSubscription = startOpenOrderListener();
@@ -1304,6 +1307,9 @@ public class BitmexService extends MarketServicePreliq {
         try {
             logger.info("Bitmex destroyAction " + attempt);
 
+            if (quoteSubscription != null) {
+                quoteSubscription.dispose();
+            }
             if (orderBookSubscription != null) {
                 orderBookSubscription.dispose();
             }
@@ -1454,6 +1460,48 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     boolean startFlag = false;
+
+    private Disposable startQuoteListener() {
+        final BitmexStreamingMarketDataService streamingMarketDataService = (BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService();
+        List<String> symbols = new ArrayList<>();
+        symbols.add(bitmexContractType.getSymbol());
+//        if (!sameOrderBookXBTUSD()) {
+//            symbols.add(bitmexContractTypeXBTUSD.getSymbol());
+//        }
+        return streamingMarketDataService.getQuote(symbols)
+                .observeOn(Schedulers.newThread()) // the sync queue is here.
+                .filter(q -> q.getAction().equals("insert"))
+                .doOnNext(this::handleQuote)
+                .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
+                .doOnError(throwable -> logger.error("quote error " + throwable.getMessage()))
+                .subscribe();
+    }
+
+    private void handleQuote(BitmexQuoteLine bitmexQuoteLine) {
+        OrderBook orderBook = getOrderBook();
+        if (orderBook.getBids().size() == 0 || orderBook.getAsks().size() == 0) {
+            return;
+        }
+
+        final Date obT = orderBook.getTimeStamp();
+        final LimitOrder bestAsk = orderBook.getAsks().get(0);
+        final LimitOrder bestBid = orderBook.getBids().get(0);
+        for (BitmexQuote q : bitmexQuoteLine.getData()) {
+            if (q.getAskPrice().compareTo(bestAsk.getLimitPrice()) == 0
+                    && q.getBidPrice().compareTo(bestBid.getLimitPrice()) == 0
+                    && q.getAskSize().compareTo(bestAsk.getTradableAmount()) == 0
+                    && q.getBidSize().compareTo(bestBid.getTradableAmount()) == 0
+            ) {
+                final Date marketT = q.getTimestamp();
+                final long marketToUsMs = Duration.between(marketT.toInstant(), obT.toInstant()).toMillis();
+
+//                System.out.println("marketToUsMs=" + marketToUsMs + ". " + bitmexQuoteLine);
+//                logger.info("marketToUsMs=" + marketToUsMs + ". data.size()=" + bitmexQuoteLine.getData().size());
+                metricsDictionary.putBitmex_plBefore_ob_saveTime_incremental_market(marketToUsMs);
+                break;
+            }
+        }
+    }
 
     private Disposable startOrderBookListener() {
         final BitmexObType obType = settingsRepositoryService.getSettings().getBitmexObType();

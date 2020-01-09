@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
+import info.bitrich.xchangestream.bitmex.dto.BitmexQuoteLine;
 import info.bitrich.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import io.reactivex.Completable;
@@ -18,7 +19,6 @@ import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.List;
@@ -86,6 +86,33 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                     final BitmexDepth data = mapper.treeToValue(s.get("data").get(0), BitmexDepth.class);
                     data.setReceiveTime(new Date());
                     return data;
+                });
+    }
+
+    public Observable<BitmexQuoteLine> getQuote(List<String> symbols) {
+        List<String> orderBookSubjects = symbols.stream()
+                .map(s -> "quote:" + s).collect(Collectors.toList());//orderBook:XBTUSD
+
+        return service.subscribeChannel("quote", orderBookSubjects)
+                .map(s -> {
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                    // table = "quote"
+                    // action = partial / insert
+                    // data
+//                    s.get("data").get(0);
+                    // symbol
+                    // bids
+                    // asks
+                    // timestamp
+                    //noinspection UnnecessaryLocalVariable
+//                    ObjectMapper mapper = new ObjectMapper();
+//                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+                    return mapper.treeToValue(s, BitmexQuoteLine.class);
+
+//                    final BitmexQuoteLine data = mapper.treeToValue(s.get("data").get(0), BitmexQuoteLine.class);
+//                    return data;
                 });
     }
 
