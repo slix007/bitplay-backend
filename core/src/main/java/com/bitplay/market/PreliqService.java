@@ -68,10 +68,10 @@ public class PreliqService {
         final CorrParams corrParams = persistenceService.fetchCorrParams();
 
         final DqlStateService dqlStateService = arbitrageService.getDqlStateService();
-        dqlStateService.updateDqlState(getName(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
+        final DqlState marketDqlState = dqlStateService.updateDqlState(getName(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
         final DqlState commonDqlState = dqlStateService.getCommonDqlState();
 
-        if (commonDqlState != DqlState.PRELIQ && commonDqlState != DqlState.KILLPOS) {
+        if (marketDqlState != DqlState.PRELIQ && marketDqlState != DqlState.KILLPOS) {
             //TODO. Sometimes (DQL==na and pos==0) when it's not true.
             // Sometimes (pos!=0 && DQL==n/a)
             // It means okex-preliq-curr/max errors does not work
@@ -93,12 +93,8 @@ public class PreliqService {
                 if (gotActivated) {
                     arbitrageService.getDqlStateService().setPreliqState(commonDqlState);
                     marketService.getArbitrageService().setBusyStackChecker();
-//                    setPreliqState(marketService, commonDqlState);
-//                    setPreliqState(getTheOtherMarket());
-                } else {
-//                    setPreliqState(marketService); // NOTE: race condition with setMarketState in "finishing placeOrder" and preliq gotActivated
                 }
-                if (commonDqlState == DqlState.PRELIQ) {
+                if (marketDqlState == DqlState.PRELIQ) {
                     setPreliqState(marketService);
                 }
 
@@ -125,7 +121,7 @@ public class PreliqService {
 //                            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
                             corrParams.getPreliq().incTotalCount(getName()); // counterName relates on it
                             persistenceService.saveCorrParams(corrParams);
-                            if (commonDqlState == DqlState.PRELIQ) {
+                            if (marketDqlState == DqlState.PRELIQ) {
                                 doPreliqOrder(preliqParams);
                             } else { // commonDqlState == DqlState.KILLPOS
                                 marketService.getKillPosService().doKillPos(counterForLogs);
@@ -244,7 +240,7 @@ public class PreliqService {
     }
 
     private String getPreliqStartingStr(String name, Pos position, LiqInfo liqInfo) {
-        final BigDecimal dqlCloseMin = getDqlCloseMin();
+        final BigDecimal dqlCloseMin = getDqlCloseMin(name);
         final String dqlCurrStr = liqInfo != null && liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr().toPlainString() : "null";
         final String dqlCloseMinStr = dqlCloseMin != null ? dqlCloseMin.toPlainString() : "null";
         return String.format("%s p(%s-%s)/dql%s/dqlClose%s",
@@ -367,8 +363,12 @@ public class PreliqService {
     }
 
     public BigDecimal getDqlCloseMin() {
+        return getDqlCloseMin(getName());
+    }
+
+    public BigDecimal getDqlCloseMin(String marketName) {
         final Dql dql = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql();
-        if (getName().equals(BitmexService.NAME)) {
+        if (marketName.equals(BitmexService.NAME)) {
             return dql.getBDQLCloseMin();
         }
         return dql.getODQLCloseMin();
