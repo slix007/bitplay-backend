@@ -1,7 +1,6 @@
 package com.bitplay.persistance.domain.settings;
 
 import com.bitplay.persistance.domain.AbstractDocument;
-import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.persistance.domain.SwapParams;
@@ -29,7 +28,6 @@ public class SettingsPreset extends AbstractDocument {
     private BorderParams borderParams;
     private CorrParams corrParams; // min/max values
     private GuiParams guiParams;
-    private GuiLiqParams guiLiqParams;
     private LastPriceDeviation lastPriceDeviation;
     private SwapParams swapParams;
 

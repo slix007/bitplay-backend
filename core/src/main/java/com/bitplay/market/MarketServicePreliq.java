@@ -12,50 +12,37 @@ import java.math.BigDecimal;
 @Slf4j
 public abstract class MarketServicePreliq extends MarketServicePortions {
 
-    protected final PreliqService extraCloseService = new PreliqService(this);
+    protected final PreliqService preliqService = new PreliqService(this);
     private final KillPosService killPosService = new KillPosService(this);
 
     public abstract LimitsService getLimitsService();
 
     public boolean noPreliq() {
-        return extraCloseService.noPreliq();
+        return preliqService.noPreliq();
     }
 
     public boolean isDqlOpenViolated() {
         LiqInfo liqInfo = getLiqInfo();
-        final BigDecimal dqlOpenMin = getDqlOpenMin();
+        final BigDecimal dqlOpenMin = preliqService.getDqlOpenMin();
         return isDqlViolated(liqInfo, dqlOpenMin);
     }
 
     public boolean isDqlViolated() {
         LiqInfo liqInfo = getLiqInfo();
-        final BigDecimal dqlCloseMin = getDqlCloseMin();
+        final BigDecimal dqlCloseMin = preliqService.getDqlCloseMin();
         return isDqlViolated(liqInfo, dqlCloseMin);
     }
 
     public boolean isDqlViolated(LiqInfo liqInfo, BigDecimal dqlCloseMin) {
         final BigDecimal dqlLevel = getPersistenceService().getSettingsRepositoryService().getSettings().getDql().getDqlLevel();
-        return liqInfo.getDqlCurr() != null
-                && liqInfo.getDqlCurr().compareTo(dqlLevel) >= 0 // workaround when DQL is less zero
-                && liqInfo.getDqlCurr().compareTo(dqlCloseMin) <= 0;
-    }
-
-    private BigDecimal getDqlCloseMin() {
-        if (getName().equals(BitmexService.NAME)) {
-            return getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
-        }
-        return getPersistenceService().fetchGuiLiqParams().getODQLCloseMin();
-    }
-
-    private BigDecimal getDqlOpenMin() {
-        if (getName().equals(BitmexService.NAME)) {
-            return getPersistenceService().fetchGuiLiqParams().getBDQLOpenMin();
-        }
-        return getPersistenceService().fetchGuiLiqParams().getODQLOpenMin();
+        final BigDecimal dqlCurr = liqInfo.getDqlCurr();
+        return dqlCurr != null
+                && dqlCurr.compareTo(dqlLevel) >= 0 // workaround when DQL is less zero
+                && dqlCurr.compareTo(dqlCloseMin) <= 0;
     }
 
     public DelayTimer getDtPreliq() {
-        return extraCloseService != null ? extraCloseService.getDtPreliq() : new DelayTimer();
+        return preliqService != null ? preliqService.getDtPreliq() : new DelayTimer();
     }
 
     public KillPosService getKillPosService() {

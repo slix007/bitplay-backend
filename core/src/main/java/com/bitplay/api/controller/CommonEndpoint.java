@@ -202,22 +202,6 @@ public class CommonEndpoint {
         return commonUIService.getPosCorr();
     }
 
-    @RequestMapping(value = "/market/liq-params",
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public LiqParamsJson getLiqParams() {
-        return commonUIService.getLiqParams();
-    }
-
-    @RequestMapping(value = "/market/liq-params",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
-    public LiqParamsJson updateLiqParams(@RequestBody LiqParamsJson liqParamsJson) {
-        return commonUIService.updateLiqParams(liqParamsJson);
-    }
-
     @RequestMapping(value = "/delta-params",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)

@@ -7,7 +7,6 @@ import com.bitplay.api.dto.DeltasJson;
 import com.bitplay.api.dto.DeltasMinMaxJson;
 import com.bitplay.api.dto.DeltasMinMaxJson.MinMaxData;
 import com.bitplay.api.dto.DeltasMinMaxJson.SignalData;
-import com.bitplay.api.dto.LiqParamsJson;
 import com.bitplay.api.dto.MarketFlagsJson;
 import com.bitplay.api.dto.PosCorrJson;
 import com.bitplay.api.dto.ResultJson;
@@ -27,10 +26,10 @@ import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
-import com.bitplay.arbitrage.posdiff.DqlStateService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.arbitrage.posdiff.DqlStateService;
 import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.SlackNotifications;
@@ -52,7 +51,6 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.SignalTimeService;
 import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
-import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.persistance.domain.SignalTimeParams;
@@ -614,51 +612,6 @@ public class CommonUIService {
         return new PosCorrJson("",
                 arbitrageService.getParams().getPeriodToCorrection(),
                 arbitrageService.getParams().getMaxDiffCorr().toPlainString());
-    }
-
-    public LiqParamsJson getLiqParams() {
-        final GuiLiqParams params = persistenceService.fetchGuiLiqParams();
-        return new LiqParamsJson(params.getBMrLiq().toPlainString(),
-                params.getOMrLiq().toPlainString(),
-                params.getBDQLOpenMin().toPlainString(),
-                params.getODQLOpenMin().toPlainString(),
-                params.getBDQLCloseMin().toPlainString(),
-                params.getODQLCloseMin().toPlainString());
-    }
-
-    public LiqParamsJson updateLiqParams(LiqParamsJson input) {
-        final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
-        if (input.getbMrLiq() != null) {
-            guiLiqParams.setBMrLiq(new BigDecimal(input.getbMrLiq()));
-        }
-        if (input.getoMrLiq() != null) {
-            guiLiqParams.setOMrLiq(new BigDecimal(input.getoMrLiq()));
-        }
-        if (input.getbDQLOpenMin() != null) {
-            guiLiqParams.setBDQLOpenMin(new BigDecimal(input.getbDQLOpenMin()));
-        }
-        if (input.getoDQLOpenMin() != null) {
-            guiLiqParams.setODQLOpenMin(new BigDecimal(input.getoDQLOpenMin()));
-        }
-        if (input.getbDQLCloseMin() != null) {
-            guiLiqParams.setBDQLCloseMin(new BigDecimal(input.getbDQLCloseMin()));
-        }
-        if (input.getoDQLCloseMin() != null) {
-            guiLiqParams.setODQLCloseMin(new BigDecimal(input.getoDQLCloseMin()));
-        }
-
-        persistenceService.saveGuiLiqParams(guiLiqParams);
-
-        persistenceService.resetSettingsPreset();
-
-        final GuiLiqParams saved = persistenceService.fetchGuiLiqParams();
-
-        return new LiqParamsJson(saved.getBMrLiq().toPlainString(),
-                saved.getOMrLiq().toPlainString(),
-                saved.getBDQLOpenMin().toPlainString(),
-                saved.getODQLOpenMin().toPlainString(),
-                saved.getBDQLCloseMin().toPlainString(),
-                saved.getODQLCloseMin().toPlainString());
     }
 
     public DeltasMinMaxJson getDeltaParamsJson() {

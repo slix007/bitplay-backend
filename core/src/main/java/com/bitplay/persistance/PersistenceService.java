@@ -4,7 +4,6 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.ExchangePair;
-import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.persistance.domain.LiqParams;
@@ -21,12 +20,13 @@ import com.bitplay.persistance.repository.CorrParamsRepository;
 import com.bitplay.persistance.repository.DeltaParamsRepository;
 import com.bitplay.persistance.repository.LiqParamsRepository;
 import com.bitplay.persistance.repository.SwapParamsRepository;
-import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 
 /**
  * Created by Sergey Shurmin on 6/16/17.
@@ -74,15 +74,6 @@ public class PersistenceService {
         GuiParams guiParams = mongoTemplate.findById(1L, GuiParams.class);
 
         return guiParams;
-    }
-
-    public void saveGuiLiqParams(GuiLiqParams guiLiqParams) {
-        mongoTemplate.save(guiLiqParams);
-    }
-
-    public GuiLiqParams fetchGuiLiqParams() {
-        GuiLiqParams guiLiqParams = mongoTemplate.findById(3L, GuiLiqParams.class);
-        return guiLiqParams;
     }
 
     public void saveLastPriceDeviation(LastPriceDeviation lastPriceDeviation) {

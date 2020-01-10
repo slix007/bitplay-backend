@@ -13,7 +13,6 @@ import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
-import com.bitplay.market.PreliqService;
 import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
@@ -46,7 +45,6 @@ import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
@@ -57,6 +55,7 @@ import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.OkexPostOnlyArgs;
 import com.bitplay.persistance.domain.settings.PlacingType;
@@ -369,10 +368,10 @@ public class OkCoinService extends MarketServicePreliq {
         scheduler.scheduleWithFixedDelay(() -> {
             try {
                 if (okexSettlementService.isSettlementMode()) {
-                    extraCloseService.resetPreliqState();
-                    extraCloseService.getDtPreliq().stop();
+                    preliqService.resetPreliqState();
+                    preliqService.getDtPreliq().stop();
                 } else {
-                    extraCloseService.checkForPreliq();
+                    preliqService.checkForPreliq();
                 }
             } catch (Exception e) {
                 logger.error("Error on checkForDecreasePosition", e);
@@ -2401,7 +2400,7 @@ public class OkCoinService extends MarketServicePreliq {
                 return; // not yet initialized
             }
             final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
-            final BigDecimal oMrLiq = persistenceService.fetchGuiLiqParams().getOMrLiq();
+            final BigDecimal oMrLiq = persistenceService.getSettingsRepositoryService().getSettings().getDql().getOMrLiq();
 
             final AccountBalance accountInfoContracts = getAccount();
             final BigDecimal equity = accountInfoContracts.getELast();
@@ -2497,11 +2496,11 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public void updateDqlState() {
-        final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
-        final BigDecimal oDQLCloseMin = guiLiqParams.getODQLCloseMin();
-        final BigDecimal oDQLOpenMin = guiLiqParams.getODQLOpenMin();
+        final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
+        final BigDecimal oDQLCloseMin = dql.getODQLCloseMin();
+        final BigDecimal oDQLOpenMin = dql.getODQLOpenMin();
         final LiqInfo liqInfo = getLiqInfo();
-        final BigDecimal okexDqlKillPos = persistenceService.getSettingsRepositoryService().getSettings().getDql().getOkexDqlKillPos();
+        final BigDecimal okexDqlKillPos = dql.getOkexDqlKillPos();
         arbitrageService.getDqlStateService().updateOkexDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
     }
 
@@ -2510,26 +2509,25 @@ public class OkCoinService extends MarketServicePreliq {
      */
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
-        final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
-        final BigDecimal oDQLCloseMin = guiLiqParams.getODQLCloseMin();
-        final BigDecimal oDQLOpenMin = guiLiqParams.getODQLOpenMin();
+        final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
+        final BigDecimal oDQLCloseMin = dql.getODQLCloseMin();
+        final BigDecimal oDQLOpenMin = dql.getODQLOpenMin();
+        final BigDecimal dqlCurr = getLiqInfo().getDqlCurr();
         final Pos position = getPos();
-        final LiqInfo liqInfo = getLiqInfo();
 
         boolean isOk;
-
-        if (liqInfo.getDqlCurr() == null) {
+        if (dqlCurr == null) {
             isOk = true;
         } else {
             if (orderType.equals(Order.OrderType.BID)) { // LONG
                 if ((position.getPositionLong().subtract(position.getPositionShort())).signum() > 0) {
-                    isOk = liqInfo.getDqlCurr().compareTo(oDQLOpenMin) >= 0;
+                    isOk = dqlCurr.compareTo(oDQLOpenMin) >= 0;
                 } else {
                     isOk = true;
                 }
             } else if (orderType.equals(Order.OrderType.ASK)) {
                 if ((position.getPositionLong().subtract(position.getPositionShort()).signum() < 0)) {
-                    isOk = liqInfo.getDqlCurr().compareTo(oDQLOpenMin) >= 0;
+                    isOk = dqlCurr.compareTo(oDQLOpenMin) >= 0;
                 } else {
                     isOk = true;
                 }
@@ -2545,13 +2543,13 @@ public class OkCoinService extends MarketServicePreliq {
 
         if (!isOk) {
             slackNotifications.sendNotify(NotifyType.OKEX_DQL_OPEN_MIN,
-                    String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), oDQLOpenMin));
+                    String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, dqlCurr, oDQLOpenMin));
         } else {
             slackNotifications.resetThrottled(NotifyType.OKEX_DQL_OPEN_MIN);
         }
 
-        final BigDecimal okexDqlKillPos = persistenceService.getSettingsRepositoryService().getSettings().getDql().getOkexDqlKillPos();
-        arbitrageService.getDqlStateService().updateOkexDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
+        final BigDecimal okexDqlKillPos = dql.getOkexDqlKillPos();
+        arbitrageService.getDqlStateService().updateOkexDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr);
 
         return isOk;
     }

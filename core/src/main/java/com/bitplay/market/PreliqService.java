@@ -215,8 +215,8 @@ public class PreliqService {
             final String prefix = String.format("#%s %s_PRE_LIQ starting: ", counterForLogs, nameSymbol);
             final MarketServicePreliq thatMarket = getTheOtherMarket();
 
-            final String thisMarketStr = prefix + getPreliqStartingStr(position, liqInfo);
-            final String thatMarketStr = prefix + getPreliqStartingStr(thatMarket.getPos(), thatMarket.getLiqInfo());
+            final String thisMarketStr = prefix + getPreliqStartingStr(getName(), position, liqInfo);
+            final String thatMarketStr = prefix + getPreliqStartingStr(thatMarket.getName(), thatMarket.getPos(), thatMarket.getLiqInfo());
 
             log.info(thisMarketStr);
             log.info(thatMarketStr);
@@ -243,12 +243,12 @@ public class PreliqService {
                 : marketService.getArbitrageService().getFirstMarketService();
     }
 
-    private String getPreliqStartingStr(Pos position, LiqInfo liqInfo) {
+    private String getPreliqStartingStr(String name, Pos position, LiqInfo liqInfo) {
         final BigDecimal dqlCloseMin = getDqlCloseMin();
         final String dqlCurrStr = liqInfo != null && liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr().toPlainString() : "null";
         final String dqlCloseMinStr = dqlCloseMin != null ? dqlCloseMin.toPlainString() : "null";
         return String.format("%s p(%s-%s)/dql%s/dqlClose%s",
-                getName(),
+                name,
                 position.getPositionLong().toPlainString(),
                 position.getPositionShort().toPlainString(),
                 dqlCurrStr, dqlCloseMinStr);
@@ -366,18 +366,20 @@ public class PreliqService {
         marketService.placeOrder(placeOrderArgs);
     }
 
-    private BigDecimal getDqlCloseMin() {
+    public BigDecimal getDqlCloseMin() {
+        final Dql dql = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql();
         if (getName().equals(BitmexService.NAME)) {
-            return marketService.getPersistenceService().fetchGuiLiqParams().getBDQLCloseMin();
+            return dql.getBDQLCloseMin();
         }
-        return marketService.getPersistenceService().fetchGuiLiqParams().getODQLCloseMin();
+        return dql.getODQLCloseMin();
     }
 
-    private BigDecimal getDqlOpenMin() {
+    public BigDecimal getDqlOpenMin() {
+        final Dql dql = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql();
         if (getName().equals(BitmexService.NAME)) {
-            return marketService.getPersistenceService().fetchGuiLiqParams().getBDQLOpenMin();
+            return dql.getBDQLOpenMin();
         }
-        return marketService.getPersistenceService().fetchGuiLiqParams().getODQLOpenMin();
+        return dql.getODQLOpenMin();
     }
 
     private PreliqBlocks getPreliqBlocks(DeltaName deltaName, Pos posObj) {

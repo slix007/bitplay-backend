@@ -26,7 +26,6 @@ import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BeforeSignalMetrics;
 import com.bitplay.market.model.BtmFokAutoArgs;
-import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
@@ -41,7 +40,6 @@ import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
@@ -52,6 +50,7 @@ import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -2668,7 +2667,7 @@ public class BitmexService extends MarketServicePreliq {
             final BigDecimal equity = account.getEMark();
             final BigDecimal margin = account.getMargin();
 
-            final BigDecimal bMrliq = persistenceService.fetchGuiLiqParams().getBMrLiq();
+            final BigDecimal bMrliq = persistenceService.getSettingsRepositoryService().getSettings().getDql().getBMrLiq();
 
             if (!(contractIndex.get() instanceof BitmexContractIndex)) {
                 // bitmex contract index is not updated yet. Skip the re-calc.
@@ -2758,35 +2757,35 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public void updateDqlState() {
-        final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
-        final BigDecimal bDQLOpenMin = guiLiqParams.getBDQLOpenMin();
-        final BigDecimal bDQLCloseMin = guiLiqParams.getBDQLCloseMin();
-        final LiqInfo liqInfo = getLiqInfo();
-        final BigDecimal btmDqlKillPos = persistenceService.getSettingsRepositoryService().getSettings().getDql().getBtmDqlKillPos();
-        arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, liqInfo.getDqlCurr());
+        final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
+        final BigDecimal bDQLOpenMin = dql.getBDQLOpenMin();
+        final BigDecimal bDQLCloseMin = dql.getBDQLCloseMin();
+        final BigDecimal btmDqlKillPos = dql.getBtmDqlKillPos();
+        final BigDecimal dqlCurr = getLiqInfo().getDqlCurr();
+        arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
     }
 
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
-        final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
-        final BigDecimal bDQLOpenMin = guiLiqParams.getBDQLOpenMin();
-        final BigDecimal bDQLCloseMin = guiLiqParams.getBDQLCloseMin();
+        final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
+        final BigDecimal bDQLOpenMin = dql.getBDQLOpenMin();
+        final BigDecimal bDQLCloseMin = dql.getBDQLCloseMin();
+        final BigDecimal dqlCurr = getLiqInfo().getDqlCurr();
         final Pos position = getPos();
-        final LiqInfo liqInfo = getLiqInfo();
 
         boolean isOk;
-        if (liqInfo.getDqlCurr() == null) {
+        if (dqlCurr == null) {
             isOk = true;
         } else {
             if (orderType.equals(Order.OrderType.BID)) { //LONG
                 if (position.getPositionLong().signum() > 0) {
-                    isOk = liqInfo.getDqlCurr().compareTo(bDQLOpenMin) >= 0;
+                    isOk = dqlCurr.compareTo(bDQLOpenMin) >= 0;
                 } else {
                     isOk = true;
                 }
             } else if ((orderType.equals(Order.OrderType.ASK))) {
                 if (position.getPositionLong().signum() < 0) {
-                    isOk = liqInfo.getDqlCurr().compareTo(bDQLOpenMin) >= 0;
+                    isOk = dqlCurr.compareTo(bDQLOpenMin) >= 0;
                 } else {
                     isOk = true;
                 }
@@ -2797,13 +2796,13 @@ public class BitmexService extends MarketServicePreliq {
 
         if (!isOk) {
             slackNotifications.sendNotify(NotifyType.BITMEX_DQL_OPEN_MIN,
-                    String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, liqInfo.getDqlCurr(), bDQLOpenMin));
+                    String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, dqlCurr, bDQLOpenMin));
         } else {
             slackNotifications.resetThrottled(NotifyType.BITMEX_DQL_OPEN_MIN);
         }
 
-        final BigDecimal btmDqlKillPos = persistenceService.getSettingsRepositoryService().getSettings().getDql().getBtmDqlKillPos();
-        arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, liqInfo.getDqlCurr());
+        final BigDecimal btmDqlKillPos = dql.getBtmDqlKillPos();
+        arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
 
         return isOk;
     }
@@ -2815,7 +2814,7 @@ public class BitmexService extends MarketServicePreliq {
     public void init() {
         preliqScheduler.scheduleWithFixedDelay(() -> {
             try {
-                extraCloseService.checkForPreliq();
+                preliqService.checkForPreliq();
             } catch (Exception e) {
                 logger.error("Error on checkForDecreasePosition", e);
             }

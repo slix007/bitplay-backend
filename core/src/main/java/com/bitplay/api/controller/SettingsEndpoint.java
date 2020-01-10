@@ -12,6 +12,7 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.AbortSignal;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
 import com.bitplay.persistance.domain.settings.ContractMode;
+import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.ManageType;
@@ -378,18 +379,36 @@ public class SettingsEndpoint {
             resetPreset = false;
         }
         if (settingsUpdate.getDql() != null) {
-            if (settingsUpdate.getDql().getBtmDqlKillPos() != null) {
-                settings.getDql().setBtmDqlKillPos(settingsUpdate.getDql().getBtmDqlKillPos());
-                settingsRepositoryService.saveSettings(settings);
+            final Dql input = settingsUpdate.getDql();
+            if (input.getBMrLiq() != null) {
+                settings.getDql().setBMrLiq(input.getBMrLiq());
             }
-            if (settingsUpdate.getDql().getOkexDqlKillPos() != null) {
-                settings.getDql().setOkexDqlKillPos(settingsUpdate.getDql().getOkexDqlKillPos());
-                settingsRepositoryService.saveSettings(settings);
+            if (input.getOMrLiq() != null) {
+                settings.getDql().setOMrLiq(input.getOMrLiq());
             }
-            if (settingsUpdate.getDql().getDqlLevel() != null) {
-                settings.getDql().setDqlLevel(settingsUpdate.getDql().getDqlLevel());
-                settingsRepositoryService.saveSettings(settings);
+            if (input.getBDQLOpenMin() != null) {
+                settings.getDql().setBDQLOpenMin(input.getBDQLOpenMin());
             }
+            if (input.getODQLOpenMin() != null) {
+                settings.getDql().setODQLOpenMin(input.getODQLOpenMin());
+            }
+            if (input.getBDQLCloseMin() != null) {
+                settings.getDql().setBDQLCloseMin(input.getBDQLCloseMin());
+            }
+            if (input.getODQLCloseMin() != null) {
+                settings.getDql().setODQLCloseMin(input.getODQLCloseMin());
+            }
+
+            if (input.getBtmDqlKillPos() != null) {
+                settings.getDql().setBtmDqlKillPos(input.getBtmDqlKillPos());
+            }
+            if (input.getOkexDqlKillPos() != null) {
+                settings.getDql().setOkexDqlKillPos(input.getOkexDqlKillPos());
+            }
+            if (input.getDqlLevel() != null) {
+                settings.getDql().setDqlLevel(input.getDqlLevel());
+            }
+            settingsRepositoryService.saveSettings(settings);
         }
 
         if (settingsUpdate.getPreSignalObReFetch() != null) {

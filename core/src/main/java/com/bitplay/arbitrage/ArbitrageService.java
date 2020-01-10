@@ -4,7 +4,6 @@ import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.BordersService.BorderVer;
 import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.BordersService.TradingSignal;
-import com.bitplay.arbitrage.posdiff.DqlStateService;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DeltaMon;
@@ -15,6 +14,7 @@ import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.arbitrage.posdiff.DqlStateService;
 import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
@@ -45,7 +45,6 @@ import com.bitplay.persistance.SignalTimeService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
-import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
@@ -57,6 +56,7 @@ import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
+import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
@@ -347,14 +347,12 @@ public class ArbitrageService {
 
                     // use snapshot of Params
                     final DealPrices dealPricesSnap = dealPricesRepositoryService.findByTradeId(tradeIdSnap);
-                    final GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
                     final Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
                             .toBuilder().build();
                     final Pos okexPosition = secondMarketService.getPos();
 
                     AfterArbTask afterArbTask = new AfterArbTask(dealPricesSnap,
                             signalTypeSnap,
-                            guiLiqParams,
                             tradeIdSnap,
                             counterNameSnap,
                             settings,
@@ -1650,13 +1648,13 @@ public class ArbitrageService {
 
                 final String bDQLMin;
                 final String oDQLMin;
-                GuiLiqParams guiLiqParams = persistenceService.fetchGuiLiqParams();
+                Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
                 if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
-                    bDQLMin = String.format("b_DQL_close_min=%s", guiLiqParams.getBDQLCloseMin());
-                    oDQLMin = String.format("o_DQL_close_min=%s", guiLiqParams.getODQLCloseMin());
+                    bDQLMin = String.format("b_DQL_close_min=%s", dql.getBDQLCloseMin());
+                    oDQLMin = String.format("o_DQL_close_min=%s", dql.getODQLCloseMin());
                 } else {
-                    bDQLMin = String.format("b_DQL_open_min=%s", guiLiqParams.getBDQLOpenMin());
-                    oDQLMin = String.format("o_DQL_open_min=%s", guiLiqParams.getODQLOpenMin());
+                    bDQLMin = String.format("b_DQL_open_min=%s", dql.getBDQLOpenMin());
+                    oDQLMin = String.format("o_DQL_open_min=%s", dql.getODQLOpenMin());
                 }
 
                 fplayTradeService.info(tradeId, counterName, String.format("#%s %s", counterName, getFullPosDiff()));

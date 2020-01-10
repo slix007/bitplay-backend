@@ -11,7 +11,6 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.domain.CumParams;
-import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
@@ -46,7 +45,6 @@ public class AfterArbTask implements Runnable {
 
     private final DealPrices dealPrices;
     private final SignalType signalType;
-    private final GuiLiqParams guiLiqParams;
     private final Long tradeId;
     private final String counterName;
     private final Settings settings;

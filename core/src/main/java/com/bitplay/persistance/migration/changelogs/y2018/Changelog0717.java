@@ -1,7 +1,6 @@
 package com.bitplay.persistance.migration.changelogs.y2018;
 
 import com.bitplay.persistance.domain.CumParams;
-import com.bitplay.persistance.domain.GuiLiqParams;
 import com.bitplay.persistance.domain.GuiParams;
 import com.github.mongobee.changeset.ChangeLog;
 import com.github.mongobee.changeset.ChangeSet;
@@ -43,16 +42,16 @@ public class Changelog0717 {
         }
     }
 
-    @ChangeSet(order = "2018-07-11-4", id = "2018-07-11:GuiLiqParams", author = "SergeiShurmin")
-    public void change03(MongoTemplate mongoTemplate) {
-        GuiLiqParams guiLiqParams = mongoTemplate.findById(3L, GuiLiqParams.class);
-        if (guiLiqParams == null) {
-            final GuiParams guiParams = mongoTemplate.findById(1L, GuiParams.class);
-            guiLiqParams = new GuiLiqParams();
-            BeanUtils.copyProperties(guiParams, guiLiqParams);
-            guiLiqParams.setId(3L);
-            mongoTemplate.save(guiLiqParams);
-        }
-    }
+//    @ChangeSet(order = "2018-07-11-4", id = "2018-07-11:GuiLiqParams", author = "SergeiShurmin")
+//    public void change03(MongoTemplate mongoTemplate) {
+//        GuiLiqParams guiLiqParams = mongoTemplate.findById(3L, GuiLiqParams.class);
+//        if (guiLiqParams == null) {
+//            final GuiParams guiParams = mongoTemplate.findById(1L, GuiParams.class);
+//            guiLiqParams = new GuiLiqParams();
+//            BeanUtils.copyProperties(guiParams, guiLiqParams);
+//            guiLiqParams.setId(3L);
+//            mongoTemplate.save(guiLiqParams);
+//        }
+//    }
 
 }
