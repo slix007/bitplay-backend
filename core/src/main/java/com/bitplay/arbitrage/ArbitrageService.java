@@ -30,6 +30,7 @@ import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.BeforeSignalMetrics;
 import com.bitplay.market.model.BtmFokAutoArgs;
+import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -913,8 +914,14 @@ public class ArbitrageService {
         if (dqlStateService.isPreliq()) {
             if (firstMarketService.noPreliq() && secondMarketService.noPreliq()) {
                 dqlStateService.tryResetPreliq();
-                firstMarketService.updateDqlState();
-                secondMarketService.updateDqlState();
+                final DqlState dqlState1 = firstMarketService.updateDqlState();
+                final DqlState dqlState2 = secondMarketService.updateDqlState();
+                if (!dqlState1.isClose()) {
+                    firstMarketService.setMarketState(MarketState.READY);
+                }
+                if (!dqlState2.isClose()) {
+                    secondMarketService.setMarketState(MarketState.READY);
+                }
             }
         }
     }

@@ -20,6 +20,7 @@ import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BeforeSignalMetrics;
+import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
@@ -1456,8 +1457,8 @@ public class OkCoinService extends MarketServicePreliq {
         }
 
         if (placeOrderArgs.isPreliqOrder()) {
-            logger.info("restore marketState to PRELIQ");
-            setMarketState(MarketState.PRELIQ, counterName);
+            logger.info("restore marketState to READY after PRELIQ");
+            setMarketState(MarketState.READY, counterName);
         } else {
             // RESET STATE
             if (placingType != PlacingType.TAKER) {
@@ -1492,7 +1493,7 @@ public class OkCoinService extends MarketServicePreliq {
         long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();
         monPlacing.getWholePlacing().add(BigDecimal.valueOf(wholeMs));
         if (wholeMs > 5000) {
-            logger.warn(placingType + "okex wholePlacingMs=" + wholeMs);
+            logger.warn(placingType + " okex wholePlacingMs=" + wholeMs);
         }
         monPlacing.incCount();
         monitoringDataService.saveMon(monPlacing);
@@ -2495,13 +2496,13 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public void updateDqlState() {
+    public DqlState updateDqlState() {
         final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
         final BigDecimal oDQLCloseMin = dql.getODQLCloseMin();
         final BigDecimal oDQLOpenMin = dql.getODQLOpenMin();
         final LiqInfo liqInfo = getLiqInfo();
         final BigDecimal okexDqlKillPos = dql.getOkexDqlKillPos();
-        arbitrageService.getDqlStateService().updateOkexDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
+        return arbitrageService.getDqlStateService().updateOkexDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
     }
 
     /**

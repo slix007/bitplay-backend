@@ -26,6 +26,7 @@ import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BeforeSignalMetrics;
 import com.bitplay.market.model.BtmFokAutoArgs;
+import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
@@ -2143,8 +2144,8 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         if (placeOrderArgs.isPreliqOrder()) {
-            logger.info("restore marketState to PRELIQ");
-            setMarketState(MarketState.PRELIQ, counterName);
+            logger.info("restore marketState to READY after PRELIQ");
+            setMarketState(MarketState.READY, counterName);
         } else {
             if (nextMarketState == MarketState.PLACING_ORDER || nextMarketState == MarketState.STARTING_VERT) {
                 nextMarketState = MarketState.ARBITRAGE;
@@ -2180,7 +2181,7 @@ public class BitmexService extends MarketServicePreliq {
         long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();
         monPlacing.getWholePlacing().add(BigDecimal.valueOf(wholeMs));
         if (wholeMs > 5000) {
-            logger.warn(placingType + "bitmex wholePlacingMs=" + wholeMs);
+            logger.warn(placingType + " bitmex wholePlacingMs=" + wholeMs);
         }
         monPlacing.incCount();
         monitoringDataService.saveMon(monPlacing);
@@ -2756,13 +2757,13 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
-    public void updateDqlState() {
+    public DqlState updateDqlState() {
         final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
         final BigDecimal bDQLOpenMin = dql.getBDQLOpenMin();
         final BigDecimal bDQLCloseMin = dql.getBDQLCloseMin();
         final BigDecimal btmDqlKillPos = dql.getBtmDqlKillPos();
         final BigDecimal dqlCurr = getLiqInfo().getDqlCurr();
-        arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
+        return arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
     }
 
     @Override

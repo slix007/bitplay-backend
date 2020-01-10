@@ -1,7 +1,6 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
@@ -11,6 +10,7 @@ import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
@@ -173,7 +173,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public abstract boolean checkLiquidationEdge(Order.OrderType orderType);
 
-    public void updateDqlState() {
+    public DqlState updateDqlState() {
         throw new IllegalArgumentException("not implemented");
     }
 
