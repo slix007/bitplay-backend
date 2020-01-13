@@ -2796,11 +2796,11 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         if (!isOk) {
-            slackNotifications.sendNotify(NotifyType.BITMEX_DQL_OPEN_MIN,
-                    String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, dqlCurr, bDQLOpenMin));
-        } else {
-            slackNotifications.resetThrottled(NotifyType.BITMEX_DQL_OPEN_MIN);
+            slackNotifications.sendNotify(NotifyType.BITMEX_DQL_OPEN_MIN, String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, dqlCurr, bDQLOpenMin));
         }
+//        else {
+//            slackNotifications.resetThrottled(NotifyType.BITMEX_DQL_OPEN_MIN);
+//        }
 
         final BigDecimal btmDqlKillPos = dql.getBtmDqlKillPos();
         arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
