@@ -19,7 +19,6 @@ import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.Affordable;
-import com.bitplay.market.model.BeforeSignalMetrics;
 import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
@@ -525,7 +524,7 @@ public class OkCoinService extends MarketServicePreliq {
                     } else {
                         metricsDictionary.incOkexObCounter();
                         this.orderBook = newOrderBook;
-                        this.orderBookShort = newOrderBook;
+                        this.setOrderBookShort(newOrderBook);
 
                         final LimitOrder bestAsk = Utils.getBestAsk(newOrderBook);
                         final LimitOrder bestBid = Utils.getBestBid(newOrderBook);
@@ -553,7 +552,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public OrderBook getOrderBookXBTUSD() {
         if (okexContractType == okexContractTypeBTCUSD) {
-            return this.orderBookShort;
+            return this.getOrderBook();
         }
         return this.orderBookXBTUSDShort;
     }
@@ -1121,7 +1120,7 @@ public class OkCoinService extends MarketServicePreliq {
             final Pos position = this.pos.get();
             final AccountBalance account = this.account.get();
 
-            final OrderBook ob = this.orderBookShort;
+            final OrderBook ob = this.getOrderBook();
             if (account != null && position != null && Utils.orderBookIsFull(ob)) {
                 final BigDecimal available = account.getAvailable();
                 final BigDecimal equity = account.getELast();
@@ -1363,9 +1362,9 @@ public class OkCoinService extends MarketServicePreliq {
         if (currArgs.getPlacingType() == PlacingType.TAKER && firstPortion) {// set oPricePlanOnStart for Taker
             final BigDecimal oPricePlanOnStart;
             if (currArgs.getOrderType() == OrderType.BID || currArgs.getOrderType() == OrderType.EXIT_ASK) {
-                oPricePlanOnStart = Utils.getBestAsk(this.orderBookShort).getLimitPrice(); // buy -> use the opposite price.
+                oPricePlanOnStart = Utils.getBestAsk(this.getOrderBook()).getLimitPrice(); // buy -> use the opposite price.
             } else {
-                oPricePlanOnStart = Utils.getBestBid(this.orderBookShort).getLimitPrice(); // do sell -> use the opposite price.
+                oPricePlanOnStart = Utils.getBestBid(this.getOrderBook()).getLimitPrice(); // do sell -> use the opposite price.
             }
             persistenceService.getDealPricesRepositoryService().setOPricePlanOnStart(dealPrices.getTradeId(), oPricePlanOnStart);
         }
@@ -1393,8 +1392,7 @@ public class OkCoinService extends MarketServicePreliq {
         final String counterName = placeOrderArgs.getCounterName();
         final String counterNameWithPortion = placeOrderArgs.getCounterNameWithPortion();
         final Long tradeId = placeOrderArgs.getTradeId();
-        final BeforeSignalMetrics beforeSignalMetrics =
-                placeOrderArgs.getBeforeSignalMetrics() != null ? placeOrderArgs.getBeforeSignalMetrics() : new BeforeSignalMetrics(null);
+//        final BeforeSignalMetrics beforeSignalMetrics = placeOrderArgs.getBeforeSignalMetrics();
         final Instant startPlacing = Instant.now();
 
         // SET STATE
@@ -1481,14 +1479,14 @@ public class OkCoinService extends MarketServicePreliq {
 
         // metrics
         final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
-        if (beforeSignalMetrics != null && beforeSignalMetrics.getLastObTime() != null) {
-            long beforeMs = startPlacing.toEpochMilli() - beforeSignalMetrics.getLastObTime().toEpochMilli();
-            monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
-            metricsDictionary.putOkexPlacingBefore(beforeMs);
-            if (beforeMs > 5000) {
-                logger.warn(placingType + "okex beforePlaceOrderMs=" + beforeMs);
-            }
-        }
+//        if (beforeSignalMetrics != null && beforeSignalMetrics.getLastObTime() != null) {
+//            long beforeMs = startPlacing.toEpochMilli() - beforeSignalMetrics.getLastObTime().toEpochMilli();
+//            monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
+//            metricsDictionary.putOkexPlacingBefore(beforeMs);
+//            if (beforeMs > 5000) {
+//                logger.warn(placingType + "okex beforePlaceOrderMs=" + beforeMs);
+//            }
+//        }
         final Instant endPlacing = Instant.now();
         long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();
         monPlacing.getWholePlacing().add(BigDecimal.valueOf(wholeMs));

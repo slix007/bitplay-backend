@@ -13,20 +13,27 @@ import java.time.Instant;
 @Setter
 @Getter
 @ToString
-public class BeforeSignalMetrics {
+public class PlBefore {
 
-    private Instant lastObTime;
-    private Instant startSignalCheck;
-    private Instant startSignalTime;
-    private Instant addPlacingTask;
-    private Instant startPlacingTask;
-    private Instant startPlacing;
+    private Instant createQuote;
+    private Instant getQuote;
+    private Instant saveQuote;
+    private Instant signalCheck;
+    private Instant signalTime;
+    private Instant requestPlacing;
+    private Instant getAnswerFromPlacing;
 
-    public BeforeSignalMetrics(Instant lastObTime) {
-        this.lastObTime = lastObTime;
+//    private Instant lastObTime;
+//    private Instant startSignalCheck;
+//    private Instant startSignalTime;
+//    private Instant addPlacingTask;
+//    private Instant startPlacingTask;
+//    private Instant startPlacing;
+
+    public PlBefore() {
     }
 
-    public BeforeSignalMetrics(Instant lastObTime, Instant startSignalCheck) {
+    public PlBefore(Instant lastObTime, Instant startSignalCheck) {
         this.lastObTime = lastObTime;
         this.startSignalCheck = startSignalCheck;
     }

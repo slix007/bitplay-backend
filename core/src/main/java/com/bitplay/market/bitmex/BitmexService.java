@@ -24,7 +24,7 @@ import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.Affordable;
-import com.bitplay.market.model.BeforeSignalMetrics;
+import com.bitplay.market.model.PlBefore;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.MarketState;
@@ -66,8 +66,6 @@ import info.bitrich.xchangestream.bitmex.BitmexStreamingMarketDataService;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import info.bitrich.xchangestream.bitmex.dto.BitmexDepth;
 import info.bitrich.xchangestream.bitmex.dto.BitmexOrderBook;
-import info.bitrich.xchangestream.bitmex.dto.BitmexQuote;
-import info.bitrich.xchangestream.bitmex.dto.BitmexQuoteLine;
 import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
@@ -522,7 +520,7 @@ public class BitmexService extends MarketServicePreliq {
             }
 
             this.orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-            this.orderBookShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            this.setOrderBookShort(new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>()));
             this.orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
             this.orderBookXBTUSDShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
 
@@ -1196,7 +1194,7 @@ public class BitmexService extends MarketServicePreliq {
             destroyAction(1);
 
             this.orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-            this.orderBookShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+            this.setOrderBookShort(new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>()));
             this.orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
             this.orderBookXBTUSDShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
             orderBookErrors.set(0);
@@ -1271,7 +1269,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private boolean orderBookIsFilled() {
-        final OrderBook ob = this.orderBookShort; // should be lock on collections
+        final OrderBook ob = this.getOrderBook(); // should be lock on collections
         return ob.getAsks().size() >= ORDERBOOK_MAX_SIZE && ob.getBids().size() >= ORDERBOOK_MAX_SIZE;
     }
 
@@ -1361,14 +1359,18 @@ public class BitmexService extends MarketServicePreliq {
             throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
         }
         final long ms = Instant.now().toEpochMilli() - obUpdate.getTimestamp().toInstant().toEpochMilli();
-        metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10_market(ms);
 
         OrderBook finalOB;
         String symbol = obUpdate.getSymbol();
         if (symbol.equals(bitmexContractType.getSymbol())) {
+            final long adaptStart = Instant.now().toEpochMilli();
             finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, bitmexContractType.getCurrencyPair());
             this.orderBook = finalOB;
-            this.orderBookShort = this.orderBook;
+            this.setOrderBookShort(this.orderBook);
+            final long adaptObMs = Instant.now().toEpochMilli() - adaptStart;
+            System.out.println("trad10ToUsMs=" + ms + ". adaptOrderBookMs=" + adaptObMs);
+            metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10_market(ms);
+
         } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
             finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, bitmexContractTypeXBTUSD.getCurrencyPair());
             this.orderBookXBTUSD = finalOB;
@@ -1434,12 +1436,13 @@ public class BitmexService extends MarketServicePreliq {
         OrderBook shortOb;
         if (isDefault) {
             this.orderBook = finalOB;
-            this.orderBookShort = obType == BitmexObType.INCREMENTAL_FULL
+            final OrderBook orderBookShort = obType == BitmexObType.INCREMENTAL_FULL
                     ? new OrderBook(finalOB.getTimeStamp(),
                     finalOB.getAsks().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()),
                     finalOB.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()))
                     : this.orderBook;
-            shortOb = this.orderBookShort;
+            this.setOrderBookShort(orderBookShort);
+            shortOb = orderBookShort;
         } else {
             this.orderBookXBTUSD = finalOB;
             this.orderBookXBTUSDShort = obType == BitmexObType.INCREMENTAL_FULL
@@ -1472,36 +1475,10 @@ public class BitmexService extends MarketServicePreliq {
         return streamingMarketDataService.getQuote(symbols)
                 .observeOn(Schedulers.newThread()) // the sync queue is here.
                 .filter(q -> q.getAction().equals("insert"))
-                .doOnNext(this::handleQuote)
+                .doOnNext(bitmexQuoteLine -> getOrderBookShort().updateMarketTimestamp(bitmexQuoteLine))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .doOnError(throwable -> logger.error("quote error " + throwable.getMessage()))
                 .subscribe();
-    }
-
-    private void handleQuote(BitmexQuoteLine bitmexQuoteLine) {
-        OrderBook orderBook = getOrderBook();
-        if (orderBook.getBids().size() == 0 || orderBook.getAsks().size() == 0) {
-            return;
-        }
-
-        final Date obT = orderBook.getTimeStamp();
-        final LimitOrder bestAsk = orderBook.getAsks().get(0);
-        final LimitOrder bestBid = orderBook.getBids().get(0);
-        for (BitmexQuote q : bitmexQuoteLine.getData()) {
-            if (q.getAskPrice().compareTo(bestAsk.getLimitPrice()) == 0
-                    && q.getBidPrice().compareTo(bestBid.getLimitPrice()) == 0
-                    && q.getAskSize().compareTo(bestAsk.getTradableAmount()) == 0
-                    && q.getBidSize().compareTo(bestBid.getTradableAmount()) == 0
-            ) {
-                final Date marketT = q.getTimestamp();
-                final long marketToUsMs = Duration.between(marketT.toInstant(), obT.toInstant()).toMillis();
-
-//                System.out.println("marketToUsMs=" + marketToUsMs + ". " + bitmexQuoteLine);
-//                logger.info("marketToUsMs=" + marketToUsMs + ". data.size()=" + bitmexQuoteLine.getData().size());
-                metricsDictionary.putBitmex_plBefore_ob_saveTime_incremental_market(marketToUsMs);
-                break;
-            }
-        }
     }
 
     private Disposable startOrderBookListener() {
@@ -1665,7 +1642,7 @@ public class BitmexService extends MarketServicePreliq {
     public OrderBook getOrderBookXBTUSD() {
         OrderBook orderBook;
         if (sameOrderBookXBTUSD()) {
-            orderBook = this.orderBookShort; // getShortOrderBook(this.orderBook);
+            orderBook = this.getOrderBook(); // getShortOrderBook(this.orderBook);
         } else {
             orderBook = this.orderBookXBTUSDShort;// getShortOrderBook(this.orderBookXBTUSD);
         }
@@ -1848,8 +1825,7 @@ public class BitmexService extends MarketServicePreliq {
         final SignalType signalType = placeOrderArgs.getSignalType();
         final Long tradeId = placeOrderArgs.getTradeId();
 //        final Instant lastObTime = placeOrderArgs.getLastObTime();
-        final BeforeSignalMetrics beforeSignalMetrics =
-                placeOrderArgs.getBeforeSignalMetrics() != null ? placeOrderArgs.getBeforeSignalMetrics() : new BeforeSignalMetrics(null);
+        final PlBefore beforeSignalMetrics = placeOrderArgs.getBeforeSignalMetrics();
         final String symbol = btmContType.getSymbol();
         final Integer scale = btmContType.getScale();
         BtmFokAutoArgs btmFokArgs = placeOrderArgs.getBtmFokArgs(); // not null only when by signal

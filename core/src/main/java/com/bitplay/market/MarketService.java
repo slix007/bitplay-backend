@@ -15,6 +15,7 @@ import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.OrderBookShort;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.SpecialFlags;
 import com.bitplay.market.model.TradeResponse;
@@ -87,7 +88,7 @@ public abstract class MarketService extends MarketServiceWithState {
     protected volatile BigDecimal bestBid = BigDecimal.ZERO;
     protected volatile BigDecimal bestAsk = BigDecimal.ZERO;
     protected volatile OrderBook orderBook = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-    protected volatile OrderBook orderBookShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+    private volatile OrderBookShort orderBookShort = new OrderBookShort();
     protected volatile OrderBook orderBookXBTUSD = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected volatile OrderBook orderBookXBTUSDShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
     protected final AtomicReference<AccountBalance> account = new AtomicReference<>(AccountBalance.empty());
@@ -142,7 +143,7 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public OrderBook getOrderBook() {
-        return this.orderBookShort;
+        return this.orderBookShort.getOb();
     }
 
     public OrderBook fetchOrderBookMain() {
@@ -158,11 +159,11 @@ public abstract class MarketService extends MarketServiceWithState {
             final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getContractType().getCurrencyPair());
             final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
             this.orderBook = ob;
-            this.orderBookShort = ob;
+            this.orderBookShort.setOb(ob);
         } catch (IOException e) {
             logger.error("can not fetch orderBook");
         }
-        return this.orderBookShort;
+        return this.orderBookShort.getOb();
     }
 
     public abstract SlackNotifications getSlackNotifications();
@@ -201,6 +202,14 @@ public abstract class MarketService extends MarketServiceWithState {
 
     protected ApplicationEventPublisher getApplicationEventPublisher() {
         throw new IllegalArgumentException("not implemented");
+    }
+
+    public void setOrderBookShort(OrderBook orderBookShort) {
+        this.orderBookShort.setOb(orderBookShort);
+    }
+
+    public OrderBookShort getOrderBookShort() {
+        return orderBookShort;
     }
 
     /**

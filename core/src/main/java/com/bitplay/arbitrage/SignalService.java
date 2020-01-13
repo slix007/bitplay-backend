@@ -5,7 +5,7 @@ import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
-import com.bitplay.market.model.BeforeSignalMetrics;
+import com.bitplay.market.model.PlBefore;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
@@ -36,7 +36,7 @@ public class SignalService {
     private final BitmexService bitmexService;
 
     public void placeOkexOrderOnSignal(OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-                                       PlacingType placingType, String counterName, Long tradeId, BeforeSignalMetrics beforeSignalMetrics,
+                                       PlacingType placingType, String counterName, Long tradeId,
                                        boolean isConBo, Integer portionsQty,
                                        ArbScheme arbScheme) {
         try {
@@ -61,7 +61,6 @@ public class SignalService {
                         .attempt(1)
                         .tradeId(tradeId)
                         .counterName(counterName)
-                        .beforeSignalMetrics(beforeSignalMetrics)
                         .portionsQty(portionsQty)
                         .arbScheme(arbScheme)
                         .build();
@@ -86,7 +85,7 @@ public class SignalService {
     }
 
     public CompletableFuture<Void> placeBitmexOrderOnSignal(OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-                                                            PlacingType placingType, String counterName, Long tradeId, BeforeSignalMetrics beforeSignalMetrics,
+                                                            PlacingType placingType, String counterName, Long tradeId, PlBefore beforeSignalMetrics,
                                                             boolean isConBo,
                                                             BtmFokAutoArgs btmFokAutoArgs) {
 

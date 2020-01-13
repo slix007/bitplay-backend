@@ -41,7 +41,7 @@ public class PlaceOrderArgs {
     private int attempt;
     private Long tradeId;
     private String counterName;
-    private BeforeSignalMetrics beforeSignalMetrics;
+    private PlBefore beforeSignalMetrics = new PlBefore();
     private ContractType contractType;
     private AmountType amountType;
     private Instant preliqQueuedTime;
