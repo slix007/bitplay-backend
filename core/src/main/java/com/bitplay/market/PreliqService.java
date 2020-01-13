@@ -78,6 +78,8 @@ public class PreliqService {
             if (corrParams.getPreliq().tryIncSuccessful(getName())) {
                 persistenceService.saveCorrParams(corrParams);
             }
+            resetPreliqState();
+            dtPreliq.stop();
         } else if (!marketService.getLimitsService().outsideLimitsForPreliq(posVal)
                 && !posZeroViolation(pos)
                 && corrParams.getPreliq().hasSpareAttempts()
