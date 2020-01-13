@@ -1925,6 +1925,7 @@ public class BitmexService extends MarketServicePreliq {
                                 new LimitOrder(orderType, amount, currencyPair, "0", new Date(), thePrice),
                                 participateDoNotInitiate, symbol, scale);
                         final Instant endReq = Instant.now();
+                        plBeforeBtm.setGetAnswerFromPlacing(endReq);
                         final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
                         monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
                         if (waitingMarketMs > 5000) {
@@ -1934,8 +1935,7 @@ public class BitmexService extends MarketServicePreliq {
                         metricsDictionary.putBitmexPlacing(waitingMarketMs);
                         fplayTradeService.addBitmexPlacingMs(tradeId, waitingMarketMs);
 
-                        if (attemptCount == 1 && plBeforeBtm.getCreateQuote() != null) {
-                            plBeforeBtm.setGetAnswerFromPlacing(Instant.now());
+                        if (attemptCount == 1) {
                             MetricsUtils.sendPlBefore(metricsDictionary, plBeforeBtm, logger);
                         }
 
@@ -1997,6 +1997,7 @@ public class BitmexService extends MarketServicePreliq {
                             resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol);
                         }
                         final Instant endReq = Instant.now();
+                        plBeforeBtm.setGetAnswerFromPlacing(endReq);
                         final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
                         monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
                         if (waitingMarketMs > 5000) {
@@ -2006,6 +2007,9 @@ public class BitmexService extends MarketServicePreliq {
                         metricsDictionary.putBitmexPlacing(waitingMarketMs);
                         fplayTradeService.addBitmexPlacingMs(tradeId, waitingMarketMs);
 
+                        if (attemptCount == 1) {
+                            MetricsUtils.sendPlBefore(metricsDictionary, plBeforeBtm, logger);
+                        }
 
                         orderId = resultOrder.getId();
                         thePrice = resultOrder.getAveragePrice();
