@@ -14,7 +14,11 @@ import java.util.Date;
 @Data
 public class OrderBookShort {
     private volatile OrderBook ob = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
-    private volatile Date quoteDate;
+    private volatile Date creatQquoteDate;
+    private volatile Instant setObInstant;
+
+    public OrderBookShort() {
+    }
 
     public OrderBookShort(OrderBook btmOrderBook) {
         this.ob = ob;
@@ -22,12 +26,13 @@ public class OrderBookShort {
 
     // several threads: subscribe to OB, get OB via REST
     public void setOb(OrderBook ob) {
-        this.quoteDate = null;
+        this.creatQquoteDate = null;
+        this.setObInstant = Instant.now();
         this.ob = ob;
     }
 
-    public Instant getQuoteInstant() {
-        return quoteDate != null ? quoteDate.toInstant() : null;
+    public Instant getCreateQuoteInstant() {
+        return creatQquoteDate != null ? creatQquoteDate.toInstant() : null;
     }
 
     // get quote single thread
@@ -68,8 +73,8 @@ public class OrderBookShort {
             }
         }
 
-        this.quoteDate = lastDt;
-        System.out.println("marketToUsMs=" + marketToUsMs + ". quote.size=" + bitmexQuoteLine.getData().size()
-                + ", quote.matches=" + matchesCount);
+        this.creatQquoteDate = lastDt;
+//        System.out.println("marketToUsMs=" + marketToUsMs + ". quote.size=" + bitmexQuoteLine.getData().size()
+//                + ", quote.matches=" + matchesCount);
     }
 }

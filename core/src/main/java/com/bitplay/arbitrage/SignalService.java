@@ -118,9 +118,9 @@ public class SignalService {
                     .build();
 
             tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-            beforeSignalMetrics.setAddPlacingTask(Instant.now());
+//            beforeSignalMetrics.setAddPlacingTask(Instant.now());
             promise = bitmexService.addOoExecutorTask(() -> {
-                beforeSignalMetrics.setStartPlacingTask(Instant.now());
+//                beforeSignalMetrics.setStartPlacingTask(Instant.now());
                 bitmexService.placeOrder(placeOrderArgs);
             });
 

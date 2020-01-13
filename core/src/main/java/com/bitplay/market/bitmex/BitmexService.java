@@ -34,6 +34,7 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.metrics.MetricsDictionary;
+import com.bitplay.metrics.MetricsUtils;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.LastPriceDeviationService;
@@ -1824,14 +1825,13 @@ public class BitmexService extends MarketServicePreliq {
         PlacingType placingTypeInitial = placeOrderArgs.getPlacingType();
         final SignalType signalType = placeOrderArgs.getSignalType();
         final Long tradeId = placeOrderArgs.getTradeId();
-//        final Instant lastObTime = placeOrderArgs.getLastObTime();
-        final PlBefore beforeSignalMetrics = placeOrderArgs.getBeforeSignalMetrics();
+        final PlBefore plBeforeBtm = placeOrderArgs.getBeforeSignalMetrics();
         final String symbol = btmContType.getSymbol();
         final Integer scale = btmContType.getScale();
         BtmFokAutoArgs btmFokArgs = placeOrderArgs.getBtmFokArgs(); // not null only when by signal
 
         final Instant startPlacing = Instant.now();
-        beforeSignalMetrics.setStartPlacing(startPlacing);
+        plBeforeBtm.setRequestPlacing(startPlacing);
         final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
 
         if (placingTypeInitial == null) {
@@ -1933,10 +1933,10 @@ public class BitmexService extends MarketServicePreliq {
                         monitoringDataService.saveMon(monPlacing);
                         metricsDictionary.putBitmexPlacing(waitingMarketMs);
                         fplayTradeService.addBitmexPlacingMs(tradeId, waitingMarketMs);
-                        if (attemptCount == 1 && beforeSignalMetrics.getLastObTime() != null
-                                && settingsRepositoryService.getSettings().getBitmexObType() == BitmexObType.TRADITIONAL_10) {
-                            final Instant answerTime = resultOrder.getTimestamp().toInstant();
-                            metricsDictionary.putBitmex_pl_from_ob_to_order(Duration.between(beforeSignalMetrics.getLastObTime(), answerTime).toMillis());
+
+                        if (attemptCount == 1 && plBeforeBtm.getCreateQuote() != null) {
+                            plBeforeBtm.setGetAnswerFromPlacing(Instant.now());
+                            MetricsUtils.sendPlBefore(metricsDictionary, plBeforeBtm, logger);
                         }
 
                         orderId = resultOrder.getId();
@@ -2137,22 +2137,6 @@ public class BitmexService extends MarketServicePreliq {
             }
         }
 
-        // metrics
-        if (beforeSignalMetrics.getLastObTime() != null) {
-            long beforeMs = beforeSignalMetrics.getStartPlacing().toEpochMilli() - beforeSignalMetrics.getLastObTime().toEpochMilli();
-            monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
-            metricsDictionary.putBitmexPlacingBefore(beforeMs);
-            if (beforeMs > 5000) {
-                logger.warn(placingType + "bitmex beforePlaceOrderMs=" + beforeMs);
-            }
-            metricsDictionary.putBitmex_plBefore_to_checkTime(beforeSignalMetrics.calcPlBeforeToCheckTime());
-            metricsDictionary.putBitmex_plBefore_checkTime(beforeSignalMetrics.calcPlBeforeCheckTime());
-            metricsDictionary.putBitmex_plBefore_preparePlaceTime(beforeSignalMetrics.calcPlBeforePreparePlacingTime());
-
-            metricsDictionary.putBitmex_plBefore_prep_addTask(beforeSignalMetrics.calcPlBeforeAddPlacingTask());
-            metricsDictionary.putBitmex_plBefore_prep_startTask(beforeSignalMetrics.calcPlBeforeStartPlacingTask());
-            metricsDictionary.putBitmex_plBefore_prep_startPlacing(beforeSignalMetrics.calcPlBeforeStartPlacingTaskToStart());
-        }
         final Instant endPlacing = Instant.now();
         long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();
         monPlacing.getWholePlacing().add(BigDecimal.valueOf(wholeMs));

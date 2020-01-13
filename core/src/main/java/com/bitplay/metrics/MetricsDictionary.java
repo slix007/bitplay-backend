@@ -41,6 +41,12 @@ public class MetricsDictionary {
     private Timer bitmex_plBefore_prep_startTask;
     private Timer bitmex_plBefore_prep_startPlacing;
     private Timer bitmex_pl_from_ob_to_order;
+    private Timer bitmex_plBefore_1;
+    private Timer bitmex_plBefore_2;
+    private Timer bitmex_plBefore_3;
+    private Timer bitmex_plBefore_4;
+    private Timer bitmex_plBefore_5;
+    private Timer bitmex_plBefore_6;
     private Timer bitmexUpdateOrder;
     private Timer okexPlacing;
     private Timer okexPlacingWhole;
@@ -122,6 +128,12 @@ public class MetricsDictionary {
             bitmex_plBefore_prep_startTask = Timer.builder("fplay.timer.bitmex_plBefore_prep_startTask").register(registry);
             bitmex_plBefore_prep_startPlacing = Timer.builder("fplay.timer.bitmex_plBefore_prep_startPlacing").register(registry);
             bitmex_pl_from_ob_to_order = Timer.builder("fplay.timer.bitmex_pl_from_ob_to_order").register(registry);
+            bitmex_plBefore_1 = Timer.builder("fplay.timer.bitmex_plBefore_1").register(registry);
+            bitmex_plBefore_2 = Timer.builder("fplay.timer.bitmex_plBefore_2").register(registry);
+            bitmex_plBefore_3 = Timer.builder("fplay.timer.bitmex_plBefore_3").register(registry);
+            bitmex_plBefore_4 = Timer.builder("fplay.timer.bitmex_plBefore_4").register(registry);
+            bitmex_plBefore_5 = Timer.builder("fplay.timer.bitmex_plBefore_5").register(registry);
+            bitmex_plBefore_6 = Timer.builder("fplay.timer.bitmex_plBefore_6").register(registry);
             okexPlacingBefore = Timer.builder("fplay.timer.okexPlacingBefore").register(registry);
             bitmexUpdateOrder = Timer.builder("fplay.timer.bitmexUpdateOrder").register(registry);
             okexMovingWhole = Timer.builder("fplay.timer.okexMovingWhole").register(registry);
@@ -276,5 +288,29 @@ public class MetricsDictionary {
 
     public Timer getOkexMovingIter() {
         return okexMovingIter;
+    }
+
+    public Timer getBitmex_plBefore_1() {
+        return bitmex_plBefore_1;
+    }
+
+    public Timer getBitmex_plBefore_2() {
+        return bitmex_plBefore_2;
+    }
+
+    public Timer getBitmex_plBefore_3() {
+        return bitmex_plBefore_3;
+    }
+
+    public Timer getBitmex_plBefore_4() {
+        return bitmex_plBefore_4;
+    }
+
+    public Timer getBitmex_plBefore_5() {
+        return bitmex_plBefore_5;
+    }
+
+    public Timer getBitmex_plBefore_6() {
+        return bitmex_plBefore_6;
     }
 }
