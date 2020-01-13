@@ -582,6 +582,7 @@ public class ArbitrageService {
                               PlBefore plBeforeBtm) {
 
         if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()
+                || dqlStateService.getCommonDqlState().isClose()
                 || persistenceService.getSettingsRepositoryService().getSettings().getManageType().isManual()
                 || okexSettlementService.isSettlementMode()
         ) {
