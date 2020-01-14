@@ -1825,7 +1825,7 @@ public class BitmexService extends MarketServicePreliq {
         PlacingType placingTypeInitial = placeOrderArgs.getPlacingType();
         final SignalType signalType = placeOrderArgs.getSignalType();
         final Long tradeId = placeOrderArgs.getTradeId();
-        final PlBefore plBeforeBtm = placeOrderArgs.getBeforeSignalMetrics();
+        final PlBefore plBeforeBtm = placeOrderArgs.getPlBefore();
         final String symbol = btmContType.getSymbol();
         final Integer scale = btmContType.getScale();
         BtmFokAutoArgs btmFokArgs = placeOrderArgs.getBtmFokArgs(); // not null only when by signal

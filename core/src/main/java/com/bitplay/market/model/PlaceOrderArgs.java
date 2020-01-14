@@ -41,7 +41,7 @@ public class PlaceOrderArgs {
     private int attempt;
     private Long tradeId;
     private String counterName;
-    private PlBefore beforeSignalMetrics = new PlBefore();
+    private PlBefore plBefore;
     private ContractType contractType;
     private AmountType amountType;
     private Instant preliqQueuedTime;
@@ -55,21 +55,21 @@ public class PlaceOrderArgs {
 
     public static PlaceOrderArgs nextPlacingArgs(PlaceOrderArgs curr) {
         return new PlaceOrderArgs(curr.orderType, curr.fullAmount, curr.amount, curr.bestQuotes, curr.placingType, curr.signalType,
-                curr.attempt + 1, curr.tradeId, curr.counterName, curr.beforeSignalMetrics, curr.contractType, curr.amountType, curr.preliqQueuedTime,
+                curr.attempt + 1, curr.tradeId, curr.counterName, curr.plBefore, curr.contractType, curr.amountType, curr.preliqQueuedTime,
                 curr.preliqMarketName, curr.pricePlanOnStart, curr.preliqOrder, curr.portionsQty, curr.portionsQtyMax, curr.btmFokArgs, curr.arbScheme);
     }
 
     public PlaceOrderArgs cloneWithPlacingType(PlacingType placingType) {
         return new PlaceOrderArgs(this.orderType, this.fullAmount, this.amount, this.bestQuotes, placingType, this.signalType, this.attempt, this.tradeId,
                 this.counterName,
-                this.beforeSignalMetrics, this.contractType, this.amountType, this.preliqQueuedTime, this.preliqMarketName,
+                this.plBefore, this.contractType, this.amountType, this.preliqQueuedTime, this.preliqMarketName,
                 this.pricePlanOnStart, this.preliqOrder, this.portionsQty, this.portionsQtyMax, this.btmFokArgs, this.arbScheme);
     }
 
     public PlaceOrderArgs cloneWithAmount(BigDecimal amount) {
         return new PlaceOrderArgs(this.orderType, amount, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId,
                 this.counterName,
-                this.beforeSignalMetrics, this.contractType, this.amountType, this.preliqQueuedTime,
+                this.plBefore, this.contractType, this.amountType, this.preliqQueuedTime,
                 this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, this.portionsQty, this.portionsQtyMax, this.btmFokArgs, this.arbScheme);
     }
 
@@ -83,14 +83,14 @@ public class PlaceOrderArgs {
         }
         return new PlaceOrderArgs(this.orderType, newFullAmount, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId,
                 this.counterName,
-                this.beforeSignalMetrics, this.contractType, this.amountType, this.preliqQueuedTime,
+                this.plBefore, this.contractType, this.amountType, this.preliqQueuedTime,
                 this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, this.portionsQty, this.portionsQtyMax, this.btmFokArgs, this.arbScheme);
     }
 
     public PlaceOrderArgs cloneWithAmountAndPortionsQty(BigDecimal amount, Integer portionsQty) {
         return new PlaceOrderArgs(this.orderType, this.fullAmount, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId,
                 this.counterName,
-                this.beforeSignalMetrics, this.contractType, this.amountType, this.preliqQueuedTime,
+                this.plBefore, this.contractType, this.amountType, this.preliqQueuedTime,
                 this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, portionsQty, this.portionsQtyMax, this.btmFokArgs, this.arbScheme);
     }
 
@@ -99,7 +99,7 @@ public class PlaceOrderArgs {
 
         return new PlaceOrderArgs(this.orderType, this.fullAmount, amount, this.bestQuotes, this.placingType, this.signalType, this.attempt, this.tradeId,
                 this.counterName,
-                this.beforeSignalMetrics, this.contractType, this.amountType, this.preliqQueuedTime,
+                this.plBefore, this.contractType, this.amountType, this.preliqQueuedTime,
                 this.preliqMarketName, this.pricePlanOnStart, this.preliqOrder, portionsQty, null, this.btmFokArgs, this.arbScheme);
     }
 
@@ -135,4 +135,7 @@ public class PlaceOrderArgs {
         return okexBuy ? DeltaName.B_DELTA : DeltaName.O_DELTA;
     }
 
+    public PlBefore getPlBefore() {
+        return plBefore != null ? plBefore : new PlBefore();
+    }
 }

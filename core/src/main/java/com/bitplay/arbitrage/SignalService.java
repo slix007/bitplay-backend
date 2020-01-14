@@ -20,7 +20,6 @@ import org.knowm.xchange.dto.Order.OrderType;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -113,7 +112,7 @@ public class SignalService {
                     .attempt(attempt)
                     .tradeId(tradeId)
                     .counterName(counterName)
-                    .beforeSignalMetrics(beforeSignalMetrics)
+                    .plBefore(beforeSignalMetrics)
                     .btmFokArgs(btmFokAutoArgs)
                     .build();
 
