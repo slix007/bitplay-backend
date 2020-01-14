@@ -243,13 +243,15 @@ public class PreliqService {
 
     private String getPreliqStartingStr(String name, Pos position, LiqInfo liqInfo) {
         final BigDecimal dqlCloseMin = getDqlCloseMin(name);
+        final BigDecimal dqlKillPos = getDqlKillPos();
         final String dqlCurrStr = liqInfo != null && liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr().toPlainString() : "null";
         final String dqlCloseMinStr = dqlCloseMin != null ? dqlCloseMin.toPlainString() : "null";
-        return String.format("%s p(%s-%s)/dql%s/dqlClose%s",
+        final String dqlKillPosStr = dqlKillPos != null ? dqlKillPos.toPlainString() : "null";
+        return String.format("%s p(%s-%s)/dql%s/dqlClose%s/dqlKillpos%s",
                 name,
                 position.getPositionLong().toPlainString(),
                 position.getPositionShort().toPlainString(),
-                dqlCurrStr, dqlCloseMinStr);
+                dqlCurrStr, dqlCloseMinStr, dqlKillPosStr);
     }
 
 
