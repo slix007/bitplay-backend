@@ -61,12 +61,22 @@ public class NtUsdRecoveryService {
     public Future<String> tryRecoveryAfterKillPos() {
         return ntUsdExecutor.runTask(() -> {
             try {
-                RecoveryResult r1 = doRecovery(true);
-                String resDetails = r1.details;
-                if (r1.okexThroughZero) {
-                    RecoveryResult r2 = doRecovery(true);
-                    resDetails += "; Second: " + r2.details;
+                boolean amount0 = true;
+                boolean okexThroughZero = true;
+                String resDetails = "";
+
+                int attempt = 0;
+                while ((amount0 || okexThroughZero) && attempt < 5) {
+                    if (++attempt > 1) {
+                        Thread.sleep(500);
+                    }
+                    RecoveryResult r1 = doRecovery(true);
+                    amount0 = r1.amount0;
+                    okexThroughZero = r1.okexThroughZero;
+
+                    resDetails += "a" + attempt + ": " + r1.details + "; ";
                 }
+
                 return resDetails;
             } catch (Exception e) {
                 log.error("recovery_nt_usd is failed.", e);
@@ -81,6 +91,7 @@ public class NtUsdRecoveryService {
     class RecoveryResult {
         private final String details;
         private final Boolean okexThroughZero;
+        private final Boolean amount0;
     }
 
     @SuppressWarnings("Duplicates")
@@ -197,7 +208,7 @@ public class NtUsdRecoveryService {
             }
         }
 
-        return new RecoveryResult(resultMsg, corrObj.okexThroughZero);
+        return new RecoveryResult(resultMsg, corrObj.okexThroughZero, corrObj.correctAmount.signum() == 0);
     }
 
     private boolean checkOutsideLimits(String corrName, BigDecimal dc, BigDecimal maxBtm, BigDecimal maxOk, CorrObj corrObj, BigDecimal hedgeAmount,
