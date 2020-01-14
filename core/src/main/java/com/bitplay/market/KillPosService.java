@@ -37,8 +37,11 @@ public class KillPosService {
             String res;
             try {
                 res = stringFuture.get(10, TimeUnit.SECONDS);
+                marketService.getTradeLogger().info(res);
+                log.info(res);
             } catch (Exception e) {
-                log.error("ntUsdRecovery error", e);
+                marketService.getTradeLogger().info("recovery_nt_usd Error:" + e.getMessage());
+                log.error("recovery_nt_usd Error", e);
             }
 
         }

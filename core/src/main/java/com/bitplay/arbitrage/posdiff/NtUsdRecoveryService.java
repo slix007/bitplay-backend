@@ -63,7 +63,7 @@ public class NtUsdRecoveryService {
             try {
                 boolean amount0 = true;
                 boolean okexThroughZero = true;
-                String resDetails = "";
+                String resDetails = "RecoveryNtUsdAfterKillposResult: ";
 
                 int attempt = 0;
                 while ((amount0 || okexThroughZero) && attempt < 5) {
@@ -74,7 +74,7 @@ public class NtUsdRecoveryService {
                     amount0 = r1.amount0;
                     okexThroughZero = r1.okexThroughZero;
 
-                    resDetails += "a" + attempt + ": " + r1.details + "; ";
+                    resDetails += "a" + attempt + ": " + r1 + "; ";
                 }
 
                 return resDetails;
@@ -208,7 +208,7 @@ public class NtUsdRecoveryService {
             }
         }
 
-        return new RecoveryResult(resultMsg, corrObj.okexThroughZero, corrObj.correctAmount.signum() == 0);
+        return new RecoveryResult(resultMsg, corrObj.okexThroughZero, correctAmount.signum() <= 0);
     }
 
     private boolean checkOutsideLimits(String corrName, BigDecimal dc, BigDecimal maxBtm, BigDecimal maxOk, CorrObj corrObj, BigDecimal hedgeAmount,
