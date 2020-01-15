@@ -243,10 +243,12 @@ public class ArbitrageService {
             } else {
                 final OrderBookShort orderBookShort = firstMarketService.getOrderBookShort();
                 firstOrderBook = orderBookShort.getOb();
-                plBeforeBtm.setCreateQuote(orderBookShort.getCreateQuoteInstant());
-                plBeforeBtm.setSaveQuote(orderBookShort.getSetObInstant());
+                if (e.getSigType() == SigType.BTM) {
+                    plBeforeBtm.setCreateQuote(orderBookShort.getCreateQuoteInstant());
+                    plBeforeBtm.setSaveQuote(orderBookShort.getSetObInstant());
+                    plBeforeBtm.setGetQuote(firstOrderBook.getTimeStamp().toInstant());
+                }
             }
-            plBeforeBtm.setGetQuote(firstOrderBook.getTimeStamp().toInstant());
 
             final OrderBook secondOrderBook = e.getOkOrderBook() != null ? e.getOkOrderBook() : secondMarketService.getOrderBook();
 
