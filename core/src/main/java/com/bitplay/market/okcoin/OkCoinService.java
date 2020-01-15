@@ -2068,7 +2068,7 @@ public class OkCoinService extends MarketServicePreliq {
         final BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
         final BigDecimal priceForTaker = Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
         final BigDecimal thePrice = priceForTaker.setScale(okexContractType.getScale(), RoundingMode.HALF_UP); // .00 -> .000 for eth
-        final String ftpdDetails = String.format("The fake taker price is %s; %s", thePrice.toPlainString(), priceRange);
+        final String ftpdDetails = String.format("The fake taker price is %s; FTPD=%s; %s", thePrice.toPlainString(), okexFakeTakerDev, priceRange);
         getTradeLogger().info(ftpdDetails);
         logger.info(ftpdDetails);
         return thePrice;
