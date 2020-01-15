@@ -2540,13 +2540,6 @@ public class OkCoinService extends MarketServicePreliq {
 //                liqInfo.getDqlCurr(),
 //                oDQLOpenMin));
 
-        if (!isOk) {
-            slackNotifications.sendNotify(NotifyType.OKEX_DQL_OPEN_MIN, String.format("%s DQL(%s) < DQL_open_min(%s)", NAME, dqlCurr, oDQLOpenMin));
-        }
-//        else {
-//            slackNotifications.resetThrottled(NotifyType.OKEX_DQL_OPEN_MIN);
-//        }
-
         final BigDecimal okexDqlKillPos = dql.getOkexDqlKillPos();
         arbitrageService.getDqlStateService().updateOkexDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr);
 

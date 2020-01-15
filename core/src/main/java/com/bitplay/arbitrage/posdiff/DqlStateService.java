@@ -1,15 +1,16 @@
 package com.bitplay.arbitrage.posdiff;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.external.NotifyType;
+import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.DqlState;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Updates from {@link com.bitplay.arbitrage.posdiff.PosDiffService}
@@ -20,15 +21,15 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class DqlStateService {
 
-    private final ScheduledExecutorService preliqScheduler = Executors.newSingleThreadScheduledExecutor(
-            new ThreadFactoryBuilder().setNameFormat("bitmex-preliq-thread-%d").build());
-
+    private final SlackNotifications slackNotifications;
     private volatile DqlState preliqState = DqlState.ANY_ORDERS;
 
     private volatile DqlState btmState = DqlState.ANY_ORDERS;
     private volatile DqlState okexState = DqlState.ANY_ORDERS;
+
 
     public boolean isPreliq() {
         return preliqState == DqlState.PRELIQ
@@ -43,8 +44,8 @@ public class DqlStateService {
     public void tryResetPreliq() {
         if (preliqState == DqlState.PRELIQ || preliqState == DqlState.KILLPOS) {
             //TODO check if need CLOSE_ONLY
+            log.info("reset DqlState " + preliqState);
             preliqState = DqlState.ANY_ORDERS;
-            log.info("reset DqlState from PRELIQ to ANY_ORDERS");
         }
     }
 
@@ -71,11 +72,24 @@ public class DqlStateService {
 
     public DqlState updateBtmDqlState(BigDecimal btmDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
         btmState = setMarketState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, btmState);
+        if (btmState.isClose()) {
+            slackNotifications.sendNotify(NotifyType.BITMEX_DQL_OPEN_MIN, String.format("%s DQL(%s) < DQL_open_min(%s)",
+                    MarketStaticData.BITMEX.getName(), dqlCurr, bDQLOpenMin));
+        } else {
+            slackNotifications.resetThrottled(NotifyType.BITMEX_DQL_OPEN_MIN);
+        }
+//        log.info("dqlCurr=" + dqlCurr);
         return btmState;
     }
 
     public DqlState updateOkexDqlState(BigDecimal okexDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
         okexState = setMarketState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr, okexState);
+        if (okexState.isClose()) {
+            slackNotifications.sendNotify(NotifyType.OKEX_DQL_OPEN_MIN, String.format("%s DQL(%s) < DQL_open_min(%s)",
+                    MarketStaticData.OKEX.getName(), dqlCurr, oDQLOpenMin));
+        } else {
+            slackNotifications.resetThrottled(NotifyType.OKEX_DQL_OPEN_MIN);
+        }
         return okexState;
     }
 
@@ -97,6 +111,9 @@ public class DqlStateService {
             } else {
                 throw new IllegalStateException("Illegal dqlCurr=" + dqlCurr);
             }
+        }
+        if (currState != resState) {
+            log.info(String.format("DqlState %s => %s", currState, resState));
         }
         return resState;
     }

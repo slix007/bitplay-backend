@@ -582,7 +582,7 @@ public class ArbitrageService {
                               PlBefore plBeforeBtm) {
 
         if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()
-                || dqlStateService.getCommonDqlState().isClose()
+                || dqlStateService.getCommonDqlState().isActiveClose()
                 || persistenceService.getSettingsRepositoryService().getSettings().getManageType().isManual()
                 || okexSettlementService.isSettlementMode()
         ) {
@@ -924,10 +924,10 @@ public class ArbitrageService {
                 dqlStateService.tryResetPreliq();
                 final DqlState dqlState1 = firstMarketService.updateDqlState();
                 final DqlState dqlState2 = secondMarketService.updateDqlState();
-                if (firstMarketService.getMarketState() == MarketState.PRELIQ && !dqlState1.isClose()) {
+                if (firstMarketService.getMarketState() == MarketState.PRELIQ && !dqlState1.isActiveClose()) {
                     firstMarketService.setMarketState(MarketState.READY);
                 }
-                if (secondMarketService.getMarketState() == MarketState.PRELIQ && !dqlState2.isClose()) {
+                if (secondMarketService.getMarketState() == MarketState.PRELIQ && !dqlState2.isActiveClose()) {
                     secondMarketService.setMarketState(MarketState.READY);
                 }
             }
