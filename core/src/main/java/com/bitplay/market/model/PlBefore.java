@@ -20,6 +20,7 @@ public class PlBefore {
     private Instant signalCheck;
     private Instant signalTime;
     private Instant requestPlacing;
+    private Instant marketTransactTime;
     private Instant getAnswerFromPlacing;
 
     public PlBefore() {

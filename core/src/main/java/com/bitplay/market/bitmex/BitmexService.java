@@ -1367,7 +1367,7 @@ public class BitmexService extends MarketServicePreliq {
             final long adaptStart = Instant.now().toEpochMilli();
             finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, bitmexContractType.getCurrencyPair());
             this.orderBook = finalOB;
-            this.setOrderBookShort(this.orderBook);
+            this.getOrderBookShort().setOb(finalOB, finalOB.getTimeStamp());
             final long adaptObMs = Instant.now().toEpochMilli() - adaptStart;
             System.out.println("trad10ToUsMs=" + ms + ". adaptOrderBookMs=" + adaptObMs);
             metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10_market(ms);
@@ -1925,6 +1925,7 @@ public class BitmexService extends MarketServicePreliq {
                                 new LimitOrder(orderType, amount, currencyPair, "0", new Date(), thePrice),
                                 participateDoNotInitiate, symbol, scale);
                         final Instant endReq = Instant.now();
+                        plBeforeBtm.setMarketTransactTime(resultOrder.getTimestamp().toInstant());
                         plBeforeBtm.setGetAnswerFromPlacing(endReq);
                         final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
                         monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
@@ -1997,6 +1998,7 @@ public class BitmexService extends MarketServicePreliq {
                             resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol);
                         }
                         final Instant endReq = Instant.now();
+                        plBeforeBtm.setMarketTransactTime(resultOrder.getTimestamp().toInstant());
                         plBeforeBtm.setGetAnswerFromPlacing(endReq);
                         final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
                         monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));

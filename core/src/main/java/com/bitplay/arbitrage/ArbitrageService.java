@@ -245,8 +245,8 @@ public class ArbitrageService {
                 firstOrderBook = orderBookShort.getOb();
                 if (e.getSigType() == SigType.BTM) {
                     plBeforeBtm.setCreateQuote(orderBookShort.getCreateQuoteInstant());
+                    plBeforeBtm.setGetQuote(orderBookShort.getOb().getTimeStamp().toInstant());
                     plBeforeBtm.setSaveQuote(orderBookShort.getSetObInstant());
-                    plBeforeBtm.setGetQuote(firstOrderBook.getTimeStamp().toInstant());
                 }
             }
 

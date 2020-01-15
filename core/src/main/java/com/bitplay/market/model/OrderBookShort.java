@@ -22,7 +22,10 @@ public class OrderBookShort {
 
     // several threads: subscribe to OB, get OB via REST
     public void setOb(OrderBook ob) {
-        this.creatQuoteDate = null;
+        setOb(ob, null);
+    }
+    public void setOb(OrderBook ob, Date creatQuoteDate) {
+        this.creatQuoteDate = creatQuoteDate;
         this.setObInstant = Instant.now();
         this.ob = ob;
     }

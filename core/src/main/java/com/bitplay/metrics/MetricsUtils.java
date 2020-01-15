@@ -15,6 +15,7 @@ public class MetricsUtils {
         long ms4 = -1;
         long ms5 = -1;
         long ms6 = -1;
+        long ms7 = -1;
         if (b.getCreateQuote() != null && b.getGetQuote() != null) {
             ms1 = Duration.between(b.getCreateQuote(), b.getGetQuote()).toMillis();
             d.getBitmex_plBefore_1().record(ms1, TimeUnit.MILLISECONDS);
@@ -35,10 +36,14 @@ public class MetricsUtils {
             ms5 = Duration.between(b.getSignalTime(), b.getRequestPlacing()).toMillis();
             d.getBitmex_plBefore_5().record(ms5, TimeUnit.MILLISECONDS);
         }
-        if (b.getRequestPlacing() != null && b.getGetAnswerFromPlacing() != null) {
-            ms6 = Duration.between(b.getRequestPlacing(), b.getGetAnswerFromPlacing()).toMillis();
+        if (b.getRequestPlacing() != null && b.getMarketTransactTime() != null) {
+            ms6 = Duration.between(b.getRequestPlacing(), b.getMarketTransactTime()).toMillis();
             d.getBitmex_plBefore_6().record(ms6, TimeUnit.MILLISECONDS);
         }
-        logger.info(String.format("plBefore ms: %s %s %s %s %s %s", ms1, ms2, ms3, ms4, ms5, ms6));
+        if (b.getMarketTransactTime() != null && b.getGetAnswerFromPlacing() != null) {
+            ms7 = Duration.between(b.getMarketTransactTime(), b.getGetAnswerFromPlacing()).toMillis();
+            d.getBitmex_plBefore_6().record(ms6, TimeUnit.MILLISECONDS);
+        }
+        logger.info(String.format("plBefore ms: %s %s %s %s %s %s %s", ms1, ms2, ms3, ms4, ms5, ms6, ms7));
     }
 }
