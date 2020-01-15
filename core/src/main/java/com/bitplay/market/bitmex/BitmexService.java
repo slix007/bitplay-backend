@@ -1364,12 +1364,12 @@ public class BitmexService extends MarketServicePreliq {
         OrderBook finalOB;
         String symbol = obUpdate.getSymbol();
         if (symbol.equals(bitmexContractType.getSymbol())) {
-            final long adaptStart = Instant.now().toEpochMilli();
+//            final long adaptStart = Instant.now().toEpochMilli();
             finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, bitmexContractType.getCurrencyPair());
             this.orderBook = finalOB;
-            this.getOrderBookShort().setOb(finalOB, finalOB.getTimeStamp());
-            final long adaptObMs = Instant.now().toEpochMilli() - adaptStart;
-            System.out.println("trad10ToUsMs=" + ms + ". adaptOrderBookMs=" + adaptObMs);
+            this.getOrderBookShort().setOb(finalOB, obUpdate.getTimestamp(), finalOB.getTimeStamp().toInstant());
+//            final long adaptObMs = Instant.now().toEpochMilli() - adaptStart; // tested by logs. Result 0ms
+//            System.out.println("trad10ToUsMs=" + ms + ". adaptOrderBookMs=" + adaptObMs);
             metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10_market(ms);
 
         } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
@@ -1443,6 +1443,7 @@ public class BitmexService extends MarketServicePreliq {
                     finalOB.getBids().stream().limit(ORDERBOOK_MAX_SIZE).map(Utils::cloneLimitOrder).collect(Collectors.toList()))
                     : this.orderBook;
             this.setOrderBookShort(orderBookShort);
+            this.getOrderBookShort().setOb(orderBookShort, null, Instant.now());
             shortOb = orderBookShort;
         } else {
             this.orderBookXBTUSD = finalOB;
@@ -1473,10 +1474,15 @@ public class BitmexService extends MarketServicePreliq {
 //        if (!sameOrderBookXBTUSD()) {
 //            symbols.add(bitmexContractTypeXBTUSD.getSymbol());
 //        }
+        final BitmexObType obType = settingsRepositoryService.getSettings().getBitmexObType();
         return streamingMarketDataService.getQuote(symbols)
                 .observeOn(Schedulers.newThread()) // the sync queue is here.
                 .filter(q -> q.getAction().equals("insert"))
-                .doOnNext(bitmexQuoteLine -> getOrderBookShort().updateMarketTimestamp(bitmexQuoteLine))
+                .doOnNext(bitmexQuoteLine -> {
+                    if (obType != BitmexObType.TRADITIONAL_10) {
+                        getOrderBookShort().updateMarketTimestamp(bitmexQuoteLine);
+                    }
+                })
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .doOnError(throwable -> logger.error("quote error " + throwable.getMessage()))
                 .subscribe();
