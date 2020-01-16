@@ -952,7 +952,7 @@ public abstract class MarketService extends MarketServiceWithState {
         } else if (placingType == PlacingType.HYBRID) {
             thePrice = createBestHybridPrice(orderType, orderBook);
         } else if (placingType == PlacingType.TAKER || placingType == PlacingType.TAKER_FOK) {
-            thePrice = createBestTakerPrice(orderType, orderBook);
+            thePrice = createBestTakerPrice(orderType, orderBook, contractType);
         } else { // placingType == null???
             String msg = String.format("%s PlacingType==%s, use MAKER", getName(), placingType);
 //            warningLogger.warn(msg);
@@ -1003,7 +1003,7 @@ public abstract class MarketService extends MarketServiceWithState {
         return scaled;
     }
 
-    protected BigDecimal createBestTakerPrice(Order.OrderType orderType, OrderBook orderBook) {
+    protected BigDecimal createBestTakerPrice(OrderType orderType, OrderBook orderBook, ContractType contractType) {
         return createBestHybridPrice(orderType, orderBook);
     }
 

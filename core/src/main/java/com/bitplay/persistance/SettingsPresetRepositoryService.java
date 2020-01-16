@@ -14,11 +14,12 @@ import com.bitplay.persistance.domain.settings.OkexPostOnlyArgs;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SettingsPreset;
 import com.bitplay.persistance.repository.SettingsPresetRepository;
-import java.util.ArrayList;
-import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class SettingsPresetRepositoryService {
@@ -181,7 +182,8 @@ public class SettingsPresetRepositoryService {
 //        s.setColdStorageEth(); - excluded
 //        s.setEBestMin(); - excluded
         s.setUsdQuoteType(p.getUsdQuoteType());
-        s.setOkexFakeTakerDev(p.getOkexFakeTakerDev());
+//        s.setOkexFakeTakerDev(p.getOkexFakeTakerDev());
+        s.setOkexFtpd(p.getOkexFtpd());
         s.setAdjustByNtUsd(p.getAdjustByNtUsdRaw());
         s.setNtUsdMultiplicityOkex(p.getNtUsdMultiplicityOkex());
         s.setAmountTypeBitmex(p.getAmountTypeBitmex());

@@ -52,7 +52,9 @@ public class Settings extends AbstractDocument {
     private BigDecimal coldStorageEth;
     private Integer eBestMin;
     private UsdQuoteType usdQuoteType;
+    @Deprecated // use OkexFtpd. this one is saved for migrations.
     private BigDecimal okexFakeTakerDev;//deviation of fake taker price
+    private OkexFtpd okexFtpd;
     private Boolean adjustByNtUsd;
     private BigDecimal ntUsdMultiplicityOkex;
     private AmountType amountTypeBitmex;
@@ -125,6 +127,7 @@ public class Settings extends AbstractDocument {
         settings.hedgeAuto = false;
         settings.usdQuoteType = UsdQuoteType.INDEX_BITMEX;
         settings.okexFakeTakerDev = BigDecimal.ONE;
+        settings.okexFtpd = OkexFtpd.createDefaults();
         settings.tradingModeAuto = false;
         settings.tradingModeState = new TradingModeState(TradingMode.CURRENT);
         settings.bitmexChangeOnSo = new BitmexChangeOnSo();

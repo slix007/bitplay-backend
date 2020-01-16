@@ -57,6 +57,7 @@ import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.OkexContractType;
+import com.bitplay.persistance.domain.settings.OkexFtpd;
 import com.bitplay.persistance.domain.settings.OkexPostOnlyArgs;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -233,6 +234,7 @@ public class OkCoinService extends MarketServicePreliq {
     private volatile List<InstrumentDto> instrDtos = new ArrayList<>();
     private volatile BigDecimal leverage;
     private volatile boolean started = false;
+    private final OkexFtpdService okexFtpdService;
 
     @Override
     public PosDiffService getPosDiffService() {
@@ -962,6 +964,7 @@ public class OkCoinService extends MarketServicePreliq {
                 .subscribe(priceRange -> {
                     logger.debug(priceRange.toString());
                     this.priceRange = priceRange;
+                    okexFtpdService.updateFtpdPercent(priceRange, bestAsk, bestBid);
                 }, throwable -> logger.error("OkexPriceRange.Exception: ", throwable));
     }
 
@@ -1038,7 +1041,7 @@ public class OkCoinService extends MarketServicePreliq {
 //            final MarketOrder marketOrder = new MarketOrder(orderType, amount, currencyPair, new Date());
 //            final String orderId = tradeService.placeMarketOrder(marketOrder);
 
-            BigDecimal thePrice = createBestTakerPrice(orderType, null);
+            BigDecimal thePrice = createBestTakerPrice(orderType, null, okexContractType);
 
             getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
 
@@ -2064,11 +2067,13 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    protected BigDecimal createBestTakerPrice(OrderType orderType, OrderBook orderBook) {
-        final BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
-        final BigDecimal priceForTaker = Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
-        final BigDecimal thePrice = priceForTaker.setScale(okexContractType.getScale(), RoundingMode.HALF_UP); // .00 -> .000 for eth
-        final String ftpdDetails = String.format("The fake taker price is %s; FTPD=%s; %s", thePrice.toPlainString(), okexFakeTakerDev, priceRange);
+    protected BigDecimal createBestTakerPrice(OrderType orderType, OrderBook orderBook, ContractType contractType) {
+        final Settings settings = settingsRepositoryService.getSettings();
+        final OkexFtpd okexFtpd = settings.getOkexFtpd();
+        final BigDecimal priceForTaker = okexFtpdService.createPriceForTaker(orderType, priceRange, okexFtpd);
+        final BigDecimal thePrice = priceForTaker.setScale(contractType.getScale(), RoundingMode.HALF_UP); // .00 -> .000 for eth
+        final String ftpdDetails = String.format("The fake taker price is %s; %s; %s",
+                thePrice.toPlainString(), okexFtpdService.getFtpdDetails(okexFtpd), priceRange);
         getTradeLogger().info(ftpdDetails);
         logger.info(ftpdDetails);
         return thePrice;
@@ -2918,9 +2923,10 @@ public class OkCoinService extends MarketServicePreliq {
         //TODO use https://www.okex.com/docs/en/#futures-close_all
         if (amount.signum() != 0) {
 
-            final BigDecimal okexFakeTakerDev = settingsRepositoryService.getSettings().getOkexFakeTakerDev();
-            final BigDecimal thePrice = Utils.createPriceForTaker(orderType, priceRange, okexFakeTakerDev);
-            final String ftpdDetails = String.format("The fake taker price is %s; %s", thePrice.toPlainString(), priceRange);
+            final OkexFtpd okexFtpd = settingsRepositoryService.getSettings().getOkexFtpd();
+            final BigDecimal thePrice = okexFtpdService.createPriceForTaker(orderType, priceRange, okexFtpd);
+            final String ftpdDetails = String.format("The fake taker price is %s; %s; %s",
+                    thePrice.toPlainString(), okexFtpdService.getFtpdDetails(okexFtpd), priceRange);
             getTradeLogger().info(ftpdDetails);
             logger.info(ftpdDetails);
 

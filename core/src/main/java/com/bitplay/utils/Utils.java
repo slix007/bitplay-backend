@@ -141,26 +141,6 @@ public class Utils {
 //        return thePrice;
 //    }
 
-    public static BigDecimal createPriceForTaker(OrderType orderType, OkcoinPriceRange okcoinPriceRange, BigDecimal okexFakeTakerDev) {
-        //Fake taker price при buy-ордере (open long или close short):
-        //FTP = max_price - FTPD, // FTPD = fake taker price dev, usd
-        //Fake taker price при sell-ордере (open short или close long):
-        //FTP = min_price + FTPD.
-        if (okcoinPriceRange == null) {
-            throw new NotYetInitializedException();
-        }
-        final BigDecimal minPrice = okcoinPriceRange.getLowest();
-        final BigDecimal maxPrice = okcoinPriceRange.getHighest();
-
-        BigDecimal thePrice = BigDecimal.ZERO;
-        if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
-            thePrice = minPrice.add(okexFakeTakerDev);
-        } else if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
-            thePrice = maxPrice.subtract(okexFakeTakerDev);
-        }
-        return thePrice;
-    }
-
     public static BigDecimal calcQuAvg(OrderBook orderBook) {
         return calcQuAvg(orderBook, 2);
     }

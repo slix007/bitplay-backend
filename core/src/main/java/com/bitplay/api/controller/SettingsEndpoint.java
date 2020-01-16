@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.lang.reflect.Field;
 import java.util.EnumSet;
 
 /**
@@ -319,8 +320,8 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
             resetPreset = false;
         }
-        if (settingsUpdate.getOkexFakeTakerDev() != null) {
-            settings.setOkexFakeTakerDev(settingsUpdate.getOkexFakeTakerDev());
+        if (settingsUpdate.getOkexFtpd() != null) {
+            updateNotNullFields(settingsUpdate.getOkexFtpd(), settings.getOkexFtpd());
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getAdjustByNtUsd() != null) {
@@ -434,6 +435,21 @@ public class SettingsEndpoint {
         setTransientFields(settings);
 
         return settings;
+    }
+
+    public void updateNotNullFields(Object inObj, Object toUpdate) {
+        try {
+            for (Field f : inObj.getClass().getDeclaredFields()) {
+                final Object value = f.get(inObj);
+                if (value != null) {
+                    final String name = f.getName();
+                    final Field toUpdateF = toUpdate.getClass().getField(name);
+                    toUpdateF.set(toUpdate, value);
+                }
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            logger.error("", e);
+        }
     }
 
     private void updateOkexSettlement(@RequestBody Settings settingsUpdate, Settings settings) {
