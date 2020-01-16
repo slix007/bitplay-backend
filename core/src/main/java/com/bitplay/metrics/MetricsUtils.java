@@ -42,7 +42,7 @@ public class MetricsUtils {
         }
         if (b.getMarketTransactTime() != null && b.getGetAnswerFromPlacing() != null) {
             ms7 = Duration.between(b.getMarketTransactTime(), b.getGetAnswerFromPlacing()).toMillis();
-            d.getBitmex_plBefore_6().record(ms6, TimeUnit.MILLISECONDS);
+            d.getBitmex_plBefore_7().record(ms7, TimeUnit.MILLISECONDS);
         }
         logger.info(String.format("plBefore ms: %s %s %s %s %s %s %s", ms1, ms2, ms3, ms4, ms5, ms6, ms7));
     }
