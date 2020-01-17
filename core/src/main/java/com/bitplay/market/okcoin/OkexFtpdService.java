@@ -40,7 +40,8 @@ public class OkexFtpdService {
             return BigDecimal.ZERO;
         }
         //Если bod_max < bod или bod_min < bod, то FTPD == 0, вне зависимости от выбранного типа pts или percent.
-        if (bodMax.compareTo(okexFtpd.getOkexFtpdBod()) < 0 || bodMin.compareTo(okexFtpd.getOkexFtpdBod()) < 0) {
+        final BigDecimal bod = okexFtpd.getOkexFtpdBod();
+        if (bodMax.compareTo(bod) < 0 || bodMin.compareTo(bod) < 0) {
             throttledLog.warn(getFtpdDetails(okexFtpd));
             return BigDecimal.ZERO;
         }
@@ -55,7 +56,8 @@ public class OkexFtpdService {
         BigDecimal bodOne = orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID
                 ? bodMin
                 : bodMax; // orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK
-        return bodOne.multiply(okexFtpd.getOkexFtpd()).divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
+        final BigDecimal divide = bodOne.multiply(okexFtpd.getOkexFtpd()).divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
+        return divide;
 
     }
 

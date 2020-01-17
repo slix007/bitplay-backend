@@ -1043,8 +1043,6 @@ public class OkCoinService extends MarketServicePreliq {
 
             BigDecimal thePrice = createBestTakerPrice(orderType, null, okexContractType);
 
-            getTradeLogger().info("The fake taker price is " + thePrice.toPlainString());
-
             // metrics
             final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
             final Instant startReq = Instant.now();
@@ -2072,7 +2070,7 @@ public class OkCoinService extends MarketServicePreliq {
         final OkexFtpd okexFtpd = settings.getOkexFtpd();
         final BigDecimal priceForTaker = okexFtpdService.createPriceForTaker(orderType, priceRange, okexFtpd);
         final BigDecimal thePrice = priceForTaker.setScale(contractType.getScale(), RoundingMode.HALF_UP); // .00 -> .000 for eth
-        final String ftpdDetails = String.format("The fake taker price is %s; %s; %s",
+        final String ftpdDetails = String.format("FTP=%s; %s; %s",
                 thePrice.toPlainString(), okexFtpdService.getFtpdDetails(okexFtpd), priceRange);
         getTradeLogger().info(ftpdDetails);
         logger.info(ftpdDetails);
@@ -2925,7 +2923,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             final OkexFtpd okexFtpd = settingsRepositoryService.getSettings().getOkexFtpd();
             final BigDecimal thePrice = okexFtpdService.createPriceForTaker(orderType, priceRange, okexFtpd);
-            final String ftpdDetails = String.format("The fake taker price is %s; %s; %s",
+            final String ftpdDetails = String.format("FTP=%s; %s; %s",
                     thePrice.toPlainString(), okexFtpdService.getFtpdDetails(okexFtpd), priceRange);
             getTradeLogger().info(ftpdDetails);
             logger.info(ftpdDetails);
