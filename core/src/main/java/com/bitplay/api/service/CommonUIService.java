@@ -42,6 +42,7 @@ import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.okcoin.OkexFtpdService;
 import com.bitplay.market.okcoin.OkexSettlementService;
 import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.LastPriceDeviationService;
@@ -57,6 +58,7 @@ import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.mon.MonRestart;
+import com.bitplay.persistance.domain.settings.OkexFtpd;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.security.TraderPermissionsService;
@@ -154,6 +156,9 @@ public class CommonUIService {
 
     @Autowired
     private NtUsdRecoveryService ntUsdRecoveryService;
+
+    @Autowired
+    private OkexFtpdService okexFtpdService;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -372,6 +377,8 @@ public class CommonUIService {
         final OrderPortionsJson orderPortionsJson = new OrderPortionsJson(bitmexService.getPortionsProgressForUi(), okCoinService.getPortionsProgressForUi());
 
         final DqlState dqlState = dqlStateService.getCommonDqlState();
+        final OkexFtpd okexFtpd = settingsRepositoryService.getSettings().getOkexFtpd();
+        final String ftpdDetails = okexFtpdService.getFtpdDetails(okexFtpd);
 
         return new MarketStatesJson(
                 btmState.toString(),
@@ -394,7 +401,8 @@ public class CommonUIService {
                 okexSettlementService.isSettlementMode(),
                 LocalTime.now().toString(),
                 dqlState,
-                traderPermissionsService.getSebestStatus()
+                traderPermissionsService.getSebestStatus(),
+                ftpdDetails
         );
     }
 

@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 @ChangeLog
 public class Changelog0116 {
 
-    @ChangeSet(order = "2020-01-16", id = "2020-01-16: okex ftpd percent", author = "SergeiShurmin")
+    @ChangeSet(order = "2020-01-16", id = "2020-01-16: okex ftpd percent.", author = "SergeiShurmin")
     public void change01(MongoTemplate mongoTemplate) {
         final Settings settings = mongoTemplate.findById(1L, Settings.class);
         final BigDecimal okexFakeTakerDev = settings.getOkexFtpd() != null
@@ -25,7 +25,7 @@ public class Changelog0116 {
 
         Query query = new Query();
         Update update = new Update();
-        update.set("okexFtpd.okexFtpdPts", okexFakeTakerDev);
+        update.set("okexFtpd.okexFtpd", okexFakeTakerDev);
         update.set("okexFtpd.okexFtpdBod", BigDecimal.ZERO);
         update.set("okexFtpd.okexFtpdType", OkexFtpd.OkexFtpdType.PTS);
         mongoTemplate.updateMulti(query, update, "settingsCollection");
