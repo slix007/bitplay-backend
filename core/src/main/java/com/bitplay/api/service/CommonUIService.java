@@ -378,7 +378,7 @@ public class CommonUIService {
 
         final DqlState dqlState = dqlStateService.getCommonDqlState();
         final OkexFtpd okexFtpd = settingsRepositoryService.getSettings().getOkexFtpd();
-        final String ftpdDetails = okexFtpdService.getFtpdDetails(okexFtpd);
+        final String ftpdDetails = okexFtpdService.getFtpdBodDetails(okexFtpd);
 
         return new MarketStatesJson(
                 btmState.toString(),

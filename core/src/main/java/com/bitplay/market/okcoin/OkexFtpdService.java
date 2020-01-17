@@ -2,7 +2,6 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.arbitrage.dto.ThrottledWarn;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.OkexFtpd;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
 import lombok.RequiredArgsConstructor;
@@ -87,5 +86,12 @@ public class OkexFtpdService {
         }
         return String.format("FTPD(percent)=%s, bod=%s, bod_max=%s, bod_min=%s", okexFtpd.getOkexFtpd(), okexFtpd.getOkexFtpdBod(),
                 bodMax, bodMin);
+    }
+
+    public String getFtpdBodDetails(OkexFtpd okexFtpd) {
+        if (okexFtpd.getOkexFtpdType() == OkexFtpd.OkexFtpdType.PTS) {
+            return "";
+        }
+        return String.format("bod_max=%s, bod_min=%s", bodMax, bodMin);
     }
 }
