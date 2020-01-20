@@ -18,6 +18,7 @@ import com.bitplay.api.dto.pos.PosDiffJson;
 import com.bitplay.api.dto.states.DelayTimerBuilder;
 import com.bitplay.api.dto.states.DelayTimerJson;
 import com.bitplay.api.dto.states.MarketStatesJson;
+import com.bitplay.api.dto.states.OkexFtpdJson;
 import com.bitplay.api.dto.states.OrderPortionsJson;
 import com.bitplay.api.dto.states.SignalPartsJson;
 import com.bitplay.api.dto.states.SignalPartsJson.Status;
@@ -378,7 +379,7 @@ public class CommonUIService {
 
         final DqlState dqlState = dqlStateService.getCommonDqlState();
         final OkexFtpd okexFtpd = settingsRepositoryService.getSettings().getOkexFtpd();
-        final String ftpdDetails = okexFtpdService.getFtpdBodDetails(okexFtpd);
+        final OkexFtpdJson okexFtpdJson = new OkexFtpdJson(okexFtpd.getOkexFtpdBod(), okexFtpdService.getBodMax(), okexFtpdService.getBodMin());
 
         return new MarketStatesJson(
                 btmState.toString(),
@@ -402,7 +403,7 @@ public class CommonUIService {
                 LocalTime.now().toString(),
                 dqlState,
                 traderPermissionsService.getSebestStatus(),
-                ftpdDetails
+                okexFtpdJson
         );
     }
 

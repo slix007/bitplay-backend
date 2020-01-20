@@ -37,7 +37,7 @@ public class MarketStatesJson {
     String nowMomentStr;
     DqlState dqlState;
     SebestStatus sebestStatus;
-    String ftpdDetails;
+    OkexFtpdJson okexFtpdJson;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;
