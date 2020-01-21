@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -216,7 +217,8 @@ public class BordersServiceTest {
         assertEquals(signal.okexBlock, 600);
     }
 
-//    @Test
+    @Test
+    @Ignore
     public void test_Dynamic_b_br_close() {
 //        B_delta: +52
 //        O_delta: -54
@@ -227,7 +229,6 @@ public class BordersServiceTest {
         // delta1 == // b_bid[0] - o_ask[1]
         final BigDecimal delta1 = BigDecimal.valueOf(52);
         final BigDecimal delta2 = BigDecimal.valueOf(-54);
-        System.out.println("D1=" + delta1 + ", D2=" + delta2);
         //D1=-54, D2=52
         final BigDecimal bP = BigDecimal.valueOf(2000 * 100);
         final BigDecimal oPL = BigDecimal.valueOf(400); // +400 -2300  (-1900)
@@ -440,7 +441,8 @@ public class BordersServiceTest {
      если x_delta {входит} в
 
      */
-//    @Test
+    @Ignore
+    @Test
     public void test_Example1() {
         borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
@@ -500,14 +502,14 @@ public class BordersServiceTest {
         borderOkexOpen.add(new BorderItem(1, BigDecimal.valueOf(0.1), 40, 40));
         borderOkexOpen.add(new BorderItem(2, BigDecimal.valueOf(0.2), 50, 50));
         borderOkexOpen.add(new BorderItem(3, BigDecimal.valueOf(0.3), 100, 100));
-//        borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(1), 2000, 2000));
+        borderOkexOpen.add(new BorderItem(4, BigDecimal.valueOf(1), 2000, 2000));
 //        borderOkexOpen.add(new BorderItem(5, BigDecimal.valueOf(60), 2500, 2500));
         borders.add(new BorderTable("o_br_open", borderOkexOpen));
 
         return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)), true);
     }
 
-//    @Test
+    @Test
     public void test_maxBorder_FIXED_SMALL() {
         initEthOrderBooks();
         borderParams = createDefaultBorders_dynAffordable();
@@ -537,7 +539,7 @@ public class BordersServiceTest {
         assertEquals(BigDecimal.valueOf(0.2), signal.getMaxBorder()); // borderItem val=0.3 is skipped, because FIXED step is small
     }
 
-//    @Test
+    @Test
     public void test_maxBorder_Dynamic_SMALL() {
         initEthOrderBooks();
         borderParams = createDefaultBorders_dynAffordable();
@@ -627,7 +629,7 @@ public class BordersServiceTest {
         // okex 7 cont when pos -3, borderItem(id=3, val=0.3, pSL=10)
     }
 
-//    @Test
+    @Test
     public void test_affordable_DYNAMIC_big_step() {
         initEthOrderBooks();
         borderParams = createDefaultBorders_dynAffordable();
@@ -652,7 +654,7 @@ public class BordersServiceTest {
 
         System.out.println(signal.toString());
 
-        assertEquals(BigDecimal.valueOf(0.2), signal.getMaxBorder());
+        assertEquals(BigDecimal.valueOf(0.3), signal.getMaxBorder());
         // okex 7 cont when pos -3, borderItem(id=3, val=0.3, pSL=10)
         assertEquals(15, signal.bitmexBlock);
         assertEquals(6, signal.okexBlock);
@@ -714,7 +716,8 @@ public class BordersServiceTest {
         return toUsd(new BorderParams(BorderParams.Ver.V2, new BordersV1(), new BordersV2(borders)));
     }
 
-//    @Test
+    @Ignore
+    @Test
     public void test_eth_cm() {
         borderParams = createDefaultBorders5();
         when(persistenceService.fetchBorders()).thenReturn(borderParams);

@@ -464,6 +464,9 @@ public class BordersService {
                             if (m > btm_br_close_calc_block) {
                                 break;
                             }
+                            if (m >= block) { // do not cross more than maxBlock
+                                break;
+                            }
                         }
 
                         int posShortLimit = usdToCont(borderItem.getPosShortLimit());
@@ -501,6 +504,9 @@ public class BordersService {
                                     .append(",b=").append(b)
                                     .append(",full_b=").append(btm_br_close_calc_block);
                             if (m > btm_br_close_calc_block) {
+                                break;
+                            }
+                            if (m >= block) { // do not cross more than maxBlock
                                 break;
                             }
                         }
@@ -598,6 +604,9 @@ public class BordersService {
                         if (m > btm_br_open_calc_block) {
                             break;
                         }
+                        if (m >= block) { // do not cross more than maxBlock
+                            break;
+                        }
                     }
 
                     int posShortLimit = usdToCont(borderItem.getPosShortLimit());
@@ -635,6 +644,9 @@ public class BordersService {
                                 .append(",b=").append(b)
                                 .append(",full_b=").append(btm_br_open_calc_block);
                         if (m > btm_br_open_calc_block) {
+                            break;
+                        }
+                        if (m >= block) { // do not cross more than maxBlock
                             break;
                         }
                     }
@@ -757,6 +769,9 @@ public class BordersService {
                             if (m > ok_br_close_calc_block) {
                                 break;
                             }
+                            if (m >= block) { // do not cross more than maxBlock
+                                break;
+                            }
                         }
 
                         int posShortLimit = usdToCont(borderItem.getPosShortLimit());
@@ -796,7 +811,9 @@ public class BordersService {
                             if (m > ok_br_close_calc_block) {
                                 break;
                             }
-
+                            if (m >= block) { // do not cross more than maxBlock
+                                break;
+                            }
                         }
                     }
                 }
@@ -834,7 +851,7 @@ public class BordersService {
         int ok_lvl_max_limit = 0;
         int ok_lvl_block_limit = 0;
         int b = 0; // block of crossing a borderItem by: [DYNAMIC: amount from OrderBooks] || [FIXED: block or block_once(limited to the borderItem)]
-        int m = 0; // block of crossing a borderItem by pos.
+        int m = 0; // block of crossing a borderItems by pos.
         int ok_br_open_calc_block = 0;
         StringBuilder borderValue = new StringBuilder();
         List<BigDecimal> borderValueList = new ArrayList<>();
@@ -862,6 +879,7 @@ public class BordersService {
                             }
                         } else { // DYNAMIC
                             b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, borderItem.getValue(), cm);
+                            //b = Math.min(b, block);
                         }
                         m = posLongLimit - pos;
                         if (m > ok_lvl_max_limit) {
@@ -882,6 +900,9 @@ public class BordersService {
                                 .append(",b=").append(b)
                                 .append(",full_b=").append(ok_br_open_calc_block);
                         if (m > ok_br_open_calc_block) {
+                            break;
+                        }
+                        if (m >= block) { // do not cross more than maxBlock
                             break;
                         }
                     }
@@ -921,6 +942,9 @@ public class BordersService {
                                 .append(",b=").append(b)
                                 .append(",full_b=").append(ok_br_open_calc_block);
                         if (m > ok_br_open_calc_block) {
+                            break;
+                        }
+                        if (m >= block) { // do not cross more than maxBlock
                             break;
                         }
                     }
