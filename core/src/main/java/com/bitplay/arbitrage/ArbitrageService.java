@@ -166,17 +166,19 @@ public class ArbitrageService {
     //    private Disposable schdeduleUpdateBorders;
 //    private Instant startTimeToUpdateBorders;
 //    private volatile int updateBordersCounter;
-    //TODO rename them to first and second
-    private MarketServicePreliq firstMarketService;
-    private MarketServicePreliq secondMarketService;
-    private PosDiffService posDiffService;
-    private BigDecimal delta1 = BigDecimal.ZERO;
-    private BigDecimal delta2 = BigDecimal.ZERO;
-    private GuiParams params = new GuiParams();
-    private BigDecimal bEbest = BigDecimal.ZERO;
-    private BigDecimal oEbest = BigDecimal.ZERO;
-    private BigDecimal sumEBestUsd = BigDecimal.valueOf(-1);
-    private String sumBalString = "";
+    private Disposable btmFreeListener;
+    private Disposable okexFreeListener;
+
+    private volatile MarketServicePreliq firstMarketService;
+    private volatile MarketServicePreliq secondMarketService;
+    private volatile PosDiffService posDiffService;
+    private volatile BigDecimal delta1 = BigDecimal.ZERO;
+    private volatile BigDecimal delta2 = BigDecimal.ZERO;
+    private volatile GuiParams params = new GuiParams();
+    private volatile BigDecimal bEbest = BigDecimal.ZERO;
+    private volatile BigDecimal oEbest = BigDecimal.ZERO;
+    private volatile BigDecimal sumEBestUsd = BigDecimal.valueOf(-1);
+    private volatile String sumBalString = "";
 //    private volatile Boolean isReadyForTheArbitrage = true;
 //    private Disposable theTimer;
     private Disposable theCheckBusyTimer;
@@ -289,8 +291,8 @@ public class ArbitrageService {
         final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
         final Scheduler schedulerStarter = Schedulers.from(executor);
 
-        Disposable btmFreeListener = gotFreeListener(firstMarketService.getEventBus(), schedulerStarter, BitmexService.NAME);
-        Disposable okFreeListener = gotFreeListener(secondMarketService.getEventBus(), schedulerStarter, OkCoinService.NAME);
+        btmFreeListener = gotFreeListener(firstMarketService.getEventBus(), schedulerStarter, BitmexService.NAME);
+        okexFreeListener = gotFreeListener(secondMarketService.getEventBus(), schedulerStarter, OkCoinService.NAME);
     }
 
     private Disposable gotFreeListener(EventBus eventBus, Scheduler scheduler, String marketName) {
