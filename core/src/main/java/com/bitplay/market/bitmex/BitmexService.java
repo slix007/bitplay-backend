@@ -2214,6 +2214,7 @@ public class BitmexService extends MarketServicePreliq {
                             price, bid1, FOK_Max_diff, delta, maxBorder, deltaMinusMaxBorder, FOK_total_diff, btmFokArgs.getAllBorders()));
                 }
             }
+            fokExtraLogs.append(Utils.getTenAskBid(orderBook, "", ""));
             tryPrintZeroPriceWarning(price);
             return price;
         }
