@@ -1997,7 +1997,8 @@ public class BitmexService extends MarketServicePreliq {
 
                             resultOrder = bitmexTradeService.placeMarketOrderFillOrKill(marketOrder, symbol, thePrice, scale);
                             if (resultOrder.getStatus() == OrderStatus.CANCELED) {
-                                extraLog = "order had timeInForce of FillOrKill";
+                                extraLog = "order had timeInForce of FillOrKill. "
+                                        + Utils.getTenAskBid(orderBook, counterName, "Bitmex OrderBook");
                                 nextMarketState = MarketState.READY;
                             }
                         } else {
@@ -2214,7 +2215,7 @@ public class BitmexService extends MarketServicePreliq {
                             price, bid1, FOK_Max_diff, delta, maxBorder, deltaMinusMaxBorder, FOK_total_diff, btmFokArgs.getAllBorders()));
                 }
             }
-            fokExtraLogs.append(Utils.getTenAskBid(orderBook, "", ""));
+            fokExtraLogs.append(Utils.getTenAskBid(orderBook, "", "Bitmex OrderBook"));
             tryPrintZeroPriceWarning(price);
             return price;
         }

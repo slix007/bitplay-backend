@@ -226,11 +226,13 @@ public class Utils {
             }
         }
 
+        //noinspection UnnecessaryLocalVariable
         final String message = String.format(
-                "#%s %s: %s",
+                "#%s %s: %s, OB_timestamp: %s",
                 counterName,
                 description,
-                obBuilder.toString()
+                obBuilder.toString(),
+                orderBook.getTimeStamp()
         );
         return message;
     }
