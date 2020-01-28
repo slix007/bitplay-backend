@@ -1900,7 +1900,7 @@ public class BitmexService extends MarketServicePreliq {
                             orderBook = bestQuotes.getBtmOrderBook();
                             bestQuotes.setBtmOrderBook(null);
                             final String message = String.format("#%s placing %s using btmObTimestamp=%s",
-                                    counterName, orderType, Utils.dateToString(orderBook.getTimeStamp()));
+                                    counterName, orderType, Utils.getTenAskBid(orderBook, counterName, "Bitmex orderBook"));
                             tradeLogger.info(message, contractTypeStr);
 
                         } else {

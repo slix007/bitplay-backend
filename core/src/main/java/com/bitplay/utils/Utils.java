@@ -232,7 +232,7 @@ public class Utils {
                 counterName,
                 description,
                 obBuilder.toString(),
-                orderBook.getTimeStamp()
+                Utils.dateToString(orderBook.getTimeStamp())
         );
         return message;
     }
