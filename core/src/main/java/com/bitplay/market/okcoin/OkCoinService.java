@@ -326,7 +326,7 @@ public class OkCoinService extends MarketServicePreliq {
         started = true;
     }
 
-    @Scheduled(initialDelay = 120, fixedDelay = 60)
+    @Scheduled(initialDelay = 120 * 1000, fixedDelay = 60 * 1000)
     public void checkExchange() {
         if (fplayOkexExchange == null || fplayOkexExchange.getPrivateApi() == null || fplayOkexExchange.getPrivateApi().notCreated()) {
             final String msg = "OkexExchange is not fully created. Re-create it.";

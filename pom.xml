@@ -32,6 +32,13 @@
     <name>bitplay-aggregator</name>
     <description>Aggregator for bitplay</description>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>vmlens</id>
+            <url>https://vmlens.com/download</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <build>
         <plugins>
             <!-- for deploying to Maven Central -->
@@ -60,6 +67,30 @@
                     </filesets>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>com.vmlens</groupId>
+                <artifactId>interleave</artifactId>
+                <version>1.0.8</version>
+                <configuration>
+<!--                    <trimStackTrace>false</trimStackTrace>-->
+<!--                    <trace>-->
+<!--                        <method>com.vmlens.test.state.report.**</method>-->
+<!--                    </trace>-->
+                    <suppress>
+                        <race>Array@io.micrometer.shaded.io.netty.util.Recycler$WeakOrderQueue.add</race>
+                        <race>io.micrometer.shaded.**</race>
+                    </suppress>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 
