@@ -30,6 +30,7 @@ public class MarketStatesJson {
     DelayTimerJson corrDelay;
     DelayTimerJson posAdjustmentDelay;
     DelayTimerJson preliqDelay;
+    DelayTimerJson killposDelay;
     SignalPartsJson signalParts;
     PosDiffJson posDiffJson;
     OrderPortionsJson orderPortionsJson;

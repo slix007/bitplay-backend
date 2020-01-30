@@ -336,6 +336,7 @@ public class CommonUIService {
         DelayTimerJson corrDelay = getCorrDelay();
         DelayTimerJson posAdjustmentDelay = getPosAdjustmentDelay();
         DelayTimerJson preliqDelay = getPreliqDelay();
+        DelayTimerJson killposDelay = getKillposDelay();
 
         final String timeToSignal = arbitrageService.getTimeToSignal();
 
@@ -396,6 +397,7 @@ public class CommonUIService {
                 corrDelay,
                 posAdjustmentDelay,
                 preliqDelay,
+                killposDelay,
                 signalPartsJson,
                 posDiff,
                 orderPortionsJson,
@@ -477,6 +479,18 @@ public class CommonUIService {
 
     private DelayTimerJson getPreliqDelay() {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPreliqDelaySec();
+
+        long btmToStart = bitmexService.getDtPreliq().secToReady(delaySec);
+        long okToStart = okCoinService.getDtPreliq().secToReady(delaySec);
+
+        return DelayTimerBuilder.createEmpty(delaySec)
+                .addTimer(btmToStart, "bitmex")
+                .addTimer(okToStart, "okex")
+                .toJson();
+    }
+
+    private DelayTimerJson getKillposDelay() {
+        final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getKillposDelaySec();
 
         long btmToStart = bitmexService.getDtPreliq().secToReady(delaySec);
         long okToStart = okCoinService.getDtPreliq().secToReady(delaySec);

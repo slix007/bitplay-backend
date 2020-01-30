@@ -18,6 +18,7 @@ public class PosAdjustment implements Cloneable {
     private Integer posAdjustmentDelaySec;
     private Integer corrDelaySec;
     private Integer preliqDelaySec;
+    private Integer killposDelaySec;
 
     public static PosAdjustment createDefault() {
         final PosAdjustment adj = new PosAdjustment();
@@ -27,6 +28,7 @@ public class PosAdjustment implements Cloneable {
         adj.setPosAdjustmentDelaySec(25);
         adj.setCorrDelaySec(25);
         adj.setPreliqDelaySec(25);
+        adj.setKillposDelaySec(25);
         return adj;
     }
 
@@ -39,6 +41,7 @@ public class PosAdjustment implements Cloneable {
         clone.setPosAdjustmentDelaySec(this.posAdjustmentDelaySec);
         clone.setCorrDelaySec(this.corrDelaySec);
         clone.setPreliqDelaySec(this.preliqDelaySec);
+        clone.setKillposDelaySec(this.killposDelaySec);
         return clone;
     }
 }

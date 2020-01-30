@@ -237,6 +237,12 @@ public class SettingsEndpoint {
                 bitmexService.getDtPreliq().stop();
                 okCoinService.getDtPreliq().stop();
             }
+            if (update.getKillposDelaySec() != null) {
+                current.setKillposDelaySec(update.getKillposDelaySec());
+                settingsRepositoryService.saveSettings(settings);
+                bitmexService.getDtPreliq().stop();
+                okCoinService.getDtPreliq().stop();
+            }
             settingsRepositoryService.saveSettings(settings);
         }
 
@@ -571,6 +577,12 @@ public class SettingsEndpoint {
             }
             if (update.getPreliqDelaySec() != null) {
                 current.setPreliqDelaySec(update.getPreliqDelaySec());
+                settingsRepositoryService.saveSettings(mainSettings);
+                bitmexService.getDtPreliq().stop();
+                okCoinService.getDtPreliq().stop();
+            }
+            if (update.getKillposDelaySec() != null) {
+                current.setKillposDelaySec(update.getKillposDelaySec());
                 settingsRepositoryService.saveSettings(mainSettings);
                 bitmexService.getDtPreliq().stop();
                 okCoinService.getDtPreliq().stop();
