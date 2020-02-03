@@ -1,4 +1,4 @@
-package com.bitplay.persistance.migration.changelogs.y2019;
+package com.bitplay.persistance.migration.changelogs.y2020;
 
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.github.mongobee.changeset.ChangeLog;
@@ -11,13 +11,21 @@ import org.springframework.data.mongodb.core.query.Update;
  * Created by Sergey Shurmin on 3/31/18.
  */
 @ChangeLog
-public class Changelog1104 {
+public class Changelog0131 {
 
-    @ChangeSet(order = "2019-11-04", id = "2019-11-04: recovery nt_usd maxBlockUsd", author = "SergeiShurmin")
+    @ChangeSet(order = "2020-01-31", id = "2020-01-31: killpos timer", author = "SergeiShurmin")
     public void change01(MongoTemplate mongoTemplate) {
         Query query = new Query();
         Update update = new Update();
-        update.set("recoveryNtUsd.maxBlockUsd", 0);
+        update.set("killpos.preliqBlockUsd", 0);
+        update.set("killpos.currErrorCount", 0);
+        update.set("killpos.maxErrorCount", 0);
+        update.set("killpos.totalCount", 0);
+        update.set("killpos.succeedCount", 0);
+        update.set("killpos.failedCount", 0);
+        update.set("killpos.maxTotalCount", 0);
         mongoTemplate.updateMulti(query, update, CorrParams.class);
     }
+
+
 }

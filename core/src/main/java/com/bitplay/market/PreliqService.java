@@ -44,9 +44,8 @@ public class PreliqService {
 
     private final MarketServicePreliq marketService;
 
-    protected final DelayTimer dtPreliq = new DelayTimer();
-
-    protected final ScheduledExecutorService scheduler = SchedulerUtils.singleThreadExecutor("extraClose-%d");
+    private final DelayTimer dtPreliq = new DelayTimer();
+    private final DelayTimer dtKillpos = new DelayTimer();
 
     public void checkForPreliq() {
         Instant start = Instant.now();
@@ -56,6 +55,7 @@ public class PreliqService {
 
         if (arbitrageService.isArbStateStopped()) {
             dtPreliq.stop();
+            dtKillpos.stop();
             return;
         }
 
@@ -80,6 +80,7 @@ public class PreliqService {
             }
             resetPreliqState();
             dtPreliq.stop();
+            dtKillpos.stop();
         } else if (!marketService.getLimitsService().outsideLimitsForPreliq(posVal)
                 && !posZeroViolation(pos)
                 && corrParams.getPreliq().hasSpareAttempts()
@@ -134,6 +135,7 @@ public class PreliqService {
                         }
                         log.info("dtPreliq stop after successful preliq");
                         dtPreliq.stop(); //after successful start
+                        dtKillpos.stop();
 
                     } // else stay _ready_
 
@@ -141,10 +143,12 @@ public class PreliqService {
             } else {
                 resetPreliqState();
                 dtPreliq.stop();
+                dtKillpos.stop();
             }
         } else {
             resetPreliqState();
             dtPreliq.stop();
+            dtKillpos.stop();
             maxCountNotify(corrParams.getPreliq());
         }
         Instant end = Instant.now();

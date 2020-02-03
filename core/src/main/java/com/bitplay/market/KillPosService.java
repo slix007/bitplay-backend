@@ -12,7 +12,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
-@Getter
 @Slf4j
 public class KillPosService {
 

@@ -20,6 +20,7 @@ public class CorrParams extends ExchangePairDocument {
 
     private Corr corr;
     private Preliq preliq;
+    private Preliq killpos;
     private Adj adj;
     private RecoveryNtUsd recoveryNtUsd;
 
@@ -27,6 +28,7 @@ public class CorrParams extends ExchangePairDocument {
         final CorrParams corrParams = new CorrParams();
         corrParams.corr = Corr.createDefault();
         corrParams.preliq = Preliq.createDefault();
+        corrParams.killpos = Preliq.createDefault();
         corrParams.adj = Adj.createDefault();
         corrParams.recoveryNtUsd = RecoveryNtUsd.createDefault();
 

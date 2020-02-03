@@ -71,7 +71,7 @@ public class DqlStateService {
     }
 
     public DqlState updateBtmDqlState(BigDecimal btmDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
-        btmState = setMarketState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, btmState);
+        btmState = defineDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, btmState);
         if (btmState.isClose()) {
             slackNotifications.sendNotify(NotifyType.BITMEX_DQL_OPEN_MIN, String.format("%s DQL(%s) < DQL_open_min(%s)",
                     MarketStaticData.BITMEX.getName(), dqlCurr, bDQLOpenMin));
@@ -83,7 +83,7 @@ public class DqlStateService {
     }
 
     public DqlState updateOkexDqlState(BigDecimal okexDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
-        okexState = setMarketState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr, okexState);
+        okexState = defineDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr, okexState);
         if (okexState.isClose()) {
             slackNotifications.sendNotify(NotifyType.OKEX_DQL_OPEN_MIN, String.format("%s DQL(%s) < DQL_open_min(%s)",
                     MarketStaticData.OKEX.getName(), dqlCurr, oDQLOpenMin));
@@ -93,7 +93,7 @@ public class DqlStateService {
         return okexState;
     }
 
-    private DqlState setMarketState(BigDecimal xDQLKillPos, BigDecimal xDQLOpenMin, BigDecimal xDQLCloseMin, BigDecimal dqlCurr,
+    private DqlState defineDqlState(BigDecimal xDQLKillPos, BigDecimal xDQLOpenMin, BigDecimal xDQLCloseMin, BigDecimal dqlCurr,
                                     DqlState currState) {
         //TODO send event to check preliq/killpos
         final DqlState resState;

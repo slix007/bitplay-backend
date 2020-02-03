@@ -72,6 +72,10 @@ public class SettingsCorrEndpoint {
             corrParams.getPreliq().setTotalCount(0);
             corrParams.getPreliq().setFailedCount(0);
             corrParams.getPreliq().setCurrErrorCount(0);
+            corrParams.getKillpos().setSucceedCount(0);
+            corrParams.getKillpos().setTotalCount(0);
+            corrParams.getKillpos().setFailedCount(0);
+            corrParams.getKillpos().setCurrErrorCount(0);
             corrParams.getAdj().setSucceedCount(0);
             corrParams.getAdj().setFailedCount(0);
             corrParams.getAdj().setTotalCount(0);
@@ -87,23 +91,17 @@ public class SettingsCorrEndpoint {
         CorrParams corrParams = persistenceService.fetchCorrParams();
         if (anUpdate != null) {
             if (anUpdate.getPreliq() != null) {
-                final Preliq uPreliq = anUpdate.getPreliq();
-                if (uPreliq.getPreliqBlockUsd() != null) {
-                    corrParams.getPreliq().setPreliqBlockUsd(uPreliq.getPreliqBlockUsd());
-                    persistenceService.saveCorrParams(corrParams);
-                }
-                if (uPreliq.getMaxErrorCount() != null) {
-                    corrParams.getPreliq().setMaxErrorCount(uPreliq.getMaxErrorCount());
-                    persistenceService.saveCorrParams(corrParams);
-                    bitmexService.getDtPreliq().stop();
-                    okCoinService.getDtPreliq().stop();
-                }
-                if (uPreliq.getMaxTotalCount() != null) {
-                    corrParams.getPreliq().setMaxTotalCount(uPreliq.getMaxTotalCount());
-                    persistenceService.saveCorrParams(corrParams);
-                    bitmexService.getDtPreliq().stop();
-                    okCoinService.getDtPreliq().stop();
-                }
+                DtoHelpter.updateNotNullFields(anUpdate.getPreliq(), corrParams.getPreliq());
+                persistenceService.saveCorrParams(corrParams);
+                bitmexService.getDtPreliq().stop();
+                okCoinService.getDtPreliq().stop();
+            }
+
+            if (anUpdate.getKillpos() != null) {
+                DtoHelpter.updateNotNullFields(anUpdate.getKillpos(), corrParams.getKillpos());
+                persistenceService.saveCorrParams(corrParams);
+                bitmexService.getDtPreliq().stop();
+                okCoinService.getDtPreliq().stop();
             }
             if (anUpdate.getCorr() != null) {
                 final Corr uCorr = anUpdate.getCorr();

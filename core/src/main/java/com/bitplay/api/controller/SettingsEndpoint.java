@@ -327,7 +327,7 @@ public class SettingsEndpoint {
             resetPreset = false;
         }
         if (settingsUpdate.getOkexFtpd() != null) {
-            updateNotNullFields(settingsUpdate.getOkexFtpd(), settings.getOkexFtpd());
+            DtoHelpter.updateNotNullFields(settingsUpdate.getOkexFtpd(), settings.getOkexFtpd());
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getAdjustByNtUsd() != null) {
@@ -441,25 +441,6 @@ public class SettingsEndpoint {
         setTransientFields(settings);
 
         return settings;
-    }
-
-    public void updateNotNullFields(Object inObj, Object toUpdate) {
-        try {
-            for (Field f : inObj.getClass().getDeclaredFields()) {
-                f.setAccessible(true);
-                final Object value = f.get(inObj);
-                if (value != null) {
-                    final String name = f.getName();
-                    final Field toUpdateF = toUpdate.getClass().getDeclaredField(name);
-                    toUpdateF.setAccessible(true);
-                    toUpdateF.set(toUpdate, value);
-                    toUpdateF.setAccessible(false);
-                }
-                f.setAccessible(false);
-            }
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            logger.error("", e);
-        }
     }
 
     private void updateOkexSettlement(@RequestBody Settings settingsUpdate, Settings settings) {
