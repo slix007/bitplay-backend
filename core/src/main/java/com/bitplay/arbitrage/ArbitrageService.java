@@ -925,13 +925,12 @@ public class ArbitrageService {
     public void resetArbStatePreliq() {
         if (dqlStateService.isPreliq()) {
             if (firstMarketService.noPreliq() && secondMarketService.noPreliq()) {
-                dqlStateService.tryResetPreliq();
                 final DqlState dqlState1 = firstMarketService.updateDqlState();
                 final DqlState dqlState2 = secondMarketService.updateDqlState();
-                if (firstMarketService.getMarketState() == MarketState.PRELIQ && !dqlState1.isActiveClose()) {
+                if (firstMarketService.getMarketState().isActiveClose() && !dqlState1.isActiveClose()) {
                     firstMarketService.setMarketState(MarketState.READY);
                 }
-                if (secondMarketService.getMarketState() == MarketState.PRELIQ && !dqlState2.isActiveClose()) {
+                if (secondMarketService.getMarketState().isActiveClose() && !dqlState2.isActiveClose()) {
                     secondMarketService.setMarketState(MarketState.READY);
                 }
             }

@@ -20,7 +20,6 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.PlacingType;
-import com.bitplay.utils.SchedulerUtils;
 import com.bitplay.utils.Utils;
 import lombok.Data;
 import lombok.Getter;
@@ -31,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.concurrent.ScheduledExecutorService;
 
 import static org.knowm.xchange.dto.Order.OrderType;
 
@@ -47,112 +45,161 @@ public class PreliqService {
     private final DelayTimer dtPreliq = new DelayTimer();
     private final DelayTimer dtKillpos = new DelayTimer();
 
-    public void checkForPreliq() {
-        Instant start = Instant.now();
-
-        final PersistenceService persistenceService = marketService.getPersistenceService();
-        final ArbitrageService arbitrageService = marketService.getArbitrageService();
-
-        if (arbitrageService.isArbStateStopped()) {
+    public void checkForPreliq(boolean settlementMode) {
+        if (settlementMode) {
+            resetPreliqState();
             dtPreliq.stop();
             dtKillpos.stop();
             return;
         }
 
-        final LiqInfo liqInfo = marketService.getLiqInfo();
-        final BigDecimal dqlCloseMin = getDqlCloseMin();
-        final BigDecimal dqlOpenMin = getDqlOpenMin();
-        final BigDecimal dqlKillPos = getDqlKillPos();
-        final Pos pos = marketService.getPos();
-        final BigDecimal posVal = pos.getPositionLong().subtract(pos.getPositionShort());
-        final CorrParams corrParams = persistenceService.fetchCorrParams();
+        Instant start = Instant.now();
+        try {
 
-        final DqlStateService dqlStateService = arbitrageService.getDqlStateService();
-        final DqlState marketDqlState = dqlStateService.updateDqlState(getName(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
-        final DqlState commonDqlState = dqlStateService.getCommonDqlState();
+            final PersistenceService persistenceService = marketService.getPersistenceService();
+            final ArbitrageService arbitrageService = marketService.getArbitrageService();
 
-        if (marketDqlState != DqlState.PRELIQ && marketDqlState != DqlState.KILLPOS) {
-            //TODO. Sometimes (DQL==na and pos==0) when it's not true.
-            // Sometimes (pos!=0 && DQL==n/a)
-            // It means okex-preliq-curr/max errors does not work
-            if (corrParams.getPreliq().tryIncSuccessful(getName())) {
-                persistenceService.saveCorrParams(corrParams);
+            if (arbitrageService.isArbStateStopped()) {
+                resetPreliqState();
+                dtPreliq.stop();
+                dtKillpos.stop();
+                return;
             }
-            resetPreliqState();
-            dtPreliq.stop();
-            dtKillpos.stop();
-        } else if (!marketService.getLimitsService().outsideLimitsForPreliq(posVal)
-                && !posZeroViolation(pos)
-                && corrParams.getPreliq().hasSpareAttempts()
-        ) {
-            final PreliqParams preliqParams = getPreliqParams(pos, posVal);
-            if (preliqParams != null && preliqParams.getPreliqBlocks() != null
-                    &&
-                    ((getName().equals(BitmexService.NAME) && preliqParams.getPreliqBlocks().getB_block().signum() > 0) ||
-                            (getName().equals(OkCoinService.NAME) && preliqParams.getPreliqBlocks().getO_block().signum() > 0))
+
+            final LiqInfo liqInfo = marketService.getLiqInfo();
+            final BigDecimal dqlCloseMin = getDqlCloseMin();
+            final BigDecimal dqlOpenMin = getDqlOpenMin();
+            final BigDecimal dqlKillPos = getDqlKillPos();
+            final Pos pos = marketService.getPos();
+            final BigDecimal posVal = pos.getPositionLong().subtract(pos.getPositionShort());
+            final CorrParams corrParams = persistenceService.fetchCorrParams();
+            maxCountNotify(corrParams.getPreliq(), "preliq");
+            maxCountNotify(corrParams.getKillpos(), "killpos");
+
+            final DqlStateService dqlStateService = arbitrageService.getDqlStateService();
+            final DqlState marketDqlState = dqlStateService.updateDqlState(getName(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
+
+            if (marketDqlState != DqlState.KILLPOS) {
+                if (corrParams.getKillpos().tryIncSuccessful(getName())) {
+                    persistenceService.saveCorrParams(corrParams);
+                }
+                dtKillpos.stop();
+            }
+
+            boolean normalDql = !marketDqlState.isActiveClose();
+            final boolean noSpareAttempts = !corrParams.getPreliq().hasSpareAttempts() && !corrParams.getKillpos().hasSpareTotalAttempts();
+            if (normalDql
+                    || posZeroViolation(pos)
+                    || marketService.getLimitsService().outsideLimitsForPreliq(posVal)
+                    || noSpareAttempts
             ) {
+                if (corrParams.getPreliq().tryIncSuccessful(getName())) {
+                    persistenceService.saveCorrParams(corrParams);
+                }
+                if (corrParams.getKillpos().tryIncSuccessful(getName())) {
+                    persistenceService.saveCorrParams(corrParams);
+                }
+                resetPreliqState();
+                dtPreliq.stop();
+                dtKillpos.stop();
+            } else {
+
+                if (marketDqlState == DqlState.KILLPOS) {
+                    dtKillpos.activate();
+                }
 
                 boolean gotActivated = dtPreliq.activate();
                 if (gotActivated) {
-                    arbitrageService.getDqlStateService().setPreliqState(commonDqlState);
                     marketService.getArbitrageService().setBusyStackChecker();
                 }
-                if (marketDqlState == DqlState.PRELIQ) {
-                    setPreliqState(marketService);
+
+                setDqlResetState(marketService, marketDqlState);
+
+                if (!persistenceService.getSettingsRepositoryService().getSettings().getManageType().isAuto()) {
+                    return; // keep timer on, but no actions
                 }
 
+                // ex: 2:o_preliq* - the counter of the possible preliq
+                final String nameSymbol = marketService.getName().substring(0, 1).toUpperCase();
+
+                // killpos timer
+                final Integer delaySecKillpos = persistenceService.getSettingsRepositoryService().getSettings().getPosAdjustment().getKillposDelaySec();
+                long secToReadyKillpos = dtKillpos.secToReadyPrecise(delaySecKillpos);
+                if (marketDqlState == DqlState.KILLPOS) {
+                    if (secToReadyKillpos > 0) {
+                        final String counterForLogs = marketService.getCounterNameNext(getSignalType()) + "*";
+                        String msg = String.format("#%s %s_KILLPOS signal mainSet. Waiting delay(sec)=%s", counterForLogs, nameSymbol, secToReadyKillpos);
+                        log.info(msg);
+                        warningLogger.info(msg);
+                        marketService.getTradeLogger().info(msg);
+                    }
+                }
+
+                // preliq timer
                 final Integer delaySec = persistenceService.getSettingsRepositoryService().getSettings().getPosAdjustment().getPreliqDelaySec();
                 long secToReady = dtPreliq.secToReadyPrecise(delaySec);
-
-                final String counterForLogs =
-                        marketService.getCounterNameNext(preliqParams.getSignalType()) + "*"; // ex: 2:o_preliq* - the counter of the possible preliq
-                final String nameSymbol = marketService.getName().substring(0, 1).toUpperCase();
                 if (secToReady > 0) {
+                    final PreliqParams preliqParams = getPreliqParams(pos, posVal);
+                    final String counterForLogs = marketService.getCounterNameNext(preliqParams.getSignalType()) + "*";
                     String msg = String.format("#%s %s_PRE_LIQ signal mainSet. Waiting delay(sec)=%s", counterForLogs, nameSymbol, secToReady);
                     log.info(msg);
                     warningLogger.info(msg);
                     marketService.getTradeLogger().info(msg);
-                } else {
+                }
 
-                    if (persistenceService.getSettingsRepositoryService().getSettings().getManageType().isAuto()) {
+                // do killpos
+                if (marketDqlState == DqlState.KILLPOS && secToReadyKillpos <= 0) {
+                    if (corrParams.getKillpos().tryIncFailed(getName())) { // previous preliq counter
+                        persistenceService.saveCorrParams(corrParams);
+                    }
 
-                        printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo);
-                        if (corrParams.getPreliq().tryIncFailed(getName())) { // previous preliq counter
-                            persistenceService.saveCorrParams(corrParams);
-                        }
-                        if (corrParams.getPreliq().hasSpareAttempts()) {
-//                            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-                            corrParams.getPreliq().incTotalCount(getName()); // counterName relates on it
-                            persistenceService.saveCorrParams(corrParams);
-                            if (marketDqlState == DqlState.PRELIQ) {
-                                doPreliqOrder(preliqParams);
-                            } else { // commonDqlState == DqlState.KILLPOS
-                                marketService.getKillPosService().doKillPos(counterForLogs);
-                            }
-                        } else {
-                            resetPreliqState();
-                            maxCountNotify(corrParams.getPreliq());
-                        }
-                        log.info("dtPreliq stop after successful preliq");
-                        dtPreliq.stop(); //after successful start
+                    if (corrParams.getKillpos().hasSpareTotalAttempts()) {
+                        corrParams.getKillpos().incTotalCount(getName()); // counterName relates on it
+                        persistenceService.saveCorrParams(corrParams);
+
+                        final String counterForLogs = marketService.getCounterNameNext(getSignalType());
+                        marketService.getKillPosService().doKillPos(counterForLogs);
+                        log.info("dtKillpos stop after successful killpos");
                         dtKillpos.stop();
+                        dtPreliq.stop();
 
-                    } // else stay _ready_
+                        return;
+                    }
 
                 }
-            } else {
-                resetPreliqState();
-                dtPreliq.stop();
-                dtKillpos.stop();
+
+                // do preliq
+                if (marketDqlState == DqlState.PRELIQ && secToReady <= 0) {
+                    final PreliqParams preliqParams = getPreliqParams(pos, posVal);
+                    final boolean preliqBlockEnough = preliqParams != null && preliqParams.getPreliqBlocks() != null
+                            && ((getName().equals(BitmexService.NAME) && preliqParams.getPreliqBlocks().getB_block().signum() > 0) ||
+                            (getName().equals(OkCoinService.NAME) && preliqParams.getPreliqBlocks().getO_block().signum() > 0));
+                    if (!preliqBlockEnough) {
+                        resetPreliqState();
+                        dtPreliq.stop();
+                        return;
+                    }
+
+                    final String counterForLogs = marketService.getCounterNameNext(preliqParams.getSignalType());
+
+                    if (corrParams.getPreliq().tryIncFailed(getName())) { // previous preliq counter
+                        persistenceService.saveCorrParams(corrParams);
+                    }
+                    if (corrParams.getPreliq().hasSpareAttempts()) {
+                        printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo);
+                        corrParams.getPreliq().incTotalCount(getName()); // counterName relates on it
+                        persistenceService.saveCorrParams(corrParams);
+                        doPreliqOrder(preliqParams);
+                        log.info("dtPreliq stop after successful preliq");
+                        dtPreliq.stop(); //after successful start
+                    }
+
+                }
             }
-        } else {
-            resetPreliqState();
-            dtPreliq.stop();
-            dtKillpos.stop();
-            maxCountNotify(corrParams.getPreliq());
+        } finally {
+            Instant end = Instant.now();
+            Utils.logIfLong(start, end, log, "checkForDecreasePosition");
         }
-        Instant end = Instant.now();
-        Utils.logIfLong(start, end, log, "checkForDecreasePosition");
     }
 
     private BigDecimal getDqlKillPos() {
@@ -169,17 +216,20 @@ public class PreliqService {
         return !dtPreliq.isActive();
     }
 
-    public void setPreliqState(MarketService marketService) {
+    public void setDqlResetState(MarketService marketService, DqlState marketDqlState) {
+        final MarketState toSet = marketDqlState == DqlState.PRELIQ ? MarketState.PRELIQ : MarketState.KILLPOS;
         final MarketState prevMarketState = marketService.getMarketState();
-        if (prevMarketState != MarketState.PRELIQ) {
-            log.info(getName() + "_PRELIQ: prev market state is " + prevMarketState);
-            marketService.setMarketState(MarketState.PRELIQ);
+        if (prevMarketState != toSet) {
+            log.info(String.format("%s set to %s; prev market state is %s", getName(), toSet, prevMarketState));
+            marketService.setMarketState(toSet);
+        }
+        if (!prevMarketState.isActiveClose()) {
             marketService.getArbitrageService().setBusyStackChecker();
         }
     }
 
     public void resetPreliqState() {
-        if (marketService.getMarketState() == MarketState.PRELIQ) {
+        if (marketService.getMarketState() == MarketState.PRELIQ || marketService.getMarketState() == MarketState.KILLPOS) {
             final FplayOrder stub = new FplayOrder(marketService.getMarketId(), null, "cancelOnPreliq");
             marketService.cancelAllOrders(stub, "After PRELIQ: CancelAllOpenOrders", false, true);
 
@@ -190,14 +240,14 @@ public class PreliqService {
         }
     }
 
-    private void maxCountNotify(Preliq preliq) {
+    private void maxCountNotify(Preliq preliq, String name) {
         if (preliq.totalCountViolated()) {
             marketService.getSlackNotifications().sendNotify(NotifyType.PRELIQ_MAX_TOTAL,
-                    String.format("preliq max total %s reached ", preliq.getMaxTotalCount()));
+                    String.format("%s max total %s reached ", name, preliq.getMaxTotalCount()));
         }
         if (preliq.maxErrorCountViolated()) {
             marketService.getSlackNotifications().sendNotify(NotifyType.PRELIQ_MAX_ATTEMPT,
-                    String.format("preliq max attempts %s reached", preliq.getMaxErrorCount()));
+                    String.format("%s max attempts %s reached", name, preliq.getMaxErrorCount()));
         }
     }
 
@@ -258,10 +308,18 @@ public class PreliqService {
                 dqlCurrStr, dqlCloseMinStr, dqlKillPosStr);
     }
 
+    private SignalType getSignalType() {
+        if (getName().equals(BitmexService.NAME)) {
+            return SignalType.B_KILLPOS;
+        }
+        return SignalType.O_KILLPOS;
+    }
 
     private PreliqParams getPreliqParams(Pos posObj, BigDecimal pos) {
         if (pos.signum() == 0) {
-            return null;
+            return new PreliqParams(
+                    getName().equals(BitmexService.NAME) ? SignalType.B_PRE_LIQ : SignalType.O_PRE_LIQ,
+                    null, null);
         }
         PreliqParams preliqParams = null;
         SignalType signalType = null;

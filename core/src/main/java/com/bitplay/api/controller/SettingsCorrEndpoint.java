@@ -8,7 +8,6 @@ import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.correction.Adj;
 import com.bitplay.persistance.domain.correction.Corr;
 import com.bitplay.persistance.domain.correction.CorrParams;
-import com.bitplay.persistance.domain.correction.Preliq;
 import com.bitplay.persistance.domain.correction.RecoveryNtUsd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,8 +99,8 @@ public class SettingsCorrEndpoint {
             if (anUpdate.getKillpos() != null) {
                 DtoHelpter.updateNotNullFields(anUpdate.getKillpos(), corrParams.getKillpos());
                 persistenceService.saveCorrParams(corrParams);
-                bitmexService.getDtPreliq().stop();
-                okCoinService.getDtPreliq().stop();
+                bitmexService.getDtKillpos().stop();
+                okCoinService.getDtKillpos().stop();
             }
             if (anUpdate.getCorr() != null) {
                 final Corr uCorr = anUpdate.getCorr();

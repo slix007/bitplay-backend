@@ -13,13 +13,13 @@ import org.springframework.data.mongodb.core.query.Update;
 @ChangeLog
 public class Changelog0131 {
 
-    @ChangeSet(order = "2020-01-31", id = "2020-01-31: killpos timer", author = "SergeiShurmin")
+    @ChangeSet(order = "2020-01-31", id = "2020-01-31: killpos timer.", author = "SergeiShurmin")
     public void change01(MongoTemplate mongoTemplate) {
         Query query = new Query();
         Update update = new Update();
         update.set("killpos.preliqBlockUsd", 0);
         update.set("killpos.currErrorCount", 0);
-        update.set("killpos.maxErrorCount", 0);
+        update.set("killpos.maxErrorCount", Integer.MAX_VALUE);
         update.set("killpos.totalCount", 0);
         update.set("killpos.succeedCount", 0);
         update.set("killpos.failedCount", 0);

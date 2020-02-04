@@ -321,6 +321,7 @@ public abstract class MarketService extends MarketServiceWithState {
             case STARTING_VERT:
             case MOVING:
             case PRELIQ:
+            case KILLPOS:
                 if (flags != null && flags.length > 0 && (flags[0].equals("UI") || flags[0].equals("FORCE_RESET"))) {
                     logger.info("reset {} from " + flags[0], marketState);
                     setMarketState(MarketState.READY);
@@ -506,7 +507,11 @@ public abstract class MarketService extends MarketServiceWithState {
         } else if (signalType.isPreliq()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();
             final Integer counter = corrParams.getPreliq().getTotalCount();
-            value = String.format("%s:%s", String.valueOf(isNext ? counter + 1 : counter), signalType.getCounterName());
+            value = String.format("%s:%s", isNext ? counter + 1 : counter, signalType.getCounterName());
+        } else if (signalType.isKillPos()) {
+            final CorrParams corrParams = getPersistenceService().fetchCorrParams();
+            final Integer counter = corrParams.getKillpos().getTotalCount();
+            value = String.format("%s:%s", isNext ? counter + 1 : counter, signalType.getCounterName());
         } else if (signalType.isAdj()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();
             Integer counter = corrParams.getAdj().getTotalCount();

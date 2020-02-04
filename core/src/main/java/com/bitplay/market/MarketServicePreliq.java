@@ -42,7 +42,11 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
     }
 
     public DelayTimer getDtPreliq() {
-        return preliqService != null ? preliqService.getDtPreliq() : new DelayTimer();
+        return preliqService.getDtPreliq();
+    }
+
+    public DelayTimer getDtKillpos() {
+        return preliqService.getDtKillpos();
     }
 
     public KillPosService getKillPosService() {

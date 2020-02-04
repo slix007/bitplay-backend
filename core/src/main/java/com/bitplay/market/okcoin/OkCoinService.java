@@ -369,12 +369,7 @@ public class OkCoinService extends MarketServicePreliq {
     public void init() {
         scheduler.scheduleWithFixedDelay(() -> {
             try {
-                if (okexSettlementService.isSettlementMode()) {
-                    preliqService.resetPreliqState();
-                    preliqService.getDtPreliq().stop();
-                } else {
-                    preliqService.checkForPreliq();
-                }
+                preliqService.checkForPreliq(okexSettlementService.isSettlementMode());
             } catch (Exception e) {
                 logger.error("Error on checkForDecreasePosition", e);
             }

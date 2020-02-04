@@ -492,8 +492,8 @@ public class CommonUIService {
     private DelayTimerJson getKillposDelay() {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getKillposDelaySec();
 
-        long btmToStart = bitmexService.getDtPreliq().secToReady(delaySec);
-        long okToStart = okCoinService.getDtPreliq().secToReady(delaySec);
+        long btmToStart = bitmexService.getDtKillpos().secToReady(delaySec);
+        long okToStart = okCoinService.getDtKillpos().secToReady(delaySec);
 
         return DelayTimerBuilder.createEmpty(delaySec)
                 .addTimer(btmToStart, "bitmex")

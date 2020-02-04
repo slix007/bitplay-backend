@@ -66,6 +66,11 @@ public class Preliq extends CountedPreliq {
         return hasSpareCurrent && hasSparePermanent;
     }
 
+    public boolean hasSpareTotalAttempts() {
+        boolean hasSparePermanent = totalCount < maxTotalCount;
+        return hasSparePermanent;
+    }
+
     public boolean totalCountViolated() {
         boolean hasSparePermanent = totalCount < maxTotalCount;
         return !hasSparePermanent && maxTotalCount > 0;

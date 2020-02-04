@@ -2782,7 +2782,7 @@ public class BitmexService extends MarketServicePreliq {
     public void init() {
         preliqScheduler.scheduleWithFixedDelay(() -> {
             try {
-                preliqService.checkForPreliq();
+                preliqService.checkForPreliq(false);
             } catch (Exception e) {
                 logger.error("Error on checkForDecreasePosition", e);
             }

@@ -28,6 +28,8 @@ public enum SignalType {
     RECOVERY_NTUSD_INCREASE_POS("recovery_nt_usd_increase_pos"),
     B_PRE_LIQ("b_preliq"),
     O_PRE_LIQ("o_preliq"),
+    B_KILLPOS("b_killpos"),
+    O_KILLPOS("o_killpos"),
     MANUAL_BUY("button_buy"),
     MANUAL_SELL("button_sell"),
     SWAP_NONE("swap_none"),
@@ -74,6 +76,10 @@ public enum SignalType {
     public boolean isPreliq() {
         return this == SignalType.B_PRE_LIQ || this == SignalType.O_PRE_LIQ;
 
+    }
+
+    public boolean isKillPos() {
+        return this == SignalType.B_KILLPOS || this == SignalType.O_KILLPOS;
     }
 
     public boolean isIncreasePos() {

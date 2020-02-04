@@ -105,6 +105,7 @@ public class BitmexSwapService {
             case PLACING_ORDER:
             case STARTING_VERT:
             case PRELIQ:
+            case KILLPOS:
                 break;
 
             case READY:

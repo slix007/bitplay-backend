@@ -25,42 +25,18 @@ import java.math.BigDecimal;
 public class DqlStateService {
 
     private final SlackNotifications slackNotifications;
-    private volatile DqlState preliqState = DqlState.ANY_ORDERS;
 
     private volatile DqlState btmState = DqlState.ANY_ORDERS;
     private volatile DqlState okexState = DqlState.ANY_ORDERS;
 
 
     public boolean isPreliq() {
-        return preliqState == DqlState.PRELIQ
-                || btmState == DqlState.PRELIQ
+        return btmState == DqlState.PRELIQ
                 || okexState == DqlState.PRELIQ
-                || preliqState == DqlState.KILLPOS
                 || btmState == DqlState.KILLPOS
                 || okexState == DqlState.KILLPOS
                 ;
     }
-
-    public void tryResetPreliq() {
-        if (preliqState == DqlState.PRELIQ || preliqState == DqlState.KILLPOS) {
-            //TODO check if need CLOSE_ONLY
-            log.info("reset DqlState " + preliqState);
-            preliqState = DqlState.ANY_ORDERS;
-        }
-    }
-
-    public void setPreliqState(DqlState dqlState) {
-        preliqState = dqlState;
-    }
-
-//    //TODO remove preliqState. Don't set preliq when killpos.
-//    public void setPreliqState(LiqInfo liqInfo, BigDecimal dqlKillPos) {
-//        if (liqInfo.getDqlCurr().compareTo(dqlKillPos) < 0) {
-//            preliqState = DqlState.KILLPOS;
-//        } else {
-//            preliqState = DqlState.PRELIQ;
-//        }
-//    }
 
     public DqlState updateDqlState(String serviceName, BigDecimal dqlKillPos, BigDecimal dqlOpenMin, BigDecimal dqlCloseMin, BigDecimal dqlCurr) {
         if (serviceName.equals(BitmexService.NAME)) {
@@ -119,10 +95,10 @@ public class DqlStateService {
     }
 
     public DqlState getCommonDqlState() {
-        if (preliqState == DqlState.KILLPOS || okexState == DqlState.KILLPOS || btmState == DqlState.KILLPOS) {
+        if (okexState == DqlState.KILLPOS || btmState == DqlState.KILLPOS) {
             return DqlState.KILLPOS;
         }
-        if (preliqState == DqlState.PRELIQ || okexState == DqlState.PRELIQ || btmState == DqlState.PRELIQ) {
+        if (okexState == DqlState.PRELIQ || btmState == DqlState.PRELIQ) {
             return DqlState.PRELIQ;
         }
         if (okexState == DqlState.CLOSE_ONLY || btmState == DqlState.CLOSE_ONLY) {
