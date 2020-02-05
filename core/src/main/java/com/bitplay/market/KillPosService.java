@@ -2,7 +2,6 @@ package com.bitplay.market;
 
 import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
 import com.bitplay.market.model.TradeResponse;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -32,7 +31,7 @@ public class KillPosService {
         if (tradeResponse.getOrderId() != null) {
             final NtUsdRecoveryService ntUsdRecoveryService = marketService.getArbitrageService().getNtUsdRecoveryService();
 
-            final Future<String> stringFuture = ntUsdRecoveryService.tryRecoveryAfterKillPos();
+            final Future<String> stringFuture = ntUsdRecoveryService.tryRecoveryAfterKillPos(marketService.getName());
             String res;
             try {
                 res = stringFuture.get(10, TimeUnit.SECONDS);

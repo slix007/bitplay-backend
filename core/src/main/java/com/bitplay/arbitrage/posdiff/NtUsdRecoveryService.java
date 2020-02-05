@@ -47,7 +47,7 @@ public class NtUsdRecoveryService {
     public Future<String> tryRecovery() {
         return ntUsdExecutor.runTask(() -> {
             try {
-                RecoveryResult recoveryResult = doRecovery(false);
+                RecoveryResult recoveryResult = doRecovery(false, null);
                 return recoveryResult.details;
             } catch (Exception e) {
                 log.error("recovery_nt_usd is failed.", e);
@@ -58,7 +58,7 @@ public class NtUsdRecoveryService {
         });
     }
 
-    public Future<String> tryRecoveryAfterKillPos() {
+    public Future<String> tryRecoveryAfterKillPos(String killPosMarketName) {
         return ntUsdExecutor.runTask(() -> {
             try {
                 boolean amount0 = true;
@@ -70,7 +70,8 @@ public class NtUsdRecoveryService {
                     if (++attempt > 1) {
                         Thread.sleep(500);
                     }
-                    RecoveryResult r1 = doRecovery(true);
+                    final String marketToRecovery = killPosMarketName.equals(BitmexService.NAME) ? okCoinService.getName() : bitmexService.getName();
+                    RecoveryResult r1 = doRecovery(true, marketToRecovery);
                     amount0 = r1.amount0;
                     okexThroughZero = r1.okexThroughZero;
 
@@ -95,7 +96,7 @@ public class NtUsdRecoveryService {
     }
 
     @SuppressWarnings("Duplicates")
-    private RecoveryResult doRecovery(boolean afterKillpos) {
+    private RecoveryResult doRecovery(boolean afterKillpos, String predefinedMarketName) {
         posDiffService.stopTimerToImmediateCorrection(); // avoid double-correction
 
         arbitrageService.getFirstMarketService().stopAllActions("recovery-nt-usd:stopAllActions");
@@ -121,7 +122,7 @@ public class NtUsdRecoveryService {
         final BigDecimal hedgeAmount = posDiffService.getHedgeAmountMainSet();
 
         final boolean btmSo = arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED;
-        adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth, btmSo);
+        adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth, btmSo, predefinedMarketName);
 
         posDiffService.adaptCorrAdjByMaxVolCorrAndDql(corrObj, maxBtm, maxOk, dc, cm, isEth);
 
@@ -173,8 +174,15 @@ public class NtUsdRecoveryService {
             final boolean outsideLimits = checkOutsideLimits(corrNameWithMarket, dc, maxBtm, maxOk, corrObj, hedgeAmount,
                             marketService, orderType, correctAmount, signalType, placingType);
             if (outsideLimits) {
-                resultMsg = switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj,
-                        placingType, counterName, tradeId, message, hedgeAmount, signalType);
+                if (predefinedMarketName == null) {
+                    resultMsg = switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj,
+                            placingType, counterName, tradeId, message, hedgeAmount, signalType);
+                } else {
+                    resultMsg = "outsideLimits. No switchMarkets because predefinedMarket=" + predefinedMarketName;
+                    warningLogger.warn(resultMsg);
+                    corrObj.marketService.getTradeLogger().warn(resultMsg);
+                    log.warn(resultMsg);
+                }
             } else {
 
                 final String setStr = arbitrageService.getMainSetStr();
@@ -197,7 +205,7 @@ public class NtUsdRecoveryService {
                 marketService.setBusy(counterName, MarketState.ARBITRAGE);
                 final TradeResponse tradeResponse = marketService.placeOrder(placeOrderArgs);
 
-                if (tradeResponse.errorInsufficientFunds()) {
+                if (tradeResponse.errorInsufficientFunds() && predefinedMarketName == null) {
                     marketService.setMarketState(MarketState.READY);
                     resultMsg = switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, bP, oPL, oPS, corrObj,
                             placingType, counterName, tradeId, message, hedgeAmount, signalType);
@@ -324,7 +332,7 @@ public class NtUsdRecoveryService {
      */
     @SuppressWarnings("Duplicates")
     private void adaptCorrAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
-                                   final BigDecimal dc, final BigDecimal cm, final boolean isEth, boolean btmSo) {
+                                   final BigDecimal dc, final BigDecimal cm, final boolean isEth, boolean btmSo, String marketName) {
 
         final BigDecimal okexUsd = isEth
                 ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
@@ -340,8 +348,11 @@ public class NtUsdRecoveryService {
 
         if (dc.signum() < 0) {
             corrObj.orderType = OrderType.BID;
-            if ((bEquiv.compareTo(okEquiv) < 0 && !btmSo)
-                    || posDiffService.okexAmountIsZero(corrObj, dc, isEth)) {
+            final boolean isFirstMarketByPos = (bEquiv.compareTo(okEquiv) < 0 && !btmSo) || posDiffService.okexAmountIsZero(corrObj, dc, isEth);
+            final boolean isFirstMarket = marketName != null
+                    ? arbitrageService.getFirstMarketService().getName().equals(marketName)
+                    : isFirstMarketByPos;
+            if (isFirstMarket) {
                 // bitmex buy
                 posDiffService.defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
                 corrObj.marketService = arbitrageService.getFirstMarketService();
@@ -359,8 +370,11 @@ public class NtUsdRecoveryService {
             }
         } else {
             corrObj.orderType = OrderType.ASK;
-            if ((bEquiv.compareTo(okEquiv) < 0 || btmSo)
-                    && !posDiffService.okexAmountIsZero(corrObj, dc, isEth)) {
+            final boolean isSecondMarketByPos = (bEquiv.compareTo(okEquiv) < 0 || btmSo) && !posDiffService.okexAmountIsZero(corrObj, dc, isEth);
+            final boolean isSecondMarket = marketName != null
+                    ? arbitrageService.getSecondMarketService().getName().equals(marketName)
+                    : isSecondMarketByPos;
+            if (isSecondMarket) {
                 // okcoin sell
                 posDiffService.defineCorrectAmountOkex(corrObj, dc, isEth);
                 posDiffService.defineOkexThroughZero(corrObj);
