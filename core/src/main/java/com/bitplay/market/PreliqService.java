@@ -158,6 +158,7 @@ public class PreliqService {
                         persistenceService.saveCorrParams(corrParams);
 
                         final String counterForLogs = marketService.getCounterNameNext(getSignalType());
+                        printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo, "KILLPOS");
                         marketService.getKillPosService().doKillPos(counterForLogs);
                         log.info("dtKillpos stop after successful killpos");
                         dtKillpos.stop();
@@ -186,7 +187,7 @@ public class PreliqService {
                         persistenceService.saveCorrParams(corrParams);
                     }
                     if (corrParams.getPreliq().hasSpareAttempts()) {
-                        printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo);
+                        printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo, "PRELIQ");
                         corrParams.getPreliq().incTotalCount(getName()); // counterName relates on it
                         persistenceService.saveCorrParams(corrParams);
                         doPreliqOrder(preliqParams);
@@ -262,9 +263,9 @@ public class PreliqService {
         return false;
     }
 
-    private void printPreliqStarting(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo) {
+    private void printPreliqStarting(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo, String opName) {
         try {
-            final String prefix = String.format("#%s %s_PRE_LIQ starting: ", counterForLogs, nameSymbol);
+            final String prefix = String.format("#%s %s_%s starting: ", counterForLogs, nameSymbol, opName);
             final MarketServicePreliq thatMarket = getTheOtherMarket();
 
             final String thisMarketStr = prefix + getPreliqStartingStr(getName(), position, liqInfo);
