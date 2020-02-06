@@ -24,6 +24,7 @@ public class CorrObj {
     ContractType contractType;
     String errorDescription;
 
+    boolean noSwitch = false;
     boolean okexThroughZero = false;
     BigDecimal oPL, oPS;
 }

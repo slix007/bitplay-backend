@@ -47,7 +47,7 @@ public class NtUsdRecoveryService {
     public Future<String> tryRecovery() {
         return ntUsdExecutor.runTask(() -> {
             try {
-                RecoveryResult recoveryResult = doRecovery(false, null);
+                final RecoveryResult recoveryResult = doRecovery(false, null);
                 return recoveryResult.details;
             } catch (Exception e) {
                 log.error("recovery_nt_usd is failed.", e);
@@ -61,16 +61,16 @@ public class NtUsdRecoveryService {
     public Future<String> tryRecoveryAfterKillPos(String killPosMarketName) {
         return ntUsdExecutor.runTask(() -> {
             try {
+                final String marketToRecovery = killPosMarketName.equals(BitmexService.NAME) ? okCoinService.getName() : bitmexService.getName();
+
                 boolean amount0 = true;
                 boolean okexThroughZero = true;
-                String resDetails = "RecoveryNtUsdAfterKillposResult: ";
-
                 int attempt = 0;
+                String resDetails = "RecoveryNtUsdAfterKillposResult: ";
                 while ((amount0 || okexThroughZero) && attempt < 5) {
                     if (++attempt > 1) {
                         Thread.sleep(500);
                     }
-                    final String marketToRecovery = killPosMarketName.equals(BitmexService.NAME) ? okCoinService.getName() : bitmexService.getName();
                     RecoveryResult r1 = doRecovery(true, marketToRecovery);
                     amount0 = r1.amount0;
                     okexThroughZero = r1.okexThroughZero;
@@ -118,6 +118,7 @@ public class NtUsdRecoveryService {
         BigDecimal oPS = secondPos.getPositionShort();
 
         final CorrObj corrObj = new CorrObj(SignalType.RECOVERY_NTUSD, oPL, oPS);
+        corrObj.noSwitch = predefinedMarketName != null;
 
         final BigDecimal hedgeAmount = posDiffService.getHedgeAmountMainSet();
 
@@ -145,7 +146,7 @@ public class NtUsdRecoveryService {
         if (corrObj.errorDescription != null) { // DQL violation (open_min or close_min)
             resultMsg = String.format("No %s. %s.", corrNameWithMarket, corrObj.errorDescription);
             warningLogger.warn(resultMsg);
-            corrObj.marketService.getTradeLogger().warn(resultMsg);
+            marketService.getTradeLogger().warn(resultMsg);
             log.warn(resultMsg);
         } else if (correctAmount.signum() <= 0) {
             resultMsg = String.format("No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, btmPos=%s, okPos=%s, hedge=%s, signal=%s",
@@ -158,7 +159,7 @@ public class NtUsdRecoveryService {
                     signalType
             );
             warningLogger.warn(resultMsg);
-            corrObj.marketService.getTradeLogger().warn(resultMsg);
+            marketService.getTradeLogger().warn(resultMsg);
             log.warn(resultMsg);
         } else {
             final PlacingType placingType = PlacingType.TAKER;
@@ -166,7 +167,7 @@ public class NtUsdRecoveryService {
 
             final Long tradeId = arbitrageService.getLastTradeId();
 
-            final String soMark = (corrObj.marketService.getName().equals(OkCoinService.NAME)
+            final String soMark = (marketService.getName().equals(OkCoinService.NAME)
                     && corrObj.signalType.isIncreasePos()
                     && arbitrageService.getFirstMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED)
                     ? "_SO" : "";
@@ -184,7 +185,7 @@ public class NtUsdRecoveryService {
                 } else {
                     resultMsg = "outsideLimits. No switchMarkets because predefinedMarket=" + predefinedMarketName;
                     warningLogger.warn(resultMsg);
-                    corrObj.marketService.getTradeLogger().warn(resultMsg);
+                    marketService.getTradeLogger().warn(resultMsg);
                     log.warn(resultMsg);
                 }
             } else {
@@ -219,7 +220,7 @@ public class NtUsdRecoveryService {
                             placingType, counterName, tradeId, message, hedgeAmount, signalType);
                 } else {
                     resultMsg += parseResMsg(tradeResponse);
-                    corrObj.marketService.getArbitrageService().setBusyStackChecker();
+                    marketService.getArbitrageService().setBusyStackChecker();
                 }
             }
         }
@@ -242,7 +243,7 @@ public class NtUsdRecoveryService {
                     signalType
             );
             warningLogger.warn(msg);
-            corrObj.marketService.getTradeLogger().warn(msg);
+            marketService.getTradeLogger().warn(msg);
             log.warn(msg);
         }
         return outsideLimits;

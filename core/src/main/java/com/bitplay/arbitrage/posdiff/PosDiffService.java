@@ -1124,17 +1124,24 @@ public class PosDiffService {
     private void dqlOpenMinAdjust(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax) {
         final boolean dqlOpenViolated = corrObj.marketService.isDqlOpenViolated();
         if (dqlOpenViolated) {
-            // check if other market isOk
-            final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
-            boolean theOtherMarketIsViolated = theOtherService.isDqlOpenViolated();
-            if (theOtherMarketIsViolated) {
+            if (corrObj.noSwitch) {
                 corrObj.correctAmount = BigDecimal.ZERO;
-                corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated on both markets.";
+                corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated and noSwitch";
             } else {
-                final String switchMsg = String.format("%s switch markets. %s DQL_open_min is violated.", corrObj.signalType, corrObj.marketService.getName());
-                warningLogger.warn(switchMsg);
-                slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
-                switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
+                // check if other market isOk
+                final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
+                boolean theOtherMarketIsViolated = theOtherService.isDqlOpenViolated();
+                if (theOtherMarketIsViolated) {
+                    corrObj.correctAmount = BigDecimal.ZERO;
+                    corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated on both markets.";
+                } else {
+                    final String switchMsg =
+                            String.format("%s switch markets. %s DQL_open_min is violated.", corrObj.signalType, corrObj.marketService.getName());
+                    log.warn(switchMsg);
+                    warningLogger.warn(switchMsg);
+                    slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
+                    switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
+                }
             }
         }
     }
