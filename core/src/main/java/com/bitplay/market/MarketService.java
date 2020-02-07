@@ -956,7 +956,7 @@ public abstract class MarketService extends MarketServiceWithState {
             thePrice = createBestHybridTickPrice(orderType, tickSize, orderBook);
         } else if (placingType == PlacingType.HYBRID) {
             thePrice = createBestHybridPrice(orderType, orderBook);
-        } else if (placingType == PlacingType.TAKER || placingType == PlacingType.TAKER_FOK) {
+        } else if (placingType.isTaker()) {
             thePrice = createBestTakerPrice(orderType, orderBook, contractType);
         } else { // placingType == null???
             String msg = String.format("%s PlacingType==%s, use MAKER", getName(), placingType);

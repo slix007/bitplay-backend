@@ -969,7 +969,7 @@ public class PosDiffService {
                 placingType = PlacingType.TAKER; // correction is only taker
             } else {
                 final PosAdjustment posAdjustment = settingsRepositoryService.getSettings().getPosAdjustment();
-                placingType = (posAdjustment.getPosAdjustmentPlacingType() == PlacingType.TAKER_FOK && marketService.getName().equals(OkCoinService.NAME))
+                placingType = (posAdjustment.getPosAdjustmentPlacingType().isTaker() && marketService.getName().equals(OkCoinService.NAME))
                         ? PlacingType.TAKER
                         : posAdjustment.getPosAdjustmentPlacingType();
             }
@@ -1023,7 +1023,7 @@ public class PosDiffService {
                     final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
                     switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
                     defineSignalTypeToIncrease(corrObj, bP, oPL, oPS);
-                    PlacingType pl = placingType == PlacingType.TAKER_FOK ? PlacingType.TAKER : placingType;
+                    PlacingType pl = placingType.isTaker() ? PlacingType.TAKER : placingType;
                     PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
                             .orderType(corrObj.orderType)
                             .amount(corrObj.correctAmount)

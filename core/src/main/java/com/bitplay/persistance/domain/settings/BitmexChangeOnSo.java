@@ -11,7 +11,7 @@ public class BitmexChangeOnSo {
     private Boolean toConBo;
     private Boolean adjToTaker;
     private Boolean signalTo;
-    private PlacingType signalPlacingType; //TAKER or TAKER_FOK
+    private PlacingType signalPlacingType; //TAKER or TAKER_FOK or TAKER_IOC
     private Integer countToActivate;
     private Integer durationSec;
 

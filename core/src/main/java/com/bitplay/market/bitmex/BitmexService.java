@@ -1973,17 +1973,17 @@ public class BitmexService extends MarketServicePreliq {
                         nextMarketState = MarketState.ARBITRAGE;
 
                     } else { // TAKER
-                        final MarketOrder marketOrder = new MarketOrder(orderType, amount, currencyPair, new Date());
+                        final LimitOrder marketOrder = new LimitOrder(orderType, amount, null, null, null, null);
 
                         // metrics
                         final Instant startReq = Instant.now();
                         throwTestingException();
                         final LimitOrder resultOrder;
-                        if (placingType == PlacingType.TAKER_FOK) {
+                        if (placingType == PlacingType.TAKER_FOK || placingType == PlacingType.TAKER_IOC) {
                             final StringBuilder fokExtraLogs = new StringBuilder();
                             thePrice = (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0)
                                     ? settings.getBitmexPrice()
-                                    : createFillOrKillPrice(fokExtraLogs, orderType, orderBook, btmContType, btmFokArgs);
+                                    : createFillOrKillPrice(fokExtraLogs, orderType, orderBook, btmContType, btmFokArgs, placingType);
                             final String message = String.format("#%s placing TAKER_FOK %s, q=%s, a=%s. pos=%s, btmObTimestamp=%s. %s",
                                     counterName,
                                     orderType,
@@ -1995,9 +1995,15 @@ public class BitmexService extends MarketServicePreliq {
                             tradeLogger.info(message, contractTypeStr);
                             ordersLogger.info(message);
 
-                            resultOrder = bitmexTradeService.placeMarketOrderFillOrKill(marketOrder, symbol, thePrice, scale);
+                            if (placingType == PlacingType.TAKER_FOK) {
+                                resultOrder = bitmexTradeService.placeMarketOrderFillOrKill(marketOrder, symbol, thePrice, scale);
+                            } else { //TAKER_IOC
+                                resultOrder = bitmexTradeService.placeMarketOrderImmediateOrCancel(marketOrder, symbol, thePrice, scale);
+                            }
                             if (resultOrder.getStatus() == OrderStatus.CANCELED) {
-                                extraLog = "order had timeInForce of FillOrKill. "
+                                String type = placingType == PlacingType.TAKER_FOK ? "FillOrKill" : "ImmediateOrCancel";
+                                extraLog = "order had timeInForce of " + type + ". "
+                                        + "filledAmount=" + resultOrder.getCumulativeAmount() + ". "
                                         + Utils.getTenAskBid(orderBook, counterName, "Bitmex OrderBook");
                                 nextMarketState = MarketState.READY;
                             }
@@ -2164,7 +2170,9 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private BigDecimal createFillOrKillPrice(StringBuilder fokExtraLogs, Order.OrderType orderType, OrderBook orderBook, ContractType contractType,
-            BtmFokAutoArgs btmFokArgs) {
+                                             BtmFokAutoArgs btmFokArgs, PlacingType placingType) {
+        final String type = placingType == PlacingType.TAKER_FOK ? "FOK" : "IOC";
+
         final Settings s = settingsRepositoryService.getSettings();
         final BigDecimal bitmexFokTotalDiff = s.getBitmexFokTotalDiff() != null ? s.getBitmexFokTotalDiff() : BigDecimal.ZERO;
         final BigDecimal bitmexFokMaxDiff = s.getBitmexFokMaxDiff() != null ? s.getBitmexFokMaxDiff() : BigDecimal.ZERO;
@@ -2185,16 +2193,18 @@ public class BitmexService extends MarketServicePreliq {
                 //Price buy FOK == ask[1] - FOK_total_diff;
                 if (FOK_Max_diff.subtract(deltaMinusMaxBorder).compareTo(FOK_total_diff) < 0) {
                     price = ask1.subtract(FOK_total_diff);
-                    fokExtraLogs.append("use FOK_total_diff: ");
-                    fokExtraLogs.append(String.format("Price_buy_FOK(%s) = ask[1](%s) - FOK_total_diff(%s);"
-                                    + " delta=%s, maxBorder=%s, FOK_Max_diff=%s, allBorders=%s;",
-                            price, ask1, FOK_total_diff, delta, maxBorder, FOK_Max_diff, btmFokArgs.getAllBorders()));
+                    fokExtraLogs.append(String.format("use %s_total_diff: ", type));
+                    fokExtraLogs.append(String.format("Price_buy_%s(%s) = ask[1](%s) - %s_total_diff(%s);"
+                                    + " delta=%s, maxBorder=%s, %s_Max_diff=%s, allBorders=%s;",
+                            type, price, ask1, type, FOK_total_diff,
+                            delta, maxBorder, type, FOK_Max_diff, btmFokArgs.getAllBorders()));
                 } else {
                     //Price buy FOK = ask[1] - FOK_Max_diff + (delta - max_border)
                     price = ask1.subtract(FOK_Max_diff).add(deltaMinusMaxBorder);
-                    fokExtraLogs.append(String.format("Price_buy_FOK(%s) = ask[1](%s) - FOK_Max_diff(%s) + (delta(%s) - maxBorder(%s))(%s);"
-                                    + " FOK_total_diff=%s, allBorders=%s;",
-                            price, ask1, FOK_Max_diff, delta, maxBorder, deltaMinusMaxBorder, FOK_total_diff, btmFokArgs.getAllBorders()));
+                    fokExtraLogs.append(String.format("Price_buy_%s(%s) = ask[1](%s) - %s_Max_diff(%s) + (delta(%s) - maxBorder(%s))(%s);"
+                                    + " %s_total_diff=%s, allBorders=%s;",
+                            type, price, ask1, type, FOK_Max_diff, delta, maxBorder, deltaMinusMaxBorder,
+                            type, FOK_total_diff, btmFokArgs.getAllBorders()));
                 }
             } else { // B_DELTA - bitmex sell
                 final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
@@ -2203,16 +2213,18 @@ public class BitmexService extends MarketServicePreliq {
                 //Price sell FOK == bid[1] + FOK_total_diff.
                 if (deltaMinusMaxBorder.subtract(FOK_Max_diff).compareTo(FOK_total_diff.negate()) > 0) {
                     price = bid1.add(FOK_total_diff);
-                    fokExtraLogs.append("use FOK_total_diff: ");
-                    fokExtraLogs.append(String.format("Price_sell_FOK(%s) = bid[1](%s) + FOK_total_diff(%s);"
-                                    + " delta=%s, maxBorder=%s, FOK_Max_diff=%s, allBorders=%s;",
-                            price, bid1, FOK_total_diff, delta, maxBorder, FOK_Max_diff, btmFokArgs.getAllBorders()));
+                    fokExtraLogs.append(String.format("use %s_total_diff: ", type));
+                    fokExtraLogs.append(String.format("Price_sell_%s(%s) = bid[1](%s) + %s_total_diff(%s);"
+                                    + " delta=%s, maxBorder=%s, %s_Max_diff=%s, allBorders=%s;",
+                            type, price, bid1, type, FOK_total_diff,
+                            delta, maxBorder, type, FOK_Max_diff, btmFokArgs.getAllBorders()));
                 } else {
                     //Price sell FOK = bid[1] + FOK_Max_diff - (delta - max_border)
                     price = bid1.add(FOK_Max_diff).subtract(deltaMinusMaxBorder);
-                    fokExtraLogs.append(String.format("Price_sell_FOK(%s) = bid[1](%s) + FOK_Max_diff(%s) - (delta(%s) - maxBorder(%s))(%s);"
-                                    + " FOK_total_diff=%s, allBorders=%s;",
-                            price, bid1, FOK_Max_diff, delta, maxBorder, deltaMinusMaxBorder, FOK_total_diff, btmFokArgs.getAllBorders()));
+                    fokExtraLogs.append(String.format("Price_sell_%s(%s) = bid[1](%s) + %s_Max_diff(%s) - (delta(%s) - maxBorder(%s))(%s);"
+                                    + " %s_total_diff=%s, allBorders=%s;",
+                            type, price, bid1, type, FOK_Max_diff, delta, maxBorder, deltaMinusMaxBorder,
+                            type, FOK_total_diff, btmFokArgs.getAllBorders()));
                 }
             }
             fokExtraLogs.append(Utils.getTenAskBid(orderBook, "", "Bitmex OrderBook"));

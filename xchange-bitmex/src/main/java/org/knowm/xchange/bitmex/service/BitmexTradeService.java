@@ -72,26 +72,29 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
 //        return String.valueOf(order.getOrderID());
     }
 
-    public LimitOrder placeMarketOrderBitmex(MarketOrder marketOrder, String symbol)
+    public LimitOrder placeMarketOrderBitmex(LimitOrder order, String symbol)
             throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         // workaround for OO list: set as limit order
         //noinspection UnnecessaryLocalVariable
-        final LimitOrder mappedOrder = placeOrder(marketOrder, symbol, "Market", false, null, false);
+        final LimitOrder mappedOrder = placeOrder(order, symbol, "Market", false, null, "");
         return mappedOrder;
     }
 
-    public LimitOrder placeMarketOrderFillOrKill(MarketOrder marketOrder, String symbol, BigDecimal thePrice, Integer scale)
+    public LimitOrder placeMarketOrderFillOrKill(LimitOrder order, String symbol, BigDecimal thePrice, Integer scale)
             throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
         final Double limitPrice = thePrice.setScale(scale, BigDecimal.ROUND_HALF_UP).doubleValue();
-        // workaround for OO list: set as limit order
-        //noinspection UnnecessaryLocalVariable
-        final LimitOrder mappedOrder = placeOrder(marketOrder, symbol, "Limit", false, limitPrice, true);
-        return mappedOrder;
+        return placeOrder(order, symbol, "Limit", false, limitPrice, "FillOrKill");
+    }
+
+    public LimitOrder placeMarketOrderImmediateOrCancel(LimitOrder order, String symbol, BigDecimal thePrice, Integer scale)
+            throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
+        final Double limitPrice = thePrice.setScale(scale, BigDecimal.ROUND_HALF_UP).doubleValue();
+        return placeOrder(order, symbol, "Limit", false, limitPrice, "ImmediateOrCancel");
     }
 
     @SuppressWarnings("unchecked")
     private LimitOrder placeOrder(Order orderToPlace, String symbol, String ordType, boolean participateDoNotInitiate, Double limitPrice,
-            boolean fillOrKill) throws IOException {
+            String timeInForce) throws IOException {
         final Map<CurrencyPair, Integer> currencyToScale = (Map<CurrencyPair, Integer>) exchange.getExchangeSpecification()
                 .getExchangeSpecificParametersItem("currencyToScale");
         final String side = orderToPlace.getType() == Order.OrderType.BID ? "Buy" : "Sell";
@@ -108,7 +111,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
                     ordType,
                     limitPrice,
                     participateDoNotInitiate ? "ParticipateDoNotInitiate" : "",
-                    fillOrKill ? "FillOrKill" : "");
+                    timeInForce);
 
         } catch (HttpStatusIOException e) {
             final BitmexStateService bitmexStateService = ((BitmexExchange) exchange).getBitmexStateService();
@@ -151,7 +154,7 @@ public class BitmexTradeService extends BitmexTradeServiceRaw implements TradeSe
 
         final Double limitPrice = limitOrder.getLimitPrice().setScale(scale, BigDecimal.ROUND_HALF_UP).doubleValue();
 
-        final Order mappedOrder = placeOrder(limitOrder, symbol, "Limit", participateDoNotInitiate, limitPrice, false);
+        final Order mappedOrder = placeOrder(limitOrder, symbol, "Limit", participateDoNotInitiate, limitPrice, "");
         return (LimitOrder) mappedOrder;
     }
 
