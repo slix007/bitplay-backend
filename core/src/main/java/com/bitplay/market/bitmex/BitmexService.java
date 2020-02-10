@@ -1984,8 +1984,9 @@ public class BitmexService extends MarketServicePreliq {
                             thePrice = (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0)
                                     ? settings.getBitmexPrice()
                                     : createFillOrKillPrice(fokExtraLogs, orderType, orderBook, btmContType, btmFokArgs, placingType);
-                            final String message = String.format("#%s placing TAKER_FOK %s, q=%s, a=%s. pos=%s, btmObTimestamp=%s. %s",
+                            final String message = String.format("#%s placing %s %s, q=%s, a=%s. pos=%s, btmObTimestamp=%s. %s",
                                     counterName,
+                                    placingType,
                                     orderType,
                                     thePrice,
                                     amount.toPlainString(),
