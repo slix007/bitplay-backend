@@ -526,6 +526,7 @@ public class ArbitrageService {
 
             // 1. Calc deltas
             bestQuotes = Utils.createBestQuotes(okCoinOrderBook, bitmexOrderBook);
+            bestQuotes.setBtmOrderBook(bitmexOrderBook);
             if (!bestQuotes.hasEmpty()) {
                 if (!firstDeltasCalculated) {
                     firstDeltasCalculated = true;
