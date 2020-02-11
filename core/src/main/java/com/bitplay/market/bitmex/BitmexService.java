@@ -2239,11 +2239,11 @@ public class BitmexService extends MarketServicePreliq {
         if (orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK) {
             final BigDecimal ask1 = Utils.getBestAsk(orderBook).getLimitPrice();
             price = ask1.subtract(FOK_Max_diff_UP);
-            fokExtraLogs.append(String.format("Price_buy_FOK(%s) = ask1(%s) - FOK_Max_diff(%s)", price, ask1, FOK_Max_diff_UP));
+            fokExtraLogs.append(String.format("Price_buy_%s(%s) = ask1(%s) - %s_Max_diff(%s)", type, price, ask1, type, FOK_Max_diff_UP));
         } else if (orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID) {
             final BigDecimal bid1 = Utils.getBestBid(orderBook).getLimitPrice();
             price = bid1.add(FOK_Max_diff_UP);
-            fokExtraLogs.append(String.format("Price_sell_FOK(%s) = bid1(%s) - FOK_Max_diff(%s)", price, bid1, FOK_Max_diff_UP));
+            fokExtraLogs.append(String.format("Price_sell_%s(%s) = bid1(%s) - %s_Max_diff(%s)", type, price, bid1, type, FOK_Max_diff_UP));
         }
         tryPrintZeroPriceWarning(price);
 
