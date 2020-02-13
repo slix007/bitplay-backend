@@ -9,9 +9,8 @@ import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractMode;
-import com.bitplay.persistance.domain.settings.OkexContractType;
+import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.slf4j.Logger;
@@ -39,8 +38,8 @@ public class TwoMarketStarter {
     private Config config;
     private ApplicationContext context;
 
-    private MarketServicePreliq firstMarketService;
-    private MarketServicePreliq secondMarketService;
+    private MarketServicePreliq leftMarketService;
+    private MarketServicePreliq rightMarketService;
     private PosDiffService posDiffService;
 
     private SlackNotifications slackNotifications;
@@ -84,20 +83,24 @@ public class TwoMarketStarter {
 
         final Settings settings = settingsRepositoryService.getSettings();
         final ContractMode contractMode = settings.getContractMode();
-        final OkexContractType okexContractType = contractMode.getOkexContractType();
-        final BitmexContractType bitmexContractType = contractMode.getBitmexContractType();
+        final ContractType leftContractType = contractMode.getLeft();
+        final ContractType rightContractType = contractMode.getRight();
 
         CompletableFuture<Boolean> first = CompletableFuture.supplyAsync(() -> {
             try {
-                final String firstMarketName = config.getFirstMarketName();
-                firstMarketService = (MarketServicePreliq) context.getBean(firstMarketName);
-                firstMarketService.init(config.getFirstMarketKey(), config.getFirstMarketSecret(), bitmexContractType);
-                logger.info("MARKET1: " + firstMarketService);
+                final String firstMarketName = config.getLeftMarketName();
+                leftMarketService = (MarketServicePreliq) context.getBean(firstMarketName);
+                leftMarketService.init(config.getLeftMarketKey(), config.getLeftMarketKey(), leftContractType,
+                        config.getLeftMarketExKey(),
+                        config.getLeftMarketExSecret(),
+                        config.getLeftMarketExPassphrase());
+
+                logger.info("MARKET_LEFT: " + leftMarketService);
                 return true;
             } catch (Exception e) {
-                logger.error("MARKET1 Initialization error. Set STOPPED.", e);
+                logger.error("MARKET_LEFT Initialization error. Set STOPPED.", e);
                 // Workaround to make work the other market
-                firstMarketService.setEmptyPos();
+                leftMarketService.setEmptyPos();
                 arbitrageService.setArbStateStopped();
                 slackNotifications.sendNotify(NotifyType.STOPPED, BitmexService.NAME + " STOPPED: Initialization error.");
                 return false;
@@ -106,18 +109,18 @@ public class TwoMarketStarter {
 
         CompletableFuture<Boolean> second = CompletableFuture.supplyAsync(() -> {
             try {
-                final String secondMarketName = config.getSecondMarketName();
-                secondMarketService = (MarketServicePreliq) context.getBean(secondMarketName);
-                secondMarketService.init(config.getSecondMarketKey(), config.getSecondMarketSecret(), okexContractType,
-                        config.getSecondMarketExKey(),
-                        config.getSecondMarketExSecret(),
-                        config.getSecondMarketExPassphrase());
-                logger.info("MARKET2: " + secondMarketService);
+                final String secondMarketName = config.getRightMarketName();
+                rightMarketService = (MarketServicePreliq) context.getBean(secondMarketName);
+                rightMarketService.init(config.getRightMarketKey(), config.getRightMarketSecret(), rightContractType,
+                        config.getRightMarketExKey(),
+                        config.getRightMarketExSecret(),
+                        config.getRightMarketExPassphrase());
+                logger.info("MARKET_RIGHT: " + rightMarketService);
                 return true;
             } catch (Exception e) {
-                logger.error("MARKET2 Initialization error. Set STOPPED.", e);
+                logger.error("MARKET_RIGHT Initialization error. Set STOPPED.", e);
                 // Workaround to make work the other market
-                secondMarketService.setEmptyPos();
+                rightMarketService.setEmptyPos();
                 arbitrageService.setArbStateStopped();
                 slackNotifications.sendNotify(NotifyType.STOPPED, OkCoinService.NAME + " STOPPED: Initialization error.");
                 return false;
@@ -138,12 +141,12 @@ public class TwoMarketStarter {
                 });
     }
 
-    public MarketServicePreliq getFirstMarketService() {
-        return firstMarketService;
+    public MarketServicePreliq getLeftMarketService() {
+        return leftMarketService;
     }
 
-    public MarketServicePreliq getSecondMarketService() {
-        return secondMarketService;
+    public MarketServicePreliq getRightMarketService() {
+        return rightMarketService;
     }
 
     public PosDiffService getPosDiffService() {

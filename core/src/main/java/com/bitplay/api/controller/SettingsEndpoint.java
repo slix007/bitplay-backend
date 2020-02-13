@@ -11,7 +11,6 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.AbortSignal;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
-import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.Limits;
@@ -36,7 +35,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.lang.reflect.Field;
 import java.util.EnumSet;
 
 /**
@@ -95,9 +93,9 @@ public class SettingsEndpoint {
 
     private void setTransientFields(Settings settings) {
         // Contract names
-        final ContractMode contractMode = ContractMode.parse(bitmexService.getFuturesContractName(), okCoinService.getFuturesContractName());
-        settings.setContractModeCurrent(contractMode);
-        settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
+//        final ContractMode contractMode = ContractMode.parse(bitmexService.getFuturesContractName(), okCoinService.getFuturesContractName());
+//        settings.setContractModeCurrent(contractMode);
+//        settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
 
         // Corr
         final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
@@ -300,16 +298,6 @@ public class SettingsEndpoint {
         if (settingsUpdate.getUsdQuoteType() != null) {
             settings.setUsdQuoteType(settingsUpdate.getUsdQuoteType());
             settingsRepositoryService.saveSettings(settings);
-        }
-        if (settingsUpdate.getContractMode() != null) {
-            settings.setContractMode(settingsUpdate.getContractMode());
-            settingsRepositoryService.saveSettings(settings);
-
-            settings.setContractModeCurrent(ContractMode.parse(
-                    bitmexService.getFuturesContractName(),
-                    okCoinService.getFuturesContractName())
-            );
-            settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
         }
         if (settingsUpdate.getHedgeBtc() != null) {
             settings.setHedgeBtc(settingsUpdate.getHedgeBtc());

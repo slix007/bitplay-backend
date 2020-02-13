@@ -218,8 +218,8 @@ public class ArbitrageService {
 
     public void init(TwoMarketStarter twoMarketStarter) {
         loadParamsFromDb();
-        this.firstMarketService = twoMarketStarter.getFirstMarketService();
-        this.secondMarketService = twoMarketStarter.getSecondMarketService();
+        this.firstMarketService = twoMarketStarter.getLeftMarketService();
+        this.secondMarketService = twoMarketStarter.getRightMarketService();
         this.posDiffService = twoMarketStarter.getPosDiffService();
 //        startArbitrageMonitoring();
         initArbitrageStateListener();

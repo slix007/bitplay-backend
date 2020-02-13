@@ -5,7 +5,6 @@ import com.bitplay.api.dto.BorderUpdateJson;
 import com.bitplay.api.dto.DeltalUpdateJson;
 import com.bitplay.api.dto.DeltasJson;
 import com.bitplay.api.dto.DeltasMinMaxJson;
-import com.bitplay.api.dto.LiqParamsJson;
 import com.bitplay.api.dto.MarketFlagsJson;
 import com.bitplay.api.dto.MarketList;
 import com.bitplay.api.dto.PosCorrJson;
@@ -56,10 +55,10 @@ public class CommonEndpoint {
 
     @RequestMapping(value = "/market/list", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public MarketList getMarkets() {
-        final MarketService first = twoMarketStarter.getFirstMarketService();
+        final MarketService first = twoMarketStarter.getLeftMarketService();
         final String firstName = first.getName();
         final String firstFuturesContractName = first.getFuturesContractName();
-        final MarketService second = twoMarketStarter.getSecondMarketService();
+        final MarketService second = twoMarketStarter.getRightMarketService();
         final String secondName = second.getName();
         final String secondFuturesContract = second.getFuturesContractName();
         return new MarketList(firstName, secondName, firstFuturesContractName, secondFuturesContract);

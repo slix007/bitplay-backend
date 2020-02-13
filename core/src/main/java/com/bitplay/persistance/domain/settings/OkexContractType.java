@@ -1,5 +1,6 @@
 package com.bitplay.persistance.domain.settings;
 
+import com.bitplay.market.okcoin.OkCoinService;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -103,5 +104,10 @@ public enum OkexContractType implements ContractType {
 
     public boolean isEth() {
         return this.name().startsWith("ETH");
+    }
+
+    @Override
+    public String getMarketName() {
+        return OkCoinService.NAME;
     }
 }

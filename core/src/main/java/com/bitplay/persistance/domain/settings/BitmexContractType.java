@@ -1,9 +1,11 @@
 package com.bitplay.persistance.domain.settings;
 
-import java.math.BigDecimal;
+import com.bitplay.market.bitmex.BitmexService;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.knowm.xchange.currency.CurrencyPair;
+
+import java.math.BigDecimal;
 
 @AllArgsConstructor
 @Getter
@@ -47,5 +49,10 @@ public enum BitmexContractType implements ContractType {
 
     public boolean isEth() {
         return this.name().startsWith("ETH");
+    }
+
+    @Override
+    public String getMarketName() {
+        return BitmexService.NAME;
     }
 }

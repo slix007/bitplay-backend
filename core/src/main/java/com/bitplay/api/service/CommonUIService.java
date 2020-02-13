@@ -1,6 +1,5 @@
 package com.bitplay.api.service;
 
-import com.bitplay.Config;
 import com.bitplay.api.dto.BorderUpdateJson;
 import com.bitplay.api.dto.DeltalUpdateJson;
 import com.bitplay.api.dto.DeltasJson;
@@ -100,9 +99,6 @@ public class CommonUIService {
 
     @Autowired
     private DqlStateService dqlStateService;
-
-    @Autowired
-    private Config config;
 
     @Autowired
     private TraderPermissionsService traderPermissionsService;

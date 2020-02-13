@@ -14,25 +14,32 @@ import org.springframework.stereotype.Component;
 public class Config {
 
     @Value("${market.first}")
-    private String firstMarketName;
+    private String leftMarketName;
     @Value("${market.first.key}")
-    private String firstMarketKey;
+    private String leftMarketKey;
     @Value("${market.first.secret}")
-    private String firstMarketSecret;
+    private String leftMarketSecret;
+
+    @Value("${market.first.ex.key:DEFAULT}")
+    private String leftMarketExKey;
+    @Value("${market.first.ex.secret:DEFAULT}")
+    private String leftMarketExSecret;
+    @Value("${market.first.ex.passphrase:DEFAULT}")
+    private String leftMarketExPassphrase;
 
     @Value("${market.second}")
-    private String secondMarketName;
+    private String rightMarketName;
     @Value("${market.second.key}")
-    private String secondMarketKey;
+    private String rightMarketKey;
     @Value("${market.second.secret}")
-    private String secondMarketSecret;
+    private String rightMarketSecret;
 
     @Value("${market.second.ex.key:DEFAULT}")
-    private String secondMarketExKey;
+    private String rightMarketExKey;
     @Value("${market.second.ex.secret:DEFAULT}")
-    private String secondMarketExSecret;
+    private String rightMarketExSecret;
     @Value("${market.second.ex.passphrase:DEFAULT}")
-    private String secondMarketExPassphrase;
+    private String rightMarketExPassphrase;
 
     @Value("${ui.password.trader}")
     private String uiPasswordForTrader;

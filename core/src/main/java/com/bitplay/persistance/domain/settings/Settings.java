@@ -5,8 +5,6 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.TradingModeState;
 import com.bitplay.persistance.domain.settings.SettingsVolatileMode.Field;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import java.math.BigDecimal;
-import java.util.EnumSet;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,6 +14,9 @@ import lombok.ToString;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.math.BigDecimal;
+import java.util.EnumSet;
 
 /**
  * Created by Sergey Shurmin on 11/27/17.
@@ -68,13 +69,7 @@ public class Settings extends AbstractDocument {
 
     private ContractMode contractMode;
     @Transient
-    private String okexContractName;
-    @Transient
     private ContractMode contractModeCurrent; // only for UI
-    @Transient
-    private String mainSetNameCurrent;
-    @Transient
-    private String extraSetNameCurrent;
 
     private BigDecimal hedgeBtc;
     private BigDecimal hedgeEth;
@@ -118,7 +113,7 @@ public class Settings extends AbstractDocument {
         settings.limits = Limits.createDefault();
         settings.restartSettings = RestartSettings.createDefaults();
         settings.signalDelayMs = 1000;
-        settings.contractMode = ContractMode.MODE1_SET_BU11;
+        settings.contractMode = new ContractMode(BitmexContractType.XBTUSD, BitmexContractType.XBTUSD);
         settings.coldStorageBtc = BigDecimal.ZERO;
         settings.coldStorageEth = BigDecimal.ZERO;
         settings.eBestMin = 0;
@@ -160,12 +155,6 @@ public class Settings extends AbstractDocument {
     // only for UI
     public boolean isEth() {
         return contractModeCurrent != null && contractModeCurrent.isEth();
-    }
-
-    public void setContractModeCurrent(ContractMode contractModeCurrent) {
-        this.contractModeCurrent = contractModeCurrent;
-        this.mainSetNameCurrent = contractModeCurrent.getMainSetName();
-        this.extraSetNameCurrent = contractModeCurrent.getExtraSetName();
     }
 
     // Volatile mode
