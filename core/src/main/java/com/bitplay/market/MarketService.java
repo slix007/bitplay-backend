@@ -386,7 +386,7 @@ public abstract class MarketService extends MarketServiceWithState {
         this.placeOrderArgs = placeOrderArgs;
 
         if (withResetWaitingArb) {
-            ((OkCoinService) getArbitrageService().getSecondMarketService()).resetWaitingArb();
+            ((OkCoinService) getArbitrageService().getSecondMarketService()).resetWaitingArb("setOverloaded");
         }
 
         final SysOverloadArgs sysOverloadArgs = getPersistenceService().getSettingsRepositoryService()
@@ -444,9 +444,9 @@ public abstract class MarketService extends MarketServiceWithState {
                     && getArbitrageService().getSecondMarketService().getMarketState() == MarketState.WAITING_ARB) {
                 // skip OKEX consistently, before bitemx-Ready
                 if (getArbitrageService().getDealPrices().getBPriceFact().getAvg().signum() == 0) {
-                    ((OkCoinService)getArbitrageService().getSecondMarketService()).resetWaitingArb();
+                    ((OkCoinService) getArbitrageService().getSecondMarketService()).resetWaitingArb("resetOverload");
                 } else {
-                    ((OkCoinService)getArbitrageService().getSecondMarketService()).resetWaitingArb(Boolean.TRUE);
+                    ((OkCoinService) getArbitrageService().getSecondMarketService()).resetWaitingArb("resetOverload", true);
                 }
             }
 

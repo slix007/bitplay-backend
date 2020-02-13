@@ -215,13 +215,9 @@ public class PosDiffPortionsService {
             warningLogger.error(ntUsdString);
         }
         if (btmReady || arbState != ArbState.IN_PROGRESS) {
-            okexReset(filledUsdBlock);
+            okCoinService.resetWaitingArb("posDiffPortionsService:btmReady", filledUsdBlock.signum() > 0);
+            arbitrageService.resetArbState("posDiffPortionsService:btmReady");
         }
-    }
-
-    private void okexReset(BigDecimal filledUsdBlock) {
-        okCoinService.resetWaitingArb(filledUsdBlock.signum() > 0);
-        arbitrageService.resetArbState("deferredPlacingPortion");
     }
 
     private void placeDeferredPortion(PlaceOrderArgs args, BigDecimal block) {

@@ -92,7 +92,6 @@ import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.MarketOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.knowm.xchange.service.trade.TradeService;
@@ -438,7 +437,7 @@ public class BitmexService extends MarketServicePreliq {
                                         .orElseGet(() -> arbitrageService.getLastTradeId());
                                 setFree(tradeId);
                                 tradeLogger.info("reset WAITING_ARB after reconnect");
-                                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb("reset WAITING_ARB after reconnect");
                             } else {
                                 String msg = String.format("Warning: Bitmex reconnect is finished, but there are %s openOrders.", getOnlyOpenOrders().size());
                                 tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
@@ -1866,17 +1865,19 @@ public class BitmexService extends MarketServicePreliq {
                 if (placeOrderArgs.getAttempt() == PlaceOrderArgs.NO_REPEATS_ATTEMPT && attemptCount > 1) {
                     // means: CON_B_O on signal. No repeats. Cancel okex deferred.
                     nextMarketState = MarketState.READY;
-                    logger.info("NO_REPEATS_ATTEMPT on placing. restore marketState to READY and reset WAITING_ARB");
-                    tradeLogger.info("NO_REPEATS_ATTEMPT on placing. restore marketState to READY and reset WAITING_ARB");
-                    ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                    final String warnMsg = "NO_REPEATS_ATTEMPT on placing. restore marketState to READY and reset WAITING_ARB";
+                    logger.info(warnMsg);
+                    tradeLogger.info(warnMsg);
+                    ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb(warnMsg);
                     break;
                 }
                 if (settingsRepositoryService.getSettings().getManageType().isManual() && !signalType.isRecoveryNtUsd()) {
                     if (!signalType.isManual() || attemptCount > 1) {
-                        logger.info("MangeType is MANUAL. Stop placing.");
-                        tradeLogger.info("MangeType is MANUAL. Stop placing.");
-                        warningLogger.info("MangeType is MANUAL. Stop placing.");
-                        ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                        final String warnMsg = "MangeType is MANUAL. Stop placing.";
+                        logger.info(warnMsg);
+                        tradeLogger.info(warnMsg);
+                        warningLogger.info(warnMsg);
+                        ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb(warnMsg);
                         break; // when MangeType is MANUAL, only the first manualSignal is accepted
                     }
                 }
@@ -2037,8 +2038,11 @@ public class BitmexService extends MarketServicePreliq {
 
                         tradeResponse.setLimitOrder(resultOrder);
 
-                        if (resultOrder.getStatus() == OrderStatus.CANCELED) {
-                            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                        final boolean partiallyFilled = placingType == PlacingType.TAKER_IOC
+                                && resultOrder.getCumulativeAmount() != null
+                                && resultOrder.getCumulativeAmount().signum() > 0;
+                        if (resultOrder.getStatus() == OrderStatus.CANCELED && !partiallyFilled) {
+                            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb("bitmex placeOrder was cancelled");
                         } else {
                             nextMarketState = MarketState.READY; // immediate ready after all Taker
                         }
@@ -2090,11 +2094,11 @@ public class BitmexService extends MarketServicePreliq {
                         } else {
                             tradeResponse.setErrorCode(e.getMessage());
                             nextMarketState = MarketState.READY;
-                            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb("placeOrderStatus " + placeOrderStatus);
                             break;
                         }
                     } else {
-                        ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                        ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb("placeOrderStatus " + placeOrderStatus);
                         break; // any unknown exception - no retry
                     }
                 } catch (Exception e) {
@@ -2118,7 +2122,7 @@ public class BitmexService extends MarketServicePreliq {
 //                        }
 //                    } else {
                     nextMarketState = MarketState.READY;
-                    ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                    ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb("placeOrder exception");
                     break; // any unknown exception - no retry
 //                    }
 
@@ -2133,10 +2137,11 @@ public class BitmexService extends MarketServicePreliq {
 
         } catch (Exception e) {
             logger.error("Place market order error", e);
-            tradeLogger.info(String.format("maker error %s", e.toString()), contractTypeStr);
+            final String warnMsg = String.format("maker error %s", e.toString());
+            tradeLogger.info(warnMsg, contractTypeStr);
             tradeResponse.setErrorCode(e.getMessage());
             nextMarketState = MarketState.READY;
-            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+            ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb(warnMsg);
         }
 
         if (placeOrderArgs.isPreliqOrder()) {
@@ -2150,8 +2155,9 @@ public class BitmexService extends MarketServicePreliq {
             logger.info("restore marketState to " + nextMarketState);
             setMarketState(nextMarketState, counterName);
             if (nextMarketState == MarketState.SYSTEM_OVERLOADED) {
-                tradeLogger.info("restore marketState to SYSTEM_OVERLOADED and reset WAITING_ARB");
-                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                final String warnMsg = "restore marketState to SYSTEM_OVERLOADED and reset WAITING_ARB";
+                tradeLogger.info(warnMsg);
+                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb(warnMsg);
             } else if (nextMarketState == MarketState.READY) {
                 setFree(tradeId);
             }
@@ -3074,12 +3080,12 @@ public class BitmexService extends MarketServicePreliq {
                 BitmexTradeService tradeService = (BitmexTradeService) getExchange().getTradeService();
                 boolean res = tradeService.cancelOrder(orderId);
 
-                getTradeLogger().info(String.format("#%s/%s %s cancelled id=%s",
+                final String warnMsg = String.format("#%s/%s %s cancelled id=%s",
                         counterForLogs, attemptCount,
                         logInfoId,
-                        orderId));
-
-                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                        orderId);
+                getTradeLogger().info(warnMsg);
+                ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb(warnMsg);
 
                 return res;
 
@@ -3129,7 +3135,7 @@ public class BitmexService extends MarketServicePreliq {
                     setMarketState(MarketState.PLACING_ORDER);
                 } else {
                     if (withResetWaitingArb) {
-                        ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb();
+                        ((OkCoinService) arbitrageService.getSecondMarketService()).resetWaitingArb("cancellAllOrders withResetWaitingArb");
                     }
                     addCheckOoToFree();
                 }

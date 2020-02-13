@@ -1290,8 +1290,9 @@ public class OkCoinService extends MarketServicePreliq {
                 }
             }
         } catch (Exception e) {
-            logger.error("WAITING_ARB: deferredPlacingOrder error", e);
-            resetWaitingArb();
+            final String warnMsg = "WAITING_ARB: deferredPlacingOrder error";
+            logger.error(warnMsg, e);
+            resetWaitingArb(warnMsg);
             arbitrageService.resetArbState("deferredPlacingOrder");
             slackNotifications.sendNotify(NotifyType.RESET_TO_FREE, "WAITING_ARB: deferredPlacingOrder error. Set READY. " + e.getMessage());
             return false;
@@ -1301,9 +1302,10 @@ public class OkCoinService extends MarketServicePreliq {
 
     public boolean noDeferredOrderCheck(PlaceOrderArgs currArgs) {
         if (currArgs == null) {
-            logger.error("WAITING_ARB: no deferred order. Set READY.");
-            warningLogger.error("WAITING_ARB: no deferred order. Set READY.");
-            resetWaitingArb();
+            final String warnMsg = "WAITING_ARB: no deferred order. Set READY.";
+            logger.error(warnMsg);
+            warningLogger.error(warnMsg);
+            resetWaitingArb(warnMsg);
             arbitrageService.resetArbState("deferredPlacingOrder");
             return true;
         }
@@ -1338,7 +1340,7 @@ public class OkCoinService extends MarketServicePreliq {
                 arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
                 getTradeLogger().info(msg1);
                 warningLogger.error(msg1);
-                resetWaitingArb();
+                resetWaitingArb(msg1);
                 arbitrageService.resetArbState("deferredPlacingOrder");
                 return true;
             }
@@ -2544,10 +2546,19 @@ public class OkCoinService extends MarketServicePreliq {
         return isOk;
     }
 
-    public void resetWaitingArb(Boolean... btmWasStarted) {
+    public void resetWaitingArb(String from) {
+        resetWaitingArb(from, false);
+    }
+
+    public void resetWaitingArb(String from, boolean btmWasStarted) {
         if (getMarketState() == MarketState.WAITING_ARB) {
             final PlaceOrderArgs placeOrderArgs = placeOrderArgsRef.getAndSet(null);
-            if (btmWasStarted != null && btmWasStarted.length > 0 && btmWasStarted[0]) {
+            final String s = placeOrderArgs != null ? placeOrderArgs.getCounterName() : "";
+            final String warnMsg = String.format("#%s resetWaitingArb from %s", s, from);
+            warningLogger.info(warnMsg);
+            getTradeLogger().info(warnMsg);
+
+            if (btmWasStarted) {
                 // no changes for Vert
             } else {
                 final Long tradeId = placeOrderArgs != null && placeOrderArgs.getTradeId() != null
@@ -2557,7 +2568,6 @@ public class OkCoinService extends MarketServicePreliq {
                 final TradingMode tradingMode = dealPrices.getTradingMode();
                 final boolean notAbortedOrUnstartedSignal = dealPricesRepositoryService.isNotAbortedOrUnstartedSignal(tradeId);
                 if (notAbortedOrUnstartedSignal) {
-                    final String s = placeOrderArgs != null ? placeOrderArgs.getCounterName() : "";
                     if (dealPrices.getDeltaName() == DeltaName.B_DELTA) {
                         cumPersistenceService.incUnstartedVert1(tradingMode);
                     } else {

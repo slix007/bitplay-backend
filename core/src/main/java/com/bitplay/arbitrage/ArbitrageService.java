@@ -481,7 +481,7 @@ public class ArbitrageService {
                             fplayTradeService.warn(tradeId, counterName, "Warning: Free Okcoin");
                             warningLogger.warn("Warning: Free Okcoin");
                             log.warn("Warning: Free Okcoin");
-                            ((OkCoinService)getSecondMarketService()).resetWaitingArb();
+                            ((OkCoinService)getSecondMarketService()).resetWaitingArb("Warning: Free Okcoin");
                             secondMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, secondMarketService.tryFindLastTradeId()));
                         }
 
