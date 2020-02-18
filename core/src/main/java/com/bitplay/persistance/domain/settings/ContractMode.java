@@ -84,7 +84,7 @@ public class ContractMode {
 //    }
 
     public boolean isEth() {
-        return left.isEth();
+        return left.isEth() || right.isEth();
     }
 
     public String getExtraSetName() {

@@ -130,7 +130,7 @@ public class BordersRecalcService {
         if (b_add_delta.signum() == 0 && ok_add_delta.signum() == 0) {
             return;
         }
-        final BigDecimal mid_delta = arbitrageService.getFirstMarketService().getContractType().isEth()
+        final BigDecimal mid_delta = arbitrageService.getLeftMarketService().getContractType().isEth()
                 ? ((b_delta.abs()).add(o_delta.abs())).divide(BigDecimal.valueOf(2), 1, RoundingMode.HALF_UP)
                 : ((b_delta.abs()).add(o_delta.abs())).divide(BigDecimal.valueOf(2), 0, RoundingMode.HALF_UP);
 
@@ -280,8 +280,8 @@ public class BordersRecalcService {
 
     @SuppressWarnings("Duplicates")
     private void recalcBaseLvlType(BorderParams borderParams) {
-        final BigDecimal b_pos = arbitrageService.getFirstMarketService().getPos().getPositionLong();
-        final Pos secondPos = arbitrageService.getSecondMarketService().getPos();
+        final BigDecimal b_pos = arbitrageService.getLeftMarketService().getPos().getPositionLong();
+        final Pos secondPos = arbitrageService.getRightMarketService().getPos();
         final BigDecimal ok_pos_long = secondPos.getPositionLong();
         final BigDecimal ok_pos_short = secondPos.getPositionShort();
         final BigDecimal ok_pos = ok_pos_long.subtract(ok_pos_short);
@@ -305,8 +305,8 @@ public class BordersRecalcService {
 
     @SuppressWarnings("Duplicates")
     private void recalcBaseLvlCnt(BorderParams borderParams) {
-        final BigDecimal b_pos = arbitrageService.getFirstMarketService().getPos().getPositionLong();
-        final Pos secondPos = arbitrageService.getSecondMarketService().getPos();
+        final BigDecimal b_pos = arbitrageService.getLeftMarketService().getPos().getPositionLong();
+        final Pos secondPos = arbitrageService.getRightMarketService().getPos();
         final BigDecimal ok_pos_long = secondPos.getPositionLong();
         final BigDecimal ok_pos_short = secondPos.getPositionShort();
         final BigDecimal ok_pos = ok_pos_long.subtract(ok_pos_short);

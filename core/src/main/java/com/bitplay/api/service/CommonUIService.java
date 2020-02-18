@@ -293,7 +293,7 @@ public class CommonUIService {
     }
 
     private boolean isInitialized() {
-        return arbitrageService.getFirstMarketService() != null && arbitrageService.getSecondMarketService() != null;
+        return arbitrageService.getLeftMarketService() != null && arbitrageService.getRightMarketService() != null;
     }
 
     public MarketFlagsJson getStopMoving() {
@@ -301,8 +301,8 @@ public class CommonUIService {
             return new MarketFlagsJson(null, null);
         }
         return new MarketFlagsJson(
-                arbitrageService.getFirstMarketService().getMovingStop(),
-                arbitrageService.getSecondMarketService().getMovingStop()
+                arbitrageService.getLeftMarketService().getMovingStop(),
+                arbitrageService.getRightMarketService().getMovingStop()
         );
     }
 
@@ -310,11 +310,11 @@ public class CommonUIService {
         if (!isInitialized()) {
             return new MarketFlagsJson(null, null);
         }
-        arbitrageService.getFirstMarketService().setMovingStop(!arbitrageService.getFirstMarketService().getMovingStop());
-        arbitrageService.getSecondMarketService().setMovingStop(!arbitrageService.getSecondMarketService().getMovingStop());
+        arbitrageService.getLeftMarketService().setMovingStop(!arbitrageService.getLeftMarketService().getMovingStop());
+        arbitrageService.getRightMarketService().setMovingStop(!arbitrageService.getRightMarketService().getMovingStop());
         return new MarketFlagsJson(
-                arbitrageService.getFirstMarketService().getMovingStop(),
-                arbitrageService.getSecondMarketService().getMovingStop()
+                arbitrageService.getLeftMarketService().getMovingStop(),
+                arbitrageService.getRightMarketService().getMovingStop()
         );
     }
 
@@ -323,10 +323,10 @@ public class CommonUIService {
             return new MarketStatesJson();
         }
         final ArbState arbState = arbitrageService.getArbState();
-        final MarketState btmState = arbitrageService.getFirstMarketService().getMarketState();
-        final MarketState okState = arbitrageService.getSecondMarketService().getMarketState();
+        final MarketState btmState = arbitrageService.getLeftMarketService().getMarketState();
+        final MarketState okState = arbitrageService.getRightMarketService().getMarketState();
 
-        boolean reconnectInProgress = ((BitmexService) arbitrageService.getFirstMarketService()).isReconnectInProgress();
+        boolean reconnectInProgress = ((BitmexService) arbitrageService.getLeftMarketService()).isReconnectInProgress();
         String btmReconnectState = reconnectInProgress ? "IN_PROGRESS" : "NONE";
 
         DelayTimerJson corrDelay = getCorrDelay();
@@ -381,8 +381,8 @@ public class CommonUIService {
         return new MarketStatesJson(
                 btmState.toString(),
                 okState.toString(),
-                arbitrageService.getFirstMarketService().getTimeToReset(),
-                arbitrageService.getSecondMarketService().getTimeToReset(),
+                arbitrageService.getLeftMarketService().getTimeToReset(),
+                arbitrageService.getRightMarketService().getTimeToReset(),
                 String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
                 timeToSignal,
                 tradingModeService.secToReset(),
@@ -500,21 +500,21 @@ public class CommonUIService {
     public MarketStatesJson setMarketsStates(MarketStatesJson marketStatesJson) {
         final MarketState first = MarketState.valueOf(marketStatesJson.getFirstMarket());
         final MarketState second = MarketState.valueOf(marketStatesJson.getSecondMarket());
-        arbitrageService.getFirstMarketService().setMarketState(first);
-        arbitrageService.getSecondMarketService().setMarketState(second);
+        arbitrageService.getLeftMarketService().setMarketState(first);
+        arbitrageService.getRightMarketService().setMarketState(second);
 
         return new MarketStatesJson(
-                arbitrageService.getFirstMarketService().getMarketState().name(),
-                arbitrageService.getSecondMarketService().getMarketState().name(),
-                arbitrageService.getFirstMarketService().getTimeToReset(),
-                arbitrageService.getSecondMarketService().getTimeToReset()
+                arbitrageService.getLeftMarketService().getMarketState().name(),
+                arbitrageService.getRightMarketService().getMarketState().name(),
+                arbitrageService.getLeftMarketService().getTimeToReset(),
+                arbitrageService.getRightMarketService().getTimeToReset()
         );
     }
 
     public MarketFlagsJson freeMarketsStates() {
-        MarketService btm = arbitrageService.getFirstMarketService();
+        MarketService btm = arbitrageService.getLeftMarketService();
         btm.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, btm.tryFindLastTradeId()));
-        OkCoinService okex = (OkCoinService) arbitrageService.getSecondMarketService();
+        OkCoinService okex = (OkCoinService) arbitrageService.getRightMarketService();
         okex.resetWaitingArb("UI");
         okex.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FROM_UI, okex.tryFindLastTradeId()));
         arbitrageService.resetArbState("'UI'");

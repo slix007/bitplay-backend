@@ -3,6 +3,7 @@ package com.bitplay.api.controller;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
@@ -11,6 +12,7 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.AbortSignal;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
+import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.Limits;
@@ -35,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.EnumSet;
 
 /**
@@ -53,8 +56,8 @@ public class SettingsEndpoint {
     private final PersistenceService persistenceService;
     private final SettingsRepositoryService settingsRepositoryService;
     private final ArbitrageService arbitrageService;
-    private final OkCoinService okCoinService;
-    private final BitmexService bitmexService;
+    //    private final OkCoinService okCoinService;
+//    private final BitmexService bitmexService;
     private final PosDiffService posDiffService;
     private final SettingsCorrEndpoint settingsCorrEndpoint;
     private final BitmexChangeOnSoService bitmexChangeOnSoService;
@@ -106,9 +109,21 @@ public class SettingsEndpoint {
         bitmexChangeOnSo.setSecToReset(bitmexChangeOnSoService.getSecToReset());
 
         // BitmexObType
-        settings.setBitmexObTypeCurrent(bitmexService.getBitmexObTypeCurrent());
+        BitmexObType bitmexObTypeCurrent = settings.getBitmexObType();
+        if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
+            bitmexObTypeCurrent = ((BitmexService) arbitrageService.getLeftMarketService()).getBitmexObTypeCurrent();
+        } else if (arbitrageService.getRightMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
+            bitmexObTypeCurrent = ((BitmexService) arbitrageService.getRightMarketService()).getBitmexObTypeCurrent();
+        }
+        settings.setBitmexObTypeCurrent(bitmexObTypeCurrent);
 
-        settings.getSettingsTransient().setOkexLeverage(okCoinService.getLeverage());
+        BigDecimal okexLeverage = BigDecimal.ZERO;
+        if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
+            okexLeverage = ((OkCoinService) arbitrageService.getLeftMarketService()).getLeverage();
+        } else if (arbitrageService.getRightMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
+            okexLeverage = ((OkCoinService) arbitrageService.getRightMarketService()).getLeverage();
+        }
+        settings.getSettingsTransient().setOkexLeverage(okexLeverage);
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -232,14 +247,14 @@ public class SettingsEndpoint {
             if (update.getPreliqDelaySec() != null) {
                 current.setPreliqDelaySec(update.getPreliqDelaySec());
                 settingsRepositoryService.saveSettings(settings);
-                bitmexService.getDtPreliq().stop();
-                okCoinService.getDtPreliq().stop();
+                arbitrageService.getLeftMarketService().getDtPreliq().stop();
+                arbitrageService.getRightMarketService().getDtPreliq().stop();
             }
             if (update.getKillposDelaySec() != null) {
                 current.setKillposDelaySec(update.getKillposDelaySec());
                 settingsRepositoryService.saveSettings(settings);
-                bitmexService.getDtKillpos().stop();
-                okCoinService.getDtKillpos().stop();
+                arbitrageService.getLeftMarketService().getDtKillpos().stop();
+                arbitrageService.getRightMarketService().getDtKillpos().stop();
             }
             settingsRepositoryService.saveSettings(settings);
         }
@@ -547,14 +562,14 @@ public class SettingsEndpoint {
             if (update.getPreliqDelaySec() != null) {
                 current.setPreliqDelaySec(update.getPreliqDelaySec());
                 settingsRepositoryService.saveSettings(mainSettings);
-                bitmexService.getDtPreliq().stop();
-                okCoinService.getDtPreliq().stop();
+                arbitrageService.getLeftMarketService().getDtPreliq().stop();
+                arbitrageService.getRightMarketService().getDtPreliq().stop();
             }
             if (update.getKillposDelaySec() != null) {
                 current.setKillposDelaySec(update.getKillposDelaySec());
                 settingsRepositoryService.saveSettings(mainSettings);
-                bitmexService.getDtKillpos().stop();
-                okCoinService.getDtKillpos().stop();
+                arbitrageService.getLeftMarketService().getDtKillpos().stop();
+                arbitrageService.getRightMarketService().getDtKillpos().stop();
             }
             settingsRepositoryService.saveSettings(mainSettings);
         }

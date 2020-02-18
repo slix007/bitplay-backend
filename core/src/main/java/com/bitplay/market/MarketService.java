@@ -1,5 +1,6 @@
 package com.bitplay.market;
 
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -27,6 +28,8 @@ import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
+import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
+import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
@@ -68,6 +71,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -128,10 +132,20 @@ public abstract class MarketService extends MarketServiceWithState {
     private volatile SpecialFlags specialFlags = SpecialFlags.NONE;
     protected EventBus eventBus = new EventBus();
     protected final LiqInfo liqInfo = new LiqInfo();
+    private volatile ArbType arbType;
+
+    public ArbType getArbType() {
+        return arbType;
+    }
+
+    public CompletableFuture<Void> addOoExecutorTask(Runnable task) {
+        return CompletableFuture.runAsync(task, ooSingleExecutor);
+    }
 
     Disposable openOrdersMovingSubscription;
 
-    public void init(String key, String secret, ContractType contractType, Object... exArgs) {
+    public void init(String key, String secret, ContractType contractType, ArbType arbType, Object... exArgs) {
+        this.arbType = arbType;
         initEventBus();
         initializeMarket(key, secret, contractType, exArgs);
     }
@@ -386,7 +400,7 @@ public abstract class MarketService extends MarketServiceWithState {
         this.placeOrderArgs = placeOrderArgs;
 
         if (withResetWaitingArb) {
-            ((OkCoinService) getArbitrageService().getSecondMarketService()).resetWaitingArb("setOverloaded");
+            ((OkCoinService) getArbitrageService().getRightMarketService()).resetWaitingArb("setOverloaded");
         }
 
         final SysOverloadArgs sysOverloadArgs = getPersistenceService().getSettingsRepositoryService()
@@ -441,12 +455,12 @@ public abstract class MarketService extends MarketServiceWithState {
             logger.warn(backWarn);
 
             if (marketStateToSet == MarketState.READY && getName().equals(BitmexService.NAME)
-                    && getArbitrageService().getSecondMarketService().getMarketState() == MarketState.WAITING_ARB) {
+                    && getArbitrageService().getRightMarketService().getMarketState() == MarketState.WAITING_ARB) {
                 // skip OKEX consistently, before bitemx-Ready
                 if (getArbitrageService().getDealPrices().getBPriceFact().getAvg().signum() == 0) {
-                    ((OkCoinService) getArbitrageService().getSecondMarketService()).resetWaitingArb("resetOverload");
+                    ((OkCoinService) getArbitrageService().getRightMarketService()).resetWaitingArb("resetOverload");
                 } else {
-                    ((OkCoinService) getArbitrageService().getSecondMarketService()).resetWaitingArb("resetOverload", true);
+                    ((OkCoinService) getArbitrageService().getRightMarketService()).resetWaitingArb("resetOverload", true);
                 }
             }
 
@@ -1321,5 +1335,67 @@ public abstract class MarketService extends MarketServiceWithState {
 //        }
 //
 //    }
+
+    public BigDecimal getLeftFilledAndUpdateBPriceFact(PlaceOrderArgs currArgs, boolean withLogs) {
+        if (currArgs == null || getArbType() == ArbType.RIGHT) {
+            return BigDecimal.ZERO;
+        }
+        final String counterForLogs = currArgs.getCounterNameWithPortion();
+        final Long tradeId = currArgs.getTradeId();
+        final DealPrices dealPrices = getArbitrageService().getDealPrices(tradeId);
+        final FactPrice bPriceFact = dealPrices.getBPriceFact();
+        final BigDecimal filledInitial = bPriceFact.getFilled();
+        BigDecimal filled = bPriceFact.getFilled();
+        if (filled.compareTo(bPriceFact.getFullAmount()) < 0) {
+            final String msg = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
+                    counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
+            );
+            logger.info(msg);
+            if (withLogs) {
+                getArbitrageService().getLeftMarketService().getTradeLogger().info(msg);
+                getArbitrageService().getRightMarketService().getTradeLogger().info(msg);
+                warningLogger.info(msg);
+            }
+            for (int i = 0; i < 3; i++) {
+                updateAvgPrice(dealPrices, true);
+                filled = bPriceFact.getFilled();
+                if (filled.compareTo(filledInitial) >= 0) {
+                    break;
+                }
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    logger.error("sleep interrupted", e);
+                }
+                final String updMsg = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
+                        counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
+                );
+                logger.info(updMsg);
+                warningLogger.info(updMsg);
+            }
+            final String msg1;
+            if (filled.compareTo(bPriceFact.getFullAmount()) < 0) {
+                msg1 = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updated.",
+                        counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
+                );
+            } else {
+                msg1 = String.format("#%s tradeId=%s WAITING_ARB: bitmex is filled FULLY. %s of %s. Updated.",
+                        counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
+                );
+
+            }
+            logger.info(msg1);
+            if (withLogs) {
+                getArbitrageService().getLeftMarketService().getTradeLogger().info(msg1);
+                getArbitrageService().getRightMarketService().getTradeLogger().info(msg1);
+                warningLogger.info(msg1);
+            }
+        }
+        return filled;
+    }
+
+    public void updateAvgPrice(DealPrices dealPrices, boolean onlyOneAttempt) {
+        // it's overwritten for bitmex
+    }
 
 }

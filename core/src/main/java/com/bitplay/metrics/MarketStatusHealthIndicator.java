@@ -15,10 +15,10 @@ public class MarketStatusHealthIndicator extends AbstractHealthIndicator {
 
     @Override
     protected void doHealthCheck(Builder builder) {
-        final boolean bitmexUp = arbitrageService.getFirstMarketService() != null &&
-                arbitrageService.getFirstMarketService().isStarted();
-        final boolean okexUp = arbitrageService.getSecondMarketService() != null &&
-                arbitrageService.getSecondMarketService().isStarted();
+        final boolean bitmexUp = arbitrageService.getLeftMarketService() != null &&
+                arbitrageService.getLeftMarketService().isStarted();
+        final boolean okexUp = arbitrageService.getRightMarketService() != null &&
+                arbitrageService.getRightMarketService().isStarted();
 
         builder.withDetail("bitmexService", bitmexUp ? Status.UP : Status.DOWN);
         builder.withDetail("okexService", okexUp ? Status.UP : Status.DOWN);

@@ -292,8 +292,8 @@ public class PreliqService {
 
     private MarketServicePreliq getTheOtherMarket() {
         return getName().equals(BitmexService.NAME)
-                ? marketService.getArbitrageService().getSecondMarketService()
-                : marketService.getArbitrageService().getFirstMarketService();
+                ? marketService.getArbitrageService().getRightMarketService()
+                : marketService.getArbitrageService().getLeftMarketService();
     }
 
     private String getPreliqStartingStr(String name, Pos position, LiqInfo liqInfo) {
@@ -357,8 +357,8 @@ public class PreliqService {
 
         // put message in a queue
         final BestQuotes bestQuotes = Utils.createBestQuotes(
-                marketService.getArbitrageService().getSecondMarketService().getOrderBook(),
-                marketService.getArbitrageService().getFirstMarketService().getOrderBook());
+                marketService.getArbitrageService().getRightMarketService().getOrderBook(),
+                marketService.getArbitrageService().getLeftMarketService().getOrderBook());
 
         final Long tradeId = marketService.getArbitrageService().getLastTradeId();
 

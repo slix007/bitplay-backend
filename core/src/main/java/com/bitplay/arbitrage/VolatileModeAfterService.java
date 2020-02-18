@@ -1,12 +1,14 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.posdiff.PosDiffPortionsStopListener;
-import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.model.PlBefore;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.MarketState;
+import com.bitplay.market.model.PlBefore;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.CumPersistenceService;
@@ -37,8 +39,7 @@ public class VolatileModeAfterService {
 
     private final SettingsRepositoryService settingsRepositoryService;
     private final SignalService signalService;
-    private final OkCoinService okexService;
-    private final BitmexService bitmexService;
+    private final ArbitrageService arbitrageService;
     private final BitmexChangeOnSoService bitmexChangeOnSoService;
     private final TradeService fplayTradeService;
     private final DealPricesRepositoryService dealPricesRepositoryService;
@@ -46,72 +47,89 @@ public class VolatileModeAfterService {
     private final PosDiffPortionsStopListener posDiffPortionsStopListener;
 
     void justSetVolatileMode(Long tradeId, BtmFokAutoArgs btmFokAutoArgs, boolean btmCancelLogic) {
-        final List<FplayOrder> bitmexOO = bitmexService.getOnlyOpenFplayOrdersClone();
-        final List<FplayOrder> okexOO = okexService.getOnlyOpenFplayOrdersClone();
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
+        final List<FplayOrder> leftOO = left.getOnlyOpenFplayOrdersClone();
+        final List<FplayOrder> rightOO = right.getOnlyOpenFplayOrdersClone();
 
         // case 1. На обоих биржах выставлены лимитные ордера
         // case 3. На Bitmex System_overloaded, на Okex выставлен лимитный ордер.
-//        if (bitmexOO.size() > 0 && okexOO.size() > 0) {
-//            executorService.execute(() -> replaceLimitOrdersBitmex(bitmexOO));
-//            executorService.execute(() -> replaceLimitOrdersOkex(okexOO));
+//        if (leftOO.size() > 0 && rightOO.size() > 0) {
+//            executorService.execute(() -> replaceLimitOrdersBitmex(leftOO));
+//            executorService.execute(() -> replaceLimitOrdersOkex(rightOO));
 //        }
         // case 2. На Bitmex выставлен лимитный ордер, Okex в статусе "Waiting Arb".
         // case 4. На Bitmex "System_overloaded", на Okex "Waiting_arb".
-//        if (bitmexOO.size() > 0 && okexService.getMarketState() == MarketState.WAITING_ARB) {
-//            executorService.execute(() -> replaceLimitOrdersBitmex(bitmexOO));
+//        if (leftOO.size() > 0 && okexService.getMarketState() == MarketState.WAITING_ARB) {
+//            executorService.execute(() -> replaceLimitOrdersBitmex(leftOO));
 //             OK while VolatileMode has no 'Arbitrage version'
 //        }
 
         final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getOkexPlacingType();
-        final PlaceOrderArgs updateArgs = okexService.changeDeferredPlacingType(okexPlacingType);
-        if (updateArgs != null) {
-            final String counterForLogs = updateArgs.getCounterNameWithPortion();
-            fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
-            final String msg = String.format("#%s change Trading mode to current-volatile(okex has deferred)", counterForLogs);
-            fplayTradeService.info(tradeId, counterForLogs, msg);
-            okexService.getTradeLogger().info(msg);
+        final PlaceOrderArgs updateArgs;
+        if (right.getMarketStaticData() == MarketStaticData.OKEX) {
+            final OkCoinService okexService = (OkCoinService) right;
+            updateArgs = okexService.changeDeferredPlacingType(okexPlacingType);
+            if (updateArgs != null) {
+                final String counterForLogs = updateArgs.getCounterNameWithPortion();
+                fplayTradeService.setTradingMode(tradeId, TradingMode.CURRENT_VOLATILE);
+                final String msg = String.format("#%s change Trading mode to current-volatile(okex has deferred)", counterForLogs);
+                fplayTradeService.info(tradeId, counterForLogs, msg);
+                okexService.getTradeLogger().info(msg);
 
-            if (btmCancelLogic) {
-                dealPricesRepositoryService.updateOkexPlacingType(tradeId, okexPlacingType);
+                if (btmCancelLogic) {
+                    dealPricesRepositoryService.updateOkexPlacingType(tradeId, okexPlacingType);
+                }
             }
+        } else {
+            updateArgs = null;
         }
 
-        if (bitmexOO.size() > 0) {
-            if (btmCancelLogic) {
-                bitmexService.ooSingleExecutor.execute(() -> cancelLimitOrdersBitmex(bitmexOO, tradeId, updateArgs));
+        if (leftOO.size() > 0) {
+            if (btmCancelLogic && updateArgs != null) {
+                left.ooSingleExecutor.execute(() -> cancelLimitOrdersLeft(leftOO, tradeId, updateArgs));
             } else {
-                bitmexService.ooSingleExecutor.execute(() -> replaceLimitOrdersBitmex(bitmexOO, tradeId, btmFokAutoArgs));
+                left.ooSingleExecutor.execute(() -> replaceLimitOrdersLeft(leftOO, tradeId, btmFokAutoArgs));
             }
         }
-        if (okexOO.size() > 0) {
-            okexService.ooSingleExecutor.execute(() -> replaceLimitOrdersOkex(okexOO, tradeId));
+        if (rightOO.size() > 0) {
+            right.ooSingleExecutor.execute(() -> replaceLimitOrdersRight(rightOO, tradeId));
         }
     }
 
-    private void replaceLimitOrdersBitmex(List<FplayOrder> bitmexOO, Long tradeId, BtmFokAutoArgs btmFokAutoArgs) {
-        while (bitmexService.getMarketState() == MarketState.SYSTEM_OVERLOADED) {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                log.error("Sleep error", e);
-                return;
-            }
-            if (bitmexService.isMarketStopped()) {
-                return;
-            }
-        }
+    private void replaceLimitOrdersLeft(List<FplayOrder> bitmexOO, Long tradeId, BtmFokAutoArgs btmFokAutoArgs) {
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        if (bitmexSleepWhileSo(left)) return;
 
         final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
 
-        replaceLimitOrders(bitmexService, btmPlacingType, bitmexOO, tradeId, btmFokAutoArgs);
+        replaceLimitOrders(left, btmPlacingType, bitmexOO, tradeId, btmFokAutoArgs);
     }
 
-    private void replaceLimitOrdersOkex(List<FplayOrder> okexOO, Long tradeId) {
+    private boolean bitmexSleepWhileSo(MarketServicePreliq left) {
+        if (left.getMarketStaticData() == MarketStaticData.BITMEX) {
+            final BitmexService bitmexService = (BitmexService) left;
+            while (bitmexService.getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    log.error("Sleep error", e);
+                    return true;
+                }
+                if (bitmexService.isMarketStopped()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void replaceLimitOrdersRight(List<FplayOrder> okexOO, Long tradeId) {
         final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getOkexPlacingType();
-        replaceLimitOrders(okexService, okexPlacingType, okexOO, tradeId, null);
+        replaceLimitOrders(arbitrageService.getRightMarketService(), okexPlacingType, okexOO, tradeId, null);
     }
 
-    private void replaceLimitOrders(MarketService marketService, PlacingType placingType, List<FplayOrder> currOrders, Long tradeId,
+    private void replaceLimitOrders(MarketServicePreliq marketService, PlacingType placingType, List<FplayOrder> currOrders, Long tradeId,
                                     BtmFokAutoArgs btmFokAutoArgs) {
         if (placingType != PlacingType.MAKER && placingType != PlacingType.MAKER_TICK) {
 
@@ -123,7 +141,7 @@ public class VolatileModeAfterService {
             final String counterForLogs = stub.getCounterWithPortion(); // no portions here
             final Integer portionsQty = lastOO != null ? lastOO.getPortionsQty() : null;
             if (counterForLogs == null) {
-                final String warnStr = String.format("#%s WARNING counter is null!!!. orderToCancel=%s, stub=%s", counterForLogs, lastOO, stub);
+                final String warnStr = String.format("#null WARNING counter is null!!!. orderToCancel=%s, stub=%s", lastOO, stub);
                 fplayTradeService.info(tradeId, null, warnStr);
                 marketService.getTradeLogger().warn(warnStr);
                 log.info(warnStr);
@@ -150,23 +168,21 @@ public class VolatileModeAfterService {
                 final BigDecimal amountLeft = amountDiff.abs();
                 BestQuotes bestQuotes = getBestQuotes(currOrders);
 
-                if (marketService.getName().equals(BitmexService.NAME)) {
-                    signalService.placeBitmexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId,
-                            new PlBefore(), false,
-                            btmFokAutoArgs);
-                } else {
-                    if (amountLeft.signum() <= 0 && okexService.hasDeferredOrders()) {
-                        final String warnMsg = String.format("#%s current-volatile. amountLeft=%s and hasDeferredOrders", counterForLogs, amountLeft);
-                        fplayTradeService.info(tradeId, counterForLogs, warnMsg);
-                        marketService.getTradeLogger().warn(warnMsg);
-                        log.info(warnMsg);
+                if (marketService.getArbType() == ArbType.RIGHT
+                        && marketService.getMarketStaticData() == MarketStaticData.OKEX
+                        && amountLeft.signum() <= 0 && marketService.hasDeferredOrders()
+                ) {
+                    final String warnMsg = String.format("#%s current-volatile. amountLeft=%s and hasDeferredOrders", counterForLogs, amountLeft);
+                    fplayTradeService.info(tradeId, counterForLogs, warnMsg);
+                    marketService.getTradeLogger().warn(warnMsg);
+                    log.info(warnMsg);
 
-                        okexService.setMarketState(MarketState.WAITING_ARB);
-                    } else {
-                        final Settings s = settingsRepositoryService.getSettings();
-                        signalService.placeOkexOrderOnSignal(orderType, amountLeft, bestQuotes, placingType, counterName, tradeId, false,
-                                portionsQty, s.getArbScheme());
-                    }
+                    arbitrageService.getRightMarketService().setMarketState(MarketState.WAITING_ARB);
+                } else {
+                    final Settings s = settingsRepositoryService.getSettings();
+                    signalService.placeOrderOnSignal(marketService, orderType, amountLeft, bestQuotes, placingType, counterName, tradeId,
+                            false, portionsQty, s.getArbScheme(), new PlBefore(),
+                            btmFokAutoArgs);
                 }
             } else {
                 final String msg = "VolatileMode activated: no amountLeft.";
@@ -186,44 +202,35 @@ public class VolatileModeAfterService {
                 .orElse(null);
     }
 
-    private void cancelLimitOrdersBitmex(List<FplayOrder> bitmexOO, Long tradeId, PlaceOrderArgs currOkexDeferredArgs) {
-        while (bitmexService.getMarketState() == MarketState.SYSTEM_OVERLOADED) {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                log.error("Sleep error", e);
-                return;
-            }
-            if (bitmexService.isMarketStopped()) {
-                return;
-            }
-        }
+    private void cancelLimitOrdersLeft(List<FplayOrder> bitmexOO, Long tradeId, PlaceOrderArgs currOkexDeferredArgs) {
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        if (bitmexSleepWhileSo(left)) return;
 
-        final FplayOrder lastOO = bitmexService.getLastOO(bitmexOO);
-        final FplayOrder stub = bitmexService.getCurrStub(tradeId, lastOO, bitmexOO);
+        final FplayOrder lastOO = left.getLastOO(bitmexOO);
+        final FplayOrder stub = left.getCurrStub(tradeId, lastOO, bitmexOO);
         final String counterForLogs = stub.getCounterWithPortion(); // no portions here
         if (counterForLogs == null) {
             final String warnStr = String.format("#%s WARNING counter is null!!!. orderToCancel=%s, stub=%s", counterForLogs, lastOO, stub);
             fplayTradeService.info(tradeId, null, warnStr);
-            bitmexService.getTradeLogger().warn(warnStr);
+            left.getTradeLogger().warn(warnStr);
             log.info(warnStr);
         }
 
-        bitmexService.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders", false, false);
+        left.cancelAllOrders(stub, "VolatileMode activated: CancelAllOpenOrders", false, false);
         // freeOoChecker should set READY state after
 
-        final BigDecimal btmFilled = bitmexService.getBtmFilledAndUpdateBPriceFact(currOkexDeferredArgs, false);
+        final BigDecimal leftFilled = left.getLeftFilledAndUpdateBPriceFact(currOkexDeferredArgs, false);
         final FactPrice bPriceFact = dealPricesRepositoryService.getFullDealPrices(currOkexDeferredArgs.getTradeId()).getBPriceFact();
-        if (btmFilled.compareTo(bPriceFact.getFullAmount()) < 0) { // not fully filled
-            if (btmFilled.signum() == 0) {
+        if (leftFilled.compareTo(bPriceFact.getFullAmount()) < 0) { // not fully filled
+            if (leftFilled.signum() == 0) {
                 // unstarted
                 final boolean cntUpdated = incAbortedOrUnstartedCounters(currOkexDeferredArgs, false);
-                printSignalAborted(currOkexDeferredArgs, "unstarted", btmFilled, cntUpdated);
+                printSignalAborted(currOkexDeferredArgs, "unstarted", leftFilled, cntUpdated);
 
             } else {
                 // aborted
                 final boolean cntUpdated = incAbortedOrUnstartedCounters(currOkexDeferredArgs, true);
-                printSignalAborted(currOkexDeferredArgs, "aborted", btmFilled, cntUpdated);
+                printSignalAborted(currOkexDeferredArgs, "aborted", leftFilled, cntUpdated);
             }
         } else {
             // fully filled. Means bitmex was filled before 'cancel request'.
@@ -239,7 +246,7 @@ public class VolatileModeAfterService {
                 abortedOrUnstarted,
                 btmFilled,
                 abortedOrUnstarted, cntUpdated);
-        bitmexService.getTradeLogger().info(msg);
+        arbitrageService.getLeftMarketService().getTradeLogger().info(msg);
         fplayTradeService.info(currArgs.getTradeId(), currArgs.getCounterNameWithPortion(), msg);
         log.info(msg);
     }

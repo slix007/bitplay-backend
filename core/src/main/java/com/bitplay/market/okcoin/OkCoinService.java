@@ -95,8 +95,10 @@ import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Scope;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -122,6 +124,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -140,6 +143,7 @@ import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
  */
 @Service("okcoin")
 @RequiredArgsConstructor
+@Scope(scopeName = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class OkCoinService extends MarketServicePreliq {
 
     private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
@@ -1250,10 +1254,6 @@ public class OkCoinService extends MarketServicePreliq {
         }
     }
 
-    public void addOoExecutorTask(Runnable task) {
-        ooSingleExecutor.submit(task);
-    }
-
     @Override
     public boolean hasDeferredOrders() {
         return placeOrderArgsRef.get() != null;
@@ -1324,10 +1324,10 @@ public class OkCoinService extends MarketServicePreliq {
                     tradeId
             );
             logger.info(msg);
-            arbitrageService.getFirstMarketService().getTradeLogger().info(msg);
+            arbitrageService.getLeftMarketService().getTradeLogger().info(msg);
             getTradeLogger().info(msg);
             warningLogger.info(msg);
-            final BitmexService bitmexService = (BitmexService) arbitrageService.getFirstMarketService();
+            final BitmexService bitmexService = (BitmexService) arbitrageService.getLeftMarketService();
             bitmexService.updateAvgPrice(dealPrices, true);
 
             if (dealPrices.getBPriceFact().isNotFinished()) {
@@ -1337,7 +1337,7 @@ public class OkCoinService extends MarketServicePreliq {
                         tradeId
                 );
                 logger.error(msg1);
-                arbitrageService.getFirstMarketService().getTradeLogger().info(msg1);
+                arbitrageService.getLeftMarketService().getTradeLogger().info(msg1);
                 getTradeLogger().info(msg1);
                 warningLogger.error(msg1);
                 resetWaitingArb(msg1);

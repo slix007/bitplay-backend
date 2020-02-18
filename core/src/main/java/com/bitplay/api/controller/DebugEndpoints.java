@@ -137,7 +137,7 @@ public class DebugEndpoints {
         if (lastMDCCheck != null) {
             monAllHtml += "<br>last_MDC_check=" + sdf.format(lastMDCCheck);
         }
-        final BitmexService bs = (BitmexService) (arbitrageService.getFirstMarketService());
+        final BitmexService bs = (BitmexService) (arbitrageService.getLeftMarketService());
         final BitmexXRateLimit bitmexXRateLimit = bs.getxRateLimit();
         String xrateLimitBtm = "";
         String xrateLimitBtmUpdated = "";

@@ -2,11 +2,13 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
-import com.bitplay.market.model.PlBefore;
 import com.bitplay.market.model.BtmFokAutoArgs;
+import com.bitplay.market.model.PlBefore;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -31,13 +33,27 @@ import java.util.concurrent.CompletableFuture;
 public class SignalService {
 
     private final TradeService tradeService;
-    private final OkCoinService okexService;
-    private final BitmexService bitmexService;
 
-    public void placeOkexOrderOnSignal(OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-                                       PlacingType placingType, String counterName, Long tradeId,
-                                       boolean isConBo, Integer portionsQty,
-                                       ArbScheme arbScheme) {
+    public CompletableFuture<Void> placeOrderOnSignal(MarketServicePreliq marketService, OrderType orderType, BigDecimal block, BestQuotes bestQuotes,
+                                                      PlacingType placingType, String counterName, Long tradeId,
+                                                      boolean isConBo, Integer portionsQty,
+                                                      ArbScheme arbScheme, PlBefore beforeSignalMetrics, BtmFokAutoArgs btmFokAutoArgs) {
+        CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
+        if (marketService.getMarketStaticData() == MarketStaticData.BITMEX) {
+            promise = placeBitmexOrderOnSignal((BitmexService) marketService, orderType, block, bestQuotes, placingType, counterName, tradeId, isConBo,
+                    beforeSignalMetrics, btmFokAutoArgs);
+        } else if (marketService.getMarketStaticData() == MarketStaticData.OKEX) {
+            promise = placeOkexOrderOnSignal((OkCoinService) marketService, orderType, block, bestQuotes, placingType, counterName, tradeId, isConBo,
+                    portionsQty, arbScheme);
+        }
+        return promise;
+    }
+
+    private CompletableFuture<Void> placeOkexOrderOnSignal(OkCoinService okexService, OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
+                                                           PlacingType placingType, String counterName, Long tradeId,
+                                                           boolean isConBo, Integer portionsQty,
+                                                           ArbScheme arbScheme) {
+        CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
         try {
             if (o_block.signum() <= 0) {
 
@@ -68,7 +84,7 @@ public class SignalService {
                     okexService.deferredPlaceOrderOnSignal(placeOrderArgs);
                 } else {
                     tradeService.setOkexStatus(tradeId, TradeMStatus.IN_PROGRESS);
-                    okexService.addOoExecutorTask(() -> {
+                    promise = okexService.addOoExecutorTask(() -> {
                         TradeResponse tradeResponse = okexService.placeOrder(placeOrderArgs);
                         if (tradeResponse.getErrorCode() != null) {
                             okexService.getTradeLogger().warn("WARNING: " + tradeResponse.getErrorCode());
@@ -80,13 +96,15 @@ public class SignalService {
             }
         } catch (InterruptedException e) {
             log.error("Error on placeOrderOnSignal", e);
+            promise = CompletableFuture.completedFuture(null);
         }
+        return promise;
     }
 
-    public CompletableFuture<Void> placeBitmexOrderOnSignal(OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-                                                            PlacingType placingType, String counterName, Long tradeId, PlBefore beforeSignalMetrics,
-                                                            boolean isConBo,
-                                                            BtmFokAutoArgs btmFokAutoArgs) {
+    private CompletableFuture<Void> placeBitmexOrderOnSignal(BitmexService bitmexService, OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
+                                                             PlacingType placingType, String counterName, Long tradeId, boolean isConBo,
+                                                             PlBefore beforeSignalMetrics,
+                                                             BtmFokAutoArgs btmFokAutoArgs) {
 
         CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
         try {

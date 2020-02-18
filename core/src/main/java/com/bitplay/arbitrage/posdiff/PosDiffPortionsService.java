@@ -4,6 +4,8 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.MarketState;
@@ -43,12 +45,6 @@ public class PosDiffPortionsService {
     private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private OkCoinService okCoinService;
-
-    @Autowired
     private SlackNotifications slackNotifications;
 
     @Autowired
@@ -67,10 +63,14 @@ public class PosDiffPortionsService {
             return;
         }
 
-        okCoinService.addOoExecutorTask(this::checkAndPlace);
+        arbitrageService.getRightMarketService().addOoExecutorTask(this::checkAndPlace);
     }
 
     private void checkAndPlace() {
+        if (arbitrageService.getRightMarketService().getMarketStaticData() == MarketStaticData.BITMEX) { // always false
+            return;
+        }
+        final OkCoinService okCoinService = (OkCoinService) arbitrageService.getRightMarketService();
         PlaceOrderArgs currArgs = okCoinService.getPlaceOrderArgsRef().get();
         if (currArgs == null) {
             // no deferred order
@@ -87,7 +87,8 @@ public class PosDiffPortionsService {
         final ConBoPortions conBoPortions = settingsRepositoryService.getSettings().getConBoPortions();
         final StringBuilder logString = new StringBuilder();
         final BigDecimal btmFilledUsd;
-        final boolean isBtmReady = bitmexService.getMarketState() == MarketState.READY && !bitmexService.hasOpenOrders();
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final boolean isBtmReady = left.getMarketState() == MarketState.READY && !left.hasOpenOrders();
         if (isBtmReady) {
             btmFilledUsd = getUsdBlockByBtmFilled(currArgs, logString);
             currArgs = resetFullAmount(currArgs, btmFilledUsd);
@@ -123,6 +124,7 @@ public class PosDiffPortionsService {
     }
 
     private BigDecimal useMaxBlockUsd(BigDecimal filledUsdBlock, BigDecimal maxBlockUsd) {
+        final OkCoinService okCoinService = (OkCoinService) arbitrageService.getRightMarketService();
         BigDecimal maxBlockCnt = PlacingBlocks.toOkexCont(maxBlockUsd, okCoinService.getContractType().isEth());
         if (maxBlockCnt.signum() <= 0) {
             // wrong settings
@@ -135,10 +137,18 @@ public class PosDiffPortionsService {
     }
 
     private BigDecimal getUsdBlockByBtmFilled(PlaceOrderArgs currArgs, StringBuilder logString) {
-        final BigDecimal btmFilled = bitmexService.getBtmFilledAndUpdateBPriceFact(currArgs, true);
-        final BigDecimal cm = bitmexService.getCm();
-        final BigDecimal filledUsd = PlacingBlocks.bitmexContToUsd(btmFilled, bitmexService.getContractType().isEth(), cm);
-        logString.append("Bitmex READY.");
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final BigDecimal btmFilled = left.getLeftFilledAndUpdateBPriceFact(currArgs, true);
+        BigDecimal filledUsd = BigDecimal.ZERO;
+        if (left.getMarketStaticData() == MarketStaticData.BITMEX) {
+            final BigDecimal cm = ((BitmexService) left).getCm();
+            filledUsd = PlacingBlocks.bitmexContToUsd(btmFilled, left.getContractType().isEth(), cm);
+            logString.append("Left Bitmex READY.");
+        }
+        if (left.getMarketStaticData() == MarketStaticData.OKEX) {
+            filledUsd = PlacingBlocks.okexContToUsd(btmFilled, left.getContractType().isEth());
+            logString.append("Left Okex READY.");
+        }
         return filledUsd;
     }
 
@@ -174,26 +184,28 @@ public class PosDiffPortionsService {
      * (It goes in the same thread as place/move and after check for deferredOrder)
      */
     private boolean waitingToStart(String counterNameWithPortion) {
+        final MarketServicePreliq okexService = arbitrageService.getRightMarketService();
+
         boolean waitingToStart = true;
         // check states Arb and Markets
-        final MarketState marketState = okCoinService.getMarketState();
+        final MarketState marketState = okexService.getMarketState();
         if (marketState != MarketState.WAITING_ARB && marketState != MarketState.STARTING_VERT) {
             // wrong state (okex already started?)
-            final boolean hasOpenOrders = okCoinService.hasOpenOrders();
+            final boolean hasOpenOrders = okexService.hasOpenOrders();
             if (marketState == MarketState.ARBITRAGE) {
                 waitingToStart = !hasOpenOrders;
                 if (waitingToStart) {
                     final String warn = "ARBITRAGE>WAITING_ARB, because hasOpenOrders=false and hasDeferredOrders=true";
                     log.warn(warn);
-                    okCoinService.getTradeLogger().warn(warn);
-                    okCoinService.setMarketState(MarketState.WAITING_ARB, counterNameWithPortion);
+                    okexService.getTradeLogger().warn(warn);
+                    okexService.setMarketState(MarketState.WAITING_ARB, counterNameWithPortion);
                 }
             } else {
                 waitingToStart = true;
                 final String warn = String.format("%s>WAITING_ARB, because hasDeferredOrders=true", marketState);
                 log.warn(warn);
-                okCoinService.getTradeLogger().warn(warn);
-                okCoinService.setMarketState(MarketState.WAITING_ARB, counterNameWithPortion);
+                okexService.getTradeLogger().warn(warn);
+                okexService.setMarketState(MarketState.WAITING_ARB, counterNameWithPortion);
             }
         }
         return waitingToStart;
@@ -207,36 +219,46 @@ public class PosDiffPortionsService {
     }
 
     private void resetIfBtmReady(BigDecimal filledUsdBlock, boolean btmReady) {
+        final OkCoinService okexService = (OkCoinService) arbitrageService.getRightMarketService();
         final ArbState arbState = arbitrageService.getArbState();
         if (arbState != ArbState.IN_PROGRESS) {
             final String ntUsdString = String.format("WARNING: arbState(%s)", arbState);
             log.info(ntUsdString);
-            okCoinService.getTradeLogger().info(ntUsdString);
+            okexService.getTradeLogger().info(ntUsdString);
             warningLogger.error(ntUsdString);
         }
         if (btmReady || arbState != ArbState.IN_PROGRESS) {
-            okCoinService.resetWaitingArb("posDiffPortionsService:btmReady", filledUsdBlock.signum() > 0);
+            okexService.resetWaitingArb("posDiffPortionsService:btmReady", filledUsdBlock.signum() > 0);
             arbitrageService.resetArbState("posDiffPortionsService:btmReady");
         }
     }
 
     private void placeDeferredPortion(PlaceOrderArgs args, BigDecimal block) {
-        okCoinService.beforeDeferredPlacing(args);
-        okCoinService.changeDeferredAmountSubstract(block, args.getPortionsQty());
-        okCoinService.placeOrder(args);
+        final OkCoinService okexService = (OkCoinService) arbitrageService.getRightMarketService();
+        okexService.beforeDeferredPlacing(args);
+        okexService.changeDeferredAmountSubstract(block, args.getPortionsQty());
+        okexService.placeOrder(args);
     }
 
     private PlaceOrderArgs resetFullAmount(PlaceOrderArgs currArgs, BigDecimal btmFilledUsd) {
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final OkCoinService okexService = (OkCoinService) arbitrageService.getRightMarketService();
         PlaceOrderArgs updatedArgs = currArgs;
         final Long tradeId = currArgs.getTradeId();
         final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
-        final boolean isEth = bitmexService.getContractType().isEth();
-        final BigDecimal btmFilledCont = PlacingBlocks.toBitmexContPure(btmFilledUsd, isEth, bitmexService.getCm());
+        final boolean isEth = left.getContractType().isEth();
+
+        BigDecimal btmFilledCont = BigDecimal.ZERO;
+        if (left.getMarketStaticData() == MarketStaticData.BITMEX) {
+            btmFilledCont = PlacingBlocks.toBitmexContPure(btmFilledUsd, isEth, ((BitmexService) left).getCm());
+        } else if (left.getMarketStaticData() == MarketStaticData.OKEX) {
+            btmFilledCont = PlacingBlocks.toOkexCont(btmFilledUsd, isEth);
+        }
         // when btmFilled < fullAmount
         if (btmFilledCont.compareTo(dealPrices.getBPriceFact().getFullAmount()) < 0) {
             final BigDecimal okexNewFullAmount = PlacingBlocks.toOkexCont(btmFilledUsd, isEth);
             if (currArgs.getFullAmount().compareTo(okexNewFullAmount) != 0) {
-                updatedArgs = okCoinService.updateFullDeferredAmount(okexNewFullAmount);
+                updatedArgs = okexService.updateFullDeferredAmount(okexNewFullAmount);
             }
             dealPricesRepositoryService.updateFactPriceFullAmount(tradeId, btmFilledCont, okexNewFullAmount);
             // print delta logs

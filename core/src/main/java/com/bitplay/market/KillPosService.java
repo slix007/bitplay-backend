@@ -31,7 +31,7 @@ public class KillPosService {
         if (tradeResponse.getOrderId() != null) {
             final NtUsdRecoveryService ntUsdRecoveryService = marketService.getArbitrageService().getNtUsdRecoveryService();
 
-            final Future<String> stringFuture = ntUsdRecoveryService.tryRecoveryAfterKillPos(marketService.getName());
+            final Future<String> stringFuture = ntUsdRecoveryService.tryRecoveryAfterKillPos(marketService);
             String res;
             try {
                 res = stringFuture.get(10, TimeUnit.SECONDS);

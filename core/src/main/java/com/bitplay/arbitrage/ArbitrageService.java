@@ -78,7 +78,6 @@ import io.reactivex.subjects.PublishSubject;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
@@ -169,8 +168,8 @@ public class ArbitrageService {
     private Disposable btmFreeListener;
     private Disposable okexFreeListener;
 
-    private volatile MarketServicePreliq firstMarketService;
-    private volatile MarketServicePreliq secondMarketService;
+    private volatile MarketServicePreliq leftMarketService;
+    private volatile MarketServicePreliq rightMarketService;
     private volatile PosDiffService posDiffService;
     private volatile BigDecimal delta1 = BigDecimal.ZERO;
     private volatile BigDecimal delta2 = BigDecimal.ZERO;
@@ -179,7 +178,7 @@ public class ArbitrageService {
     private volatile BigDecimal oEbest = BigDecimal.ZERO;
     private volatile BigDecimal sumEBestUsd = BigDecimal.valueOf(-1);
     private volatile String sumBalString = "";
-//    private volatile Boolean isReadyForTheArbitrage = true;
+    //    private volatile Boolean isReadyForTheArbitrage = true;
 //    private Disposable theTimer;
     private Disposable theCheckBusyTimer;
     private volatile SignalType signalType = SignalType.AUTOMATIC;
@@ -218,8 +217,8 @@ public class ArbitrageService {
 
     public void init(TwoMarketStarter twoMarketStarter) {
         loadParamsFromDb();
-        this.firstMarketService = twoMarketStarter.getLeftMarketService();
-        this.secondMarketService = twoMarketStarter.getRightMarketService();
+        this.leftMarketService = twoMarketStarter.getLeftMarketService();
+        this.rightMarketService = twoMarketStarter.getRightMarketService();
         this.posDiffService = twoMarketStarter.getPosDiffService();
 //        startArbitrageMonitoring();
         initArbitrageStateListener();
@@ -243,7 +242,7 @@ public class ArbitrageService {
             if (e.getBtmOrderBook() != null) {
                 firstOrderBook = e.getBtmOrderBook();
             } else {
-                final OrderBookShort orderBookShort = firstMarketService.getOrderBookShort();
+                final OrderBookShort orderBookShort = leftMarketService.getOrderBookShort();
                 firstOrderBook = orderBookShort.getOb();
                 if (e.getSigType() == SigType.BTM) {
                     plBeforeBtm.setCreateQuote(orderBookShort.getCreateQuoteInstant());
@@ -252,7 +251,7 @@ public class ArbitrageService {
                 }
             }
 
-            final OrderBook secondOrderBook = e.getOkOrderBook() != null ? e.getOkOrderBook() : secondMarketService.getOrderBook();
+            final OrderBook secondOrderBook = e.getOkOrderBook() != null ? e.getOkOrderBook() : rightMarketService.getOrderBook();
 
 
             final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
@@ -291,8 +290,8 @@ public class ArbitrageService {
         final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
         final Scheduler schedulerStarter = Schedulers.from(executor);
 
-        btmFreeListener = gotFreeListener(firstMarketService.getEventBus(), schedulerStarter, BitmexService.NAME);
-        okexFreeListener = gotFreeListener(secondMarketService.getEventBus(), schedulerStarter, OkCoinService.NAME);
+        btmFreeListener = gotFreeListener(leftMarketService.getEventBus(), schedulerStarter, BitmexService.NAME);
+        okexFreeListener = gotFreeListener(rightMarketService.getEventBus(), schedulerStarter, OkCoinService.NAME);
     }
 
     private Disposable gotFreeListener(EventBus eventBus, Scheduler scheduler, String marketName) {
@@ -368,7 +367,7 @@ public class ArbitrageService {
                     final DealPrices dealPricesSnap = dealPricesRepositoryService.findByTradeId(tradeIdSnap);
                     final Settings settings = persistenceService.getSettingsRepositoryService().getSettings()
                             .toBuilder().build();
-                    final Pos okexPosition = secondMarketService.getPos();
+                    final Pos okexPosition = rightMarketService.getPos();
 
                     AfterArbTask afterArbTask = new AfterArbTask(dealPricesSnap,
                             signalTypeSnap,
@@ -376,8 +375,8 @@ public class ArbitrageService {
                             counterNameSnap,
                             settings,
                             okexPosition,
-                            (BitmexService) getFirstMarketService(),
-                            (OkCoinService) getSecondMarketService(),
+                            (BitmexService) getLeftMarketService(),
+                            (OkCoinService) getRightMarketService(),
                             dealPricesRepositoryService,
                             cumService,
                             this,
@@ -392,21 +391,21 @@ public class ArbitrageService {
         }
         log.info(String.format("onArbDone(%s, %s) finished", doneTradeId, marketName));
         if (conBoTryDeferredOrder) {
-            ((OkCoinService) secondMarketService).tryPlaceDeferredOrder();// when CON_B_O
+            ((OkCoinService) rightMarketService).tryPlaceDeferredOrder();// when CON_B_O
         }
     }
 
 
-    public MarketServicePreliq getFirstMarketService() {
-        return firstMarketService;
+    public MarketServicePreliq getLeftMarketService() {
+        return leftMarketService;
     }
 
-    public MarketServicePreliq getSecondMarketService() {
-        return secondMarketService;
+    public MarketServicePreliq getRightMarketService() {
+        return rightMarketService;
     }
 
     public boolean isInitialized() {
-        return getFirstMarketService() != null && getSecondMarketService() != null;
+        return getLeftMarketService() != null && getRightMarketService() != null;
     }
 
     private void setTimeoutAfterStartTrading() {
@@ -434,69 +433,69 @@ public class ArbitrageService {
         theCheckBusyTimer = Completable.timer(6, TimeUnit.MINUTES, Schedulers.computation())
                 .doOnComplete(() -> {
 
-                    final String counterName = firstMarketService.getCounterName(signalType, tradeId);
+                    final String counterName = leftMarketService.getCounterName(signalType, tradeId);
 
-                    if (firstMarketService.isMarketStopped()
-                            || secondMarketService.isMarketStopped()
-                            || firstMarketService.getMarketState() == MarketState.SWAP_AWAIT
-                            || secondMarketService.getMarketState() == MarketState.SWAP_AWAIT
-                            || firstMarketService.getMarketState() == MarketState.SWAP
-                            || secondMarketService.getMarketState() == MarketState.SWAP
-                            ) {
+                    if (leftMarketService.isMarketStopped()
+                            || rightMarketService.isMarketStopped()
+                            || leftMarketService.getMarketState() == MarketState.SWAP_AWAIT
+                            || rightMarketService.getMarketState() == MarketState.SWAP_AWAIT
+                            || leftMarketService.getMarketState() == MarketState.SWAP
+                            || rightMarketService.getMarketState() == MarketState.SWAP
+                    ) {
                         // do nothing
 
-                    } else if (firstMarketService.isBusy() || secondMarketService.isBusy()) {
+                    } else if (leftMarketService.isBusy() || rightMarketService.isBusy()) {
                         String logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s). Checking bitmex openOrders...",
                                 getCounter(tradeId),
-                                firstMarketService.isBusy(),
-                                firstMarketService.getOnlyOpenOrders().size(),
-                                secondMarketService.isBusy(),
-                                secondMarketService.getOnlyOpenOrders().size());
+                                leftMarketService.isBusy(),
+                                leftMarketService.getOnlyOpenOrders().size(),
+                                rightMarketService.isBusy(),
+                                rightMarketService.getOnlyOpenOrders().size());
                         warningLogger.warn(logString);
                         fplayTradeService.warn(tradeId, counterName, logString);
 
-                        firstMarketService.isReadyForArbitrageWithOOFetch();
+                        leftMarketService.isReadyForArbitrageWithOOFetch();
 
                         logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s). After check of bitmex openOrders.",
                                 getCounter(tradeId),
-                                firstMarketService.isBusy(),
-                                firstMarketService.getOnlyOpenOrders().size(),
-                                secondMarketService.isBusy(),
-                                secondMarketService.getOnlyOpenOrders().size());
+                                leftMarketService.isBusy(),
+                                leftMarketService.getOnlyOpenOrders().size(),
+                                rightMarketService.isBusy(),
+                                rightMarketService.getOnlyOpenOrders().size());
                         fplayTradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
 
                         slackNotifications.sendNotify(NotifyType.BUSY_6_MIN, logString);
 
-                        boolean firstHanged = firstMarketService.isBusy() && !firstMarketService.hasOpenOrders();
-                        boolean secondHanged = secondMarketService.isBusy() && !secondMarketService.hasOpenOrders();
-                        boolean noOrders = !firstMarketService.hasOpenOrders() && !secondMarketService.hasOpenOrders();
+                        boolean firstHanged = leftMarketService.isBusy() && !leftMarketService.hasOpenOrders();
+                        boolean secondHanged = rightMarketService.isBusy() && !rightMarketService.hasOpenOrders();
+                        boolean noOrders = !leftMarketService.hasOpenOrders() && !rightMarketService.hasOpenOrders();
                         if (firstHanged && noOrders) {
                             fplayTradeService.warn(tradeId, counterName, "Warning: Free Bitmex");
                             warningLogger.warn("Warning: Free Bitmex");
                             log.warn("Warning: Free Bitmex");
-                            firstMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, firstMarketService.tryFindLastTradeId()));
+                            leftMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, leftMarketService.tryFindLastTradeId()));
                         }
                         if (secondHanged && noOrders) {
                             fplayTradeService.warn(tradeId, counterName, "Warning: Free Okcoin");
                             warningLogger.warn("Warning: Free Okcoin");
                             log.warn("Warning: Free Okcoin");
-                            ((OkCoinService)getSecondMarketService()).resetWaitingArb("Warning: Free Okcoin");
-                            secondMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, secondMarketService.tryFindLastTradeId()));
+                            ((OkCoinService) getRightMarketService()).resetWaitingArb("Warning: Free Okcoin");
+                            rightMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, rightMarketService.tryFindLastTradeId()));
                         }
 
-                    } else if (!firstMarketService.isReadyForArbitrageWithOOFetch() || !secondMarketService.isReadyForArbitrage()) {
+                    } else if (!leftMarketService.isReadyForArbitrageWithOOFetch() || !rightMarketService.isReadyForArbitrage()) {
                         final String logString = String.format("#%s Warning: busy for 6 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
                                 getCounter(tradeId),
-                                firstMarketService.isReadyForArbitrage(), firstMarketService.getOnlyOpenOrders().size(),
-                                secondMarketService.isReadyForArbitrage(), secondMarketService.getOnlyOpenOrders().size());
+                                leftMarketService.isReadyForArbitrage(), leftMarketService.getOnlyOpenOrders().size(),
+                                rightMarketService.isReadyForArbitrage(), rightMarketService.getOnlyOpenOrders().size());
                         fplayTradeService.warn(tradeId, counterName, logString);
                         warningLogger.warn(logString);
                         log.warn(logString);
                         slackNotifications.sendNotify(NotifyType.BUSY_6_MIN, logString);
                     }
 
-                    if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()) {
+                    if (leftMarketService.isReadyForArbitrage() && rightMarketService.isReadyForArbitrage()) {
                         synchronized (arbStateLock) {
                             if (arbState == ArbState.IN_PROGRESS) {
                                 arbState = ArbState.READY;
@@ -586,7 +585,7 @@ public class ArbitrageService {
     private void doComparison(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal,
                               PlBefore plBeforeBtm) {
 
-        if (firstMarketService.isMarketStopped() || secondMarketService.isMarketStopped()
+        if (leftMarketService.isMarketStopped() || rightMarketService.isMarketStopped()
                 || dqlStateService.getCommonDqlState().isActiveClose()
                 || persistenceService.getSettingsRepositoryService().getSettings().getManageType().isManual()
                 || okexSettlementService.isSettlementMode()
@@ -594,13 +593,13 @@ public class ArbitrageService {
             // do nothing
             stopSignalDelay(bestQuotes, prevTradingSignal, "market is stopped or manualType is active");
         } else {
-            if (firstMarketService.isStarted()
+            if (leftMarketService.isStarted()
                     && bitmexOrderBook != null
                     && okCoinOrderBook != null
                     && Utils.isObOk(bitmexOrderBook)
                     && Utils.isObOk(okCoinOrderBook)
-                    && firstMarketService.accountInfoIsReady()
-                    && secondMarketService.accountInfoIsReady()) {
+                    && leftMarketService.accountInfoIsReady()
+                    && rightMarketService.accountInfoIsReady()) {
                 calcAndDoArbitrage(bestQuotes, bitmexOrderBook, okCoinOrderBook, prevTradingSignal, plBeforeBtm);
             } else {
                 stopSignalDelay(bestQuotes, prevTradingSignal, "markets are not started");
@@ -636,8 +635,8 @@ public class ArbitrageService {
         final Boolean onlyOpen = borderParams.getOnlyOpen();
         final boolean applyForOnlyOpen = onlyOpen != null ? onlyOpen : false;
         final BigDecimal defaultMaxVal = BigDecimal.valueOf(9999);
-        final BigDecimal posBtm = getFirstMarketService().getPos().getPositionLong();
-        final BigDecimal posOk = getSecondMarketService().getPos().getPositionLong().subtract(getSecondMarketService().getPos().getPositionShort());
+        final BigDecimal posBtm = getLeftMarketService().getPos().getPositionLong();
+        final BigDecimal posOk = getRightMarketService().getPos().getPositionLong().subtract(getRightMarketService().getPos().getPositionShort());
         final boolean isCloseBtm;
         final boolean isCloseOk;
         final BigDecimal maxDelta;
@@ -684,9 +683,9 @@ public class ArbitrageService {
     private void calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal,
                                     PlBefore plBeforeBtm) {
 
-        final BigDecimal bP = firstMarketService.getPos().getPositionLong();
-        final BigDecimal oPL = secondMarketService.getPos().getPositionLong();
-        final BigDecimal oPS = secondMarketService.getPos().getPositionShort();
+        final BigDecimal bP = leftMarketService.getPos().getPositionLong();
+        final BigDecimal oPL = rightMarketService.getPos().getPositionLong();
+        final BigDecimal oPS = rightMarketService.getPos().getPositionShort();
 
         BorderParams borderParams = bordersService.getBorderParams();
         BigDecimal defaultMax = BigDecimal.valueOf(9999);
@@ -715,10 +714,10 @@ public class ArbitrageService {
                               PlBefore plBeforeBtm) {
         BigDecimal defaultMax;
         boolean withWarningLogs =
-                firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage() && posDiffService.checkIsPositionsEqual();
+                leftMarketService.isReadyForArbitrage() && rightMarketService.isReadyForArbitrage() && posDiffService.checkIsPositionsEqual();
 
-        final Affordable firstAffordable = firstMarketService.recalcAffordable();
-        final Affordable secondAffordable = secondMarketService.recalcAffordable();
+        final Affordable firstAffordable = leftMarketService.recalcAffordable();
+        final Affordable secondAffordable = rightMarketService.recalcAffordable();
         TradingSignal tradingSignal;
         tradingSignal = bordersService.checkBorders(bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs, firstAffordable,
                 secondAffordable);
@@ -925,14 +924,14 @@ public class ArbitrageService {
 
     public void resetArbStatePreliq() {
         if (dqlStateService.isPreliq()) {
-            if (firstMarketService.noPreliq() && secondMarketService.noPreliq()) {
-                final DqlState dqlState1 = firstMarketService.updateDqlState();
-                final DqlState dqlState2 = secondMarketService.updateDqlState();
-                if (firstMarketService.getMarketState().isActiveClose() && !dqlState1.isActiveClose()) {
-                    firstMarketService.setMarketState(MarketState.READY);
+            if (leftMarketService.noPreliq() && rightMarketService.noPreliq()) {
+                final DqlState dqlState1 = leftMarketService.updateDqlState();
+                final DqlState dqlState2 = rightMarketService.updateDqlState();
+                if (leftMarketService.getMarketState().isActiveClose() && !dqlState1.isActiveClose()) {
+                    leftMarketService.setMarketState(MarketState.READY);
                 }
-                if (secondMarketService.getMarketState().isActiveClose() && !dqlState2.isActiveClose()) {
-                    secondMarketService.setMarketState(MarketState.READY);
+                if (rightMarketService.getMarketState().isActiveClose() && !dqlState2.isActiveClose()) {
+                    rightMarketService.setMarketState(MarketState.READY);
                 }
             }
         }
@@ -944,16 +943,16 @@ public class ArbitrageService {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
 
-        final OkexLimitsService okLimits = ((OkCoinService) this.secondMarketService).getOkexLimitsService();
+        final OkexLimitsService okLimits = ((OkCoinService) this.rightMarketService).getOkexLimitsService();
         final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
         final boolean okexOutsideLimits = okLimits.outsideLimitsOnSignal(DeltaName.B_DELTA, okexPlacingType);
         //noinspection Duplicates
-        if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
+        if (leftMarketService.isReadyForArbitrage() && rightMarketService.isReadyForArbitrage()
                 && posDiffService.checkIsPositionsEqual()
-                && !firstMarketService.isMarketStopped()
-                && !secondMarketService.isMarketStopped() && !okexOutsideLimits
-                && firstMarketService.checkLiquidationEdge(OrderType.ASK)
-                && secondMarketService.checkLiquidationEdge(OrderType.BID)
+                && !leftMarketService.isMarketStopped()
+                && !rightMarketService.isMarketStopped() && !okexOutsideLimits
+                && leftMarketService.checkLiquidationEdge(OrderType.ASK)
+                && rightMarketService.checkLiquidationEdge(OrderType.BID)
         ) {
 
             final PlBlocks plBlocks = adjustByNtUsd(DeltaName.B_DELTA, b_block_input, o_block_input, oPL, oPS);
@@ -1121,17 +1120,21 @@ public class ArbitrageService {
 
         // in scheme MT2 Okex should be the first
         final boolean isConBo = getIsConBo();
-        signalService.placeOkexOrderOnSignal(Order.OrderType.BID, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, isConBo, null, s.getArbScheme());
-        final CompletableFuture<Void> btmStartPromise =
-                signalService.placeBitmexOrderOnSignal(Order.OrderType.ASK, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
-                        counterName, tradeId, plBeforeBtm, isConBo, tradingSignal.toBtmFokAutoArgs());
+        final OrderType rightOrderType = OrderType.BID;
+        final OrderType leftOrderType = OrderType.ASK;
+        final CompletableFuture<Void> rightOrder =
+                signalService.placeOrderOnSignal(rightMarketService, rightOrderType, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
+                        counterName, tradeId, isConBo, null, s.getArbScheme(), plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
+        final CompletableFuture<Void> leftOrder =
+                signalService.placeOrderOnSignal(leftMarketService, leftOrderType, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
+                        counterName, tradeId, isConBo, null, s.getArbScheme(), plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
 
         setTimeoutAfterStartTrading();
 
         saveParamsToDb();
 
-        btmStartPromise.whenComplete((aVoid, e) -> vertHasStartedLog(tradeId, counterName));
+        CompletableFuture.allOf(leftOrder, rightOrder)
+                .whenComplete((aVoid, e) -> vertHasStartedLog(tradeId, counterName));
     }
 
     private DealPrices setTradeParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
@@ -1142,8 +1145,8 @@ public class ArbitrageService {
         final Long tradeId = fplayTrade.getId();
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
-        firstMarketService.setBusy(counterName, MarketState.STARTING_VERT);
-        secondMarketService.setBusy(counterName, MarketState.STARTING_VERT);
+        leftMarketService.setBusy(counterName, MarketState.STARTING_VERT);
+        rightMarketService.setBusy(counterName, MarketState.STARTING_VERT);
 
         setSignalType(SignalType.AUTOMATIC);
         this.fplayTrade = fplayTrade;
@@ -1162,8 +1165,8 @@ public class ArbitrageService {
         final PlacingType okexPlacingType = settings.getOkexPlacingType();
         final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
 
-        Integer bitmexScale = firstMarketService.getContractType().getScale();
-        Integer okexScale = secondMarketService.getContractType().getScale();
+        Integer bitmexScale = leftMarketService.getContractType().getScale();
+        Integer okexScale = rightMarketService.getContractType().getScale();
         FactPrice btmPriceFact = new FactPrice(MarketStaticData.BITMEX, b_block, bitmexScale);
         FactPrice okPriceFact = new FactPrice(MarketStaticData.OKEX, o_block, okexScale);
 
@@ -1229,17 +1232,17 @@ public class ArbitrageService {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
-        final OkCoinService okCoinService = (OkCoinService) this.secondMarketService;
+        final OkCoinService okCoinService = (OkCoinService) this.rightMarketService;
         final OkexLimitsService okLimits = okCoinService.getOkexLimitsService();
         final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
         final boolean okexOutsideLimits = okLimits.outsideLimitsOnSignal(DeltaName.O_DELTA, okexPlacingType);
         //noinspection Duplicates
-        if (firstMarketService.isReadyForArbitrage() && secondMarketService.isReadyForArbitrage()
+        if (leftMarketService.isReadyForArbitrage() && rightMarketService.isReadyForArbitrage()
                 && posDiffService.checkIsPositionsEqual()
-                && !firstMarketService.isMarketStopped()
-                && !secondMarketService.isMarketStopped() && !okexOutsideLimits
-                && firstMarketService.checkLiquidationEdge(OrderType.BID)
-                && secondMarketService.checkLiquidationEdge(OrderType.ASK)
+                && !leftMarketService.isMarketStopped()
+                && !rightMarketService.isMarketStopped() && !okexOutsideLimits
+                && leftMarketService.checkLiquidationEdge(OrderType.BID)
+                && rightMarketService.checkLiquidationEdge(OrderType.ASK)
         ) {
 
             final PlBlocks plBlocks = adjustByNtUsd(DeltaName.O_DELTA, b_block_input, o_block_input, oPL, oPS);
@@ -1274,13 +1277,13 @@ public class ArbitrageService {
     }
 
     private void preSignalReCheck(DeltaName deltaName, TradingSignal prevTradingSignal) {
-        OrderBook btmOb = firstMarketService.getOrderBook();
-        OrderBook okOb = secondMarketService.getOrderBook();
+        OrderBook btmOb = leftMarketService.getOrderBook();
+        OrderBook okOb = rightMarketService.getOrderBook();
         try {
             preSignalRecheckInProgress = true;
             final Instant start = Instant.now();
-            btmOb = firstMarketService.fetchOrderBookMain();
-            okOb = secondMarketService.fetchOrderBookMain();
+            btmOb = leftMarketService.fetchOrderBookMain();
+            okOb = rightMarketService.fetchOrderBookMain();
             final BestQuotes bestQuotes = calcBestQuotesAndDeltas(btmOb, okOb);
             bestQuotes.setBtmOrderBook(btmOb);
             final Instant end = Instant.now();
@@ -1339,16 +1342,21 @@ public class ArbitrageService {
 
         // in scheme MT2 Okex should be the first
         final boolean isConBo = getIsConBo();
-        signalService.placeOkexOrderOnSignal(Order.OrderType.ASK, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                counterName, tradeId, isConBo, null, s.getArbScheme());
-        final CompletableFuture<Void> btmStartPromise = signalService.placeBitmexOrderOnSignal(OrderType.BID, b_block, bestQuotes,
-                dealPrices.getBtmPlacingType(), counterName, tradeId, plBeforeBtm, isConBo, tradingSignal.toBtmFokAutoArgs());
+        final OrderType rightOrderType = OrderType.ASK;
+        final OrderType leftOrderType = OrderType.BID;
+        final CompletableFuture<Void> rightOrder =
+                signalService.placeOrderOnSignal(rightMarketService, rightOrderType, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
+                        counterName, tradeId, isConBo, null, s.getArbScheme(), plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
+        final CompletableFuture<Void> leftOrder =
+                signalService.placeOrderOnSignal(leftMarketService, leftOrderType, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
+                        counterName, tradeId, isConBo, null, s.getArbScheme(), plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
 
         setTimeoutAfterStartTrading();
 
         saveParamsToDb();
 
-        btmStartPromise.whenComplete((aVoid, e) -> vertHasStartedLog(tradeId, counterName));
+        CompletableFuture.allOf(leftOrder, rightOrder)
+                .whenComplete((aVoid, e) -> vertHasStartedLog(tradeId, counterName));
     }
 
     private void vertHasStartedLog(Long tradeId, String counterName) {
@@ -1381,8 +1389,8 @@ public class ArbitrageService {
         final String counterName = String.valueOf(counter1 + counter2);
 
         final FplayTrade fplayTrade = fplayTradeService.createTrade(counterName, deltaName,
-                ((BitmexContractType) firstMarketService.getContractType()),
-                ((OkexContractType) secondMarketService.getContractType()));
+                ((BitmexContractType) leftMarketService.getContractType()),
+                ((OkexContractType) rightMarketService.getContractType()));
         final Long tradeId = fplayTrade.getId();
         fplayTradeService.info(tradeId, counterName, "------------------------------------------");
 
@@ -1412,13 +1420,13 @@ public class ArbitrageService {
     @SuppressWarnings("Duplicates")
     @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)
     public void calcSumBalForGui() {
-        if (firstMarketService == null || secondMarketService == null) {
+        if (leftMarketService == null || rightMarketService == null) {
             return; // NotYetInitializedException
         }
 
         lastCalcSumBal = Instant.now();
-        final AccountBalance firstAccount = firstMarketService.getFullBalance().getAccountBalance();
-        final AccountBalance secondAccount = secondMarketService.getFullBalance().getAccountBalance();
+        final AccountBalance firstAccount = leftMarketService.getFullBalance().getAccountBalance();
+        final AccountBalance secondAccount = rightMarketService.getFullBalance().getAccountBalance();
         if (firstAccount != null && secondAccount != null) {
             final BigDecimal bW = firstAccount.getWallet();
             final BigDecimal bEMark = firstAccount.getEMark() != null ? firstAccount.getEMark() : BigDecimal.ZERO;
@@ -1440,7 +1448,7 @@ public class ArbitrageService {
                 throw new IllegalStateException(String.format("Balance is not yet defined. bW=%s, oW=%s", bW, oW));
             }
 
-            boolean isEth = secondMarketService.getEthBtcTicker() != null && firstMarketService.getContractType().isEth();
+            boolean isEth = isEth();
 
             BigDecimal oEbestWithColdStorageEth = oEbest;
             if (isEth) {
@@ -1451,7 +1459,7 @@ public class ArbitrageService {
                 oEAvg = oEAvg.add(coldStorageEth);
 
                 // okex: convert eth to btc
-                BigDecimal ethBtcBid1 = secondMarketService.getEthBtcTicker().getBid();
+                BigDecimal ethBtcBid1 = rightMarketService.getEthBtcTicker().getBid();
                 oW = oW.multiply(ethBtcBid1);
                 oELast = oELast.multiply(ethBtcBid1);
                 oEbest = oEbest.multiply(ethBtcBid1);
@@ -1476,8 +1484,8 @@ public class ArbitrageService {
             final BigDecimal sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
             final BigDecimal btmQu = isEth
-                    ? Utils.calcQuAvg(firstMarketService.getOrderBookXBTUSD())
-                    : Utils.calcQuAvg(firstMarketService.getOrderBook());
+                    ? Utils.calcQuAvg(leftMarketService.getOrderBookXBTUSD())
+                    : Utils.calcQuAvg(leftMarketService.getOrderBook());
             sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
             sumBalString = String.format("s_bal=w%s_%s, s_e_%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, usd_qu%s",
@@ -1493,7 +1501,7 @@ public class ArbitrageService {
             traderPermissionsService.checkEBestMin();
 
             // calc auto hedge
-            if (firstMarketService.getContractType().isEth()) {
+            if (leftMarketService.getContractType().isEth()) {
                 BigDecimal he_usd = oEbestWithColdStorageEth.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
                 hedgeService.setHedgeEth(he_usd);
                 BigDecimal hb_usd = (bEbest.add(coldStorageBtc)).multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -1542,8 +1550,8 @@ public class ArbitrageService {
             }
         }
         try {
-            final AccountBalance firstAccount = firstMarketService.getFullBalance().getAccountBalance();
-            final AccountBalance secondAccount = secondMarketService.getFullBalance().getAccountBalance();
+            final AccountBalance firstAccount = leftMarketService.getFullBalance().getAccountBalance();
+            final AccountBalance secondAccount = rightMarketService.getFullBalance().getAccountBalance();
             if (firstAccount != null && secondAccount != null) {
                 final BigDecimal bW = firstAccount.getWallet();
                 final BigDecimal bEmark = firstAccount.getEMark() != null ? firstAccount.getEMark() : BigDecimal.ZERO;
@@ -1552,12 +1560,12 @@ public class ArbitrageService {
                 final BigDecimal bU = firstAccount.getUpl();
                 final BigDecimal bM = firstAccount.getMargin();
                 final BigDecimal bA = firstAccount.getAvailable();
-                final BigDecimal bP = firstMarketService.getPos().getPositionLong();
-                final BigDecimal bLv = firstMarketService.getPos().getLeverage();
-                final BigDecimal bAL = firstMarketService.getAffordable().getForLong();
-                final BigDecimal bAS = firstMarketService.getAffordable().getForShort();
+                final BigDecimal bP = leftMarketService.getPos().getPositionLong();
+                final BigDecimal bLv = leftMarketService.getPos().getLeverage();
+                final BigDecimal bAL = leftMarketService.getAffordable().getForLong();
+                final BigDecimal bAS = leftMarketService.getAffordable().getForShort();
                 final BigDecimal usdQuote = getUsdQuote();
-                final OrderBook bOrderBook = firstMarketService.getOrderBook();
+                final OrderBook bOrderBook = leftMarketService.getOrderBook();
                 final BigDecimal bBestAsk = Utils.getBestAsks(bOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal bBestBid = Utils.getBestBids(bOrderBook, 1).get(0).getLimitPrice();
                 fplayTradeService.info(tradeId, counterName, String.format(
@@ -1587,7 +1595,7 @@ public class ArbitrageService {
                 BigDecimal oU = secondAccount.getUpl();
                 BigDecimal oA = secondAccount.getAvailable();
 
-                boolean isEth = secondMarketService.getEthBtcTicker() != null && firstMarketService.getContractType().isEth();
+                boolean isEth = rightMarketService.getEthBtcTicker() != null && leftMarketService.getContractType().isEth();
                 BigDecimal oEbestWithColdStorageEth = oEbest;
                 if (isEth) {
                     final BigDecimal coldStorageEth = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageEth();
@@ -1597,7 +1605,7 @@ public class ArbitrageService {
                     oEavg = oEavg.add(coldStorageEth);
 
                     // okex: convert eth to btc
-                    BigDecimal ethBtcBid1 = secondMarketService.getEthBtcTicker().getBid();
+                    BigDecimal ethBtcBid1 = rightMarketService.getEthBtcTicker().getBid();
                     oW = oW.multiply(ethBtcBid1);
                     oElast = oElast.multiply(ethBtcBid1);
                     oEbest = oEbest.multiply(ethBtcBid1);
@@ -1607,14 +1615,14 @@ public class ArbitrageService {
                     oU = oU.multiply(ethBtcBid1);
                     oA = oA.multiply(ethBtcBid1);
                 }
-                final BigDecimal oPL = secondMarketService.getPos().getPositionLong();
-                final BigDecimal oPS = secondMarketService.getPos().getPositionShort();
-                final BigDecimal oLv = secondMarketService.getPos().getLeverage();
-                final BigDecimal oAL = secondMarketService.getAffordable().getForLong();
-                final BigDecimal oAS = secondMarketService.getAffordable().getForShort();
-                final BigDecimal longAvailToClose = secondMarketService.getPos().getLongAvailToClose();
-                final BigDecimal shortAvailToClose = secondMarketService.getPos().getShortAvailToClose();
-                final OrderBook oOrderBook = secondMarketService.getOrderBook();
+                final BigDecimal oPL = rightMarketService.getPos().getPositionLong();
+                final BigDecimal oPS = rightMarketService.getPos().getPositionShort();
+                final BigDecimal oLv = rightMarketService.getPos().getLeverage();
+                final BigDecimal oAL = rightMarketService.getAffordable().getForLong();
+                final BigDecimal oAS = rightMarketService.getAffordable().getForShort();
+                final BigDecimal longAvailToClose = rightMarketService.getPos().getLongAvailToClose();
+                final BigDecimal shortAvailToClose = rightMarketService.getPos().getShortAvailToClose();
+                final OrderBook oOrderBook = rightMarketService.getOrderBook();
                 final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
 
@@ -1650,7 +1658,7 @@ public class ArbitrageService {
 
                 final BigDecimal sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-                final BigDecimal btmQu = Utils.calcQuAvg(firstMarketService.getOrderBook());
+                final BigDecimal btmQu = Utils.calcQuAvg(leftMarketService.getOrderBook());
                 sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
                 final String sBalStr = String.format("#%s s_bal=w%s_%s, s_e%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, usd_qu%s",
@@ -1677,10 +1685,10 @@ public class ArbitrageService {
                 }
 
                 fplayTradeService.info(tradeId, counterName, String.format("#%s %s", counterName, getFullPosDiff()));
-                final LiqInfo bLiqInfo = getFirstMarketService().getLiqInfo();
+                final LiqInfo bLiqInfo = getLeftMarketService().getLiqInfo();
                 fplayTradeService
                         .info(tradeId, counterName, String.format("#%s %s; %s; %s", counterName, bLiqInfo.getDqlString(), bLiqInfo.getDmrlString(), bDQLMin));
-                final LiqInfo oLiqInfo = getSecondMarketService().getLiqInfo();
+                final LiqInfo oLiqInfo = getRightMarketService().getLiqInfo();
                 fplayTradeService
                         .info(tradeId, counterName, String.format("#%s %s; %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString(), oDQLMin));
             }
@@ -1695,32 +1703,32 @@ public class ArbitrageService {
         BigDecimal usdQuote;
         switch (usdQuoteType) {
             case BITMEX:
-                if (firstMarketService == null || !firstMarketService.isStarted()) {
+                if (leftMarketService == null || !leftMarketService.isStarted()) {
                     usdQuote = BigDecimal.ZERO;
                 } else {
-                    usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBookXBTUSD());
+                    usdQuote = Utils.calcQuAvg(leftMarketService.getOrderBookXBTUSD());
                 }
                 break;
             case OKEX:
-                if (secondMarketService == null || !secondMarketService.isStarted()) {
+                if (rightMarketService == null || !rightMarketService.isStarted()) {
                     usdQuote = BigDecimal.ZERO;
                 } else {
-                    usdQuote = Utils.calcQuAvg(secondMarketService.getOrderBookXBTUSD());
+                    usdQuote = Utils.calcQuAvg(rightMarketService.getOrderBookXBTUSD());
                 }
                 break;
             case INDEX_BITMEX:
-                usdQuote = getOneMarketUsdQuote(firstMarketService);
+                usdQuote = getOneMarketUsdQuote(leftMarketService);
                 break;
             case INDEX_OKEX:
-                usdQuote = getOneMarketUsdQuote(secondMarketService);
+                usdQuote = getOneMarketUsdQuote(rightMarketService);
                 break;
             case AVG:
             default:
-                if (firstMarketService == null || !firstMarketService.isStarted()
-                        || secondMarketService == null || !secondMarketService.isStarted()) {
+                if (leftMarketService == null || !leftMarketService.isStarted()
+                        || rightMarketService == null || !rightMarketService.isStarted()) {
                     usdQuote = BigDecimal.ZERO;
                 } else {
-                    usdQuote = Utils.calcQuAvg(firstMarketService.getOrderBookXBTUSD(), secondMarketService.getOrderBookXBTUSD());
+                    usdQuote = Utils.calcQuAvg(leftMarketService.getOrderBookXBTUSD(), rightMarketService.getOrderBookXBTUSD());
                 }
                 break;
         }
@@ -1757,8 +1765,8 @@ public class ArbitrageService {
         final BigDecimal adj = settings.getPosAdjustment().getPosAdjustmentMin();
         final BigDecimal adjMax = settings.getPosAdjustment().getPosAdjustmentMax();
 
-        MarketService bitmexService = getFirstMarketService();
-        MarketService okcoinService = getSecondMarketService();
+        MarketService bitmexService = getLeftMarketService();
+        MarketService okcoinService = getRightMarketService();
 
         boolean isEth = bitmexService.getContractType().isEth();
 
@@ -1803,7 +1811,7 @@ public class ArbitrageService {
 
     public String getExtraSetStr() {
         // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
-        final MarketService bitmexService = getFirstMarketService();
+        final MarketService bitmexService = getLeftMarketService();
         if (bitmexService.getContractType().isEth()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
             final BigDecimal b_pos_usd = bitmexService.getHbPosUsd();
@@ -1825,9 +1833,9 @@ public class ArbitrageService {
         // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
         // M10, set_bu11, cont: b_pos(-1200); o_pos(+900, -0).
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        final BigDecimal bP = getFirstMarketService().getPos().getPositionLong();
-        final BigDecimal oPL = getSecondMarketService().getPos().getPositionLong();
-        final BigDecimal oPS = getSecondMarketService().getPos().getPositionShort();
+        final BigDecimal bP = getLeftMarketService().getPos().getPositionLong();
+        final BigDecimal oPL = getRightMarketService().getPos().getPositionLong();
+        final BigDecimal oPS = getRightMarketService().getPos().getPositionShort();
         return String.format("%s, %s, cont: b(%s) o(+%s, -%s). ",
                 settings.getContractMode().getModeName(),
                 settings.getContractMode().getMainSetName(),
@@ -1839,9 +1847,9 @@ public class ArbitrageService {
     public String getExtraSetSource() {
         // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
         // M10, set_bu11, cont: b_pos(-1200); o_pos(+900, -0).
-        if (getFirstMarketService().getContractType().isEth()) {
+        if (getLeftMarketService().getContractType().isEth()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-            final BigDecimal bP = getFirstMarketService().getHbPosUsd();
+            final BigDecimal bP = getLeftMarketService().getHbPosUsd();
             return String.format("%s, %s, cont: b(%s) o(+0, -0). ",
                     settings.getContractMode().getModeName(),
                     "set_bu10",
@@ -1854,8 +1862,8 @@ public class ArbitrageService {
         BigDecimal b1 = BigDecimal.ZERO;
         BigDecimal b2 = BigDecimal.ZERO;
         final BigDecimal cm = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks().getCm();
-        final Affordable firstAffordable = firstMarketService.recalcAffordable();
-        final Affordable secondAffordable = secondMarketService.recalcAffordable();
+        final Affordable firstAffordable = leftMarketService.recalcAffordable();
+        final Affordable secondAffordable = rightMarketService.recalcAffordable();
         if (deltaRef == DeltaName.B_DELTA) {
             // b_sell, o_buy
             final BigDecimal b_sell_lim = firstAffordable.getForShort().signum() < 0 ? BigDecimal.ZERO : firstAffordable.getForShort();
@@ -1894,7 +1902,7 @@ public class ArbitrageService {
         }
 
         final BigDecimal cm = settings.getPlacingBlocks().getCm();
-        boolean isEth = firstMarketService.getContractType().isEth();
+        boolean isEth = leftMarketService.getContractType().isEth();
 
         // convert to usd
         BigDecimal b_block_usd;
@@ -1989,8 +1997,8 @@ public class ArbitrageService {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final BigDecimal cm = settings.getPlacingBlocks().getCm();
 
-        MarketService bitmexService = getFirstMarketService();
-        MarketService okcoinService = getSecondMarketService();
+        MarketService bitmexService = getLeftMarketService();
+        MarketService okcoinService = getRightMarketService();
 
         boolean isEth = bitmexService.getContractType().isEth();
 
@@ -2017,12 +2025,12 @@ public class ArbitrageService {
         final boolean ok;
         if (deltaRef == DeltaName.B_DELTA) {
             // sell p, buy o
-            btm = firstMarketService.isAffordable(OrderType.ASK, blockSize1);
-            ok = secondMarketService.isAffordable(OrderType.BID, blockSize2);
+            btm = leftMarketService.isAffordable(OrderType.ASK, blockSize1);
+            ok = rightMarketService.isAffordable(OrderType.BID, blockSize2);
         } else { // if (deltaRef == DeltaName.O_DELTA) {
             // buy p , sell o
-            btm = firstMarketService.isAffordable(OrderType.BID, blockSize1);
-            ok = secondMarketService.isAffordable(OrderType.ASK, blockSize2);
+            btm = leftMarketService.isAffordable(OrderType.BID, blockSize1);
+            ok = rightMarketService.isAffordable(OrderType.ASK, blockSize2);
         }
 
         if (btm && ok) {
@@ -2240,5 +2248,13 @@ public class ArbitrageService {
 
     public NtUsdRecoveryService getNtUsdRecoveryService() {
         return ntUsdRecoveryService;
+    }
+
+    public boolean isEth() {
+
+        return rightMarketService.getEthBtcTicker() != null
+                && leftMarketService.getEthBtcTicker() != null
+                && rightMarketService.getContractType().isEth()
+                && leftMarketService.getContractType().isEth();
     }
 }

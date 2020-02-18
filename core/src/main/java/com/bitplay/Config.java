@@ -13,33 +13,22 @@ import org.springframework.stereotype.Component;
 @Getter
 public class Config {
 
-    @Value("${market.first}")
-    private String leftMarketName;
-    @Value("${market.first.key}")
-    private String leftMarketKey;
-    @Value("${market.first.secret}")
-    private String leftMarketSecret;
+    @Value("${market.bitmex.key}")
+    private String bitmexMarketKey;
+    @Value("${market.bitmex.secret}")
+    private String bitmexMarketSecret;
 
-    @Value("${market.first.ex.key:DEFAULT}")
-    private String leftMarketExKey;
-    @Value("${market.first.ex.secret:DEFAULT}")
-    private String leftMarketExSecret;
-    @Value("${market.first.ex.passphrase:DEFAULT}")
-    private String leftMarketExPassphrase;
+    @Value("${market.okex.key}")
+    private String okexMarketKey;
+    @Value("${market.okex.secret}")
+    private String okexMarketSecret;
 
-    @Value("${market.second}")
-    private String rightMarketName;
-    @Value("${market.second.key}")
-    private String rightMarketKey;
-    @Value("${market.second.secret}")
-    private String rightMarketSecret;
-
-    @Value("${market.second.ex.key:DEFAULT}")
-    private String rightMarketExKey;
-    @Value("${market.second.ex.secret:DEFAULT}")
-    private String rightMarketExSecret;
-    @Value("${market.second.ex.passphrase:DEFAULT}")
-    private String rightMarketExPassphrase;
+    @Value("${market.okex.ex.key:DEFAULT}")
+    private String okexMarketExKey;
+    @Value("${market.okex.ex.secret:DEFAULT}")
+    private String okexMarketExSecret;
+    @Value("${market.okex.ex.passphrase:DEFAULT}")
+    private String okexMarketExPassphrase;
 
     @Value("${ui.password.trader}")
     private String uiPasswordForTrader;
