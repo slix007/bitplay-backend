@@ -1,29 +1,18 @@
 package com.bitplay.arbitrage;
 
-import static com.bitplay.arbitrage.TestingMocks.toUsd;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.when;
-
 import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.dto.DiffFactBr;
-import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
-import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV1;
 import com.bitplay.persistance.domain.borders.BordersV2;
-import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingBlocks.Ver;
 import com.bitplay.persistance.domain.settings.Settings;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -36,6 +25,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import static com.bitplay.arbitrage.TestingMocks.toUsd;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 /**
  * Created by Sergey Shurmin on 1/9/18.
@@ -52,7 +50,7 @@ public class BordersServiceTest {
     @Mock
     SettingsRepositoryService settingsRepositoryService;
     @Mock
-    BitmexService bitmexService;
+    ArbitrageService arbitrageService;
     @Spy
     PlacingBlocksService placingBlocksService = new PlacingBlocksService();
     BorderParams borderParams;
@@ -161,8 +159,8 @@ public class BordersServiceTest {
 
         when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
 
-        when(bitmexService.getContractType()).thenReturn(BitmexContractType.XBTUSD);
-        when(bitmexService.getCm()).thenReturn(BigDecimal.valueOf(100));
+        when(arbitrageService.isEth()).thenReturn(false);
+        when(arbitrageService.getCm()).thenReturn(BigDecimal.valueOf(100));
     }
 
     /** like Ex.2 */

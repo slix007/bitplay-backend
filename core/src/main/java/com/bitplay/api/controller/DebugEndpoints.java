@@ -4,8 +4,8 @@ import com.bitplay.api.dto.MonAllJson;
 import com.bitplay.api.dto.ResultJson;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.okcoin.OOHangedCheckerService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.domain.mon.Mon;
@@ -52,13 +52,7 @@ public class DebugEndpoints {
     private RestartService restartService;
 
     @Autowired
-    private OOHangedCheckerService ooHangedCheckerService;
-
-    @Autowired
     private ArbitrageService arbitrageService;
-
-    @Autowired
-    private BitmexService bitmexService;
 
     @Autowired
     private MonitoringDataService monitoringDataService;
@@ -87,7 +81,9 @@ public class DebugEndpoints {
         String isDone = "is done";
         String errorMsg = "";
         try {
-            bitmexService.requestReconnect(true, true);
+            if (arbitrageService.getLeftMarketService().getArbType() == ArbType.LEFT) {
+                ((BitmexService) arbitrageService.getLeftMarketService()).requestReconnect(true, true);
+            }
         } catch (Exception e) {
             log.error("Can't reconnect bitmex", e);
             isDone = "failed";
@@ -103,7 +99,9 @@ public class DebugEndpoints {
         String isDone = "is done";
         String errorMsg = "";
         try {
-            bitmexService.reSubscribeOrderBooks(true);
+            if (arbitrageService.getLeftMarketService().getArbType() == ArbType.LEFT) {
+                ((BitmexService) arbitrageService.getLeftMarketService()).reSubscribeOrderBooks(true);
+            }
         } catch (Exception e) {
             log.error("Can't re-subscribe bitmex OB", e);
             isDone = " failed.";
@@ -148,7 +146,8 @@ public class DebugEndpoints {
             xrateLimitBtm = (l == BitmexXRateLimit.UNDEFINED ? "no info" : String.valueOf(l));
         }
 
-        monAllHtml += "<br>OOHangedChecker: " + ooHangedCheckerService.getStatus();
+        final OkCoinService right = (OkCoinService) arbitrageService.getRightMarketService();
+        monAllHtml += "<br>OOHangedChecker: " + right.ooHangedCheckerService.getStatus();
 
         monAllHtml += "<br>BitmexOrderBookErrors=" + getBitmexOrderBookErrors();
 
@@ -195,10 +194,12 @@ public class DebugEndpoints {
     }
 
     public String getBitmexOrderBookErrors() {
-        Integer count = bitmexService.getOrderBookErrors();
         String statusString = "0";
-        if (count > 0) {
-            statusString = String.format("<span style=\"color: red\">%s<span>", count);
+        if (arbitrageService.getLeftMarketService().getArbType() == ArbType.LEFT) {
+            Integer count = ((BitmexService) arbitrageService.getLeftMarketService()).getOrderBookErrors();
+            if (count > 0) {
+                statusString = String.format("<span style=\"color: red\">%s<span>", count);
+            }
         }
         return statusString;
     }

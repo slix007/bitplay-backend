@@ -48,12 +48,15 @@ import org.knowm.xchange.service.trade.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Service("poloniex")
+@Scope(scopeName = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class PoloniexService extends MarketService {
 
     public final static CurrencyPair CURRENCY_PAIR_USDT_BTC = new CurrencyPair("BTC", "USDT");

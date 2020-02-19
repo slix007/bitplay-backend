@@ -1,7 +1,6 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.dto.DelayTimer;
-import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.LiqInfo;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -14,8 +13,15 @@ public abstract class MarketServicePreliq extends MarketServicePortions {
 
     protected final PreliqService preliqService = new PreliqService(this);
     private final KillPosService killPosService = new KillPosService(this);
+    protected LimitsService limitsService;
 
-    public abstract LimitsService getLimitsService();
+    public void setLimitsService(LimitsService limitsService) {
+        this.limitsService = limitsService;
+    }
+
+    public LimitsService getLimitsService() {
+        return limitsService;
+    }
 
     public boolean noPreliq() {
         return preliqService.noPreliq();

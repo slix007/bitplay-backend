@@ -47,4 +47,8 @@ public class LimitsJson {
     }
 
 
+    public static LimitsJson empty() {
+        return new LimitsJson(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                "", false, null, false);
+    }
 }

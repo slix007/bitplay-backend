@@ -56,12 +56,9 @@ public class SettingsEndpoint {
     private final PersistenceService persistenceService;
     private final SettingsRepositoryService settingsRepositoryService;
     private final ArbitrageService arbitrageService;
-    //    private final OkCoinService okCoinService;
-//    private final BitmexService bitmexService;
     private final PosDiffService posDiffService;
     private final SettingsCorrEndpoint settingsCorrEndpoint;
     private final BitmexChangeOnSoService bitmexChangeOnSoService;
-    private final OkexLimitsService okexLimitsService;
 
     /**
      * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
@@ -286,11 +283,12 @@ public class SettingsEndpoint {
 //            settings.getLimits().setOkexLimitPrice(l.getOkexLimitPrice() != null ? l.getOkexLimitPrice() : settings.getLimits().getOkexLimitPrice());
             settingsRepositoryService.saveSettings(settings);
 
+            final OkexLimitsService limitsService = (OkexLimitsService) arbitrageService.getRightMarketService().getLimitsService();
             if (settingsUpdate.getLimits().getOkexMinPriceForTest() != null) {
-                okexLimitsService.setMinPriceForTest(settingsUpdate.getLimits().getOkexMinPriceForTest());
+                limitsService.setMinPriceForTest(settingsUpdate.getLimits().getOkexMinPriceForTest());
             }
             if (settingsUpdate.getLimits().getOkexMaxPriceForTest() != null) {
-                okexLimitsService.setMaxPriceForTest(settingsUpdate.getLimits().getOkexMaxPriceForTest());
+                limitsService.setMaxPriceForTest(settingsUpdate.getLimits().getOkexMaxPriceForTest());
             }
         }
 

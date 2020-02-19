@@ -20,12 +20,15 @@ import java.math.BigDecimal;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.service.trade.TradeService;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
  */
 @Service("quoine")
+@Scope(scopeName = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class QuoineService extends MarketService {
 
     private static final MarketStaticData MARKET_STATIC_DATA = MarketStaticData.OKEX;

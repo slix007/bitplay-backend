@@ -11,6 +11,8 @@ import com.bitplay.api.dto.ob.OrderJson;
 import com.bitplay.api.service.BitplayUIServiceBitmex;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import java.util.List;
+
+import com.bitplay.model.ex.OrderResultTiny;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
@@ -119,8 +121,9 @@ public class BitmexEndpoint {
     public ResultJson openOrdersCancel(@RequestBody OrderJson orderJson) {
         final String id = orderJson.getId();
 //        boolean cancelFromUI = this.bitmex.getBusinessService().cancelAllOrders("CancelFromUI");
-        boolean cancelFromUI = this.bitmex.getBusinessService().cancelOrderSync(id, "CancelFromUI");
-        return new ResultJson(String.valueOf(cancelFromUI), "");
+        final OrderResultTiny cancelResult = this.bitmex.getBusinessService().cancelOrderSync(id, "CancelFromUI");
+        return new ResultJson(String.valueOf(cancelResult.isResult()), cancelResult.getError_message());
+
     }
 
     @RequestMapping(value = "/open-orders/cancel-all",

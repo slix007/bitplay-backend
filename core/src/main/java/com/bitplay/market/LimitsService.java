@@ -1,6 +1,10 @@
 package com.bitplay.market;
 
 import com.bitplay.api.dto.ob.LimitsJson;
+import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.persistance.domain.settings.PlacingType;
+import org.knowm.xchange.dto.Order;
+
 import java.math.BigDecimal;
 
 public interface LimitsService {
@@ -8,5 +12,11 @@ public interface LimitsService {
     boolean outsideLimitsForPreliq(BigDecimal currentPos);
 
     LimitsJson getLimitsJson();
+
+    boolean outsideLimits();
+
+    default boolean outsideLimits(Order.OrderType orderType, PlacingType placingType, SignalType signalType) {
+        return outsideLimits();
+    }
 
 }

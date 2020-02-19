@@ -1,5 +1,6 @@
 package com.bitplay.settings;
 
+import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.TradingModeState;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -29,7 +30,7 @@ public class TradingModeService {
     private final ScheduledExecutorService checkerExecutor = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("SettingsModeChecker-%d").build());
 
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener(ArbitrageReadyEvent.class)
     public void init() {
         checkerExecutor.scheduleAtFixedRate(this::timerTick, 10, 1, TimeUnit.SECONDS);
     }

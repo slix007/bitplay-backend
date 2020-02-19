@@ -9,12 +9,11 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.utils.Utils;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -23,19 +22,14 @@ import java.math.RoundingMode;
  * Created by Sergey Shurmin on 4/8/18.
  */
 @Slf4j
-@Service
+@RequiredArgsConstructor
 public class BitmexLimitsService implements LimitsService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    @Autowired
-    private SlackNotifications slackNotifications;
-
-    @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private SettingsRepositoryService settingsRepositoryService;
+    private final SlackNotifications slackNotifications;
+    private final BitmexService bitmexService;
+    private final SettingsRepositoryService settingsRepositoryService;
 
     private volatile boolean insideLimitsSavedStatus = true;
 
@@ -88,6 +82,7 @@ public class BitmexLimitsService implements LimitsService {
                 limits.getIgnoreLimits());
     }
 
+    @Override
     public boolean outsideLimits() {
         final LimitsJson limits = getLimitsJson();
         final Boolean doCheck = !limits.getIgnoreLimits();

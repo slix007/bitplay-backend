@@ -1,7 +1,6 @@
 package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.dto.PlBlocks;
-import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.persistance.PersistenceService;
@@ -15,6 +14,13 @@ import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingBlocks.Ver;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
+import lombok.AllArgsConstructor;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -23,12 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import lombok.AllArgsConstructor;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 10/11/17.
@@ -46,7 +46,7 @@ public class BordersService {
     PlacingBlocksService placingBlocksService;
 
     @Autowired
-    private BitmexService bitmexService;
+    private ArbitrageService arbitrageService;
 
     private volatile static BorderParams.PosMode theMode = BorderParams.PosMode.OK_MODE;
 
@@ -136,7 +136,7 @@ public class BordersService {
     }
 
     int usdToCont(int limInUsd) {
-        return usdToCont(limInUsd, theMode, bitmexService.getContractType().isEth(), bitmexService.getCm());
+        return usdToCont(limInUsd, theMode, arbitrageService.isEth(), arbitrageService.getCm());
     }
 
 
@@ -145,7 +145,7 @@ public class BordersService {
             return tradingSignal;
         }
 
-        final BigDecimal cm = bitmexService.getCm();
+        final BigDecimal cm = arbitrageService.getCm();
         int block = tradingSignal.posMode == BorderParams.PosMode.OK_MODE ? okexBlock :
                 (BigDecimal.valueOf(okexBlock).multiply(cm)).setScale(0, RoundingMode.HALF_UP).intValue();
         final List<BigDecimal> list = Collections

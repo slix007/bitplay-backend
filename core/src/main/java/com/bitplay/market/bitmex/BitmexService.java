@@ -16,7 +16,6 @@ import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.ExtrastopService;
-import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
@@ -37,6 +36,7 @@ import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.metrics.MetricsUtils;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
+import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
@@ -126,7 +126,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -194,8 +193,7 @@ public class BitmexService extends MarketServicePreliq {
     @Autowired
     private LastPriceDeviationService lastPriceDeviationService;
 
-    @Autowired
-    private BitmexBalanceService bitmexBalanceService;
+    private BitmexBalanceService bitmexBalanceService = new BitmexBalanceService();
 
     @Autowired
     private BitmexTradeLogger tradeLogger;
@@ -218,8 +216,6 @@ public class BitmexService extends MarketServicePreliq {
     private SettingsRepositoryService settingsRepositoryService;
     @Autowired
     private OrderRepositoryService orderRepositoryService;
-    @Autowired
-    private BitmexLimitsService bitmexLimitsService;
     @Autowired
     private ExtrastopService extrastopService;
     @Autowired
@@ -284,7 +280,7 @@ public class BitmexService extends MarketServicePreliq {
     public boolean isMarketStopped() {
         return getArbitrageService().isArbStateStopped()
                 || getArbitrageService().isArbForbidden()
-                || bitmexLimitsService.outsideLimits();
+                || (limitsService != null && limitsService.outsideLimits());
     }
 
     @Override
@@ -310,11 +306,6 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public String getFuturesContractName() {
         return bitmexContractType != null ? bitmexContractType.getSymbol() : "";
-    }
-
-    @Override
-    public LimitsService getLimitsService() {
-        return bitmexLimitsService;
     }
 
     @Override
@@ -388,7 +379,7 @@ public class BitmexService extends MarketServicePreliq {
         Utils.logIfLong(start, end, logger, "openOrdersCleaner");
     }
 
-
+    @Override
     public boolean isReconnectInProgress() {
         return reconnectInProgress;
     }
@@ -472,6 +463,8 @@ public class BitmexService extends MarketServicePreliq {
         startAllListeners();
 
         fetchOpenOrders();
+
+        initPreliqScheduler();
     }
 
     private void startAllListeners() {
@@ -789,7 +782,7 @@ public class BitmexService extends MarketServicePreliq {
             if (marketState == MarketState.SYSTEM_OVERLOADED
                     || marketState == MarketState.PLACING_ORDER
                     || getArbitrageService().isArbStateStopped()
-                    || bitmexLimitsService.outsideLimits()
+                    || (limitsService != null && limitsService.outsideLimits())
                     || getArbitrageService().getDqlStateService().isPreliq()) {
                 return;
             }
@@ -1609,7 +1602,7 @@ public class BitmexService extends MarketServicePreliq {
                 }
             }
 
-            getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.BTM, obChangeTime)));
+            getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.BTM, getArbType(), obChangeTime)));
         }
     }
 
@@ -2796,8 +2789,7 @@ public class BitmexService extends MarketServicePreliq {
     private final ScheduledExecutorService preliqScheduler = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("bitmex-preliq-thread-%d").build());
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void init() {
+    public void initPreliqScheduler() {
         preliqScheduler.scheduleWithFixedDelay(() -> {
             try {
                 preliqService.checkForPreliq(false);
@@ -3067,7 +3059,7 @@ public class BitmexService extends MarketServicePreliq {
         }
     }
 
-    public boolean cancelOrderSync(String orderId, String logInfoId) {
+    public OrderResultTiny cancelOrderSync(String orderId, String logInfoId) {
         final String counterForLogs = getCounterName();
 
         int attemptCount = 0;
@@ -3087,7 +3079,7 @@ public class BitmexService extends MarketServicePreliq {
                 getTradeLogger().info(warnMsg);
                 ((OkCoinService) arbitrageService.getRightMarketService()).resetWaitingArb(warnMsg);
 
-                return res;
+                return new OrderResultTiny(res, orderId);
 
             } catch (HttpStatusIOException e) {
                 overloadByXRateLimit();
@@ -3099,7 +3091,7 @@ public class BitmexService extends MarketServicePreliq {
                 getTradeLogger().error(String.format("#%s/%s error cancel order id=%s: %s", counterForLogs, attemptCount, orderId, e.toString()));
             }
         }
-        return false;
+        return new OrderResultTiny(false, "");
     }
 
     @Override

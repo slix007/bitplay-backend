@@ -1,10 +1,19 @@
 package com.bitplay.market.bitmex;
 
+import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.persistance.domain.Range;
 import com.bitplay.persistance.domain.TimeCompareParams;
 import com.bitplay.persistance.domain.TimeCompareRange;
 import com.bitplay.persistance.repository.TimeCompareParamsRepository;
 import com.bitplay.persistance.repository.TimeCompareRangeRepository;
+import org.knowm.xchange.bitmex.dto.BitmexInfoDto;
+import org.knowm.xchange.bitmex.service.BitmexMarketDataService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.SocketTimeoutException;
@@ -16,12 +25,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.knowm.xchange.bitmex.dto.BitmexInfoDto;
-import org.knowm.xchange.bitmex.service.BitmexMarketDataService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 10/26/17.
@@ -36,7 +39,7 @@ public class BitmexTimeService {
     @Autowired
     private TimeCompareRangeRepository timeCompareRangeRepository;
     @Autowired
-    private BitmexService bitmexService;
+    private ArbitrageService arbitrageService;
     @Autowired
     private TimeCompareParamsRepository timeCompareParamsRepository;
     private ScheduledFuture<?> theSchedule;
@@ -62,6 +65,12 @@ public class BitmexTimeService {
     }
 
     private void getTimeTask() {
+        if (arbitrageService.getLeftMarketService().getMarketStaticData() != MarketStaticData.BITMEX) {
+            return;
+        }
+        final BitmexService bitmexService = (BitmexService) arbitrageService.getLeftMarketService();
+
+
         final BitmexMarketDataService marketDataService = (BitmexMarketDataService) bitmexService.getExchange().getMarketDataService();
 
         final Date startTime = new Date();

@@ -11,9 +11,6 @@ public class BitmexTradeLogger implements LogService {
 
     private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
 
-//    @Autowired
-//    private BitmexService bitmexService;
-
     private String cont(BitmexContractType bitmexContractType) {
         return String.format(" cont=%s", bitmexContractType.name());
     }
@@ -38,16 +35,4 @@ public class BitmexTradeLogger implements LogService {
         tradeLogger.error(getMsg(s, args));
     }
 
-//    public void warn(String s, BitmexContractType bitmexContractType) {
-//        tradeLogger.warn(s + cont(bitmexContractType));
-//    }
-//
-//    public void info(String s, BitmexContractType bitmexContractType) {
-//        tradeLogger.info(s + cont(bitmexContractType));
-//    }
-//
-//    public void error(String s, BitmexContractType bitmexContractType) {
-//        tradeLogger.error(s + cont(bitmexContractType));
-//    }
-//
 }

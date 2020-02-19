@@ -24,6 +24,7 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
+import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
@@ -1397,5 +1398,14 @@ public abstract class MarketService extends MarketServiceWithState {
     public void updateAvgPrice(DealPrices dealPrices, boolean onlyOneAttempt) {
         // it's overwritten for bitmex
     }
+
+    public OrderResultTiny cancelOrderSync(String orderId, String logInfoId) {
+        return new OrderResultTiny(false, "");
+    }
+
+    public boolean isReconnectInProgress() {
+        return false;
+    }
+
 
 }

@@ -5,18 +5,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-@Service
+@RequiredArgsConstructor
 public class OOHangedCheckerService {
 
     private static final Logger logger = LoggerFactory.getLogger(OOHangedCheckerService.class);
-
-    @Autowired
-    private OkCoinService okCoinService;
+    private final OkCoinService okCoinService;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("oo-hanged-checker-%d").build()

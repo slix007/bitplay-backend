@@ -1,9 +1,8 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.api.dto.ChangeRequestJson;
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
-import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.correction.Adj;
 import com.bitplay.persistance.domain.correction.Corr;
@@ -35,9 +34,7 @@ public class SettingsCorrEndpoint {
     @Autowired
     private PosDiffService posDiffService;
     @Autowired
-    private OkCoinService okCoinService;
-    @Autowired
-    private BitmexService bitmexService;
+    private ArbitrageService arbitrageService;
 
     @RequestMapping(value = "/corr", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public CorrParams getCorrParams() {
@@ -92,15 +89,15 @@ public class SettingsCorrEndpoint {
             if (anUpdate.getPreliq() != null) {
                 DtoHelpter.updateNotNullFields(anUpdate.getPreliq(), corrParams.getPreliq());
                 persistenceService.saveCorrParams(corrParams);
-                bitmexService.getDtPreliq().stop();
-                okCoinService.getDtPreliq().stop();
+                arbitrageService.getLeftMarketService().getDtPreliq().stop();
+                arbitrageService.getRightMarketService().getDtPreliq().stop();
             }
 
             if (anUpdate.getKillpos() != null) {
                 DtoHelpter.updateNotNullFields(anUpdate.getKillpos(), corrParams.getKillpos());
                 persistenceService.saveCorrParams(corrParams);
-                bitmexService.getDtKillpos().stop();
-                okCoinService.getDtKillpos().stop();
+                arbitrageService.getLeftMarketService().getDtKillpos().stop();
+                arbitrageService.getRightMarketService().getDtKillpos().stop();
             }
             if (anUpdate.getCorr() != null) {
                 final Corr uCorr = anUpdate.getCorr();

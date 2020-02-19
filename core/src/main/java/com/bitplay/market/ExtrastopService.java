@@ -2,10 +2,9 @@ package com.bitplay.market;
 
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexSettlementService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.SettingsRepositoryService;
@@ -51,12 +50,6 @@ public class ExtrastopService {
     private ArbitrageService arbitrageService;
 
     @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private OkCoinService okCoinService;
-
-    @Autowired
     private RestartService restartService;
 
     @Autowired
@@ -75,7 +68,7 @@ public class ExtrastopService {
 
     private volatile Instant lastRun = null;
 
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener(ArbitrageReadyEvent.class)
     public void init() {
         log.info("ExtrastopService has started");
         scheduler.scheduleWithFixedDelay(() -> {
@@ -98,7 +91,7 @@ public class ExtrastopService {
 
             checkLastRun();
 
-            if (bitmexService.isReconnectInProgress()) {
+            if (arbitrageService.getLeftMarketService().isReconnectInProgress()) {
                 log.warn("skip checkOrderBooks: bitmex reconnect IN_PROGRESS");
                 return;
             }
@@ -148,10 +141,10 @@ public class ExtrastopService {
 
         MonRestart monRestart = monitoringDataService.fetchRestartMonitoring();
 
-        final OrderBook bOB = bitmexService.getOrderBook();
+        final OrderBook bOB = arbitrageService.getLeftMarketService().getOrderBook();
         final Date bT = getBitmexOrderBook3BestTimestamp(bOB); // bitmexService.getOrderBookLastTimestamp();
 //            log.info("Bitmex timestamp: " + bT.toString());
-        final OrderBook oOB = okCoinService.getOrderBook();
+        final OrderBook oOB = arbitrageService.getRightMarketService().getOrderBook();
         final Date oT = oOB.getTimeStamp();
         details = "";
 
@@ -184,7 +177,7 @@ public class ExtrastopService {
 
         }
         // check bitmex extraSet
-        if (!isHanged && bitmexService.getContractType().isEth()) {
+        if (!isHanged && arbitrageService.isEth()) {
             isHanged = isHangedExtra(settings, maxGap);
         }
 
@@ -193,7 +186,7 @@ public class ExtrastopService {
 
     private boolean isHangedExtra(Settings settings, Integer maxGap) {
         boolean isHanged = false;
-        final OrderBook bOBExtra = bitmexService.getOrderBookXBTUSD();
+        final OrderBook bOBExtra = arbitrageService.getLeftMarketService().getOrderBookXBTUSD();
         final Date bTExtra = getBitmexOrderBook3BestTimestamp(bOBExtra); // bitmexService.getOrderBookLastTimestamp();
         long bDiffSecExtra = getDiffSec(bTExtra, "Bitmex-XBTUSD");
         boolean bWrongExtra = isOrderBookPricesWrong(bOBExtra);

@@ -6,9 +6,11 @@ import com.bitplay.api.dto.TradeRequestJson;
 import com.bitplay.api.dto.TradeResponseJson;
 import com.bitplay.api.dto.ob.FutureIndexJson;
 import com.bitplay.api.dto.ob.LimitsJson;
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexFunding;
-import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -17,36 +19,32 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
+import lombok.RequiredArgsConstructor;
+import org.knowm.xchange.dto.Order;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import org.knowm.xchange.dto.Order;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
  */
 @Component("Bitmex")
-public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexService> {
+@RequiredArgsConstructor
+public class BitplayUIServiceBitmex extends AbstractBitplayUIService<MarketServicePreliq> {
 
-    @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private OkCoinService okexService;
+    private final ArbitrageService arbitrageService;
 
     @Autowired
     private BitmexTimeService bitmexTimeService;
 
-    @Autowired
-    private BitmexLimitsService bitmexLimitsService;
-
     @Override
-    public BitmexService getBusinessService() {
-        return bitmexService;
+    public MarketServicePreliq getBusinessService() {
+        return arbitrageService.getLeftMarketService();
     }
 
     @Override
@@ -77,15 +75,26 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
 
         final PlacingType placingType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
 
+        final Long tradeId = arbitrageService.getLastInProgressTradeId();
         final String toolName = tradeRequestJson.getToolName();
-        if (toolName != null && toolName.equals("XBTUSD")) {
-            final TradeResponse tradeResponse = bitmexService.singleOrder(orderType, amount, null, signalType,
-                    placingType, toolName,
-                    tradeRequestJson.getAmountType());
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        if (left.getMarketStaticData() == MarketStaticData.BITMEX && toolName != null && toolName.equals("XBTUSD")) {
+            final String counterName = left.getCounterName(signalType, tradeId);
+            final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
+                    .orderType(orderType)
+                    .amount(amount)
+                    .placingType(placingType)
+                    .signalType(signalType)
+                    .attempt(1)
+                    .tradeId(tradeId)
+                    .counterName(counterName)
+                    .contractType(BitmexService.bitmexContractTypeXBTUSD)
+                    .amountType(tradeRequestJson.getAmountType())
+                    .build();
+            final TradeResponse tradeResponse = left.placeOrder(placeOrderArgs);
             return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
         }
         // Portions for mainSet orders
-        final Long tradeId = bitmexService.getArbitrageService().getLastInProgressTradeId();
         final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
                 .orderType(orderType)
                 .amount(amount)
@@ -96,13 +105,20 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
                 .counterName(signalType.getCounterName())
                 .build();
 
-        return bitmexService.placeWithPortions(placeOrderArgs, tradeRequestJson.getPortionsQty());
+        return left.placeWithPortions(placeOrderArgs, tradeRequestJson.getPortionsQty());
     }
 
     public FutureIndexJson getFutureIndex() {
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        if (left.getMarketStaticData() != MarketStaticData.BITMEX) {
+            return FutureIndexJson.empty();
+        }
+        BitmexService bitmexService = (BitmexService) left;
+        OkCoinService okexService = (OkCoinService) arbitrageService.getRightMarketService();
+
         final BitmexContractIndex contractIndex;
         try {
-            contractIndex = (BitmexContractIndex) bitmexService.getContractIndex();
+            contractIndex = (BitmexContractIndex) left.getContractIndex();
         } catch (ClassCastException e) {
             return FutureIndexJson.empty();
         }
@@ -146,7 +162,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
         final String timeCompareString = bitmexTimeService.getTimeCompareString();
         final Integer timeCompareUpdating = bitmexTimeService.fetchTimeCompareUpdating();
 
-        final LimitsJson limitsJson = bitmexLimitsService.getLimitsJson();
+        final LimitsJson limitsJson = arbitrageService.getLeftMarketService().getLimitsService().getLimitsJson();
 
         final String bxbtBal = bitmexService.getContractType().isEth()
                 ? ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice()
@@ -180,7 +196,9 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<BitmexServi
     public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {
         final String swapTime = customSwapTime.getCommand();
 
-        bitmexService.getBitmexSwapService().setCustomSwapTime(swapTime);
+        if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
+            ((BitmexService) arbitrageService.getLeftMarketService()).getBitmexSwapService().setCustomSwapTime(swapTime);
+        }
 
         return new ResultJson("true", "");
     }

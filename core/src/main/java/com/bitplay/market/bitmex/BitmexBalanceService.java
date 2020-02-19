@@ -7,17 +7,15 @@ import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.utils.Utils;
+import lombok.AllArgsConstructor;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import lombok.AllArgsConstructor;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.springframework.stereotype.Component;
 
 /**
  * Created by Sergey Shurmin on 11/12/17.
  */
-@Component
 public class BitmexBalanceService implements BalanceService {
 
     private final BigDecimal ETH_MULTIPLIER = BigDecimal.valueOf(0.000001);

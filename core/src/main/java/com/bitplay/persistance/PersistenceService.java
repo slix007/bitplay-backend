@@ -1,7 +1,6 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.ExchangePair;
 import com.bitplay.persistance.domain.GuiParams;
@@ -37,7 +36,7 @@ public class PersistenceService {
     private static final Logger logger = LoggerFactory.getLogger(ArbitrageService.class);
 
     @Autowired
-    private BitmexService bitmexService;
+    private ArbitrageService arbitrageService;
 
     @Autowired
     private LiqParamsRepository liqParamsRepository;
@@ -134,8 +133,8 @@ public class PersistenceService {
         CorrParams corrParams = corrParamsRepository.findFirstByExchangePair(ExchangePair.BITMEX_OKEX);
 
         // transient fields
-        BigDecimal cm = bitmexService.getCm();
-        boolean isEth = bitmexService.getContractType() != null && bitmexService.getContractType().isEth();
+        BigDecimal cm = arbitrageService.getCm();
+        boolean isEth = arbitrageService.isEth();
         corrParams.getCorr().setIsEth(isEth);
         corrParams.getCorr().setCm(cm);
         corrParams.getPreliq().setIsEth(isEth);

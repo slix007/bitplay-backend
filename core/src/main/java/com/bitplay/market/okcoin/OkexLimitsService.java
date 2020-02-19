@@ -15,13 +15,12 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.utils.Utils;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,19 +29,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Created by Sergey Shurmin on 4/8/18.
  */
 @Slf4j
-@Service
+@RequiredArgsConstructor
 public class OkexLimitsService implements LimitsService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    @Autowired
-    private SlackNotifications slackNotifications;
-
-    @Autowired
-    private OkCoinService okCoinService;
-
-    @Autowired
-    private SettingsRepositoryService settingsRepositoryService;
+    private final SlackNotifications slackNotifications;
+    private final OkCoinService okCoinService;
+    private final SettingsRepositoryService settingsRepositoryService;
 
     private BigDecimal minPriceForTest;
     private BigDecimal maxPriceForTest;
@@ -118,6 +112,7 @@ public class OkexLimitsService implements LimitsService {
                 insideLimits, insideLimitsEx, p.ignoreLimits, minPriceForTest, maxPriceForTest);
     }
 
+    @Override
     public boolean outsideLimits(OrderType orderType, PlacingType placingType, SignalType signalType) {
 
         return outsideLimits(orderType, placingType, signalType == null ? SignalType.AUTOMATIC : signalType, getParams());
@@ -254,5 +249,22 @@ public class OkexLimitsService implements LimitsService {
 
     public void setMaxPriceForTest(BigDecimal maxPriceForTest) {
         this.maxPriceForTest = maxPriceForTest.signum() == 0 ? null : maxPriceForTest;
+    }
+
+    @Override
+    public boolean outsideLimits() {
+        boolean okLimOut = false;
+        final DeltaName signalStatusDelta = okCoinService.getArbitrageService().getSignalStatusDelta();
+        final LimitsJson limitsJson = okCoinService.getLimitsService().getLimitsJson();
+        if (limitsJson.getIgnoreLimits()) {
+            okLimOut = false;
+        } else {
+            if (signalStatusDelta == DeltaName.B_DELTA) {
+                okLimOut = !limitsJson.getInsideLimitsEx().getBtmDelta();
+            } else {
+                okLimOut = !limitsJson.getInsideLimitsEx().getOkDelta();
+            }
+        }
+        return okLimOut;
     }
 }

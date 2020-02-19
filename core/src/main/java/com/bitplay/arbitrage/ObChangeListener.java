@@ -4,8 +4,7 @@ import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.MarketServicePreliq;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
@@ -19,12 +18,6 @@ public class ObChangeListener {
     @Autowired
     private ArbitrageService arbitrageService;
 
-    @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private OkCoinService okCoinService;
-
     @Async("signalCheckExecutor")
     @EventListener(ObChangeEvent.class)
     public void doCheckObChangeEvent(ObChangeEvent obChangeEvent) {
@@ -35,14 +28,20 @@ public class ObChangeListener {
     @Async("movingExecutor")
     @EventListener(ObChangeEvent.class)
     public void movingCheck(ObChangeEvent obChangeEvent) {
+        if (!arbitrageService.isInitialized()) {
+            return;
+        }
+
         final SigEvent sigEvent = obChangeEvent.getSigEvent();
         final SigType sigType = sigEvent.getSigType();
         try {
             if (sigType == SigType.BTM) {
-                bitmexService.checkOpenOrdersForMoving(sigEvent.startTime());
+                final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+                left.checkOpenOrdersForMoving(sigEvent.startTime());
             }
             if (sigType == SigType.OKEX) {
-                okCoinService.checkOpenOrdersForMoving(sigEvent.startTime());
+                final MarketServicePreliq right = arbitrageService.getRightMarketService();
+                right.checkOpenOrdersForMoving(sigEvent.startTime());
             }
 
         } catch (NotYetInitializedException e) {

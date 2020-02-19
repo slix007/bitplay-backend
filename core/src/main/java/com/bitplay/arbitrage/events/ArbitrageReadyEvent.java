@@ -2,9 +2,9 @@ package com.bitplay.arbitrage.events;
 
 import org.springframework.context.ApplicationEvent;
 
-public class NtUsdCheckEvent extends ApplicationEvent {
+public class ArbitrageReadyEvent extends ApplicationEvent {
 
-    public NtUsdCheckEvent() {
+    public ArbitrageReadyEvent() {
         super(new Object());
     }
 }

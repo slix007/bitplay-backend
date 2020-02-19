@@ -1,14 +1,13 @@
 package com.bitplay.persistance;
 
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.DelayTimer;
+import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.slf4j.Logger;
@@ -18,6 +17,9 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * Created by Sergey Shurmin on 6/16/17.
@@ -29,10 +31,7 @@ public class LastPriceDeviationService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private OkCoinService okCoinService;
+    private ArbitrageService arbitrageService;
 
     @Autowired
     private SlackNotifications slackNotifications;
@@ -46,7 +45,7 @@ public class LastPriceDeviationService {
     private final Executor checkerExecutor = Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat("LastPriceDevChecker-%d").build());
 
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener(ArbitrageReadyEvent.class)
     public void init() {
         cacheDev = fetchLastPriceDeviation(); // in case of mongo ChangeSets
     }
@@ -132,13 +131,19 @@ public class LastPriceDeviationService {
     }
 
     private void setCurrLastPrice(LastPriceDeviation dev) {
-        Ticker bTiker = bitmexService.getTicker();
-        if (bTiker != null && bTiker.getLast() != null) {
-            dev.setBitmexMainCurr(bTiker.getLast());
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        if (left != null) {
+            Ticker bTiker = left.getTicker();
+            if (bTiker != null && bTiker.getLast() != null) {
+                dev.setBitmexMainCurr(bTiker.getLast());
+            }
         }
-        Ticker oTicker = okCoinService.getTicker();
-        if (oTicker != null && oTicker.getLast() != null) {
-            dev.setOkexMainCurr(oTicker.getLast());
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
+        if (right != null) {
+            Ticker oTicker = right.getTicker();
+            if (oTicker != null && oTicker.getLast() != null) {
+                dev.setOkexMainCurr(oTicker.getLast());
+            }
         }
     }
 }

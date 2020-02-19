@@ -67,6 +67,7 @@ public class Settings extends AbstractDocument {
     @Transient
     private BitmexObType bitmexObTypeCurrent; // only for UI
 
+//    private ContractMode contractMode;
     private ContractMode contractMode;
     @Transient
     private ContractMode contractModeCurrent; // only for UI
@@ -113,7 +114,7 @@ public class Settings extends AbstractDocument {
         settings.limits = Limits.createDefault();
         settings.restartSettings = RestartSettings.createDefaults();
         settings.signalDelayMs = 1000;
-        settings.contractMode = new ContractMode(BitmexContractType.XBTUSD, BitmexContractType.XBTUSD);
+        settings.contractMode = new ContractMode(BitmexContractType.XBTUSD, OkexContractType.BTC_ThisWeek);
         settings.coldStorageBtc = BigDecimal.ZERO;
         settings.coldStorageEth = BigDecimal.ZERO;
         settings.eBestMin = 0;

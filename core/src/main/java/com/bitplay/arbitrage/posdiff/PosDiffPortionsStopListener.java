@@ -2,7 +2,7 @@ package com.bitplay.arbitrage.posdiff;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.events.ObChangeEvent;
-import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -36,12 +36,6 @@ public class PosDiffPortionsStopListener {
     private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private OkCoinService okCoinService;
-
-    @Autowired
     private TradeService tradeService;
 
     @Autowired
@@ -53,7 +47,10 @@ public class PosDiffPortionsStopListener {
     @Async("portionsStopCheckExecutor")
     @EventListener(ObChangeEvent.class)
     public void doCheckObChangeEvent() {
-        bitmexService.addOoExecutorTask(this::checkForStopTask);
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        if (left != null) {
+            left.addOoExecutorTask(this::checkForStopTask);
+        }
     }
 
     private void checkForStopTask() {
@@ -77,7 +74,8 @@ public class PosDiffPortionsStopListener {
         }
 
         // 2. if in progress
-        final PlaceOrderArgs currArgs = okCoinService.getPlaceOrderArgsRef().get();
+        final OkCoinService right = (OkCoinService) arbitrageService.getRightMarketService();
+        final PlaceOrderArgs currArgs = right.getPlaceOrderArgsRef().get();
         if (currArgs == null) {
             // no deferred order //TODO ask do we need it
             return;
@@ -86,7 +84,8 @@ public class PosDiffPortionsStopListener {
             // not portions signal
             return;
         }
-        final List<FplayOrder> oo = bitmexService.getOnlyOpenFplayOrdersClone();
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final List<FplayOrder> oo = left.getOnlyOpenFplayOrdersClone();
         if (oo.size() == 0) {
             return; // no in progress
         }
@@ -101,9 +100,9 @@ public class PosDiffPortionsStopListener {
 
         if (delta.compareTo(maxBorder.add(abortSignalPts)) < 0) {
 
-            bitmexService.cancelAllOrders(oo.get(0), "abort_signal! order", false, false);
+            left.cancelAllOrders(oo.get(0), "abort_signal! order", false, false);
 
-            final BigDecimal btmFilled = bitmexService.getBtmFilledAndUpdateBPriceFact(currArgs, false);
+            final BigDecimal btmFilled = left.getLeftFilledAndUpdateBPriceFact(currArgs, false);
             final FactPrice bPriceFact = dealPricesRepositoryService.getFullDealPrices(currArgs.getTradeId()).getBPriceFact();
             if (btmFilled.compareTo(bPriceFact.getFullAmount()) < 0) {
                 final boolean cntUpdated = incCounters(currArgs, deltaName, btmFilled);
@@ -146,8 +145,8 @@ public class PosDiffPortionsStopListener {
                 abortSignalPts,
                 btmFilled,
                 cntUpdated);
-        okCoinService.getTradeLogger().info(msg);
-        bitmexService.getTradeLogger().info(msg);
+        arbitrageService.getLeftMarketService().getTradeLogger().info(msg);
+        arbitrageService.getRightMarketService().getTradeLogger().info(msg);
         tradeService.info(currArgs.getTradeId(), currArgs.getCounterNameWithPortion(), msg);
         log.info(msg);
     }

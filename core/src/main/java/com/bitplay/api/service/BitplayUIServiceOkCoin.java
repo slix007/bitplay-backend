@@ -6,15 +6,14 @@ import com.bitplay.api.dto.TradeRequestJson;
 import com.bitplay.api.dto.TradeResponseJson;
 import com.bitplay.api.dto.ob.FutureIndexJson;
 import com.bitplay.api.dto.ob.LimitsJson;
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.market.LimitsService;
+import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.SwapSettlement;
 import com.bitplay.persistance.domain.settings.PlacingType;
-import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.market.okcoin.OkexLimitsService;
-import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.slf4j.Logger;
@@ -22,23 +21,24 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * Created by Sergey Shurmin on 4/4/17.
  */
 @Component("OkCoin")
-public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinService> {
+public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<MarketServicePreliq> {
 
     private static final Logger logger = LoggerFactory.getLogger(BitplayUIServiceOkCoin.class);
 
     @Autowired
-    private OkCoinService service;
-
-    @Autowired
-    private OkexLimitsService okexLimitsService;
+    private ArbitrageService arbitrageService;
 
     @Override
-    public OkCoinService getBusinessService() {
-        return service;
+    public MarketServicePreliq getBusinessService() {
+        return arbitrageService.getRightMarketService();
     }
 
     @SuppressWarnings("Duplicates")
@@ -61,11 +61,11 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
         }
 
         String orderId = null;
-        String details = null;
+        String details;
         try {
 
             final PlacingType placingSubType = PlacingType.valueOf(tradeRequestJson.getPlacementType().toString());
-            final Long tradeId = service.getArbitrageService().getLastInProgressTradeId();
+            final Long tradeId = arbitrageService.getLastInProgressTradeId();
             final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
                     .orderType(orderType)
                     .amount(amount)
@@ -75,7 +75,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
                     .tradeId(tradeId)
                     .counterName(signalType.getCounterName())
                     .build();
-            final TradeResponseJson r = service.placeWithPortions(placeOrderArgs, tradeRequestJson.getPortionsQty());
+            final TradeResponseJson r = arbitrageService.getRightMarketService().placeWithPortions(placeOrderArgs, tradeRequestJson.getPortionsQty());
             orderId = r.getOrderId();
             details = (String) r.getDetails();
 
@@ -93,6 +93,9 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
     }
 
     public FutureIndexJson getFutureIndex() {
+        final OkCoinService service = (OkCoinService) arbitrageService.getRightMarketService();
+        final LimitsService okexLimitsService = service.getLimitsService();
+
         final ContractIndex contractIndex = getBusinessService().getContractIndex();
         final String indexVal = contractIndex.getIndexPrice().toPlainString();
         final BigDecimal markPrice = service.getMarkPrice();
@@ -116,6 +119,7 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<OkCoinServi
     }
 
     public ResultJson changeLeverage(LeverageRequest leverageRequest) {
+        final OkCoinService service = (OkCoinService) arbitrageService.getRightMarketService();
         final String resDescr = service.changeOkexLeverage(leverageRequest.getLeverage());
         return new ResultJson("", resDescr);
     }

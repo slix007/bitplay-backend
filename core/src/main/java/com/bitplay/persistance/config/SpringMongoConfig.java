@@ -32,12 +32,6 @@ public class SpringMongoConfig extends AbstractMongoConfiguration {
     private static final String DBNAME = "bitplay";
     private static final String HOST_WITH_PORT = "localhost:26459";
 
-    @PreDestroy
-    public void shutdown() {
-        log.info("Closing mongo.");
-        mongo().close();
-    }
-
     @Override
     protected String getDatabaseName() {
         return DBNAME;

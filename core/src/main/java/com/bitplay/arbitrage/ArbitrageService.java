@@ -4,11 +4,13 @@ import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.BordersService.BorderVer;
 import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.BordersService.TradingSignal;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
 import com.bitplay.arbitrage.dto.DeltaMon;
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
 import com.bitplay.arbitrage.events.DeltaChange;
 import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
@@ -19,9 +21,11 @@ import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.LimitsService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
+import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -43,6 +47,7 @@ import com.bitplay.model.Pos;
 import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.SignalTimeService;
 import com.bitplay.persistance.TradeService;
 import com.bitplay.persistance.domain.CumParams;
@@ -128,8 +133,8 @@ public class ArbitrageService {
     private CumPersistenceService cumPersistenceService;
     @Autowired
     private SignalService signalService;
-    @Autowired
-    private DiffFactBrService diffFactBrService;
+
+    private DiffFactBrService diffFactBrService = new DiffFactBrService(this);
     @Autowired
     private DeltasCalcService deltasCalcService;
     @Autowired
@@ -156,6 +161,8 @@ public class ArbitrageService {
     private OkexSettlementService okexSettlementService;
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
+    @Autowired
+    private SettingsRepositoryService settingsRepositoryService;
 
 
 //    @Autowired // WARNING - this leads to "successfully sent 23 metrics to InfluxDB." should be over 70 metrics.
@@ -170,6 +177,8 @@ public class ArbitrageService {
 
     private volatile MarketServicePreliq leftMarketService;
     private volatile MarketServicePreliq rightMarketService;
+    private volatile LimitsService leftLimitService;
+    private volatile LimitsService rightLimitService;
     private volatile PosDiffService posDiffService;
     private volatile BigDecimal delta1 = BigDecimal.ZERO;
     private volatile BigDecimal delta2 = BigDecimal.ZERO;
@@ -215,14 +224,26 @@ public class ArbitrageService {
         return dealPricesRepositoryService.getFullDealPrices(tradeId);
     }
 
-    public void init(TwoMarketStarter twoMarketStarter) {
+    public synchronized void init(TwoMarketStarter twoMarketStarter) {
         loadParamsFromDb();
         this.leftMarketService = twoMarketStarter.getLeftMarketService();
         this.rightMarketService = twoMarketStarter.getRightMarketService();
         this.posDiffService = twoMarketStarter.getPosDiffService();
+        if (leftMarketService.getMarketStaticData() == MarketStaticData.BITMEX) {
+            final BitmexService bitmexService = (BitmexService) this.leftMarketService;
+            this.leftLimitService = new BitmexLimitsService(slackNotifications, bitmexService, settingsRepositoryService);
+        } else {
+            this.leftLimitService = new OkexLimitsService(slackNotifications, (OkCoinService) this.leftLimitService, settingsRepositoryService);
+        }
+        this.rightLimitService = new OkexLimitsService(slackNotifications, (OkCoinService) this.rightLimitService, settingsRepositoryService);
+        rightMarketService.setLimitsService(rightLimitService);
+        leftMarketService.setLimitsService(leftLimitService);
+
 //        startArbitrageMonitoring();
         initArbitrageStateListener();
         initialized = true;
+
+        applicationEventPublisher.publishEvent(new ArbitrageReadyEvent());
     }
 
     void sigEventCheck(SigEvent e) {
@@ -943,7 +964,7 @@ public class ArbitrageService {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
 
-        final OkexLimitsService okLimits = ((OkCoinService) this.rightMarketService).getOkexLimitsService();
+        final OkexLimitsService okLimits = (OkexLimitsService) rightLimitService;
         final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
         final boolean okexOutsideLimits = okLimits.outsideLimitsOnSignal(DeltaName.B_DELTA, okexPlacingType);
         //noinspection Duplicates
@@ -1004,7 +1025,7 @@ public class ArbitrageService {
 
         futureSignal = signalDelayScheduler.schedule(() -> {
             // to make sure that it will happen in the 'signalDeltayMs period'
-            applicationEventPublisher.publishEvent(new ObChangeEvent(new SigEvent(SigType.BTM, null)));
+            applicationEventPublisher.publishEvent(new ObChangeEvent(new SigEvent(SigType.BTM, ArbType.LEFT, null)));
         }, timeToSignalMs, TimeUnit.MILLISECONDS);
 
     }
@@ -1232,8 +1253,7 @@ public class ArbitrageService {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
-        final OkCoinService okCoinService = (OkCoinService) this.rightMarketService;
-        final OkexLimitsService okLimits = okCoinService.getOkexLimitsService();
+        final OkexLimitsService okLimits = (OkexLimitsService) rightLimitService;
         final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
         final boolean okexOutsideLimits = okLimits.outsideLimitsOnSignal(DeltaName.O_DELTA, okexPlacingType);
         //noinspection Duplicates
@@ -2252,9 +2272,18 @@ public class ArbitrageService {
 
     public boolean isEth() {
 
-        return rightMarketService.getEthBtcTicker() != null
+        return rightMarketService != null
+                && leftMarketService != null
+                && rightMarketService.getEthBtcTicker() != null
                 && leftMarketService.getEthBtcTicker() != null
                 && rightMarketService.getContractType().isEth()
                 && leftMarketService.getContractType().isEth();
+    }
+
+    public BigDecimal getCm() {
+        if (rightMarketService != null && rightMarketService.getMarketStaticData() == MarketStaticData.BITMEX) {
+            return ((BitmexService) rightMarketService).getCm();
+        }
+        return BitmexService.DEFAULT_CM;
     }
 }

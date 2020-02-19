@@ -1,24 +1,20 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.model.Pos;
+import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
+import lombok.RequiredArgsConstructor;
+
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.BTM_MODE;
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MODE;
 
-import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.model.Pos;
-import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-@Service
+@RequiredArgsConstructor
 public class DiffFactBrService {
-
-    @Autowired
-    private BitmexService bitmexService;
-    @Autowired
-    private OkCoinService okCoinService;
+    private final ArbitrageService arbitrageService;
 
     int getCurrPos(PosMode pos_mode) {
+        MarketServicePreliq bitmexService = arbitrageService.getLeftMarketService();
+        MarketServicePreliq okCoinService = arbitrageService.getRightMarketService();
         int currPos = 0;
         if (pos_mode == BTM_MODE) {
             Pos position = bitmexService.getPos();

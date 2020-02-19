@@ -1,6 +1,7 @@
 package com.bitplay.persistance;
 
-import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.repository.SettingsRepository;
@@ -28,7 +29,7 @@ public class SettingsRepositoryService {
     private SettingsRepository settingsRepository;
 
     @Autowired
-    private BitmexService bitmexService;
+    private ArbitrageService arbitrageService;
 
     @Autowired
     public SettingsRepositoryService(MongoOperations mongoOperation) {
@@ -38,7 +39,7 @@ public class SettingsRepositoryService {
     private volatile Settings settings;
     private volatile boolean invalidated = true;
 
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener(ArbitrageReadyEvent.class)
     public void init() {
         settings = fetchSettings(); // in case of mongo ChangeSets
     }
@@ -60,10 +61,8 @@ public class SettingsRepositoryService {
     }
 
     private void setTransientCm() {
-        settings.getPlacingBlocks().setCm(bitmexService.getCm());
-        boolean eth = bitmexService.getContractType() != null
-                ? bitmexService.getContractType().isEth() // current set
-                : settings.getContractMode().isEth(); // saved set
+        settings.getPlacingBlocks().setCm(arbitrageService.getCm());
+        boolean eth = arbitrageService.isEth();
         settings.getPlacingBlocks().setEth(eth);
     }
 

@@ -4,7 +4,6 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.dto.SignalTypeEx;
-import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
@@ -41,8 +40,6 @@ public class NtUsdRecoveryService {
     private final NtUsdExecutor ntUsdExecutor;
     private final PosDiffService posDiffService;
     private final PersistenceService persistenceService;
-    //    private final OkCoinService okCoinService;
-//    private final BitmexService bitmexService;
     private final ArbitrageService arbitrageService;
     private final TradeService tradeService;
 
@@ -141,7 +138,7 @@ public class NtUsdRecoveryService {
 
         posDiffService.defineSignalTypeToIncrease(corrObj, bP, oPL, oPS);
 
-        final MarketService marketService = corrObj.marketService;
+        final MarketServicePreliq marketService = corrObj.marketService;
         final OrderType orderType = corrObj.orderType;
         final BigDecimal correctAmount = corrObj.correctAmount;
         final SignalType signalType = corrObj.signalType;
@@ -237,7 +234,7 @@ public class NtUsdRecoveryService {
     }
 
     private boolean checkOutsideLimits(String corrName, BigDecimal dc, BigDecimal maxBtm, BigDecimal maxOk, CorrObj corrObj, BigDecimal hedgeAmount,
-                                       MarketService marketService, OrderType orderType, BigDecimal correctAmount, SignalType signalType,
+                                       MarketServicePreliq marketService, OrderType orderType, BigDecimal correctAmount, SignalType signalType,
                                        PlacingType placingType) {
         final boolean outsideLimits = posDiffService.outsideLimits(marketService, orderType, placingType, signalType);
         if (outsideLimits) {

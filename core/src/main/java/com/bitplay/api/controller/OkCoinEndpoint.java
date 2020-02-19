@@ -9,13 +9,10 @@ import com.bitplay.api.dto.TradeResponseJson;
 import com.bitplay.api.dto.ob.OrderBookJson;
 import com.bitplay.api.dto.ob.OrderJson;
 import com.bitplay.api.service.BitplayUIServiceOkCoin;
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.ex.OrderResultTiny;
-import com.bitplay.okex.v3.dto.futures.result.Account;
-import com.bitplay.okex.v3.dto.futures.result.OrderResult;
-import java.util.List;
-
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -26,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 4/3/17.
@@ -40,11 +39,11 @@ public class OkCoinEndpoint {
     private BitplayUIServiceOkCoin okCoin;
 
     @Autowired
-    private OkCoinService okCoinService;
+    private ArbitrageService arbitrageService;
 
     @RequestMapping(value = "/raw-account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public AccountInfoContracts rawAccount() {
-        return okCoinService.getAccountApiV3();
+        return ((OkCoinService) arbitrageService.getRightMarketService()).getAccountApiV3();
     }
 
     @RequestMapping(value = "/order-book", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -91,7 +90,7 @@ public class OkCoinEndpoint {
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrdersCancel(@RequestBody OrderJson orderJson) {
         final String id = orderJson.getId();
-        final OrderResultTiny cancelResult = this.okCoin.getBusinessService().cancelOrderSyncFromUi(id, "CancelFromUI");
+        final OrderResultTiny cancelResult = this.okCoin.getBusinessService().cancelOrderSync(id, "CancelFromUI");
         return new ResultJson(String.valueOf(cancelResult.isResult()), cancelResult.getError_message());
     }
 

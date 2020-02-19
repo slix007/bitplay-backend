@@ -1,40 +1,40 @@
 package com.bitplay.market.okcoin;
 
+import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
+import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.market.MarketServicePortions;
-import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+
 @Slf4j
 @Service
 public class PortionsListener {
 
     @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private OkCoinService okCoinService;
+    private ArbitrageService arbitrageService;
 
     private Disposable readyEventListenerBtm;
     private Disposable readyEventListenerOk;
 
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener(ArbitrageReadyEvent.class)
     public void init() {
 
-        readyEventListenerBtm = readyListener(okCoinService);
-        readyEventListenerOk = readyListener(bitmexService);
+        readyEventListenerBtm = readyListener(arbitrageService.getLeftMarketService());
+        readyEventListenerOk = readyListener(arbitrageService.getRightMarketService());
     }
 
     private Disposable readyListener(MarketServicePortions marketService) {

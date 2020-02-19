@@ -4,15 +4,15 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.BordersService.Borders;
 import com.bitplay.arbitrage.HedgeService;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.dto.SignalTypeEx;
+import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.bitmex.BitmexLimitsService;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexUtils;
 import com.bitplay.market.model.FullBalance;
@@ -20,7 +20,6 @@ import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.market.okcoin.OkexSettlementService;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.PersistenceService;
@@ -96,17 +95,6 @@ public class PosDiffService {
     private SettingsRepositoryService settingsRepositoryService;
 
     @Autowired
-    private BitmexLimitsService bitmexLimitsService;
-
-    @Autowired
-    private OkexLimitsService okexLimitsService;
-
-    @Autowired
-    private BitmexService bitmexService;
-    @Autowired
-    private OkCoinService okCoinService;
-
-    @Autowired
     private HedgeService hedgeService;
 
     @Autowired
@@ -119,7 +107,7 @@ public class PosDiffService {
     @Autowired
     private NtUsdExecutor ntUsdExecutor;
 
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener(ArbitrageReadyEvent.class)
     public void init() {
         ntUsdExecutor.addScheduledTask(this::calcPosDiffJob, 60, 1, TimeUnit.SECONDS);
         ntUsdExecutor.addScheduledTask(this::checkMDCJob, 60, 1, TimeUnit.SECONDS);
@@ -361,7 +349,7 @@ public class PosDiffService {
             checkMdcMainSet("MDC-mainSet", delaySec, dtMdc, this::isMdcNeededMainSet);
             checkMdcMainSet("MDCADJ-mainSet", adjDelaySec, dtMdcAdj, this::isMdcAdjNeededMainSet);
 
-            if (bitmexService.getContractType().isEth()) {
+            if (arbitrageService.isEth()) {
                 checkMdcExtraSet("MDC-extraSet", delaySec, dtExtraMdc, this::isMdcNeededExtraSet);
                 checkMdcExtraSet("MDCADJ-extraSet", adjDelaySec, dtExtraMdcAdj, this::isMdcAdjNeededExtraSet);
             }
@@ -493,8 +481,8 @@ public class PosDiffService {
         BigDecimal oPL = secondPos.getPositionLong();
         BigDecimal oPS = secondPos.getPositionShort();
 
-        final BigDecimal cm = bitmexService.getCm();
-        boolean isEth = bitmexService.getContractType().isEth();
+        final BigDecimal cm = arbitrageService.getCm();
+        boolean isEth = arbitrageService.isEth();
         final BigDecimal dc = getDcMainSet().setScale(2, RoundingMode.HALF_UP);
         final CorrObj corrObj = new CorrObj(SignalType.ADJ, oPL, oPS);
         final BigDecimal hedgeAmount = getHedgeAmountMainSet();
@@ -808,7 +796,7 @@ public class PosDiffService {
     }
 
     BigDecimal getHedgeAmountMainSet() {
-        final BigDecimal hedgeAmount = bitmexService.getContractType().isEth()
+        final BigDecimal hedgeAmount = arbitrageService.isEth()
                 ? hedgeService.getHedgeEth()
                 : hedgeService.getHedgeBtc();
         if (hedgeAmount == null) {
@@ -819,7 +807,7 @@ public class PosDiffService {
     }
 
     private BigDecimal getHedgeAmountExtraSet() {
-        if (!bitmexService.getContractType().isEth()) {
+        if (!arbitrageService.isEth()) {
             return BigDecimal.ZERO;
         }
         final BigDecimal hedgeAmount = hedgeService.getHedgeBtc();
@@ -869,8 +857,8 @@ public class PosDiffService {
         }
         stopTimerToImmediateCorrection(); // avoid double-correction
 
-        final BigDecimal cm = bitmexService.getCm();
-        boolean isEth = bitmexService.getContractType().isEth();
+        final BigDecimal cm = arbitrageService.getCm();
+        boolean isEth = arbitrageService.isEth();
 
         final BigDecimal dc = (baseSignalType == SignalType.ADJ_BTC || baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC)
                 ? getDcExtraSet().setScale(2, RoundingMode.HALF_UP)
@@ -888,7 +876,7 @@ public class PosDiffService {
 
         if (baseSignalType == SignalType.ADJ_BTC) {
 
-            BigDecimal bPXbtUsd = bitmexService.getPositionXBTUSD().getPositionLong();
+            BigDecimal bPXbtUsd = arbitrageService.getLeftMarketService().getPositionXBTUSD().getPositionLong();
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
@@ -906,7 +894,7 @@ public class PosDiffService {
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
 
             @SuppressWarnings("Duplicates")
-            BigDecimal bPXbtUsd = bitmexService.getPositionXBTUSD().getPositionLong();
+            BigDecimal bPXbtUsd = arbitrageService.getLeftMarketService().getPositionXBTUSD().getPositionLong();
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
@@ -934,7 +922,7 @@ public class PosDiffService {
 
         // ------
 
-        final MarketService marketService = corrObj.marketService;
+        final MarketServicePreliq marketService = corrObj.marketService;
         final Order.OrderType orderType = corrObj.orderType;
         final BigDecimal correctAmount = corrObj.correctAmount;
         final SignalType signalType = corrObj.signalType;
@@ -1018,7 +1006,9 @@ public class PosDiffService {
                     corrObj.marketService.getTradeLogger().info(switchMsg);
                     slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
 
-                    final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
+                    final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
+                            ? arbitrageService.getRightMarketService()
+                            : arbitrageService.getLeftMarketService();
                     final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
                     final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
                     switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
@@ -1129,7 +1119,9 @@ public class PosDiffService {
                 corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated and noSwitch";
             } else {
                 // check if other market isOk
-                final MarketServicePreliq theOtherService = corrObj.marketService.getName().equals(BitmexService.NAME) ? okCoinService : bitmexService;
+                final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
+                        ? arbitrageService.getRightMarketService()
+                        : arbitrageService.getLeftMarketService();
                 boolean theOtherMarketIsViolated = theOtherService.isDqlOpenViolated();
                 if (theOtherMarketIsViolated) {
                     corrObj.correctAmount = BigDecimal.ZERO;
@@ -1577,13 +1569,9 @@ public class PosDiffService {
         }
     }
 
-    boolean outsideLimits(MarketService marketService, OrderType orderType, PlacingType placingType, SignalType signalType) {
-        if (marketService.getName().equals(BitmexService.NAME) && bitmexLimitsService.outsideLimits()) {
-            warningLogger.error("Attempt of correction when outside limits. " + bitmexLimitsService.getLimitsJson());
-            return true;
-        }
-        if (marketService.getName().equals(OkCoinService.NAME) && okexLimitsService.outsideLimits(orderType, placingType, signalType)) {
-            warningLogger.error("Attempt of correction when outside limits. " + okexLimitsService.getLimitsJson());
+    boolean outsideLimits(MarketServicePreliq marketService, OrderType orderType, PlacingType placingType, SignalType signalType) {
+        if (marketService.getLimitsService().outsideLimits(orderType, placingType, signalType)) {
+            warningLogger.error("Attempt of correction when outside limits. " + marketService.getLimitsService().getLimitsJson());
             return true;
         }
         return false;
@@ -1641,7 +1629,7 @@ public class PosDiffService {
 
     BigDecimal getDcMainSet() {
         final BigDecimal hedgeAmountUsd = getHedgeAmountMainSet();
-        final boolean isEth = bitmexService.getContractType().isEth();
+        final boolean isEth = arbitrageService.isEth();
         final BigDecimal okexUsd = getOkexUsd(isEth);
         final BigDecimal bitmexUsd = getBitmexUsd(isEth);
         final BigDecimal bitmexUsdWithHedge = bitmexUsd.subtract(hedgeAmountUsd);
@@ -1650,11 +1638,11 @@ public class PosDiffService {
     }
 
     private BigDecimal getDcExtraSet() {
-        if (!bitmexService.getContractType().isEth()) {
+        if (!arbitrageService.isEth()) {
             return BigDecimal.ZERO;
         }
         final BigDecimal hedgeAmountUsd = getHedgeAmountExtraSet();
-        final BigDecimal bitmexUsd = bitmexService.getHbPosUsd();
+        final BigDecimal bitmexUsd = arbitrageService.getLeftMarketService().getHbPosUsd();
         return bitmexUsd.subtract(hedgeAmountUsd);
     }
 
@@ -1671,7 +1659,7 @@ public class PosDiffService {
     }
 
     private BigDecimal getBitmexUsd(boolean isEth) {
-        BigDecimal cm = bitmexService.getCm();
+        BigDecimal cm = arbitrageService.getCm();
 
         final BigDecimal bP = arbitrageService.getLeftMarketService().getPos().getPositionLong();
         if (bP == null) {

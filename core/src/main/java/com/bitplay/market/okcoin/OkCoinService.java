@@ -13,7 +13,6 @@ import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
-import com.bitplay.market.LimitsService;
 import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
@@ -124,7 +123,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -198,12 +196,8 @@ public class OkCoinService extends MarketServicePreliq {
     private final OrderRepositoryService orderRepositoryService;
 
     // TODO remove circular dependencies
-    @Autowired
-    private OkexLimitsService okexLimitsService;
-    @Autowired
-    private OOHangedCheckerService ooHangedCheckerService;
-    @Autowired
-    private OkexTradeLogger tradeLogger;
+    public final OOHangedCheckerService ooHangedCheckerService = new OOHangedCheckerService(this);
+    private OkexTradeLogger tradeLogger = new OkexTradeLogger(this);
     private final DefaultLogService defaultLogger;
     private final MonitoringDataService monitoringDataService;
     @Autowired
@@ -270,10 +264,6 @@ public class OkCoinService extends MarketServicePreliq {
         return getArbitrageService().isArbStateStopped() || getArbitrageService().isArbForbidden();
     }
 
-    public OkexLimitsService getOkexLimitsService() {
-        return okexLimitsService;
-    }
-
     @Override
     public MarketStaticData getMarketStaticData() {
         return MARKET_STATIC_DATA;
@@ -287,11 +277,6 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     protected Exchange getExchange() {
         return exchange;
-    }
-
-    @Override
-    public LimitsService getLimitsService() {
-        return okexLimitsService;
     }
 
     @Override
@@ -328,6 +313,7 @@ public class OkCoinService extends MarketServicePreliq {
 //        final Instrument instrument = bitplayOkexEchange.getMarketAPIService().getInstruments().get(0);
 //        logger.info("BITPLAY_OKEX_EXCHANGE: first instrument: " + instrument);
         started = true;
+        initPreliqScheduler();
     }
 
     @Scheduled(initialDelay = 120 * 1000, fixedDelay = 60 * 1000)
@@ -369,8 +355,7 @@ public class OkCoinService extends MarketServicePreliq {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("okex-preliq-thread-%d").build());
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void init() {
+    public void initPreliqScheduler() {
         scheduler.scheduleWithFixedDelay(() -> {
             try {
                 preliqService.checkForPreliq(okexSettlementService.isSettlementMode());
@@ -536,7 +521,7 @@ public class OkCoinService extends MarketServicePreliq {
                         logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
 
                         Instant lastObTime = Instant.now();
-                        getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.OKEX, lastObTime)));
+                        getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.OKEX, getArbType(), lastObTime)));
                     }
 
                 }, throwable -> logger.error("ERROR in getting order book: ", throwable));
@@ -2262,8 +2247,9 @@ public class OkCoinService extends MarketServicePreliq {
 //        return errorCodeTranslation;
 //    }
 
+    @Override
     @NotNull
-    public OrderResultTiny cancelOrderSyncFromUi(String orderId, String logInfoId) {
+    public OrderResultTiny cancelOrderSync(String orderId, String logInfoId) {
         final String counterForLogs = getCounterName();
         OrderResultTiny result = new OrderResultTiny(false, orderId);
         try {
@@ -2286,17 +2272,17 @@ public class OkCoinService extends MarketServicePreliq {
             }
 
         } catch (Exception e) {
-                logger.error("#{} error cancel maker order", counterForLogs, e);
-                tradeLogger.error(String.format("#%s error cancel maker order: %s", counterForLogs, e.toString()));
-                final Order order = fetchOrderInfo(orderId, counterForLogs);
-                if (order != null) {
-                    if (order.getStatus() == Order.OrderStatus.CANCELED) {
-                        result = new OrderResultTiny(true, orderId);
-                    }
-                    if (order.getStatus() == Order.OrderStatus.FILLED) {
-                        result = new OrderResultTiny(false, orderId);
-                    }
+            logger.error("#{} error cancel maker order", counterForLogs, e);
+            tradeLogger.error(String.format("#%s error cancel maker order: %s", counterForLogs, e.toString()));
+            final Order order = fetchOrderInfo(orderId, counterForLogs);
+            if (order != null) {
+                if (order.getStatus() == Order.OrderStatus.CANCELED) {
+                    result = new OrderResultTiny(true, orderId);
                 }
+                if (order.getStatus() == Order.OrderStatus.FILLED) {
+                    result = new OrderResultTiny(false, orderId);
+                }
+            }
         }
         return result;
     }
@@ -2649,7 +2635,7 @@ public class OkCoinService extends MarketServicePreliq {
                     // keep the order
                     resultOOList.add(openOrder);
                 } else {
-                    final boolean okexOutsideLimits = okexLimitsService.outsideLimits(openOrder.getLimitOrder().getType(), openOrder.getPlacingType(),
+                    final boolean okexOutsideLimits = limitsService.outsideLimits(openOrder.getLimitOrder().getType(), openOrder.getPlacingType(),
                             openOrder.getSignalType());
                     if (okexOutsideLimits) {
                         resultOOList.add(openOrder); // keep the same

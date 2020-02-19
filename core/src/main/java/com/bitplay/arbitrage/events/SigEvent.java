@@ -1,6 +1,7 @@
 package com.bitplay.arbitrage.events;
 
 import com.bitplay.arbitrage.BordersService.TradingSignal;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import lombok.Getter;
@@ -19,6 +20,7 @@ import java.time.Instant;
 public class SigEvent {
 
     private SigType sigType;
+    private ArbType arbType;
     private Instant startTime;
 
     // pre signal OB recheck
@@ -29,13 +31,15 @@ public class SigEvent {
     private OrderBook btmOrderBook;
     private OrderBook okOrderBook;
 
-    public SigEvent(SigType sigType, Instant startTime) {
+    public SigEvent(SigType sigType, ArbType arbType, Instant startTime) {
         this.sigType = sigType;
+        this.arbType = arbType;
         this.startTime = startTime;
     }
 
     public SigEvent(SigType sigType, Instant startTime, boolean preSignalReChecked, DeltaName deltaName, TradingMode tradingMode,
                     TradingSignal prevTradingSignal, OrderBook btmOrderBook, OrderBook okOrderBook) {
+        this.arbType = ArbType.LEFT;
         this.sigType = sigType;
         this.startTime = startTime;
         this.preSignalReChecked = preSignalReChecked;

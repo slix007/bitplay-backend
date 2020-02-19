@@ -11,6 +11,7 @@ import com.bitplay.okex.v3.service.swap.SwapPrivateApi;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,7 @@ public class SwapTradeApiServiceTest extends BaseTests {
 //        LOG.info(accounts.toString());
     }
 
+    @Ignore
     @Test
     public void getPosition() throws JsonProcessingException {
 //        final OkexAllPositions positions = tradeApiService.getPositions();

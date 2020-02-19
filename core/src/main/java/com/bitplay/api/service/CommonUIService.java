@@ -12,7 +12,6 @@ import com.bitplay.api.dto.ResultJson;
 import com.bitplay.api.dto.SumBalJson;
 import com.bitplay.api.dto.TimersJson;
 import com.bitplay.api.dto.TradeLogJson;
-import com.bitplay.api.dto.ob.LimitsJson;
 import com.bitplay.api.dto.pos.PosDiffJson;
 import com.bitplay.api.dto.states.DelayTimerBuilder;
 import com.bitplay.api.dto.states.DelayTimerJson;
@@ -34,7 +33,7 @@ import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
-import com.bitplay.market.bitmex.BitmexLimitsService;
+import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -90,12 +89,6 @@ public class CommonUIService {
 
     @Autowired
     private ArbitrageService arbitrageService;
-
-    @Autowired
-    private BitmexService bitmexService;
-
-    @Autowired
-    private OkCoinService okCoinService;
 
     @Autowired
     private DqlStateService dqlStateService;
@@ -323,10 +316,12 @@ public class CommonUIService {
             return new MarketStatesJson();
         }
         final ArbState arbState = arbitrageService.getArbState();
-        final MarketState btmState = arbitrageService.getLeftMarketService().getMarketState();
-        final MarketState okState = arbitrageService.getRightMarketService().getMarketState();
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
+        final MarketState btmState = left.getMarketState();
+        final MarketState okState = right.getMarketState();
 
-        boolean reconnectInProgress = ((BitmexService) arbitrageService.getLeftMarketService()).isReconnectInProgress();
+        boolean reconnectInProgress = ((BitmexService) left).isReconnectInProgress();
         String btmReconnectState = reconnectInProgress ? "IN_PROGRESS" : "NONE";
 
         DelayTimerJson corrDelay = getCorrDelay();
@@ -344,35 +339,24 @@ public class CommonUIService {
         final PosDiffJson posDiff = getPosDiff();
         signalPartsJson.setNtUsd(posDiff.isMainSetEqual() && posDiff.isExtraSetEqual() ? Status.OK : Status.WRONG);
         signalPartsJson.setStates(arbState == ArbState.READY && btmState == MarketState.READY && okState == MarketState.READY ? Status.OK : Status.WRONG);
-        final BigDecimal posBtm = bitmexService.getPosVal();
-        final BigDecimal posOk = okCoinService.getPosVal();
-        signalPartsJson.setBtmDqlOpen(getDqlOpenStatus(bitmexService, posBtm));
-        signalPartsJson.setOkDqlOpen(getDqlOpenStatus(okCoinService, posOk));
+        final BigDecimal posBtm = left.getPosVal();
+        final BigDecimal posOk = right.getPosVal();
+        signalPartsJson.setBtmDqlOpen(getDqlOpenStatus(left, posBtm));
+        signalPartsJson.setOkDqlOpen(getDqlOpenStatus(right, posOk));
         setAffordableStatus(signalPartsJson);
-        final boolean btmLimOut = ((BitmexLimitsService) bitmexService.getLimitsService()).outsideLimits();
+        final boolean btmLimOut = left.getLimitsService().outsideLimits();
         final DeltaName signalStatusDelta = arbitrageService.getSignalStatusDelta();
-        boolean okLimOut = false;
-        if (signalStatusDelta != null) {
-            final LimitsJson limitsJson = okCoinService.getLimitsService().getLimitsJson();
-            if (limitsJson.getIgnoreLimits()) {
-                okLimOut = false;
-            } else {
-                if (signalStatusDelta == DeltaName.B_DELTA) {
-                    okLimOut = !limitsJson.getInsideLimitsEx().getBtmDelta();
-                } else {
-                    okLimOut = !limitsJson.getInsideLimitsEx().getOkDelta();
-                }
-            }
-        }
+        boolean okLimOut = right.getLimitsService().outsideLimits();
+
         signalPartsJson.setDeltaName(signalStatusDelta == null ? "_" : signalStatusDelta.getDeltaSymbol());
 
         signalPartsJson.setPriceLimits(!btmLimOut && !okLimOut ? Status.OK : Status.WRONG);
 
-        signalPartsJson.setBtmOrderBook(Utils.isObOk(bitmexService.getOrderBook()) ? Status.OK : Status.WRONG);
-        signalPartsJson.setBtmOrderBookXBTUSD(Utils.isObOk(bitmexService.getOrderBookXBTUSD()) ? Status.OK : Status.WRONG);
-        signalPartsJson.setOkOrderBook(Utils.isObOk(okCoinService.getOrderBook()) ? Status.OK : Status.WRONG);
+        signalPartsJson.setBtmOrderBook(Utils.isObOk(left.getOrderBook()) ? Status.OK : Status.WRONG);
+        signalPartsJson.setBtmOrderBookXBTUSD(Utils.isObOk(left.getOrderBookXBTUSD()) ? Status.OK : Status.WRONG);
+        signalPartsJson.setOkOrderBook(Utils.isObOk(right.getOrderBook()) ? Status.OK : Status.WRONG);
 
-        final OrderPortionsJson orderPortionsJson = new OrderPortionsJson(bitmexService.getPortionsProgressForUi(), okCoinService.getPortionsProgressForUi());
+        final OrderPortionsJson orderPortionsJson = new OrderPortionsJson(left.getPortionsProgressForUi(), right.getPortionsProgressForUi());
 
         final DqlState dqlState = dqlStateService.getCommonDqlState();
         final OkexFtpd okexFtpd = settingsRepositoryService.getSettings().getOkexFtpd();
@@ -381,8 +365,8 @@ public class CommonUIService {
         return new MarketStatesJson(
                 btmState.toString(),
                 okState.toString(),
-                arbitrageService.getLeftMarketService().getTimeToReset(),
-                arbitrageService.getRightMarketService().getTimeToReset(),
+                left.getTimeToReset(),
+                right.getTimeToReset(),
                 String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
                 timeToSignal,
                 tradingModeService.secToReset(),
@@ -475,9 +459,11 @@ public class CommonUIService {
 
     private DelayTimerJson getPreliqDelay() {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getPreliqDelaySec();
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
 
-        long btmToStart = bitmexService.getDtPreliq().secToReady(delaySec);
-        long okToStart = okCoinService.getDtPreliq().secToReady(delaySec);
+        long btmToStart = left.getDtPreliq().secToReady(delaySec);
+        long okToStart = right.getDtPreliq().secToReady(delaySec);
 
         return DelayTimerBuilder.createEmpty(delaySec)
                 .addTimer(btmToStart, "bitmex")
@@ -487,9 +473,11 @@ public class CommonUIService {
 
     private DelayTimerJson getKillposDelay() {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getKillposDelaySec();
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
 
-        long btmToStart = bitmexService.getDtKillpos().secToReady(delaySec);
-        long okToStart = okCoinService.getDtKillpos().secToReady(delaySec);
+        long btmToStart = left.getDtKillpos().secToReady(delaySec);
+        long okToStart = right.getDtKillpos().secToReady(delaySec);
 
         return DelayTimerBuilder.createEmpty(delaySec)
                 .addTimer(btmToStart, "bitmex")
@@ -587,7 +575,7 @@ public class CommonUIService {
 
             String btmUsdInContract = "1";
             final BigDecimal cm = placingBlocks.getCm();
-            if (bitmexService.getContractType().isEth()) {
+            if (arbitrageService.isEth()) {
                 btmUsdInContract = BigDecimal.valueOf(10).divide(cm, 2, RoundingMode.HALF_UP).toPlainString();
             }
 
@@ -600,7 +588,7 @@ public class CommonUIService {
                     arbitrageService.getExtraSetSource(),
                     placingBlocks,
                     btmUsdInContract,
-                    bitmexService.getContractType().isEth(),
+                    arbitrageService.isEth(),
                     cm
             );
 
