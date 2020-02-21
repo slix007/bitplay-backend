@@ -3,6 +3,7 @@ package com.bitplay.api.controller;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
+import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -13,6 +14,7 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.AbortSignal;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
 import com.bitplay.persistance.domain.settings.BitmexObType;
+import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.Limits;
@@ -93,8 +95,14 @@ public class SettingsEndpoint {
 
     private void setTransientFields(Settings settings) {
         // Contract names
-//        final ContractMode contractMode = ContractMode.parse(bitmexService.getFuturesContractName(), okCoinService.getFuturesContractName());
-//        settings.setContractModeCurrent(contractMode);
+
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
+        if (left == null || right == null) {
+            return;
+        }
+        final ContractMode contractMode = ContractMode.parse(left.getFuturesContractName(), right.getFuturesContractName());
+        settings.setContractModeCurrent(contractMode);
 //        settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
 
         // Corr
@@ -107,19 +115,14 @@ public class SettingsEndpoint {
 
         // BitmexObType
         BitmexObType bitmexObTypeCurrent = settings.getBitmexObType();
-        if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
-            bitmexObTypeCurrent = ((BitmexService) arbitrageService.getLeftMarketService()).getBitmexObTypeCurrent();
-        } else if (arbitrageService.getRightMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
-            bitmexObTypeCurrent = ((BitmexService) arbitrageService.getRightMarketService()).getBitmexObTypeCurrent();
+        if (left.getMarketStaticData() == MarketStaticData.BITMEX) {
+            bitmexObTypeCurrent = ((BitmexService) left).getBitmexObTypeCurrent();
+        } else if (right.getMarketStaticData() == MarketStaticData.BITMEX) {
+            bitmexObTypeCurrent = ((BitmexService) right).getBitmexObTypeCurrent();
         }
         settings.setBitmexObTypeCurrent(bitmexObTypeCurrent);
 
-        BigDecimal okexLeverage = BigDecimal.ZERO;
-        if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
-            okexLeverage = ((OkCoinService) arbitrageService.getLeftMarketService()).getLeverage();
-        } else if (arbitrageService.getRightMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
-            okexLeverage = ((OkCoinService) arbitrageService.getRightMarketService()).getLeverage();
-        }
+        BigDecimal okexLeverage = ((OkCoinService) right).getLeverage();
         settings.getSettingsTransient().setOkexLeverage(okexLeverage);
     }
 
@@ -130,6 +133,17 @@ public class SettingsEndpoint {
 
         settingsRepositoryService.setInvalidated();
         Settings settings = settingsRepositoryService.getSettings();
+        if (settingsUpdate.getContractMode() != null) {
+            final ContractMode c = settingsUpdate.getContractMode();
+            final ContractMode curr = settings.getContractMode();
+            final ContractMode updated = new ContractMode(
+                    c.getLeft() != null ? c.getLeft() : curr.getLeft(),
+                    c.getRight() != null ? c.getRight() : curr.getRight()
+            );
+            settings.setContractMode(updated);
+            settingsRepositoryService.saveSettings(settings);
+        }
+
         if (settingsUpdate.getBitmexPlacingType() != null) {
             settings.setBitmexPlacingType(settingsUpdate.getBitmexPlacingType());
             settingsRepositoryService.saveSettings(settings);

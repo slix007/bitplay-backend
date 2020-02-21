@@ -35,6 +35,7 @@ import org.knowm.xchange.dto.trade.ContractLimitOrder;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -113,6 +114,9 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public OrderBookJson getOrderBook() {
+        if (getBusinessService() == null) {
+            return new OrderBookJson();
+        }
         return convertOrderBookAndFilter(
                 getBusinessService().getOrderBook(),
                 getBusinessService().getTicker()
@@ -141,6 +145,9 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public AccountInfoJson getFullAccountInfo() {
+        if (getBusinessService() == null) {
+            return new AccountInfoJson();
+        }
 
         final FullBalance fullBalance = getBusinessService().getFullBalance();
         if (fullBalance.getAccountBalance() == null) {
@@ -225,6 +232,9 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public List<OrderJson> getOpenOrders() {
         final T businessService = getBusinessService();
+        if (businessService == null) {
+            return new ArrayList<>();
+        }
         final List<OrderJson> res = businessService.getOpenOrders().stream()
                 .map(openOrderToJson)
                 .collect(Collectors.toList());
@@ -249,6 +259,9 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public LiquidationInfoJson getLiquidationInfoJson() {
+        if (getBusinessService() == null) {
+            return new LiquidationInfoJson("", "", "", "");
+        }
         final LiqInfo liqInfo = getBusinessService().getLiqInfo();
         final LiqParams liqParams = getBusinessService().getPersistenceService().fetchLiqParams(getBusinessService().getName());
         String dqlString = liqInfo.getDqlString();

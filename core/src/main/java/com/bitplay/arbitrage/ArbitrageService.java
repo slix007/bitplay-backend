@@ -233,9 +233,9 @@ public class ArbitrageService {
             final BitmexService bitmexService = (BitmexService) this.leftMarketService;
             this.leftLimitService = new BitmexLimitsService(slackNotifications, bitmexService, settingsRepositoryService);
         } else {
-            this.leftLimitService = new OkexLimitsService(slackNotifications, (OkCoinService) this.leftLimitService, settingsRepositoryService);
+            this.leftLimitService = new OkexLimitsService(slackNotifications, (OkCoinService) this.leftMarketService, settingsRepositoryService);
         }
-        this.rightLimitService = new OkexLimitsService(slackNotifications, (OkCoinService) this.rightLimitService, settingsRepositoryService);
+        this.rightLimitService = new OkexLimitsService(slackNotifications, (OkCoinService) this.rightMarketService, settingsRepositoryService);
         rightMarketService.setLimitsService(rightLimitService);
         leftMarketService.setLimitsService(leftLimitService);
 
